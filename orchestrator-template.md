@@ -61,6 +61,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 - 项目配置：`{project_root}/CLAUDE.md`（或 `AGENTS.md`）
 - 任务看板：`{project_root}/docs/tasks/active-tasks.md`
+  （初次接入时从 `{agate_root}/assets/templates/active-tasks-template.md` 复制结构）
 - 任务目录：`{project_root}/docs/tasks/`
 
 ## 项目特定约束

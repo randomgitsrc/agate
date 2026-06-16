@@ -72,7 +72,7 @@ agate/
 ├── assets/
 │   ├── execution-roles/         # analyst/architect/implementer/verifier 等
 │   ├── review-roles/            # staff-engineer/security/qa 等评审角色
-│   └── templates/               # P0-brief、dispatch-prompt 等模板
+│   └── templates/               # P0-brief、active-tasks、dispatch-prompt 等模板
 └── archived/                    # 历史验证文档
 ```
 
