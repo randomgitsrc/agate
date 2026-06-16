@@ -1,6 +1,6 @@
 ---
 # ── 路径配置（全文路径以此为准）──────────────────────────────
-agate_root: /absolute/path/to/agate          # agate repo 的绝对路径
+agate_root: ~/.agate                          # 标准安装位置（git clone https://github.com/randomgitsrc/agate.git ~/.agate）
 project_root: /absolute/path/to/your-project # 项目根目录的绝对路径
 # ─────────────────────────────────────────────────────────────
 ---

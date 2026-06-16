@@ -32,22 +32,24 @@ gate 验收（pytest/npm test exit code，BDD 实跑）
 
 ## 快速上手
 
-**1. 克隆到本地**
+**1. 安装 agate（标准位置 `~/.agate/`）**
 
 ```bash
-git clone https://github.com/randomgitsrc/agate.git /path/to/agate
+git clone https://github.com/randomgitsrc/agate.git ~/.agate
 ```
+
+约定使用 `~/.agate/` 作为标准安装位置，所有项目共用一份，orchestrator.md 路径统一，换机器只需重新 clone 到同一位置。
 
 **2. 在你的项目里创建 orchestrator**
 
 ```bash
-cp /path/to/agate/orchestrator-template.md \
-   your-project/docs/converse/agents/orchestrator.md
+cp ~/.agate/orchestrator-template.md \
+   your-project/docs/agents/orchestrator.md
 ```
 
-**3. 填写两个路径**
+**3. 填写项目信息**
 
-打开 `orchestrator.md`，填写顶部 YAML 的 `agate_root` 和 `project_root`，再填写项目特定约束。
+打开 `orchestrator.md`，`agate_root` 已预填为 `~/.agate`，只需填写 `project_root` 和项目特定约束。
 
 **4. 把 orchestrator.md 配置给你的 Agent**
 
