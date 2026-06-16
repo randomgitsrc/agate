@@ -63,7 +63,7 @@ network: full               # full | restricted
 ---
 
 > **使用说明**：
-> 1. 将本文件复制到项目的 `docs/converse/agents/orchestrator.md`
+> 1. 将本文件复制到项目的 Agent 角色目录（如 `docs/agents/orchestrator.md` 或 `docs/converse/agents/orchestrator.md`）
 > 2. 填写顶部 YAML 的两个路径
 > 3. 填写「项目特定约束」和「执行环境」部分
 > 4. 删除本说明块

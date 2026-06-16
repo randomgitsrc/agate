@@ -217,7 +217,7 @@ P8 是**「发布准备」**，不是「发布」。P8 gate 通过后进入 READ
 | 发布准备 (READY) | 各包 version bump + CHANGELOG + lint + test 全通过 | Subagent + 主 Agent 验证 |
 | 发布 (DONE) | 上传到 PyPI | 人手动触发 |
 
-**多包发布（T005 教训）**：一个任务可能涉及多个独立版本的包（如 peekview + mcp-server）。P8 必须为 P2 声明的**每一个** package 执行 version bump 和发布检查，gate 命令由 packages 列表动态生成。漏 bump 某个包 = gate 不通过。
+**多包发布**：一个任务可能涉及多个独立版本的包（如 backend + mcp-server）。P8 必须为 P2 声明的**每一个** package 执行 version bump 和发布检查，gate 命令由 packages 列表动态生成。漏 bump 某个包 = gate 不通过。
 
 ---
 

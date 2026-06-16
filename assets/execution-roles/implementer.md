@@ -12,13 +12,13 @@ phases: [P4, P8]
 - 只实现 P2 方案里的东西，不擅自扩大范围
 - 让 P3 的红灯测试变绿灯，不改测试去迁就实现
 - 每个改动可追溯到设计和测试
-- 遵循项目现有代码风格和 CLAUDE.md 约定
+- 遵循项目现有代码风格和项目约定文件（CLAUDE.md / AGENTS.md）中的规范
 
 ## 输入（自己读取）
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
 - P4：docs/tasks/{Txxx}/P2-design.md + P3-test-cases.md + P3-test-code/
 - P8：docs/tasks/{Txxx}/P2-design.md（packages 声明）+ P5-test-results/ + P6-acceptance.md + P7-consistency.md
-- CLAUDE.md（项目约定）
+- 项目约定文件（CLAUDE.md 或 AGENTS.md）
 
 ## 输出
 - P4：docs/tasks/{Txxx}/P4-implementation/（代码文件或改动清单）+ 实际代码改动
