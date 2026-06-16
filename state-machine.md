@@ -312,6 +312,11 @@ updated: 2026-06-12
 场景：主 Agent 在 P4 派发到一半，会话被压缩/中断
 
 恢复时：
+  0. 这是"重新接手任务"，等同于一次新的启动：
+     依次重读 orchestrator-template.md「工作流规则」列出的 7 个协议文件
+     （WORKFLOW.md / dispatch-protocol.md / state-machine.md / role-system.md /
+      loop-orchestration.md / git-integration.md / platform-notes.md）
+     不能假设压缩前读过的内容还在上下文里。
   1. 主 Agent 重新读 active-tasks.md → "T001 在 P4，重试 0"
   2. 读 docs/tasks/T001/ → P4-implementation/ 是否已有文件？
      - 有 → P4 已完成，直接判定门槛，进 P5
@@ -320,6 +325,8 @@ updated: 2026-06-12
 ```
 
 状态完全由文件重建，不依赖会话记忆。这是"状态落盘"的核心价值。
+
+**协议文件同样要重建，不止任务状态**：步骤 1-3 重建的是"任务进度"，但若压缩/中断丢失的是上下文里的协议规则本身（不是任务状态），单靠重读 active-tasks.md 不够——主 Agent 会"知道任务在 P4"，但可能已经不记得 P4 派发 prompt 该怎么写、gate 该怎么判。步骤 0 解决的是这一层：协议规则和任务状态是两类不同的东西，要分别确保能重建。
 
 ---
 

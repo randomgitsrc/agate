@@ -45,15 +45,19 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 ## 工作流规则
 
-遵循 **agate** 工作流。
+遵循 **agate** 工作流。**启动后、执行任何任务前，依次读完以下文件**（这是一次性固定开销，不是"按需"判断——按需读取的前提是"知道什么时候需要"，而这恰恰不可靠）：
 
-- 入口文件：`{agate_root}/WORKFLOW.md`（P0-P8 规则、裁剪判断、阶段定义）
-- 其余文件按需读取，均在 `{agate_root}/` 下：
-  - `dispatch-protocol.md` — 派发协议、gate 表、特殊事件处理
-  - `state-machine.md` — 状态转移规则、单步执行函数
-  - `assets/execution-roles/` — analyst/architect/implementer/verifier 等角色定义
-  - `assets/templates/` — P0-brief、dispatch-prompt 等模板
-  - `platform-notes.md` — 当前平台的能力限制说明
+1. `{agate_root}/WORKFLOW.md` — 阶段总览、角色映射、裁剪规则
+2. `{agate_root}/dispatch-protocol.md` — 派发模板、gate 表、特殊事件处理
+3. `{agate_root}/state-machine.md` — 转移规则、重试上限、单步函数
+4. `{agate_root}/role-system.md` — 双层角色体系、domains→评审角色映射
+5. `{agate_root}/loop-orchestration.md` — /loop 自动编排、护栏规则
+6. `{agate_root}/git-integration.md` — commit 规范（`wf()` 前缀）、push 策略
+7. `{agate_root}/platform-notes.md` — 各平台能力差异、已知坑
+
+**会话被压缩/中断后重新接手任务，等同于一次新的启动**：同样要重新依次读完这 7 个文件，不能假设之前读过的内容还在上下文里。（任务进度可以从 active-tasks.md 重建，但协议规则本身不会自动出现在上下文里——这是两类不同的状态，见 state-machine.md「为什么这样能抗中断」）
+
+`assets/execution-roles/` 和 `assets/templates/` 不在此列——这些是 subagent 在独立上下文里读的，编排者（你）不需要读，只需要知道"P1 派 analyst"，WORKFLOW.md 里已有角色映射表。
 
 **每次任务开始前**：先读 `{project_root}/docs/tasks/active-tasks.md`，无进行中任务再启动新任务。
 
