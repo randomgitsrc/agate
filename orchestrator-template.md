@@ -1,7 +1,30 @@
 ---
-# ── 路径配置（全文路径以此为准）──────────────────────────────
-agate_root: ~/.agate                          # 标准安装位置（git clone https://github.com/randomgitsrc/agate.git ~/.agate）
-project_root: /absolute/path/to/your-project # 项目根目录的绝对路径
+# ── agate 路径配置（所有平台必填）─────────────────────────────
+agate_root: ~/.agate                           # 标准安装位置，见 README
+project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
+
+# ── 平台专有配置（按需取消注释）──────────────────────────────
+
+# OpenCode 用户：
+# description: agate orchestrator for {项目名}
+# mode: primary
+# permission:
+#   edit: ask
+#   bash:
+#     "pytest*": allow
+#     "npm run*": allow
+#     "git*": allow
+#     "make*": allow
+#     "ls*": allow
+#     "*": ask
+#   read: allow
+#   glob: allow
+#   grep: allow
+#   list: allow
+#   task: allow
+#   todowrite: allow
+
+# Claude Code 用户：在 CLAUDE.md 里配置，此处无需额外字段
 # ─────────────────────────────────────────────────────────────
 ---
 
