@@ -40,7 +40,17 @@ P5 门槛通过（failed==0）→ 主 Agent commit
 
 commit message 格式：`wf({task_id}-{phase}): {一句话进度}`，可追溯。
 
-> 注：`wf()` 前缀是 agate 工作流进度提交的专用约定，与项目现有的 Conventional Commits（`feat:`/`fix:`/`docs:` 等）**并行使用，不冲突**。`wf()` 用于任务阶段进度，其他前缀用于常规变更（功能、修复、文档）。
+> 注：`wf()` 前缀是 agate 工作流进度提交的专用约定，与项目现有的 Conventional Commits（`feat:`/`fix:`/`docs:` 等）**并行使用，不冲突**。
+
+**两种前缀的判定标准（消除"常规变更"这种模糊说法）**：
+
+| commit 内容 | 前缀 | 例子 |
+|---|---|---|
+| 某个阶段门槛刚通过，记录"进度到哪了" | `wf({task_id}-{phase}):` | `wf(T011-P2): 方案设计通过` |
+| 任务全部完成（P8 之后）或某阶段产出的代码本身，描述"做了什么功能/修了什么问题" | `feat({task_id}):` / `fix({task_id}):` | `feat(T011): 用户管理 API+CLI` |
+| 和具体任务无关的变更（依赖升级、格式化、临时脚本）| 标准 Conventional Commits，不带 task_id | `chore: 升级 pytest` |
+
+**实测验证**（PeekView 历史 528 commit 抽样核实）：阶段记录类 commit 基本都正确使用了 `wf()`；功能描述类 commit（即使在同一任务里）自然倒向了 `feat(Txxx):`，这恰好印证了上面的判定标准——**两种前缀本来就对应两种不同的 commit 意图，不是"漏用"，是约定一直隐含存在，只是之前没有写清楚**。本节的修订是把这个隐含约定显式化，不是改变实际行为。
 
 ### 规则 3：push 分档位，且 push 前必须 pull --rebase
 

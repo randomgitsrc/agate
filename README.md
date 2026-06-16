@@ -3,7 +3,7 @@
 > AI Agent workflow protocol for software engineering.
 > Orchestrate subagents with phase gates, state persistence, and role isolation.
 
-[![version](https://img.shields.io/badge/version-v1.1.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v1.2.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **agate** 是一套面向软件工程的 AI Agent 编排协议。
