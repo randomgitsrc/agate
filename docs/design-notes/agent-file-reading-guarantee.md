@@ -1,7 +1,7 @@
 # Agent 文件读取保证
 
 > 日期：2026-06-16
-> 状态：待决策
+> 状态：已决策
 
 ## 问题
 
@@ -35,35 +35,37 @@ agent 大概率只读 WORKFLOW.md，"按需读取"的文件不会主动去读。
 
 把 gate 表、转移规则、角色映射等操作性内容直接写进 WORKFLOW.md。问题：WORKFLOW.md 已 311 行，再塞 ~140 行会膨胀；与 dispatch-protocol.md / state-machine.md 严重重复；维护一处改多处。
 
-### 方案 C（当前共识）：在 orchestrator-template 里写固定执行流程
+### 方案 C：每步重读（否决）
 
-把每步操作写成固定流程，读取动作嵌入流程步骤，不存在"要不要读"的判断：
+在 orchestrator-template 里写固定流程，每步都重读 state-machine.md + dispatch-protocol.md。问题：
+- state-machine.md 和 dispatch-protocol.md 的规则在运行中不会变，每步重读是多余的
+- 执行角色文件是 subagent 读的，不是主 Agent（编排者）读的——混入流程反而是错误指令
+
+### 方案 D（采用）：启动时一次性读完
+
+主 Agent 启动后、执行任何任务前，依次读完 4 个核心文件：
 
 ```markdown
-## 每一步执行流程
+## 工作流规则
 
-1. 读 {project_root}/docs/tasks/active-tasks.md → 确认当前阶段
-2. 读 {agate_root}/state-machine.md → 确认本阶段转移规则和重试上限
-3. 读 {agate_root}/dispatch-protocol.md → 确认本阶段 gate 命令和派发模板
-4. 读 {agate_root}/assets/execution-roles/{本阶段角色}.md → 确认角色定义
-5. 派发 subagent
-6. 亲自跑 gate 命令
-7. 更新状态
+遵循 agate 工作流。启动后依次读完以下文件，再开始执行任务：
+
+1. {agate_root}/WORKFLOW.md          ← 阶段总览 + 角色映射 + 裁剪规则
+2. {agate_root}/dispatch-protocol.md  ← 派发模板 + gate 表 + 特殊事件处理
+3. {agate_root}/state-machine.md      ← 转移规则 + 重试上限 + 单步函数
+4. {agate_root}/role-system.md        ← 双层角色体系 + domains→评审角色映射
+
+其余文件（loop-orchestration.md、git-integration.md、platform-notes.md）
+在需要时参考。
 ```
 
-核心思路：从"你需要时去读"变成"每一步都先读这些再动手"。1-4 是固定动作，不存在"要不要读"的判断。
+**为什么是这 4 个**：编排者需要的全部规则都在里面——阶段总览、gate 命令、派发模板、转移规则、重试上限、角色选择。读完就能走完 P0-P8。
 
-**为什么写在 orchestrator-template 而不是 WORKFLOW.md**：orchestrator-template 是 agent 的角色提示词，保证被读到；WORKFLOW.md 是被 template 引用的文件，agent 可能读了就觉得自己够了。
+**为什么不列 execution-roles**：执行角色文件是 subagent 在独立上下文里读的，不是编排者读的。编排者只需要知道"P1 派 analyst"，这 WORKFLOW.md 里已经有了。
 
-**代价**：template 变长；与 state-machine.md 的"单步执行函数"有重复。但重复的只是"读什么"的清单，不是完整规则内容——一个是编排指令（template），一个是机制定义（state-machine.md）。
+**代价**：4 个文件约 1400 行，启动时一次性读入上下文。相比方案 C 的每步重读（P0-P8 累计 ~7500 行重复扫描），是一次性固定开销 vs 持续重复开销的权衡。
 
-## 待决策
+## 修改范围
 
-1. 方案 C 是否可接受？重复代价 vs 读取保证的权衡
-2. 固定流程的粒度——7 步够不够？是否需要细化到每个阶段的不同读取内容？
-3. 是否需要同步修改 WORKFLOW.md 的"按需读取"措辞，避免两个文件的指令矛盾？
-
-## 修改范围（若采用方案 C）
-
-- `orchestrator-template.md`：新增"每一步执行流程"节，替代现有"工作流规则"的按需读取清单
+- `orchestrator-template.md`：将"其余文件按需读取"改为"启动后依次读完 4 个核心文件"
 - 其余文件不动
