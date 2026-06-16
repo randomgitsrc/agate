@@ -43,7 +43,7 @@ agent 大概率只读 WORKFLOW.md，"按需读取"的文件不会主动去读。
 
 ### 方案 D（采用）：启动时一次性读完
 
-主 Agent 启动后、执行任何任务前，依次读完 4 个核心文件：
+主 Agent 启动后、执行任何任务前，依次读完全部顶层协议文件：
 
 ```markdown
 ## 工作流规则
@@ -54,18 +54,13 @@ agent 大概率只读 WORKFLOW.md，"按需读取"的文件不会主动去读。
 2. {agate_root}/dispatch-protocol.md  ← 派发模板 + gate 表 + 特殊事件处理
 3. {agate_root}/state-machine.md      ← 转移规则 + 重试上限 + 单步函数
 4. {agate_root}/role-system.md        ← 双层角色体系 + domains→评审角色映射
-
-其余文件（loop-orchestration.md、git-integration.md、platform-notes.md）
-在需要时参考。
+5. {agate_root}/loop-orchestration.md ← /loop 自动编排 + 护栏规则
+6. {agate_root}/git-integration.md    ← commit 规范（wf() 前缀）+ push 策略
+7. {agate_root}/platform-notes.md     ← 各平台能力差异 + 已知坑
 ```
 
-**为什么是这 4 个**：编排者需要的全部规则都在里面——阶段总览、gate 命令、派发模板、转移规则、重试上限、角色选择。读完就能走完 P0-P8。
+**为什么不列 assets/ 下的文件**：执行角色文件和模版是 subagent 在独立上下文里读的，编排者不需要读。编排者只需要知道"P1 派 analyst"，这 WORKFLOW.md 里已经有了。
 
-**为什么不列 execution-roles**：执行角色文件是 subagent 在独立上下文里读的，不是编排者读的。编排者只需要知道"P1 派 analyst"，这 WORKFLOW.md 里已经有了。
+**为什么全列而不是挑 4 个**：loop-orchestration.md 里的全局步数上限、git-integration.md 里的 `wf()` 前缀约定、platform-notes.md 里的 issue #29616——这些文件存在的意义就是"防止踩坑"。如果 agent 不读，它们的存在价值就丢失了。没有哪一个是可以安全跳过的。
 
-**代价**：4 个文件约 1400 行，启动时一次性读入上下文。相比方案 C 的每步重读（P0-P8 累计 ~7500 行重复扫描），是一次性固定开销 vs 持续重复开销的权衡。
-
-## 修改范围
-
-- `orchestrator-template.md`：将"其余文件按需读取"改为"启动后依次读完 4 个核心文件"
-- 其余文件不动
+**代价**：7 个文件约 1900 行，一次性读入上下文。相比按需读取的"几乎不读"，是有明确回报的固定开销。
