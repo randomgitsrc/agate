@@ -37,7 +37,7 @@ source: {可选，如果改编自某处}
 2. 平台适配（二选一）：
    - 方法 A：在 OpenCode/Claude Code agent 目录放对应 markdown（文件名=role_id）
    - 方法 B（推荐，最稳）：不依赖平台自定义机制，派发时用 general subagent +
-     在 prompt 里写"读取 docs/process/workflow-v4/assets/.../{role_id}.md 并遵循"
+     在 prompt 里写"读取 {agate_root}/assets/.../{role_id}.md 并遵循"
 3. 派发时引用这个角色文件路径
 
 ## 注意（OpenCode issue #29616）

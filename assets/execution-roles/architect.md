@@ -41,7 +41,7 @@ phases: [P2, P7]
     ```yaml
     env_constraints:
       debug_env: "（从 P0-brief 继承，或补充具体命令）"
-      # 不写 prod_env：生产环境不在 v4 范围内
+      # 不写 prod_env：生产环境不在 agate 范围内
       isolation_check: "（测试环境隔离的验证方式，P5 gate 会用到这里）"
     ```
 - P7：docs/tasks/{Txxx}/P7-consistency.md（实现 vs 设计的一致性检查）

@@ -20,7 +20,7 @@ mode: 需求质疑（requirements interrogation）
 
 - docs/tasks/{Txxx}/P0-brief.md（主 Agent 任务简报：环境约束、已知风险、裁剪倾向——**P1 的主要输入**）
 - 原始需求 / Bug 报告（主 Agent 在 prompt 里给路径或描述，或从 P0-brief 的 task 字段理解）
-- docs/process/workflow-v4/README.md（尤其"需求与验收机制"一节）
+- {agate_root}/WORKFLOW.md（尤其"需求与验收机制"一节）
 - 相关现有代码/文档（理解现状，判断隐含依赖）
 
 ## 输出
@@ -41,7 +41,7 @@ capability_requirements:
   - need: browser-vision       # 需要什么能力
     why: P6 验收需要截图验证交互行为
     available:                 # 当前环境中可用的来源（先检查内置角色，再看外部 skill/agent）
-      - vision-analyst（workflow-v4 内置执行角色，首选）
+      - vision-analyst（agate 内置执行角色，首选）
       - playwright-vision skill（若已注入，作为补充）
       - @vision-helper（若可调用，作为补充）
     status: available          # available=已具备 / supplementable=可补充 / GAP=真缺失

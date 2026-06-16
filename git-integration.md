@@ -1,6 +1,6 @@
 # Git 集成：状态落盘的持久化
 
-> workflow-v4，定义"状态文件何时入 git"——这是状态落盘真正生效的保证
+> agate，定义"状态文件何时入 git"——这是状态落盘真正生效的保证
 
 ---
 
@@ -40,7 +40,7 @@ P5 门槛通过（failed==0）→ 主 Agent commit
 
 commit message 格式：`wf({task_id}-{phase}): {一句话进度}`，可追溯。
 
-> 注：`wf()` 前缀是 v4 工作流进度提交的专用约定，与项目现有的 Conventional Commits（`feat:`/`fix:`/`docs:` 等）**并行使用，不冲突**。`wf()` 用于任务阶段进度，其他前缀用于常规变更（功能、修复、文档）。
+> 注：`wf()` 前缀是 agate 工作流进度提交的专用约定，与项目现有的 Conventional Commits（`feat:`/`fix:`/`docs:` 等）**并行使用，不冲突**。`wf()` 用于任务阶段进度，其他前缀用于常规变更（功能、修复、文档）。
 
 ### 规则 3：push 分档位，且 push 前必须 pull --rebase
 

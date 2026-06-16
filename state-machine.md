@@ -1,6 +1,6 @@
 # 状态机落盘设计
 
-> workflow-v4，解决"LLM 不能稳定执行长循环"的问题
+> agate，解决"LLM 不能稳定执行长循环"的问题
 
 ---
 
@@ -8,7 +8,7 @@
 
 **状态存在文件里，不在 LLM 的记忆里。**
 
-LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后会忘记自己在循环里、会偏离、会自己开始干活。所以 v4 不依赖 LLM 记住状态，而是每一轮都从文件读状态、执行一步、把新状态写回文件。
+LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后会忘记自己在循环里、会偏离、会自己开始干活。所以 agate 不依赖 LLM 记住状态，而是每一轮都从文件读状态、执行一步、把新状态写回文件。
 
 即使会话被压缩、中断、重启，主 Agent 重新读文件就知道接着干什么。
 
@@ -87,7 +87,7 @@ P5 --[pytest -q exit 0 AND failed==0 AND 测试环境隔离正常（无 PROD_TOU
       ① 无 [PROD_TOUCHED] 标记（被动检测）
       ② 若项目有生产数据状态检查机制：对比测试前后生产库状态（记录数/checksum），
          差值 > 0 说明测试写入了生产环境 → P5 失败。
-         具体检查方式由项目约定（如 conftest snapshot），v4 不硬编码路径。
+         具体检查方式由项目约定（如 conftest snapshot），agate 不硬编码路径。
       ③ 以上均为最低要求，项目应在代码层面实现强制隔离（见 README 隔离原则）。）
     （若 P5 过程中出现任何 [PROD_TOUCHED] 标记 → 立即 PAUSED，不允许进入 P6）
 P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
@@ -108,7 +108,7 @@ P7 --[retry>=MAX]--> PAUSED
 
 P8 --[每个声明的 package 的发布检查命令 exit 0 + git diff 确认各包 version bump + CHANGELOG]--> READY
     （gate 命令集由 P2-design.md 的 packages: 声明动态生成，规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节。
-     gate 命令由 P2 的 packages + gate_commands 字段动态生成，不同项目不同命令，v4 不硬编码）
+     gate 命令由 P2 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码）
 
 阶段跳过转移规则（P1 裁剪声明驱动）：
   P1-requirements.md 的「裁剪说明」声明 phases: [列表]，主 Agent 据此跳过未列出的阶段。

@@ -7,17 +7,17 @@
 
 ## 你的角色定义
 读取并严格遵循：
-docs/process/workflow-v4/assets/{execution-roles|review-roles}/{role}.md
+{agate_root}/assets/{execution-roles|review-roles}/{role}.md
 
 ## 项目上下文（必读，每个 subagent 都需要）
 - {project_conventions_file}（项目约定、命名规范、目录结构）
 - {project_index_file}（项目总览）
-- docs/process/workflow-v4/README.md（流程规范）
+- {agate_root}/WORKFLOW.md（流程规范）
 
 ## 输入（自己读取，不要等我提供内容）
 - docs/tasks/{Txxx}/P0-brief.md（主 Agent 任务简报：环境约束、已知风险、裁剪倾向）
 - docs/tasks/{Txxx}/{上一阶段产出文件}
-- docs/process/workflow-v4/README.md
+- {agate_root}/WORKFLOW.md
 {按角色定义补充其他需要读的文件}
 
 ## 任务
@@ -51,7 +51,7 @@ trace_id: {Txxx}-{Pn}-{YYYYMMDD}
 
 ## 项目占位符映射
 
-> 占位符说明：各项目在自己的约定文件（如 CLAUDE.md）中定义具体映射。以下给出示例值供参考，不是 v4 本身的约定。
+> 占位符说明：各项目在自己的约定文件（如 CLAUDE.md）中定义具体映射。以下给出示例值供参考，不是 agate 本身的约定。
 
 | 占位符 | 说明 | 示例值 |
 |--------|------|--------|

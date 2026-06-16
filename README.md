@@ -1,5 +1,11 @@
 # agate
 
+> AI Agent workflow protocol for software engineering.
+> Orchestrate subagents with phase gates, state persistence, and role isolation.
+
+[![version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/randomgitsrc/agate)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **agate** 是一套面向软件工程的 AI Agent 编排协议。
 
 让 LLM Agent 能可靠完成复杂开发任务——通过「主 Agent 派发 subagent、阶段 gate 验收、状态落盘」的机制，解决单 Agent 在长任务中上下文污染、质量失控的问题。
