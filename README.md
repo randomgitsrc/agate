@@ -55,6 +55,10 @@ cp ~/.agate/orchestrator-template.md \
 
 在 OpenCode/Claude Code 里将 `orchestrator.md` 设为角色提示词，开始第一个任务。
 
+**5. 第一次用，`docs/tasks/` 是空的，这是正常的**
+
+不需要手动创建 `docs/tasks/active-tasks.md`——Agent 启动后会自己检查这个文件是否存在，不存在就从 `assets/templates/active-tasks-template.md` 复制结构、建好目录，再开始第一个任务（T001）。这个初始化逻辑写在 `orchestrator-template.md` 和 `state-machine.md` 里，不需要人工介入。
+
 ---
 
 ## 文件结构

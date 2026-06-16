@@ -59,13 +59,20 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 `assets/execution-roles/` 和 `assets/templates/` 不在此列——这些是 subagent 在独立上下文里读的，编排者（你）不需要读，只需要知道"P1 派 analyst"，WORKFLOW.md 里已有角色映射表。
 
-**每次任务开始前**：先读 `{project_root}/docs/tasks/active-tasks.md`，无进行中任务再启动新任务。
+**每次任务开始前**：
+
+1. 检查 `{project_root}/docs/tasks/active-tasks.md` 是否存在
+   - **不存在**（项目首次接入 agate，这是正常情况）：
+     `mkdir -p {project_root}/docs/tasks/`，
+     从 `{agate_root}/assets/templates/active-tasks-template.md` 复制结构过去（清空示例数据），
+     视为"无进行中任务"，直接进入第 2 步创建第一个任务
+   - **存在**：读取，确认有无进行中任务
+2. 无进行中任务 → 可以启动新任务（写 P0-brief.md）
 
 ## 项目约定
 
 - 项目配置：`{project_root}/CLAUDE.md`（或 `AGENTS.md`）
 - 任务看板：`{project_root}/docs/tasks/active-tasks.md`
-  （初次接入时从 `{agate_root}/assets/templates/active-tasks-template.md` 复制结构）
 - 任务目录：`{project_root}/docs/tasks/`
 
 ## 项目特定约束
