@@ -143,6 +143,44 @@ capability_requirements:
 
 判断 status 时**先看环境**（已注入的 skills、可调用的 agent），不只看主力模型自身能力。
 
+## P2-design.md 结构（方案设计）
+
+```markdown
+## 1. 改动方案
+（影响域、设计、数据流、异常路径）
+
+## 2. 范围声明（必填）
+packages: [pkg-a, pkg-b]
+domains: [backend, frontend]
+ui_affected: false
+
+## 3. gate 命令（在 P2 固化，后续不得修改）
+gate_commands:
+  P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
+  P6: "pytest -q --tb=no tests/acceptance/"
+# 紧凑输出要求：gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式
+# （pytest --tb=no / cargo --quiet / dotnet --verbosity quiet / vitest --reporter=dot
+#  / go test | tail -30 / mvn -q），保留通过失败汇总+失败清单，去掉逐项 traceback。
+# 工具无紧凑模式时用 shell 兜底：命令 2>&1 | tail -N（语言无关）。
+
+## 4. 涉及文件清单（必填，控制 P4 implementer 上下文体量）
+files_to_read:
+  - path: backend/services/auth.py
+    why: 复用现有 hash_password 模式
+  - path: backend/models.py:120-180      # 大文件标行号范围，只读相关片段
+    why: User 模型定义，新字段加在这里
+# 只列实现确实需要参考的文件，不是相关文件大杂烩。
+# P4 implementer 按此清单读取，不在项目里乱窜——这是上下文不爆炸的关键。
+
+## 5. env_constraints（确认/细化 P0-brief）
+env_constraints:
+  debug_env: "..."
+  isolation_check: "..."
+
+## SCOPE+ 增补区（后续阶段回写）
+- [SCOPE+ from P4] ...
+```
+
 ## P6-acceptance.md 结构（验收报告）
 
 ```markdown

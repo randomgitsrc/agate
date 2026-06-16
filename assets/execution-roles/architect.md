@@ -30,10 +30,15 @@ phases: [P2, P7]
   - `gate_commands:` — **P5/P6 的 gate 命令集，在 P2 固化，后续阶段不得修改**：
     ```yaml
     gate_commands:
-      P5: "pytest -q --tb=short"
-      P5_e2e: "playwright test tests/e2e/"   # ui_affected 时必填
-      P6: "pytest -q tests/acceptance/"       # 或 playwright test + 截图
+      P5: "pytest -q --tb=no"                 # 紧凑输出（见下方规范）
+      P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected 时必填
+      P6: "pytest -q --tb=no tests/acceptance/"
     ```
+    **gate 命令必须用紧凑输出模式**（主 Agent 跑 gate 只判断「过没过」，完整诊断留给修复 subagent）：
+    - 优先用工具自带的汇总/安静模式，保留通过/失败汇总和失败项清单，去掉逐项详细诊断（traceback/堆栈全文）
+    - 工具无紧凑模式时，用 shell 管道兜底：`命令 2>&1 | tail -N`（语言无关）
+    - 多语言示例：pytest `-q --tb=no` / cargo `test --quiet` / dotnet `test --verbosity quiet` / vitest `run --reporter=dot` / go `test ./... 2>&1 | tail -30` / mvn `test -q` / ctest `--output-on-failure 2>&1 | tail -40`
+
     主 Agent 派发 P5/P6 时**必须从此字段读取命令**，不得自行定义或在 prompt 中修改。
     subagent 要求跳过 / 降级命令 → 视为 `[SCOPE_GAP]`，该阶段不通过。
     命令不存在或跑不通 → 标 `[CAPABILITY_GAP]` 交人决策，不得降级为目测。
@@ -44,6 +49,16 @@ phases: [P2, P7]
       # 不写 prod_env：生产环境不在 agate 范围内
       isolation_check: "（测试环境隔离的验证方式，P5 gate 会用到这里）"
     ```
+  - `files_to_read:` — **实现时需要读取的文件清单**（你是唯一既读了代码又设计了方案的角色，把这张"上下文地图"显式交付，让 P4 implementer 不必在项目里乱窜找文件、也不必整目录全读撑爆上下文）：
+    ```yaml
+    files_to_read:
+      - path: backend/services/auth.py
+        why: 复用现有 hash_password 模式
+      - path: backend/models.py:120-180     # 可标行号范围，大文件只读相关片段
+        why: User 模型定义，新字段加在这里
+    ```
+    只列**实现确实需要参考**的文件，不是相关文件的大杂烩。大文件标行号范围。
+    P4 implementer 的 prompt 会引用此清单，按需读取——这是控制 subagent 上下文体量的关键。
 - P7：docs/tasks/{Txxx}/P7-consistency.md（实现 vs 设计的一致性检查）
 - 含 Header（parent 指向上一阶段文件）
 

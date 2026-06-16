@@ -20,6 +20,10 @@
 - {agate_root}/WORKFLOW.md
 {按角色定义补充其他需要读的文件}
 
+# P4 派发时额外加这句（控制 implementer 上下文体量）：
+# 读取代码文件以 P2-design.md 的 files_to_read 清单为准，按需读取（标了行号范围的只读片段）。
+# 不要在项目里盲目搜索或整目录全读。
+
 ## 任务
 {这个阶段要做什么，一两句话}
 
@@ -68,3 +72,4 @@ trace_id: {Txxx}-{Pn}-{YYYYMMDD}
 - **Header 给成品不给格式**：主 Agent 派发时已知道所有值（phase/task_id/日期），直接填好让 subagent 复制，避免 subagent 自己拼 trace_id 拼错导致门槛校验失败
 - **路径用完整目录名**：task_dir 是 Txxx-描述（如 T002-fix-db-migration），不是纯 Txxx
 - 这两条是上下文不爆炸的保证
+- **P4 派发引用 files_to_read**：让 implementer 按 architect 画好的"上下文地图"读文件，而非自己乱窜——这是控制被派发方上下文的关键

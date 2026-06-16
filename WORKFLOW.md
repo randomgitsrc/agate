@@ -1,6 +1,6 @@
 # agate — 子 Agent 编排工作流
 
-> **版本：v1.0.0**
+> **版本：v1.1.0**
 > 适用：OpenCode / Claude Code / Codex 等支持 subagent 的 Agent 平台
 > 完整规则文档，从此文件开始阅读。
 >
@@ -14,7 +14,7 @@ agate 是一套「主 Agent 编排、子 Agent 执行」的开发流程。主 Ag
 
 agate 建立在两条主线上：
 
-**编排主线（继承自前代，已被真实任务验证）**
+**编排主线（已被真实任务验证）**
 - **P0 任务简报**：主 Agent 在派发任何 subagent 前亲自写 P0-brief.md，注入环境约束和风险判断
 - 可执行的派发协议：用 task 工具派发 subagent，只传文件路径不传内容，门槛机器可判定，状态落盘
 - 双层角色体系：执行角色（execution-roles）+ 评审角色（review-roles），收拢在 `assets/`
@@ -33,14 +33,15 @@ agate 建立在两条主线上：
 ## 目录结构
 
 ```
-docs/process/agate/
-├── README.md                    # 本文件：主流程
-├── dispatch-protocol.md         # 子 Agent 派发协议（核心，解决问题 1）
-├── role-system.md               # 双层角色体系说明（解决问题 2）
+~/.agate/                        # 标准安装位置
+├── WORKFLOW.md                  # 本文件：主流程（入口）
+├── dispatch-protocol.md         # 派发协议、gate 表、特殊事件处理
+├── role-system.md               # 双层角色体系说明
 ├── loop-orchestration.md        # /loop 自动编排设计
 ├── state-machine.md             # 状态机落盘设计
-├── git-integration.md           # 状态落盘的 git 持久化（多 agent 协作）
-├── validation-plan.md           # 落地验证方案（投入真实任务前先跑这个）
+├── git-integration.md           # git 持久化（多 agent 协作）
+├── platform-notes.md            # 各平台适配说明
+├── orchestrator-template.md     # 新项目接入模板
 └── assets/
     ├── review-roles/            # 评审角色库（从 gstack 提取）
     │   ├── review.md            # /review 偏执 Staff Engineer

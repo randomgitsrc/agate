@@ -66,6 +66,19 @@ subagent 返回后，主 Agent 校验：
 
 **关键：主 Agent 永远不信任 subagent 的口头返回，以自己执行的命令结果为准。**
 
+### 主 Agent 跑 gate 时保护自己的上下文
+
+主 Agent 必须亲自跑 gate（上面铁律），但 gate 失败时的完整诊断（traceback/堆栈全文）会涌入主 Agent 自己的上下文，长流程下累积污染。
+
+区分两件事：主 Agent 跑 gate 只为**判断「过没过」**，不为**诊断「为什么失败」**。前者只需紧凑信息（exit code + 通过/失败汇总 + 失败项清单），后者（完整 traceback）是修复 subagent 的事，在它的独立上下文里获取。
+
+因此：
+- gate 命令从 P2 的 `gate_commands` 读取，这些命令已被 architect 设为**紧凑输出模式**（`--tb=no` / `--quiet` / `--reporter=dot` / `| tail -N` 等，见 architect 角色定义）
+- 主 Agent 直接跑这些紧凑命令，判断信息（汇总行、失败清单）都在,完整 traceback 不进上下文
+- 若 gate 失败且需要把完整诊断传给修复阶段：派 gate-runner subagent 在独立上下文跑**完整模式**命令、把完整输出落盘到文件，主 Agent 读紧凑结论判断，修复 subagent 读落盘文件——完整 traceback 始终不碰主 Agent 上下文
+
+**不要**先跑完整命令再想办法截取——命令一执行，完整输出已进上下文，事后无法挽回。截断必须在命令层（紧凑模式参数或 shell 管道），让爆炸的输出从一开始就不产生。
+
 ---
 
 ## 执行模式：有 task 工具 vs 单 Agent

@@ -20,6 +20,12 @@ phases: [P4, P8]
 - P8：docs/tasks/{Txxx}/P2-design.md（packages 声明）+ P5-test-results/ + P6-acceptance.md + P7-consistency.md
 - 项目约定文件（CLAUDE.md 或 AGENTS.md）
 
+**读取代码文件时，以 P2-design.md 的 `files_to_read` 清单为准**：
+- 该清单是 architect 设计时画好的"上下文地图"，列出了实现需要参考的文件（及为什么读、哪段行号）
+- 按清单读取，不要在项目里盲目搜索或整目录全读——那会撑爆上下文
+- 清单标了行号范围的大文件，只读对应片段；需要更多上下文时用 grep 定位关键函数后按范围读，而非整文件 view
+- 若实现中发现清单遗漏了必须读的文件，照常读取并在产出里标注（供 architect 完善设计）
+
 ## 输出
 - P4：docs/tasks/{Txxx}/P4-implementation/（代码文件或改动清单）+ 实际代码改动
 - P8：docs/tasks/{Txxx}/P8-release.md（发布记录：**每个包**的版本、变更、commit）
