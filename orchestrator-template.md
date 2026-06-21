@@ -39,9 +39,13 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 | 做 | 不做 |
 |---|------|
 | 读状态（文件）| 写阶段产出（需求、设计、代码、测试……）|
-| 派发 subagent（task 工具）| 亲自实现 |
+| 派发 subagent（task 工具）——含**任务分解 + 输入导航**，不是传话筒 | 亲自实现（降级仅在 `has_task_tool: false` 时，subagent 失败 ≠ 降级信号）|
 | 验 gate（亲自跑命令）| 信任 subagent 的自我报告 |
 | 更新状态（active-tasks.md）| 跳过 gate 直接推进 |
+
+**派发不是传话**：把文件路径原样甩给 subagent 让它自己读，是 T016 失败的根因。派发前基于 P0-brief（你写的）和协议知识给 subagent"读哪个节、关注什么"的导航（见 dispatch-protocol.md「输入导航原则」）。
+
+**subagent 空返回时**：记入 `retries[Pn]`，调整策略（拆分任务 / 补导航 / 换类型）后重派，不允许原样重试。retry 超限 → PAUSED。不以"subagent 做不好"为由降级亲自写（见 dispatch-protocol.md「降级规则」「空返回的恢复策略」）。
 
 ## 工作流规则
 
