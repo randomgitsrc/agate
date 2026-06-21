@@ -61,7 +61,7 @@ subagent 返回后，主 Agent 校验：
       例：P5 subagent 说 "failed=0" → 主 Agent 跑 pytest -q
           确认 exit 0 且 failed 行确实为 0，才算通过。
 
-任一校验失败 → 计入重试计数，超限则 PAUSED。
+任一校验失败 → 计入 `retries[Pn]`，超限则 PAUSED。
 ```
 
 **关键：主 Agent 永远不信任 subagent 的口头返回，以自己执行的命令结果为准。**
@@ -78,6 +78,28 @@ subagent 返回后，主 Agent 校验：
 - 若 gate 失败且需要把完整诊断传给修复阶段：派 gate-runner subagent 在独立上下文跑**完整模式**命令、把完整输出落盘到文件，主 Agent 读紧凑结论判断，修复 subagent 读落盘文件——完整 traceback 始终不碰主 Agent 上下文
 
 **不要**先跑完整命令再想办法截取——命令一执行，完整输出已进上下文，事后无法挽回。截断必须在命令层（紧凑模式参数或 shell 管道），让爆炸的输出从一开始就不产生。
+
+### 空返回的恢复策略
+
+subagent 空返回（约定产出文件不存在）是特殊失败模式，不能简单重试相同 prompt。
+
+1. 第 1 次空返回：
+   - 计入 `retries[Pn]`（现成规则），记录 `failure_mode: empty_return, prompt_changed: false, adjustment: null`
+   - 分析失败原因：prompt 是否过复杂？输入文件是否过多？任务粒度是否过大？
+   - 调整策略后重派：
+     a. 拆分任务（见「任务粒度指引」）
+     b. 补输入导航（见「输入导航原则」）
+     c. 换 subagent 类型（frontend ↔ general）
+   - 更新本次 retry 记录：`prompt_changed: true, adjustment: <具体调整>`
+
+2. 第 2 次空返回（调整策略后仍失败）：
+   - 计入 `retries[Pn]`
+   - `len(retries[Pn]) >= MAX_RETRY` → PAUSED 报告人工
+
+**禁止**：不调整策略、相同 prompt 直接重试（`retries` 记录里 `prompt_changed=false` 且非首次）。
+空返回说明 subagent 扛不住当前任务形态，原样重试大概率还是空返回。
+
+—— T016 教训：P3 subagent 连续 3 次空返回，主 Agent 既没记 retry 也没调整策略，直接降级亲自写。如果有 `prompt_changed` 字段，事后一眼就能看出"3 次重试 prompt_changed 全是 false"——违规一目了然。
 
 ---
 
@@ -97,6 +119,23 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 - P3 写测试时必须在 P4 实现之前完成，模拟 TDD 的「契约先行」
 - P6 不能以「代码审查」替代实际运行 BDD——若无法跑，走 HANDOVER 交接
 - 强烈建议：P0-P2 在单 Agent 完成后，将结果 push 到 main，再切换有 task 工具的平台执行 P3-P8
+
+---
+
+## 降级规则（硬边界）
+
+降级（主 Agent 亲自执行阶段产出）只在以下情况发生：
+- `has_task_tool: false`（环境不支持 subagent）
+- `has_local_runtime: false` 且阶段需要本地运行（gate 无法执行）
+
+**subagent 执行失败 ≠ 降级信号。** subagent 失败时：
+1. 计入 `retries[Pn]`（现成规则）
+2. 调整策略重派（拆分任务 / 补导航 / 换 subagent 类型）
+3. retry 超限 → PAUSED（state-machine 现成规则）
+
+**主 Agent 不得以"subagent 做不好"为由跳过 retry/PAUSED 直接降级。**
+
+—— T016 教训：P3 subagent 3 次空返回后，主 Agent 自行决定降级亲自写代码。协议没有明确说"subagent 失败时不能降级"，主 Agent 把"协议没说不行"当成了"可以"。本节把降级的合法条件写死，降级不再是一个可选项。
 
 ---
 
@@ -166,8 +205,32 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 6. 更新状态
    更新 active-tasks.md 的阶段和状态
    门槛通过 → 进入下一阶段（回到步骤 1）
-   门槛失败 → 重试（重试计数 +1，超限则停下报告）
+    门槛失败 → 重试（retries 记录 +1，超限则停下报告）
 ```
+
+---
+
+## 输入导航原则
+
+铁律 2"只传路径不传内容"防止的是上下文污染，不是禁止主 Agent 给方向。主 Agent 派发 subagent 前，给 subagent 提供"读哪个节、关注什么"的导航。
+
+**导航 ≠ 提炼 ≠ 读全文：**
+- 导航：prompt 里注明"读 P1-requirements.md 的 BDD 验收条件节"
+- 提炼（禁止）：主 Agent 读完文件把内容总结进 prompt
+- 读全文（禁止）：把文件内容复制进 prompt
+
+**导航的信息来源是协议知识，不是文件内容：**
+- 主 Agent 启动时已读 7 个协议文件，其中角色定义文件硬约束了每个阶段产出文件的节结构：
+  - P1 的节名称由 `analyst.md:28-37` 强制（需求复述 / 隐含需求 / BDD 验收条件 / 待确认清单 / 裁剪说明 / 范围声明 / 能力需求声明）
+  - P2 的字段由 `architect.md:26-46` 强制（packages / domains / ui_affected / gate_commands）
+- 主 Agent 用这些协议定义的节名称给导航，不需要读产出文件的实际内容
+- 节名称是协议固定的，章节号是 subagent 自己编的——导航用节名称，不用章节号
+
+**主 Agent 的核心职责是任务分解 + 输入导航 + 验证**，不是传话筒（把文件路径原样转发），也不是消化器（读完所有文件做提炼）。
+
+—— T016 教训：P3 派发时主 Agent 把 7 个文件路径（~1917 行）甩给 subagent，没给任何导航。subagent 要自己理解 BDD + 接口 + 串行队列 + mock + vitest，认知负荷过载导致 3 次空返回。
+
+**残余风险**：如果 subagent 产出时偏离了角色定义的节结构（用了自定义标题），导航会静默失效——subagent 找不到对应节，大概率又是空返回循环。缓解方式：P1/P2 gate 检查时，主 Agent 顺带验证产出文件是否含角色定义要求的节名称，缺失则门槛不通过。
 
 ---
 
@@ -226,6 +289,25 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 
 ---
 
+## 任务粒度指引
+
+当阶段产出涉及以下特征时，主 Agent 应拆分为多个 subagent 任务：
+- 产出 **2 种及以上不同类型文件**（如 文档 + 代码、stub + 测试、设计 + 实现）
+- 输入文件超过 5 个（主 Agent 应先检查是否都必要，精简输入比拆分任务成本低；确实都必要时再拆分）
+
+**拆分判据用输出异构性，不用行数**——T016 失败的根因是异构切换（文档 + stub + 测试三种身份在一个 task 里），不是输入行数。LLM 处理 2000 行同质内容没问题，处理 500 行 4 种技术域照样会崩。行数是弱相关变量，异构性才是强相关变量。
+
+**拆分原则：**
+- 每个任务产出 1-2 个文件，只涉及一种技术类型
+- 每个任务的输入文件 ≤ 3 个
+- 任务间有依赖时串行，无依赖时并行
+- 拆分通过多次 task 调用实现，commit message 记录拆分（如"P3a: 测试用例文档"）
+- 状态机不变——仍只看 P3 阶段，gate 仍是该阶段的门槛命令
+
+—— T016 教训：P3 要求一个 subagent 产出 3 个异构文件（P3-test-cases.md 文档 + usePlantUML.ts stub 代码 + usePlantUML.spec.ts 测试代码），主 Agent 要在技术文档作者、TypeScript 开发者、测试工程师三种身份间切换，粒度过大。
+
+---
+
 ## 可判定门槛规范
 
 门槛必须是**主 Agent 亲自跑命令可验证的明确值**，不能是模糊判断或仅依赖 subagent 产出文件字段。
@@ -267,8 +349,13 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 
 ```
 门槛失败时：
-  retry_count += 1
-  if retry_count <= MAX_RETRY (见 state-machine.md 重试上限表):
+  retries[Pn].append({
+    round: len(retries[Pn]) + 1,
+    failure_mode: quality | empty_return | timeout,
+    prompt_changed: <bool>,
+    adjustment: split_task | add_navigation | switch_type | null
+  })
+  if len(retries[Pn]) <= MAX_RETRY (见 state-machine.md 重试上限表):
       带着失败原因重新派发同阶段 subagent
       （prompt 里加上"上次失败原因：xxx，请修正"）
   else:
@@ -276,7 +363,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
       上溯后重新开始该阶段
 ```
 
-重试计数也落盘（写进 `.state.yaml`），避免主 Agent 忘记重试了几次。
+重试记录落盘到 `.state.yaml` 的 `retries` 字段（格式见 state-machine.md「每任务独立状态文件」），避免主 Agent 忘记重试了几次、也无法区分"原样重试"和"调整策略后重试"。
 
 ---
 
@@ -447,7 +534,7 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
 6. 派发评审 subagent（plan-eng-review 角色）→ 产出 P2-review.md
 7. 读 P2-review.md 的 Header status
    - approved → 更新 active-tasks.md，T001 进入 P3
-   - rejected → 重试 architect（retry_count=1），通过文件路径回流评审意见（见下）
+   - rejected → 重试 architect（retries[P2] 记录第 1 轮），通过文件路径回流评审意见（见下）
 ```
 
 ### 评审打回后的意见回流（重要）
@@ -503,7 +590,7 @@ rejected 时，主 Agent 的重试派发 prompt 里加一行：
 
 任务背景：{task_name}
 当前阶段：{phase}
-失败原因：连续 {retry_count} 轮 {phase} 评审发现 {issue_summary}
+失败原因：连续 {len(retries[phase])} 轮 {phase} 评审发现 {issue_summary}
 
 已尝试的解决方案：
   {attempted_solutions}
