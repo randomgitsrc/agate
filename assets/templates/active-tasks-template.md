@@ -36,7 +36,7 @@
 | T000 | done-example | ✅✅ 已完成 | P8 | P0 | YYYY-MM-DD |
 
 > **依赖列说明**：主 Agent 启动任务前检查依赖列。所有依赖任务状态为 ✅✅ 已完成 才启动。
-> **active-tasks.md 是汇总视图**：不由 subagent 直接修改，由主 Agent 扫描所有 `.state.yaml` 重建，消除多 Agent 并发 git 冲突。
+> **active-tasks.md 是汇总视图**：不由 subagent 直接修改，由主 Agent 维护。日常更新只重写自己任务那一行（从 `.state.yaml` 派生），定期或怀疑不一致时从所有 `.state.yaml` 全表重建。
 ```
 
 ---

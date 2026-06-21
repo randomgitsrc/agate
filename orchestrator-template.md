@@ -73,7 +73,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 - 项目配置：`{project_root}/CLAUDE.md`（或 `AGENTS.md`）
 - 任务看板：`{project_root}/docs/tasks/active-tasks.md`
-- 任务目录：`{project_root}/docs/tasks/`
+- 任务目录：`{project_root}/docs/tasks/`（任务目录名是 `Txxx-描述` 格式，不是纯编号——见 WORKFLOW.md「任务目录命名约定」）
 
 ## 项目特定约束
 

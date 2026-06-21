@@ -65,7 +65,8 @@ cp ~/.agate/orchestrator-template.md \
 
 ```
 agate/
-├── README.md                    # P0-P8 核心规则（本文件）
+├── README.md                    # 项目说明（本文件）
+├── WORKFLOW.md                  # P0-P8 核心规则、裁剪判断、阶段定义 ← 主入口
 ├── dispatch-protocol.md         # 派发协议、gate 表、特殊事件处理
 ├── state-machine.md             # 状态转移规则
 ├── loop-orchestration.md        # /loop 自动编排（可选）
@@ -73,9 +74,10 @@ agate/
 ├── role-system.md               # 角色体系说明
 ├── platform-notes.md            # 各平台适配说明（OpenCode/Claude Code 等）
 ├── orchestrator-template.md     # 新项目接入模板 ← 从这里开始
+├── LIMITATIONS.md               # 已知局限（使用前建议先读）
 ├── assets/
 │   ├── execution-roles/         # analyst/architect/implementer/verifier 等
-│   ├── review-roles/            # staff-engineer/security/qa 等评审角色
+│   ├── review-roles/            # review/cso/design-review/qa 等评审角色
 │   └── templates/               # P0-brief、active-tasks、dispatch-prompt 等模板
 └── archived/                    # 历史验证文档
 ```

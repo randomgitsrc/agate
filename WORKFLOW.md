@@ -61,6 +61,7 @@ agate 建立在两条主线上：
     │   ├── verifier.md          # P5 技术验证 / P6 验收（BDD 实跑）
     │   └── vision-analyst.md    # UI 视觉结构分析（被 P6 verifier 按需派发）
     └── templates/
+        ├── active-tasks-template.md # active-tasks.md 看板模板
         ├── custom-role.md       # 自定义角色模板
         ├── dispatch-prompt.md   # 派发 prompt 模板
         └── task-files.md        # 各阶段产出文件模板
@@ -176,9 +177,9 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks + pruning_tendency |
 | P1 | 需求基线 | analyst（需求质疑模式）| office-hours（任务属于"适用边界"表的"大任务（跨模块重构）"档，或 P1-requirements.md 的裁剪说明里 pruning_tendency 标"保守"时追加；判断结果写入 P1-requirements.md）| P1-requirements.md 存在，含 BDD 验收条件；无未决 `[NEED_CONFIRM]`；无 `[CAPABILITY_GAP]` |
-| P2 | 方案设计 | architect | plan-eng-review / plan-ceo-review | P2-review.md 的 status == approved；P2 声明 `packages:` `domains:` `ui_affected:` `gate_commands:` |
+| P2 | 方案设计 | architect | plan-eng-review / plan-ceo-review / plan-design-review（domains 含 frontend 时追加）| P2-review.md 的 status == approved；P2 声明 `packages:` `domains:` `ui_affected:` `gate_commands:` |
 | P3 | 测试设计 | test-designer | gate 自检（TDD 红灯）| `scripts/check-tdd-red.sh` exit 0 |
-| P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）；命中任一条件才派发，判断结果写入 P4 commit message | `git log --oneline -1` 含 P4 commit |
+| P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | `git log --oneline -1` 含 P4 commit |
 | P5 | 技术验证 | verifier | gate 自检（pytest 全绿）| `pytest -q` exit 0 AND failed==0 |
 | P6 | 验收 | verifier（验收模式）| — | P6-acceptance.md 存在，BDD 条件逐条有实跑结果；UI 条件须 vision-analyst YAML `summary.blocker_count==0`；无未决 `[NEED_CONFIRM]` |
 | P7 | 一致性检查 | architect | gate 自检（grep BLOCKER）| 无 `[BLOCKER]` 标记 |
@@ -223,7 +224,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 ### 原则 5：重试有上限
 
-门槛不通过时打回重做，但有次数上限（默认 2-3 次）。超限则停下来报告人工介入，避免无限循环。
+门槛不通过时打回重做，但有次数上限（按阶段 2-3 次，见 state-machine.md 重试上限表）。超限则停下来报告人工介入，避免无限循环。
 
 ---
 

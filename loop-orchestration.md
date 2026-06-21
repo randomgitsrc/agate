@@ -97,7 +97,8 @@
 
 LOOP:
     1. 读 active-tasks.md → 当前状态
-    2. if 状态 == DONE: 输出交付小结（格式见 dispatch-protocol.md「任务完成小结」），退出
+    2. if 状态 == READY: 输出交付小结（格式见 dispatch-protocol.md「任务完成小结」），等待人工 make publish，退出
+    3. if 状态 == DONE: 报告任务已完成，退出
     3. if 状态 == PAUSED: 报告暂停原因，退出
     4. if 当前阶段 == --until 指定的停止点: 报告，退出
     5. if 触发硬中断点: 无条件停下问人（--auto-approve 不能跳过）
@@ -129,7 +130,7 @@ LOOP:
 
 ### 护栏 1：每阶段重试上限
 
-单个阶段重试超过 MAX_RETRY（默认 3）→ PAUSED，不再自动重试。
+单个阶段重试超过 MAX_RETRY（按阶段 2-3 次，见 state-machine.md 重试上限表）→ PAUSED，不再自动重试。
 
 ### 护栏 2：全局步数上限
 
