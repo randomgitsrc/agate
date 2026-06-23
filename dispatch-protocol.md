@@ -308,6 +308,85 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 
 ---
 
+## Playwright/长时操作 subagent 派发策略
+
+Task 工具本身无超时参数。subagent 内部脚本挂起会无限阻塞主 Agent。通过**拆分 + 预期耗时**规避，不依赖超时机制。
+
+### 拆分原则
+
+P6 Playwright 验证不派一个大 subagent 跑完整流程，按职责拆成小步骤：
+
+| 子任务 | 预期耗时 | 返回值 |
+|--------|---------|--------|
+| 加载页面 + 检查 readyState | 30-60s | `{ loaded: true, loadTime: 35 }` |
+| 检查 CSP 违规 | 5-10s | `{ violations: 0 }` |
+| 检查 WebGL context | 5-10s | `{ webgl: true, renderer: "D3D11" }` |
+| 检查 React/框架渲染 | 10-20s | `{ rootChildren: 3 }` |
+| 截图 + vision 分析 | 10-20s | `{ screenshot: "/path.png" }` |
+
+每个子任务：
+- 职责单一，耗时可预测
+- 返回结构化结果（不是文件全文）
+- 有独立 Node 脚本硬超时兜底（见下）
+
+### subagent 超时判定
+
+主 Agent 不主动计时，但 subagent 的 Node 脚本内部必须设硬超时：
+
+```typescript
+const HARD = 90_000;  // 或 180_000 for >1MB HTML
+let lastStep = 'init';
+setTimeout(() => {
+  console.error(`HARD TIMEOUT at: ${lastStep}`);
+  process.exit(2);
+}, HARD);
+```
+
+- exit 0 = 成功，exit 2 = 硬超时，exit 1 = 其他错误
+- 主 Agent 看到 exit 2 + `lastStep` 信息，知道卡在哪步，可以加长 timeout 重跑该子任务
+- 主 Agent 看到 exit 1，看 error message 决定修复策略
+
+### 误杀处理
+
+硬超时触发后，主 Agent 判断：
+1. `lastStep` 是 `goto` → 页面加载慢，加大 `page.goto` timeout 重跑
+2. `lastStep` 是 `waitForSelector` → 元素没出现，检查页面逻辑（非超时问题）
+3. `lastStep` 是 `evaluate` → JS 执行慢或死循环，检查 evaluate 内容
+
+**续跑**：已完成的子任务结果可复用，不从头重跑。如"加载页面"已完成，"检查 CSP"超时，只需重跑 CSP 检查。
+
+### 大文件处理
+
+涉及 >1MB HTML 的 Playwright 操作：
+- 主 Agent **不直接 Read** 大文件内容，用 `wc -c` 查大小
+- subagent 脚本 `page.goto` timeout 设 60-90s
+- 脚本 HARD timeout 设 180s
+- 加载后先 `page.evaluate(() => document.readyState)` 确认加载完成，再 `waitForSelector`
+
+—— T019 教训：3.3MB Three.js HTML 的 P6 验证，subagent 内 `waitForSelector('#root > *')` 无 timeout 等待永不出现的元素（因 WebGL 被禁用导致 Three.js 初始化失败），subagent 挂起 → Task 工具无限等待 → 主 Agent 卡死数小时。根因是缺分层超时 + subagent 粒度过大。
+
+### P2 最小验证（方案可行性先验证再全流程推进）
+
+**规则**：P2 方案设计时，如果方案依赖某个**浏览器行为/安全模型/外部系统行为**（非纯代码逻辑），必须在 P2 阶段做最小验证，验证通过后再写 P2 design。
+
+**什么需要最小验证**：
+- 浏览器安全模型（CSP 继承规则、sandbox 行为、iframe origin 语义）
+- 外部库的核心能力（Three.js 能否初始化、BS4 能否解析目标 HTML）
+- 跨系统交互（WSL→Windows 路径、CDP 连接、网络转发）
+
+**怎么做最小验证**：
+- 一个 10 行的 HTML 测试页
+- 一个 curl 请求验证 API 行为
+- 一个 20 行的脚本验证库的核心 API
+
+**不需要最小验证的**：
+- 纯代码逻辑（函数输入输出、数据转换）——TDD 单元测试覆盖
+- 项目内已有模式（API 路由、Vue 组件）——已有先例
+
+—— T019 教训：srcdoc 方案在 P2 设计、P3 写 57 个测试、P4 完整实现后，到 P6 实跑才发现 srcdoc iframe 继承父 CSP，方案根本不可行。如果 P2 阶段用一个 10 行 HTML 测试页验证 srcdoc 的 CSP 行为，5 分钟就能发现方案不可行，避免 P2-P4 全部返工。
+
+---
+
 ## 可判定门槛规范
 
 门槛必须是**主 Agent 亲自跑命令可验证的明确值**，不能是模糊判断或仅依赖 subagent 产出文件字段。
