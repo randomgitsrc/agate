@@ -109,10 +109,11 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
 P5 --[有 PROD_TOUCHED]--> PAUSED（生产环境被触碰，需人工处置后才能继续）
 P5 --[retry>=MAX]--> PAUSED
 
-P6 --[P6-acceptance.md 有效 AND P1 的每条 BDD 条件都有实跑结果 AND 无未决 NEED_CONFIRM]--> P7
-    （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
-    （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
-P6 --[BDD 条件未满足 && retry<MAX]--> P4 (retry+1)（行为不符 → 回实现）
+P6 --[P6-acceptance.md 有效 AND P1 的每条 BDD 条件标记为 PASS 或 FAIL（二值，不允许"调整/跳过/覆盖"）AND 无 FAIL 条件 AND 无未决 NEED_CONFIRM]--> P7
+     （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
+     （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
+     （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
+P6 --[任何 BDD 标 FAIL && retry<MAX]--> P4 (retry+1)（行为不符 → 回实现）
 P6 --[存在未决 NEED_CONFIRM]--> PAUSED（验收结果需人判断方向）
 P6 --[retry>=MAX]--> PAUSED
 
@@ -123,6 +124,62 @@ P7 --[retry>=MAX]--> PAUSED
 
 P8 --[每个声明的 package 的发布检查命令 exit 0 + git diff 确认各包 version bump + CHANGELOG]--> READY
      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
+
+### READY 收尾检查（P8 gate 通过后、标记 READY 前）
+
+P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
+
+**状态与版本：**
+- [ ] .state.yaml phase == READY
+- [ ] active-tasks.md 任务行状态已更新
+- [ ] git 工作区干净（git status 无 untracked）
+- [ ] git tag 已创建
+
+**测试环境已清理：**
+- [ ] 调试服务/进程已停止（启动的 debug server、临时 daemon）
+- [ ] 临时数据已删除（测试创建的临时数据库、临时文件目录）
+- [ ] 测试占用的端口已释放
+
+**开发环境已还原：**
+- [ ] 开发安装已卸载（editable 安装、全局包安装等非标准安装方式已还原）
+- [ ] 系统环境无污染（PATH、Python path、node_modules 等无开发残留）
+- [ ] 项目依赖恢复到发布版本（非开发分支的源码挂载）
+
+**生产环境无残留：**
+- [ ] 生产数据库无新增/修改记录（对比任务前后，测试不应触碰生产 DB——若有 [PROD_TOUCHED] 则此项已失败）
+- [ ] 生产服务无残留影响（生产服务加载的代码/配置仍为上次发布版本，未被开发操作覆盖）
+- [ ] 生产环境无孤儿资源（测试产生的文件、缓存、定时任务等未残留在生产路径）
+
+任一项未通过 → 不进入 READY，逐项修复后重新检查。
+生产环境相关项未通过 → 立即 PAUSED 报告人工（生产残留不可自行清理）。
+
+### READY 收尾检查（P8 gate 通过后、标记 READY 前，T019 教训）
+
+主 Agent 逐项检查：
+
+**状态与版本：**
+- [ ] .state.yaml phase == READY
+- [ ] active-tasks.md 任务行状态已更新
+- [ ] git 工作区干净（git status 无 untracked）
+- [ ] git tag 已创建
+
+**测试环境已清理：**
+- [ ] 调试服务/进程已停止（启动的 debug server、临时 daemon）
+- [ ] 临时数据已删除（测试创建的临时数据库、临时文件目录）
+- [ ] 测试占用的端口已释放
+
+**开发环境已还原：**
+- [ ] 开发安装已卸载（editable 安装、全局包安装等非标准安装方式已还原）
+- [ ] 系统环境无污染（PATH、Python path、node_modules 等无开发残留）
+- [ ] 项目依赖恢复到发布版本（非开发分支的源码挂载）
+
+**生产环境无残留：**
+- [ ] 生产数据库无新增/修改记录（对比任务前后，测试不应触碰生产 DB——若有 [PROD_TOUCHED] 则此项已失败）
+- [ ] 生产服务无残留影响（生产服务加载的代码/配置仍为上次发布版本，未被开发操作覆盖）
+- [ ] 生产环境无孤儿资源（测试产生的文件、缓存、定时任务等未残留在生产路径）
+
+任一项未通过 → 不进入 READY，逐项修复后重新检查。
+生产环境相关项未通过 → 立即 PAUSED 报告人工（生产残留不可自行清理）。
 
 阶段跳过转移规则（P1 裁剪声明驱动）：
   P1-requirements.md 的「裁剪说明」声明 phases: [列表]，主 Agent 据此跳过未列出的阶段。
@@ -242,6 +299,9 @@ P8 是**「发布准备」**，不是「发布」。P8 gate 通过后进入 READ
 ```
 function 执行一步(task_id):
     1. 读 .state.yaml 或 active-tasks.md → 得到 (当前阶段, 重试记录)
+       **状态标记绑定检查**（T019 教训：.state.yaml 标了 P5 但无 P5 产出）：
+       .state.yaml 的 phase 标记为 Pn，但 docs/tasks/{task_id}/ 下 Pn 产出文件
+       不存在 → 无效标记，回退到 Pn-1 重新执行 gate。标记前必须验证 gate。
     2. 若当前阶段 == P0：主 Agent 亲自写 P0-brief.md（见 dispatch-protocol.md 步骤0），完成后继续
        否则：确认 docs/tasks/{task_id}/P0-brief.md 已存在（必填字段：task/known_risks/executor_env/env_constraints/pruning_tendency）
        读 docs/tasks/{task_id}/ → 确认当前阶段输入文件就绪
@@ -262,6 +322,11 @@ function 执行一步(task_id):
        - P7: ! grep -qF '[BLOCKER]' P7-consistency.md
        - P8: 每个 package 的发布检查命令 exit 0
     6. 计算下一状态（按转移规则）
+       **回退跳变检测**（T019 教训：P5→P2 跨 3 阶段回退未 PAUSED）：
+       若 |next_phase_num - current_phase_num| >= 2（跨 ≥2 阶段回退）
+       → 强制 PAUSED，报告"跨 N 阶段回退，需人工确认"
+       检测基于 phase 编号差值，不依赖 commit message 格式。
+       例外：P5→P4（差 1，正常回归）不需要 PAUSED。
     7. if 下一状态 == READY:
           输出交付小结（强制）：见「进入 READY 时」的格式要求
           再写回 .state.yaml
@@ -363,6 +428,36 @@ updated: 2026-06-12
 
 ---
 
+## 状态标记绑定规则（T019 教训）
+
+.state.yaml 的 phase 字段标记为 Pn+1 前，必须满足：
+1. Pn 的 gate 命令已执行（主 Agent 亲自跑）
+2. Pn 的产出文件存在且含合法 Header
+3. gate 结果已记录在 Pn 产出文件中
+
+**违反判据**：.state.yaml 标记 Pn+1 但 Pn 产出文件不存在 → 无效标记，回退到 Pn 重新执行 gate。
+
+**判定方式**：主 Agent 每轮开始时（单步函数步骤 1），检查 .state.yaml 的 phase 与产出文件是否匹配。不匹配 → 按标记前的阶段重新跑 gate。
+
+T019 中 .state.yaml 标记 P5 但 P5-test-results/ 目录不存在——状态标记先于 gate 验证，中间窗口期状态不一致。本规则把"标记"和"验证"绑定，标记不能先于验证。
+
+---
+
+## 状态标记绑定规则（T019 教训）
+
+**问题**：T019 中 .state.yaml 标记 `current_phase: P5` 但 P5-test-results/ 目录不存在。状态标记和 gate 验证之间没有绑定关系——主 Agent 可以标记一个阶段而不跑 gate。
+
+**规则**：.state.yaml 的 phase 字段标记为 Pn+1 前，必须满足：
+1. Pn 的 gate 命令已执行（主 Agent 亲自跑）
+2. Pn 的产出文件存在且含合法 Header
+3. gate 结果已记录在 Pn 产出文件中
+
+**违反判据**：.state.yaml 标记 Pn+1 但 Pn 产出文件不存在 → 无效标记，回退到 Pn 重新执行 gate。
+
+**判定方式**：主 Agent 每轮开始时（单步函数步骤 1）检查 .state.yaml 的 phase 与产出文件是否匹配。不匹配 → 按标记前的阶段重新跑 gate。
+
+---
+
 ## 重试记录也要落盘
 
 重试记录不能存在 LLM 记忆里（会忘）。**按阶段独立记录**，写进 `.state.yaml` 的 `retries` 字段（格式见上方「每任务独立状态文件」）：
@@ -398,7 +493,7 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 | P5 → P4 | ✅ 允许 | 测试失败回到实现，设计内的正常回归 |
 | P2 → P2 | ✅ 允许 | 评审打回重做（同阶段重试）|
 | P3/P6 → P2 | ⚠️ 谨慎 | 发现上游设计问题。允许，但 P2 的 retry 计数累积保留，且计入全局步数上限 |
-| 跨多阶段回退 | ❌ 禁止自动 | 如 P6→P1，说明问题严重，停下 PAUSED 报告人工 |
+| 跨多阶段回退 | ❌ 禁止自动 | 如 P6→P1，说明问题严重，停下 PAUSED 报告人工。检测方式：单步函数步骤 6 的 phase 编号差值检查（|next - current| >= 2 → PAUSED） |
 
 全局步数上限（护栏 2，默认 20）是最后兜底，但按阶段独立计数 + 回退规则让它不必单独扛所有失控场景。
 

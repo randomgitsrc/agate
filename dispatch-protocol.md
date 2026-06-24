@@ -398,7 +398,7 @@ setTimeout(() => {
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | P4-implementation/ 下文件非空 + `git log --oneline -1` 确认 P4 commit |
 | P5→P6 | 技术验证通过 | `pytest -q` exit 0 AND failed==0（亲手跑）+ 无 `[PROD_TOUCHED]` + 若 ui_affected：Playwright/E2E 实跑通过 |
-| P6→P7 | BDD 验收通过 | P6-acceptance.md 中 P1 每条 BDD 都有实跑结果 + 无未决 `[NEED_CONFIRM]`（UI 条件须截图）|
+| P6→P7 | BDD 验收通过 | P6-acceptance.md 中 P1 每条 BDD 条件标记为 **PASS 或 FAIL**（二值，不允许"调整/跳过/覆盖"等中间态）+ 无未决 `[NEED_CONFIRM]`（UI 条件须截图 + vision-analyst YAML 引用）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
 | P7→P8 | 一致性通过 | `! grep -qF '[BLOCKER]' P7-consistency.md`（已知限制：定性分析，P5 回归测试兜底）|
 | P8→READY | 发布准备完成 | **每个** P2 声明的 package 的发布检查命令 exit 0 + `git diff` 确认各包 version bump + CHANGELOG |
 
