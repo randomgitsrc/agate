@@ -162,9 +162,15 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    P0-brief.md 结构（主 Agent 亲自填写）：
    ```yaml
    task: {一句话描述这个任务是什么}
+      # 若一句话无法概括，考虑拆分为多个任务——见「任务粒度指引」
    known_risks:
      - {已知风险1，如：涉及 schema 变更}
      - {已知风险2，如：跨越 N 个改动端}
+   executor_env:
+     platform: {opencode | claude-code | codex | claude-project}
+     has_task_tool: true       # false = 单 Agent 模式
+     has_local_runtime: true   # false = P3-P8 需交接
+     network: {full | restricted}
    env_constraints:
      debug_env: {项目的测试/调试环境路径/命令，从项目约定读取}
      # 不写 prod_env：生产环境不在 agate 开发流程范围内
@@ -173,7 +179,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    ```
 
    P0-brief 完成后，主 Agent 自查五个必填字段是否有实质内容：
-   - task：是否是工程视角的一句话描述（不是产品语言的模糊表述）
+   - task：是否是工程视角的一句话描述。若写不出一句话 → 任务太大，拆分
    - known_risks：至少列出一条，没有风险也要写「无已知风险」而不是留空
    - executor_env：platform/has_task_tool/has_local_runtime/network 四项都要填实际值，不是占位符
    - env_constraints.debug_env：是否从项目约定（CLAUDE.md）读取了具体路径/命令
@@ -189,6 +195,14 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    —— T005/T006 教训：主 Agent 把「提炼问题定义」也委托给了 subagent，
       P1 analyst 拿到的是用户原始需求文档，缺少主 Agent 对环境约束、风险、裁剪倾向的判断注入。
       P0-brief 是主 Agent 作为 PM 的思考文件，不可省略。
+
+   ### P0 / P1 职责边界
+
+   P0 是"决策记忆"（PM 视角），P1 是"需求基线"（analyst 视角）。
+   P1 读 P0 作为输入，遵循三层处理：
+   - **引用**：P0 已有的决策内容（user_decisions / 协调依赖 / 验收基线等扩展章节），P1 直接引用，不重写
+   - **形式化**：P0 的验收基线，P1 转化为 BDD Given/When/Then 格式（仅改格式，不改内容）
+   - **补全**：P0 没覆盖的隐含需求、待确认清单、能力需求，由 P1 独立产出
 
 1. 读状态
    读 docs/tasks/active-tasks.md → 确认当前任务和阶段
