@@ -290,7 +290,7 @@ function 执行一步(task_id):
        - P4: git log --oneline -1 确认 P4 commit
        - P5: pytest -q exit 0 && failed==0 && 无 [PROD_TOUCHED]（UI 任务额外实跑 Playwright/E2E）
              确认整个过程在 debug_env 中进行，无 [PROD_TOUCHED] 标记
-       - P6: P1 每条 BDD 都有实跑结果 && UI 条件 vision-analyst YAML summary.blocker_count==0 && 无未决 NEED_CONFIRM
+       - P6: P1 每条 BDD 标记为 PASS 或 FAIL（二值）&& UI 条件 vision-analyst YAML summary.blocker_count==0 && 无未决 NEED_CONFIRM
        - P7: ! grep -qE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md
        - P8: 每个 package 的发布检查命令 exit 0
     6. 计算下一状态（按转移规则）
