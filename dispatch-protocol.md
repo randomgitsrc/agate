@@ -169,7 +169,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    executor_env:
      platform: {opencode | claude-code | codex | claude-project}
      has_task_tool: true       # false = 单 Agent 模式
-     has_local_runtime: true   # false = P3-P8 需交接
+     has_local_runtime: true   # false = gate 命令无法执行，需交接有本地环境的平台
      network: {full | restricted}
    env_constraints:
      debug_env: {项目的测试/调试环境路径/命令，从项目约定读取}
@@ -200,7 +200,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 
    P0 是"决策记忆"（PM 视角），P1 是"需求基线"（analyst 视角）。
    P1 读 P0 作为输入，遵循三层处理：
-   - **引用**：P0 已有的决策内容（user_decisions / 协调依赖 / 验收基线等扩展章节），P1 直接引用，不重写
+   - **引用**：P0 已有的决策内容（user_decisions / 协调依赖等），P1 直接引用，不重写
    - **形式化**：P0 的验收基线，P1 转化为 BDD Given/When/Then 格式（仅改格式，不改内容）
    - **补全**：P0 没覆盖的隐含需求、待确认清单、能力需求，由 P1 独立产出
 
