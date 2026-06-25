@@ -206,6 +206,14 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 **主 Agent 永远不自己写阶段产出（P1-requirements.md、P2-design.md、代码……）。** 这些都由 subagent 在独立上下文里产出。
 
+**主 Agent 的合法职责（非降级）：**
+- 写 P0-brief.md（PM 视角的任务简报，五字段自查）
+- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或同阶段复用时）
+- P8 gate 通过后执行 READY 收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留——见 state-machine.md）
+- PAUSED 时写 `PAUSED-resolution.md` 记录人工决策
+
+**降级的硬边界**：降级（主 Agent 亲自执行阶段产出）只在 `has_task_tool: false` 或 `has_local_runtime: false` 时发生。**subagent 执行失败 ≠ 降级信号**——失败时走 retry/PAUSED，不允许"subagent 做不好"为由降级。
+
 ### 原则 2：上下文隔离 = 只传路径
 
 派发 subagent 时，prompt 里只写**文件路径**，不塞文件内容。subagent 在自己的上下文窗口里读文件、干活，主 Agent 的上下文只增加"路径 + 一句话摘要"。
