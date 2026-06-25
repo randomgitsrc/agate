@@ -18,6 +18,7 @@ phases: [P4, P8]
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
 - P4：docs/tasks/{Txxx}/P2-design.md + P3-test-cases.md + P3-test-code/
 - P8：docs/tasks/{Txxx}/P2-design.md（packages 声明）+ P5-test-results/ + P6-acceptance.md + P7-consistency.md
+- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
 - 项目约定文件（CLAUDE.md 或 AGENTS.md）
 
 **读取代码文件时，以 P2-design.md 的 `files_to_read` 清单为准**：
@@ -33,6 +34,12 @@ phases: [P4, P8]
 ## 质量门槛
 - P4：P3 的测试从红灯变绿灯（不修改测试本身）
 - P8：**P2 声明的每个 package 都要** CHANGELOG 更新 + 版本 bump；commit message 列出变动文件
+
+## 写跑分离
+
+反馈循环长的脚本验证任务，**只写脚本不跑**——主 Agent 会跑脚本验证（这是"跑命令"不是"写产出"）。
+- 改常量值（timeout、selector、URL）= 最小修复，主 Agent 可做
+- 改控制流（if/else 结构、循环逻辑、数据处理）= 重写，回 subagent
 
 ## P8 多包发布（T005 教训：漏 bump MCP 版本）
 
@@ -69,5 +76,17 @@ P8 不假设"一个任务一个包"。读 P2 的 `packages:` 声明，**逐个**
 
 P8-release.md 增加「Lessons Learned」节（2-3 条关键教训）。主 Agent 汇入 `docs/notes/lessons.md`（文件不存在则创建，含表头：类别/教训/来源任务/日期）。按类别组织（安全/架构/流程/测试），每条标来源任务和日期。
 
+## P8 临时资源清单
+
+P8-release.md 增加「临时资源清单」节，列出本任务执行期间：
+- 启动了哪些临时服务/进程（如 debug server、临时 daemon）
+- 创建了哪些临时数据（如测试数据库、临时文件目录）
+- 做了哪些开发安装（如 editable install、全局包安装）
+
+主 Agent P8 gate 通过后执行 READY 收尾检查时，按此清单清理。
+
 ## 返回给主 Agent
 文件路径 + 一句话：实现完成 / 各包已准备发布，关键改动摘要
+
+## 分阶段落盘（默认启用）
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。

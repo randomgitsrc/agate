@@ -19,6 +19,7 @@ phases: [P3]
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
 - docs/tasks/{Txxx}/P1-requirements.md（BDD 验收条件 — 测试的主要来源）
 - docs/tasks/{Txxx}/P2-design.md（批准的方案，含 ui_affected 声明）
+- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
 
 ## 输出
 - docs/tasks/{Txxx}/P3-test-cases.md — 测试用例清单（编号、对应的 BDD 条件、预期）
@@ -35,6 +36,11 @@ phases: [P3]
 - 每条 P1 BDD 验收条件都有对应测试用例
 - 测试用例编号可追溯到 BDD 条件
 - **若 P2 声明 ui_affected：必须有对应 Playwright/E2E 用例，缺失则门槛不通过**
+- **截图质量标准**：操作类 BDD 的 Playwright 截图用例必须产出互不相同的截图（设计测试时避免重复截图），查询类 BDD 可不截图
+- **P6 BDD 二值规则**：设计的测试必须产出明确的 PASS/FAIL 结果，不支持"调整/跳过/覆盖"等中间态
 
 ## 返回给主 Agent
 文件路径 + 一句话：N 个测试用例，当前全部红灯
+
+## 分阶段落盘（默认启用）
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。P3 是空返回问题高发阶段（T016 教训：连续 3 次空返回），分阶段落盘是有效缓解措施。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。

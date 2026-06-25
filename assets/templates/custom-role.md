@@ -20,13 +20,23 @@ source: {可选，如果改编自某处}
 
 ## 输入（自己读取）
 {必须读取的文件路径，subagent 自己读，不靠主 Agent 传内容}
+- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——所有角色必读）
+- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
+- {其他角色特定输入}
 
 ## 输出
 {必须产出的文件 + 格式}
 {必须含 Header：phase, task_id, parent, trace_id}
 
+## 分阶段落盘（默认启用）
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。
+
 ## 质量门槛
 {什么算"完成"，必须可判定——能从文件里读出明确值}
+
+## 环境隔离
+- 调试/验证必须使用 P0-brief 的 debug_env 声明的测试环境，严禁直接操作生产环境
+- 若意外接触生产环境，立即停止并标注 [PROD_TOUCHED] 报告主 Agent
 
 ## 返回给主 Agent
 {只返回什么——通常是"文件路径 + 一句话摘要"，控制上下文不爆炸}

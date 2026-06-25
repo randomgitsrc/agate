@@ -383,7 +383,7 @@ updated: 2026-06-12
 
 恢复时：
   0. 这是"重新接手任务"，等同于一次新的启动：
-     依次重读 orchestrator-template.md「工作流规则」列出的 7 个协议文件
+     依次重读 orchestrator-template.md「工作流规则」列出的 8 个协议文件
      （WORKFLOW.md / dispatch-protocol.md / state-machine.md / role-system.md /
       loop-orchestration.md / git-integration.md / platform-notes.md）
      不能假设压缩前读过的内容还在上下文里。

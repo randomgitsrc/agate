@@ -3,7 +3,7 @@
 > 来源：`docs/reviews/agate-postmortem-T020-p6-recovery-2026-06-25.md` §7.4 修正后落地清单
 > 评审：`docs/reviews/agate-plan-T020-fixes-review-2026-06-25.md`（5 项缺陷已修正）
 > 日期：2026-06-25
-> 状态：待执行
+> 状态：已落地（2026-06-25 确认，agate v1.2.0 协议已包含全部 6 项 + 局限 4）
 
 ## 背景
 

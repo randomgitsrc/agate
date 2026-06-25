@@ -20,6 +20,7 @@ phases: [P2, P7]
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
 - P2 时：docs/tasks/{Txxx}/P1-requirements.md（需求基线 + BDD 条件 + 范围声明）
 - P7 时：docs/tasks/{Txxx}/P2-design.md + P5-test-results/ + P6-acceptance.md
+- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
 - 相关现有代码（自己 grep/read）
 
 ## 输出
@@ -59,6 +60,16 @@ phases: [P2, P7]
     ```
     只列**实现确实需要参考**的文件，不是相关文件的大杂烩。大文件标行号范围。
     P4 implementer 的 prompt 会引用此清单，按需读取——这是控制 subagent 上下文体量的关键。
+  - `minimal_validation:` — **若方案依赖浏览器行为/安全模型/外部系统行为，P2 必须做最小验证**（T019 教训：srcdoc 方案到 P6 才发现不可行，P2 用 10 行 HTML 测试页 5 分钟就能发现）：
+    ```yaml
+    minimal_validation:
+      assumption: "srcdoc iframe 继承父页面 CSP"
+      method: "10 行 HTML 测试页验证 srcdoc 的 CSP 行为"
+      result: "confirmed | refuted | not_needed"
+      note: "（验证过程和结论简述）"
+    ```
+    **什么需要最小验证**：浏览器安全模型、外部库核心能力、跨系统交互。
+    **不需要**：纯代码逻辑（TDD 覆盖）、项目内已有模式（已有先例）。
 - P7：docs/tasks/{Txxx}/P7-consistency.md（实现 vs 设计的一致性检查）
 - 含 Header（parent 指向上一阶段文件）
 
@@ -71,9 +82,13 @@ phases: [P2, P7]
     - 为已否决方案写的 AC（僵尸需求）→ `[DEVIATION: AC6 关联方案已变更，建议删除]`
     - 已废弃的约束 → `[DEVIATION]`
     - 实现超出设计但合理 → `[EXTENSION]`
+  - **P6 BDD 二值规则**：P6 验收中每条 BDD 只允许 PASS 或 FAIL（不允许"调整/跳过/覆盖"等中间态）。若 P7 发现 P6 使用了中间态，标记为偏差
 
 ## 返回给主 Agent
 文件路径 + 一句话摘要（方案要点 / 一致性结论，含双向检查结果）
+
+## 分阶段落盘（默认启用）
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明，便于 subagent 在无 prompt 派发场景（如 OpenCode agent markdown）下也能遵循。
 
 ## 方法论
 

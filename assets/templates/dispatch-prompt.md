@@ -1,6 +1,7 @@
 # 派发 Prompt 模板
 
 > 主 Agent 调用 task 工具派发 subagent 时，prompt 用这个结构
+> 本模板与 dispatch-protocol.md「派发 prompt 模板」节保持同步，协议文件为权威来源
 
 ```
 你是 {阶段 Pn} 阶段的 {角色名} 子 Agent。
@@ -9,35 +10,44 @@
 读取并严格遵循：
 {agate_root}/assets/{execution-roles|review-roles}/{role}.md
 
-## 项目上下文（必读，每个 subagent 都需要）
+## 项目约定（必读）
 - {project_conventions_file}（项目约定、命名规范、目录结构）
-- {project_index_file}（项目总览）
-- {agate_root}/WORKFLOW.md（流程规范）
+- docs/tasks/{Txxx}/P0-brief.md（本任务的环境约束和风险声明）
+
+## 环境隔离（强制，所有阶段适用）
+本任务的环境约束见 P0-brief.md 的 env_constraints 字段。
+- 调试/验证必须使用 P0-brief 的 debug_env 声明的测试环境，严禁直接操作生产环境
+- 开发全程不应接触生产环境；若意外接触，立即停止并标注 [PROD_TOUCHED] 报告主 Agent
 
 ## 输入（自己读取，不要等我提供内容）
-- docs/tasks/{Txxx}/P0-brief.md（主 Agent 任务简报：环境约束、已知风险、裁剪倾向）
+- docs/tasks/{Txxx}/P0-brief.md（主 Agent 的任务简报和风险声明）
 - docs/tasks/{Txxx}/{上一阶段产出文件}
-- {agate_root}/WORKFLOW.md
+- {agate_root}/WORKFLOW.md（流程规范）
+- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息，如环境状态、URL、选择器等）
 {按角色定义补充其他需要读的文件}
-
-# P4 派发时额外加这句（控制 implementer 上下文体量）：
-# 读取代码文件以 P2-design.md 的 files_to_read 清单为准，按需读取（标了行号范围的只读片段）。
-# 不要在项目里盲目搜索或整目录全读。
 
 ## 任务
 {这个阶段要做什么，一两句话}
 
+## 分阶段落盘（重要，默认启用）
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。这样即使你最终无法产出完整报告，progress 文件也能让主 Agent 知道你做了什么。不要等所有文件读完再一次性写——逐条写。
+
 ## 输出
-产出文件：docs/tasks/{task_dir}/{本阶段产出文件}
-（task_dir 是完整目录名，如 T002-fix-db-migration，不是纯编号）
+产出文件：docs/tasks/{Txxx}/{本阶段产出文件}
+（Txxx 是完整目录名，如 T002-fix-db-migration；不是纯 T002 编号。所有派发文件路径统一用 {Txxx} 占位符。）
 
 文件必须以这段 Header 开头（直接复制，主 Agent 已填好所有值）：
 ---
 phase: {Pn}
 task_id: {完整 task_id，如 T002-fix-db-migration}
+type: {problems|design|review|test-cases|implementation|test-results|acceptance|consistency|release}
 parent: {上一阶段文件名}
 trace_id: {Txxx}-{Pn}-{YYYYMMDD}
+status: draft
+created: {YYYY-MM-DD}
 ---
+
+> Header 字段完整列表见 `task-files.md`「通用 Header」。本模板列出主 Agent 派发时必须直接填好的核心字段；其余字段（如 type 的具体取值）由 subagent 按角色定义补全，但主 Agent 必须确保 `phase/task_id/parent/trace_id` 四个字段已直接填好（避免 subagent 自己拼出错）。
 
 ## 能力补充说明（若 P1 有 supplementable 条目，此节必填）
 本任务需要以下补充能力：
@@ -51,6 +61,41 @@ trace_id: {Txxx}-{Pn}-{YYYYMMDD}
   1. 产出文件路径
   2. 一句话摘要（不超过 30 字）
 绝对不要返回文件全文——我只需要路径和摘要。
+```
+
+## 阶段特定提示（按需追加到 prompt 末尾）
+
+### P2 派发追加
+```
+## P2 最小验证（若方案依赖浏览器行为/安全模型/外部系统行为）
+方案设计前，先用最小验证确认关键假设（10 行 HTML 测试页 / curl 请求 / 20 行脚本）。
+验证结果写入 P2-design.md 的 minimal_validation 字段。纯代码逻辑不需要最小验证。
+```
+
+### P4 派发追加
+```
+## 上下文控制
+读取代码文件以 P2-design.md 的 files_to_read 清单为准，按需读取（标了行号范围的只读片段）。
+不要在项目里盲目搜索或整目录全读。
+## 写跑分离
+若需写验证脚本（Playwright/测试脚本等），只写脚本不跑——主 Agent 会跑脚本验证。
+```
+
+### P5/P6 派发追加
+```
+## 截图质量标准
+操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。
+## P6 BDD 二值规则
+每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
+## 写跑分离
+若需写验证脚本，只写脚本不跑——主 Agent 会跑脚本验证。
+```
+
+### P8 派发追加
+```
+## READY 收尾检查
+P8 gate 通过后，主 Agent 会执行收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留）。
+你在 P8 产出中应列出：启动了哪些临时服务/进程、创建了哪些临时数据、做了哪些开发安装，供主 Agent 清理。
 ```
 
 ## 项目占位符映射
@@ -73,3 +118,5 @@ trace_id: {Txxx}-{Pn}-{YYYYMMDD}
 - **路径用完整目录名**：task_dir 是 Txxx-描述（如 T002-fix-db-migration），不是纯 Txxx
 - 这两条是上下文不爆炸的保证
 - **P4 派发引用 files_to_read**：让 implementer 按 architect 画好的"上下文地图"读文件，而非自己乱窜——这是控制被派发方上下文的关键
+- **分阶段落盘默认启用**：每次派发都带落盘指令，不是空返回后的补救措施
+- **dispatch-context.md 按需引用**：主 Agent 派发前若已查证客观信息并落盘，prompt 里加此文件路径

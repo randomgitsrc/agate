@@ -21,7 +21,7 @@ created: {YYYY-MM-DD}
 |------|------|-----------------|
 | P0 | P0-brief.md | 主 Agent 亲自填写（非 subagent 产出）：task/known_risks/executor_env/env_constraints/pruning_tendency |
 | P1 | P1-requirements.md | 含 BDD 验收条件 + `packages:` `domains:` 初判 + 裁剪说明；无未决 `[NEED_CONFIRM]`（门槛）|
-| P2 | P2-design.md | **必须声明 `packages:` `domains:` `ui_affected:` `gate_commands:`；确认/细化 P0-brief 的 `env_constraints`** |
+| P2 | P2-design.md | **必须声明 `packages:` `domains:` `ui_affected:` `gate_commands:` `files_to_read:` `env_constraints:`；确认/细化 P0-brief 的 `env_constraints`** |
 | P2 | P2-review.md | **status: approved/rejected**（门槛）|
 | P3 | P3-test-cases.md | 声明 `test_code_dir: {实际路径}`；每用例对应一条 BDD；UI 任务含 E2E 用例 |
 | P3 | {test_code_dir}/ | 测试代码目录（项目自定义，如 `backend/tests/`）|
@@ -29,9 +29,18 @@ created: {YYYY-MM-DD}
 | P4 | {implementation_dir}/ | 代码目录（项目自定义，如 `src/` 或 `backend/app/`）|
 | P5 | P5-test-results/unit.md | 标注 `failed: N`（仅供参考，gate 以主 Agent 跑 pytest 为准）|
 | P5 | P5-test-results/e2e.md | UI 任务必须：Playwright 实跑结果 + 截图路径 |
-| P6 | P6-acceptance.md | P1 每条 BDD 有实跑结果；UI 条件含截图；无未决 `[NEED_CONFIRM]`（门槛）|
+| P6 | P6-acceptance.md | P1 每条 BDD 有实跑结果（**只允许 PASS 或 FAIL，不允许中间态**）；UI 条件含截图；无未决 `[NEED_CONFIRM]`（门槛）|
 | P7 | P7-consistency.md | 无 `[BLOCKER]` 标记（门槛）|
-| P8 | P8-release.md | 每个 package 的版本 bump + CHANGELOG |
+| P8 | P8-release.md | 每个 package 的版本 bump + CHANGELOG + 临时资源清单 |
+
+### 辅助文件（非阶段产出，由主 Agent 或 subagent 过程产出）
+
+| 文件 | 产出者 | 说明 |
+|------|--------|------|
+| P{N}-dispatch-context.md | 主 Agent | 派发前查证的客观信息（环境状态、URL、选择器等），信息量 >10 行或需复用时落盘 |
+| P{N}-progress.md | subagent | 分阶段落盘的中间产物（每步追加写入），空返回时供主 Agent 判断 subagent 是否动过 |
+| PAUSED-resolution.md | 主 Agent | PAUSED 恢复时人工决策内容 |
+| HANDOVER.md | 主 Agent | 环境受限时交接给其他 Agent |
 
 ## 路径占位符
 
@@ -172,7 +181,16 @@ files_to_read:
 # 只列实现确实需要参考的文件，不是相关文件大杂烩。
 # P4 implementer 按此清单读取，不在项目里乱窜——这是上下文不爆炸的关键。
 
-## 5. env_constraints（确认/细化 P0-brief）
+## 5. 最小验证（若方案依赖浏览器行为/安全模型/外部系统行为）
+minimal_validation:
+  assumption: "srcdoc iframe 继承父页面 CSP"
+  method: "10 行 HTML 测试页验证 srcdoc 的 CSP 行为"
+  result: "confirmed | refuted | not_needed"
+  note: "（验证过程和结论简述）"
+# 纯代码逻辑不需要最小验证（TDD 覆盖），项目内已有模式不需要（已有先例）。
+# T019 教训：srcdoc 方案到 P6 才发现不可行，P2 用 10 行 HTML 5 分钟就能发现。
+
+## 6. env_constraints（确认/细化 P0-brief）
 env_constraints:
   debug_env: "..."
   isolation_check: "..."
@@ -186,13 +204,22 @@ env_constraints:
 ```markdown
 ## 验收结果（逐条对照 P1 的 BDD）
 
+**BDD 二值规则**：每条 BDD 结果只允许 PASS 或 FAIL，不允许"⚠️ 调整/跳过/覆盖"等中间态。
+**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。
+
 ### AC1: entry 不指定过期时间默认 15 天
-- ✅ 创建 entry 不填过期 → 实测 15 天后过期（evidences/p6-ac1.png）
-- ✅ MCP publish_files 不传 expires → 实测同样生效
+- PASS 创建 entry 不填过期 → 实测 15 天后过期（evidences/p6-ac1.png）
+- PASS MCP publish_files 不传 expires → 实测同样生效
 
 ### AC2: ...
-- ❌ 实测结果与预期不符：... → 触发回 P4
+- FAIL 实测结果与预期不符：... → 触发回 P4
 
 ## 验收小结
 BDD 通过 X/Y，UI 截图 N 张，NEED_CONFIRM M 个
 ```
+
+## READY 收尾检查（P8 gate 通过后、标记 READY 前）
+
+详见 state-machine.md「READY 收尾检查」节（权威来源）。主 Agent 逐项检查 4 类（状态与版本 / 测试环境已清理 / 开发环境已还原 / 生产环境无残留），任一项未通过 → 不进入 READY；生产环境相关项未通过 → 立即 PAUSED 报告人工。
+
+P8-release.md 应包含「临时资源清单」节，列出本任务启动的临时服务/进程、临时数据、开发安装，供主 Agent 清理时参照。
