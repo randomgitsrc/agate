@@ -41,10 +41,10 @@ capability_required: vision
 
 ```yaml
 vision_analysis:
-    screenshots: ["docs/tasks/{Txxx}/evidences/desktop_1280x800.png", "docs/tasks/{Txxx}/evidences/mobile_390x844.png"]
-    purpose: "acceptance"          # acceptance | design-review | regression | consistency-check
-    reference: "docs/design/mockup-v2.png"   # null 表示无参照
-    analyzed_at: "2026-06-13T10:00:00"
+  screenshots: ["docs/tasks/{Txxx}/evidences/desktop_1280x800.png", "docs/tasks/{Txxx}/evidences/mobile_390x844.png"]
+  purpose: "acceptance"          # acceptance | design-review | regression | consistency-check
+  reference: "docs/design/mockup-v2.png"   # null 表示无参照
+  analyzed_at: "2026-06-13T10:00:00"
 
   # ── 每个 viewport 单独分析 ──────────────────────────────────
   viewports:

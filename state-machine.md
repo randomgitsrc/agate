@@ -385,7 +385,7 @@ updated: 2026-06-12
   0. 这是"重新接手任务"，等同于一次新的启动：
      依次重读 orchestrator-template.md「工作流规则」列出的 8 个协议文件
      （WORKFLOW.md / dispatch-protocol.md / state-machine.md / role-system.md /
-      loop-orchestration.md / git-integration.md / platform-notes.md）
+      loop-orchestration.md / git-integration.md / platform-notes.md / LIMITATIONS.md）
      不能假设压缩前读过的内容还在上下文里。
   1. 主 Agent 重新读 active-tasks.md → "T001 在 P4，重试 0"
   2. 读 docs/tasks/T001/ → P4-implementation/ 是否已有文件？

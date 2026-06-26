@@ -8,7 +8,7 @@
 
 agate 的质量保证机制是单向的：dispatch-protocol.md 反复强调"主 Agent 不信任 subagent 的自我报告，必须亲自验证"。但这条链路只解决了"subagent 会不会撒谎"，没有解决"主 Agent 自己的判断会不会出错"——所有最终判断（裁剪哪些阶段、gate 算不算过、SCOPE+ 影响范围多大）都收敛到主 Agent 这一个点，没有任何机制检验这个点本身是否可靠。
 
-这不是假设性担忧。PeekView 真实发生过的 T005/T006 生产环境污染事故（见 `docs/reviews/workflow-v4-postmortem-T005-T006-2026-06-13.md`，PeekView 仓库），根因正是主 Agent 接受了 P1 analyst 的裁剪建议、跳过了 P6 验收，自己没有做独立判断。事后唯一的"修复"是"以后主 Agent 要更谨慎"——这不是结构性修复，是要求同一个单点更努力。
+这不是假设性担忧。PeekView 真实发生过的 T005/T006 生产环境污染事故（见 PeekView 仓库 `docs/reviews/workflow-v4-postmortem-T005-T006-2026-06-13.md`，非本仓），根因正是主 Agent 接受了 P1 analyst 的裁剪建议、跳过了 P6 验收，自己没有做独立判断。事后唯一的"修复"是"以后主 Agent 要更谨慎"——这不是结构性修复，是要求同一个单点更努力。
 
 ## 讨论的方向：能否引入一个外部观察者/裁判，基于客观信号强制触发评审，而不是依赖主 Agent 自由裁量
 

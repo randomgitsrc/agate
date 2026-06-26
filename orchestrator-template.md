@@ -88,7 +88,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 2. 无进行中任务 → 启动新任务，**先写 P0-brief.md**（主 Agent 职责，非 subagent 产出）
    - P0-brief 五字段自查（task / known_risks / executor_env / env_constraints / pruning_tendency），任一字段为空占位符 → 补完再派发 P1 analyst
    - 详见 dispatch-protocol.md「标准派发流程」步骤 0
-3. 有进行中任务 → 读 `.state.yaml` → 确认当前阶段 + 重试记录 → 进入「单步函数」流程（state-machine.md L268）
+3. 有进行中任务 → 读 `.state.yaml` → 确认当前阶段 + 重试记录 → 进入「单步函数」流程（state-machine.md「主 Agent 的单步执行（一轮）」节）
 
 ## 项目约定
 

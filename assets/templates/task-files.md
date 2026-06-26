@@ -181,6 +181,7 @@ ui_affected: false
 ## 3. gate 命令（在 P2 固化，后续不得修改）
 gate_commands:
   P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
+  P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected: true 时必填
   P6: "pytest -q --tb=no tests/acceptance/"
 # 紧凑输出要求：gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式
 # （pytest --tb=no / cargo --quiet / dotnet --verbosity quiet / vitest --reporter=dot
