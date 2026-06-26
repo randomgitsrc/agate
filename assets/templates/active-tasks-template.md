@@ -57,7 +57,7 @@
 ```
 ⬜ 待开始 → 🔄 进行中 → ✅✅ 已完成
                 ↓ (gate 失败超限)
-            ⏸️ PAUSED（见 dispatch-protocol.md「评审迭代机制」L2 上溯）
+            ⏸️ PAUSED（见 state-machine.md「评审迭代机制」L2 上溯）
                 ↓ (环境受限，交接其他 Agent)
             ⏸️ HANDOVER（见 HANDOVER.md）
 ```
