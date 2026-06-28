@@ -106,6 +106,8 @@ P5 --[P2 gate_commands.P5 命令 exit 0 AND failed==0 AND 无 [PROD_TOUCHED] 标
       ③ 以上均为最低要求，项目应在代码层面实现强制隔离（见 README 隔离原则）。）
     （若 P5 过程中出现任何 [PROD_TOUCHED] 标记 → 立即 PAUSED，不允许进入 P6）
 P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
+    （修复后必须重跑 P5 gate 全量测试，不是只检查修复项。T027 教训：修复引入回归）
+    （修复重派 prompt 必须附修复历史，避免 subagent 重复踩坑。见 dispatch-protocol.md「P5 修复流程」）
 P5 --[有 PROD_TOUCHED]--> PAUSED（生产环境被触碰，需人工处置后才能继续）
 P5 --[retry>=MAX]--> PAUSED
 
@@ -216,17 +218,22 @@ PAUSED 恢复协议：
 
 **"有效"的定义**：文件存在 + 含合法 Header（phase/task_id/parent/trace_id）+ 有实质内容（非空、非半截）。只看"文件存在"会被 subagent 写一半崩溃留下的垃圾文件误导。
 
-**P3 红灯的特别说明**：TDD 要求测试先失败，但"失败"有两种——(1) 正确的红灯：测试逻辑对，因实现未写而断言不满足；(2) 错误的红灯：测试本身有语法/import/collection 错误，根本跑不起来。门槛只接受**第一种**（assertion failure）。
+**P3 红灯的特别说明**：TDD 要求测试先失败，但"失败"有三种——
+- (1) 经典红灯：测试逻辑对，因实现未写而断言不满足（assertion failure）→ 通过
+- (2) B 类红灯：测试逻辑对，因依赖模块未实现而 import 失败（T027 教训：P3 test-designer 不写 stub，所以 TDD 红灯几乎都是此类）→ 通过
+- (3) A 类错误：测试代码自身有语法/import 错误，根本跑不起来 → 不通过
 
-**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析 pytest 输出。脚本输出 `assertion_failures=N, collection_errors=M` 格式，gate 判定为 `assertion_failures > 0 AND collection_errors == 0`。
+门槛接受**前两种**（assertion failure 或 B 类 import failure），拒绝第三种。
+
+**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析 pytest 输出。脚本输出 `assertion_failures=N, collection_errors=M` 格式，gate 判定为 exit 0（含经典红灯和 B 类红灯）。
 
 **`scripts/check-tdd-red.sh` 设计**：
 
 ```bash
 #!/bin/bash
-# 检查 TDD 红灯：只允许 assertion failure，拒绝 collection/import error
-# 退出 0 = 正确的红灯（assertion failure > 0, collection error == 0）
-# 退出 1 = 错误（有 collection/import error）
+# 检查 TDD 红灯：区分 A 类（测试代码有 bug）和 B 类（实现未写的 import 失败）
+# 退出 0 = 正确红灯（assertion failure > 0, collection error == 0）或 B 类红灯（import 未实现）
+# 退出 1 = A 类错误（测试代码自身有语法/import 错误）
 # 退出 2 = 测试全绿（说明实现先于测试写完，违反 TDD）
 # 退出 3 = 找不到测试运行器
 #
@@ -255,13 +262,26 @@ if [ "$EXIT" -eq 0 ]; then
     exit 2
 fi
 
+if [ "${ERRORS:-0}" -eq 0 ] && [ "${FAILED:-0}" -gt 0 ]; then
+    echo "TDD_CHECK: classic red-light (assertion failures only)"
+    exit 0
+fi
+
 if [ "${ERRORS:-0}" -gt 0 ]; then
-    echo "TDD_CHECK: collection/import errors detected — test code has bugs, fix before proceeding"
+    IMPORT_ERRORS=$(echo "$RESULT" | grep -E '(ImportError|ModuleNotFoundError):')
+    if [ -n "$IMPORT_ERRORS" ]; then
+        SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError)' || true)
+        if [ -z "$SYNTAX_ERRORS" ]; then
+            echo "TDD_CHECK: B-class red-light (import errors from missing implementation)"
+            exit 0
+        fi
+    fi
+    echo "TDD_CHECK: A-class error (test code has bugs, fix before proceeding)"
     exit 1
 fi
 
-# exit code > 0 (pytest has failures) but not due to errors = assertion failures
-exit 0
+echo "TDD_CHECK: unexpected test result"
+exit 1
 ```
 
 **P8 与 READY 的说明**：
@@ -311,7 +331,7 @@ function 执行一步(task_id):
              grep -cE 'status:.*GAP\b' {task}/P1-requirements.md → =0（仅匹配 status: GAP，不匹配 supplementable）
        - P2: grep 'status: approved' {task}/P2-review.md → 命中;
              grep -cE '^(packages|domains|ui_affected|gate_commands):' {task}/P2-design.md → =4
-       - P3: scripts/check-tdd-red.sh → exit 0;
+       - P3: scripts/check-tdd-red.sh → exit 0（含经典红灯和 B 类 import 红灯）；
              （UI 任务：确认 P3-test-cases.md 含 Playwright/E2E 用例描述）
        - P4: git log --oneline -1 → 含 "P4" 或 "wf(Txxx-P4)"
        - P5: 从 P2-design.md gate_commands.P5 读取命令执行 → exit 0 AND failed==0;
@@ -324,8 +344,10 @@ function 执行一步(task_id):
               （UI 条件：vision-analyst YAML summary.blocker_count → =0）
        - P7: grep -cE '^\s*-?\s*\[BLOCKER\]' {task}/P7-consistency.md → =0;
              grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' {task}/P7-consistency.md → =0
-        - P8: 从 P2-design.md gate_commands 逐包读取发布检查命令执行 → 全部 exit 0;
+        - P8: scripts/check-gate.sh P8 → 脚本化部分通过（exit 2）;
+              从 P2-design.md gate_commands 逐包读取发布检查命令执行 → 全部 exit 0;
               从 P2-design.md gate_commands.P5 重跑 P5 命令 → exit 0 AND failed==0;
+              git log v{prev_version}..HEAD --oneline 对照 CHANGELOG 条目 → 无遗漏;
               grep -q 'bump_type:' {task}/P8-release.md → 命中;
               git diff HEAD~1 --stat → 含 version 文件变更;
               git diff HEAD~1 -- CHANGELOG.md → 非空（CHANGELOG 是项目根文件，不是 P8-release.md 内容）

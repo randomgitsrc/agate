@@ -58,7 +58,27 @@ case "$PHASE" in
           exit 1
       fi ;;
   P8)
-      echo "GATE P8: 需从 P2-design.md gate_commands 逐包动态读取，主 Agent 自行判定" >&2
+      # P8 部分检查可脚本化，其余需主 Agent 自判
+      RC=0
+      # 检查 bump_type 字段
+      if ! grep -q 'bump_type:' "$TASK_DIR/P8-release.md" 2>/dev/null; then
+          echo "GATE P8: P8-release.md 缺 bump_type 字段" >&2
+          RC=1
+      fi
+      # 检查 version 文件变更
+      if ! git diff HEAD~1 --stat 2>/dev/null | grep -qiE 'version|__version__|package.json|Cargo.toml|pyproject.toml'; then
+          echo "GATE P8: HEAD~1 无 version 文件变更" >&2
+          RC=1
+      fi
+      # 检查 CHANGELOG 变更
+      if ! git diff HEAD~1 -- CHANGELOG.md 2>/dev/null | grep -q .; then
+          echo "GATE P8: CHANGELOG.md 无变更" >&2
+          RC=1
+      fi
+      if [ "$RC" -ne 0 ]; then
+          exit 1
+      fi
+      echo "GATE P8: 脚本化检查通过。仍需主 Agent：① 从 P2 gate_commands 逐包读取发布检查命令 ② 重跑 P5 gate ③ 用 git log 对照 CHANGELOG 覆盖率" >&2
       exit 2 ;;
   *)
       echo "未知阶段: $PHASE" >&2
