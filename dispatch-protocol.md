@@ -356,6 +356,15 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 ## P6 BDD 覆盖完整性
 P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
 P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
+## P6 证据要求
+每条 BDD 验收结果必须有对应证据文件，存入 docs/tasks/{Txxx}/P6-evidence/。
+证据类型：截图（screenshots/）、执行日志（test-output.log）、trace（traces/）。
+无证据的 PASS 标记 = gate 不通过。
+## P6 verifier 脚本执行
+P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agent 执行。
+执行输出落盘到 P6-evidence/test-output.log。
+若主 Agent 需要自写脚本（如 verifier 脚本不兼容当前环境），自写脚本的执行输出也落盘到 P6-evidence/test-output.log。
+关键约束：P6-evidence/ 必须有执行产出，不接受空目录。
 ## 写跑分离
 若需写验证脚本，只写脚本不跑——主 Agent 会跑脚本验证。
 ```
@@ -527,8 +536,8 @@ setTimeout(() => {
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | P4-implementation/ 下文件非空 + `git log --oneline -1` → 含 "P4" 或 "wf(Txxx-P4)" |
 | P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + `grep -rl '\[PROD_TOUCHED\]' {task}/` → 无命中（匹配标记格式）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
-| P6→P7 | BDD 验收通过 | `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md → =P1 BDD 总数` + `grep -cE '^\s*- FAIL\b' P6-acceptance.md → =0` + `grep -cE '\[NEED_CONFIRM\]' P6-acceptance.md → =0`（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
-| P7→P8 | 一致性通过 | `grep -cE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md → =0` + `grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' P7-consistency.md → =0`（已知限制：定性分析，P5 回归测试兜底）|
+| P6→P7 | BDD 验收通过 ⚠️ self-authored | `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md → =P1 BDD 总数` + `grep -cE '^\s*- FAIL\b' P6-acceptance.md → =0` + `grep -cE '\[NEED_CONFIRM\]' P6-acceptance.md → =0` + `ls {task}/P6-evidence/` → 非空（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
+| P7→P8 | 一致性通过 ⚠️ self-authored | `grep -cE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md → =0` + `grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' P7-consistency.md → =0`（已知限制：定性分析，P5 回归测试兜底）|
 | P8→READY | 发布准备完成 | 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `grep -q 'bump_type:' P8-release.md` → 命中 + `git diff HEAD~1 --stat` → 含 version 文件变更 + `git diff HEAD~1 -- CHANGELOG.md` → 非空（CHANGELOG 是项目根文件）|
 
 **反例（禁止用作门槛）：**
@@ -539,6 +548,18 @@ setTimeout(() => {
 - ❌ "方案足够好" / "测试差不多了"
 
 **A1 原则**：gate 判定是主 Agent 运行命令得到的客观事实，不是 subagent 文件里的声明。
+
+**Gate 分类**：
+
+| 类型 | 阶段 | 判定对象 | 可伪造？ |
+|------|------|----------|----------|
+| 外部产出 gate | P3, P4, P5 | 外部工具输出（pytest exit code, vue-tsc, git log） | 否 |
+| 自写文件 gate ⚠️ | P1, P2, P6, P7 | 主 Agent 写的文件内容 | 是（主 Agent 直接写文件） |
+
+自写文件 gate 的缓解措施：
+- P1/P2：gate 条件简单（标记存在性、字段计数），伪造动机低
+- P6：证据存在性检查（`P6-evidence/` 非空），无证据标 PASS 将被 gate 拦截
+- P7：P5 回归测试兜底（一致性标注错误不会导致 bug 漏过）
 
 **C7 规则（subagent 自我报告不可信）**：subagent 产出里的"检查结果""✅/通过"等自评，**仅供参考，绝不作为 gate 判定依据**。gate 一律以主 Agent 亲自跑命令的结果为准。T005 教训：P8 subagent 把 `1 failed` 标成 ✅，主 Agent 若信了就放行了缺陷。
 

@@ -35,13 +35,18 @@ case "$PHASE" in
       TOTAL=$(grep -cE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       FAIL=$(grep -cE '^\s*- FAIL\b' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       NC=$(grep -cE '\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
-      if [ "$FAIL" -eq 0 ] && [ "$NC" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
-          echo "GATE P6: PASS. 注意：BDD 总数对照需主 Agent 在步骤 5 手动验证" >&2
-          exit 0
-      else
+      if [ "$FAIL" -ne 0 ] || [ "$NC" -ne 0 ] || [ "$TOTAL" -eq 0 ]; then
           echo "GATE P6: FAIL=$FAIL, NEED_CONFIRM=$NC, TOTAL=$TOTAL" >&2
           exit 1
-      fi ;;
+      fi
+      # 证据存在性检查（⚠️ self-authored gate 的缓解措施）
+      EVIDENCE_DIR="$TASK_DIR/P6-evidence"
+      if [ ! -d "$EVIDENCE_DIR" ] || [ -z "$(ls -A "$EVIDENCE_DIR" 2>/dev/null)" ]; then
+          echo "GATE P6: P6-evidence/ 目录不存在或为空" >&2
+          exit 1
+      fi
+      echo "GATE P6: PASS. 注意：BDD 总数对照需主 Agent 在步骤 5 手动验证" >&2
+      exit 0 ;;
   P7)
       # grep -c 无匹配时返回 exit 1，|| echo 0 处理此情况
       BLOCKERS=$(grep -cE '^\s*-?\s*\[BLOCKER\]' "$TASK_DIR/P7-consistency.md" 2>/dev/null || echo 0)

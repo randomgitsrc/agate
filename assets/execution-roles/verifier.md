@@ -88,6 +88,10 @@ modes:
 
 ### 输出
 - docs/tasks/{Txxx}/P6-acceptance.md — 验收报告，每条 BDD 一个结果块
+- docs/tasks/{Txxx}/P6-evidence/ — 验收证据目录（每条 BDD 至少一个证据文件）
+  - screenshots/ — Playwright 截图
+  - test-output.log — 验证脚本执行日志
+  - traces/ — Playwright trace（可选）
 - evidences/ — Playwright 截图（desktop + mobile，若 ui_affected）
 - docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
 
@@ -103,6 +107,7 @@ modes:
 - P1 的**每条** BDD 条件都有实跑结果，只允许 **PASS 或 FAIL**（二值），**不允许"⚠️ 调整/跳过/覆盖"等中间态**（T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
 - UI 条件有截图佐证，不接受"应该能工作"
 - **截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）
+- **证据完整性**：P6-evidence/ 目录必须存在且非空。无证据的 PASS 标记将被 gate 拦截
 - 行为不符（FAIL）→ 门槛不通过，回 P4 重做
 - 拿不准"这个结果算不算符合预期" → 标 `[NEED_CONFIRM]` 交人判断
 - **写跑分离**：若需写验证脚本，只写脚本不跑——主 Agent 会跑脚本验证
