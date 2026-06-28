@@ -8,6 +8,8 @@
 | `main-agent-oversight.md` | 谁来监督主 Agent 自己的判断，LLM 裁判员是否可行 | 部分落地，方案C降级为开放问题 |
 | `production-isolation-origin.md` | `[PROD_TOUCHED]` 机制的来历，T005/T006 生产环境事故的通用教训 | 已落地 |
 | `subagent-empty-return-root-cause.md` | subagent 空返回的根因分析（上下文窗口满 + steps 未设置）| 分析完成，部分可落地 |
+| `subagent-context-mechanism.md` | OpenCode/Claude Code subagent context 真实构成与平台差异 | 事实记录 |
 | `docs/reviews/agate-postmortem-T019-meta-review-2026-06-24.md` | T016+T019 两个案例的跨任务模式：主 Agent 系统性绕过现成安全网 | 待落地 |
+| `subagent-context-mechanism.md` | OpenCode/Claude Code subagent context 真实状态（压缩摘要注入 vs sidechain transcript） | 调研记录 |
 
 新增决策记录时，按这个格式写：问题是什么 → 讨论过哪些方案及为何否决 → 最终采纳的方案及理由 → 状态（已决策待落地 / 已落地，落地位置写清楚）。
