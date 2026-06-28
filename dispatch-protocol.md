@@ -364,7 +364,10 @@ P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑
 P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
 ## P6 证据要求
 每条 BDD 验收结果必须有对应证据文件，存入 docs/tasks/{Txxx}/P6-evidence/。
-证据类型：截图（screenshots/）、执行日志（test-output.log）、trace（traces/）。
+证据类型：
+- test-output.log — 验证脚本执行日志（所有任务通用）
+- screenshots/ — Playwright 截图（仅 UI 任务）
+- traces/ — Playwright trace（仅 UI 任务，可选）
 无证据的 PASS 标记 = gate 不通过。
 ## P6 verifier 脚本执行
 P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agent 执行。
@@ -571,7 +574,7 @@ setTimeout(() => {
 | P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + `grep -rl '\[PROD_TOUCHED\]' {task}/` → 无命中（匹配标记格式）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
 | P6→P7 | BDD 验收通过 ⚠️ self-authored | `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md → =P1 BDD 总数` + `grep -cE '^\s*- FAIL\b' P6-acceptance.md → =0` + `grep -cE '\[NEED_CONFIRM\]' P6-acceptance.md → =0` + `ls {task}/P6-evidence/` → 非空（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
 | P7→P8 | 一致性通过 ⚠️ self-authored | `grep -cE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md → =0` + `grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' P7-consistency.md → =0`（已知限制：定性分析，P5 回归测试兜底）|
-| P8→READY | 发布准备完成 | `scripts/check-gate.sh P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + `grep -q 'bump_type:' P8-release.md` → 命中 + `git diff HEAD~1 --stat` → 含 version 文件变更 + `git diff HEAD~1 -- CHANGELOG.md` → 非空（CHANGELOG 是项目根文件）|
+| P8→READY | 发布准备完成 | `scripts/check-gate.sh P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + 从 P2 `packages` 验证 version 文件路径变更 + `grep -q 'bump_type:' P8-release.md` → 命中 + `git diff HEAD~1 --stat` → 含 version 文件变更 + `git diff HEAD~1 -- ${CHANGELOG_FILE:-CHANGELOG.md}` → 非空（默认 CHANGELOG.md，`CHANGELOG_FILE` 环境变量可覆盖）|
 
 **反例（禁止用作门槛）：**
 - ❌ "unit.md 里 failed: 0"（信 subagent 写的数字）
@@ -586,7 +589,7 @@ setTimeout(() => {
 
 | 类型 | 阶段 | 判定对象 | 可伪造？ |
 |------|------|----------|----------|
-| 外部产出 gate | P3, P4, P5 | 外部工具输出（pytest exit code, vue-tsc, git log） | 否 |
+| 外部产出 gate | P3, P4, P5 | 外部工具输出（test runner exit code, type checker, git log） | 否 |
 | 自写文件 gate ⚠️ | P1, P2, P6, P7 | 主 Agent 写的文件内容 | 是（主 Agent 直接写文件） |
 
 自写文件 gate 的缓解措施：

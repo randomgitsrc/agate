@@ -98,7 +98,10 @@ P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑
 P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
 ## P6 证据要求
 每条 BDD 验收结果必须有对应证据文件，存入 docs/tasks/{Txxx}/P6-evidence/。
-证据类型：截图（screenshots/）、执行日志（test-output.log）、trace（traces/）。
+证据类型：
+- test-output.log — 验证脚本执行日志（所有任务通用）
+- screenshots/ — Playwright 截图（仅 UI 任务）
+- traces/ — Playwright trace（仅 UI 任务，可选）
 无证据的 PASS 标记 = gate 不通过。
 ## P6 verifier 脚本执行
 P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agent 执行。

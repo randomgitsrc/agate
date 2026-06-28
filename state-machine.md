@@ -237,15 +237,19 @@ PAUSED 恢复协议：
 # 退出 2 = 测试全绿（说明实现先于测试写完，违反 TDD）
 # 退出 3 = 找不到测试运行器
 #
-# 环境变量 TEST_RUNNER：主 Agent 在调用前从 P0-brief.md env_constraints.debug_env
-# 提取测试启动命令并 export。回退链：$TEST_RUNNER → which pytest → 报错 exit 3。
+# 本脚本是 pytest 的参考实现。agate 是通用协议，不绑定特定技术栈。
+# 非 Python 项目应提供自己的 TDD 红灯检查脚本，遵循 TEST_RUNNER 输出契约
+#（见 scripts/check-tdd-red.sh 完整注释）。
+#
+# 环境变量 TEST_RUNNER：主 Agent 从 P0-brief.md env_constraints.debug_env 提取。
+# 环境变量 PROJECT_MODULE：项目模块前缀（用于 B 类检测），未设置则退化为启发式。
 
 if [ -n "$TEST_RUNNER" ]; then
     RUNNER="$TEST_RUNNER"
 elif command -v pytest &>/dev/null; then
     RUNNER="pytest"
 else
-    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER env var or install pytest." >&2
+    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER env var." >&2
     exit 3
 fi
 
@@ -258,7 +262,7 @@ ERRORS=$(echo "$RESULT" | grep -oP '\d+ error' | grep -oP '\d+')
 echo "assertion_failures=${FAILED:-0}, collection_errors=${ERRORS:-0}"
 
 if [ "$EXIT" -eq 0 ]; then
-    echo "TDD_CHECK: tests pass, no red-light — implementation may be ahead of tests"
+    echo "TDD_CHECK: tests pass, no red-light"
     exit 2
 fi
 
@@ -268,15 +272,26 @@ if [ "${ERRORS:-0}" -eq 0 ] && [ "${FAILED:-0}" -gt 0 ]; then
 fi
 
 if [ "${ERRORS:-0}" -gt 0 ]; then
-    IMPORT_ERRORS=$(echo "$RESULT" | grep -E '(ImportError|ModuleNotFoundError):')
+    IMPORT_ERRORS=$(echo "$RESULT" | grep -E '(ImportError|ModuleNotFoundError|Cannot find module|ClassNotFoundException|NoClassDefFoundError|unresolved import):' || true)
     if [ -n "$IMPORT_ERRORS" ]; then
-        SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError)' || true)
+        SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError|CompileError|ParseError)' || true)
         if [ -z "$SYNTAX_ERRORS" ]; then
-            echo "TDD_CHECK: B-class red-light (import errors from missing implementation)"
-            exit 0
+            if [ -n "$PROJECT_MODULE" ]; then
+                INTERNAL_IMPORT=$(echo "$IMPORT_ERRORS" | grep -E "(from ${PROJECT_MODULE}|import ${PROJECT_MODULE}|${PROJECT_MODULE}\.)" || true)
+                if [ -n "$INTERNAL_IMPORT" ]; then
+                    echo "TDD_CHECK: B-class red-light (project module '${PROJECT_MODULE}')"
+                    exit 0
+                else
+                    echo "TDD_CHECK: A-class error (not from project module '${PROJECT_MODULE}')"
+                    exit 1
+                fi
+            else
+                echo "TDD_CHECK: B-class red-light (heuristic: no syntax errors)"
+                exit 0
+            fi
         fi
     fi
-    echo "TDD_CHECK: A-class error (test code has bugs, fix before proceeding)"
+    echo "TDD_CHECK: A-class error (test code has bugs)"
     exit 1
 fi
 
@@ -348,9 +363,11 @@ function 执行一步(task_id):
               从 P2-design.md gate_commands 逐包读取发布检查命令执行 → 全部 exit 0;
               从 P2-design.md gate_commands.P5 重跑 P5 命令 → exit 0 AND failed==0;
               git log v{prev_version}..HEAD --oneline 对照 CHANGELOG 条目 → 无遗漏;
+              从 P2-design.md packages 验证 version 文件路径变更;
               grep -q 'bump_type:' {task}/P8-release.md → 命中;
               git diff HEAD~1 --stat → 含 version 文件变更;
-              git diff HEAD~1 -- CHANGELOG.md → 非空（CHANGELOG 是项目根文件，不是 P8-release.md 内容）
+              git diff HEAD~1 -- ${CHANGELOG_FILE:-CHANGELOG.md} → 非空
+              （CHANGELOG 是项目根文件，默认 CHANGELOG.md；项目可用 CHANGELOG_FILE 环境变量覆盖路径）
     6. 计算下一状态（按转移规则）
        **回退跳变检测**（T019 教训：P5→P2 跨 3 阶段回退未 PAUSED）：
        若 |next_phase_num - current_phase_num| >= 2（跨 ≥2 阶段回退）

@@ -89,9 +89,9 @@ modes:
 ### 输出
 - docs/tasks/{Txxx}/P6-acceptance.md — 验收报告，每条 BDD 一个结果块
 - docs/tasks/{Txxx}/P6-evidence/ — 验收证据目录（每条 BDD 至少一个证据文件）
-  - screenshots/ — Playwright 截图
-  - test-output.log — 验证脚本执行日志
-  - traces/ — Playwright trace（可选）
+  - test-output.log — 验证脚本执行日志（所有任务通用）
+  - screenshots/ — Playwright 截图（仅 UI 任务）
+  - traces/ — Playwright trace（仅 UI 任务，可选）
 - evidences/ — Playwright 截图（desktop + mobile，若 ui_affected）
 - docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
 
