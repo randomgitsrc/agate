@@ -247,6 +247,63 @@ P6 R2（18/18 PASS）后，我在 P7 gate 前做了：
 
 ---
 
+## 摩擦 7：P8 批量 bump 时的 CHANGELOG 信息丢失（新增）
+
+### 现象
+
+P8 裁剪是合法的——T025/T026/T027 都跳过了 P8，等任务全部完成后一次性 `make bump-version`。
+
+但 P8 裁剪制造了一个信息断层：
+
+```
+T025 READY (3 周前，P8 跳过)
+T026 READY (2 周前，P8 跳过)
+T027 READY (1 周前，P8 跳过)
+→ make bump-version
+→ 手动填 CHANGELOG：「这次改了什么来着？」
+→ 翻 git log、翻 active-tasks.md、翻 memory
+→ 可能漏掉某个任务的功能描述
+```
+
+T025 的改动分布在 13 个文件（entry_service + EntryListView + BannerBar + FilterChip + router），3 周后靠记忆写 CHANGELOG，几乎必然遗漏细节。
+
+### 根因
+
+agate 没有要求每个任务在完成时产生**面向 CHANGELOG 的信息**。P8 的 `CHANGELOG` 编写是"bump 时现场回忆"，而 bump 和执行之间存在跨度。
+
+### 建议 G
+
+**READY 阶段产出 `CHANGELOG-ENTRY.md`**：
+
+每个任务进入 READY 时，顺手产出：
+
+```markdown
+### {Added/Changed/Fixed/Removed}
+- {一句话功能描述（面向用户，不是面向开发者）}
+```
+
+格式固定 3-5 行。例如 T025：
+
+```markdown
+### Added
+- `/users/:username` route — public user entry listing page
+- `BannerBar` component showing "@username's entries" header
+- `FilterChip` component for owner filter indicator (reusable for T026 search)
+
+### Changed
+- `list_entries` API now accepts `owner=username` query param
+- EntryListView supports three-state UI driven by `owner` prop
+- Entry card `@username` is now a clickable link to user page
+```
+
+批量 bump 时，发布者只需合并各任务的 `CHANGELOG-ENTRY.md`。信息在任务完成时最新鲜。
+
+**位置**：`docs/tasks/{Txxx}/CHANGELOG-ENTRY.md`（与 .state.yaml 同目录）
+
+**谁写**：P8 subagent 写（如果 P8 走完整流程）；如果 P8 被裁剪，则 P7 或主 Agent 在 READY 阶段写。主 Agent 有所有阶段的摘要信息（gate 判定中积累的 exit codes + 改动文件清单），可以拼出 CHANGELOG 条目。
+
+---
+
 ## 总结
 
 | # | 摩擦 | 建议 | 影响范围 |
@@ -257,6 +314,7 @@ P6 R2（18/18 PASS）后，我在 P7 gate 前做了：
 | D | 全量回归不适应修复循环 | 分层 P5 gate（首次全量/回归增量） | 所有有回归修复的任务 |
 | E | 写跑分离对本地 E2E 多余 | P0 `verification_env` + 按环境判定 | 所有 UI 任务 |
 | F | gate 中二次验证 subagent 工作 | gate-cheatsheet 信任等级 | 所有信号级 gate |
+| G | P8 批量 bump 时 CHANGELOG 信息丢失 | READY 阶段产出 `CHANGELOG-ENTRY.md` | 所有跳 P8 的多任务批次 |
 
 ### 核心设计原则
 

@@ -353,6 +353,9 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。
 ## P6 BDD 二值规则
 每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
+## P6 BDD 覆盖完整性
+P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
+P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
 ## 写跑分离
 若需写验证脚本，只写脚本不跑——主 Agent 会跑脚本验证。
 ```
@@ -362,6 +365,13 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 ## READY 收尾检查
 P8 gate 通过后，主 Agent 会执行收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留）。
 你在 P8 产出中应列出：启动了哪些临时服务/进程、创建了哪些临时数据、做了哪些开发安装，供主 Agent 清理。
+
+## 版本 bump 判定
+- 公共 API 行为变化 / 破坏性变更 → major
+- 加功能 / 内部重构改 API（向后兼容）→ minor
+- 修 bug / 不改 API 行为 → patch
+- 测试缺陷不应影响版本号决策：测试 hard-code 版本号 → 修测试，不降级版本
+- 在 P8-release.md 中显式声明：bump 类型（major/minor/patch）+ 理由
 ```
 
 **[PROD_TOUCHED] 标记说明**：任何 subagent 若在执行过程中意外接触了生产环境（写入、读取真实数据、触发外部调用），立即在产出文件标注：
@@ -476,6 +486,14 @@ setTimeout(() => {
 
 —— T020 教训：主 Agent 空返回后以"跑脚本是 gate 验证"为由降级亲自写脚本。写脚本不是 gate 验证，是有创造性的工程工作。写跑分离让 subagent 写、主 Agent 跑，各司其职。
 
+### 主 Agent 的"inspect DOM"属于查证职责
+
+主 Agent 可以跑最小 inspect 脚本（如 `page.evaluate(() => document.querySelector('#root').innerHTML.length)`）来查证 DOM 结构——这是查证客观信息（写 dispatch-context.md 的选择器清单），不属于"写脚本"或"降级"。查证产出落盘到 dispatch-context.md，派发时传路径。
+
+区分：
+- 主 Agent 跑 inspect 脚本（只查 DOM 结构、不做断言）= 查证职责 ✅
+- 主 Agent 写验收脚本（含断言逻辑）= 降级 ❌
+
 ### P2 最小验证（方案可行性先验证再全流程推进）
 
 **规则**：P2 方案设计时，如果方案依赖某个**浏览器行为/安全模型/外部系统行为**（非纯代码逻辑），必须在 P2 阶段做最小验证，验证通过后再写 P2 design。
@@ -511,7 +529,7 @@ setTimeout(() => {
 | P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + `grep -rl '\[PROD_TOUCHED\]' {task}/` → 无命中（匹配标记格式）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
 | P6→P7 | BDD 验收通过 | `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md → =P1 BDD 总数` + `grep -cE '^\s*- FAIL\b' P6-acceptance.md → =0` + `grep -cE '\[NEED_CONFIRM\]' P6-acceptance.md → =0`（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
 | P7→P8 | 一致性通过 | `grep -cE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md → =0` + `grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' P7-consistency.md → =0`（已知限制：定性分析，P5 回归测试兜底）|
-| P8→READY | 发布准备完成 | 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + `git diff HEAD~1 --stat` → 含 version 文件变更 + `git diff HEAD~1 -- CHANGELOG.md` → 非空（CHANGELOG 是项目根文件）|
+| P8→READY | 发布准备完成 | 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `grep -q 'bump_type:' P8-release.md` → 命中 + `git diff HEAD~1 --stat` → 含 version 文件变更 + `git diff HEAD~1 -- CHANGELOG.md` → 非空（CHANGELOG 是项目根文件）|
 
 **反例（禁止用作门槛）：**
 - ❌ "unit.md 里 failed: 0"（信 subagent 写的数字）

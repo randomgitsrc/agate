@@ -3,7 +3,8 @@ type: plan
 source: docs/reviews/agate-mechanism-improvements-T022-2026-06-26.md
 trace_id: agate-t022-mechanism-fixes-2026-06-26
 created: 2026-06-26
-status: 待执行
+status: 已落地
+remark: 动作 1 的 state-machine/dispatch-protocol 部分由 T025 gate-opt 顺带落地，动作 4 的 state-machine 部分由 T025 gate-opt 顺带落地，其余 5 项 + check-gate.sh 由 T022 债务清还批次落地（2026-06-28）
 ---
 
 # 修复方案：T022 机制改进落地

@@ -87,6 +87,9 @@ created: {YYYY-MM-DD}
 操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。
 ## P6 BDD 二值规则
 每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
+## P6 BDD 覆盖完整性
+P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
+P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
 ## 写跑分离
 若需写验证脚本，只写脚本不跑——主 Agent 会跑脚本验证。
 ```
@@ -96,6 +99,13 @@ created: {YYYY-MM-DD}
 ## READY 收尾检查
 P8 gate 通过后，主 Agent 会执行收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留）。
 你在 P8 产出中应列出：启动了哪些临时服务/进程、创建了哪些临时数据、做了哪些开发安装，供主 Agent 清理。
+
+## 版本 bump 判定
+- 公共 API 行为变化 / 破坏性变更 → major
+- 加功能 / 内部重构改 API（向后兼容）→ minor
+- 修 bug / 不改 API 行为 → patch
+- 测试缺陷不应影响版本号决策：测试 hard-code 版本号 → 修测试，不降级版本
+- 在 P8-release.md 中显式声明：bump 类型（major/minor/patch）+ 理由
 ```
 
 ## 项目占位符映射

@@ -183,7 +183,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | P5 | 技术验证 | verifier | gate 自检（从 P2 gate_commands.P5 读取命令）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |
 | P6 | 验收 | verifier（验收模式）| — | `grep -cE '^\s*- (PASS|FAIL)' P6-acceptance.md` → =P1 BDD 总数；`grep -cE '^\s*- FAIL\b'` → =0；UI 条件须 vision-analyst YAML `summary.blocker_count==0`；`grep -cE '\[NEED_CONFIRM\]'` → =0 |
 | P7 | 一致性检查 | architect | gate 自检（grep BLOCKER + DEVIATION-CRITICAL）| `grep -cE '\[BLOCKER\]' P7-consistency.md` → =0；`grep -cE '\[DEVIATION-CRITICAL\]'` → =0 |
-| P8 | 发布准备 | implementer | gate 自检（发布检查命令）| P2 `gate_commands` 逐包 exit 0；`git diff HEAD~1 --stat` 含 version 变更；`git diff HEAD~1 -- CHANGELOG.md` 非空 |
+| P8 | 发布准备 | implementer | gate 自检（发布检查命令）| P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`grep -q 'bump_type:' P8-release.md` 命中；`git diff HEAD~1 --stat` 含 version 变更；`git diff HEAD~1 -- CHANGELOG.md` 非空 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
 
 **P1 与 P6 的关系**：P1 用 BDD（Given/When/Then）写下"做完之后应该表现成什么样"，P6 把这些条件逐条实际跑一遍、把结果翻译成人能看懂的行为描述。P1 是"约定"，P6 是"兑现验证"。

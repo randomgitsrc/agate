@@ -64,6 +64,21 @@ modes:
 - **涉及显示/交互的条件：必须 Playwright 实跑 + 截图**，让结果可见可查
 - 结果用人话写，不用技术黑话——给非技术的人也能判断"对/不对"
 
+### 行为验证证据优先级（高→低）
+
+1. **DOM 结构验证**（最可靠）：innerHTML 长度、元素存在性、class 状态
+2. **交互响应验证**（可靠）：点击后 class 变化、modal 出现/消失、URL 跳转
+3. **vision-analyst 视觉分析**（辅助证据）：可被 1/2 覆盖
+
+当 vision-analyst 报 blocker 但 DOM 验证 PASS 时：
+1. 派第二轮截图（换主题/换时机/换 viewport）
+2. vision-analyst 重新分析
+3. 第二轮 blocker_count == 0 → gate 通过
+4. 第二轮仍 blocker_count > 0 → 标 [NEED_CONFIRM] 交人判断
+5. 在 P6-acceptance.md 中记录仲裁过程
+
+**注意**：P6 gate 仍保持 `blocker_count == 0` 二值判定。证据优先级是 verifier 的工作方法指引，不改变 gate 定义。
+
 ### 输入（自己读取）
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
 - docs/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）

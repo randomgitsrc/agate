@@ -122,7 +122,7 @@ P7 --[! grep -qE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md AND ! grep -qE '^\s*-?
      完整性由 P5 回归测试兜底）
 P7 --[retry>=MAX]--> PAUSED
 
-P8 --[每个声明的 package 的发布检查命令 exit 0 + git diff HEAD~1 --stat 确认各包 version bump + git diff HEAD~1 -- CHANGELOG.md 非空]--> READY
+P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff HEAD~1 --stat 确认各包 version bump + git diff HEAD~1 -- CHANGELOG.md 非空]--> READY
      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
 
 ### READY 收尾检查（P8 gate 通过后、标记 READY 前）
@@ -287,6 +287,15 @@ function 执行一步(task_id):
        **状态标记绑定检查**（T019 教训：.state.yaml 标了 P5 但无 P5 产出）：
        .state.yaml 的 phase 标记为 Pn，但 docs/tasks/{task_id}/ 下 Pn 产出文件
        不存在 → 无效标记，回退到 Pn-1 重新执行 gate。标记前必须验证 gate。
+    1.5 环境一致性验证（若 .state.yaml 含 env_state 字段）
+
+       若 .state.yaml 含 `env_state:` 块（运行时环境状态，如 debug backend URL、test entry ID、端口等）：
+       - 验证这些状态在当前环境中仍有效（具体检查方式由项目自定，如 curl health check、查询 entry 是否存在）
+       - 若任一失效：重新创建对应资源，更新 .state.yaml 的 env_state，commit 修订
+       - 若环境全部失效 → PAUSED 报告人工
+
+       注意：此步骤只适用于 .state.yaml 显式记录了 env_state 的任务。
+       无 env_state 的任务跳过此步骤。
     2. 若当前阶段 == P0：主 Agent 亲自写 P0-brief.md（见 dispatch-protocol.md 步骤0），完成后继续
        否则：确认 docs/tasks/{task_id}/P0-brief.md 已存在（必填字段：task/known_risks/executor_env/env_constraints/pruning_tendency）
        读 docs/tasks/{task_id}/ → 确认当前阶段输入文件就绪
@@ -314,9 +323,11 @@ function 执行一步(task_id):
              （UI 条件：vision-analyst YAML summary.blocker_count → =0）
        - P7: grep -cE '^\s*-?\s*\[BLOCKER\]' {task}/P7-consistency.md → =0;
              grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' {task}/P7-consistency.md → =0
-       - P8: 从 P2-design.md gate_commands 逐包读取发布检查命令执行 → 全部 exit 0;
-             git diff HEAD~1 --stat → 含 version 文件变更;
-             git diff HEAD~1 -- CHANGELOG.md → 非空（CHANGELOG 是项目根文件，不是 P8-release.md 内容）
+        - P8: 从 P2-design.md gate_commands 逐包读取发布检查命令执行 → 全部 exit 0;
+              从 P2-design.md gate_commands.P5 重跑 P5 命令 → exit 0 AND failed==0;
+              grep -q 'bump_type:' {task}/P8-release.md → 命中;
+              git diff HEAD~1 --stat → 含 version 文件变更;
+              git diff HEAD~1 -- CHANGELOG.md → 非空（CHANGELOG 是项目根文件，不是 P8-release.md 内容）
     6. 计算下一状态（按转移规则）
        **回退跳变检测**（T019 教训：P5→P2 跨 3 阶段回退未 PAUSED）：
        若 |next_phase_num - current_phase_num| >= 2（跨 ≥2 阶段回退）
@@ -385,6 +396,12 @@ review_scores:
       status: rejected
       feedback: "API 限流策略未考虑并发边界"
 updated: 2026-06-12
+
+# 可选：运行时环境状态（P6 等需要运行环境的阶段记录）
+env_state:
+  debug_backend: "http://127.0.0.1:8888"
+  test_entry_slug: "zg71s7"
+  env_verified_at: "2026-06-26T03:25:00"
 ```
 
 **字段说明**：

@@ -84,6 +84,15 @@ phases: [P2, P7]
     - 实现超出设计但合理 → `[EXTENSION]`
   - **P6 BDD 二值规则**：P6 验收中每条 BDD 只允许 PASS 或 FAIL（不允许"调整/跳过/覆盖"等中间态）。若 P7 发现 P6 使用了中间态，标记为偏差
 
+### DEVIATION 分类
+
+DEVIATION 标注必须注明"涉及 P2 哪个设计目标"：
+- DEVIATION 涉及 P2 核心设计目标且实现完全未落地 → 标 `[DEVIATION-CRITICAL]`（升级为 BLOCKER，gate 不通过）
+- DEVIATION 涉及 P2 核心设计目标但已部分落地 → 标 `[DEVIATION]` + `[NEED_CONFIRM]`（不硬阻塞，但需人工确认是否可接受）
+- DEVIATION 涉及命名风格/行数预算等非核心 → 标 `[DEVIATION]`（保持，不阻塞）
+
+判定"核心设计目标"的依据：P2-design.md 的改动方案节（§1）中明确列出的设计目标，被 P1 BDD 引用为验收条件的，为核心设计目标。
+
 ## 返回给主 Agent
 文件路径 + 一句话摘要（方案要点 / 一致性结论，含双向检查结果）
 
