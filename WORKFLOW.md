@@ -176,14 +176,14 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | 阶段 | 名称 | 执行角色 | 评审角色 | 门槛（进入下一阶段的条件）|
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks + pruning_tendency |
-| P1 | 需求基线 | analyst（需求质疑模式）| office-hours（任务属于"适用边界"表的"大任务（跨模块重构）"档，或 P1-requirements.md 的裁剪说明里 pruning_tendency 标"保守"时追加；判断结果写入 P1-requirements.md）| P1-requirements.md 存在，含 BDD 验收条件；无未决 `[NEED_CONFIRM]`；无 `[CAPABILITY_GAP]` |
-| P2 | 方案设计 | architect | plan-eng-review / plan-ceo-review / plan-design-review（domains 含 frontend 时追加）| P2-review.md 的 status == approved；P2 声明 `packages:` `domains:` `ui_affected:` `gate_commands:` |
+| P1 | 需求基线 | analyst（需求质疑模式）| office-hours（任务属于"适用边界"表的"大任务（跨模块重构）"档，或 P1-requirements.md 的裁剪说明里 pruning_tendency 标"保守"时追加；判断结果写入 P1-requirements.md）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '\[NEED_CONFIRM\]'` → =0；无 `status: GAP`（supplementable 不阻塞） |
+| P2 | 方案设计 | architect | plan-eng-review / plan-ceo-review / plan-design-review（domains 含 frontend 时追加）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → =4 |
 | P3 | 测试设计 | test-designer | gate 自检（TDD 红灯）| `scripts/check-tdd-red.sh` exit 0 |
 | P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | `git log --oneline -1` 含 P4 commit |
-| P5 | 技术验证 | verifier | gate 自检（pytest 全绿）| `pytest -q` exit 0 AND failed==0 |
-| P6 | 验收 | verifier（验收模式）| — | P6-acceptance.md 存在，BDD 条件逐条有实跑结果；UI 条件须 vision-analyst YAML `summary.blocker_count==0`；无未决 `[NEED_CONFIRM]` |
-| P7 | 一致性检查 | architect | gate 自检（grep BLOCKER）| 无 `[BLOCKER]` 标记 |
-| P8 | 发布准备 | implementer | gate 自检（发布检查命令）| 各 `package` 的发布检查命令 exit 0 + git diff 确认 version bump + CHANGELOG |
+| P5 | 技术验证 | verifier | gate 自检（从 P2 gate_commands.P5 读取命令）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |
+| P6 | 验收 | verifier（验收模式）| — | `grep -cE '^\s*- (PASS|FAIL)' P6-acceptance.md` → =P1 BDD 总数；`grep -cE '^\s*- FAIL\b'` → =0；UI 条件须 vision-analyst YAML `summary.blocker_count==0`；`grep -cE '\[NEED_CONFIRM\]'` → =0 |
+| P7 | 一致性检查 | architect | gate 自检（grep BLOCKER + DEVIATION-CRITICAL）| `grep -cE '\[BLOCKER\]' P7-consistency.md` → =0；`grep -cE '\[DEVIATION-CRITICAL\]'` → =0 |
+| P8 | 发布准备 | implementer | gate 自检（发布检查命令）| P2 `gate_commands` 逐包 exit 0；`git diff HEAD~1 --stat` 含 version 变更；`git diff HEAD~1 -- CHANGELOG.md` 非空 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
 
 **P1 与 P6 的关系**：P1 用 BDD（Given/When/Then）写下"做完之后应该表现成什么样"，P6 把这些条件逐条实际跑一遍、把结果翻译成人能看懂的行为描述。P1 是"约定"，P6 是"兑现验证"。

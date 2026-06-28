@@ -3,12 +3,25 @@
 # 退出 0 = 正确的红灯（assertion failure > 0, collection error == 0）
 # 退出 1 = 错误（有 collection/import error）
 # 退出 2 = 测试全绿（说明实现先于测试写完，违反 TDD）
+# 退出 3 = 找不到测试运行器
 #
 # 本脚本由 agate 协议定义（见 state-machine.md「P3 红灯的特别说明」），
 # 供主 Agent 在 P3 gate 验证 TDD 红灯时调用。
 # 项目可直接使用 {agate_root}/scripts/check-tdd-red.sh，或复制到项目 scripts/ 目录。
+#
+# 环境变量 TEST_RUNNER：主 Agent 在调用前从 P0-brief.md env_constraints.debug_env
+# 提取测试启动命令并 export。回退链：$TEST_RUNNER → which pytest → 报错 exit 3。
 
-RESULT=$(pytest -q 2>&1)
+if [ -n "$TEST_RUNNER" ]; then
+    RUNNER="$TEST_RUNNER"
+elif command -v pytest &>/dev/null; then
+    RUNNER="pytest"
+else
+    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER env var or install pytest." >&2
+    exit 3
+fi
+
+RESULT=$($RUNNER -q 2>&1)
 EXIT=$?
 
 FAILED=$(echo "$RESULT" | grep -oP '\d+ failed' | grep -oP '\d+')

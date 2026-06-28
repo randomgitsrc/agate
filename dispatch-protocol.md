@@ -504,14 +504,14 @@ setTimeout(() => {
 
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
-| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件 + 无未决 `[NEED_CONFIRM]` + 无 `[CAPABILITY_GAP]` |
-| P2→P3 | 方案已批准 | P2-review.md `status: approved` + P2-design.md 含 packages/domains/ui_affected/gate_commands 四字段 |
+| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）|
+| P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → =4` |
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
-| P4→P5 | 实现完成 | P4-implementation/ 下文件非空 + `git log --oneline -1` 确认 P4 commit |
-| P5→P6 | 技术验证通过 | `pytest -q` exit 0 AND failed==0（亲手跑）+ 无 `[PROD_TOUCHED]` + 若 ui_affected：Playwright/E2E 实跑通过 |
-| P6→P7 | BDD 验收通过 | P6-acceptance.md 中 P1 每条 BDD 条件标记为 **PASS 或 FAIL**（二值，不允许"调整/跳过/覆盖"等中间态）+ 无未决 `[NEED_CONFIRM]`（UI 条件须截图 + vision-analyst YAML 引用）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
-| P7→P8 | 一致性通过 | `! grep -qE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md`（行首匹配，避免"无 [BLOCKER]"文本误判。已知限制：定性分析，P5 回归测试兜底）|
-| P8→READY | 发布准备完成 | **每个** P2 声明的 package 的发布检查命令 exit 0 + `git diff` 确认各包 version bump + CHANGELOG |
+| P4→P5 | 实现完成 | P4-implementation/ 下文件非空 + `git log --oneline -1` → 含 "P4" 或 "wf(Txxx-P4)" |
+| P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + `grep -rl '\[PROD_TOUCHED\]' {task}/` → 无命中（匹配标记格式）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
+| P6→P7 | BDD 验收通过 | `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md → =P1 BDD 总数` + `grep -cE '^\s*- FAIL\b' P6-acceptance.md → =0` + `grep -cE '\[NEED_CONFIRM\]' P6-acceptance.md → =0`（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
+| P7→P8 | 一致性通过 | `grep -cE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md → =0` + `grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' P7-consistency.md → =0`（已知限制：定性分析，P5 回归测试兜底）|
+| P8→READY | 发布准备完成 | 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + `git diff HEAD~1 --stat` → 含 version 文件变更 + `git diff HEAD~1 -- CHANGELOG.md` → 非空（CHANGELOG 是项目根文件）|
 
 **反例（禁止用作门槛）：**
 - ❌ "unit.md 里 failed: 0"（信 subagent 写的数字）
