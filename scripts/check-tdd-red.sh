@@ -71,7 +71,7 @@ if [ "${ERRORS:-0}" -gt 0 ]; then
     IMPORT_ERRORS=$(echo "$RESULT" | grep -E '(ImportError|ModuleNotFoundError|Cannot find module|ClassNotFoundException|NoClassDefFoundError|unresolved import):' || true)
     if [ -n "$IMPORT_ERRORS" ]; then
         # 检查是否有测试代码自身语法错误
-        SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError|SyntaxError|CompileError|ParseError)' || true)
+        SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError|CompileError|ParseError)' || true)
         if [ -z "$SYNTAX_ERRORS" ]; then
             # 若设置了 PROJECT_MODULE，检查 import 目标是否是项目内模块
             if [ -n "$PROJECT_MODULE" ]; then

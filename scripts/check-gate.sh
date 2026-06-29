@@ -2,9 +2,8 @@
 # check-gate.sh PHASE TASK_DIR
 # exit 0 = gate 通过; exit 1 = gate 未通过; exit 2 = 需主 Agent 自判（含动态 gate_commands 或语义判断）
 #
-# 可脚本化的 gate（exit 0/1）：P3 / P4 / P6 / P7
-# 需动态读取 P2 gate_commands 的 gate（exit 2）：P2 / P5 / P8
-# 含语义判断的 gate（exit 2）：P1（BDD 格式不固定）
+# 可脚本化的 gate（exit 0/1）：P3 / P4 / P7
+# 需主 Agent 自判的 gate（exit 2）：P1 / P2 / P5 / P6 / P8
 #
 # 本脚本的判定逻辑与 state-machine.md 步骤 5 保持同步。
 # 步骤 5 变更时必须同步更新本脚本。一致性检查脚本覆盖本文件。
@@ -45,8 +44,8 @@ case "$PHASE" in
           echo "GATE P6: P6-evidence/ 目录不存在或为空" >&2
           exit 1
       fi
-      echo "GATE P6: PASS. 注意：BDD 总数对照需主 Agent 在步骤 5 手动验证" >&2
-      exit 0 ;;
+      echo "GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL=$TOTAL。BDD 总数对照需主 Agent 手动核实 P1 条数。" >&2
+      exit 2 ;;
   P7)
       # grep -c 无匹配时返回 exit 1，|| echo 0 处理此情况
       BLOCKERS=$(grep -cE '^\s*-?\s*\[BLOCKER\]' "$TASK_DIR/P7-consistency.md" 2>/dev/null || echo 0)

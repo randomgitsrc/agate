@@ -111,7 +111,7 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
 P5 --[有 PROD_TOUCHED]--> PAUSED（生产环境被触碰，需人工处置后才能继续）
 P5 --[retry>=MAX]--> PAUSED
 
-P6 --[P6-acceptance.md 有效 AND P1 的每条 BDD 条件标记为 - PASS 或 - FAIL（行首标记格式，二值，不允许"调整/跳过/覆盖"）AND P6 验收条数 = P1 BDD 总数 AND 无 - FAIL AND 无 [NEED_CONFIRM] AND {task}/P6-evidence/ 目录存在且非空]--> P7
+P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND 主 Agent 手动核实 BDD 总数 = P1 BDD 总数]--> P7
      （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
      （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
@@ -352,10 +352,8 @@ function 执行一步(task_id):
        - P5: 从 P2-design.md gate_commands.P5 读取命令执行 → exit 0 AND failed==0;
              grep -rl '\[PROD_TOUCHED\]' {task}/ → 无命中（匹配标记格式，不匹配说明性文本）;
              （UI 任务：从 gate_commands.P5 读取 E2E 命令执行 → exit 0）
-        - P6: grep -cE '^\s*- (PASS|FAIL)' {task}/P6-acceptance.md → =P1 BDD 总数;
-              grep -cE '^\s*- FAIL\b' {task}/P6-acceptance.md → =0;
-              grep -cE '\[NEED_CONFIRM\]' {task}/P6-acceptance.md → =0;
-              ls {task}/P6-evidence/ → 非空（⚠️ self-authored gate，见 dispatch-protocol.md gate 分类）;
+         - P6: scripts/check-gate.sh P6 → 脚本化部分通过（exit 2，FAIL=0/NC=0/证据非空已验，BDD 总数对照需主 Agent 手动核实）;
+              grep -cE '^\s*- (PASS|FAIL)' {task}/P6-acceptance.md → =P1 BDD 总数（主 Agent 手动核实）;
               （UI 条件：vision-analyst YAML summary.blocker_count → =0）
        - P7: grep -cE '^\s*-?\s*\[BLOCKER\]' {task}/P7-consistency.md → =0;
              grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' {task}/P7-consistency.md → =0
