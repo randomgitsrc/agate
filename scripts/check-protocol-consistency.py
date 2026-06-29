@@ -13,7 +13,8 @@ agate 协议结构一致性检查 (P3-1)
   CHECK 3  协议文件内的硬编码行号引用 `xxx.md L123`               (对应 P1-4)
   CHECK 4  跨文件字段集一致：gate_commands 键集合                  (对应 P1-2)
   CHECK 5  「N 个协议文件」计数声明 vs 实际列表长度（锚点白名单）   (对应 P1-1)
-  CHECK 6  README LICENSE 徽章指向的文件存在 + gstack MIT 归属保留  (对应 P0-2)
+   CHECK 6  README LICENSE 徽章指向的文件存在 + gstack MIT 归属保留  (对应 P0-2)
+   CHECK 7  README version badge 与最新 git tag 一致
 
 退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
@@ -413,6 +414,36 @@ def check_license(root: Path, rep: Report) -> None:
         rep.ok("CHECK6-license")
 
 
+# ── CHECK 7: README version badge 与最新 git tag 一致 ────────────────────────
+
+def check_version_badge(root: Path, rep: Report) -> None:
+    readme = root / "README.md"
+    if not readme.exists():
+        return
+    rtext = readme.read_text(encoding="utf-8")
+    m = re.search(r"badge/version-v(\d+\.\d+\.\d+)", rtext)
+    if not m:
+        rep.warn("CHECK7-version", "README.md 未找到 version badge", "README.md")
+        return
+    badge_ver = m.group(1)
+    import subprocess
+    try:
+        tag = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            capture_output=True, text=True, check=True, cwd=str(root),
+        ).stdout.strip()
+        tag_ver = tag.lstrip("v")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        rep.warn("CHECK7-version", "无法获取最新 git tag（仓库可能无 tag）", "README.md")
+        return
+    if badge_ver != tag_ver:
+        rep.error("CHECK7-version",
+                  f"README version badge v{badge_ver} != 最新 tag v{tag_ver}",
+                  "README.md")
+    else:
+        rep.ok("CHECK7-version")
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
 
 CHECKS = [
@@ -422,6 +453,7 @@ CHECKS = [
     ("CHECK 4  gate_commands 键集合一致", check_gate_commands_keys),
     ("CHECK 5  协议文件计数声明正确", check_file_count_anchors),
     ("CHECK 6  LICENSE 与 gstack 归属", check_license),
+    ("CHECK 7  version badge 与 git tag", check_version_badge),
 ]
 
 

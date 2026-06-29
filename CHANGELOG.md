@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [Unreleased]
+## [0.4.0] - 2026-06-29
 
 ### Added
 - P3 gate red-light A/B classification: B-class (import from missing implementation) now exits 0, A-class (test code bugs) exits 1. `PROJECT_MODULE` env var for precision, heuristic fallback when unset
