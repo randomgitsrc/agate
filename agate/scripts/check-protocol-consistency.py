@@ -82,12 +82,12 @@ FILE_COUNT_ANCHORS = [
         "expected": len(["WORKFLOW", "dispatch-protocol", "state-machine",
                           "role-system", "loop-orchestration", "git-integration",
                           "platform-notes", "LIMITATIONS"]),  # = 8
-        "desc": "启动必读协议文件清单",
+        "desc": "启动必读协议文件清单（源声明在 orchestrator-template.md「工作流规则」）",
     },
     {
         "file": "agate/state-machine.md",
         "expected": 8,
-        "desc": "抗中断恢复重读的协议文件清单",
+        "desc": "抗中断恢复重读的协议文件清单（引用 orchestrator-template.md 的 8 项列表）",
     },
 ] 
 

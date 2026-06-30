@@ -26,7 +26,8 @@ source: {可选，如果改编自某处}
 
 ## 输出
 {必须产出的文件 + 格式}
-{必须含 Header：phase, task_id, parent, trace_id}
+{必须含 Header：phase, task_id, parent, trace_id, agent}
+`agent` 字段对应你定义的角色 ID（如 `agent: my-custom-reviewer`）。由主 Agent 在派发 prompt Header 里填好，subagent 复制即可，不要自行推断。
 
 ## 分阶段落盘（默认启用）
 每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。

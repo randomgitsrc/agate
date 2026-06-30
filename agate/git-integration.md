@@ -152,4 +152,34 @@ git 集成让状态落盘真正闭环：
 
 ---
 
+## v0.4+ Hardening-roadmap 集成
+
+git 集成在 v0.4 hardening-roadmap 实施后承担了新的角色：**阶段 commit 会触发 9 项 pre-commit 检查**（详见 WORKFLOW.md「Pre-commit 检查总览」）。这不是新规则——而是把已有的状态机 gate 检查自动化到了 commit 入口：
+
+| 触发点 | 检查内容 | 拦截行为 |
+|--------|---------|---------|
+| 暂存 `.state.yaml` 变更时 | 格式合法性（P2.15）| 格式错 → 拦截 commit |
+| phase 变更或阶段产出文件变更时 | gate 通过性（P1.1）| gate 失败 → 拦截 commit |
+| P6/P7 阶段 commit 时 | 证据目录非空 + BDD 行数 ≥ 1（P1.7）| 缺证据 → 拦截 commit |
+| gate 通过后 | 三道客观行为审计（P2.1/P2.10）| 客观审计失败 → exit 1 拦截；agent 字段等协作规范问题 → exit 2 WARNING |
+| gate 通过后 | 状态转移合法性 + 重试上限（P2.3-P2.5）| 非法转移 → 拦截 commit |
+| gate 通过后 | 裁剪条件一致性（P2.7-P2.9）| 裁剪与执行不一致 → 拦截 commit |
+| gate 通过后 | SCOPE+ 已增补并标记（P2.11）| 未标 `[SCOPE_RESOLVED]` → 拦截 commit |
+| 任何 commit | 异常模式提醒（P2.12）| 检测到 gate 重试 ≥3 / SCOPE+ / override → 提醒写复盘（不阻塞）|
+| 任何 commit | CHANGELOG `[Unreleased]` 含 task_id（P1.6）| 缺记录 → 警告（不阻塞）|
+
+**commit message 建议**：虽然是 wf()/feat()/fix() 前缀规则，但 hardening 后建议在 message body 里提"阶段"：
+
+```
+wf(T042): P2 review approved
+- architect: 完整设计含 gate_commands
+- 风险: high，由独立 plan-eng-review 评审通过
+```
+
+**禁止 `--no-verify` 绕过 hook**：CI backstop 会重跑 `check-gate.sh` + git blame 单 author WARNING，绕过 hook 的"恶意 commit"会被抓到并在日志暴露。详见 LIMITATIONS.md 局限 3。
+
+**P6 单 author WARNING**：当 P6-acceptance.md git blame 显示只有一个 author（通常是主 Agent 自写而不是独立 verifier），CI 会发 WARNING——这是 provenance 客观审计之外的最后一层可观测性兜底。
+
+---
+
 *git 集成是状态落盘机制的必要组成部分，配合 state-machine.md 和 loop-orchestration.md*

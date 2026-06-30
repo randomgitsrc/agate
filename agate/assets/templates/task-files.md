@@ -12,8 +12,10 @@ parent: {上一阶段文件名，P1 时是外部需求来源}
 trace_id: {Txxx}-{Pn}-{YYYYMMDD}
 status: {draft|approved|rejected|done}
 created: {YYYY-MM-DD}
-agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier}
+agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier|vision-analyst}
 ---
+
+> **agent 字段由主 Agent 在派发 prompt Header 里填好**（角色 ID），subagent 复制即可，不要自行推断。缺字段 → `check-p6-provenance.sh` 缺字段 WARNING（exit 2 不阻塞，向后兼容）。
 ```
 
 ## 各阶段文件清单

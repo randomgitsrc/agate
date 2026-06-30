@@ -27,7 +27,7 @@ jobs:
         run: python3 agate/scripts/check-protocol-consistency.py
         # 默认仅 ERROR 判失败；WARNING 不阻断 CI。
         # 若要让 WARNING 也阻断（更严格），改为：
-        #   run: python3 scripts/check-protocol-consistency.py --strict
+        #   run: python3 agate/scripts/check-protocol-consistency.py --strict
 
   gate-backstop:
     runs-on: ubuntu-latest

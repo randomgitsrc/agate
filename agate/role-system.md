@@ -50,17 +50,23 @@ agate 的角色体系把角色分成两层：
 
 ### 评审角色机械映射（C8 — 不靠主 Agent 临场判断）
 
-P1 在 requirements.md 声明 `domains:`，主 Agent **机械映射**评审角色，不靠"我觉得需要谁"：
+P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械映射**评审角色，不靠"我觉得需要谁"：
 
-| domain | 自动触发的评审角色 |
-|--------|-------------------|
-| backend | review（P4 后）|
-| frontend | design-review（P4 后）+ plan-design-review（P2）|
-| mcp | review + 关注 MCP 接口契约（T005 教训：MCP 改动需专项评审）|
-| security | cso（P4 后）|
-| 业务方向不明 | office-hours / plan-ceo-review（P1 后 / P2）|
+| domain | risk_level | 自动触发的评审角色 |
+|--------|------------|-------------------|
+| backend | 任意 | review（P4 后）|
+| frontend | 任意 | design-review（P4 后）+ plan-design-review（P2）|
+| mcp | 任意 | review + 关注 MCP 接口契约（T005 教训：MCP 改动需专项评审）|
+| security | 任意 | cso（P4 后）|
+| 任意 | **high** | **plan-eng-review 必须派发**（v0.4 hardening P2.1 硬规则，hook 对 agent=main 输出 WARNING 建议派发独立 subagent）|
+| 业务方向不明 | 任意 | office-hours / plan-ceo-review（P1 后 / P2）|
 
 T005 漏 MCP 评审的根因：靠主 Agent 临场判断，它没有 MCP 评审意识。机械映射消除这个盲区。
+
+**v0.4 hardening 对 mapping 表的影响**：
+- **`risk_level: high` 是新增触发维度**——P2 review 必须派发独立 plan-eng-review，不再允许主 Agent 自己跑
+- `agent:` 字段协作规范：所有评审产出文件（P2-review.md 等）Header 含 `agent: plan-eng-review` 等——主 Agent 在派发 prompt Header 里填好，subagent 复制即可
+- 高频评审角色（hardening 后）排序变化：`plan-eng-review` 和 `cso` 因为 risk=high + security/权限触发率上升成为最高频
 
 ---
 

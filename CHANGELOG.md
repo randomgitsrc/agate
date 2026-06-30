@@ -6,6 +6,61 @@
 
 ---
 
+## [Unreleased]
+
+### 新增
+- **hardening-roadmap Phase 1+2 完整实施**：9 项 pre-commit 检查脚本 + 1 CI backstop
+  - P1.1 `check-gate.sh`：各阶段脚本化 gate（已在 v0.4.0）✓
+  - P1.6 `check-changelog.sh`：`[Unreleased]` 含 task_id 检查（自动 run）
+  - P1.7 `check-p6-evidence.sh`：P6/P7 阶段证据目录非空 + BDD 行数 ≥ 1
+  - P2.1/P2.10 `check-p6-provenance.sh`：P6 客观行为审计（三道审计 + agent 字段协作规范）
+  - P2.3-P2.5 `check-state-transition.sh`：状态转移合法性 + 重试上限
+  - P2.7-P2.9 `check-pruning.sh`：裁剪条件 + override 校验
+  - P2.11 `check-scope-resolved.sh`：`[SCOPE+]` 必须 `[SCOPE_RESOLVED]`
+  - P2.12 `check-retrospective.sh`：异常模式提醒（不阻塞）
+  - P2.15 `check-state-yaml.sh`：`.state.yaml` 格式校验
+- **P6 客观行为审计三道硬拦截**（P2.1/P2.10 v2 降级方案）：
+  - 审计 1：证据-结论对应（每条 PASS 引用证据路径 + PASS 数 ≤ 证据数 + 每个证据文件被 PASS 行引用）
+  - 审计 2：`P{N}-dispatch-context.md` 禁止预判 PASS/FAIL
+  - 审计 3：BDD 总数对照（P6 PASS 数 ≥ P1 BDD 数）
+- **agent 字段协作规范**：阶段产出文件 Header 含 `agent: <角色>`（v2 协作层），缺字段 WARNING 不阻塞，`risk_level=high` + `agent=main` WARNING 建议派发独立 subagent
+- **CI backstop（P1.3）**：`.github/workflows/protocol-consistency.yml` 增加 `gate-backstop` job，重跑 `check-gate.sh` + `ci-gate-backstop.py`（git blame P6 单 author WARNING 兜底）
+- **目录结构重构**：协议本体移至 `agate/` 子目录，仓库根放项目资料（README/CHANGELOG/docs/等），`~/.agate` 软链接指向协议本体
+- **`install.sh`**：一键 install（clone + 软链接），支持 `AGATE_REPO_DIR` 和 `AGATE_SYMLINK` 环境变量
+- **`install-hook.sh`** 接受 AGATE_ROOT 参数：可在项目仓库内运行，明确指定 agate 路径
+- **`pre-commit-gate.sh`** 路径分离：`AGATE_ROOT` 解析协议脚本（默认 `~/.agate` 软链接），`REPO_ROOT` 解析项目运行时文件
+- **`agate/AGENTS.md`**：新建协议本体入口指引（角色清单 + 升级/卸载）
+- **`check-protocol-consistency.py`**：`PROTOCOL_FILES/DIRS` 加 `agate/` 前缀；内部引用检查兼容子目录；FILE_COUNT_ANCHORS 锚点修复（指向真实声明位置）
+- **`python3 -c "import ast"` 所有 Python 脚本语法验证通过**
+
+### 变更
+- **协议文档同步**：WORKFLOW.md / dispatch-protocol.md / state-machine.md 新增「Pre-commit 检查总览/全景」表；orchestrator-template.md 加 hardening-roadmap 关键机制段；verifier.md 加「Hardening 关键约束」段（PASS 引用证据 + dispatch-context 禁预判 + 诚实边界）
+- **15 个角色文件 Header 加 `agent:` 字段**：6 个 execution-roles + 9 个 review-roles（与 role_id 对应）
+- **RISK/gating 一致性**：P2 评审 risk=high 时必须派发独立 subagent，hook 对 agent=main 输出 WARNING
+- **gate exit 语义统一**：`exit 0` 通过、`exit 1` 拦截、`exit 2` WARNING 不阻塞；跨脚本对齐
+- **`scripts/check-p6-provenance.sh`** v2 实施：精确匹配（括号上下文）+ 只搜 PASS 行 + FAIL 词边界 + evidences/ 旧前缀兼容 + 隐藏文件排除
+- **README.md**：安装命令改为 `git clone + ln -s`；新增「为什么装到 `~/oclab/agate`」段 + 常见误区 + 升级/卸载
+- **.gitignore**：加 `*.swp/*.swo/*.bak/*~/.DS_Store`
+
+### 移除/破坏性变更
+- 无（向后兼容：v2 前存量任务 agent 字段缺失降级 WARNING 不阻塞）
+
+### 修复
+- agent 字段向后兼容陷阱：v2 引入前所有文件无 agent，缺失从 `exit 1` 降为 `exit 2` 不阻塞
+- `get_agent()` 在 `set -euo pipefail` 下 grep 无匹配时 pipefail 传播 crash，加 `{ grep || true }` 修复
+- `ci-gate-backstop.py` 中 P6 git blame 在新文件总是 WARNING 的噪音接受（M3 评审）
+- 安装 hook 路径死锁：pre-commit hook 装在 agate 仓库自己时 `REPO_ROOT/scripts/` 不存在导致 gate 加载失败；用 `AGATE_ROOT` 软链接解析修复
+- `__pycache__` 入库：`scripts/__pycache__/*.pyc` 被 commit；`.gitignore` 加 `__pycache__/` + `*.pyc` 防御
+- 评测 README.md 末尾残留 `# test`
+- `check-protocol-consistency.py` CHECK 5 FILE_COUNT_ANCHORS 第二个锚点位置错误（指向引用而非源声明）
+
+### Known Limitations 更新
+- `LIMITATIONS.md` 局限 3：v2 客观行为审计已落地（"等等" 内容已大段补全）
+- 局限新增：空 png 充数仅验证引用存在性和数量，不验证内容真实性
+- 局限新增：CI backstop 当前不重跑 `check-p6-provenance.sh`（只重跑 check-gate.sh），`--no-verify` 绕过 hook 时 provenance 也被绕过
+
+---
+
 ## [0.4.0] - 2026-06-29
 
 ### 新增
