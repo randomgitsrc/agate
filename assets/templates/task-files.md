@@ -134,9 +134,12 @@ P0-brief 是把这些约束注入每次派发的桥梁——所有 subagent 的 
 - [NEED_CONFIRM] 问题描述 + 几种可能的理解
 
 ## 5. 裁剪说明
+risk_level: low                      # low=纯UI/文案/配置 | medium=业务逻辑/API/数据 | high=安全/权限/数据迁移/生产环境
 phases: [P1,P2,P4,P5,P6,P8]
 - 跳过 P3 理由：...
 - 跳过 P7 理由：...
+# override（裁剪声明与实际执行不一致时回写，见 dispatch-protocol.md P2.9）
+# override: P2 retained (reason: 主 Agent 判断需要方案设计)
 
 ## 6. 范围声明
 packages: [pkg-a]
