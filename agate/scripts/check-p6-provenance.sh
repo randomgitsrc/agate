@@ -41,9 +41,12 @@ if [ -f "$P6_FILE" ]; then
 
     # 1a: PASS 行里的证据引用路径必须存在
     # I3 修复：取行末最后一个括号组（证据引用在行末），避免前置括号干扰
+    # R1b 兼容：先剥离 (vision: ...) 引用，避免把它当证据文件路径
     MISSING_REFS=0
     while IFS= read -r line; do
-        REF=$(echo "$line" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1)
+        # 剥离 (vision: ...) 后再取行末括号组（去尾随空格避免行尾不是 )
+        LINE_CLEAN=$(echo "$line" | sed 's/(vision:[^)]*)//g' | sed 's/[[:space:]]*$//')
+        REF=$(echo "$LINE_CLEAN" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1)
         if [ -n "$REF" ]; then
             # I4 修复：去除 P6-evidence/ / p6-evidence/ / evidences/ 前缀
             REF_CLEAN=$(echo "$REF" | sed 's|^P6-evidence/||' | sed 's|^p6-evidence/||' | sed 's|^evidences/||')
@@ -127,6 +130,67 @@ if [ -f "$P6_FILE" ] && [ -f "$P1_FILE" ]; then
     else
         echo "GATE PROVENANCE: P1 BDD 格式非标准（无 Given 行），BDD 总数对照需主 Agent 手动核实" >&2
         exit 2
+    fi
+fi
+
+# --- 审计 4：UI vision YAML 引用（R1b：T045 评审 v5）---
+# 将 dispatch-protocol.md:575 已有规则 hook 化
+# ui_affected: true 时，含截图引用的 PASS 行必须同时含 (vision: ...) 引用
+# 兼容"查询类 BDD 可不截图"规则——只检查含 (screenshots/ 引用的 PASS 行
+# YAML 文件存在 + summary.blocker_count == 0
+if [ -f "$P6_FILE" ] && [ -f "$P1_FILE" ]; then
+    P2_FILE="$TASK_DIR/P2-design.md"
+    UI_AFFECTED=""
+    if [ -f "$P2_FILE" ]; then
+        UI_AFFECTED=$(P2_FILE="$P2_FILE" python3 -c "
+import re, os
+with open(os.environ['P2_FILE']) as f:
+    text = f.read()
+m = re.search(r'ui_affected:\s*(true|false)', text)
+print(m.group(1) if m else '')
+" 2>/dev/null || echo "")
+    fi
+
+    if [ "$UI_AFFECTED" = "true" ]; then
+        # 只检查含截图引用的 PASS 行——这些行必须同时有 vision 引用
+        VISION_MISSING=0
+        while IFS= read -r line; do
+            if echo "$line" | grep -qE '\(screenshots/'; then
+                if ! echo "$line" | grep -qE '\(vision:\s*[^)]+\)'; then
+                    VISION_MISSING=$((VISION_MISSING + 1))
+                fi
+            fi
+        done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)
+
+        if [ "$VISION_MISSING" -gt 0 ]; then
+            echo "GATE PROVENANCE: ui_affected=true 但有 ${VISION_MISSING} 条含截图的 PASS 缺 vision YAML 引用" >&2
+            exit 1
+        fi
+
+        # 检查每个 vision YAML 文件存在 + blocker_count == 0
+        while IFS= read -r ref; do
+            YAML_FILE=$(echo "$ref" | sed 's/^.*vision:\s*//' | tr -d ' )')
+            YAML_PATH="$TASK_DIR/$YAML_FILE"
+            if [ ! -f "$YAML_PATH" ]; then
+                echo "GATE PROVENANCE: vision YAML 引用的文件不存在: $YAML_FILE" >&2
+                exit 1
+            fi
+            BLOCKER_COUNT=$(YAML_PATH="$YAML_PATH" python3 -c "
+import yaml, os
+try:
+    with open(os.environ['YAML_PATH']) as f:
+        data = yaml.safe_load(f)
+    va = data.get('vision_analysis', {}) if data else {}
+    summary = va.get('summary', {})
+    print(summary.get('blocker_count', -1))
+except Exception:
+    print(-1)
+" 2>/dev/null || echo -1)
+            if [ "$BLOCKER_COUNT" != "0" ]; then
+                echo "GATE PROVENANCE: vision YAML $YAML_FILE 的 blocker_count=$BLOCKER_COUNT（须为 0）" >&2
+                exit 1
+            fi
+        done < <(grep -oE '\(vision:\s*[^)]+\)' "$P6_FILE" 2>/dev/null | sort -u || true)
     fi
 fi
 
