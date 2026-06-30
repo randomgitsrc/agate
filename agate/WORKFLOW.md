@@ -1,8 +1,8 @@
 # agate — 子 Agent 编排工作流
 
-> **版本：v1.2.0**
 > 适用：OpenCode / Claude Code / Codex 等支持 subagent 的 Agent 平台
 > 完整规则文档，从此文件开始阅读。
+> 当前版本见 `git describe --tags` 或 README.md badge。
 >
 > 版本说明：规则新增/调整升 minor（v1.1.0），破坏性变更升 major（v2.0.0）
 
