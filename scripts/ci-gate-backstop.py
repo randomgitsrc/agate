@@ -92,6 +92,26 @@ def main() -> int:
             print(f"WARN: timestamp 验证无法完成（{e}），跳过防补写检查")
 
     print(f"PASS: phase={phase} exit_code={ci_exit} 一致")
+
+    # P6 provenance audit (CI layer)
+    # 单 author WARNING：空 png 充数等场景的兜底审计
+    if task_dir:
+        p6_file = Path(task_dir) / "P6-acceptance.md"
+        if p6_file.exists():
+            try:
+                blame = subprocess.run(
+                    ["git", "blame", "--line-porcelain", str(p6_file)],
+                    capture_output=True, text=True
+                )
+                authors = set()
+                for line in blame.stdout.splitlines():
+                    if line.startswith("author "):
+                        authors.add(line.split(" ", 1)[1])
+                if len(authors) == 1:
+                    print(f"WARN: P6-acceptance.md 只有一个 author: {authors.pop()}（可能为主 Agent 自写，建议审查证据真实性）")
+            except Exception as e:
+                print(f"WARN: P6 git blame 审计无法完成（{e}）")
+
     return 0
 
 

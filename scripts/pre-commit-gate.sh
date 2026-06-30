@@ -72,6 +72,15 @@ fi
 
 write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
 
+# 5.4 P6 客观行为审计（P2.1/P2.10 降级方案 v2）
+if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+    PROV_EXIT=0
+    bash "$REPO_ROOT/scripts/check-p6-provenance.sh" "$TASK_DIR" || PROV_EXIT=$?
+    if [ "$PROV_EXIT" -eq 1 ]; then
+        exit 1
+    fi
+fi
+
 # 5.5 裁剪条件检查（P2.7-P2.9）——gate 未通过时跳过（gate 错误优先）
 if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1

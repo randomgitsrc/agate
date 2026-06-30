@@ -111,7 +111,8 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
 P5 --[有 PROD_TOUCHED]--> PAUSED（生产环境被触碰，需人工处置后才能继续）
 P5 --[retry>=MAX]--> PAUSED
 
-P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND 主 Agent 手动核实 BDD 总数 = P1 BDD 总数]--> P7
+P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND scripts/check-p6-provenance.sh exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照）AND 主 Agent 手动核实 BDD 总数 = P1 BDD 总数]--> P7
+     ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3 平台支持独立 git author）
      （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
      （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）

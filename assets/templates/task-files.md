@@ -12,6 +12,7 @@ parent: {上一阶段文件名，P1 时是外部需求来源}
 trace_id: {Txxx}-{Pn}-{YYYYMMDD}
 status: {draft|approved|rejected|done}
 created: {YYYY-MM-DD}
+agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier}
 ---
 ```
 
@@ -227,7 +228,7 @@ env_constraints:
 **截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。
 
 ### AC1: entry 不指定过期时间默认 15 天
-- PASS 创建 entry 不填过期 → 实测 15 天后过期（evidences/p6-ac1.png）
+- PASS 创建 entry 不填过期 → 实测 15 天后过期（p6-ac1.png）
 - PASS MCP publish_files 不传 expires → 实测同样生效
 
 ### AC2: ...
@@ -236,6 +237,8 @@ env_constraints:
 ## 验收小结
 BDD 通过 X/Y，UI 截图 N 张，NEED_CONFIRM M 个
 ```
+
+**证据引用格式**：每条 PASS 结果必须在括号内引用对应证据文件路径（相对于 `P6-evidence/` 目录）。示例：`- PASS B01: ... (p6-b01.png)`。hook 会检查引用路径必须真实存在。无引用的 PASS 行不算有证据。
 
 ## READY 收尾检查（P8 gate 通过后、标记 READY 前）
 
