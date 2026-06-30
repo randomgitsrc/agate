@@ -64,6 +64,39 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P3'; then
     fi
 fi
 
+# 检查 5：裁剪 P7 的条件（R4：bug fix + shared_styles 维度）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
+    # R4(a) bug fix：补实现已文档化的文件数条件
+    # ⚠️ 用 --cached（暂存区），不用 HEAD~1（pre-commit 时本次变更还没进 HEAD）
+    SOURCE_FILE_COUNT=$(git diff --cached --name-only 2>/dev/null \
+        | grep -vE '^docs/tasks/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG' \
+        | wc -l || echo 0)
+    SOURCE_FILE_COUNT=$(echo "$SOURCE_FILE_COUNT" | tail -1)
+
+    if [ "$SOURCE_FILE_COUNT" -gt 5 ]; then
+        ERRORS="${ERRORS}裁剪 P7 需源码文件数 ≤ 5，实际=${SOURCE_FILE_COUNT}\n"
+    fi
+
+    # R4(b)：shared_styles 维度（self-declaration nudge）
+    if grep -qE '^shared_styles:' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪 P7 不可行：P1 声明了 shared_styles（隐式耦合维度）\n"
+    fi
+fi
+
+# 检查 6：裁剪 P8 的条件（R5：internal_only 声明）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
+    if ! grep -qE '^internal_only:\s*true' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪 P8 需声明 internal_only: true + 理由\n"
+    fi
+fi
+
+# 检查 7：裁剪理由必须含"跳过风险"评估（R3a：self-declaration nudge）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P2' || ! echo "$PHASES_DECLARED" | grep -qw 'P3' || ! echo "$PHASES_DECLARED" | grep -qw 'P7' || ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
+    if ! grep -qE '跳过风险:' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）\n"
+    fi
+fi
+
 # P2.9 实际实现：对比 P1 phases 声明与文件系统中的产出文件
 # 对每个被声明裁剪的阶段（P1/P3/P4/P5/P6/P7/P8），检查 task 目录下是否有该阶段的产出文件
 # 如果声明裁剪了 Pn 但 Pn-*.md 存在 → 声明与执行不符 → 必须有 override

@@ -164,7 +164,13 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   - 裁剪 P2：需 risk_level=low（BDD 数限制由主 Agent 判断，hook 不验证——格式不固定）
   - 裁剪 P3：需 risk_level=low（high 风险不可裁）
   - 裁剪 P6：不可裁（除非 no_behavior_change: true）
-  - 裁剪 P7：需改动文件数 ≤ 5
+  - 裁剪 P7：需源码文件数 ≤ 5 AND 无 shared_styles 声明（隐式耦合维度，self-declaration）
+  - 裁剪 P8：需声明 internal_only: true + 理由
+
+  **裁剪理由格式**：每条裁剪须含"跳过风险:"评估。没有评估风险的裁剪 = 无效裁剪。
+  （局限性：这是 self-declaration nudge——"跳过风险: 低"可以无脑填，但强制写一行制造"我考虑过风险"的形式义务）
+
+  **P7 语义**：P7 是"实现是否偏离 P2 设计"，不是"是否跨端"。跨端一致性是 P7 的子集，不是 P7 的全部。
   
   **裁剪声明回写（P2.9）**：若主 Agent 决定不执行 P1 声明的裁剪（保留被裁剪的阶段），
   必须在 P1-requirements.md 追加 override 字段。
