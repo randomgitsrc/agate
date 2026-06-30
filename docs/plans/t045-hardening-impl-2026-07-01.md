@@ -16,6 +16,10 @@
 3. R1(b) vision YAML hook 化——需先确认格式
 4. R2/R3/R5——需先定模板格式
 
+**触发顺序说明**：`pre-commit-gate.sh` 中 check-p6-provenance.sh（含 R1b）在步骤 5.4 跑，check-p6-evidence.sh（含 R1a）在第 7 步跑。R1b 先于 R1a 执行——如果一个任务既缺 vision 引用又有空 png，用户先看到 vision 引用错误。这不影响正确性，只影响修复往返次数。当前不调整顺序（改动 pre-commit-gate.sh 的步骤排列风险高），接受 R1b 先报错的行为。
+
+**hook 编写规范（本次评审新增）**：所有 pre-commit 检查涉及"本次改了什么"时，一律用 `git diff --cached`，永远不用 `git diff HEAD~1` 或 `git log`——pre-commit 时本次变更在暂存区，不在 HEAD 里。这是 agate 已踩过三次的坑（P4 gate、check-state-transition、本次 Task 4）。
+
 ---
 
 ## 文件结构
@@ -77,7 +81,9 @@ T045 评审 v5 R1/R2 前置：先定协议格式再写 hook"
 **Files:**
 - Modify: `agate/scripts/check-p6-evidence.sh`
 
-R1(a)：`ui_affected: true` 时，P6-evidence/screenshots/ 必须非空 + 每个截图文件大小 > 1KB。客观证据 barrier——文件大小是文件系统级属性，subagent 无法靠"再写一行文本"绕过。
+R1(a)：`ui_affected: true` 时，**如果 P6-acceptance.md 含截图引用**，则 P6-evidence/screenshots/ 必须非空 + 每个截图文件大小 > 1KB。客观证据 barrier——文件大小是文件系统级属性，subagent 无法靠"再写一行文本"绕过。
+
+**⚠️ 与现有规则兼容**：`dispatch-protocol.md:353` 明确"查询类 BDD 可不截图（断言值是唯一证据）"。如果一个 UI 任务的全部 BDD 都是查询类（合法地没有截图），screenshots/ 目录为空是正常的，不应拦截。因此 R1a 的前置条件是"P6-acceptance.md 含 `(screenshots/` 引用"——有截图引用才检查 screenshots/ 目录。
 
 - [ ] **Step 1: 在脚本末尾 exit 0 之前加 UI 检查逻辑**
 
@@ -85,6 +91,7 @@ R1(a)：`ui_affected: true` 时，P6-evidence/screenshots/ 必须非空 + 每个
 
 ```bash
 # UI 截图实质检查（R1a：T045 评审 v5）
+# 仅当 P6-acceptance.md 含截图引用时才检查（兼容查询类 BDD 可不截图规则）
 P2_FILE="$TASK_DIR/P2-design.md"
 UI_AFFECTED=""
 if [ -f "$P2_FILE" ]; then
@@ -98,21 +105,27 @@ print(m.group(1) if m else '')
 fi
 
 if [ "$UI_AFFECTED" = "true" ]; then
-    SCREENSHOTS_DIR="$EVIDENCE_DIR/screenshots"
-    if [ ! -d "$SCREENSHOTS_DIR" ] || [ -z "$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' 2>/dev/null)" ]; then
-        echo "GATE P6-EVIDENCE: ui_affected=true 但 P6-evidence/screenshots/ 目录不存在或为空" >&2
-        exit 1
-    fi
-    EMPTY_COUNT=0
-    while IFS= read -r -d '' img; do
-        SIZE=$(stat -c%s "$img" 2>/dev/null || stat -f%z "$img" 2>/dev/null || echo 0)
-        if [ "$SIZE" -le 1024 ]; then
-            EMPTY_COUNT=$((EMPTY_COUNT + 1))
+    # 检查 P6-acceptance.md 是否含截图引用
+    HAS_SCREENSHOT_REF=$(grep -cE '\(screenshots/' "$P6_FILE" 2>/dev/null || echo 0)
+    HAS_SCREENSHOT_REF=$(echo "$HAS_SCREENSHOT_REF" | tail -1)
+
+    if [ "$HAS_SCREENSHOT_REF" -gt 0 ]; then
+        SCREENSHOTS_DIR="$EVIDENCE_DIR/screenshots"
+        if [ ! -d "$SCREENSHOTS_DIR" ] || [ -z "$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' 2>/dev/null)" ]; then
+            echo "GATE P6-EVIDENCE: ui_affected=true 且 PASS 引用了截图，但 P6-evidence/screenshots/ 目录不存在或为空" >&2
+            exit 1
         fi
-    done < <(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -print0 2>/dev/null)
-    if [ "$EMPTY_COUNT" -gt 0 ]; then
-        echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个文件 ≤ 1KB（疑似空 png 充数）" >&2
-        exit 1
+        EMPTY_COUNT=0
+        while IFS= read -r -d '' img; do
+            SIZE=$(stat -c%s "$img" 2>/dev/null || stat -f%z "$img" 2>/dev/null || echo 0)
+            if [ "$SIZE" -le 1024 ]; then
+                EMPTY_COUNT=$((EMPTY_COUNT + 1))
+            fi
+        done < <(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -print0 2>/dev/null)
+        if [ "$EMPTY_COUNT" -gt 0 ]; then
+            echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个文件 ≤ 1KB（疑似空 png 充数）" >&2
+            exit 1
+        fi
     fi
 fi
 ```
@@ -126,19 +139,23 @@ Expected: 无输出
 
 创建临时任务目录，无 P2-design.md（非 UI 任务），跑脚本应 exit=0。
 
-- [ ] **Step 4: 测试——UI 任务空 screenshots 被拦截**
+- [ ] **Step 4: 测试——UI 任务含截图引用但空 screenshots 被拦截**
 
-创建 P2-design.md 含 `ui_affected: true`，不建 screenshots/ 目录，应 exit=1。
+创建 P2-design.md 含 `ui_affected: true`，P6-acceptance.md 含 `(screenshots/b01.png)` 引用，不建 screenshots/ 目录，应 exit=1。
 
-- [ ] **Step 5: 测试——UI 任务空 png 被拦截**
+- [ ] **Step 5: 测试——UI 任务纯查询类（无截图引用）不误杀**
 
-创建 screenshots/ + 100 字节假 png，应 exit=1。
+创建 P2-design.md 含 `ui_affected: true`，P6-acceptance.md 的 PASS 行无截图引用（纯断言值），不建 screenshots/ 目录，应 exit=0。
 
-- [ ] **Step 6: 测试——UI 任务合规通过**
+- [ ] **Step 6: 测试——UI 任务空 png 被拦截**
 
-创建 screenshots/ + 2KB 假 png，应 exit=0。
+创建 screenshots/ + 100 字节假 png + P6 含截图引用，应 exit=1。
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: 测试——UI 任务合规通过**
+
+创建 screenshots/ + 2KB 假 png + P6 含截图引用，应 exit=0。
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add agate/scripts/check-p6-evidence.sh
@@ -156,13 +173,15 @@ T045 评审 v5 R1(a)"
 **Files:**
 - Modify: `agate/scripts/check-p6-provenance.sh`
 
-R1(b)：将 `dispatch-protocol.md:575` 已有的 UI vision 规则 hook 化。`ui_affected: true` 时，每条 UI 类 PASS 必须含 `(vision: vision-reports/*.yaml)` 引用 + YAML 文件存在 + `summary.blocker_count == 0`。
+R1(b)：将 `dispatch-protocol.md:575` 已有的 UI vision 规则 hook 化。`ui_affected: true` 时，**含截图引用的** PASS 行必须同时含 `(vision: vision-reports/*.yaml)` 引用 + YAML 文件存在 + `summary.blocker_count == 0`。
+
+**⚠️ 与现有规则兼容**：`dispatch-protocol.md:353` 明确"查询类 BDD 可不截图（断言值是唯一证据）"。因此 R1b 只检查**已含截图引用** `(screenshots/xxx.png)` 的 PASS 行——如果一条 PASS 引用了截图，那它必须同时有 vision YAML 引用。纯断言值的查询类 PASS（无截图引用）跳过，不强制 vision。
 
 - [ ] **Step 1: 在审计 3 之后、agent 字段之前加审计 4**
 
 找到 `# --- 协作规范：agent 字段 ---` 行，在其前面插入审计 4 代码块。代码逻辑：
 1. 读取 P2-design.md 的 `ui_affected` 字段
-2. `ui_affected: true` 时，检查每条 PASS 行含 `(vision: ...)` 引用
+2. `ui_affected: true` 时，**只检查含 `(screenshots/` 引用的 PASS 行**——这些行必须同时含 `(vision: ...)` 引用
 3. 检查每个 vision YAML 文件存在 + `summary.blocker_count == 0`（用 python3 + pyyaml 解析）
 4. 任何一项不通过 → exit 1
 
@@ -174,19 +193,23 @@ Run: `bash -n agate/scripts/check-p6-provenance.sh`
 
 无 P2-design.md 或 `ui_affected: false`，应 exit=0。
 
-- [ ] **Step 4: 测试——UI 任务缺 vision 引用被拦截**
+- [ ] **Step 4: 测试——UI 任务含截图的 PASS 缺 vision 引用被拦截**
 
-`ui_affected: true` + PASS 行无 `(vision: ...)`，应 exit=1。
+`ui_affected: true` + PASS 行含 `(screenshots/b01.png)` 但无 `(vision: ...)`，应 exit=1。
 
-- [ ] **Step 5: 测试——UI 任务 blocker_count != 0 被拦截**
+- [ ] **Step 5: 测试——UI 任务纯查询类 PASS（无截图引用）不要求 vision**
 
-PASS 行有 vision 引用 + YAML 存在但 `blocker_count: 1`，应 exit=1。
+`ui_affected: true` + PASS 行无截图引用（纯断言值），应 exit=0（查询类 BDD 可不截图，不强制 vision）。
 
-- [ ] **Step 6: 测试——UI 任务全合规通过**
+- [ ] **Step 6: 测试——UI 任务 vision YAML blocker_count != 0 被拦截**
 
-PASS 行有 vision 引用 + YAML 存在 + `blocker_count: 0`，应 exit=0。
+PASS 行含截图引用 + vision 引用 + YAML 存在但 `blocker_count: 1`，应 exit=1。
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: 测试——UI 任务全合规通过**
+
+PASS 行含截图引用 + vision 引用 + YAML 存在 + `blocker_count: 0`，应 exit=0。
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add agate/scripts/check-p6-provenance.sh
@@ -215,7 +238,46 @@ T045 评审 v5 R1(b)"
 - 检查 6（R5）：P8 裁剪条件——需 `internal_only: true` 声明
 - 检查 7（R3）：裁剪理由含"跳过风险:"评估
 
-源码文件数 = `git diff --name-only HEAD~1` 排除 `docs/tasks/`、`.state.yaml`、`P{n}-*.md`、隐藏文件。
+**⚠️ 关键：pre-commit 时本次变更在暂存区，不在 HEAD 里。必须用 `git diff --cached`，不能用 `git diff HEAD~1`——否则数到的是上一次 commit 的文件数，不是本次的。这是 agate 已踩过两次的坑（P4 gate、check-state-transition），本次第三次出现。**
+
+源码文件数 = `git diff --cached --name-only` 排除 `docs/tasks/`、`.state.yaml`、`P{n}-*.md`、隐藏文件。
+
+检查 5 代码：
+
+```bash
+# 检查 5：裁剪 P7 的条件（R4：bug fix + shared_styles 维度）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
+    # R4(a) bug fix：补实现已文档化的文件数条件
+    # ⚠️ 用 --cached（暂存区），不用 HEAD~1（pre-commit 时本次变更还没进 HEAD）
+    SOURCE_FILE_COUNT=$(git diff --cached --name-only 2>/dev/null \
+        | grep -vE '^docs/tasks/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG' \
+        | wc -l || echo 0)
+    SOURCE_FILE_COUNT=$(echo "$SOURCE_FILE_COUNT" | tail -1)
+
+    if [ "$SOURCE_FILE_COUNT" -gt 5 ]; then
+        ERRORS="${ERRORS}裁剪 P7 需源码文件数 ≤ 5，实际=${SOURCE_FILE_COUNT}\n"
+    fi
+
+    # R4(b)：shared_styles 维度（self-declaration nudge）
+    if grep -qE '^shared_styles:' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪 P7 不可行：P1 声明了 shared_styles（隐式耦合维度）\n"
+    fi
+fi
+
+# 检查 6：裁剪 P8 的条件（R5：internal_only 声明）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
+    if ! grep -qE '^internal_only:\s*true' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪 P8 需声明 internal_only: true + 理由\n"
+    fi
+fi
+
+# 检查 7：裁剪理由必须含"跳过风险"评估（R3a：self-declaration nudge）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P2' || ! echo "$PHASES_DECLARED" | grep -qw 'P3' || ! echo "$PHASES_DECLARED" | grep -qw 'P7' || ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
+    if ! grep -qE '跳过风险:' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）\n"
+    fi
+fi
+```
 
 - [ ] **Step 2: 语法检查**
 
@@ -223,7 +285,28 @@ Run: `bash -n agate/scripts/check-pruning.sh`
 
 - [ ] **Step 3: 测试——P7 文件数 > 5 被拦截**
 
-创建 7 个源码文件 + P1 声明裁剪 P7，应 exit=1。
+**⚠️ 关键：测试必须用暂存区（git add 后未 commit），不能用已 commit 的状态——否则和 pre-commit 时的实际条件不一致。**
+
+```bash
+TMPDIR=$(mktemp -d) && cd "$TMPDIR" && git init -q && git config user.email t@t && git config user.name t
+mkdir -p docs/tasks/T999
+cat > docs/tasks/T999/P1-requirements.md <<'EOF'
+risk_level: low
+phases: [P1, P4, P5, P6]
+裁剪 P7: 单端改动
+跳过风险: 低
+EOF
+# 先做一次初始 commit（让仓库有历史）
+echo "init" > README.md && git add -A && git commit -q -m "init"
+# 创建 7 个源码文件并暂存（不 commit！模拟 pre-commit 时的暂存区状态）
+for i in 1 2 3 4 5 6 7; do echo "code$i" > "src/file$i.py"; done
+git add src/
+# 此时暂存区有 7 个源码文件，跑 check-pruning.sh
+bash /home/kity/.agate/scripts/check-pruning.sh "$TMPDIR/docs/tasks/T999" 2>&1
+echo "exit=$?"
+# 预期: exit=1（P7 裁剪但暂存区源码文件数 > 5）
+cd /tmp && rm -rf "$TMPDIR"
+```
 
 - [ ] **Step 4: 测试——P8 缺 internal_only 被拦截**
 
@@ -343,6 +426,15 @@ git push
 ---
 
 ## Self-Review
+
+### 评审修复记录（实现前评审发现 4 个问题）
+
+| # | 问题 | 严重度 | 修法 |
+|---|------|--------|------|
+| 1 | Task 4 文件数用 `git diff HEAD~1`（鸡生蛋坑，第三次重蹈） | 🔴 | 改 `git diff --cached`；测试改用暂存区验证 |
+| 2 | R1b 误杀查询类 BDD（与"查询类可不截图"规则冲突） | 🔴 | R1b 只检查含 `(screenshots/` 引用的 PASS 行 |
+| 3 | Task 2 全查询类任务误杀 | 🟠 | 仅当 P6 含截图引用时才强制 screenshots/ 非空 |
+| 4 | R1a/R1b 触发顺序 | 🟠 | 接受当前顺序（不调 pre-commit-gate.sh 步骤），文档标注 |
 
 ### Spec coverage
 
