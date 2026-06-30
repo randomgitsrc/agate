@@ -8,6 +8,13 @@
 
 **来源**：`docs/hardening-roadmap.md` Phase 2B-2 (P2.7-P2.12) + 2B-3 (P2.13-P2.14)
 
+**评审修订**（hardening-phase2b2-2b3-plan-review-20260630.md，5 项全部采纳）：
+- R1: Python 代码 shell 变量注入 → 所有 Python 调用用环境变量传参（Task 1-4）
+- O1: 新检查插入位置改变 exit 语义 → gate 失败时不跑裁剪检查（Task 5）
+- O2: git log 绝对路径 → 用相对路径（Task 2）
+- M1: `\b` 可移植性 → 改用 `grep -qw`（Task 1）
+- M2: SCOPE+ 扫描遗漏非 P 前缀文件 → 扫描 `*.md`（Task 3）
+
 **涉及协议文件**：
 - `WORKFLOW.md` — 适用边界表（L109-157）、P2 评审角色（L180）
 - `dispatch-protocol.md` — 门槛表（L568-577）、SCOPE+ 扫描（L609）
@@ -64,20 +71,19 @@ P1_FILE="$TASK_DIR/P1-requirements.md"
 
 [ ! -f "$P1_FILE" ] && exit 2
 
+# R1 修复：所有 Python 调用用环境变量传参，避免 shell 变量注入
 # 从 P1 提取 risk_level 和 phases
-# risk_level 在 YAML front matter 或正文 ## 5. 裁剪说明 里
-RISK_LEVEL=$(python3 -c "
-import re
-with open('$P1_FILE') as f:
+RISK_LEVEL=$(P1_FILE="$P1_FILE" python3 -c "
+import re, os
+with open(os.environ['P1_FILE']) as f:
     text = f.read()
 m = re.search(r'risk_level:\s*(low|medium|high)', text)
 print(m.group(1) if m else '')
 " 2>/dev/null || echo "")
 
-# phases 声明（裁剪说明区）
-PHASES_DECLARED=$(python3 -c "
-import re
-with open('$P1_FILE') as f:
+PHASES_DECLARED=$(P1_FILE="$P1_FILE" python3 -c "
+import re, os
+with open(os.environ['P1_FILE']) as f:
     text = f.read()
 m = re.search(r'phases:\s*\[([^\]]+)\]', text)
 if m:
@@ -89,13 +95,12 @@ if m:
 HAS_OVERRIDE=$(grep -c '^override:' "$P1_FILE" 2>/dev/null || echo 0)
 
 # BDD 条目数（从 ## 3. BDD 验收条件 区提取 AC 条目）
-BDD_COUNT=$(python3 -c "
-import re
-with open('$P1_FILE') as f:
+BDD_COUNT=$(P1_FILE="$P1_FILE" python3 -c "
+import re, os
+with open(os.environ['P1_FILE']) as f:
     text = f.read()
 m = re.search(r'## 3\. BDD 验收条件(.*?)(?=## 4\.|## 5\.|\Z)', text, re.S)
 if m:
-    # 统计 AC 或 BDD- 开头的条目
     items = re.findall(r'^- (?:AC|BDD-)\d+', m.group(1), re.M)
     print(len(items))
 else:
@@ -109,8 +114,9 @@ if [ -z "$RISK_LEVEL" ]; then
     ERRORS="${ERRORS}P1-requirements.md 缺 risk_level 字段\n"
 fi
 
+# M1 修复：用 grep -qw 替代 \b，更可移植
 # 检查 2：裁剪 P2 的条件
-if echo "$PHASES_DECLARED" | grep -qvE '\bP2\b'; then
+if ! echo "$PHASES_DECLARED" | grep -qw 'P2'; then
     # P2 被裁剪
     if [ "$RISK_LEVEL" != "low" ]; then
         ERRORS="${ERRORS}裁剪 P2 需 risk_level=low，实际=${RISK_LEVEL}\n"
@@ -121,16 +127,14 @@ if echo "$PHASES_DECLARED" | grep -qvE '\bP2\b'; then
 fi
 
 # 检查 3：裁剪 P6 的条件（不可裁，除非 no_behavior_change）
-if echo "$PHASES_DECLARED" | grep -qvE '\bP6\b'; then
-    # P6 被裁剪
+if ! echo "$PHASES_DECLARED" | grep -qw 'P6'; then
     if ! grep -q 'no_behavior_change:\s*true' "$P1_FILE" 2>/dev/null; then
         ERRORS="${ERRORS}P6 不可裁剪（除非 no_behavior_change: true）\n"
     fi
 fi
 
 # 检查 4：裁剪 P3 的条件
-if echo "$PHASES_DECLARED" | grep -qvE '\bP3\b'; then
-    # P3 被裁剪
+if ! echo "$PHASES_DECLARED" | grep -qw 'P3'; then
     if [ "$RISK_LEVEL" = "high" ]; then
         ERRORS="${ERRORS}高风险任务不可裁剪 P3\n"
     fi
@@ -219,10 +223,10 @@ P2_REVIEW="$TASK_DIR/P2-review.md"
 
 [ ! -f "$P2_REVIEW" ] && exit 2
 
-# 读 risk_level
-RISK_LEVEL=$(python3 -c "
-import re
-with open('$P1_FILE') as f:
+# R1 修复：用环境变量传参
+RISK_LEVEL=$(P1_FILE="$P1_FILE" python3 -c "
+import re, os
+with open(os.environ['P1_FILE']) as f:
     text = f.read()
 m = re.search(r'risk_level:\s*(low|medium|high)', text)
 print(m.group(1) if m else '')
@@ -231,9 +235,12 @@ print(m.group(1) if m else '')
 # 非 high risk，不检查
 [ "$RISK_LEVEL" != "high" ] && exit 0
 
+# O2 修复：用相对路径查 git log（绝对路径在某些 git 版本可能有问题）
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+P2_REVIEW_REL=$(realpath --relative-to="$REPO_ROOT" "$P2_REVIEW" 2>/dev/null || echo "$P2_REVIEW")
+
 # high risk：检查 P2-review.md 的 git author
-# 取最近修改 P2-review.md 的 commit author
-REVIEW_AUTHOR=$(git log -1 --format='%an' -- "$P2_REVIEW" 2>/dev/null || echo "")
+REVIEW_AUTHOR=$(git log -1 --format='%an' -- "$P2_REVIEW_REL" 2>/dev/null || echo "")
 
 # 取主 Agent 的默认 identity（当前 git config user.name）
 ORCHESTRATOR_NAME=$(git config user.name 2>/dev/null || echo "")
@@ -284,9 +291,9 @@ P1_FILE="$TASK_DIR/P1-requirements.md"
 
 [ ! -d "$TASK_DIR" ] && exit 2
 
-# 扫描 task 目录下所有产出文件中的 [SCOPE+]
+# M2 修复：扫描所有 .md 文件（SCOPE+ 可能出现在非 P 前缀文件里，如 dispatch-context.md）
 SCOPE_FOUND=""
-for f in "$TASK_DIR"/P*.md; do
+for f in "$TASK_DIR"/*.md; do
     [ -f "$f" ] || continue
     if grep -q '\[SCOPE+\]' "$f" 2>/dev/null; then
         SCOPE_FOUND="${SCOPE_FOUND}$(basename "$f") "
@@ -348,9 +355,9 @@ WARNINGS=""
 
 # 1. gate 重试超限
 if [ -f "$STATE_FILE" ]; then
-    RETRIES_OVER=$(python3 -c "
-import yaml
-with open('$STATE_FILE') as f:
+    RETRIES_OVER=$(STATE_FILE="$STATE_FILE" python3 -c "
+import yaml, os
+with open(os.environ['STATE_FILE']) as f:
     data = yaml.safe_load(f)
 retries = data.get('retries', {})
 if isinstance(retries, dict):
@@ -410,26 +417,26 @@ P2.12 异常模式检测 → 复盘提醒（不中止 commit）"
 
 - [ ] **Step 1: 在 gate 运行之后、gate 结果处理之前插入新检查**
 
-在 `write_gate_result` 之后追加：
+在 `write_gate_result` 之后追加（O1 修复：gate 失败时不跑裁剪检查，gate 错误优先）：
 
 ```bash
-# 5.5 裁剪条件检查（P2.7-P2.9）
-if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+# 5.5 裁剪条件检查（P2.7-P2.9）——gate 未通过时跳过（gate 错误优先）
+if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
 fi
 
-# 5.6 P2 评审 author 检查（P2.10）
-if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+# 5.6 P2 评审 author 检查（P2.10）——gate 未通过时跳过
+if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-p2-review.sh" "$TASK_DIR" 2>/dev/null || true
     # exit 2 = 无 P2 文件或非 high risk，不拦截
 fi
 
-# 5.7 SCOPE+ 追踪检查（P2.11）
-if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+# 5.7 SCOPE+ 追踪检查（P2.11）——gate 未通过时跳过
+if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
 fi
 
-# 5.8 复盘异常触发（P2.12）——只提醒不中止
+# 5.8 复盘异常触发（P2.12）——只提醒不中止，gate 失败时也提醒
 if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
 fi
