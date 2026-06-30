@@ -1,0 +1,784 @@
+# Phase 1 + 2A 实施计划：pre-commit hook + CI backstop + 状态一致性强制
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 实现 hardening-roadmap Phase 1（pre-commit hook + CI backstop + gate-result 存储 + CHANGELOG/P6 证据检查）和 Phase 2A（状态一致性强制），让 gate 执行和状态转移从"主 Agent 自觉"变成"硬工具强制"。
+
+**Architecture:** pre-commit hook 在每次 git commit 时自动运行 check-gate.sh，结果写入 .gate-result.json（主 Agent 不可篡改）；CI 在 push 时重跑 gate 对照；状态转移合法性、重试上限、回退跳变由 hook 检查。不改协议文件，纯加脚本。
+
+**Tech Stack:** Bash（pre-commit hook）、Python（.gate-result.json 生成 + CI 对照脚本）、YAML（GitHub Actions workflow）
+
+**来源**：`docs/hardening-roadmap.md` Phase 1（P1.1-P1.7）+ Phase 2A（P2.3-P2.6）
+
+---
+
+## 文件结构
+
+| 文件 | 责任 | 创建/修改 |
+|------|------|-----------|
+| `scripts/gate-result.sh` | .gate-result.json 生成 + .gate-history.jsonl 追加 + 读取工具函数 | 创建 |
+| `scripts/check-state-transition.sh` | 状态转移合法性检查（phase 跳变、重试上限、回退跳变） | 创建 |
+| `scripts/check-changelog.sh` | CHANGELOG [Unreleased] 含 task_id 检查 | 创建 |
+| `scripts/check-p6-evidence.sh` | P6-acceptance.md 每条 BDD 有 Evidence 引用检查 | 创建 |
+| `scripts/pre-commit-gate.sh` | pre-commit hook 入口：检测触发条件、跑 gate、写结果、检查各项 | 创建 |
+| `scripts/install-hook.sh` | 安装 pre-commit hook 到 .git/hooks/ | 创建 |
+| `scripts/ci-gate-backstop.py` | CI 对照：重跑 gate，与 .gate-result.json 比对 | 创建 |
+| `.github/workflows/protocol-consistency.yml` | 追加 gate backstop job | 修改 |
+| `.gitignore` | 忽略 .gate-result.json（每 commit 重新生成） | 修改 |
+| `scripts/check-gate.sh` | P6 分支追加证据格式检查 | 修改 |
+
+---
+
+## Task 1: gate-result.sh 工具函数库
+
+**Files:**
+- Create: `scripts/gate-result.sh`
+
+- [ ] **Step 1: 写 gate-result.sh**
+
+```bash
+#!/usr/bin/env bash
+# gate-result.sh — .gate-result.json 生成 + .gate-history.jsonl 追加
+# 被 pre-commit-gate.sh 调用，不直接执行。
+
+set -euo pipefail
+
+# write_gate_result PHASE TASK_ID EXIT_CODE OUTPUT
+write_gate_result() {
+    local phase="$1"
+    local task_id="$2"
+    local exit_code="$3"
+    local output="$4"
+    local ts commit_sha
+
+    ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    commit_sha=$(git rev-parse HEAD 2>/dev/null || echo "pre-commit")
+
+    cat > .gate-result.json <<EOF
+{
+  "phase": "${phase}",
+  "task_id": "${task_id}",
+  "exit_code": ${exit_code},
+  "timestamp": "${ts}",
+  "output": $(printf '%s' "$output" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
+  "runner": "pre-commit-hook",
+  "commit_sha": "${commit_sha}"
+}
+EOF
+
+    printf '{"phase":"%s","task_id":"%s","exit_code":%d,"timestamp":"%s","commit_sha":"%s"}\n' \
+        "$phase" "$task_id" "$exit_code" "$ts" "$commit_sha" >> .gate-history.jsonl
+}
+
+read_state_phase() {
+    local state_file="$1"
+    [ ! -f "$state_file" ] && { echo ""; return; }
+    python3 -c "
+import yaml
+with open('$state_file') as f:
+    data = yaml.safe_load(f)
+print(data.get('phase', '') if data else '')
+" 2>/dev/null || echo ""
+}
+
+read_state_task_id() {
+    local state_file="$1"
+    [ ! -f "$state_file" ] && { echo ""; return; }
+    python3 -c "
+import yaml
+with open('$state_file') as f:
+    data = yaml.safe_load(f)
+print(data.get('task_id', '') if data else '')
+" 2>/dev/null || echo ""
+}
+
+has_staged_phase_change() {
+    local state_file="$1"
+    git diff --cached --name-only 2>/dev/null | grep -qF "$state_file" || return 1
+    git diff --cached -- "$state_file" 2>/dev/null | grep -qE '^\+.*phase:' || return 1
+    return 0
+}
+
+has_staged_phase_output() {
+    git diff --cached --name-only 2>/dev/null | grep -qE 'P[0-9]+-.*\.(md|yaml)$' || return 1
+    return 0
+}
+```
+
+- [ ] **Step 2: 验证语法**
+
+Run: `bash -n scripts/gate-result.sh`
+Expected: 无输出
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add scripts/gate-result.sh
+git commit -m "feat(hardening): gate-result.sh 工具函数库
+
+.gate-result.json 生成 + .gate-history.jsonl 追加 + .state.yaml 读取"
+```
+
+---
+
+## Task 2: check-state-transition.sh 状态转移检查
+
+**Files:**
+- Create: `scripts/check-state-transition.sh`
+
+- [ ] **Step 1: 写 check-state-transition.sh**
+
+```bash
+#!/usr/bin/env bash
+# check-state-transition.sh — 状态转移合法性检查（Phase 2A: P2.3-P2.5）
+# P2.3 phase 跳变合法性
+# P2.4 重试超限 -> phase 必须是 PAUSED
+# P2.5 回退跳变 >= 2 -> 必须有 PAUSED 记录
+#
+# exit 0 = 合法; exit 1 = 非法
+
+set -euo pipefail
+
+STATE_FILE="${1:-.state.yaml}"
+MAX_RETRY=3
+
+get_old_phase() {
+    git show :"${STATE_FILE}" 2>/dev/null | python3 -c "
+import yaml, sys
+try:
+    data = yaml.safe_load(sys.stdin)
+    print(data.get('phase', '') if data else '')
+except:
+    print('')
+" 2>/dev/null || echo ""
+}
+
+get_new_phase() {
+    [ -f "$STATE_FILE" ] || { echo ""; return; }
+    python3 -c "
+import yaml
+with open('$STATE_FILE') as f:
+    data = yaml.safe_load(f)
+print(data.get('phase', '') if data else '')
+" 2>/dev/null || echo ""
+}
+
+phase_num() {
+    echo "$1" | grep -oE '[0-9]+' || echo "0"
+}
+
+# 只在 .state.yaml 有暂存变更时检查
+git diff --cached --name-only 2>/dev/null | grep -qF "$STATE_FILE" || exit 0
+
+old_phase=$(get_old_phase)
+new_phase=$(get_new_phase)
+
+case "$new_phase" in
+    ""|PAUSED|READY|DONE) exit 0 ;;
+esac
+
+old_num=$(phase_num "$old_phase")
+new_num=$(phase_num "$new_phase")
+
+# 检查 1：回退跳变 >= 2（T019 教训）
+if [ "$old_num" -gt 0 ] && [ "$new_num" -gt 0 ]; then
+    diff=$((old_num - new_num))
+    if [ "$diff" -ge 2 ]; then
+        if ! git log --oneline -5 --format='%s' | grep -qiE 'PAUSED|paused'; then
+            echo "GATE STATE: 回退跳变 P${old_num}→P${new_num}（差 ${diff}），无 PAUSED 记录" >&2
+            exit 1
+        fi
+    fi
+fi
+
+# 检查 2：重试超限（P2.4）
+if [ -f "$STATE_FILE" ]; then
+    retries_json=$(python3 -c "
+import yaml
+with open('$STATE_FILE') as f:
+    data = yaml.safe_load(f)
+retries = data.get('retries', {})
+if isinstance(retries, dict):
+    for phase, count in retries.items():
+        if isinstance(count, (int, float)) and count >= ${MAX_RETRY}:
+            print(f'{phase}={int(count)}')
+            break
+" 2>/dev/null || echo "")
+
+    if [ -n "$retries_json" ] && [ "$new_phase" != "PAUSED" ]; then
+        echo "GATE STATE: ${retries_json}（>= MAX ${MAX_RETRY}），phase 应为 PAUSED" >&2
+        exit 1
+    fi
+fi
+
+exit 0
+```
+
+- [ ] **Step 2: 验证语法**
+
+Run: `bash -n scripts/check-state-transition.sh`
+Expected: 无输出
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add scripts/check-state-transition.sh
+git commit -m "feat(hardening): check-state-transition.sh 状态转移检查
+
+P2.3 phase 跳变合法性 + P2.4 重试超限 + P2.5 回退跳变检测"
+```
+
+---
+
+## Task 3: check-changelog.sh + check-p6-evidence.sh
+
+**Files:**
+- Create: `scripts/check-changelog.sh`
+- Create: `scripts/check-p6-evidence.sh`
+
+- [ ] **Step 1: 写 check-changelog.sh**
+
+```bash
+#!/usr/bin/env bash
+# check-changelog.sh — CHANGELOG [Unreleased] 含 task_id 检查（P1.6）
+# exit 0 = 通过; exit 1 = 未记录; 无 CHANGELOG 文件时 exit 0
+
+set -euo pipefail
+
+TASK_ID="${1:?用法: check-changelog.sh TASK_ID}"
+CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
+
+[ ! -f "$CHANGELOG_FILE" ] && exit 0
+
+UNRELEASED_CONTENT=$(python3 -c "
+import re
+with open('${CHANGELOG_FILE}') as f:
+    text = f.read()
+m = re.search(r'##\s*\[Unreleased\](.*?)(?=##\s*\[|\Z)', text, re.S)
+if m:
+    print(m.group(1))
+" 2>/dev/null || echo "")
+
+if [ -z "$UNRELEASED_CONTENT" ]; then
+    echo "GATE CHANGELOG: ${CHANGELOG_FILE} 无 [Unreleased] 区域" >&2
+    exit 1
+fi
+
+if echo "$UNRELEASED_CONTENT" | grep -qF "$TASK_ID"; then
+    exit 0
+else
+    echo "GATE CHANGELOG: [Unreleased] 区域未找到 ${TASK_ID}" >&2
+    exit 1
+fi
+```
+
+- [ ] **Step 2: 写 check-p6-evidence.sh**
+
+```bash
+#!/usr/bin/env bash
+# check-p6-evidence.sh — P6 证据格式检查（P1.7）
+# 检查 P6-acceptance.md 每条 BDD 有 Evidence 引用
+# exit 0 = 通过; exit 1 = 证据缺失; exit 2 = 无 P6 文件
+
+set -euo pipefail
+
+TASK_DIR="${1:?用法: check-p6-evidence.sh TASK_DIR}"
+P6_FILE="$TASK_DIR/P6-acceptance.md"
+
+[ ! -f "$P6_FILE" ] && exit 2
+
+BDD_COUNT=$(grep -cE '^##\s*BDD-[0-9]+' "$P6_FILE" || echo 0)
+EVIDENCE_COUNT=$(grep -cE 'Evidence:\s*P6-evidence/' "$P6_FILE" || echo 0)
+
+if [ "$BDD_COUNT" -eq 0 ]; then
+    echo "GATE P6-EVIDENCE: P6-acceptance.md 无 BDD 条目（## BDD-NN 格式）" >&2
+    exit 1
+fi
+
+if [ "$EVIDENCE_COUNT" -lt "$BDD_COUNT" ]; then
+    echo "GATE P6-EVIDENCE: BDD ${BDD_COUNT} 条，Evidence 引用 ${EVIDENCE_COUNT} 条（不足）" >&2
+    exit 1
+fi
+
+echo "GATE P6-EVIDENCE: ${BDD_COUNT} 条 BDD 均有 Evidence 引用" >&2
+exit 0
+```
+
+- [ ] **Step 3: 验证语法**
+
+Run: `bash -n scripts/check-changelog.sh && bash -n scripts/check-p6-evidence.sh`
+Expected: 无输出
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add scripts/check-changelog.sh scripts/check-p6-evidence.sh
+git commit -m "feat(hardening): check-changelog.sh + check-p6-evidence.sh
+
+P1.6 CHANGELOG [Unreleased] 含 task_id 检查
+P1.7 P6 证据格式检查（每条 BDD 有 Evidence 引用）"
+```
+
+---
+
+## Task 4: pre-commit-gate.sh 主入口
+
+**Files:**
+- Create: `scripts/pre-commit-gate.sh`
+
+- [ ] **Step 1: 写 pre-commit-gate.sh**
+
+```bash
+#!/usr/bin/env bash
+# pre-commit-gate.sh — pre-commit hook 入口
+# 安装到 .git/hooks/pre-commit，每次 git commit 自动触发。
+#
+# Phase 1: P1.1 跑 gate 写 .gate-result.json
+#          P1.2 PROD_TOUCHED 检测
+#          P1.6 CHANGELOG 检查
+#          P1.7 P6 证据格式检查
+# Phase 2A: P2.3-P2.5 状态转移检查
+#
+# 触发条件：.state.yaml phase 变更 OR 阶段产出文件变更
+
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+source "$REPO_ROOT/scripts/gate-result.sh"
+
+STATE_FILE="$REPO_ROOT/.state.yaml"
+AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
+
+# 0. 检测是否需要触发 gate
+NEEDS_GATE=false
+has_staged_phase_change "$STATE_FILE" && NEEDS_GATE=true
+[ "$NEEDS_GATE" = false ] && has_staged_phase_output && NEEDS_GATE=true
+
+if [ "$NEEDS_GATE" = false ]; then
+    exit 0
+fi
+
+# 1. 读取当前状态
+PHASE=$(read_state_phase "$STATE_FILE")
+TASK_ID=$(read_state_task_id "$STATE_FILE")
+
+[ -z "$PHASE" ] && exit 0
+
+TASK_DIR="$REPO_ROOT/$AGATE_TASKS_DIR/$TASK_ID"
+
+# 2. PROD_TOUCHED 检测（P1.2）
+if git diff --cached --name-only | xargs grep -l '\[PROD_TOUCHED\]' 2>/dev/null; then
+    echo "GATE: 检测到 [PROD_TOUCHED] 标记，中止 commit" >&2
+    exit 1
+fi
+
+# 3. 状态转移检查（P2.3-P2.5）
+if [ -f "$STATE_FILE" ]; then
+    bash "$REPO_ROOT/scripts/check-state-transition.sh" "$STATE_FILE" || exit 1
+fi
+
+# 4. 运行 gate（P1.1）
+GATE_OUTPUT=""
+GATE_EXIT=2
+
+if [ "$PHASE" != "PAUSED" ] && [ "$PHASE" != "READY" ] && [ "$PHASE" != "DONE" ] && [ -d "$TASK_DIR" ]; then
+    GATE_OUTPUT=$(bash "$REPO_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?
+fi
+
+write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
+
+# 5. CHANGELOG 检查（P1.6）——警告不中止
+if [ -n "$TASK_ID" ]; then
+    bash "$REPO_ROOT/scripts/check-changelog.sh" "$TASK_ID" 2>/dev/null || \
+        echo "GATE CHANGELOG: 警告 — [Unreleased] 未记录 ${TASK_ID}" >&2
+fi
+
+# 6. P6 证据格式检查（P1.7）——中止
+if [ "$PHASE" = "P6" ] || [ "$PHASE" = "P7" ]; then
+    if [ -d "$TASK_DIR" ]; then
+        bash "$REPO_ROOT/scripts/check-p6-evidence.sh" "$TASK_DIR" || exit 1
+    fi
+fi
+
+# 7. gate 结果处理
+case "$GATE_EXIT" in
+    0) echo "GATE $PHASE: 通过" >&2; exit 0 ;;
+    1) echo "GATE $PHASE: 未通过" >&2; echo "$GATE_OUTPUT" >&2; exit 1 ;;
+    2) echo "GATE $PHASE: 需主 Agent 手动判断" >&2; echo "$GATE_OUTPUT" >&2; exit 0 ;;
+esac
+```
+
+- [ ] **Step 2: 验证语法**
+
+Run: `bash -n scripts/pre-commit-gate.sh`
+Expected: 无输出
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add scripts/pre-commit-gate.sh
+git commit -m "feat(hardening): pre-commit-gate.sh 主入口
+
+P1.1 跑 gate 写 .gate-result.json
+P1.2 PROD_TOUCHED 检测
+P1.6 CHANGELOG 检查
+P1.7 P6 证据格式检查
+P2.3-P2.5 状态转移检查"
+```
+
+---
+
+## Task 5: install-hook.sh 安装脚本
+
+**Files:**
+- Create: `scripts/install-hook.sh`
+
+- [ ] **Step 1: 写 install-hook.sh**
+
+```bash
+#!/usr/bin/env bash
+# install-hook.sh — 安装 pre-commit hook
+# 把 pre-commit-gate.sh 链接到 .git/hooks/pre-commit
+
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || { echo "不在 git 仓库中" >&2; exit 1; })
+HOOK_DIR="$REPO_ROOT/.git/hooks"
+HOOK_FILE="$HOOK_DIR/pre-commit"
+SOURCE="$REPO_ROOT/scripts/pre-commit-gate.sh"
+
+[ ! -f "$SOURCE" ] && { echo "错误: $SOURCE 不存在" >&2; exit 1; }
+
+mkdir -p "$HOOK_DIR"
+
+# 备份已有 hook
+if [ -f "$HOOK_FILE" ] && [ ! -L "$HOOK_FILE" ]; then
+    cp "$HOOK_FILE" "$HOOK_FILE.bak.$(date +%s)"
+    echo "已备份现有 pre-commit hook"
+fi
+
+ln -sf "$SOURCE" "$HOOK_FILE"
+chmod +x "$SOURCE"
+
+echo "pre-commit hook 已安装: $HOOK_FILE -> $SOURCE"
+```
+
+- [ ] **Step 2: 验证语法 + 运行安装**
+
+Run: `bash -n scripts/install-hook.sh && bash scripts/install-hook.sh`
+Expected: "pre-commit hook 已安装"
+
+- [ ] **Step 3: 测试非 agate commit 不触发**
+
+Run: `git commit --allow-empty -m "test: hook 不应触发" 2>&1`
+Expected: 无 gate 输出，commit 成功
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add scripts/install-hook.sh
+git commit -m "feat(hardening): install-hook.sh 安装脚本"
+```
+
+---
+
+## Task 6: ci-gate-backstop.py CI 对照脚本
+
+**Files:**
+- Create: `scripts/ci-gate-backstop.py`
+
+- [ ] **Step 1: 写 ci-gate-backstop.py**
+
+```python
+#!/usr/bin/env python3
+"""ci-gate-backstop.py — CI gate backstop（P1.3）
+
+push 时重跑 gate，与 .gate-result.json 对照。
+防止 git commit --no-verify 绕过 hook。
+
+退出码：0 = 通过; 1 = 失败
+"""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
+    script = Path("scripts/check-gate.sh")
+    if not script.exists():
+        return 2, "check-gate.sh not found"
+    result = subprocess.run(
+        ["bash", str(script), phase, task_dir],
+        capture_output=True, text=True
+    )
+    return result.returncode, result.stderr + result.stdout
+
+
+def main() -> int:
+    repo_root = Path.cwd()
+    state_file = repo_root / ".state.yaml"
+    gate_result = repo_root / ".gate-result.json"
+
+    if not state_file.exists():
+        print("SKIP: 无 .state.yaml，非 agate 项目")
+        return 0
+
+    try:
+        import yaml
+        with open(state_file) as f:
+            data = yaml.safe_load(f)
+        phase = data.get("phase", "")
+        task_id = data.get("task_id", "")
+    except Exception:
+        print("SKIP: 无法读取 .state.yaml")
+        return 0
+
+    if not phase or phase in ("PAUSED", "READY", "DONE", ""):
+        print(f"SKIP: phase={phase}，无 gate 需要对照")
+        return 0
+
+    task_dir = str(repo_root / "docs/tasks" / task_id) if task_id else ""
+    ci_exit, ci_output = run_gate(phase, task_dir)
+
+    if not gate_result.exists():
+        if ci_exit == 1:
+            print(f"FAIL: gate 未通过（无 .gate-result.json，CI 重跑 exit={ci_exit}）")
+            return 1
+        print(f"WARN: 无 .gate-result.json（可能 --no-verify 跳过），CI exit={ci_exit}")
+        return 0
+
+    with open(gate_result) as f:
+        recorded = json.load(f)
+
+    recorded_exit = recorded.get("exit_code")
+    recorded_phase = recorded.get("phase")
+
+    if recorded_phase != phase:
+        print(f"FAIL: .gate-result.json phase={recorded_phase} != .state.yaml phase={phase}")
+        return 1
+
+    if recorded_exit != ci_exit:
+        print(f"FAIL: .gate-result.json exit={recorded_exit} != CI 重跑 exit={ci_exit}")
+        return 1
+
+    # timestamp 验证（防事后补写）
+    import datetime
+    recorded_ts = recorded.get("timestamp", "")
+    if recorded_ts:
+        try:
+            ts = datetime.datetime.fromisoformat(recorded_ts.replace("Z", "+00:00"))
+            commit_ts_str = subprocess.run(
+                ["git", "log", "-1", "--format=%cI"],
+                capture_output=True, text=True, check=True
+            ).stdout.strip()
+            commit_ts = datetime.datetime.fromisoformat(commit_ts_str)
+            if ts > commit_ts:
+                print(f"FAIL: .gate-result.json timestamp {ts} > commit {commit_ts}")
+                return 1
+        except Exception:
+            pass
+
+    print(f"PASS: phase={phase} exit_code={ci_exit} 一致")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+- [ ] **Step 2: 验证语法**
+
+Run: `python3 -c "import ast; ast.parse(open('scripts/ci-gate-backstop.py').read())"`
+Expected: 无输出
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add scripts/ci-gate-backstop.py
+git commit -m "feat(hardening): ci-gate-backstop.py CI 对照脚本
+
+P1.3 push 时重跑 gate，与 .gate-result.json 对照"
+```
+
+---
+
+## Task 7: 更新 CI workflow + .gitignore
+
+**Files:**
+- Modify: `.github/workflows/protocol-consistency.yml`
+- Modify: `.gitignore`
+
+- [ ] **Step 1: 追加 gate-backstop job**
+
+在 `.github/workflows/protocol-consistency.yml` 的 `jobs:` 下追加：
+
+```yaml
+  gate-backstop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Run gate backstop check
+        run: python3 scripts/ci-gate-backstop.py
+```
+
+- [ ] **Step 2: 更新 .gitignore**
+
+追加：
+```
+# gate result（每 commit 由 pre-commit hook 重新生成）
+.gate-result.json
+```
+
+注意：**不**忽略 `.gate-history.jsonl`——历史记录应提交到仓库。
+
+- [ ] **Step 3: 验证 CI workflow 语法**
+
+Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/protocol-consistency.yml'))"`
+Expected: 无输出
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add .github/workflows/protocol-consistency.yml .gitignore
+git commit -m "feat(hardening): CI gate-backstop job + .gitignore
+
+P1.3 CI workflow 追加 gate backstop job
+.gate-result.json 加入 .gitignore"
+```
+
+---
+
+## Task 8: 更新 check-gate.sh P6 证据检查集成
+
+**Files:**
+- Modify: `scripts/check-gate.sh`（P6 分支）
+
+- [ ] **Step 1: 在 P6 分支 exit 2 之前追加证据格式检查**
+
+在 `scripts/check-gate.sh` 的 P6 分支，现有 `echo "GATE P6: ..."` 行之前，追加：
+
+```bash
+      # P6 证据格式检查（P1.7）：每条 BDD 有 Evidence 引用
+      BDD_FMT_COUNT=$(grep -cE '^##\s*BDD-[0-9]+' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      EVIDENCE_REF_COUNT=$(grep -cE 'Evidence:\s*P6-evidence/' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      if [ "$BDD_FMT_COUNT" -gt 0 ] && [ "$EVIDENCE_REF_COUNT" -lt "$BDD_FMT_COUNT" ]; then
+          echo "GATE P6: BDD 条目 ${BDD_FMT_COUNT} 条，Evidence 引用 ${EVIDENCE_REF_COUNT} 条（不足）" >&2
+          exit 1
+      fi
+```
+
+- [ ] **Step 2: 验证语法**
+
+Run: `bash -n scripts/check-gate.sh`
+Expected: 无输出
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add scripts/check-gate.sh
+git commit -m "feat(hardening): check-gate.sh P6 追加证据格式检查
+
+P1.7 集成：每条 BDD 需有 Evidence 引用"
+```
+
+---
+
+## Task 9: 端到端验证
+
+**Files:** 无新建文件
+
+- [ ] **Step 1: 安装 hook**
+
+Run: `bash scripts/install-hook.sh`
+Expected: "pre-commit hook 已安装"
+
+- [ ] **Step 2: 测试普通文档 commit 不触发 gate**
+
+Run: `git commit --allow-empty -m "test: hook 不应触发" 2>&1`
+Expected: 无 gate 输出，commit 成功
+
+- [ ] **Step 3: 测试 .state.yaml 变更触发 gate**
+
+```bash
+cat > .state.yaml <<'EOF'
+phase: P5
+task_id: TEST001
+retries:
+  p5: 0
+EOF
+git add .state.yaml
+git commit -m "test: .state.yaml 变更应触发 gate" 2>&1
+```
+
+Expected: hook 触发，输出 "GATE P5: 需主 Agent 手动判断"（exit 2），commit 成功
+
+- [ ] **Step 4: 验证 .gate-result.json 生成**
+
+Run: `cat .gate-result.json`
+Expected: JSON 含 phase=P5, exit_code=2, timestamp
+
+- [ ] **Step 5: 验证 .gate-history.jsonl 追加**
+
+Run: `tail -1 .gate-history.jsonl`
+Expected: JSON 行含 phase=P5
+
+- [ ] **Step 6: 测试 PROD_TOUCHED 拦截**
+
+```bash
+echo "[PROD_TOUCHED] test" > docs/tasks/TEST001/P0-brief.md 2>/dev/null || mkdir -p docs/tasks/TEST001 && echo "[PROD_TOUCHED] test" > docs/tasks/TEST001/P0-brief.md
+git add docs/tasks/TEST001/P0-brief.md .state.yaml
+git commit -m "test: PROD_TOUCHED 应被拦截" 2>&1
+```
+
+Expected: commit 被中止，输出 "检测到 [PROD_TOUCHED] 标记"
+
+- [ ] **Step 7: 清理测试文件**
+
+```bash
+rm -rf docs/tasks/TEST001 .state.yaml .gate-result.json
+git add -A
+git commit -m "test: 清理端到端测试文件"
+```
+
+- [ ] **Step 8: 最终验证 — 一致性检查**
+
+Run: `python3 scripts/check-protocol-consistency.py`
+Expected: 0 ERROR
+
+- [ ] **Step 9: Commit 验证结果**
+
+```bash
+git add -A
+git commit -m "test: Phase 1 + 2A 端到端验证通过
+
+验证项：
+- 普通文档 commit 不触发 gate
+- .state.yaml 变更触发 gate + 写 .gate-result.json
+- .gate-history.jsonl 追加记录
+- PROD_TOUCHED 标记拦截 commit
+- 一致性检查 0 ERROR"
+```
+
+---
+
+## 完成标准
+
+- [ ] pre-commit-gate.sh 落地，覆盖 P3/P4/P5/P6/P7/P8 gate
+- [ ] .gate-result.json + .gate-history.jsonl 格式定义并落地
+- [ ] CI workflow 跑 gate backstop
+- [ ] CHANGELOG 检查 + P6 证据格式检查集成进 hook
+- [ ] 状态转移检查（回退跳变 + 重试超限）集成进 hook
+- [ ] PROD_TOUCHED 检测集成进 hook
+- [ ] 端到端验证：普通 commit 不触发、.state.yaml 变更触发、PROD_TOUCHED 拦截
+- [ ] 一致性检查 0 ERROR
