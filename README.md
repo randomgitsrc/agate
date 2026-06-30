@@ -45,7 +45,16 @@ ln -sfn ~/oclab/agate/agate ~/.agate
 curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
 ```
 
-约定使用 `~/.agate/` 作为标准安装位置（软链接到 `~/oclab/agate/agate/`），所有项目共用一份，orchestrator.md 路径统一。换机器只需重新 clone + 软链接。
+**为什么装到 `~/oclab/agate`？**
+
+agate 是「项目开发协议」——它本身有开发资料（设计文档、评审记录、路线图、CHANGELOG 等）。这些和你**使用** agate 无关，混在一起会让你的项目仓库目录看起来很乱。
+
+所以：
+- `~/oclab/agate/` = 仓库根（含开发资料 + `agate/` 子目录）
+- `~/oclab/agate/agate/` = **协议本体**（你实际用的东西）
+- `~/.agate` = 软链接指向协议本体，让你跨项目统一访问
+
+如果你不想用 `~/oclab/agate` 这个路径，可以装到任何目录（如 `~/.local/share/agate`），只要 `ln -s` 正确指向里面的 `agate/` 子目录。
 
 **2. 在你的项目里创建 orchestrator**
 
@@ -65,6 +74,31 @@ cp ~/.agate/orchestrator-template.md \
 **5. 第一次用，`docs/tasks/` 是空的，这是正常的**
 
 不需要手动创建 `docs/tasks/active-tasks.md`——Agent 启动后会自己检查这个文件是否存在，不存在就从 `assets/templates/active-tasks-template.md` 复制结构、建好目录，再开始第一个任务（T001）。这个初始化逻辑写在 `orchestrator-template.md` 和 `state-machine.md` 里，不需要人工介入。
+
+---
+
+## 常见误区
+
+1. **「我以为要 `cd` 到 `~/oclab/agate` 才开始」** —— **不要**。`~/oclab/agate` 是 agate 项目的开发目录，**你只用到 `~/.agate` 这个软链接**。所有工作都在你自己的项目仓库里做。
+2. **「我要按文件结构图把所有文件复制过来」** —— **不要**。只用 `orchestrator-template.md` 这一个文件就够了。复制后改 `project_root:` 等几行字段，其余逻辑从 `~/.agate/` 实时读。
+3. **「我需要 Python/数据库/部署服务」** —— 不需要。agate 是**纯文档协议**，没有任何运行时服务。所有 gate 检查都是 git pre-commit 钩子 + bash/Python 脚本。
+
+## 升级
+
+```bash
+cd ~/oclab/agate && git pull
+```
+
+无需重装 hook——软链接会自动指向最新代码。已有项目的 `.state.yaml` 与新版本协议兼容（除非有重大版本变更，CHANGELOG 会说明）。
+
+## 卸载
+
+```bash
+rm ~/.agate            # 删软链接
+rm -rf ~/oclab/agate   # 删仓库
+```
+
+你的项目里的 `docs/agents/orchestrator.md` 等文件**不会**被删（它们独立于 agate）。
 
 ---
 
