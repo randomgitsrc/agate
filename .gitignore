@@ -6,3 +6,7 @@
 
 # agate 运行时状态（项目级，不是协议仓库内容）
 .state.yaml
+
+# Python
+__pycache__/
+*.pyc

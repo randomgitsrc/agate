@@ -15,7 +15,7 @@ EVIDENCE_DIR="$TASK_DIR/P6-evidence"
 get_agent() {
     local file="$1"
     [ ! -f "$file" ] && echo "" && return
-    sed -n '/^---$/,/^---$/p' "$file" | grep -E '^agent:' | sed 's/^agent:\s*//' | head -1
+    sed -n '/^---$/,/^---$/p' "$file" | { grep -E '^agent:' || true; } | sed 's/^agent:\s*//' | head -1
 }
 
 get_risk_level() {
@@ -131,24 +131,25 @@ if [ -f "$P6_FILE" ] && [ -f "$P1_FILE" ]; then
 fi
 
 # --- 协作规范：agent 字段 ---
-# 不做硬拦截（自报数据不可信），只做格式校验和软提醒
+# 不做硬拦截（自报数据不可信），缺字段降级为 WARNING
+# 安全审计（1/2/3）用 ERROR，协作规范用 WARNING——符合「不把自报字段当安全边界」原则
 
 if [ -f "$P6_FILE" ]; then
     AGENT=$(get_agent "$P6_FILE")
     if [ -z "$AGENT" ]; then
-        echo "GATE PROVENANCE: P6-acceptance.md 缺 agent 字段（协作规范）" >&2
-        exit 1
+        echo "GATE PROVENANCE: P6-acceptance.md 缺 agent 字段（协作规范，不阻塞）" >&2
+        exit 2
     fi
 fi
 
-# P2 评审：risk=high 且 agent=main → 警告
+# P2 评审：缺字段 WARNING；risk=high + agent=main WARNING
 P2_REVIEW_FILE="$TASK_DIR/P2-review.md"
 if [ -f "$P2_REVIEW_FILE" ]; then
     RISK=$(get_risk_level)
     AGENT=$(get_agent "$P2_REVIEW_FILE")
     if [ -z "$AGENT" ]; then
-        echo "GATE PROVENANCE: P2-review.md 缺 agent 字段（协作规范）" >&2
-        exit 1
+        echo "GATE PROVENANCE: P2-review.md 缺 agent 字段（协作规范，不阻塞）" >&2
+        exit 2
     fi
     if [ "$RISK" = "high" ] && [ "$AGENT" = "main" ]; then
         echo "GATE PROVENANCE: risk_level=high 且 P2-review.md agent=main（自审），建议派发独立 reviewer" >&2
@@ -156,9 +157,8 @@ if [ -f "$P2_REVIEW_FILE" ]; then
     fi
 fi
 
-# 所有阶段产出文件必须有 agent 字段（格式校验）
-# C1 修复：只在 P6-acceptance.md 存在时运行，避免阻塞现有任务
-# 只检查真正的阶段产出文件，排除辅助文件（dispatch-context, progress, paused-resolution）
+# 所有阶段产出文件 agent 字段存在性（格式校验）
+# 向后兼容：v2 之前创建的文件无 agent 字段，降级为 WARNING 不阻塞
 if [ -f "$P6_FILE" ]; then
 for f in "$TASK_DIR"/P[0-8]-*.md; do
     [ -f "$f" ] || continue
@@ -169,8 +169,8 @@ for f in "$TASK_DIR"/P[0-8]-*.md; do
     esac
     AGENT=$(get_agent "$f")
     if [ -z "$AGENT" ]; then
-        echo "GATE PROVENANCE: $localname 缺 agent 字段（协作规范）" >&2
-        exit 1
+        echo "GATE PROVENANCE: $localname 缺 agent 字段（协作规范，不阻塞）" >&2
+        exit 2
     fi
 done
 fi
