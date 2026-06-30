@@ -57,7 +57,9 @@ print(data.get('task_id', '') if data else '')
 
 has_staged_phase_change() {
     local state_file="$1"
-    git diff --cached --name-only 2>/dev/null | grep -qF "$state_file" || return 1
+    local basename
+    basename=$(basename "$state_file")
+    git diff --cached --name-only 2>/dev/null | grep -qF "$basename" || return 1
     git diff --cached -- "$state_file" 2>/dev/null | grep -qE '^\+.*phase:' || return 1
     return 0
 }
