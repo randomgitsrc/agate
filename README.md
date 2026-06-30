@@ -34,27 +34,36 @@ gate 验收（pytest/npm test exit code，BDD 实跑）
 
 **1. 安装 agate（标准位置 `~/.agate/`）**
 
+把仓库克隆到任意目录（在示例里我们用 `~/oclab/agate`，你也可以换任何路径）：
+
 ```bash
 git clone https://github.com/randomgitsrc/agate.git ~/oclab/agate
 ln -sfn ~/oclab/agate/agate ~/.agate
 ```
 
-或使用安装脚本：
+或使用安装脚本（一键完成上面两步）：
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
 ```
 
-**为什么装到 `~/oclab/agate`？**
+安装脚本支持环境变量定制路径：
+
+```bash
+AGATE_REPO_DIR=~/.local/share/agate bash install.sh   # 指定仓库克隆位置
+AGATE_SYMLINK=~/.my-agate bash install.sh             # 指定软链接位置
+```
+
+**目录结构怎么理解**
 
 agate 是「项目开发协议」——它本身有开发资料（设计文档、评审记录、路线图、CHANGELOG 等）。这些和你**使用** agate 无关，混在一起会让你的项目仓库目录看起来很乱。
 
-所以：
-- `~/oclab/agate/` = 仓库根（含开发资料 + `agate/` 子目录）
-- `~/oclab/agate/agate/` = **协议本体**（你实际用的东西）
+所以目录结构是：
+- `<仓库根>/` = 仓库根（含开发资料 + `agate/` 子目录）
+- `<仓库根>/agate/` = **协议本体**（你实际用的东西）
 - `~/.agate` = 软链接指向协议本体，让你跨项目统一访问
 
-如果你不想用 `~/oclab/agate` 这个路径，可以装到任何目录（如 `~/.local/share/agate`），只要 `ln -s` 正确指向里面的 `agate/` 子目录。
+软链接的**唯一约定**是必须指向 `<仓库根>/agate/` 协议本体子目录，仓库根路径随意。
 
 **2. 在你的项目里创建 orchestrator**
 
@@ -79,14 +88,22 @@ cp ~/.agate/orchestrator-template.md \
 
 ## 常见误区
 
-1. **「我以为要 `cd` 到 `~/oclab/agate` 才开始」** —— **不要**。`~/oclab/agate` 是 agate 项目的开发目录，**你只用到 `~/.agate` 这个软链接**。所有工作都在你自己的项目仓库里做。
+1. **「我以为要 `cd` 到 agate 仓库根才开始」** —— **不要**。agate 仓库是协议的开发目录，**你只用到 `~/.agate` 这个软链接**。所有工作都在你自己的项目仓库里做。
 2. **「我要按文件结构图把所有文件复制过来」** —— **不要**。只用 `orchestrator-template.md` 这一个文件就够了。复制后改 `project_root:` 等几行字段，其余逻辑从 `~/.agate/` 实时读。
 3. **「我需要 Python/数据库/部署服务」** —— 不需要。agate 是**纯文档协议**，没有任何运行时服务。所有 gate 检查都是 git pre-commit 钩子 + bash/Python 脚本。
+4. **「装了就要放 `~/oclab/agate`」** —— 不是。仓库克隆路径随便，**只有 `~/.agate` 软链接是约定**。
 
 ## 升级
 
 ```bash
-cd ~/oclab/agate && git pull
+# 进入你克隆 agate 的目录（不一定是 ~/oclab/agate）
+cd <你克隆 agate 的目录> && git pull
+```
+
+例如你当初克隆到 `~/.local/share/agate`：
+
+```bash
+cd ~/.local/share/agate && git pull
 ```
 
 无需重装 hook——软链接会自动指向最新代码。已有项目的 `.state.yaml` 与新版本协议兼容（除非有重大版本变更，CHANGELOG 会说明）。
@@ -94,8 +111,8 @@ cd ~/oclab/agate && git pull
 ## 卸载
 
 ```bash
-rm ~/.agate            # 删软链接
-rm -rf ~/oclab/agate   # 删仓库
+rm ~/.agate                          # 删软链接
+rm -rf <你克隆 agate 的目录>          # 删仓库
 ```
 
 你的项目里的 `docs/agents/orchestrator.md` 等文件**不会**被删（它们独立于 agate）。
@@ -129,7 +146,7 @@ agate-repo/                      # GitHub 仓库
 │   └── scripts/                 # gate 检查脚本（pre-commit hook 安装源）
 └── install.sh                   # 自动化安装脚本
 
-~/.agate → ~/oclab/agate/agate    # 软链接
+~/.agate → <仓库根>/agate          # 软链接
 ```
 
 ---

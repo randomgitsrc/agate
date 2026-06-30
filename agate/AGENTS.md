@@ -1,7 +1,7 @@
 # agate 协议本体
 
 > 本目录是 **agate 协议的运行时本体**。
-> 软链接 `~/.agate` 默认指向这里（`~/oclab/agate/agate`）。
+> 软链接 `~/.agate` 默认指向这里（你克隆 agate 时指定的仓库根下的 `agate/` 子目录）。
 > 路径表述：协议文档内写 `{agate_root}/WORKFLOW.md` 等于 `本目录/WORKFLOW.md`。
 
 ---
@@ -59,7 +59,8 @@ assets/review-roles/
 ## 升级 agate
 
 ```bash
-cd ~/oclab/agate && git pull
+# 进入你克隆 agate 的目录
+cd <你克隆 agate 的目录> && git pull
 ```
 
 下次 commit 自动用新版本协议。如果你之前安装了 pre-commit hook，无需重装——软链接会自动指向新代码。
@@ -67,8 +68,8 @@ cd ~/oclab/agate && git pull
 ## 卸载
 
 ```bash
-rm ~/.agate            # 删软链接
-rm -rf ~/oclab/agate   # 删仓库（用户项目里的 .state.yaml 等不影响）
+rm ~/.agate                          # 删软链接
+rm -rf <你克隆 agate 的目录>          # 删仓库
 ```
 
 ## 更多

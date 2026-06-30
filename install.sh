@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # install.sh — agate 协议安装脚本
-# clone 仓库到 ~/oclab/agate，创建 ~/.agate 软链接指向 agate/agate/ 协议本体
+# 默认把仓库克隆到 $HOME/oclab/agate，创建 ~/.agate 软链接
+# 可通过环境变量 AGATE_REPO_DIR 自定义安装目录
 
 set -euo pipefail
 
 INSTALL_DIR="${AGATE_REPO_DIR:-$HOME/oclab/agate}"
 LINK_TARGET="$INSTALL_DIR/agate"
-LINK_NAME="$HOME/.agate"
+LINK_NAME="${AGATE_SYMLINK:-$HOME/.agate}"
 
 if [ -d "$INSTALL_DIR/.git" ]; then
     echo "仓库已存在: $INSTALL_DIR"
@@ -21,10 +22,10 @@ if [ -L "$LINK_NAME" ]; then
     CURRENT=$(readlink "$LINK_NAME")
     if [ "$CURRENT" = "$LINK_TARGET" ]; then
         echo "软链接已正确: $LINK_NAME -> $LINK_TARGET"
-        exit 0
+    else
+        echo "更新软链接: $LINK_NAME (原指向 $CURRENT)"
+        ln -sfn "$LINK_TARGET" "$LINK_NAME"
     fi
-    echo "更新软链接: $LINK_NAME (原指向 $CURRENT)"
-    ln -sfn "$LINK_TARGET" "$LINK_NAME"
 elif [ -d "$LINK_NAME" ]; then
     echo "错误: $LINK_NAME 是现有目录（非软链接），请手动处理" >&2
     echo "建议: mv $LINK_NAME ${LINK_NAME}.bak && ln -s $LINK_TARGET $LINK_NAME" >&2
@@ -38,6 +39,10 @@ echo ""
 echo "安装完成。"
 echo "  仓库: $INSTALL_DIR"
 echo "  软链接: $LINK_NAME -> $LINK_TARGET"
+echo ""
+echo "自定义位置:"
+echo "  AGATE_REPO_DIR=/path/to/clone bash install.sh   # 指定仓库路径"
+echo "  AGATE_SYMLINK=/path/to/symlink bash install.sh # 指定软链接路径"
 echo ""
 echo "下一步:"
 echo "  1. 在项目里: cp $LINK_NAME/orchestrator-template.md \\"

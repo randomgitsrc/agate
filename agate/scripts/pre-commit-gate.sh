@@ -16,7 +16,7 @@ set -euo pipefail
 # REPO_ROOT = 当前 git 仓库根（项目仓库或 agate 仓库本身）
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
-# AGATE_ROOT = 协议本体路径（默认 ~/.agate 软链接 → ~/oclab/agate/agate/）
+# AGATE_ROOT = 协议本体路径（默认 ~/.agate 软链接 → 你克隆的 agate 仓库的 agate/ 子目录）
 # 协议脚本路径用 AGATE_ROOT 解析；项目运行时文件用 REPO_ROOT 解析
 AGATE_ROOT="${AGATE_ROOT:-$HOME/.agate}"
 
