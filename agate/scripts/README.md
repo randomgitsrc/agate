@@ -1,4 +1,49 @@
-# 协议结构一致性检查 (P3-1)
+# agate scripts 目录
+
+agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*.sh / .py` 是各检查脚本，`agate-summary.sh / agate-changes.sh` 是版本发现工具。
+
+## 脚本清单
+
+### Gate 检查（pre-commit hook 触发）
+
+| 脚本 | 用途 | 退出码语义 |
+|------|------|-----------|
+| `pre-commit-gate.sh` | hook 入口，按顺序调度 9 项检查 | 0=通过, 1=拦截, 2=WARNING |
+| `check-state-yaml.sh` (P2.15) | `.state.yaml` 格式校验 | 0=通过, 1=格式错, 2=无文件 |
+| `check-gate.sh` (P1.1) | 各阶段脚本化 gate | 0=通过, 1=未通过, 2=需自判 |
+| `check-changelog.sh` (P1.6) | `[Unreleased]` 含 task_id | 0=通过, 1=未记录 |
+| `check-p6-evidence.sh` (P1.7) | P6/P7 证据目录非空 | 0=通过, 1=缺证据, 2=无 P6 文件 |
+| `check-p6-provenance.sh` (P2.1/P2.10) | P6 客观行为审计（三道）| 0=通过, 1=审计失败, 2=WARNING |
+| `check-state-transition.sh` (P2.3-P2.5) | 状态转移合法性 + 重试上限 | 0=通过, 1=非法转移 |
+| `check-pruning.sh` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
+| `check-scope-resolved.sh` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
+| `check-retrospective.sh` (P2.12) | 异常模式提醒（不阻塞）| 0=总是通过 |
+| `gate-result.sh` | gate 结果工具函数库 | （被 source）|
+
+### CI 兜底
+
+| 脚本 | 用途 |
+|------|------|
+| `ci-gate-backstop.py` (P1.3) | push 后重跑 gate + P6 git blame 单 author WARNING |
+
+### 安装
+
+| 脚本 | 用途 |
+|------|------|
+| `install-hook.sh` | 在项目仓库内安装 pre-commit hook（接受 `AGATE_ROOT` 参数）|
+
+### 版本发现（agent 快速掌握协议变化）
+
+| 脚本 | 用途 |
+|------|------|
+| `agate-summary.sh` | 输出当前版本 + 防护机制状态 + 启动建议 |
+| `agate-changes.sh` | 显示与指定 tag 之间的变更（commits + 受影响文件 + 重要性分类）|
+
+**典型场景**：agent 上次会话用 v0.4.0，现在 agate 升到 v0.5.0——跑 `agate-changes.sh v0.4.0` 快速看变化，决定重读哪些必读文件。
+
+---
+
+## 协议结构一致性检查（P3-1）
 
 > 回应 `LIMITATIONS.md`「局限 5：协议文档自身的内部一致性不在流程内」。
 > 让 agate 协议文档自身也享受到它一直在鼓吹的「机器可判定的守护」。
