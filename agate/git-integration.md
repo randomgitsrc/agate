@@ -152,9 +152,9 @@ git 集成让状态落盘真正闭环：
 
 ---
 
-## v0.4+ Hardening-roadmap 集成
+## Hardening-roadmap 集成（自 v0.4 引入，持续生效）
 
-git 集成在 v0.4 hardening-roadmap 实施后承担了新的角色：**阶段 commit 会触发 9 项 pre-commit 检查**（详见 WORKFLOW.md「Pre-commit 检查总览」）。这不是新规则——而是把已有的状态机 gate 检查自动化到了 commit 入口：
+git 集成自 v0.4 hardening-roadmap 起承担了新的角色：**阶段 commit 会触发 9 项 pre-commit 检查**（详见 WORKFLOW.md「Pre-commit 检查总览」）。这不是新规则——而是把已有的状态机 gate 检查自动化到了 commit 入口：
 
 | 触发点 | 检查内容 | 拦截行为 |
 |--------|---------|---------|

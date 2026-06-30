@@ -61,7 +61,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 2. 阶段跳变检测（跨 ≥2 阶段回退强制 PAUSED）
 3. .state.yaml 与 active-tasks.md 一致性
 
-## Hardening-roadmap 关键机制（v0.4+）
+## Hardening-roadmap 关键机制
 
 你的 commit 会触发 pre-commit hook 的 9 项检查（详见 WORKFLOW.md「Pre-commit 检查总览」）：
 

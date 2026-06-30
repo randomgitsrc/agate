@@ -6,12 +6,12 @@
 
 ---
 
-## [Unreleased]
+## [0.5.0] - 2026-06-30
 
 ### 新增
 - **hardening-roadmap Phase 1+2 完整实施**：9 项 pre-commit 检查脚本 + 1 CI backstop
-  - P1.1 `check-gate.sh`：各阶段脚本化 gate（已在 v0.4.0）✓
-  - P1.6 `check-changelog.sh`：`[Unreleased]` 含 task_id 检查（自动 run）
+  - P1.1 `check-gate.sh`：各阶段脚本化 gate（在 v0.4.0 已实现）
+  - P1.6 `check-changelog.sh`：本次 `[0.5.0]` 条目含 task_id 检查（自动 run）
   - P1.7 `check-p6-evidence.sh`：P6/P7 阶段证据目录非空 + BDD 行数 ≥ 1
   - P2.1/P2.10 `check-p6-provenance.sh`：P6 客观行为审计（三道审计 + agent 字段协作规范）
   - P2.3-P2.5 `check-state-transition.sh`：状态转移合法性 + 重试上限
