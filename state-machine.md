@@ -159,6 +159,15 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   P1-requirements.md 的「裁剪说明」声明 phases: [列表]，主 Agent 据此跳过未列出的阶段。
   跳过时，当前阶段的 gate 自动判定为"通过"，直接转移到裁剪声明中的下一个阶段。
 
+  **裁剪条件（hook 验证，见 scripts/check-pruning.sh）**：
+  - 裁剪 P2：需 risk_level=low（BDD 数限制由主 Agent 判断，hook 不验证——格式不固定）
+  - 裁剪 P3：需 risk_level=low（high 风险不可裁）
+  - 裁剪 P6：不可裁（除非 no_behavior_change: true）
+  - 裁剪 P7：需改动文件数 ≤ 5
+  
+  **裁剪声明回写（P2.9）**：若主 Agent 决定不执行 P1 声明的裁剪（保留被裁剪的阶段），
+  必须在 P1-requirements.md 追加 override 字段。
+
   可跳过的阶段及其跳过转移：
     跳过 P2（无设计阶段）→ P1--[P1 gate 通过]--> P3 或 P4（取决于 phases 列表）
     跳过 P3（无 TDD）→ P2--[P2 gate 通过]--> P4
@@ -184,6 +193,9 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   → 例：P5 发现需写新代码 → 回 P4；仅验收条件遗漏 → 仅补 P6
   → 回补阶段完成后，沿正常转移继续，已完成且未受影响的阶段不重跑
   retry 计数：定向回补不清零目标阶段已有的 retry（防止借回补绕过重试上限）
+
+  **[SCOPE_RESOLVED] 标记（P2.11）**：主 Agent 增补 P1 基线时，必须标记 [SCOPE_RESOLVED: from {来源文件}]。
+  未标记的 [SCOPE+] → gate 拦截（scripts/check-scope-resolved.sh）。
 
 特殊转移：
 READY --[人手动触发 make publish]--> DONE
