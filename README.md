@@ -130,6 +130,7 @@ agate-repo/                      # GitHub 仓库
 ├── docs/                        # 项目文档（设计、评审、路线图）
 ├── archived/                    # 历史验证文档
 ├── agate/                       # 协议本体 ← ~/.agate 软链接指向这里
+│   ├── AGENTS.md                # 协议本体入口指引（角色清单 + 升级/卸载）
 │   ├── WORKFLOW.md              # P0-P8 核心规则、裁剪判断、阶段定义 ← 主入口
 │   ├── dispatch-protocol.md     # 派发协议、gate 表、特殊事件处理
 │   ├── state-machine.md         # 状态转移规则

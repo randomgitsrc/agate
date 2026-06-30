@@ -33,7 +33,8 @@ agate 建立在两条主线上：
 ## 目录结构
 
 ```
-~/.agate/                        # 标准安装位置
+~/.agate/                        # 标准安装位置（软链接 → 仓库的 agate/ 子目录）
+├── AGENTS.md                    # 协议本体入口指引（角色清单 + 升级/卸载）—— Agent 找路从这里开始
 ├── WORKFLOW.md                  # 本文件：主流程（入口）
 ├── dispatch-protocol.md         # 派发协议、gate 表、特殊事件处理
 ├── role-system.md               # 双层角色体系说明
@@ -42,6 +43,7 @@ agate 建立在两条主线上：
 ├── git-integration.md           # git 持久化（多 agent 协作）
 ├── platform-notes.md            # 各平台适配说明
 ├── orchestrator-template.md     # 新项目接入模板
+├── LIMITATIONS.md               # 已知局限（使用前建议先读）
 └── assets/
     ├── review-roles/            # 评审角色库（从 gstack 提取）
     │   ├── review.md            # /review 偏执 Staff Engineer

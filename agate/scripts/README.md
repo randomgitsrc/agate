@@ -26,14 +26,14 @@ agate 教别人「gate 必须机器可判定」，但自己的文档一致性此
 ## 用法
 
 ```bash
-# 从仓库根运行
-python3 scripts/check-protocol-consistency.py
+# 从仓库根运行（cwd 是协议仓库根 ~/<agate 仓库>）
+python3 agate/scripts/check-protocol-consistency.py
 
 # WARNING 也判失败（更严格）
-python3 scripts/check-protocol-consistency.py --strict
+python3 agate/scripts/check-protocol-consistency.py --strict
 
 # 机器可读输出（CI 消费）
-python3 scripts/check-protocol-consistency.py --json
+python3 agate/scripts/check-protocol-consistency.py --json
 ```
 
 依赖：Python 3.8+ 和 `pyyaml`（`pip install pyyaml`）。
