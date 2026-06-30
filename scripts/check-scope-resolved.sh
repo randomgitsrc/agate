@@ -28,7 +28,13 @@ if [ ! -f "$P1_FILE" ]; then
     exit 1
 fi
 
-RESOLVED_COUNT=$(grep -c '\[SCOPE_RESOLVED\]' "$P1_FILE" 2>/dev/null || echo 0)
+# grep -c 找到 0 匹配时 exit 1，与 set -e 冲突，用 || true 抑制
+# 匹配 [SCOPE_RESOLVED: xxx] 格式（协议定义格式）
+# 也匹配 [SCOPE_RESOLVED] 独立出现或后接非小写字符
+RESOLVED_COUNT=$(grep -cE '\[SCOPE_RESOLVED($|[^a-z])' "$P1_FILE" 2>/dev/null || true)
+RESOLVED_COUNT=${RESOLVED_COUNT:-0}
+# 确保是数字（grep -c 可能输出 "0\n0" 在 || true 触发时）
+RESOLVED_COUNT=$(echo "$RESOLVED_COUNT" | tail -1)
 
 if [ "$RESOLVED_COUNT" -eq 0 ]; then
     echo "GATE SCOPE: 产出含 [SCOPE+]（${SCOPE_FOUND}），但 P1 无 [SCOPE_RESOLVED] 标记" >&2

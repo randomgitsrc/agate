@@ -613,11 +613,6 @@ setTimeout(() => {
 格式：
 [SCOPE_RESOLVED: from P4-implementation.md] 新需求已增补为 AC-N，影响范围已评估
 
-**SCOPE+ 处理追踪（P2.11）**：产出含 [SCOPE+] 时，主 Agent 必须在 P1-requirements.md 增补对应条目并标记 [SCOPE_RESOLVED: 来源文件]。未标记 [SCOPE_RESOLVED] 的 [SCOPE+] → gate 不通过（scripts/check-scope-resolved.sh）。
-
-格式：
-[SCOPE_RESOLVED: from P4-implementation.md] 新需求已增补为 AC-N，影响范围已评估
-
 ---
 
 ## 重试与上限
