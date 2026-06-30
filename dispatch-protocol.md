@@ -567,7 +567,7 @@ setTimeout(() => {
 
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
-| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）|
+| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中`|
 | P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → =4` |
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | P4-implementation/ 下文件非空 + `git log --oneline -1` → 含 "P4" 或 "wf(Txxx-P4)" |
@@ -607,6 +607,16 @@ setTimeout(() => {
 - T004 教训 B7：P6 子代理连续失败后，主 Agent 要求「不用 Playwright，纯命令行验证」—— 这是主 Agent 降级了 P2 已固化的验收标准，属于违规。
 
 **SCOPE+ / SCOPE_GAP 扫描**：每次 subagent 返回后，主 Agent 扫描产出是否含 `[SCOPE+]`（新隐含需求 → 增补 P1 基线 + 定向回补）或 `[SCOPE_GAP]`（prompt 漏了 P2 已声明的改动 → 修正 prompt 重派）。
+
+**SCOPE+ 处理追踪（P2.11）**：产出含 [SCOPE+] 时，主 Agent 必须在 P1-requirements.md 增补对应条目并标记 [SCOPE_RESOLVED: 来源文件]。未标记 [SCOPE_RESOLVED] 的 [SCOPE+] → gate 不通过（scripts/check-scope-resolved.sh）。
+
+格式：
+[SCOPE_RESOLVED: from P4-implementation.md] 新需求已增补为 AC-N，影响范围已评估
+
+**SCOPE+ 处理追踪（P2.11）**：产出含 [SCOPE+] 时，主 Agent 必须在 P1-requirements.md 增补对应条目并标记 [SCOPE_RESOLVED: 来源文件]。未标记 [SCOPE_RESOLVED] 的 [SCOPE+] → gate 不通过（scripts/check-scope-resolved.sh）。
+
+格式：
+[SCOPE_RESOLVED: from P4-implementation.md] 新需求已增补为 AC-N，影响范围已评估
 
 ---
 
