@@ -29,7 +29,12 @@ if m:
     print(' '.join(phases))
 " 2>/dev/null || echo "")
 
-HAS_OVERRIDE=$(grep -c '^override:' "$P1_FILE" 2>/dev/null || echo 0)
+# P2.9：裁剪声明与执行一致性检查
+# 逻辑：P1 声明裁剪的阶段，如果文件系统里实际有该阶段的产出文件
+# → 声明与执行不符 → 必须有 override: 字段记录原因
+HAS_OVERRIDE=$(grep -c '^override:' "$P1_FILE" 2>/dev/null || true)
+HAS_OVERRIDE=${HAS_OVERRIDE:-0}
+HAS_OVERRIDE=$(echo "$HAS_OVERRIDE" | tail -1)
 
 ERRORS=""
 
@@ -38,9 +43,7 @@ if [ -z "$RISK_LEVEL" ]; then
     ERRORS="${ERRORS}P1-requirements.md 缺 risk_level 字段\n"
 fi
 
-# M1 修复：用 grep -qw 替代 \b，更可移植
 # 检查 2：裁剪 P2 的条件
-# C2 修复：BDD ≤ 10 从 hook 移到流程层（BDD 格式不固定，hook 无法可靠计数）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P2'; then
     if [ "$RISK_LEVEL" != "low" ]; then
         ERRORS="${ERRORS}裁剪 P2 需 risk_level=low，实际=${RISK_LEVEL}\n"
@@ -58,6 +61,32 @@ fi
 if ! echo "$PHASES_DECLARED" | grep -qw 'P3'; then
     if [ "$RISK_LEVEL" = "high" ]; then
         ERRORS="${ERRORS}高风险任务不可裁剪 P3\n"
+    fi
+fi
+
+# P2.9 实际实现：对比 P1 phases 声明与文件系统中的产出文件
+# 对每个被声明裁剪的阶段（P1/P3/P4/P5/P6/P7/P8），检查 task 目录下是否有该阶段的产出文件
+# 如果声明裁剪了 Pn 但 Pn-*.md 存在 → 声明与执行不符 → 必须有 override
+PRUNED_WITH_OUTPUT=""
+for phase in P1 P2 P3 P4 P5 P6 P7 P8; do
+    # P1 必填不裁剪，跳过
+    [ "$phase" = "P1" ] && continue
+    # P4/P5 不可裁剪（协议硬约束），但有 override 可保留
+    # 这里只检查"被声明裁剪但实际有产出"的矛盾
+    if echo "$PHASES_DECLARED" | grep -qw "$phase"; then
+        continue  # 阶段未被裁剪，跳过
+    fi
+    # 阶段被声明裁剪，检查是否有该阶段的产出文件
+    for f in "$TASK_DIR"/${phase}-*.md; do
+        [ -f "$f" ] || continue
+        # P2-implementation.md 实际上是 P4-implementation 的别名？不，严格按 P{n}- 开头
+        PRUNED_WITH_OUTPUT="${PRUNED_WITH_OUTPUT}${phase}:$(basename "$f") "
+    done
+done
+
+if [ -n "$PRUNED_WITH_OUTPUT" ]; then
+    if [ "$HAS_OVERRIDE" -eq 0 ]; then
+        ERRORS="${ERRORS}裁剪声明与执行不一致（${PRUNED_WITH_OUTPUT}），但 P1 无 override: 字段\n"
     fi
 fi
 
