@@ -64,7 +64,7 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P3'; then
     fi
 fi
 
-# 检查 5：裁剪 P7 的条件（R4：bug fix + shared_styles 维度）
+# 检查 5：裁剪 P7 的条件（R4：bug fix + implicit_coupling 维度）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     # R4(a) bug fix：补实现已文档化的文件数条件
     # ⚠️ 用 --cached（暂存区），不用 HEAD~1（pre-commit 时本次变更还没进 HEAD）
@@ -77,9 +77,11 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
         ERRORS="${ERRORS}裁剪 P7 需源码文件数 ≤ 5，实际=${SOURCE_FILE_COUNT}\n"
     fi
 
-    # R4(b)：shared_styles 维度（self-declaration nudge）
-    if grep -qE '^shared_styles:' "$P1_FILE" 2>/dev/null; then
-        ERRORS="${ERRORS}裁剪 P7 不可行：P1 声明了 shared_styles（隐式耦合维度）\n"
+    # R4(b)：implicit_coupling 维度（self-declaration nudge）
+    # 通用字段：analyst 声明改动涉及隐式耦合（共享 CSS class / API schema / 数据模型 / 配置项等）
+    # 局限性：hook 只能检查字段存在性，不能检查声明准确性
+    if grep -qE '^implicit_coupling:' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪 P7 不可行：P1 声明了 implicit_coupling（隐式耦合维度）\n"
     fi
 fi
 

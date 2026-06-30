@@ -164,7 +164,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   - 裁剪 P2：需 risk_level=low（BDD 数限制由主 Agent 判断，hook 不验证——格式不固定）
   - 裁剪 P3：需 risk_level=low（high 风险不可裁）
   - 裁剪 P6：不可裁（除非 no_behavior_change: true）
-  - 裁剪 P7：需源码文件数 ≤ 5 AND 无 shared_styles 声明（隐式耦合维度，self-declaration）
+  - 裁剪 P7：需源码文件数 ≤ 5 AND 无 implicit_coupling 声明（隐式耦合维度，self-declaration。如共享 CSS class、API schema、数据模型、配置项等）
   - 裁剪 P8：需声明 internal_only: true + 理由
 
   **裁剪理由格式**：每条裁剪须含"跳过风险:"评估。没有评估风险的裁剪 = 无效裁剪。
