@@ -6,7 +6,7 @@
 > - `~/oclab/peekview/docs/reviews/t044-t045-retrospective-20260701.md`（复盘）
 > - `~/oclab/peekview/docs/reviews/t044-t045-behavioral-audit-20260701.md`（行为审计）
 > 评审对象：agate v0.5.0 协议本体（commit `b160c99`）
-> 修订：v4（自评审修正——PENDING 降级、provenance 升为 R1、P5 冒烟恢复、shared_styles 标注局限、补充 minimal_validation 已有机制）
+> 修订：v5（吸收专家二次评审——R1 措辞澄清"已有规则 hook 化"、总结明确两类防线分野、补充实现顺序建议、加协议文档与脚本实现漂移风险观察）
 
 ---
 
@@ -65,11 +65,11 @@ a) **check-p6-evidence.sh 增加 UI 截图实质检查**（第一道防线，P1.
    - `ui_affected: true` 时，P6-evidence/screenshots/ 必须非空 + 每个截图文件大小 > 1KB（防空 png）
    - 客观证据检查——subagent 无法绕过（文件大小是文件系统级属性）
 
-b) **check-p6-provenance.sh 审计 4（新增）**：UI 类 PASS 须 vision YAML 引用：
-   - `ui_affected: true` 时，每条 UI 类 PASS 必须含 `(vision: vision-reports/*.yaml)` 引用
-   - YAML 文件必须存在 + `summary.blocker_count == 0`
-   - 这是把 `dispatch-protocol.md:575` 已有规则 hook 化
-   - 客观证据检查——vision YAML 的 blocker_count 是 vision-analyst 产出的客观值
+b) **check-p6-provenance.sh 将门槛表已有 UI vision 规则 hook 化**：
+   - `dispatch-protocol.md:575` 门槛表**已明文写**"UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`"——规则一直存在，但只靠主 Agent 自觉执行，没 hook 强制
+   - T045 的 vision YAML 规则在协议里躺了很久，主 Agent 跳过它零成本
+   - hook 化：`ui_affected: true` 时，每条 UI 类 PASS 必须含 `(vision: vision-reports/*.yaml)` 引用 + YAML 文件存在 + `summary.blocker_count == 0`
+   - 这不是"新增审计"，是"把规则从靠 Agent 自觉变成机器强制"——这正是 hardening 项目存在的全部理由
 
 c) ~~PENDING_VERIFICATION 状态~~ → **否决**：与二值规则冲突（T019 教训）+ 可被 subagent 绕过
 
@@ -213,6 +213,31 @@ b) **P2 设计增加"交互分析"节**（行为审计第 3 节问题 4）：列
 
 **backstop 必须用客观证据，不依赖自报文本**。T045 的核心教训：subagent 在 progress.md 写了 NEED_CONFIRM，但在 acceptance.md 写了 PASS——任何基于 subagent 自报文本的防线（PENDING 状态、NEED_CONFIRM 标记）都可被同一 subagent 绕过。真正的 backstop 是 R1 的客观证据检查（文件大小、vision YAML blocker_count）。
 
+### 两类防线的分野
+
+T045 评审揭示了一个需要明说的结构性结论：**不同层的防护强度不同**。
+
+| 防线类型 | 适用层 | 机制 | 强度 | 对应建议 |
+|----------|--------|------|------|---------|
+| **客观证据 barrier** | P6 验收 | 文件系统级属性（文件大小、YAML 值）、文件数 | 不可绕过——subagent 写完就固定 | R1(a)(b)、R4(a) |
+| **自报 nudge** | 裁剪决策 | 声明字段存在性（跳过风险、shared_styles、internal_only） | 可绕过——subagent/analyst 控制文本 | R3(a)、R4(b)、R5(a) |
+
+P6 验收层可以用客观证据做 barrier（文件大小、blocker_count），裁剪层只能用自报做 nudge（因为"风险"无客观度量）。**承认这个分野，比假装 R3/R5 提供了和 R1 同等强度的保护更诚实**。自报 nudge 的价值是"制造思考的形式义务"——强制写一行风险评估制造了"我考虑过风险"的摩擦力，但不改变"思考后仍选择省力"的行为。裁剪决策的根问题（认知偏差）在 hook 层无解。
+
+### 实现顺序建议
+
+R1/R2 实现前需先在 `task-files.md` 补格式约定：
+- `P6-evidence/screenshots/` 目录约定（R1a 依赖）
+- `P5-test-results/e2e.md` 格式（R2b 依赖，需含 `status: passed` 字段）
+
+**先定协议格式、再写检查脚本**——这是 agate 已踩过的坑（check-p6-evidence 早期假设 `## BDD-NN` 格式但协议没定义，最后退化处理）。
+
+**优先级排序**：
+1. R4(a) 补实现文件数检查——纯 bug fix，修复一年未生效的规则
+2. R1(a) 截图 > 1KB——最低成本堵住 T045 核心逃逸点
+3. R1(b) vision YAML hook 化——需先确认 vision-analyst YAML 格式
+4. R2 / R3 / R5——需先定模板格式
+
 ### 否决的建议
 
 | 建议 | 否决理由 |
@@ -223,3 +248,9 @@ b) **P2 设计增加"交互分析"节**（行为审计第 3 节问题 4）：列
 | git diff 路径硬编码 | 项目特定路径不可泛化 |
 | gate 输出 WARNING 降级 | 过度工程，误杀风险高 |
 | md5 去重 | Phase 2，vision YAML 审计边际收益更高 |
+
+### 附：协议文档与脚本实现的漂移风险
+
+R4 揭示了一个信号：`state-machine.md:167` 文档了"裁剪 P7 需文件数 ≤ 5"，但 `check-pruning.sh` 从未实现——**一条规则在文档里躺了一年但从未生效**。P3-1 一致性脚本（check-protocol-consistency.py）检查文件引用和字段集，**检查不到"文档描述的逻辑是否在脚本里实现"**。
+
+值得考虑给一致性检查加一个维度：扫描 `state-machine.md` 里所有"裁剪 P{n} 需……"的条件，核对 `check-pruning.sh` 是否都实现了。否则会有更多"躺在文档里但从未生效"的规则。
