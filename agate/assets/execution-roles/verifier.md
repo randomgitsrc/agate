@@ -91,6 +91,14 @@ agent: verifier
 
 **你的诚实边界**：你看到的代码、跑过的命令、截到的图都是证据；你"觉得应该能过"不是证据。无法验证的 BDD 标 `[NEED_CONFIRM]`，不标 PASS。
 
+**脚本已写 ≠ 验证完成**：如果你产出了 Playwright 验证脚本但没有实跑，必须在 acceptance.md 显式标注 `⚠️ PENDING_RUNTIME_VERIFICATION`。主 Agent 必须在 gate 判定前实跑脚本——"脚本已写"不作为 gate 通过条件。
+
+**UI 任务追加约束**（`ui_affected: true` 时）：
+- 含截图引用的 PASS 行必须同时含 vision YAML 引用：`(screenshots/b01.png) (vision: vision-reports/b01.yaml)`
+- vision YAML 的 `summary.blocker_count` 必须为 0
+- 截图文件大小必须 > 1KB（空 png 充数会被 `check-p6-evidence.sh` 拦截）
+- 查询类 BDD（断言值是唯一证据）可不截图、不要求 vision——但如果你截了图，就必须有 vision
+
 ### 输入（自己读取）
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
 - docs/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）
