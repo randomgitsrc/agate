@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# check-scope-resolved.sh — SCOPE+ 处理追踪（P2.11）
+# 检查产出含 [SCOPE+] 时，P1-requirements.md 有对应 [SCOPE_RESOLVED] 标记
+# exit 0 = 通过; exit 1 = SCOPE+ 未处理; exit 2 = 无 task 目录
+
+set -euo pipefail
+
+TASK_DIR="${1:?用法: check-scope-resolved.sh TASK_DIR}"
+P1_FILE="$TASK_DIR/P1-requirements.md"
+
+[ ! -d "$TASK_DIR" ] && exit 2
+
+# M2 修复：扫描所有 .md 文件（SCOPE+ 可能出现在非 P 前缀文件里，如 dispatch-context.md）
+SCOPE_FOUND=""
+for f in "$TASK_DIR"/*.md; do
+    [ -f "$f" ] || continue
+    if grep -q '\[SCOPE+\]' "$f" 2>/dev/null; then
+        SCOPE_FOUND="${SCOPE_FOUND}$(basename "$f") "
+    fi
+done
+
+# 无 SCOPE+ → 不检查
+[ -z "$SCOPE_FOUND" ] && exit 0
+
+# 有 SCOPE+：检查 P1 是否有 [SCOPE_RESOLVED]
+if [ ! -f "$P1_FILE" ]; then
+    echo "GATE SCOPE: 产出含 [SCOPE+]（${SCOPE_FOUND}），但无 P1-requirements.md" >&2
+    exit 1
+fi
+
+RESOLVED_COUNT=$(grep -c '\[SCOPE_RESOLVED\]' "$P1_FILE" 2>/dev/null || echo 0)
+
+if [ "$RESOLVED_COUNT" -eq 0 ]; then
+    echo "GATE SCOPE: 产出含 [SCOPE+]（${SCOPE_FOUND}），但 P1 无 [SCOPE_RESOLVED] 标记" >&2
+    exit 1
+fi
+
+echo "GATE SCOPE: ${SCOPE_FOUND}有 [SCOPE+]，P1 有 ${RESOLVED_COUNT} 个 [SCOPE_RESOLVED]" >&2
+exit 0
