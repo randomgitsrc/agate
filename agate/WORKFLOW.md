@@ -206,6 +206,31 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 ---
 
+## Pre-commit 检查总览（hardening-roadmap Phase 1-2 已落地）
+
+每次 `git commit` 触发 pre-commit hook，按以下顺序自动运行（任何 `exit 1` 中止 commit，`exit 2` 警告不阻塞）：
+
+| # | 检查脚本 | 触发条件 | 阶段/机制 | 行为 |
+|---|---------|---------|-----------|------|
+| 0 | `check-state-yaml.sh` | `.state.yaml` 暂存变更时（不依赖 phase 变）| 文件级 | 校验格式合法（必填字段、phase 取值、retries 结构）|
+| 1 | `check-gate.sh` | `.state.yaml` phase 变更或阶段产出文件变更 | 阶段级 | P1.1 gate 校验 |
+| 1.6 | `check-changelog.sh` | gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6）|
+| 1.7 | `check-p6-evidence.sh` | 阶段 ∈ {P6, P7} | 阶段级 | P6-evidence/ 非空 + BDD 行数 ≥ 1（P1.7）|
+| 2.1 | `check-p6-provenance.sh` | gate 通过后 | 阶段级 | 三道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
+| 2.3 | `check-state-transition.sh` | gate 通过后 | 阶段级 | 状态转移合法性 + 重试上限（P2.3-P2.5）|
+| 2.7 | `check-pruning.sh` | gate 通过后 | 阶段级 | 裁剪条件与实际执行一致性 + override 校验（P2.7-P2.9）|
+| 2.11 | `check-scope-resolved.sh` | gate 通过后 | 阶段级 | `[SCOPE+]` 必须有 `[SCOPE_RESOLVED:...]` 标记（P2.11）|
+| 2.12 | `check-retrospective.sh` | gate 任何结果 | 阶段级 | 异常模式提醒（重试超限/SCOPE+/override）→ 写复盘；不阻塞 commit（P2.12）|
+
+**关键设计原则**：
+
+- **0→1→1.6→1.7→2.* 顺序**：每个阶段有"关卡"——0 是格式关、1 是行为关、2.* 是合规/审计关。任何关卡失败 → 中止 commit。
+- **agent 字段协作规范（P2.1/P2.10 v2 协作层）**：所有阶段产出文件 Header 含 `agent: <角色>`，缺字段 WARNING 不阻塞（向后兼容），但 `risk_level=high` 时 `agent=main`（自审）WARNING。
+- **CI backstop（P1.3）**：push 后 GitHub Actions 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的恶意提交；git blame 单 author WARNING 作为 provenance 兜底审计。
+- **降级方案**（Phase 3 平台接口未实现前的最优方案）：证据-结论对应是**客观行为审计**——伪造 N 个证据文件的成本远高于填写一行 `agent: verifier` 自报字段。详见 `LIMITATIONS.md` 局限 3。
+
+---
+
 ## 核心原则
 
 ### 原则 1：主 Agent 只编排，不执行

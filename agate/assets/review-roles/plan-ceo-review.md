@@ -3,6 +3,7 @@ role_id: plan-ceo-review
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [P2]
+agent: plan-ceo-review
 ---
 
 # /plan-ceo-review — 创始人/CEO

@@ -3,6 +3,7 @@ role_id: plan-design-review
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [P2]
+agent: plan-design-review
 ---
 
 # /plan-design-review — 设计评审（计划阶段）

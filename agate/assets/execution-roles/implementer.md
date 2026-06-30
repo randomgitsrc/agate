@@ -2,6 +2,8 @@
 role_id: implementer
 type: execution
 phases: [P4, P8]
+mode: 严守约束的实现+发布执行
+agent: implementer
 ---
 
 # 实现工程师（P4 实现 / P8 发布准备）

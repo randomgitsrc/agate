@@ -3,6 +3,7 @@ role_id: office-hours
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [P1-before]
+agent: office-hours
 ---
 
 # /office-hours — YC 合伙人

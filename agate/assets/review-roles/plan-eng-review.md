@@ -3,6 +3,7 @@ role_id: plan-eng-review
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [P2]
+agent: plan-eng-review
 ---
 
 # /plan-eng-review — 工程经理

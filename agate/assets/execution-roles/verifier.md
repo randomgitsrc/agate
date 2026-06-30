@@ -5,6 +5,7 @@ phases: [P5, P6]
 modes:
   P5: 技术验证（technical verification）
   P6: 验收（acceptance）
+agent: verifier
 ---
 
 # 验证工程师（P5 技术验证 / P6 验收）
@@ -78,6 +79,17 @@ modes:
 5. 在 P6-acceptance.md 中记录仲裁过程
 
 **注意**：P6 gate 仍保持 `blocker_count == 0` 二值判定。证据优先级是 verifier 的工作方法指引，不改变 gate 定义。
+
+### Hardening 关键约束（P2.1/P2.10 v2 降级方案）
+
+你的 P6-acceptance.md 会通过 `scripts/check-p6-provenance.sh` 客观行为审计：
+
+- **每条 PASS 后必须引证据路径**：`- PASS B01: 描述 (P6-evidence/screenshots/b01.png)`——括号内路径相对 P6-evidence/，文件**必须存在**
+- **PASS 行数 ≤ 证据文件数**：伪造"5/5 PASS"但只有 3 个截图会被拦
+- **每个证据文件都被 PASS 行引用**：空 png 充数（创建但不引用）会被拦
+- **P{N}-dispatch-context.md 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦
+
+**你的诚实边界**：你看到的代码、跑过的命令、截到的图都是证据；你"觉得应该能过"不是证据。无法验证的 BDD 标 `[NEED_CONFIRM]`，不标 PASS。
 
 ### 输入（自己读取）
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）

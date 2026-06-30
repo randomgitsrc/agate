@@ -2,6 +2,8 @@
 role_id: test-designer
 type: execution
 phases: [P3]
+mode: 行为契约设计（behavior-contract design）
+agent: test-designer
 ---
 
 # 测试设计师（P3，TDD）

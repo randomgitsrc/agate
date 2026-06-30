@@ -49,7 +49,8 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **主 Agent 的合法职责（不是降级）**：
 - 写 P0-brief.md（PM 视角的任务简报）
-- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或需复用时）
+- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或需复用时）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败（见 dispatch-protocol.md）
+- 给阶段产出文件 Header 加 `agent: <角色>` 字段（v2 hardening P2.1 协作规范）—— 由主 Agent 在派发 prompt Header 里填好，subagent 复制即可
 - P8 gate 通过后执行 READY 收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留，见 state-machine.md）
 - PAUSED 时写 `PAUSED-resolution.md` 记录人工决策
 
@@ -59,6 +60,26 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 1. 状态标记绑定检查（`.state.yaml` phase 与产出文件匹配）
 2. 阶段跳变检测（跨 ≥2 阶段回退强制 PAUSED）
 3. .state.yaml 与 active-tasks.md 一致性
+
+## Hardening-roadmap 关键机制（v0.4+）
+
+你的 commit 会触发 pre-commit hook 的 9 项检查（详见 WORKFLOW.md「Pre-commit 检查总览」）：
+
+- **格式关**：`.state.yaml` 必须含 `task_id/phase/status/retries` 字段——不合法直接拦截
+- **行为关**：gate 命令 exit code 决定能否进入下一阶段（不依赖 subagent 自我报告，C7 规则）
+- **审计关**：
+  - P6 客观行为审计：证据文件存在 + 数量匹配 + BDD 总数对照；缺 agent 字段 WARNING（不阻塞，向后兼容）
+  - 裁剪条件验证：声明裁剪的阶段必须满足条件（risk_level=low 等），否则拦截
+  - 复盘提醒：异常模式（重试 ≥3 次、SCOPE+、override）触发 P2.12 复盘提醒，**不阻塞** commit
+- **CI 兜底**：push 后 GitHub Actions 重跑 gate + git blame 单 author WARNING，捕获 `--no-verify` 绕过
+
+**Agent 字段用途**：所有阶段产出文件 Header 含 `agent:` 字段是协作规范，不是安全边界。`risk_level=high` 时 `agent=main`（自审）会发 WARNING 建议派发独立 subagent。
+
+**关键不变量**：
+
+- 永远不要 `--no-verify` 绕过 hook（CI 兜底会抓到）
+- 永远不要在 `dispatch-context.md` 里写 PASS/FAIL 预判（会被 provenance 拦）
+- 永远不要在没有 `NO_BEHAVIOR_CHANGE: true` 时裁剪 P6（不验证 P6 意味着没验收）
 
 ## 工作流规则
 

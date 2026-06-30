@@ -3,6 +3,7 @@ role_id: review
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [P4-after]
+agent: review
 ---
 
 # /review — 偏执 Staff Engineer

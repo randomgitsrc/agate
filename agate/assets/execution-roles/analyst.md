@@ -3,6 +3,7 @@ role_id: analyst
 type: execution
 phases: [P1]
 mode: 需求质疑（requirements interrogation）
+agent: analyst
 ---
 
 # 需求分析师（P1 — 需求基线）

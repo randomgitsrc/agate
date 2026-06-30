@@ -3,6 +3,7 @@ role_id: cso
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [P4-after]
+agent: cso
 ---
 
 # /cso — 安全官

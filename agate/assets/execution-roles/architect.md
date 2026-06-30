@@ -2,6 +2,8 @@
 role_id: architect
 type: execution
 phases: [P2, P7]
+mode: 工程化+实现+回归策略
+agent: architect
 ---
 
 # 方案设计师（P2 设计 / P7 一致性检查）

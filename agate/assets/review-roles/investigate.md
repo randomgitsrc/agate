@@ -3,6 +3,7 @@ role_id: investigate
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [any]
+agent: investigate
 ---
 
 # /investigate — 调试专家

@@ -3,6 +3,7 @@ role_id: qa
 type: review
 source: gstack (garrytan/gstack, MIT)
 phases: [P5]
+agent: qa
 ---
 
 # /qa — QA 工程师

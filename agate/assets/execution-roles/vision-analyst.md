@@ -4,6 +4,7 @@ type: execution
 phases: [P6, P2-review, P7]
 invoked_by: [verifier, design-review, architect]
 capability_required: vision
+agent: vision-analyst
 ---
 
 # 视觉结构分析师（vision-analyst）

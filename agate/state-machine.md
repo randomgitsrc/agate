@@ -198,6 +198,24 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   **[SCOPE_RESOLVED] 标记（P2.11）**：主 Agent 增补 P1 基线时，必须标记 [SCOPE_RESOLVED: from {来源文件}]。
   未标记的 [SCOPE+] → gate 拦截（scripts/check-scope-resolved.sh）。
 
+## Pre-commit 检查全景（hardening-roadmap Phase 1-2 已落地）
+
+每次 `git commit` 触发 pre-commit hook，按以下顺序自动运行；详细机制见 WORKFLOW.md「Pre-commit 检查总览」：
+
+| 检查（编号 = hardening-roadmap 机制编号）| 触发条件 | 拦截行为 |
+|------|--------|------|
+| **P1.1** gate (scripts/check-gate.sh) | phase 变更或阶段产出变更 | exit 1 拦截 |
+| **P1.6** CHANGELOG (scripts/check-changelog.sh) | gate 通过后 | 缺 `[Unreleased]` → 警告不拦截 |
+| **P1.7** P6 证据 (scripts/check-p6-evidence.sh) | phase ∈ {P6,P7} | 缺证据目录/BDD → 拦截 |
+| **P2.1/P2.10** provenance (scripts/check-p6-provenance.sh) | gate 通过后 | 三道客观审计失败 → exit 1 拦截；agent 字段/BDD 非标 → exit 2 警告 |
+| **P2.3-P2.5** 状态转移 (scripts/check-state-transition.sh) | gate 通过后 | 非法转移 → exit 1 拦截 |
+| **P2.7-P2.9** 裁剪 (scripts/check-pruning.sh) | gate 通过后 | 裁剪条件不满足 → exit 1 拦截 |
+| **P2.11** SCOPE_RESOLVED (scripts/check-scope-resolved.sh) | gate 通过后 | 缺标记 → exit 1 拦截 |
+| **P2.12** 复盘提醒 (scripts/check-retrospective.sh) | gate 任何结果 | 检测异常模式 → 提醒写复盘（exit 0 不拦截）|
+| **P2.15** 格式校验 (scripts/check-state-yaml.sh) | `.state.yaml` 暂存变更 | 格式错误 → exit 1 拦截 |
+
+**CI 兜底（P1.3）**：push 后 GitHub Actions 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit。
+
 特殊转移：
 READY --[人手动触发 make publish]--> DONE
 

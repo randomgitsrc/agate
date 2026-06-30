@@ -585,6 +585,24 @@ setTimeout(() => {
 
 **A1 原则**：gate 判定是主 Agent 运行命令得到的客观事实，不是 subagent 文件里的声明。
 
+**Pre-commit 检查全景（hook + CI 兜底）**：
+
+每次 `git commit` 触发 `.git/hooks/pre-commit`（由 `~/.agate/scripts/install-hook.sh` 安装），按顺序执行：
+
+| 阶段/机制 | 检查脚本 | 用途 |
+|------|------|------|
+| 文件级 P2.15 | `scripts/check-state-yaml.sh` | `.state.yaml` 格式合法（必填字段、phase 取值、retries 结构）|
+| 阶段级 P1.1 | `scripts/check-gate.sh` | 各阶段门控规则 |
+| 阶段级 P1.7 | `scripts/check-p6-evidence.sh` | P6/P7 阶段：证据目录非空 + BDD 行数 ≥ 1 |
+| 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（证据-结论对应 + dispatch-context + BDD 总数）|
+| 阶段级 P2.3-P2.5 | `scripts/check-state-transition.sh` | 状态转移合法性 + 重试上限 |
+| 阶段级 P2.7-P2.9 | `scripts/check-pruning.sh` | 裁剪条件 + override 校验 |
+| 阶段级 P2.11 | `scripts/check-scope-resolved.sh` | `[SCOPE+]` 标记追踪 |
+| 提醒级 P2.12 | `scripts/check-retrospective.sh` | 异常模式提醒（不拦截）|
+| 提醒级 P1.6 | `scripts/check-changelog.sh` | `[Unreleased]` 含 task_id |
+
+**CI backstop（P1.3）**：`push` 后 GitHub Actions `.github/workflows/protocol-consistency.yml` 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit；并对 `P6-acceptance.md` 单 author 情况发 WARNING 作为兜底审计。
+
 **Gate 分类**：
 
 | 类型 | 阶段 | 判定对象 | 可伪造？ |
@@ -594,8 +612,9 @@ setTimeout(() => {
 
 自写文件 gate 的缓解措施：
 - P1/P2：gate 条件简单（标记存在性、字段计数），伪造动机低
-- P6：证据存在性检查（`P6-evidence/` 非空），无证据标 PASS 将被 gate 拦截
+- P6：证据存在性检查（`P6-evidence/` 非空）+ provenance 客观行为审计 + BDD 总数对照。三层防护：跳过 verifier 拦、伪造 N 个证据的成本极高、单 author WARNING 兜底
 - P7：P5 回归测试兜底（一致性标注错误不会导致 bug 漏过）
+- C7 规则见下方：所有阶段遵守「subagent 自我报告不可信」
 
 **C7 规则（subagent 自我报告不可信）**：subagent 产出里的"检查结果""✅/通过"等自评，**仅供参考，绝不作为 gate 判定依据**。gate 一律以主 Agent 亲自跑命令的结果为准。T005 教训：P8 subagent 把 `1 failed` 标成 ✅，主 Agent 若信了就放行了缺陷。
 
