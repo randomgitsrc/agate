@@ -60,7 +60,7 @@ has_staged_phase_change() {
     local basename
     basename=$(basename "$state_file")
     git diff --cached --name-only 2>/dev/null | grep -qF "$basename" || return 1
-    git diff --cached -- "$state_file" 2>/dev/null | grep -qE '^\+.*phase:' || return 1
+    git diff --cached -- "$basename" 2>/dev/null | grep -qE '^\+.*phase:' || return 1
     return 0
 }
 

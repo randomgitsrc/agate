@@ -11,8 +11,14 @@ set -euo pipefail
 STATE_FILE="${1:-.state.yaml}"
 MAX_RETRY=3
 
+# git pathspec 命令需要相对路径，不接受绝对路径
+# pre-commit-gate.sh 传入绝对路径，这里转成 basename
+STATE_BASENAME=$(basename "$STATE_FILE")
+
 get_old_phase() {
-    git show :"${STATE_FILE}" 2>/dev/null | python3 -c "
+    # HEAD: 版本是 commit 前的旧版本（pre-commit hook 运行时 commit 还没创建）
+    # :<path> 是暂存区版本（新的），HEAD:<path> 是旧版本
+    git show "HEAD:$STATE_BASENAME" 2>/dev/null | python3 -c "
 import yaml, sys
 try:
     data = yaml.safe_load(sys.stdin)
@@ -37,7 +43,7 @@ phase_num() {
 }
 
 # 只在 .state.yaml 有暂存变更时检查
-git diff --cached --name-only 2>/dev/null | grep -qF "$STATE_FILE" || exit 0
+git diff --cached --name-only 2>/dev/null | grep -qF "$STATE_BASENAME" || exit 0
 
 old_phase=$(get_old_phase)
 new_phase=$(get_new_phase)
