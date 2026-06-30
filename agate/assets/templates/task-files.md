@@ -31,7 +31,7 @@ agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier|visio
 | P4 | P4-implementation.md | 声明 `implementation_dir: {实际路径}` |
 | P4 | {implementation_dir}/ | 代码目录（项目自定义，如 `src/` 或 `backend/app/`）|
 | P5 | P5-test-results/unit.md | 标注 `failed: N`（仅供参考，gate 以主 Agent 跑 pytest 为准）|
-| P5 | P5-test-results/e2e.md | UI 任务必须：Playwright 实跑结果 + 截图路径 |
+| P5 | P5-test-results/e2e.md | UI 任务必须：Playwright 实跑结果 + 截图路径。须含 `status: passed` 字段（hook 检查） |
 | P6 | P6-acceptance.md | P1 每条 BDD 有实跑结果（**只允许 PASS 或 FAIL，不允许中间态**）；UI 条件含截图；无未决 `[NEED_CONFIRM]`（门槛）|
 | P7 | P7-consistency.md | 无 `[BLOCKER]` 标记（门槛）|
 | P8 | P8-release.md | 每个 package 的版本 bump + CHANGELOG + 临时资源清单 |
@@ -241,6 +241,12 @@ BDD 通过 X/Y，UI 截图 N 张，NEED_CONFIRM M 个
 ```
 
 **证据引用格式**：每条 PASS 结果必须在括号内引用对应证据文件路径（相对于 `P6-evidence/` 目录）。示例：`- PASS B01: ... (p6-b01.png)`。hook 会检查引用路径必须真实存在。无引用的 PASS 行不算有证据。
+
+**UI 任务证据追加约定**（`ui_affected: true` 时）：
+- `P6-evidence/screenshots/` 目录必须非空，每个截图文件大小 > 1KB（防空 png 充数，hook 检查）
+- 每条 UI 类 PASS 必须含 vision-analyst YAML 引用：`- PASS B01: ... (screenshots/b01.png) (vision: vision-reports/b01.yaml)`
+- vision YAML 文件必须存在且 `summary.blocker_count == 0`（hook 检查）
+- vision YAML 格式见 `assets/execution-roles/vision-analyst.md` 的完整 YAML 结构
 
 ## READY 收尾检查（P8 gate 通过后、标记 READY 前）
 
