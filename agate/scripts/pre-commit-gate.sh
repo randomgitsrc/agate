@@ -13,10 +13,15 @@
 
 set -euo pipefail
 
+# REPO_ROOT = 当前 git 仓库根（项目仓库或 agate 仓库本身）
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
+# AGATE_ROOT = 协议本体路径（默认 ~/.agate 软链接 → ~/oclab/agate/agate/）
+# 协议脚本路径用 AGATE_ROOT 解析；项目运行时文件用 REPO_ROOT 解析
+AGATE_ROOT="${AGATE_ROOT:-$HOME/.agate}"
+
 # R1 修复：source 后验证函数已加载，防止静默放行
-source "$REPO_ROOT/scripts/gate-result.sh" \
+source "$AGATE_ROOT/scripts/gate-result.sh" \
     || { echo "GATE ERROR: 无法加载 gate-result.sh" >&2; exit 1; }
 type write_gate_result >/dev/null 2>&1 \
     || { echo "GATE ERROR: gate-result.sh 加载不完整（write_gate_result 未定义）" >&2; exit 1; }
@@ -29,7 +34,7 @@ AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
 STATE_BASENAME=$(basename "$STATE_FILE")
 if git diff --cached --name-only 2>/dev/null | grep -qF "$STATE_BASENAME"; then
     if [ -f "$STATE_FILE" ]; then
-        bash "$REPO_ROOT/scripts/check-state-yaml.sh" "$STATE_FILE" || exit 1
+        bash "$AGATE_ROOT/scripts/check-state-yaml.sh" "$STATE_FILE" || exit 1
     fi
 fi
 
@@ -59,7 +64,7 @@ fi
 
 # 4. 状态转移检查（P2.3-P2.5）
 if [ -f "$STATE_FILE" ]; then
-    bash "$REPO_ROOT/scripts/check-state-transition.sh" "$STATE_FILE" || exit 1
+    bash "$AGATE_ROOT/scripts/check-state-transition.sh" "$STATE_FILE" || exit 1
 fi
 
 # 5. 运行 gate（P1.1）
@@ -67,7 +72,7 @@ GATE_OUTPUT=""
 GATE_EXIT=2
 
 if [ "$PHASE" != "PAUSED" ] && [ "$PHASE" != "READY" ] && [ "$PHASE" != "DONE" ] && [ -d "$TASK_DIR" ]; then
-    GATE_OUTPUT=$(bash "$REPO_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?
+    GATE_OUTPUT=$(bash "$AGATE_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?
 fi
 
 write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
@@ -75,7 +80,7 @@ write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
 # 5.4 P6 客观行为审计（P2.1/P2.10 降级方案 v2）
 if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     PROV_EXIT=0
-    bash "$REPO_ROOT/scripts/check-p6-provenance.sh" "$TASK_DIR" || PROV_EXIT=$?
+    bash "$AGATE_ROOT/scripts/check-p6-provenance.sh" "$TASK_DIR" || PROV_EXIT=$?
     if [ "$PROV_EXIT" -eq 1 ]; then
         exit 1
     fi
@@ -83,29 +88,29 @@ fi
 
 # 5.5 裁剪条件检查（P2.7-P2.9）——gate 未通过时跳过（gate 错误优先）
 if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
-    bash "$REPO_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
+    bash "$AGATE_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
 fi
 
 # 5.6 SCOPE+ 追踪检查（P2.11）——gate 未通过时跳过
 if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
-    bash "$REPO_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
+    bash "$AGATE_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
 fi
 
 # 5.7 复盘异常触发（P2.12）——只提醒不中止，gate 失败时也提醒
 if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
-    bash "$REPO_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
+    bash "$AGATE_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
 fi
 
 # 6. CHANGELOG 检查（P1.6）——警告不中止
 if [ -n "$TASK_ID" ]; then
-    bash "$REPO_ROOT/scripts/check-changelog.sh" "$TASK_ID" 2>/dev/null || \
+    bash "$AGATE_ROOT/scripts/check-changelog.sh" "$TASK_ID" 2>/dev/null || \
         echo "GATE CHANGELOG: 警告 — [Unreleased] 未记录 ${TASK_ID}" >&2
 fi
 
 # 7. P6 证据格式检查（P1.7）——中止
 if [ "$PHASE" = "P6" ] || [ "$PHASE" = "P7" ]; then
     if [ -d "$TASK_DIR" ]; then
-        bash "$REPO_ROOT/scripts/check-p6-evidence.sh" "$TASK_DIR" || exit 1
+        bash "$AGATE_ROOT/scripts/check-p6-evidence.sh" "$TASK_DIR" || exit 1
     fi
 fi
 

@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
-    script = Path("scripts/check-gate.sh")
+    script = Path("agate/scripts/check-gate.sh")
     if not script.exists():
         return 2, "check-gate.sh not found"
     result = subprocess.run(

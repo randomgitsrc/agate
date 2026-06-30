@@ -35,10 +35,17 @@ gate 验收（pytest/npm test exit code，BDD 实跑）
 **1. 安装 agate（标准位置 `~/.agate/`）**
 
 ```bash
-git clone https://github.com/randomgitsrc/agate.git ~/.agate
+git clone https://github.com/randomgitsrc/agate.git ~/oclab/agate
+ln -sfn ~/oclab/agate/agate ~/.agate
 ```
 
-约定使用 `~/.agate/` 作为标准安装位置，所有项目共用一份，orchestrator.md 路径统一，换机器只需重新 clone 到同一位置。
+或使用安装脚本：
+
+```bash
+curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
+```
+
+约定使用 `~/.agate/` 作为标准安装位置（软链接到 `~/oclab/agate/agate/`），所有项目共用一份，orchestrator.md 路径统一。换机器只需重新 clone + 软链接。
 
 **2. 在你的项目里创建 orchestrator**
 
@@ -49,7 +56,7 @@ cp ~/.agate/orchestrator-template.md \
 
 **3. 填写项目信息**
 
-打开 `orchestrator.md`，`agate_root` 已预填为 `~/.agate`，只需填写 `project_root` 和项目特定约束。
+打开 `orchestrator.md`，`agate_root` 已预填为 `~/.agate`（软链接指向协议本体 `agate/` 子目录），只需填写 `project_root` 和项目特定约束。
 
 **4. 把 orchestrator.md 配置给你的 Agent**
 
@@ -64,22 +71,31 @@ cp ~/.agate/orchestrator-template.md \
 ## 文件结构
 
 ```
-agate/
+agate-repo/                      # GitHub 仓库
 ├── README.md                    # 项目说明（本文件）
-├── WORKFLOW.md                  # P0-P8 核心规则、裁剪判断、阶段定义 ← 主入口
-├── dispatch-protocol.md         # 派发协议、gate 表、特殊事件处理
-├── state-machine.md             # 状态转移规则
-├── loop-orchestration.md        # /loop 自动编排（可选）
-├── git-integration.md           # git 提交规范
-├── role-system.md               # 角色体系说明
-├── platform-notes.md            # 各平台适配说明（OpenCode/Claude Code 等）
-├── orchestrator-template.md     # 新项目接入模板 ← 从这里开始
-├── LIMITATIONS.md               # 已知局限（使用前建议先读）
-├── assets/
-│   ├── execution-roles/         # analyst/architect/implementer/verifier 等
-│   ├── review-roles/            # review/cso/design-review/qa 等评审角色
-│   └── templates/               # P0-brief、active-tasks、dispatch-prompt 等模板
-└── archived/                    # 历史验证文档
+├── CHANGELOG.md
+├── LICENSE
+├── .github/                     # CI workflow
+├── docs/                        # 项目文档（设计、评审、路线图）
+├── archived/                    # 历史验证文档
+├── agate/                       # 协议本体 ← ~/.agate 软链接指向这里
+│   ├── WORKFLOW.md              # P0-P8 核心规则、裁剪判断、阶段定义 ← 主入口
+│   ├── dispatch-protocol.md     # 派发协议、gate 表、特殊事件处理
+│   ├── state-machine.md         # 状态转移规则
+│   ├── loop-orchestration.md    # /loop 自动编排（可选）
+│   ├── git-integration.md       # git 提交规范
+│   ├── role-system.md           # 角色体系说明
+│   ├── platform-notes.md        # 各平台适配说明（OpenCode/Claude Code 等）
+│   ├── orchestrator-template.md # 新项目接入模板 ← 从这里开始
+│   ├── LIMITATIONS.md           # 已知局限（使用前建议先读）
+│   ├── assets/
+│   │   ├── execution-roles/     # analyst/architect/implementer/verifier 等
+│   │   ├── review-roles/        # review/cso/design-review/qa 等评审角色
+│   │   └── templates/           # P0-brief、active-tasks、dispatch-prompt 等模板
+│   └── scripts/                 # gate 检查脚本（pre-commit hook 安装源）
+└── install.sh                   # 自动化安装脚本
+
+~/.agate → ~/oclab/agate/agate    # 软链接
 ```
 
 ---
@@ -107,5 +123,4 @@ agate/
 
 ## 已知局限
 
-agate 是文档协议路线，这条路线有结构性的能力边界——测试质量上限、角色隔离的真实独立性、主 Agent 判断力的单点风险。详见 `LIMITATIONS.md`，使用前建议先读一遍，避免误以为协议解决了所有问题。
-# test
+agate 是文档协议路线，这条路线有结构性的能力边界——测试质量上限、角色隔离的真实独立性、主 Agent 判断力的单点风险。详见 `agate/LIMITATIONS.md`，使用前建议先读一遍，避免误以为协议解决了所有问题。

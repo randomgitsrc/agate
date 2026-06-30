@@ -24,7 +24,7 @@ jobs:
         run: pip install pyyaml
 
       - name: Run protocol consistency check
-        run: python3 scripts/check-protocol-consistency.py
+        run: python3 agate/scripts/check-protocol-consistency.py
         # 默认仅 ERROR 判失败；WARNING 不阻断 CI。
         # 若要让 WARNING 也阻断（更严格），改为：
         #   run: python3 scripts/check-protocol-consistency.py --strict
@@ -43,4 +43,4 @@ jobs:
         run: pip install pyyaml
 
       - name: Run gate backstop check
-        run: python3 scripts/ci-gate-backstop.py
+        run: python3 agate/scripts/ci-gate-backstop.py

@@ -42,18 +42,18 @@ except ImportError:
 # 「协议文件」= 主 Agent / subagent 在运行时真正遵循的规范文件。
 # 对这些文件做严格检查（行号引用、死链一律 ERROR）。
 PROTOCOL_FILES = {
-    "WORKFLOW.md",
-    "dispatch-protocol.md",
-    "state-machine.md",
-    "role-system.md",
-    "loop-orchestration.md",
-    "git-integration.md",
-    "platform-notes.md",
-    "LIMITATIONS.md",
+    "agate/WORKFLOW.md",
+    "agate/dispatch-protocol.md",
+    "agate/state-machine.md",
+    "agate/role-system.md",
+    "agate/loop-orchestration.md",
+    "agate/git-integration.md",
+    "agate/platform-notes.md",
+    "agate/LIMITATIONS.md",
     "README.md",
-    "orchestrator-template.md",
+    "agate/orchestrator-template.md",
 }
-PROTOCOL_DIRS = ("assets/",)  # 角色定义与模板也算协议文件
+PROTOCOL_DIRS = ("agate/assets/",)  # 角色定义与模板也算协议文件
 
 # 「叙事文件」= 历史评审 / 计划 / 决策记录。它们经常**引述**别处的旧问题
 # （含已修复的行号引用），不应被当作活引用严格检查。仅做 YAML 解析等无害检查。
@@ -78,18 +78,18 @@ PATH_IGNORE_SUBSTRINGS = (
 # 这是有意为之的白名单式检查——散文里的计数无法通用解析，只盯死已知关键锚点。
 FILE_COUNT_ANCHORS = [
     {
-        "file": "orchestrator-template.md",
+        "file": "agate/orchestrator-template.md",
         "expected": len(["WORKFLOW", "dispatch-protocol", "state-machine",
                           "role-system", "loop-orchestration", "git-integration",
                           "platform-notes", "LIMITATIONS"]),  # = 8
         "desc": "启动必读协议文件清单",
     },
     {
-        "file": "state-machine.md",
+        "file": "agate/state-machine.md",
         "expected": 8,
         "desc": "抗中断恢复重读的协议文件清单",
     },
-]
+] 
 
 # ── 工具函数 ──────────────────────────────────────────────────────────────
 
@@ -234,7 +234,8 @@ def check_internal_refs(root: Path, rep: Report) -> None:
                 if "PeekView" in line or "非本仓" in line:
                     continue
                 target = root / ref
-                if not target.exists():
+                # 重构后兼容：协议文件内容引用可在 agate/ 子目录下
+                if not target.exists() and not (root / "agate" / ref).exists():
                     loc = f"{relpath}:{lineno}"
                     if narrative:
                         rep.warn("CHECK2-refs",
@@ -310,9 +311,9 @@ def _extract_gate_keys(text: str) -> set[str]:
 
 def check_gate_commands_keys(root: Path, rep: Report) -> None:
     sources = {
-        "assets/execution-roles/architect.md": None,   # 权威来源
-        "assets/templates/task-files.md": None,
-        "assets/templates/dispatch-prompt.md": None,
+        "agate/assets/execution-roles/architect.md": None,   # 权威来源
+        "agate/assets/templates/task-files.md": None,
+        "agate/assets/templates/dispatch-prompt.md": None,
     }
     for relpath in list(sources):
         f = root / relpath
@@ -320,14 +321,14 @@ def check_gate_commands_keys(root: Path, rep: Report) -> None:
             sources[relpath] = _extract_gate_keys(f.read_text(encoding="utf-8"))
 
     present = {k: v for k, v in sources.items() if v}
-    if "assets/execution-roles/architect.md" not in present:
+    if "agate/assets/execution-roles/architect.md" not in present:
         rep.warn("CHECK4-gatekeys", "未找到 architect.md 的 gate_commands，跳过比对")
         return
 
-    authoritative = present["assets/execution-roles/architect.md"]
+    authoritative = present["agate/assets/execution-roles/architect.md"]
     mismatched = False
     for relpath, keys in present.items():
-        if relpath == "assets/execution-roles/architect.md":
+        if relpath == "agate/assets/execution-roles/architect.md":
             continue
         missing = authoritative - keys
         # 只对「权威里有、它没有」报警（缺字段才是 P1-2 那类 bug）；额外字段不报
@@ -400,7 +401,7 @@ def check_license(root: Path, rep: Report) -> None:
             ok = False
             rep.error("CHECK6-license", "LICENSE 未包含 MIT 声明", "LICENSE")
         # gstack 角色提取自 MIT 项目，需保留归属
-        review_dir = root / "assets" / "review-roles"
+        review_dir = root / "agate" / "assets" / "review-roles"
         uses_gstack = review_dir.exists() and any(
             "gstack" in f.read_text(encoding="utf-8")
             for f in review_dir.glob("*.md")
@@ -465,8 +466,8 @@ def main() -> int:
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
-    if not (root / "WORKFLOW.md").exists():
-        print(f"ERROR: {root} 看起来不是 agate 仓库根（缺 WORKFLOW.md）", file=sys.stderr)
+    if not (root / "agate" / "WORKFLOW.md").exists():
+        print(f"ERROR: {root} 看起来不是 agate 仓库根（缺 agate/WORKFLOW.md）", file=sys.stderr)
         return 1
 
     rep = Report()
