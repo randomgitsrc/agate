@@ -33,17 +33,20 @@ print(m.group(1) if m else '')
 # 1a. PASS 行的证据引用路径必须存在
 # 1b. PASS 条目数 ≤ 证据文件数（空证据拦截）
 # 1c. 证据文件必须被至少一条 PASS 行引用（空 png 充数拦截）
+# 只在 P6-acceptance.md 存在时运行（C1 修复：不阻塞非 P6 阶段的 commit）
 
 if [ -f "$P6_FILE" ]; then
     PASS_COUNT=$(grep -cE '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || echo 0)
     PASS_COUNT=$(echo "$PASS_COUNT" | tail -1)
 
     # 1a: PASS 行里的证据引用路径必须存在
+    # I3 修复：取行末最后一个括号组（证据引用在行末），避免前置括号干扰
     MISSING_REFS=0
     while IFS= read -r line; do
-        REF=$(echo "$line" | grep -oE '\([^)]+\)' | sed 's/[()]//g' | head -1)
+        REF=$(echo "$line" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1)
         if [ -n "$REF" ]; then
-            REF_CLEAN=$(echo "$REF" | sed 's|^P6-evidence/||' | sed 's|^p6-evidence/||')
+            # I4 修复：去除 P6-evidence/ / p6-evidence/ / evidences/ 前缀
+            REF_CLEAN=$(echo "$REF" | sed 's|^P6-evidence/||' | sed 's|^p6-evidence/||' | sed 's|^evidences/||')
             REF_PATH="$EVIDENCE_DIR/$REF_CLEAN"
             if [ ! -f "$REF_PATH" ]; then
                 MISSING_REFS=$((MISSING_REFS + 1))
@@ -57,8 +60,9 @@ if [ -f "$P6_FILE" ]; then
     fi
 
     # 1b: PASS 数 ≤ 证据文件数（空证据拦截）
+    # I5 修复：排除隐藏文件（.gitkeep, .DS_Store 等）
     if [ -d "$EVIDENCE_DIR" ]; then
-        EVIDENCE_COUNT=$(find "$EVIDENCE_DIR" -type f 2>/dev/null | wc -l)
+        EVIDENCE_COUNT=$(find "$EVIDENCE_DIR" -type f -not -name '.*' 2>/dev/null | wc -l)
     else
         EVIDENCE_COUNT=0
     fi
@@ -74,16 +78,19 @@ if [ -f "$P6_FILE" ]; then
     fi
 
     # 1c: 证据文件必须被至少一条 PASS 行引用（空 png 充数拦截）
+    # C2 修复：用括号上下文精确匹配，防止子字符串假阴性
+    # C3 修复：只在 PASS 行里搜索，不在整个文件里搜索
     if [ "$EVIDENCE_COUNT" -gt 0 ] && [ -d "$EVIDENCE_DIR" ]; then
         UNREFERENCED=0
         while IFS= read -r ev_file; do
             ev_basename=$(basename "$ev_file")
-            if ! grep -qF "$ev_basename" "$P6_FILE" 2>/dev/null; then
+            # I4 修复：匹配时考虑子目录路径（evidences/ screenshots/ 等）
+            if ! grep -E '^\s*- PASS\b' "$P6_FILE" | grep -qE "\([^)]*${ev_basename}\)"; then
                 UNREFERENCED=$((UNREFERENCED + 1))
             fi
-        done < <(find "$EVIDENCE_DIR" -type f 2>/dev/null)
+        done < <(find "$EVIDENCE_DIR" -type f -not -name '.*' 2>/dev/null)
         if [ "$UNREFERENCED" -gt 0 ]; then
-            echo "GATE PROVENANCE: ${UNREFERENCED} 个证据文件未被 P6-acceptance.md 引用（可能为充数文件）" >&2
+            echo "GATE PROVENANCE: ${UNREFERENCED} 个证据文件未被 P6-acceptance.md PASS 行引用（可能为充数文件）" >&2
             exit 1
         fi
     fi
@@ -94,7 +101,7 @@ fi
 
 DISPATCH_CTX="$TASK_DIR/P6-dispatch-context.md"
 if [ -f "$DISPATCH_CTX" ]; then
-    PREJUDICE=$(grep -cE '^\s*- (PASS|FAIL)' "$DISPATCH_CTX" 2>/dev/null || echo 0)
+    PREJUDICE=$(grep -cE '^\s*- (PASS|FAIL)\b' "$DISPATCH_CTX" 2>/dev/null || echo 0)
     PREJUDICE=$(echo "$PREJUDICE" | tail -1)
     if [ "$PREJUDICE" -gt 0 ]; then
         echo "GATE PROVENANCE: P6-dispatch-context.md 含 ${PREJUDICE} 处验收结论预判" >&2
@@ -109,7 +116,7 @@ if [ -f "$P6_FILE" ] && [ -f "$P1_FILE" ]; then
     P1_BDD=$(grep -cE '^\s*-?\s*Given\b' "$P1_FILE" 2>/dev/null || echo 0)
     P1_BDD=$(echo "$P1_BDD" | tail -1)
 
-    P6_TOTAL=$(grep -cE '^\s*- (PASS|FAIL)' "$P6_FILE" 2>/dev/null || echo 0)
+    P6_TOTAL=$(grep -cE '^\s*- (PASS|FAIL)\b' "$P6_FILE" 2>/dev/null || echo 0)
     P6_TOTAL=$(echo "$P6_TOTAL" | tail -1)
 
     if [ "$P1_BDD" -gt 0 ]; then
@@ -150,7 +157,9 @@ if [ -f "$P2_REVIEW_FILE" ]; then
 fi
 
 # 所有阶段产出文件必须有 agent 字段（格式校验）
+# C1 修复：只在 P6-acceptance.md 存在时运行，避免阻塞现有任务
 # 只检查真正的阶段产出文件，排除辅助文件（dispatch-context, progress, paused-resolution）
+if [ -f "$P6_FILE" ]; then
 for f in "$TASK_DIR"/P[0-8]-*.md; do
     [ -f "$f" ] || continue
     localname=$(basename "$f")
@@ -164,5 +173,6 @@ for f in "$TASK_DIR"/P[0-8]-*.md; do
         exit 1
     fi
 done
+fi
 
 exit 0

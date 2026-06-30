@@ -193,7 +193,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | P3 | 测试设计 | test-designer | gate 自检（TDD 红灯）| `scripts/check-tdd-red.sh` exit 0 |
 | P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | `git log --oneline -1` 含 P4 commit |
 | P5 | 技术验证 | verifier | gate 自检（从 P2 gate_commands.P5 读取命令）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |
-| P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.sh P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-provenance.sh` exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照）；主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）；UI 条件须 vision-analyst YAML `summary.blocker_count==0` ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3） |
+| P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.sh P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-provenance.sh` exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照）；主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）；UI 条件须 vision-analyst YAML `summary.blocker_count==0` ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3） |
 | P7 | 一致性检查 | architect | gate 自检（grep BLOCKER + DEVIATION-CRITICAL）| `grep -cE '\[BLOCKER\]' P7-consistency.md` → =0；`grep -cE '\[DEVIATION-CRITICAL\]'` → =0 ⚠️ self-authored |
 | P8 | 发布准备 | implementer | gate 自检（发布检查命令）| `scripts/check-gate.sh P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；`git diff HEAD~1 --stat` 含 version 变更；`git diff HEAD~1 -- ${CHANGELOG_FILE:-CHANGELOG.md}` 非空 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
