@@ -21,18 +21,27 @@ if [ "$BDD_COUNT" -eq 0 ]; then
 fi
 
 # 检查 P6-evidence/ 目录非空
-# 查询类豁免：如果所有 PASS 都不含文件引用（纯断言），允许 evidence/ 为空
-# 但纯断言 = self-authored，有被伪装成查询类逃避证据的风险
-# 折中：含文件引用的 PASS → evidence/ 必须非空；全纯断言 → 允许空（主 Agent 手动核实 BDD 总数兜底）
+# 所有 PASS 都必须有文件引用（task-files.md:243 已有规则，此处补 hook 强制）
+# 文件形式不限：截图、日志、JSON、文本都行——不绑定技术栈
+# 查询类 BDD 可不截图，但须有断言记录文件（response.json / assert.log 等）
 EVIDENCE_DIR="$TASK_DIR/P6-evidence"
-HAS_FILE_REF=$(grep -cE '\([a-zA-Z0-9_/.-]+\.(png|jpg|log|json|html|txt|yaml|yml)\)' "$P6_FILE" 2>/dev/null || echo 0)
-HAS_FILE_REF=$(echo "$HAS_FILE_REF" | tail -1)
 
-if [ "$HAS_FILE_REF" -gt 0 ]; then
-    if [ ! -d "$EVIDENCE_DIR" ] || [ -z "$(ls -A "$EVIDENCE_DIR" 2>/dev/null)" ]; then
-        echo "GATE P6-EVIDENCE: PASS 引用了证据文件，但 P6-evidence/ 目录不存在或为空" >&2
-        exit 1
+# 检查每条 PASS 行是否含文件引用（括号内路径）
+PASS_WITHOUT_REF=0
+while IFS= read -r line; do
+    if ! echo "$line" | grep -qE '\([a-zA-Z0-9_/.-]+\.(png|jpg|log|json|html|txt|yaml|yml)\)'; then
+        PASS_WITHOUT_REF=$((PASS_WITHOUT_REF + 1))
     fi
+done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)
+
+if [ "$PASS_WITHOUT_REF" -gt 0 ]; then
+    echo "GATE P6-EVIDENCE: 有 ${PASS_WITHOUT_REF} 条 PASS 缺文件证据引用（每条 PASS 必须引用证据文件，形式不限：截图/日志/JSON/文本）" >&2
+    exit 1
+fi
+
+if [ ! -d "$EVIDENCE_DIR" ] || [ -z "$(ls -A "$EVIDENCE_DIR" 2>/dev/null)" ]; then
+    echo "GATE P6-EVIDENCE: P6-evidence/ 目录不存在或为空" >&2
+    exit 1
 fi
 
 echo "GATE P6-EVIDENCE: ${BDD_COUNT} 条 BDD，证据目录非空" >&2

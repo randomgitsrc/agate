@@ -252,7 +252,7 @@ BDD 通过 X/Y，UI 截图 N 张，NEED_CONFIRM M 个
 - 查询类 BDD（断言值是唯一证据）可不截图，但**须有断言记录文件**作为客观证据
 - 断言记录形式：API 响应 JSON（`response.json`）、测试输出日志（`assert.log`）、数据库查询结果（`query-result.txt`）等
 - 引用格式：`- PASS B01: 返回 3 条记录 (response.json)`——括号内路径相对 P6-evidence/，文件必须存在
-- 纯断言无文件引用的 PASS 行：允许 evidence/ 为空（主 Agent 手动核实 BDD 总数兜底），但有被伪装成查询类逃避证据的风险——主 Agent 应对全纯断言任务加强审查
+- **所有 PASS 都必须有文件引用**（hook 强制）——无文件引用的纯断言 PASS 不被接受。文件形式不限（截图/日志/JSON/文本），不绑定技术栈
 
 ## READY 收尾检查（P8 gate 通过后、标记 READY 前）
 
