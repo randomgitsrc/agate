@@ -281,10 +281,11 @@ gate 结果的核心数据结构。由 pre-commit hook 写入，不由主 Agent 
 
 | 编号 | 名称 | 做什么 | 解决什么 | 来源 | 状态 |
 |------|------|--------|---------|------|------|
-| P2.3 | 状态转移强制 | pre-commit hook 检查 .state.yaml phase 变更合法性 | 违规跳阶段 | v1 | 待实现 |
-| P2.4 | 重试计数强制 | pre-commit hook 检查 retries >= MAX -> phase 必须是 PAUSED | 超限不暂停 | v1 | 待实现 |
-| P2.5 | 回退跳变检测脚本化 | pre-commit hook 检查 phase 变更差值 >= 2 -> 必须有 PAUSED 记录 | T019 教训：跨阶段回退未暂停 | v1 | 待实现 |
-| P2.6 | 修复后全量重跑验证 | .state.yaml 记录 last_fix_phase；hook 检查 .gate-result.json 是 full run | 修复引入回归 | v1 | 待实现 |
+| P2.3 | 状态转移强制 | pre-commit hook 检查 .state.yaml phase 变更合法性 | 违规跳阶段 | v1 | 已实现 |
+| P2.4 | 重试计数强制 | pre-commit hook 检查 retries >= MAX -> phase 必须是 PAUSED | 超限不暂停 | v1 | 已实现 |
+| P2.5 | 回退跳变检测脚本化 | pre-commit hook 检查 phase 变更差值 >= 2 -> 必须有 PAUSED 记录 | T019 教训：跨阶段回退未暂停 | v1 | 已实现（降级 WARNING） |
+| P2.6 | 修复后全量重跑验证 | ~~.state.yaml 记录 last_fix_phase；hook 检查~~ | 修复引入回归 | v1 | **移除**（评审：hook 无法验证 full run vs partial run，属流程层规则） |
+| P2.15 | .state.yaml 格式校验 | pre-commit hook 检查 .state.yaml 必填字段 + retries 列表结构 + phase 合法值 | Agent 写出不符协议的状态文件导致 hook 静默失效 | v3 | 已实现 |
 
 #### 2B. 产出独立化与流程选择硬约束（需协议改动 + 评审）
 

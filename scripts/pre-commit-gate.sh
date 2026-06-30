@@ -7,6 +7,7 @@
 #          P1.6 CHANGELOG 检查
 #          P1.7 P6 证据格式检查
 # Phase 2A: P2.3-P2.5 状态转移检查
+#           P2.15 .state.yaml 格式校验
 #
 # 触发条件：.state.yaml phase 变更 OR 阶段产出文件变更
 
@@ -45,6 +46,11 @@ TASK_DIR="$REPO_ROOT/$AGATE_TASKS_DIR/$TASK_ID"
 if git diff --cached | grep -q '\[PROD_TOUCHED\]'; then
     echo "GATE: 检测到 [PROD_TOUCHED] 标记，中止 commit" >&2
     exit 1
+fi
+
+# 2.5 .state.yaml 格式校验（P2.15）
+if [ -f "$STATE_FILE" ]; then
+    bash "$REPO_ROOT/scripts/check-state-yaml.sh" "$STATE_FILE" || exit 1
 fi
 
 # 3. 状态转移检查（P2.3-P2.5）
