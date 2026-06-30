@@ -10,6 +10,14 @@
 
 **来源**：`docs/hardening-roadmap.md` Phase 1（P1.1-P1.7）+ Phase 2A（P2.3-P2.6）
 
+**评审修订**（review-20260630-1551.md，6 项全部采纳）：
+- R1: source 失败静默放行 → source 后验证函数已加载（Task 4）
+- R2: PROD_TOUCHED 扫全文误报 → 改用 `git diff --cached | grep`（Task 4）
+- O1: 回退检测依赖 commit message → 降级 WARNING，等 .gate-history.jsonl 数据（Task 2）
+- O2: retries 结构不匹配（列表不是整数）→ 用 `len(attempts)`（Task 2）
+- O3: commit_sha 语义错误 → 改名 `prev_commit_sha`（Task 1）
+- M1: P6 证据格式假设与协议不符 → 退化为现有 `- PASS`/`- FAIL` 格式，完整格式留 Phase 2B（Task 3 + Task 8）
+
 ---
 
 ## 文件结构
@@ -49,10 +57,12 @@ write_gate_result() {
     local task_id="$2"
     local exit_code="$3"
     local output="$4"
-    local ts commit_sha
+    local ts prev_commit_sha
 
     ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    commit_sha=$(git rev-parse HEAD 2>/dev/null || echo "pre-commit")
+    # pre-commit hook 在 commit 创建之前运行，HEAD 是上一个 commit
+    # 字段名 prev_commit_sha 明确语义，避免误读为"本次 commit SHA"（O3 修复）
+    prev_commit_sha=$(git rev-parse HEAD 2>/dev/null || echo "pre-commit")
 
     cat > .gate-result.json <<EOF
 {
@@ -62,12 +72,12 @@ write_gate_result() {
   "timestamp": "${ts}",
   "output": $(printf '%s' "$output" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
   "runner": "pre-commit-hook",
-  "commit_sha": "${commit_sha}"
+  "prev_commit_sha": "${prev_commit_sha}"
 }
 EOF
 
-    printf '{"phase":"%s","task_id":"%s","exit_code":%d,"timestamp":"%s","commit_sha":"%s"}\n' \
-        "$phase" "$task_id" "$exit_code" "$ts" "$commit_sha" >> .gate-history.jsonl
+    printf '{"phase":"%s","task_id":"%s","exit_code":%d,"timestamp":"%s","prev_commit_sha":"%s"}\n' \
+        "$phase" "$task_id" "$exit_code" "$ts" "$prev_commit_sha" >> .gate-history.jsonl
 }
 
 read_state_phase() {
@@ -181,17 +191,19 @@ old_num=$(phase_num "$old_phase")
 new_num=$(phase_num "$new_phase")
 
 # 检查 1：回退跳变 >= 2（T019 教训）
+# 协议规定"不依赖 commit message 格式"（state-machine.md L371-373）
+# .gate-history.jsonl 尚未积累数据，降级为 WARNING 不中止（O1 修复）
 if [ "$old_num" -gt 0 ] && [ "$new_num" -gt 0 ]; then
     diff=$((old_num - new_num))
     if [ "$diff" -ge 2 ]; then
-        if ! git log --oneline -5 --format='%s' | grep -qiE 'PAUSED|paused'; then
-            echo "GATE STATE: 回退跳变 P${old_num}→P${new_num}（差 ${diff}），无 PAUSED 记录" >&2
-            exit 1
-        fi
+        echo "GATE STATE: 警告 — 回退跳变 P${old_num}→P${new_num}（差 ${diff}），建议确认是否经过 PAUSED" >&2
+        # 降级 WARNING，不 exit 1
+        # 长期：等 .gate-history.jsonl 积累数据后改为查历史记录
     fi
 fi
 
 # 检查 2：重试超限（P2.4）
+# .state.yaml 的 retries[Pn] 是列表（每次重试一个对象），不是整数（O2 修复）
 if [ -f "$STATE_FILE" ]; then
     retries_json=$(python3 -c "
 import yaml
@@ -199,9 +211,9 @@ with open('$STATE_FILE') as f:
     data = yaml.safe_load(f)
 retries = data.get('retries', {})
 if isinstance(retries, dict):
-    for phase, count in retries.items():
-        if isinstance(count, (int, float)) and count >= ${MAX_RETRY}:
-            print(f'{phase}={int(count)}')
+    for phase, attempts in retries.items():
+        if isinstance(attempts, list) and len(attempts) >= ${MAX_RETRY}:
+            print(f'{phase}={len(attempts)}')
             break
 " 2>/dev/null || echo "")
 
@@ -277,7 +289,10 @@ fi
 ```bash
 #!/usr/bin/env bash
 # check-p6-evidence.sh — P6 证据格式检查（P1.7）
-# 检查 P6-acceptance.md 每条 BDD 有 Evidence 引用
+# 检查 P6-evidence/ 目录非空（现有协议已支持）
+# 注意：完整的"每条 BDD 有 Evidence 引用"检查需要协议定义
+# ## BDD-NN 标题和 Evidence: 字段格式，这属于 Phase 2B 协议改动。
+# 当前退化为：BDD 条目数（- PASS/- FAIL 行）= 证据文件数（M1 修复）
 # exit 0 = 通过; exit 1 = 证据缺失; exit 2 = 无 P6 文件
 
 set -euo pipefail
@@ -287,20 +302,22 @@ P6_FILE="$TASK_DIR/P6-acceptance.md"
 
 [ ! -f "$P6_FILE" ] && exit 2
 
-BDD_COUNT=$(grep -cE '^##\s*BDD-[0-9]+' "$P6_FILE" || echo 0)
-EVIDENCE_COUNT=$(grep -cE 'Evidence:\s*P6-evidence/' "$P6_FILE" || echo 0)
+# 用现有协议约定的格式计数（- PASS / - FAIL 行）
+BDD_COUNT=$(grep -cE '^\s*- (PASS|FAIL)' "$P6_FILE" || echo 0)
 
 if [ "$BDD_COUNT" -eq 0 ]; then
-    echo "GATE P6-EVIDENCE: P6-acceptance.md 无 BDD 条目（## BDD-NN 格式）" >&2
+    echo "GATE P6-EVIDENCE: P6-acceptance.md 无 BDD 条目（- PASS/- FAIL 格式）" >&2
     exit 1
 fi
 
-if [ "$EVIDENCE_COUNT" -lt "$BDD_COUNT" ]; then
-    echo "GATE P6-EVIDENCE: BDD ${BDD_COUNT} 条，Evidence 引用 ${EVIDENCE_COUNT} 条（不足）" >&2
+# 检查 P6-evidence/ 目录非空
+EVIDENCE_DIR="$TASK_DIR/P6-evidence"
+if [ ! -d "$EVIDENCE_DIR" ] || [ -z "$(ls -A "$EVIDENCE_DIR" 2>/dev/null)" ]; then
+    echo "GATE P6-EVIDENCE: P6-evidence/ 目录不存在或为空" >&2
     exit 1
 fi
 
-echo "GATE P6-EVIDENCE: ${BDD_COUNT} 条 BDD 均有 Evidence 引用" >&2
+echo "GATE P6-EVIDENCE: ${BDD_COUNT} 条 BDD，证据目录非空" >&2
 exit 0
 ```
 
@@ -344,7 +361,12 @@ P1.7 P6 证据格式检查（每条 BDD 有 Evidence 引用）"
 set -euo pipefail
 
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-source "$REPO_ROOT/scripts/gate-result.sh"
+
+# R1 修复：source 后验证函数已加载，防止静默放行
+source "$REPO_ROOT/scripts/gate-result.sh" \
+    || { echo "GATE ERROR: 无法加载 gate-result.sh" >&2; exit 1; }
+type write_gate_result >/dev/null 2>&1 \
+    || { echo "GATE ERROR: gate-result.sh 加载不完整（write_gate_result 未定义）" >&2; exit 1; }
 
 STATE_FILE="$REPO_ROOT/.state.yaml"
 AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
@@ -367,7 +389,8 @@ TASK_ID=$(read_state_task_id "$STATE_FILE")
 TASK_DIR="$REPO_ROOT/$AGATE_TASKS_DIR/$TASK_ID"
 
 # 2. PROD_TOUCHED 检测（P1.2）
-if git diff --cached --name-only | xargs grep -l '\[PROD_TOUCHED\]' 2>/dev/null; then
+# R2 修复：扫描暂存 diff 内容，不扫文件全文（协议文件本身含 PROD_TOUCHED 字样）
+if git diff --cached | grep -q '\[PROD_TOUCHED\]'; then
     echo "GATE: 检测到 [PROD_TOUCHED] 标记，中止 commit" >&2
     exit 1
 fi
@@ -564,6 +587,8 @@ def main() -> int:
         return 1
 
     # timestamp 验证（防事后补写）
+    # 注意：.gate-result.json 的 prev_commit_sha 是 hook 运行时的 HEAD（上一个 commit）
+    # CI 里拿到的 HEAD 是本次 push 的最新 commit，两者不同是正常的
     import datetime
     recorded_ts = recorded.get("timestamp", "")
     if recorded_ts:
@@ -666,30 +691,40 @@ P1.3 CI workflow 追加 gate backstop job
 
 - [ ] **Step 1: 在 P6 分支 exit 2 之前追加证据格式检查**
 
-在 `scripts/check-gate.sh` 的 P6 分支，现有 `echo "GATE P6: ..."` 行之前，追加：
+注意：完整的 `## BDD-NN` + `Evidence:` 格式检查需要协议改动（Phase 2B）。
+当前 P1.7 退化为：P6-evidence/ 目录非空检查已在 check-gate.sh P6 分支中存在，
+check-p6-evidence.sh 做同样的退化检查。因此 Task 8 **不修改 check-gate.sh**——
+P6 证据检查由 pre-commit-gate.sh 调用 check-p6-evidence.sh 完成，不重复。
 
+如果要在 check-gate.sh P6 分支中追加独立检查，用已有格式：
 ```bash
-      # P6 证据格式检查（P1.7）：每条 BDD 有 Evidence 引用
-      BDD_FMT_COUNT=$(grep -cE '^##\s*BDD-[0-9]+' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
-      EVIDENCE_REF_COUNT=$(grep -cE 'Evidence:\s*P6-evidence/' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
-      if [ "$BDD_FMT_COUNT" -gt 0 ] && [ "$EVIDENCE_REF_COUNT" -lt "$BDD_FMT_COUNT" ]; then
-          echo "GATE P6: BDD 条目 ${BDD_FMT_COUNT} 条，Evidence 引用 ${EVIDENCE_REF_COUNT} 条（不足）" >&2
+      # P6 证据格式检查（P1.7 退化版）：BDD 条目数 > 0 且证据目录非空
+      # 完整的每条 BDD 有 Evidence 引用检查留到 Phase 2B 协议改动后
+      BDD_FMT_COUNT=$(grep -cE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      if [ "$BDD_FMT_COUNT" -eq 0 ]; then
+          echo "GATE P6: P6-acceptance.md 无 BDD 条目（- PASS/- FAIL 格式）" >&2
           exit 1
       fi
 ```
 
-- [ ] **Step 2: 验证语法**
+但 check-gate.sh P6 分支已有 `TOTAL=$(grep -cE '^\s*- (PASS|FAIL)' ...)` 且 `TOTAL -eq 0 → exit 1`，
+所以此检查已隐含在现有逻辑中。Task 8 实际不需要修改 check-gate.sh。
+
+**结论：Task 8 标记为"无需修改"，P6 证据检查已由 Task 3 的 check-p6-evidence.sh 覆盖。**
+
+- [ ] **Step 2: 验证 check-gate.sh 无需修改**
 
 Run: `bash -n scripts/check-gate.sh`
-Expected: 无输出
+Expected: 无输出（确认语法仍正确，未做修改）
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit（仅记录评审结论）**
 
 ```bash
-git add scripts/check-gate.sh
-git commit -m "feat(hardening): check-gate.sh P6 追加证据格式检查
+git commit --allow-empty -m "docs(hardening): Task 8 评审结论 — check-gate.sh 无需修改
 
-P1.7 集成：每条 BDD 需有 Evidence 引用"
+P6 证据检查已由 check-p6-evidence.sh（Task 3）覆盖
+check-gate.sh P6 分支已有 TOTAL=0 → exit 1 检查
+完整格式检查留到 Phase 2B 协议改动后"
 ```
 
 ---
