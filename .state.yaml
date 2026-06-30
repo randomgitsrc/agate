@@ -1,2 +1,4 @@
-phase: P5
+phase: P4
 task_id: TEST001
+retries:
+  P5: []
