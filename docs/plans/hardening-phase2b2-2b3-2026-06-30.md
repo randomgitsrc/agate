@@ -29,7 +29,6 @@
 - `assets/templates/task-files.md` — P1-requirements.md 模板（L119-161）
 - `scripts/pre-commit-gate.sh` — 集成新检查
 - `scripts/check-pruning.sh` — 新建：裁剪条件检查
-- `scripts/check-p2-review.sh` — 新建：P2 评审 author 检查
 - `scripts/check-scope-resolved.sh` — 新建：SCOPE+ 追踪检查
 - `scripts/check-retrospective.sh` — 新建：复盘异常触发
 
@@ -40,7 +39,6 @@
 | 文件 | 责任 | 创建/修改 |
 |------|------|-----------|
 | `scripts/check-pruning.sh` | 裁剪条件检查：P1 risk_level + phases 声明匹配 | 创建 |
-| `scripts/check-p2-review.sh` | high risk 任务的 P2 评审 author 非主 Agent | 创建 |
 | `scripts/check-scope-resolved.sh` | SCOPE+ 有对应 [SCOPE_RESOLVED] 标记 | 创建 |
 | `scripts/check-retrospective.sh` | 异常模式检测 → 复盘提醒 | 创建 |
 | `scripts/pre-commit-gate.sh` | 集成 4 个新检查 | 修改 |
@@ -566,8 +564,7 @@ git commit -m "docs: roadmap 2B-2 + 2B-3 状态更新 — P2.7-P2.14 已实现"
 
 ## 完成标准
 
-- [ ] check-pruning.sh 落地：risk_level + BDD 数 + 裁剪条件验证
-- [ ] check-p2-review.sh 落地：high risk 任务的 P2 评审 author 检查
+- [ ] check-pruning.sh 落地：risk_level + 裁剪条件验证
 - [ ] check-scope-resolved.sh 落地：SCOPE+ 有对应 [SCOPE_RESOLVED]
 - [ ] check-retrospective.sh 落地：异常模式检测 + 复盘提醒
 - [ ] 4 个检查集成进 pre-commit-gate.sh

@@ -303,7 +303,7 @@ gate 结果的核心数据结构。由 pre-commit hook 写入，不由主 Agent 
 | P2.7 | 风险等级字段 | P1-requirements.md 增加 risk_level: low/medium/high + 量化条件 | 裁剪决策依赖临场判断 | v2 (S4) | 待实现 |
 | P2.8 | 裁剪条件 hook 检查 | hook 检查裁剪需满足条件（风险等级 + BDD 数等） | Agent 默认倾向裁剪 | v2 (S4) | 待实现 |
 | P2.9 | 裁剪声明回写 | 裁剪声明与实际执行不一致时必须回写 P1 override 字段 | P1 声明与执行不符 | v2 (C1) | 待实现 |
-| P2.10 | P2 评审派发强制 | risk_level=high -> P2-review.md git author 非主 Agent | Agent 默认自审 | v2 (S3) | 待实现 |
+| P2.10 | P2 评审派发强制 | risk_level=high -> P2-review.md git author 非主 Agent | Agent 默认自审 | v2 (S3) | **移除**（评审 C1：subagent 共享 git config，author 恒相等，high risk 100% 卡死，同 P2.1 待 Phase 3 平台支持） |
 | P2.11 | SCOPE+ 处理追踪 | 协议定义 [SCOPE_RESOLVED] 标记；hook 检查对应关系 | 忘了处理 SCOPE+ | v1 | 待实现 |
 | P2.12 | 复盘异常触发 | 脚本检测异常模式 -> 强制提醒复盘 | Agent 默认不复盘 | v2 (E3) | 待实现 |
 
