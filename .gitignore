@@ -1,0 +1,2 @@
+# gate result（每 commit 由 pre-commit hook 重新生成）
+.gate-result.json
