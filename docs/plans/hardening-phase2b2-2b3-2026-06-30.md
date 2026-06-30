@@ -8,12 +8,19 @@
 
 **来源**：`docs/hardening-roadmap.md` Phase 2B-2 (P2.7-P2.12) + 2B-3 (P2.13-P2.14)
 
-**评审修订**（hardening-phase2b2-2b3-plan-review-20260630.md，5 项全部采纳）：
+**评审修订**（2 轮评审，8 项全部采纳）：
+
+**第 1 轮**（hardening-phase2b2-2b3-plan-review-20260630.md）：
 - R1: Python 代码 shell 变量注入 → 所有 Python 调用用环境变量传参（Task 1-4）
 - O1: 新检查插入位置改变 exit 语义 → gate 失败时不跑裁剪检查（Task 5）
 - O2: git log 绝对路径 → 用相对路径（Task 2）
 - M1: `\b` 可移植性 → 改用 `grep -qw`（Task 1）
 - M2: SCOPE+ 扫描遗漏非 P 前缀文件 → 扫描 `*.md`（Task 3）
+
+**第 2 轮**（review-20260630-1816.md）：
+- C1: P2.10 git author 区分不成立 → **移出 Phase 2B**（同 P2.1 平台依赖，待 Phase 3）
+- C2: BDD 提取格式与协议矛盾 → BDD ≤ 10 从 hook 移到流程层，hook 只验证 risk_level
+- C3: check-retrospective 扫 P*.md → 统一为 *.md
 
 **涉及协议文件**：
 - `WORKFLOW.md` — 适用边界表（L109-157）、P2 评审角色（L180）
@@ -94,18 +101,11 @@ if m:
 # override 字段（裁剪声明与执行不一致时回写）
 HAS_OVERRIDE=$(grep -c '^override:' "$P1_FILE" 2>/dev/null || echo 0)
 
-# BDD 条目数（从 ## 3. BDD 验收条件 区提取 AC 条目）
-BDD_COUNT=$(P1_FILE="$P1_FILE" python3 -c "
-import re, os
-with open(os.environ['P1_FILE']) as f:
-    text = f.read()
-m = re.search(r'## 3\. BDD 验收条件(.*?)(?=## 4\.|## 5\.|\Z)', text, re.S)
-if m:
-    items = re.findall(r'^- (?:AC|BDD-)\d+', m.group(1), re.M)
-    print(len(items))
-else:
-    print(0)
-" 2>/dev/null || echo 0)
+# BDD 条目数：移除（评审 C2）
+# 协议明文承认「BDD 编号格式不固定」（dispatch-protocol.md L570）
+# 固定正则提取 BDD 数不可靠，BDD_COUNT=0 时检查失效
+# BDD ≤ 10 的量化条件从 hook 移到流程层（主 Agent 判断）
+# hook 只验证 risk_level=low（确定性条件）
 
 ERRORS=""
 
@@ -121,9 +121,7 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P2'; then
     if [ "$RISK_LEVEL" != "low" ]; then
         ERRORS="${ERRORS}裁剪 P2 需 risk_level=low，实际=${RISK_LEVEL}\n"
     fi
-    if [ "$BDD_COUNT" -gt 10 ]; then
-        ERRORS="${ERRORS}裁剪 P2 需 BDD ≤ 10，实际=${BDD_COUNT}\n"
-    fi
+    # BDD ≤ 10 条件移到流程层（评审 C2：BDD 编号格式不固定，hook 无法可靠计数）
 fi
 
 # 检查 3：裁剪 P6 的条件（不可裁，除非 no_behavior_change）
@@ -202,72 +200,11 @@ P2.9 override 字段检查"
 
 ---
 
-## Task 2: check-p2-review.sh P2 评审 author 检查
+## ~~Task 2: check-p2-review.sh P2 评审 author 检查~~
 
-**Files:**
-- Create: `scripts/check-p2-review.sh`
+**移除**（评审 C1）：Claude Code/OpenCode 的 subagent 共享 git config user.name，`REVIEW_AUTHOR == ORCHESTRATOR_NAME` 恒成立，high risk 任务 100% 卡死。与 git-integration.md「只有主 Agent 提交」核心原则冲突。同 P2.1 标记为「待平台支持，Phase 3」。
 
-- [ ] **Step 1: 写 check-p2-review.sh**
-
-```bash
-#!/usr/bin/env bash
-# check-p2-review.sh — P2 评审派发强制（P2.10）
-# risk_level=high 时，P2-review.md 的 git author 必须非主 Agent
-# exit 0 = 通过; exit 1 = 评审未独立; exit 2 = 无 P2 文件或非 high risk
-
-set -euo pipefail
-
-TASK_DIR="${1:?用法: check-p2-review.sh TASK_DIR}"
-P1_FILE="$TASK_DIR/P1-requirements.md"
-P2_REVIEW="$TASK_DIR/P2-review.md"
-
-[ ! -f "$P2_REVIEW" ] && exit 2
-
-# R1 修复：用环境变量传参
-RISK_LEVEL=$(P1_FILE="$P1_FILE" python3 -c "
-import re, os
-with open(os.environ['P1_FILE']) as f:
-    text = f.read()
-m = re.search(r'risk_level:\s*(low|medium|high)', text)
-print(m.group(1) if m else '')
-" 2>/dev/null || echo "")
-
-# 非 high risk，不检查
-[ "$RISK_LEVEL" != "high" ] && exit 0
-
-# O2 修复：用相对路径查 git log（绝对路径在某些 git 版本可能有问题）
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-P2_REVIEW_REL=$(realpath --relative-to="$REPO_ROOT" "$P2_REVIEW" 2>/dev/null || echo "$P2_REVIEW")
-
-# high risk：检查 P2-review.md 的 git author
-REVIEW_AUTHOR=$(git log -1 --format='%an' -- "$P2_REVIEW_REL" 2>/dev/null || echo "")
-
-# 取主 Agent 的默认 identity（当前 git config user.name）
-ORCHESTRATOR_NAME=$(git config user.name 2>/dev/null || echo "")
-
-if [ -z "$REVIEW_AUTHOR" ]; then
-    echo "GATE P2-REVIEW: P2-review.md 无 git log 记录" >&2
-    exit 1
-fi
-
-if [ "$REVIEW_AUTHOR" = "$ORCHESTRATOR_NAME" ]; then
-    echo "GATE P2-REVIEW: high risk 任务的 P2 评审 author 是主 Agent（${ORCHESTRATOR_NAME}），需独立 subagent" >&2
-    exit 1
-fi
-
-echo "GATE P2-REVIEW: author=${REVIEW_AUTHOR}（非主 Agent ${ORCHESTRATOR_NAME}）" >&2
-exit 0
-```
-
-- [ ] **Step 2: 验证语法 + Commit**
-
-```bash
-bash -n scripts/check-p2-review.sh
-git add scripts/check-p2-review.sh
-git commit -m "feat(hardening): check-p2-review.sh P2 评审 author 检查
-
-P2.10 high risk 任务的 P2 评审必须由独立 subagent 产出"
-```
+high risk 任务的 P2 评审派发仍然是协议规则（WORKFLOW.md 写明 high risk 必须派发），只是不由 hook 强制——属于流程层。
 
 ---
 
@@ -370,8 +307,9 @@ if isinstance(retries, dict):
 fi
 
 # 2. SCOPE+ 触发
+# C3 修复：扫描 *.md（与 check-scope-resolved.sh 一致）
 if [ -d "$TASK_DIR" ]; then
-    for f in "$TASK_DIR"/P*.md; do
+    for f in "$TASK_DIR"/*.md; do
         [ -f "$f" ] || continue
         if grep -q '\[SCOPE+\]' "$f" 2>/dev/null; then
             WARNINGS="${WARNINGS}SCOPE+ 触发（$(basename "$f")）\n"
@@ -425,18 +363,12 @@ if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
 fi
 
-# 5.6 P2 评审 author 检查（P2.10）——gate 未通过时跳过
-if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
-    bash "$REPO_ROOT/scripts/check-p2-review.sh" "$TASK_DIR" 2>/dev/null || true
-    # exit 2 = 无 P2 文件或非 high risk，不拦截
-fi
-
-# 5.7 SCOPE+ 追踪检查（P2.11）——gate 未通过时跳过
+# 5.6 SCOPE+ 追踪检查（P2.11）——gate 未通过时跳过
 if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
 fi
 
-# 5.8 复盘异常触发（P2.12）——只提醒不中止，gate 失败时也提醒
+# 5.7 复盘异常触发（P2.12）——只提醒不中止，gate 失败时也提醒
 if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
     bash "$REPO_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
 fi
