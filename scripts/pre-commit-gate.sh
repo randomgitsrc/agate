@@ -72,6 +72,21 @@ fi
 
 write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
 
+# 5.5 裁剪条件检查（P2.7-P2.9）——gate 未通过时跳过（gate 错误优先）
+if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+    bash "$REPO_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
+fi
+
+# 5.6 SCOPE+ 追踪检查（P2.11）——gate 未通过时跳过
+if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+    bash "$REPO_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
+fi
+
+# 5.7 复盘异常触发（P2.12）——只提醒不中止，gate 失败时也提醒
+if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+    bash "$REPO_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
+fi
+
 # 6. CHANGELOG 检查（P1.6）——警告不中止
 if [ -n "$TASK_ID" ]; then
     bash "$REPO_ROOT/scripts/check-changelog.sh" "$TASK_ID" 2>/dev/null || \
