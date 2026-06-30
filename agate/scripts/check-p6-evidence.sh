@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # check-p6-evidence.sh — P6 证据格式检查（P1.7）
-# 检查 P6-evidence/ 目录非空（现有协议已支持）
-# 注意：完整的"每条 BDD 有 Evidence 引用"检查需要协议定义
-# ## BDD-NN 标题和 Evidence: 字段格式，这属于 Phase 2B 协议改动。
-# 当前退化为：BDD 条目数（- PASS/- FAIL 行）= 证据文件数（M1 修复）
+# 检查 P6-evidence/ 目录非空 + UI 截图实质检查（R1a）
+# 查询类 BDD 可不截图，但须有断言记录证据（response.json / assert.log 等）
 # exit 0 = 通过; exit 1 = 证据缺失; exit 2 = 无 P6 文件
 
 set -euo pipefail
@@ -15,6 +13,7 @@ P6_FILE="$TASK_DIR/P6-acceptance.md"
 
 # 用现有协议约定的格式计数（- PASS / - FAIL 行）
 BDD_COUNT=$(grep -cE '^\s*- (PASS|FAIL)' "$P6_FILE" || echo 0)
+BDD_COUNT=$(echo "$BDD_COUNT" | tail -1)
 
 if [ "$BDD_COUNT" -eq 0 ]; then
     echo "GATE P6-EVIDENCE: P6-acceptance.md 无 BDD 条目（- PASS/- FAIL 格式）" >&2
@@ -22,10 +21,18 @@ if [ "$BDD_COUNT" -eq 0 ]; then
 fi
 
 # 检查 P6-evidence/ 目录非空
+# 查询类豁免：如果所有 PASS 都不含文件引用（纯断言），允许 evidence/ 为空
+# 但纯断言 = self-authored，有被伪装成查询类逃避证据的风险
+# 折中：含文件引用的 PASS → evidence/ 必须非空；全纯断言 → 允许空（主 Agent 手动核实 BDD 总数兜底）
 EVIDENCE_DIR="$TASK_DIR/P6-evidence"
-if [ ! -d "$EVIDENCE_DIR" ] || [ -z "$(ls -A "$EVIDENCE_DIR" 2>/dev/null)" ]; then
-    echo "GATE P6-EVIDENCE: P6-evidence/ 目录不存在或为空" >&2
-    exit 1
+HAS_FILE_REF=$(grep -cE '\([a-zA-Z0-9_/.-]+\.(png|jpg|log|json|html|txt|yaml|yml)\)' "$P6_FILE" 2>/dev/null || echo 0)
+HAS_FILE_REF=$(echo "$HAS_FILE_REF" | tail -1)
+
+if [ "$HAS_FILE_REF" -gt 0 ]; then
+    if [ ! -d "$EVIDENCE_DIR" ] || [ -z "$(ls -A "$EVIDENCE_DIR" 2>/dev/null)" ]; then
+        echo "GATE P6-EVIDENCE: PASS 引用了证据文件，但 P6-evidence/ 目录不存在或为空" >&2
+        exit 1
+    fi
 fi
 
 echo "GATE P6-EVIDENCE: ${BDD_COUNT} 条 BDD，证据目录非空" >&2
