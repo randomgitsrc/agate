@@ -87,8 +87,9 @@ def main() -> int:
             if ts > commit_ts:
                 print(f"FAIL: .gate-result.json timestamp {ts} > commit {commit_ts}")
                 return 1
-        except Exception:
-            pass
+        except Exception as e:
+            # N2 修复：不静默 pass，至少在 CI 日志留痕
+            print(f"WARN: timestamp 验证无法完成（{e}），跳过防补写检查")
 
     print(f"PASS: phase={phase} exit_code={ci_exit} 一致")
     return 0

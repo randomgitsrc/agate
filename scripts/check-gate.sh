@@ -24,8 +24,9 @@ case "$PHASE" in
   P3)
       exec "$SCRIPT_DIR/check-tdd-red.sh" ;;
   P4)
-      # 查最近 5 条 commit（P4 commit 后可能有 .state.yaml 更新 commit）
-      git log --oneline -5 | grep -qE 'P4|wf\(T[0-9]+-P4\)' && exit 0 || exit 1 ;;
+      # pre-commit 阶段：检查暂存区有代码文件（非纯文档/状态文件）
+      # N1 修复：原来查 git log，但 pre-commit 时 commit 还没创建，第一条 P4 commit 永远无法通过
+      git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state' && exit 0 || exit 1 ;;
   P5)
       echo "GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
