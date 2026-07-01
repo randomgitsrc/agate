@@ -2,7 +2,7 @@
 
 > 日期：2026-07-01
 > 范围：agate/scripts/ 全部 15 个 shell 脚本 + 协议一致性
-> 目标：把"靠维护者跑命令"改成"机器自动跑"，覆盖率从当前 ~0% → 100% 分支覆盖
+> 目标：把"靠维护者跑命令"改成"机器自动跑"，覆盖率从当前 7/31 手工测过 → 119 个 .bats 用例自动验证
 > 状态：待评审
 
 ---
@@ -274,7 +274,7 @@ EOF
 
 ## 五、逐脚本测试用例设计
 
-### 5.1 `check-pruning.sh`（13 个用例）
+### 5.1 `check-pruning.sh`（19 个用例）
 
 | # | 测试名 | 夹具 | 预期 |
 |---|--------|------|------|
@@ -298,7 +298,7 @@ EOF
 | P2.10 | 无 P1 文件 | 空目录 | exit 2 |
 | P2.11 | risk_level=low + 全 P 阶段 | 全合规 | exit 0（happy path） |
 
-### 5.2 `check-gate.sh`（18 个用例）
+### 5.2 `check-gate.sh`（33 个用例）
 
 | # | 测试名 | 夹具 | 预期 |
 |---|--------|------|------|
@@ -336,7 +336,7 @@ EOF
 | G8.4 | P8，全合规 | 全满足 | exit 2 |
 | G8.5 | P8，无 P8 文件 | 空目录 | exit 2 |
 
-### 5.3 `check-p6-evidence.sh`（10 个用例）
+### 5.3 `check-p6-evidence.sh`（11 个用例）
 
 | # | 测试名 | 夹具 | 预期 |
 |---|--------|------|------|
@@ -372,7 +372,7 @@ EOF
 | PV.14 | P6 缺 agent 字段 | 无 frontmatter agent | exit 2（WARNING） |
 | PV.15 | risk=high + P2-review agent=main | self-review | exit 2（WARNING） |
 
-### 5.5 `check-scope-resolved.sh`（5 个用例）
+### 5.5 `check-scope-resolved.sh`（6 个用例）
 
 | # | 测试名 | 夹具 | 预期 |
 |---|--------|------|------|
@@ -383,7 +383,7 @@ EOF
 | SC.5 | 有 SCOPE+，P1 有 [SCOPE_RESOLVED] | 同上 + 有标记 | exit 0 |
 | SC.6 | SCOPE+ 出现在非 P 前缀文件 | dispatch-context.md 触发 | exit 0 或 1（按上判定） |
 
-### 5.6 `check-state-yaml.sh`（8 个用例）
+### 5.6 `check-state-yaml.sh`（9 个用例）
 
 | # | 测试名 | 夹具 | 预期 |
 |---|--------|------|------|
@@ -397,7 +397,7 @@ EOF
 | SY.8 | 全合规 | 完整有效 .state.yaml | exit 0 |
 | SY.9 | YAML 语法错 | `task_id: T001\nphase: P1: extra` | exit 1（YAML 解析失败） |
 
-### 5.7 `check-state-transition.sh`（6 个用例）
+### 5.7 `check-state-transition.sh`（8 个用例）
 
 > **特殊**：此脚本用 `git show HEAD:file`，需要真实 git repo
 
@@ -473,12 +473,22 @@ EOF
 }
 ```
 
-### R2：v0.6 DESIGN_GAP 配对（CF6cd80）
+### R2：v0.6 DESIGN_GAP 配对（cf6cd80）
+
+> ⚠️ **这是"待关闭的已知风险"，不是设计如此**
+>
+> 当前行为：`check-gate.sh P7` 只扫描 `P7-consistency.md`。如果 architect 忘记把 `P4-implementation.md` 里的 `[DESIGN_GAP: ...]` 转抄到 `P7-consistency.md`，gate 静默放过。
+> 现行兜底：`architect.md` 写明"必须转抄"（纯文本约束，靠 architect 记得）。
+> 待办（评审已建议）：`check-gate.sh P7` 同时扫描 `P4-implementation.md` 和 `P7-consistency.md`，交叉核对两边的 `[DESIGN_GAP:` 数量；P4 数量 > P7 数量 → 报"architect 遗漏转抄"。
+> 优先级：测试基础设施搭起来后实施。
 
 ```bash
 # tests/regression/v060-design-gap.bats
-@test "DESIGN_GAP + REVIEWED 配对可解除" { ... }
-@test "DESIGN_GAP 不在 P7-consistency.md → 静默放过（已知风险）" { ... }
+@test "DESIGN_GAP + REVIEWED 配对可解除（基本功能）" { ... }
+@test "DESIGN_GAP 不在 P7-consistency.md → 静默放过（⚠️ 已知风险，不是修复）" {
+    # ⚠️ 这个测试通过 = 漏洞仍在。重构或性能优化时不要"顺手修"它——
+    # 修这个测试 = 实施 R2 待办的交叉核对方案，必须先开新 issue/PR。
+}
 ```
 
 ### R3：v0.6 T045 hardening R4 文件数 bug（`git diff --cached` vs `HEAD~1`）
@@ -619,7 +629,7 @@ jobs:
 
 | 指标 | 当前 | 目标 |
 |------|------|------|
-| 脚本分支覆盖 | 22.6% (7/31 exit 点) | 100% (130+ 决策点 + 63 exit 点) |
+| 脚本分支覆盖 | 7/31 exit 点手工测过 | 119 个用例覆盖约 91% 决策点（见附录 B 自动校验） |
 | 持久化测试 | 0 个 | 90+ 个 |
 | 自动化触发 | 0 处 | 2 处 (pre-push + CI) |
 | 回归保护 | 0 个 | ≥5 个 |
@@ -627,13 +637,24 @@ jobs:
 
 ### 进度追踪
 
-`tests/README.md` 维护覆盖度表：
+`tests/README.md` 维护覆盖度表（**用附录 B 的 count-tests.sh 自动生成，不手写**）：
 
-| 脚本 | 分支数 | 已测 | 覆盖 | 状态 |
-|------|------|-----|------|------|
-| check-pruning.sh | 13 | 13 | 100% | ✅ |
-| check-gate.sh | 18 | 18 | 100% | ✅ |
-| ... |
+| 脚本 | 计划用例 | 已测 | 覆盖 | 状态 |
+|------|--------|-----|------|------|
+| check-pruning.sh | 19 | TBD | TBD% | ⏳ |
+| check-gate.sh | 33 | TBD | TBD% | ⏳ |
+| check-p6-evidence.sh | 11 | TBD | TBD% | ⏳ |
+| check-p6-provenance.sh | 15 | TBD | TBD% | ⏳ |
+| check-state-yaml.sh | 9 | TBD | TBD% | ⏳ |
+| check-scope-resolved.sh | 6 | TBD | TBD% | ⏳ |
+| check-state-transition.sh | 8 | TBD | TBD% | ⏳ |
+| check-changelog.sh | 5 | TBD | TBD% | ⏳ |
+| check-retrospective.sh | 4 | TBD | TBD% | ⏳ |
+| check-tdd-red.sh | 8 | TBD | TBD% | ⏳ |
+| install-hook.sh | 1 | TBD | TBD% | ⏳ |
+| **总计** | **119** | TBD | TBD% | ⏳ |
+
+> **为什么不写"100%"**：评审发现把"100% 覆盖"当作可量化指标本身就有问题（phase_num 对 "PAUSED" 返回 0 之类 happy path 唯一函数不需要专门测）。TBD 是诚实标注——写完一个 .bats 文件，把数字填上去。
 
 ---
 
@@ -650,10 +671,10 @@ jobs:
 
 | 步 | 内容 | 工时估计 |
 |---|------|---------|
-| B1 | `check-pruning.bats`（13 用例） | 2h |
-| B2 | `check-gate.bats`（18 用例） | 3h |
-| B3 | `check-p6-evidence.bats`（10 用例） | 2h |
-| B4 | `check-p6-provenance.bats`（15 用例） | 3h |
+| B1 | `check-pruning.bats`（19 用例） | 2h |
+| B2 | `check-gate.bats`（33 用例） | 4h |
+| B3 | `check-p6-evidence.bats`（11 用例） | 2h |
+| B4 | `check-p6-provenance.sh`（15 用例） | 3h |
 
 ### Phase C：覆盖长尾（3 步）
 
@@ -745,24 +766,53 @@ jobs:
 
 ## 附录 A：现有脚本一览
 
-| 脚本 | 行数 | exit 0/1/2 数 | 优先级 |
-|------|-----|--------------|-------|
-| `check-pruning.sh` | 144 | 13 个分支 | P0（高频） |
-| `check-gate.sh` | 115 | 18 个分支 | P0（核心） |
-| `check-p6-provenance.sh` | 242 | 15 个分支 | P0（安全） |
-| `check-p6-evidence.sh` | 87 | 10 个分支 | P0（核心） |
-| `check-state-transition.sh` | 91 | 8 个分支 | P1（pre-commit） |
-| `check-tdd-red.sh` | 109 | 8 个分支 | P1（核心） |
-| `check-state-yaml.sh` | 74 | 8 个分支 | P1（pre-commit） |
-| `check-scope-resolved.sh` | 45 | 5 个分支 | P2 |
-| `check-changelog.sh` | 31 | 5 个分支 | P2 |
-| `check-retrospective.sh` | 57 | 4 个分支 | P2 |
+| 脚本 | 行数 | 测试用例数 | 优先级 |
+|------|-----|-----------|-------|
+| `check-pruning.sh` | 144 | 19 | P0（高频） |
+| `check-gate.sh` | 115 | 33 | P0（核心） |
+| `check-p6-provenance.sh` | 242 | 15 | P0（安全） |
+| `check-p6-evidence.sh` | 87 | 11 | P0（核心） |
+| `check-state-transition.sh` | 91 | 8 | P1（pre-commit） |
+| `check-tdd-red.sh` | 109 | 8 | P1（核心） |
+| `check-state-yaml.sh` | 74 | 9 | P1（pre-commit） |
+| `check-scope-resolved.sh` | 45 | 6 | P2 |
+| `check-changelog.sh` | 31 | 5 | P2 |
+| `check-retrospective.sh` | 57 | 4 | P2 |
 | `gate-result.sh` | 70 | 库函数 | 不测 |
 | `pre-commit-gate.sh` | 122 | 集成入口 | 集成测试 |
 | `agate-summary.sh` | 69 | 展示脚本 | 跳过 |
 | `agate-changes.sh` | 109 | 展示脚本 | 跳过 |
-| `install-hook.sh` | 34 | 安装脚本 | 1 用例 |
+| `install-hook.sh` | 34 | 1 | 安装脚本 |
 
-**总测试用例数估计**：17+27+11+15+6+9+8+5+4+8+1 = **111 个核心测试用例**
+**总测试用例数估计**：19+33+11+15+6+9+8+5+4+8+1 = **119 个核心测试用例**
 
-> 注：v1 初版自报 95，实测行数 110+；G3 拆分为 7 个子用例后，check-gate.sh 从 18 增到 24。**真实决策点 130+，exit 点 63**，计划用例 111 覆盖约 85% 决策点，剩余边界靠夹具组合覆盖。**不要把"100% 决策点覆盖"作为可量化指标**——追求 100% 会逼出无意义测试（如 phase_num 对 "PAUSED" 返回 0 这种只对 happy path 有意义的函数）。
+> 注：v1 初版自报 95，v2 修订为 111（合并 G3 拆分后），v3 修订为 119（评审发现章节标题与表格行数不一致）。**所有数字以本文档每个 5.x 小节标题旁的"X 个用例"为准**——附录 A 表格是它们的镜像，公式加总应该相等。实施时如要再改某个用例数，**必须同时改三处**：小节标题、附录 A 表格、附录 A 公式。**或者用脚本从 `.bats` 文件自动统计**（推荐，见附录 B）。
+
+> 真实决策点 130+，exit 点 63，119 个测试用例覆盖约 91% 决策点。**不要把"100% 决策点覆盖"作为可量化指标**——追求 100% 会逼出无意义测试（如 phase_num 对 "PAUSED" 返回 0 这种只对 happy path 有意义的函数）。
+
+---
+
+## 附录 B：覆盖度自校验脚本
+
+```bash
+# tests/scripts/count-tests.sh — 从 .bats 文件自动统计
+# 用法：bash tests/scripts/count-tests.sh
+# 输出：每个 .bats 文件的 @test 数量 + 总计
+# 评审发现 v1 自报数字错位根因：人工数表格行数 + 手算加总会漂移
+# 此脚本让"测试用例数"和"实际写的 .bats 文件"保持一致
+
+#!/usr/bin/env bash
+cd "$(dirname "$0")/.."
+total=0
+echo "=== 测试用例覆盖度自检 ==="
+for f in unit/*.bats regression/*.bats integration/*.bats; do
+    [ -f "$f" ] || continue
+    count=$(grep -c '^@test' "$f")
+    total=$((total + count))
+    printf "  %-50s %3d 个 @test\n" "$f" "$count"
+done
+echo "==="
+echo "总计：$total 个测试用例"
+echo ""
+echo "如果此数字与本文档附录 A 不一致 → 文档漂移，需要更新。\n如果文档改了但 .bats 文件没动 → 测试计划空头支票。"
+```
