@@ -11,6 +11,28 @@
 # 例：
 #   dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8 --risk-level low)
 
+# add_agent_field <file>
+# 给 .md 文件加 YAML frontmatter agent: test（如果没有）
+add_agent_field() {
+    local f="$1"
+    if [ -f "$f" ] && ! head -3 "$f" | grep -q '^---$'; then
+        local tmp
+        tmp=$(mktemp)
+        printf -- '---\nagent: test\n---\n\n' > "$tmp"
+        cat "$f" >> "$tmp"
+        mv "$tmp" "$f"
+    fi
+}
+
+# add_given_line <file>
+# 在 P1 加一个 Given 行（如果还没有）
+add_given_line() {
+    local f="$1"
+    if ! grep -qE '^\s*-\s*Given\b' "$f" 2>/dev/null; then
+        echo "- Given test precondition" >> "$f"
+    fi
+}
+
 create_task_dir() {
     local phases="${@:-P0 P1 P2 P3 P4 P5 P6 P7 P8}"
     local risk_level="medium"
@@ -77,12 +99,16 @@ env_constraints:
   debug_env: "echo debug"
 EOF
 
-    # 写 P1-requirements.md（带 risk_level + phases）
+    # 写 P1-requirements.md（带 risk_level + phases + agent frontmatter + Given 默认行）
     local phases_csv
     phases_csv=$(echo "$phases" | tr ' ' ',')
     cat > "$dir/P1-requirements.md" <<EOF
+---
+agent: test
+---
 risk_level: $risk_level
 phases: [$phases_csv]
+- Given test precondition
 EOF
 
     # 写其他阶段文件（空文件，足以让脚本"不报缺文件"）
@@ -92,10 +118,26 @@ EOF
             P3) touch "$dir/P3-test-design.md" ;;
             P4) touch "$dir/P4-implementation.md" ;;
             P5) touch "$dir/P5-verification.md" ;;
-            P6) touch "$dir/P6-acceptance.md" ;;
+            P6) cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+EOF
+               ;;
             P7) touch "$dir/P7-consistency.md" ;;
             P8) touch "$dir/P8-release.md" ;;
         esac
+    done
+
+    # 给所有 P*.md 加 agent frontmatter（v0.6 provenance 要求）
+    for f in "$dir"/P[1-8]-*.md; do
+        [ -f "$f" ] || continue
+        # 跳过已有 frontmatter 的
+        head -3 "$f" | grep -q '^---$' && continue
+        tmp=$(mktemp)
+        printf -- '---\nagent: test\n---\n\n' > "$tmp"
+        cat "$f" >> "$tmp"
+        mv "$tmp" "$f"
     done
 
     # 写 P6-evidence/ 空目录
