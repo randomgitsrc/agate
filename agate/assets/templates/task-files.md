@@ -194,7 +194,10 @@ gate_commands:
 #  / go test | tail -30 / mvn -q），保留通过失败汇总+失败清单，去掉逐项 traceback。
 # 工具无紧凑模式时用 shell 兜底：命令 2>&1 | tail -N（语言无关）。
 
-## 4. 涉及文件清单（必填，控制 P4 implementer 上下文体量）
+## 4. 实现导航（必填，控制 P4 implementer 上下文体量）
+# v0.6 澄清：这是"实现导航"不是"实现计划"——
+# 不列每步做什么（那是步骤脚本，superpowers writing-plans 的模型）
+# 列实现时需要参考的文件 + 为什么（资源地图，agate P2-P4 模型）
 files_to_read:
   - path: backend/services/auth.py
     why: 复用现有 hash_password 模式
