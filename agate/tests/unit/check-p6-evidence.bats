@@ -160,3 +160,46 @@ EOF
     run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+@test "E.12 check-p6-evidence.sh UI 任务 + 重复截图（md5 相同）期望 exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1 (screenshots/login.png)
+- PASS AC2 (screenshots/dashboard.png)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    local content
+    content=$(head -c 5000 /dev/urandom | base64)
+    printf '%s' "$content" > "$dir/P6-evidence/screenshots/login.png"
+    printf '%s' "$content" > "$dir/P6-evidence/screenshots/dashboard.png"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"md5"* || "$output" == *"重复"* ]]
+}
+
+@test "E.13 check-p6-evidence.sh UI 任务 + 不同截图（md5 不同）期望 exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1 (screenshots/login.png)
+- PASS AC2 (screenshots/dashboard.png)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/dashboard.png"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 0 ]
+}

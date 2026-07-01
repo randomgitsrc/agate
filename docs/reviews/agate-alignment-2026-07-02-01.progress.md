@@ -1,0 +1,17 @@
+- [check-p6-evidence.sh] L84-91: md5去重逻辑——find+md5sum+sort+sort -u+wc -l 比较总数vs唯一数，重复则exit 1
+- [dispatch-protocol.md] L359: "操作类 BDD 截图必须互不相同（md5 去重，hook 强制）"——P5/P6派发追加段
+- [dispatch-protocol.md] L581: gate表P6→P7行含"截图质量标准：操作类 BDD 截图必须互不相同（md5 去重，hook 强制）"
+- [verifier.md] L130: "操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图（断言值是唯一证据）"
+- [task-files.md] L271: "所有 PASS 都必须有文件引用（hook 强制）"——断言记录文件hook强制
+- [vision-analyst.md] L262: "操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图"
+- [check-protocol-consistency.py] L543-546: CHECK 9锚点表含"P6 截图去重（md5）"条目，keywords=["md5","去重"]
+- [check-p6-evidence.bats] E.12: 重复截图（md5相同）→exit 1; E.13: 不同截图（md5不同）→exit 0
+- A1/文档→脚本: dispatch-protocol.md L359/L581 + verifier.md L130 声明"md5去重 hook强制" → check-p6-evidence.sh L84-91 实现exit 1拦截 → ALIGNED
+- A1/文档→脚本: task-files.md L271 "所有PASS必须有文件引用（hook强制）" → check-p6-evidence.sh L30-40 PASS_WITHOUT_REF检查exit 1 → ALIGNED
+- A2/脚本→文档: check-p6-evidence.sh L84-91 md5去重exit 1 → dispatch-protocol.md L359/L581 + verifier.md L130 + vision-analyst.md L262 均已声明 → ALIGNED
+- A3/反向传播: md5去重规则应传播到: dispatch-protocol.md(已改) / verifier.md(已改) / task-files.md(已改) / vision-analyst.md(已含L262) / WORKFLOW.md(未改但P6节无截图质量细节，gate表引用dispatch-protocol.md) / state-machine.md(未改但P6→P7 gate表引用dispatch-protocol.md) → 无遗漏
+- A3/反向传播: task-files.md L269-271 断言记录文件hook强制 → check-p6-evidence.sh L30-40 已实现 → ALIGNED
+- A4/测试覆盖: E.12覆盖重复截图exit 1 / E.13覆盖不同截图exit 0 / 边界：单截图无重复（E.10覆盖）→ ALIGNED
+- A5/下游影响: md5去重是新增拦截，已有项目若截图重复则gate会fail——这是预期行为（修复了之前缺失的检查）→ NEEDS_HUMAN_REVIEW（是否需CHANGELOG标注）
+- A5/文档传播: vision-analyst.md L262已含md5去重描述 → ALIGNED
+- A6/锚点表: CHECK 9 L543-546已含"P6 截图去重（md5）"条目keywords=["md5","去重"] → 脚本L84/L89含"md5sum"/"md5"/"去重" → ALIGNED

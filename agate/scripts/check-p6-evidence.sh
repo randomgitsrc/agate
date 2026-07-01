@@ -21,7 +21,7 @@ if [ "$BDD_COUNT" -eq 0 ]; then
 fi
 
 # 检查 P6-evidence/ 目录非空
-# 所有 PASS 都必须有文件引用（task-files.md:243 已有规则，此处补 hook 强制）
+# 所有 PASS 都必须有文件引用（hook 强制）
 # 文件形式不限：截图、日志、JSON、文本都行——不绑定技术栈
 # 查询类 BDD 可不截图，但须有断言记录文件（response.json / assert.log 等）
 EVIDENCE_DIR="$TASK_DIR/P6-evidence"
@@ -79,6 +79,14 @@ if [ "$UI_AFFECTED" = "true" ]; then
         done < <(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -print0 2>/dev/null)
         if [ "$EMPTY_COUNT" -gt 0 ]; then
             echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个文件 ≤ 1KB（疑似空 png 充数）" >&2
+            exit 1
+        fi
+        MD5_LIST=$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -exec md5sum {} \; 2>/dev/null | cut -d' ' -f1 | sort)
+        MD5_TOTAL=$(echo "$MD5_LIST" | wc -l)
+        MD5_UNIQUE=$(echo "$MD5_LIST" | sort -u | wc -l)
+        if [ "$MD5_TOTAL" -gt "$MD5_UNIQUE" ]; then
+            MD5_DUPES=$((MD5_TOTAL - MD5_UNIQUE))
+            echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${MD5_DUPES} 个重复文件（md5 去重），操作类 BDD 截图必须互不相同" >&2
             exit 1
         fi
     fi

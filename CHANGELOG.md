@@ -27,7 +27,7 @@
 - **门槛表对齐**：P4 门槛从 `git log` / `P4-implementation/ 下文件非空` 改为 `git diff --cached` 暂存区检查（对齐脚本实际行为）
 - **P3 裁剪措辞**：state-machine.md 从"需 risk_level=low"改为"high 风险不可裁"（对齐脚本实际行为——medium 放行）
 - **P8 裁剪文档**：明确字段名 `internal_only_reason: <理由>`（之前只写"理由"未指定字段名）
-- **md5 去重措辞**：从"hook 强制"改为"建议"（dispatch-protocol.md / task-files.md / verifier.md）
+- **md5 去重已实现**：check-p6-evidence.sh 新增截图 md5 重复检测（hook 强制），文档从"建议"改回"hook 强制"
 - **BDD 总数对照**：从"="改为"≥"（允许 SCOPE+ 增补）
 - **客观审计计数**：从"三道"统一为"四道"（R1b vision YAML 审计已落地）
 - **P3 UI 用例**：从"gate 不通过"改为"主 Agent 确认"（P3 gate 不检查 UI 用例存在性）
