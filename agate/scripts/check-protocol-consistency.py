@@ -502,7 +502,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     {
         "desc": "裁剪 P7 条件（源码文件数）",
         "script": "agate/scripts/check-pruning.sh",
-        "keywords": ["源码"],
+        "keywords": ["SOURCE_FILE_COUNT"],
     },
     {
         "desc": "裁剪 P8 条件（internal_only）",

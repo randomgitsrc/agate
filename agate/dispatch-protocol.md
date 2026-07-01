@@ -305,8 +305,14 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 ## 任务
 {这个阶段要做什么，一两句话}
 
-## 分阶段落盘（重要，默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。这样即使你最终无法产出完整报告，progress 文件也能让主 Agent 知道你做了什么。不要等所有文件读完再一次性写——逐条写。
+## 分阶段落盘（留痕文件，防空返回）
+留痕文件：docs/tasks/{Txxx}/P{N}-progress.md
+开始前先删除留痕文件（如已存在）：rm -f docs/tasks/{Txxx}/P{N}-progress.md
+每读完一个输入文件或完成一个关键步骤，立即用 bash 追加一行（不要整理、不格式化）：
+  echo "- [文件名] 关键发现摘要" >> docs/tasks/{Txxx}/P{N}-progress.md
+不要在留痕文件里做内容整理、不格式化——那是产出文件的事。
+读一个写一个，不要等全部读完再一次性写。
+留痕文件仅供空返回诊断用，主 Agent 检查产出文件后可删。
 
 ## 输出
 产出文件：docs/tasks/{Txxx}/{本阶段产出文件}
