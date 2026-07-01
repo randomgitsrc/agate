@@ -132,6 +132,7 @@ python3 agate/scripts/check-protocol-consistency.py
 docs/reviews/agate-alignment-review-{date}.md
 审查完所有文件后，把结构化报告写入成果文件（覆盖写，不是追加）。
 成果文件含 frontmatter + A1-A6 结论汇总表（含反向传播检查）+ 逐项审查详情。
+⚠️ 路径是硬约束：必须用 Write 工具写入此路径，不得将产出文件写入 /tmp、工作区根目录或其他路径。
 ```
 
 ### 全量审查模式 — 派发模板
@@ -177,6 +178,7 @@ docs/reviews/agate-alignment-review-{date}.md
 docs/reviews/agate-alignment-review-{date}.md
 审查完所有文件后，把结构化报告写入成果文件（覆盖写，不是追加）。
 如果成果文件已存在（前一批写的），追加本次批次的审查结果到已有文件。
+⚠️ 路径是硬约束：必须用 Write 工具写入此路径，不得将产出文件写入 /tmp、工作区根目录或其他路径。
 ```
 
 ### 闭环规则

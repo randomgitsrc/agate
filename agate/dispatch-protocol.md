@@ -314,8 +314,15 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 读一个写一个，不要等全部读完再一次性写。
 留痕文件仅供空返回诊断用，主 Agent 检查产出文件后可删。
 
-## 输出
+## 输出（路径约束）
 产出文件：docs/tasks/{Txxx}/{本阶段产出文件}
+
+⚠️ 路径是硬约束，不是建议：
+- 必须用 Write 工具写入上述路径
+- 不得将产出文件写入 /tmp、工作区根目录、或其他自选路径
+- 写到其他位置 = 未产出，主 Agent 只检查上述路径
+- /tmp 可用于中间临时文件（如 gate-runner 落盘 traceback），但产出文件必须写入约定路径
+
 必须包含 Header（完整字段见 task-files.md「通用 Header」）：
   phase: {Pn}
   task_id: {完整 task_id，如 T002-fix-db-migration}
@@ -333,6 +340,29 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
   1. 产出文件路径
   2. 一句话摘要（不超过 30 字）
 不要返回文件全文。
+```
+
+### 非阶段产出的路径规范
+
+主 Agent 派发非阶段 subagent（如 self-gate 审查、设计评审、计划编写）时，prompt 的"## 输出"节必须：
+
+1. 给出**具体路径**（用 `{project_root}/docs/reviews/xxx.md` 格式，不用纯占位符也不用绝对路径）
+2. 声明路径硬约束（同阶段产出："不得写入 /tmp 或其他路径"）
+3. 区分留痕文件（bash 追加）和成果文件（Write 工具一次写出）——不要混用
+
+`/tmp` 可用于中间临时文件（如 gate-runner 落盘 traceback 供修复 subagent 读取），但**产出文件**（主 Agent 校验的那个）必须写入约定路径。
+
+注意：agate 自身的 self-gate 审查用相对路径（`docs/reviews/xxx.md`，因为 cwd 就是 agate 仓库根）；外部项目用 `{project_root}/` 前缀。
+
+示例（self-gate 审查派发）：
+```
+## 产出（成果文件）
+路径：{project_root}/docs/reviews/agate-alignment-review-{date}.md
+用 Write 工具写入此路径。不得写入 /tmp 或其他路径。
+
+## 分阶段落盘（留痕文件）
+路径：{project_root}/docs/reviews/agate-alignment-{date}-{NN}.progress.md
+用 bash 追加：echo "- [文件名] 摘要" >> {留痕文件路径}
 ```
 
 ### 阶段特定提示（按需追加到 prompt 末尾）
