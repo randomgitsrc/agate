@@ -19,6 +19,17 @@ case "$PHASE" in
       echo "GATE P1: BDD 编号格式不固定，需主 Agent 自行判定" >&2
       exit 2 ;;
   P2)
+      # v0.6：多方案探索检查（nudge 强度）
+      # design_trivial/follows_existing_pattern 时 P2 被裁剪根本不会到这里，不需要跳过分支
+      P2_FILE="$TASK_DIR/P2-design.md"
+      if [ -f "$P2_FILE" ]; then
+          CANDIDATE_COUNT=$(grep -cE '^###?\s*候选方案|^###?\s*方案[ABC123]' "$P2_FILE" 2>/dev/null || echo 0)
+          CANDIDATE_COUNT=$(echo "$CANDIDATE_COUNT" | tail -1)
+          if [ "$CANDIDATE_COUNT" -lt 2 ]; then
+              echo "GATE P2: P2-design.md 需至少 2 个候选方案 + 权衡 + 选择理由（v0.6 多方案探索）" >&2
+              exit 1
+          fi
+      fi
       echo "GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P3)

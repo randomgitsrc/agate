@@ -176,8 +176,16 @@ capability_requirements:
 ## P2-design.md 结构（方案设计）
 
 ```markdown
-## 1. 改动方案
-（影响域、设计、数据流、异常路径）
+## 1. 候选方案（v0.6：至少 2 个 + 权衡 + 选择理由）
+# 例外口：design_trivial: true 或 follows_existing_pattern: [参照文件] 时可只写 1 个
+# brainstorm 借鉴：强制 architect 至少走一遍"还有别的做法吗"的思考
+
+### 候选方案 A：[简短标题]
+（影响域、设计、数据流、异常路径、优点、风险、工作量）
+### 候选方案 B：[简短标题]
+（同上）
+### 选择理由
+（为什么选 A 不选 B——必须具体到方案的隐含假设差异，不能是"A 更简单"这种空话）
 
 ## 2. 范围声明（必填）
 packages: [pkg-a, pkg-b]
