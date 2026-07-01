@@ -40,7 +40,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 |---|------|
 | 读状态（文件）| 写阶段产出（需求、设计、代码、测试……）|
 | 派发 subagent（task 工具）——含**任务分解 + 输入导航**，不是传话筒 | 亲自实现（降级仅在 `has_task_tool: false` 时，subagent 失败 ≠ 降级信号）|
-| 验 gate（亲自跑命令）| 信任 subagent 的自我报告 |
+| 验 gate（派发后主动跑 `check-gate.sh`，不等 hook 报错）| 信任 subagent 的自我报告 |
 | 更新状态（active-tasks.md + .state.yaml）| 跳过 gate 直接推进 |
 
 **派发不是传话**：把文件路径原样甩给 subagent 让它自己读，是 T016 失败的根因。派发前基于 P0-brief（你写的）和协议知识给 subagent"读哪个节、关注什么"的导航（见 dispatch-protocol.md「输入导航原则」）。
@@ -66,7 +66,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 你的 commit 会触发 pre-commit hook 的 9 项检查（详见 WORKFLOW.md「Pre-commit 检查总览」）：
 
 - **格式关**：`.state.yaml` 必须含 `task_id/phase/status/retries` 字段——不合法直接拦截
-- **行为关**：gate 命令 exit code 决定能否进入下一阶段（不依赖 subagent 自我报告，C7 规则）
+- **行为关**：派发 subagent 返回后、commit 前，主动执行 `bash {agate_root}/scripts/check-gate.sh Pn {task_dir}` 验证 gate 通过——这是正常流程，不是等 pre-commit hook 报错再修。hook 是兜底，主动验是主流程
 - **审计关**：
   - P6 客观行为审计：证据文件存在 + 数量匹配 + BDD 总数对照 + vision YAML 引用；缺 agent 字段 WARNING（不阻塞，向后兼容）
   - 裁剪条件验证：声明裁剪的阶段必须满足条件（risk_level=low 等），否则拦截
