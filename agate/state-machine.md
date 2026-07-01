@@ -81,17 +81,17 @@ P1 --[存在 status: GAP]--> PAUSED（等人补充能力/确认降级方案。su
 任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（生产环境被意外触碰，需人工处置）
 任意阶段 --[出现 NEED_CONFIRM（不可逆操作）]--> PAUSED（等人确认后才可执行）
 
-P2 --[P2-review.md 有效 AND status==approved AND P2-design.md 声明 packages/domains/ui_affected/gate_commands]--> P3
+P2 --[P2-review.md 有效 AND status==approved AND P2-design.md 声明 packages/domains/ui_affected/gate_commands AND 候选方案≥2 AND 含权衡/选择理由]--> P3
 P2 --[P2-review.md status==rejected && retry<MAX]--> P2 (retry+1)
 P2 --[retry>=MAX]--> PAUSED
     （若 P2 设计涉及 UI：P2-design.md 必须声明 ui_affected: true，并列出需 E2E 覆盖的交互点）
 
 P3 --[scripts/check-tdd-red.sh exit 0 AND assertion_failures>0 AND collection_errors==0]--> P4
     （TDD 红灯：测试正确但因实现未写而断言失败。collection/import error 视为测试本身错误）
-    （若 P2 声明 ui_affected：P3 必须包含对应的 Playwright/E2E 用例，否则 gate 不通过）
+    （若 P2 声明 ui_affected：P3 必须包含对应的 Playwright/E2E 用例，主 Agent 确认）
 P3 --[retry>=MAX]--> PAUSED
 
-P4 --[P4-implementation/ 下文件非空 AND git log --oneline -1 包含 P4 commit]--> P5
+P4 --[暂存区含非 md/yaml 文件（git diff --cached）]--> P5
     （不能用 git diff，因为 P4 完成时会 commit，git diff 永远是空）
 P4 --[retry>=MAX]--> PAUSED
 
@@ -162,10 +162,10 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
 
   **裁剪条件（hook 验证，见 scripts/check-pruning.sh）**：
   - 裁剪 P2：不可裁（v0.6：方案设计 + 评审是必经阶段。P1 analyst 做需求分析不做方案设计，无法预知 P2 architect 会发现哪些 P0/P1 没想到的问题。例外口：`design_trivial: true` 纯 typo/文案/配置值修改，或 `follows_existing_pattern: [参照文件]` 照搬已有模式。过渡期：`legacy_p2_pruned: true`）
-  - 裁剪 P3：需 risk_level=low（high 风险不可裁）
+  - 裁剪 P3：high 风险不可裁
   - 裁剪 P6：不可裁（除非 no_behavior_change: true）
   - 裁剪 P7：需源码文件数 ≤ 5 AND 无 implicit_coupling 声明（隐式耦合维度，self-declaration。如共享 CSS class、API schema、数据模型、配置项等）
-  - 裁剪 P8：需声明 internal_only: true + 理由
+  - 裁剪 P8：需声明 internal_only: true + internal_only_reason: <理由>
 
   **裁剪理由格式**：每条裁剪须含"跳过风险:"评估。没有评估风险的裁剪 = 无效裁剪。
   （局限性：这是 self-declaration nudge——"跳过风险: 低"可以无脑填，但强制写一行制造"我考虑过风险"的形式义务）
@@ -213,7 +213,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
 | **P1.1** gate (scripts/check-gate.sh) | phase 变更或阶段产出变更 | exit 1 拦截 |
 | **P1.6** CHANGELOG (scripts/check-changelog.sh) | gate 通过后 | 缺 `[Unreleased]` → 警告不拦截 |
 | **P1.7** P6 证据 (scripts/check-p6-evidence.sh) | phase ∈ {P6,P7} | 缺证据目录/BDD → 拦截 |
-| **P2.1/P2.10** provenance (scripts/check-p6-provenance.sh) | gate 通过后 | 三道客观审计失败 → exit 1 拦截；agent 字段/BDD 非标 → exit 2 警告 |
+| **P2.1/P2.10** provenance (scripts/check-p6-provenance.sh) | gate 通过后 | 四道客观审计失败 → exit 1 拦截；agent 字段/BDD 非标 → exit 2 警告 |
 | **P2.3-P2.5** 状态转移 (scripts/check-state-transition.sh) | gate 通过后 | 非法转移 → exit 1 拦截 |
 | **P2.7-P2.9** 裁剪 (scripts/check-pruning.sh) | gate 通过后 | 裁剪条件不满足 → exit 1 拦截 |
 | **P2.11** SCOPE_RESOLVED (scripts/check-scope-resolved.sh) | gate 通过后 | 缺标记 → exit 1 拦截 |
@@ -382,10 +382,11 @@ function 执行一步(task_id):
              grep -cE '\[NEED_CONFIRM\]' {task}/P1-requirements.md → =0;
              grep -cE 'status:.*GAP\b' {task}/P1-requirements.md → =0（仅匹配 status: GAP，不匹配 supplementable）
        - P2: grep 'status: approved' {task}/P2-review.md → 命中;
-             grep -cE '^(packages|domains|ui_affected|gate_commands):' {task}/P2-design.md → =4
+             grep -cE '^(packages|domains|ui_affected|gate_commands):' {task}/P2-design.md → ≥4;
+             候选方案 ≥2; grep -qE '权衡|选择理由' {task}/P2-design.md → 命中
        - P3: scripts/check-tdd-red.sh → exit 0（含经典红灯和 B 类 import 红灯）；
              （UI 任务：确认 P3-test-cases.md 含 Playwright/E2E 用例描述）
-       - P4: git log --oneline -1 → 含 "P4" 或 "wf(Txxx-P4)"
+       - P4: git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'
        - P5: 从 P2-design.md gate_commands.P5 读取命令执行 → exit 0 AND failed==0;
              grep -rl '\[PROD_TOUCHED\]' {task}/ → 无命中（匹配标记格式，不匹配说明性文本）;
              （UI 任务：从 gate_commands.P5 读取 E2E 命令执行 → exit 0）

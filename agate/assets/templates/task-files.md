@@ -142,6 +142,8 @@ P0-brief 是把这些约束注入每次派发的桥梁——所有 subagent 的 
 ## 5. 裁剪说明
 risk_level: low                      # low=纯UI/文案/配置 | medium=业务逻辑/API/数据 | high=安全/权限/数据迁移/生产环境
 phases: [P1,P2,P4,P5,P6,P8]
+# internal_only: true               # P8 裁剪时必填
+# internal_only_reason: 内部工具，无外部用户  # P8 裁剪时必填
 - 跳过 P3 理由：...
 - 跳过 P7 理由：...
 # override（裁剪声明与实际执行不一致时回写，见 dispatch-protocol.md P2.9）
@@ -266,7 +268,7 @@ BDD 通过 X/Y，UI 截图 N 张，NEED_CONFIRM M 个
 - 查询类 BDD（断言值是唯一证据）可不截图，但**须有断言记录文件**作为客观证据
 - 断言记录形式：API 响应 JSON（`response.json`）、测试输出日志（`assert.log`）、数据库查询结果（`query-result.txt`）等
 - 引用格式：`- PASS B01: 返回 3 条记录 (response.json)`——括号内路径相对 P6-evidence/，文件必须存在
-- **所有 PASS 都必须有文件引用**（hook 强制）——无文件引用的纯断言 PASS 不被接受。文件形式不限（截图/日志/JSON/文本），不绑定技术栈
+- **所有 PASS 都必须有文件引用**（建议）——无文件引用的纯断言 PASS 不被接受。文件形式不限（截图/日志/JSON/文本），不绑定技术栈
 
 ## READY 收尾检查（P8 gate 通过后、标记 READY 前）
 

@@ -75,7 +75,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - **行为关**：派发 subagent 返回后、commit 前，主动执行 `bash {agate_root}/scripts/check-gate.sh Pn {task_dir}` 验证 gate 通过——这是正常流程，不是等 pre-commit hook 报错再修。hook 是兜底，主动验是主流程
 - **审计关**：
   - P6 客观行为审计：证据文件存在 + 数量匹配 + BDD 总数对照 + vision YAML 引用；缺 agent 字段 WARNING（不阻塞，向后兼容）
-  - 裁剪条件验证：声明裁剪的阶段必须满足条件（risk_level=low 等），否则拦截
+  - 裁剪条件验证：声明裁剪的阶段必须满足条件（如 high 风险不可裁 P3），否则拦截
   - 状态转移合法性 + 重试上限（P2.3-P2.5）：非法转移拦截，重试超限须 PAUSED
   - SCOPE+ 增补追踪（P2.11）：有 `[SCOPE+]` 但 P1 无 `[SCOPE_RESOLVED]` → 拦截
   - `[PROD_TOUCHED]` 检测（P1.2）：暂存 diff 含此标记 → 拦截 commit

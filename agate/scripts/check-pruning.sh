@@ -93,15 +93,17 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     fi
 fi
 
-# 检查 6：裁剪 P8 的条件（R5：internal_only 声明）
+# 检查 6：裁剪 P8 的条件（R5：internal_only 声明 + 理由）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
     if ! grep -qE '^internal_only:\s*true' "$P1_FILE" 2>/dev/null; then
-        ERRORS="${ERRORS}裁剪 P8 需声明 internal_only: true + 理由\n"
+        ERRORS="${ERRORS}裁剪 P8 需声明 internal_only: true\n"
+    elif ! grep -qE '^internal_only_reason:' "$P1_FILE" 2>/dev/null; then
+        ERRORS="${ERRORS}裁剪 P8 需 internal_only: true + 理由（internal_only_reason: 字段缺失）\n"
     fi
 fi
 
 # 检查 7：裁剪理由必须含"跳过风险"评估（R3a：self-declaration nudge）
-if ! echo "$PHASES_DECLARED" | grep -qw 'P2' || ! echo "$PHASES_DECLARED" | grep -qw 'P3' || ! echo "$PHASES_DECLARED" | grep -qw 'P7' || ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
+if ! echo "$PHASES_DECLARED" | grep -qw 'P2' || ! echo "$PHASES_DECLARED" | grep -qw 'P3' || ! echo "$PHASES_DECLARED" | grep -qw 'P6' || ! echo "$PHASES_DECLARED" | grep -qw 'P7' || ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
     if ! grep -qE '跳过风险:' "$P1_FILE" 2>/dev/null; then
         ERRORS="${ERRORS}裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）\n"
     fi

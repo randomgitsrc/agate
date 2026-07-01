@@ -191,9 +191,9 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks + pruning_tendency |
 | P1 | 需求基线 | analyst（需求质疑模式）| office-hours（任务属于"适用边界"表的"大任务（跨模块重构）"档，或 P1-requirements.md 的裁剪说明里 pruning_tendency 标"保守"时追加；判断结果写入 P1-requirements.md）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '\[NEED_CONFIRM\]'` → =0；无 `status: GAP`（supplementable 不阻塞） |
-| P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，hook 对 agent=main 输出 WARNING）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → =4；v0.6 不可裁（例外口：design_trivial / follows_existing_pattern）；v0.6 强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时跳过） |
+| P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，hook 对 agent=main 输出 WARNING）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由' P2-design.md` → 命中；v0.6 不可裁（例外口：design_trivial / follows_existing_pattern）；v0.6 强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时跳过） |
 | P3 | 测试设计 | test-designer | gate 自检（TDD 红灯）| `scripts/check-tdd-red.sh` exit 0 |
-| P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | `git log --oneline -1` 含 P4 commit |
+| P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5 | 技术验证 | verifier | gate 自检（从 P2 gate_commands.P5 读取命令）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |
 | P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.sh P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）；`scripts/check-p6-provenance.sh` exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）；主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）；UI 条件须 vision-analyst YAML `summary.blocker_count==0`（R1b 已 hook 化）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） |
 | P7 | 一致性检查 | architect | gate 自检（grep BLOCKER + DEVIATION-CRITICAL）| `grep -cE '\[BLOCKER\]' P7-consistency.md` → =0；`grep -cE '\[DEVIATION-CRITICAL\]'` → =0 ⚠️ self-authored |
@@ -218,7 +218,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | 1 | `check-gate.sh` | `.state.yaml` phase 变更或阶段产出文件变更 | 阶段级 | P1.1 gate 校验 |
 | 1.6 | `check-changelog.sh` | gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6）|
 | 1.7 | `check-p6-evidence.sh` | 阶段 ∈ {P6, P7} | 阶段级 | P6-evidence/ 非空 + BDD 行数 ≥ 1（P1.7）|
-| 2.1 | `check-p6-provenance.sh` | gate 通过后 | 阶段级 | 三道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
+| 2.1 | `check-p6-provenance.sh` | gate 通过后 | 阶段级 | 四道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照 + UI vision YAML 审计 [R1b]）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
 | 2.3 | `check-state-transition.sh` | gate 通过后 | 阶段级 | 状态转移合法性 + 重试上限（P2.3-P2.5）|
 | 2.7 | `check-pruning.sh` | gate 通过后 | 阶段级 | 裁剪条件与实际执行一致性 + override 校验（P2.7-P2.9）|
 | 2.11 | `check-scope-resolved.sh` | gate 通过后 | 阶段级 | `[SCOPE+]` 必须有 `[SCOPE_RESOLVED:...]` 标记（P2.11）|

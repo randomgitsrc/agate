@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # check-p6-provenance.sh — P6 验收客观行为审计（P2.1/P2.10 降级方案 v2）
-# 三道客观审计 + agent 字段协作规范
+# 四道客观审计 + agent 字段协作规范
 # exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
 
 set -euo pipefail

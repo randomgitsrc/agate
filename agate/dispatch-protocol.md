@@ -356,7 +356,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 **P5/P6 派发时追加**：
 ```
 ## 截图质量标准
-操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。
+操作类 BDD 截图必须互不相同（md5 去重，建议），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，建议）。
 ## P6 BDD 二值规则
 每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
 ## P6 BDD 结果格式
@@ -367,7 +367,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 - FAIL B02: 过期链接返回 410
 ## P6 BDD 覆盖完整性
 P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
-P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
+P1 有 N 条 BDD → P6 必须有 ≥N 条验收结果（PASS 或 FAIL，允许 SCOPE+ 增补）。挑验 < N = gate 不通过。
 ## P6 证据要求
 每条 BDD 验收结果必须有对应证据文件，存入 docs/tasks/{Txxx}/P6-evidence/。
 证据类型：
@@ -574,11 +574,11 @@ setTimeout(() => {
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
 | P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中`|
-| P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → =4` |
+| P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由' P2-design.md` → 命中 + 候选方案 ≥2（`scripts/check-gate.sh P2` 脚本化部分）|
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
-| P4→P5 | 实现完成 | P4-implementation/ 下文件非空 + `git log --oneline -1` → 含 "P4" 或 "wf(Txxx-P4)" |
+| P4→P5 | 实现完成 | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + `grep -rl '\[PROD_TOUCHED\]' {task}/` → 无命中（匹配标记格式）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
-| P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.sh P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.sh` → exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）+ 主 Agent 手动核实 `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md` = P1 BDD 总数（provenance exit 2 时必做）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
+| P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.sh P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.sh` → exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）+ 主 Agent 手动核实 `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md` = P1 BDD 总数（provenance exit 2 时必做）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，建议），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，建议）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
 | P7→P8 | 一致性通过 ⚠️ self-authored | `grep -cE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md → =0` + `grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' P7-consistency.md → =0`（已知限制：定性分析，P5 回归测试兜底）|
 | P8→READY | 发布准备完成 | `scripts/check-gate.sh P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + 从 P2 `packages` 验证 version 文件路径变更 + `grep -q 'bump_type:' P8-release.md` → 命中 + `git diff --cached --stat` → 含 version 文件变更 + `git diff --cached -- ${CHANGELOG_FILE:-CHANGELOG.md}` → 非空（默认 CHANGELOG.md，`CHANGELOG_FILE` 环境变量可覆盖）|
 
@@ -598,14 +598,15 @@ setTimeout(() => {
 | 阶段/机制 | 检查脚本 | 用途 |
 |------|------|------|
 | 文件级 P2.15 | `scripts/check-state-yaml.sh` | `.state.yaml` 格式合法（必填字段、phase 取值、retries 结构）|
-| 阶段级 P1.1 | `scripts/check-gate.sh` | 各阶段门控规则 |
-| 阶段级 P1.7 | `scripts/check-p6-evidence.sh` | P6/P7 阶段：证据目录非空 + BDD 行数 ≥ 1 |
-| 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（证据-结论对应 + dispatch-context + BDD 总数）|
+| 全局 P1.2 | — | `[PROD_TOUCHED]` 标记检测（扫描暂存 diff 内容，命中则中止 commit）|
 | 阶段级 P2.3-P2.5 | `scripts/check-state-transition.sh` | 状态转移合法性 + 重试上限 |
+| 阶段级 P1.1 | `scripts/check-gate.sh` | 各阶段门控规则 |
+| 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（证据-结论对应 + dispatch-context + BDD 总数）|
 | 阶段级 P2.7-P2.9 | `scripts/check-pruning.sh` | 裁剪条件 + override 校验（v0.6：P2 不可裁，例外口 design_trivial / follows_existing_pattern） |
 | 阶段级 P2.11 | `scripts/check-scope-resolved.sh` | `[SCOPE+]` 标记追踪 |
 | 提醒级 P2.12 | `scripts/check-retrospective.sh` | 异常模式提醒（不拦截）|
 | 提醒级 P1.6 | `scripts/check-changelog.sh` | `[Unreleased]` 含 task_id |
+| 阶段级 P1.7 | `scripts/check-p6-evidence.sh` | P6/P7 阶段：证据目录非空 + BDD 行数 ≥ 1 |
 
 **CI backstop（P1.3）**：`push` 后 GitHub Actions `.github/workflows/protocol-consistency.yml` 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit；并对 `P6-acceptance.md` 单 author 情况发 WARNING 作为兜底审计。
 

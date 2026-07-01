@@ -17,6 +17,21 @@
   - 重试上限改为按阶段差异化：P3/P5/P6/P7/P8 = 2（上限定严，少轮次），P1/P2/P4 = 3。之前所有阶段统一为 3
 - **check-retrospective.sh 同步**：复盘提醒的重试阈值改为按阶段差异化，与 check-state-transition.sh 保持同步
 - **state-machine.md L407-411 回退跳变规则**：去绝对值，明确为回退方向（current - next >= 2）。前向跨阶跳不由本检查拦截，由 P5 gate 的阶段产出文件检查兜底
+- **check-pruning.sh 行为变更**：
+  - P8 裁剪新增 `internal_only_reason:` 字段检查（之前只查 `internal_only: true`，现在还需理由字段）
+  - P6 裁剪新增"跳过风险:"评估要求（检查 7 条件补 P6）
+- **check-gate.sh P2 行为变更**：
+  - 新增 P2-review.md `status: approved` 检查（评审文件存在时）
+  - 新增 P2-design.md 四字段计数（packages/domains/ui_affected/gate_commands ≥4）
+  - 新增 P2-design.md 权衡/选择理由 form check
+- **门槛表对齐**：P4 门槛从 `git log` / `P4-implementation/ 下文件非空` 改为 `git diff --cached` 暂存区检查（对齐脚本实际行为）
+- **P3 裁剪措辞**：state-machine.md 从"需 risk_level=low"改为"high 风险不可裁"（对齐脚本实际行为——medium 放行）
+- **P8 裁剪文档**：明确字段名 `internal_only_reason: <理由>`（之前只写"理由"未指定字段名）
+- **md5 去重措辞**：从"hook 强制"改为"建议"（dispatch-protocol.md / task-files.md / verifier.md）
+- **BDD 总数对照**：从"="改为"≥"（允许 SCOPE+ 增补）
+- **客观审计计数**：从"三道"统一为"四道"（R1b vision YAML 审计已落地）
+- **P3 UI 用例**：从"gate 不通过"改为"主 Agent 确认"（P3 gate 不检查 UI 用例存在性）
+- **pre-commit 表格**：补 P1.2 PROD_TOUCHED 行 + 调顺序对齐脚本实际执行顺序
 
 ### 影响
 - 下游项目（如 PeekView）：重试超限会更早触发 PAUSED（少 1 轮），跨阶段回退会被强制 PAUSED（之前只警告）

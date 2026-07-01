@@ -160,10 +160,11 @@ load ../helpers/load.bash
     [[ "$output" == *"P8 不可裁"* || "$output" == *"internal_only"* ]]
 }
 
-@test "P2.7a check-pruning.sh 裁剪 P8 + internal_only: true 放行" {
+@test "P2.7a check-pruning.sh 裁剪 P8 + internal_only: true + internal_only_reason 放行" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P7)
     add_p1_field "$dir" "internal_only" "true"
+    add_p1_field "$dir" "internal_only_reason" "内部工具，无外部用户"
     add_pruning_excuse "$dir" P8 "内部任务" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 0 ]
@@ -182,6 +183,50 @@ EOF
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"跳过风险"* ]]
+}
+
+# ============== 检查 8a：P6 裁剪需跳过风险 ==============
+
+@test "P2.12 check-pruning.sh P6 裁剪无跳过风险 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P7 P8)
+    add_p1_field "$dir" "no_behavior_change" "true"
+    # 不写跳过风险
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"跳过风险"* ]]
+}
+
+@test "P2.12a check-pruning.sh P6 裁剪 + no_behavior_change + 跳过风险 期望 exit 0" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P7 P8)
+    add_p1_field "$dir" "no_behavior_change" "true"
+    add_pruning_excuse "$dir" P6 "无行为变更" "低"
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+# ============== 检查 8b：P8 裁剪需 internal_only_reason ==============
+
+@test "P2.13 check-pruning.sh 裁剪 P8 有 internal_only 无 reason 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P7)
+    add_p1_field "$dir" "internal_only" "true"
+    add_pruning_excuse "$dir" P8 "内部任务" "低"
+    # 只加 internal_only: true，不加 internal_only_reason
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"internal_only_reason"* ]]
+}
+
+@test "P2.14 check-pruning.sh 裁剪 P8 + internal_only + internal_only_reason 期望 exit 0" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P7)
+    add_p1_field "$dir" "internal_only" "true"
+    add_p1_field "$dir" "internal_only_reason" "内部工具，无外部用户"
+    add_pruning_excuse "$dir" P8 "内部任务" "低"
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 0 ]
 }
 
 # ============== 检查 9：裁剪声明与执行不一致 ==============

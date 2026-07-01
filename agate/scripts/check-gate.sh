@@ -29,6 +29,23 @@ case "$PHASE" in
               echo "GATE P2: P2-design.md 需至少 2 个候选方案 + 权衡 + 选择理由（v0.6 多方案探索）" >&2
               exit 1
           fi
+          P2_REVIEW="$TASK_DIR/P2-review.md"
+          if [ -f "$P2_REVIEW" ]; then
+              if ! grep -qE 'status:\s*approved' "$P2_REVIEW" 2>/dev/null; then
+                  echo "GATE P2: P2-review.md 缺 status: approved" >&2
+                  exit 1
+              fi
+          fi
+          FIELD_COUNT=$(grep -cE '^(packages|domains|ui_affected|gate_commands):' "$P2_FILE" 2>/dev/null || echo 0)
+          FIELD_COUNT=$(echo "$FIELD_COUNT" | tail -1)
+          if [ "$FIELD_COUNT" -lt 4 ]; then
+              echo "GATE P2: P2-design.md 缺字段（需 packages/domains/ui_affected/gate_commands 四字段，实际 ${FIELD_COUNT}）" >&2
+              exit 1
+          fi
+          if ! grep -qE '权衡|选择理由' "$P2_FILE" 2>/dev/null; then
+              echo "GATE P2: P2-design.md 有 ≥2 候选方案但缺'权衡'或'选择理由'描述" >&2
+              exit 1
+          fi
       fi
       echo "GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;

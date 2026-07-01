@@ -12,11 +12,22 @@ load ../helpers/load.bash
     [[ "$output" == *"internal_only"* ]]
 }
 
-@test "R4.2 裁剪 P8 + internal_only: true → exit 0" {
+@test "R4.2 裁剪 P8 + internal_only: true + internal_only_reason → exit 0" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P7)
+    add_p1_field "$dir" "internal_only" "true"
+    add_p1_field "$dir" "internal_only_reason" "内部工具，无外部用户"
+    add_pruning_excuse "$dir" P8 "内部任务" "低"
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "R4.3 裁剪 P8 + internal_only: true 但无 internal_only_reason → exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P7)
     add_p1_field "$dir" "internal_only" "true"
     add_pruning_excuse "$dir" P8 "内部任务" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"internal_only_reason"* ]]
 }

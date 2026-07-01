@@ -46,6 +46,12 @@ EOF
 # P2 design
 ### 候选方案 A：方案一
 ### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -67,6 +73,125 @@ EOF
 @test "G2.5 check-gate.sh P2 无 P2 文件（design_trivial 裁剪）期望 exit 2" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)  # P2 不在
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.8 check-gate.sh P2 候选方案 ≥2 但无权衡 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"权衡"* ]]
+}
+
+@test "G2.9 check-gate.sh P2 候选方案 ≥2 + 含权衡 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+方案 A 更简单但性能差，方案 B 复杂但性能好。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.10 check-gate.sh P2 有候选方案+权衡+四字段，P2-review.md 无 status:approved 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: test
+---
+status: rejected
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"status: approved"* ]]
+}
+
+@test "G2.11 check-gate.sh P2 有候选方案+权衡+四字段+status:approved 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: test
+---
+status: approved
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.12 check-gate.sh P2-design.md 缺字段（<4）期望 exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"缺字段"* ]]
+}
+
+@test "G2.13 check-gate.sh P2 有候选方案+权衡+四字段，无 P2-review.md 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -402,11 +527,16 @@ EOF
 @test "G2.6 check-gate.sh P2 方案 A/B/C 多种命名（regex [ABC123]）" {
     local dir
     dir=$(create_task_dir)
-    # regex 是 ^###?\s*方案[ABC123]（无空格），所以"方案A""方案B"可识别
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 ### 方案A
 ### 方案B
+## 权衡
+A 简单，B 稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -419,8 +549,13 @@ EOF
 # P2 design
 ## 候选方案 A
 ## 候选方案 B
+## 权衡
+A 简单，B 稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
 EOF
-    # ^###? 匹配 ## 和 ###
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
