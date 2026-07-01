@@ -68,8 +68,11 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - **格式关**：`.state.yaml` 必须含 `task_id/phase/status/retries` 字段——不合法直接拦截
 - **行为关**：gate 命令 exit code 决定能否进入下一阶段（不依赖 subagent 自我报告，C7 规则）
 - **审计关**：
-  - P6 客观行为审计：证据文件存在 + 数量匹配 + BDD 总数对照；缺 agent 字段 WARNING（不阻塞，向后兼容）
+  - P6 客观行为审计：证据文件存在 + 数量匹配 + BDD 总数对照 + vision YAML 引用；缺 agent 字段 WARNING（不阻塞，向后兼容）
   - 裁剪条件验证：声明裁剪的阶段必须满足条件（risk_level=low 等），否则拦截
+  - 状态转移合法性 + 重试上限（P2.3-P2.5）：非法转移拦截，重试超限须 PAUSED
+  - SCOPE+ 增补追踪（P2.11）：有 `[SCOPE+]` 但 P1 无 `[SCOPE_RESOLVED]` → 拦截
+  - `[PROD_TOUCHED]` 检测（P1.2）：暂存 diff 含此标记 → 拦截 commit
   - 复盘提醒：异常模式（重试 ≥3 次、SCOPE+、override）触发 P2.12 复盘提醒，**不阻塞** commit
 - **CI 兜底**：push 后 GitHub Actions 重跑 gate + git blame 单 author WARNING，捕获 `--no-verify` 绕过
 
@@ -79,8 +82,9 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 - 永远不要 `--no-verify` 绕过 hook（CI 兜底会抓到）
 - 永远不要在 `dispatch-context.md` 里写 PASS/FAIL 预判（会被 provenance 拦）
-- 永远不要在没有 `NO_BEHAVIOR_CHANGE: true` 时裁剪 P6（不验证 P6 意味着没验收）
-- 永远不要在没有 `design_trivial: true` 或 `follows_existing_pattern: [参照文件]` 时裁剪 P2（v0.6：方案设计是必经阶段，P1 看不到 P2 会发现什么）
+- 永远不要在没有 `no_behavior_change: true` 时裁剪 P6（不验证 P6 意味着没验收）
+- 永远不要在没有 `design_trivial: true` 或 `follows_existing_pattern: [参照文件]` 或 `legacy_p2_pruned: true` 时裁剪 P2（v0.6：方案设计是必经阶段，P1 看不到 P2 会发现什么）
+- P4 的 `[DESIGN_GAP:]` 必须在 P7 被转抄 + 配对 `[DESIGN_GAP_REVIEWED:]`——否则 gate 拦截（v0.6：P4/P7 交叉核对）
 
 ## 工作流规则
 
@@ -121,6 +125,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - 项目配置：`{project_root}/CLAUDE.md`（或 `AGENTS.md`）
 - 任务看板：`{project_root}/docs/tasks/active-tasks.md`
 - 任务目录：`{project_root}/docs/tasks/`（任务目录名是 `Txxx-描述` 格式，不是纯编号——见 WORKFLOW.md「任务目录命名约定」）
+- **pre-commit hook**：`bash ~/.agate/scripts/install-hook.sh`（首次接入时执行，启用 9 项 gate 检查）
 
 ## 项目特定约束
 
@@ -140,6 +145,7 @@ platform: opencode          # opencode | claude-code | codex | claude-project
 has_task_tool: true         # false = 单 Agent 模式，参考 agate README 降级说明
 has_local_runtime: true     # false = P3-P8 需交接有本地环境的 Agent
 network: full               # full | restricted
+# model_tier: "standard"    # 可选：协议不硬编码模型选择，设了会写入 P0-brief 供 subagent 参考
 ```
 
 ---
