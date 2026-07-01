@@ -86,13 +86,17 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - 永远不要在没有 `design_trivial: true` 或 `follows_existing_pattern: [参照文件]` 或 `legacy_p2_pruned: true` 时裁剪 P2（v0.6：方案设计是必经阶段，P1 看不到 P2 会发现什么）
 - P4 的 `[DESIGN_GAP:]` 必须在 P7 被转抄 + 配对 `[DESIGN_GAP_REVIEWED:]`——否则 gate 拦截（v0.6：P4/P7 交叉核对）
 
-## 工作流规则
+## 接入时机
 
-遵循 **agate** 工作流。**启动时先跑** `bash ~/.agate/scripts/agate-summary.sh` 确认当前协议版本；若知道上次会话版本，跑 `bash ~/.agate/scripts/agate-changes.sh v0.x.0` 看差异决定重读哪些文件，不知道就全量重读下面的 8 文件。
+### 项目首次接入（一次性）
 
-**第一次启动**（一次性）：先读 `{agate_root}/AGENTS.md`（协议本体入口指引 + 角色清单 + 升级/卸载），它会指向下面的必读文件。后续会话不需要重读 AGENTS.md——它只起「找路」作用，规则本身在下面 8 个文件里。
+1. `bash ~/.agate/scripts/install-hook.sh` — 安装 pre-commit hook（启用 9 项 gate 检查）
+2. `mkdir -p {project_root}/docs/tasks/` — 创建任务目录
+3. 从 `{agate_root}/assets/templates/active-tasks-template.md` 复制结构到 `docs/tasks/active-tasks.md`（清空示例数据）
 
-**每次启动**（含抗中断恢复）：依次读完以下 8 个文件（一次性固定开销，不是"按需"判断——按需读取的前提是"知道什么时候需要"，而这恰恰不可靠）：
+### 每个新会话启动（含中断恢复）
+
+**协议文件**（依次读完，不可跳过——"按需读取"的前提是"知道什么时候需要"，而这恰恰不可靠）：
 
 1. `{agate_root}/WORKFLOW.md` — 阶段总览、角色映射、裁剪规则
 2. `{agate_root}/dispatch-protocol.md` — 派发模板、gate 表、特殊事件处理
@@ -103,35 +107,31 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 7. `{agate_root}/platform-notes.md` — 各平台能力差异、已知坑
 8. `{agate_root}/LIMITATIONS.md` — 已知限制与缓解（subagent 空返回、prod_env 不在范围等）
 
-**会话被压缩/中断后重新接手任务，等同于一次新的启动**：同样要重新依次读完这 8 个文件，不能假设之前读过的内容还在上下文里。（任务进度可以从 active-tasks.md 重建，但协议规则本身不会自动出现在上下文里——这是两类不同的状态，见 state-machine.md「为什么这样能抗中断」）
-
-`assets/execution-roles/` 和 `assets/templates/` 不在此列——这些是 subagent 在独立上下文里读的，编排者（你）不需要读，只需要知道"P1 派 analyst"，WORKFLOW.md 里已有角色映射表。
-
-**每次任务开始前**：
-
-1. 检查 `{project_root}/docs/tasks/active-tasks.md` 是否存在
-   - **不存在**（项目首次接入 agate，这是正常情况）：
-     `mkdir -p {project_root}/docs/tasks/`，
-     从 `{agate_root}/assets/templates/active-tasks-template.md` 复制结构过去（清空示例数据），
-     视为"无进行中任务"，直接进入第 2 步创建第一个任务
-   - **存在**：读取，确认有无进行中任务
-2. 无进行中任务 → 启动新任务，**先写 P0-brief.md**（主 Agent 职责，非 subagent 产出）
-   - P0-brief 五字段自查（task / known_risks / executor_env / env_constraints / pruning_tendency），任一字段为空占位符 → 补完再派发 P1 analyst
-   - 详见 dispatch-protocol.md「标准派发流程」步骤 0
-3. 有进行中任务 → 读 `.state.yaml` → 确认当前阶段 + 重试记录 → 进入「单步函数」流程（state-machine.md「主 Agent 的单步执行（一轮）」节）
-
-## 项目文件（每次新会话先读）
+**项目文件**（同轮读完）：
 
 - `{project_root}/CLAUDE.md`（或 `AGENTS.md`）— 项目约定
 - `{project_root}/docs/tasks/active-tasks.md` — 任务看板
 - {项目特有的必读文件，如 DESIGN.md / INDEX.md / ARCHITECTURE.md 等，没有就删这行}
+
+**版本感知**：先跑 `bash ~/.agate/scripts/agate-summary.sh` 确认当前协议版本；若知道上次会话版本，跑 `bash ~/.agate/scripts/agate-changes.sh v0.x.0` 看差异决定重读哪些文件，不知道就全量重读。
+
+**中断恢复 = 新会话**：会话被压缩/中断后重新接手，等同于一次新的启动——重新读完上述文件。任务进度可以从 active-tasks.md 重建，但协议规则本身不会自动出现在上下文里（这是两类不同的状态，见 state-machine.md「为什么这样能抗中断」）。
+
+`assets/execution-roles/` 和 `assets/templates/` 不在此列——这些是 subagent 在独立上下文里读的，编排者（你）不需要读，只需要知道"P1 派 analyst"，WORKFLOW.md 里已有角色映射表。
+
+### 每个任务开始
+
+1. 读 `docs/tasks/active-tasks.md`，确认有无进行中任务
+2. 无进行中任务 → 启动新任务，**先写 P0-brief.md**（主 Agent 职责，非 subagent 产出）
+   - P0-brief 五字段自查（task / known_risks / executor_env / env_constraints / pruning_tendency），任一字段为空占位符 → 补完再派发 P1 analyst
+   - 详见 dispatch-protocol.md「标准派发流程」步骤 0
+3. 有进行中任务 → 读 `.state.yaml` → 确认当前阶段 + 重试记录 → 进入「单步函数」流程（state-machine.md「主 Agent 的单步执行（一轮）」节）
 
 ## 项目约定
 
 - 项目配置：`{project_root}/CLAUDE.md`（或 `AGENTS.md`）
 - 任务看板：`{project_root}/docs/tasks/active-tasks.md`
 - 任务目录：`{project_root}/docs/tasks/`（任务目录名是 `Txxx-描述` 格式，不是纯编号——见 WORKFLOW.md「任务目录命名约定」）
-- **pre-commit hook**：`bash ~/.agate/scripts/install-hook.sh`（首次接入时执行，启用 9 项 gate 检查）
 
 ## 项目特定约束
 
