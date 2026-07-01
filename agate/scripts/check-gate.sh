@@ -42,10 +42,14 @@ case "$PHASE" in
       echo "GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P6)
-      # grep -c 无匹配时返回 exit 1，|| echo 0 处理此情况
+      # grep -c 无匹配时返回 exit 1 + 触发 || echo 0 兜底，输出 "0\n0" 会让 [ -ne 0 ] 报整数错误
+      # 加 echo "$VAR" | tail -1 拿到最后一行（与 P7 同款 fix）
       TOTAL=$(grep -cE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      TOTAL=$(echo "$TOTAL" | tail -1)
       FAIL=$(grep -cE '^\s*- FAIL\b' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      FAIL=$(echo "$FAIL" | tail -1)
       NC=$(grep -cE '\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      NC=$(echo "$NC" | tail -1)
       if [ "$FAIL" -ne 0 ] || [ "$NC" -ne 0 ] || [ "$TOTAL" -eq 0 ]; then
           echo "GATE P6: FAIL=$FAIL, NEED_CONFIRM=$NC, TOTAL=$TOTAL" >&2
           exit 1
