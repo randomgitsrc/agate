@@ -596,7 +596,7 @@ setTimeout(() => {
 | 阶段级 P1.7 | `scripts/check-p6-evidence.sh` | P6/P7 阶段：证据目录非空 + BDD 行数 ≥ 1 |
 | 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（证据-结论对应 + dispatch-context + BDD 总数）|
 | 阶段级 P2.3-P2.5 | `scripts/check-state-transition.sh` | 状态转移合法性 + 重试上限 |
-| 阶段级 P2.7-P2.9 | `scripts/check-pruning.sh` | 裁剪条件 + override 校验 |
+| 阶段级 P2.7-P2.9 | `scripts/check-pruning.sh` | 裁剪条件 + override 校验（v0.6：P2 不可裁，例外口 design_trivial / follows_existing_pattern） |
 | 阶段级 P2.11 | `scripts/check-scope-resolved.sh` | `[SCOPE+]` 标记追踪 |
 | 提醒级 P2.12 | `scripts/check-retrospective.sh` | 异常模式提醒（不拦截）|
 | 提醒级 P1.6 | `scripts/check-changelog.sh` | `[Unreleased]` 含 task_id |

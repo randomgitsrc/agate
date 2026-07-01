@@ -161,7 +161,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   跳过时，当前阶段的 gate 自动判定为"通过"，直接转移到裁剪声明中的下一个阶段。
 
   **裁剪条件（hook 验证，见 scripts/check-pruning.sh）**：
-  - 裁剪 P2：需 risk_level=low（BDD 数限制由主 Agent 判断，hook 不验证——格式不固定）
+  - 裁剪 P2：不可裁（v0.6：方案设计 + 评审是必经阶段。P1 analyst 做需求分析不做方案设计，无法预知 P2 architect 会发现哪些 P0/P1 没想到的问题。例外口：`design_trivial: true` 纯 typo/文案/配置值修改，或 `follows_existing_pattern: [参照文件]` 照搬已有模式。过渡期：`legacy_p2_pruned: true`）
   - 裁剪 P3：需 risk_level=low（high 风险不可裁）
   - 裁剪 P6：不可裁（除非 no_behavior_change: true）
   - 裁剪 P7：需源码文件数 ≤ 5 AND 无 implicit_coupling 声明（隐式耦合维度，self-declaration。如共享 CSS class、API schema、数据模型、配置项等）

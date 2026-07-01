@@ -43,10 +43,19 @@ if [ -z "$RISK_LEVEL" ]; then
     ERRORS="${ERRORS}P1-requirements.md 缺 risk_level 字段\n"
 fi
 
-# 检查 2：裁剪 P2 的条件
+# 检查 2：P2 不可裁剪（除非 design_trivial / follows_existing_pattern / legacy_p2_pruned）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P2'; then
-    if [ "$RISK_LEVEL" != "low" ]; then
-        ERRORS="${ERRORS}裁剪 P2 需 risk_level=low，实际=${RISK_LEVEL}\n"
+    # 过渡期：legacy_p2_pruned 字段放行（一次性迁移标记）
+    if grep -qE '^legacy_p2_pruned:\s*true' "$P1_FILE" 2>/dev/null; then
+        : # 放行，不报错
+    # 例外口 1：design_trivial（typo / 文案 / 配置值修改）
+    elif grep -qE '^design_trivial:\s*true' "$P1_FILE" 2>/dev/null; then
+        : # 放行
+    # 例外口 2：follows_existing_pattern（须含参照文件路径 [xxx]）
+    elif grep -qE '^follows_existing_pattern:\s*\[[^]]+\]' "$P1_FILE" 2>/dev/null; then
+        : # 放行
+    else
+        ERRORS="${ERRORS}P2 不可裁剪（除非 design_trivial: true 或 follows_existing_pattern: [参照文件]）\n"
     fi
 fi
 

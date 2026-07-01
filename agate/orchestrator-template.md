@@ -80,6 +80,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - 永远不要 `--no-verify` 绕过 hook（CI 兜底会抓到）
 - 永远不要在 `dispatch-context.md` 里写 PASS/FAIL 预判（会被 provenance 拦）
 - 永远不要在没有 `NO_BEHAVIOR_CHANGE: true` 时裁剪 P6（不验证 P6 意味着没验收）
+- 永远不要在没有 `design_trivial: true` 或 `follows_existing_pattern: [参照文件]` 时裁剪 P2（v0.6：方案设计是必经阶段，P1 看不到 P2 会发现什么）
 
 ## 工作流规则
 
