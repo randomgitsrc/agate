@@ -125,7 +125,7 @@ P7 --[! grep -qE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md AND ! grep -qE '^\s*-?
      完整性由 P5 回归测试兜底）
 P7 --[retry>=MAX]--> PAUSED
 
-P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff HEAD~1 --stat 确认各包 version bump + git diff HEAD~1 -- CHANGELOG.md 非空]--> READY
+P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空]--> READY
      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
 
 ### READY 收尾检查（P8 gate 通过后、标记 READY 前）
@@ -400,8 +400,8 @@ function 执行一步(task_id):
               git log v{prev_version}..HEAD --oneline 对照 CHANGELOG 条目 → 无遗漏;
               从 P2-design.md packages 验证 version 文件路径变更;
               grep -q 'bump_type:' {task}/P8-release.md → 命中;
-              git diff HEAD~1 --stat → 含 version 文件变更;
-              git diff HEAD~1 -- ${CHANGELOG_FILE:-CHANGELOG.md} → 非空
+               git diff --cached --stat → 含 version 文件变更;
+               git diff --cached -- ${CHANGELOG_FILE:-CHANGELOG.md} → 非空
               （CHANGELOG 是项目根文件，默认 CHANGELOG.md；项目可用 CHANGELOG_FILE 环境变量覆盖路径）
     6. 计算下一状态（按转移规则）
        **回退跳变检测**（T019 教训：P5→P2 跨 3 阶段回退未 PAUSED）：

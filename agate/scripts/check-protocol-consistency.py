@@ -15,6 +15,7 @@ agate 协议结构一致性检查 (P3-1)
   CHECK 5  「N 个协议文件」计数声明 vs 实际列表长度（锚点白名单）   (对应 P1-1)
    CHECK 6  README LICENSE 徽章指向的文件存在 + gstack MIT 归属保留  (对应 P0-2)
    CHECK 7  README version badge 与最新 git tag 一致
+   CHECK 8  v0.6 关键词存在性（DESIGN_GAP / design_trivial / model_tier / --cached）
 
 退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
@@ -445,6 +446,33 @@ def check_version_badge(root: Path, rep: Report) -> None:
         rep.ok("CHECK7-version")
 
 
+# ── CHECK 8: v0.6 关键词存在性 ──────────────────────────────────────────────
+
+V06_KEYWORD_ASSERTIONS = [
+    ("DESIGN_GAP", "agate/assets/execution-roles/implementer.md", "implementer 角色文件"),
+    ("DESIGN_GAP", "agate/assets/execution-roles/architect.md", "architect 角色文件"),
+    ("DESIGN_GAP", "agate/scripts/check-gate.sh", "P7 gate 脚本"),
+    ("design_trivial", "agate/scripts/check-pruning.sh", "裁剪检查脚本"),
+    ("design_trivial", "agate/state-machine.md", "状态机文档"),
+    ("model_tier", "agate/assets/templates/task-files.md", "任务文件模板"),
+    ("--cached", "agate/scripts/check-gate.sh", "P4/P8 gate 脚本"),
+    ("--cached", "agate/scripts/check-pruning.sh", "裁剪检查脚本"),
+]
+
+
+def check_v06_keywords(root: Path, rep: Report) -> None:
+    for keyword, rel_path, description in V06_KEYWORD_ASSERTIONS:
+        fpath = root / rel_path
+        if not fpath.exists():
+            rep.warn("CHECK8-v06", f"{description} ({rel_path}) 不存在", loc=rel_path)
+            continue
+        text = fpath.read_text(encoding="utf-8")
+        if keyword not in text:
+            rep.error("CHECK8-v06", f"{description} ({rel_path}) 缺少 v0.6 关键词 '{keyword}'", loc=rel_path)
+        else:
+            rep.ok("CHECK8-v06")
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
 
 CHECKS = [
@@ -455,6 +483,7 @@ CHECKS = [
     ("CHECK 5  协议文件计数声明正确", check_file_count_anchors),
     ("CHECK 6  LICENSE 与 gstack 归属", check_license),
     ("CHECK 7  version badge 与 git tag", check_version_badge),
+    ("CHECK 8  v0.6 关键词存在性", check_v06_keywords),
 ]
 
 

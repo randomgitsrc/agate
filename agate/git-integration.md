@@ -168,6 +168,8 @@ git 集成自 v0.4 hardening-roadmap 起承担了新的角色：**阶段 commit 
 | 任何 commit | 异常模式提醒（P2.12）| 检测到 gate 重试 ≥3 / SCOPE+ / override → 提醒写复盘（不阻塞）|
 | 任何 commit | CHANGELOG `[Unreleased]` 含 task_id（P1.6）| 缺记录 → 警告（不阻塞）|
 
+**`--cached` vs `HEAD~1`**：pre-commit hook 运行时 commit 尚未创建，所有 `git diff` 必须用 `--cached`（暂存区 vs HEAD），不能用 `HEAD~1`（上一个 commit）。P4/P7/P8 的源文件数检查、version bump 检查、CHANGELOG 检查均遵循此规则。主 Agent 手动验证（commit 后）可用 `HEAD~1`，但 hook 场景下 `--cached` 是唯一正确选择。
+
 **commit message 建议**：虽然是 wf()/feat()/fix() 前缀规则，但 hardening 后建议在 message body 里提"阶段"：
 
 ```
