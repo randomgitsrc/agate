@@ -16,8 +16,9 @@ agate 协议结构一致性检查 (P3-1)
    CHECK 6  README LICENSE 徽章指向的文件存在 + gstack MIT 归属保留  (对应 P0-2)
    CHECK 7  README version badge 与最新 git tag 一致
    CHECK 8  v0.6 关键词存在性（DESIGN_GAP / design_trivial / model_tier / --cached）
+   CHECK 9  协议-脚本结构对齐（锚点表：文档声明的规则 vs 脚本关键词存在性）
 
-退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
+ 退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
 用法：
   python3 scripts/check-protocol-consistency.py            # 从仓库根运行
@@ -475,6 +476,121 @@ def check_v06_keywords(root: Path, rep: Report) -> None:
             rep.ok("CHECK8-v06")
 
 
+# ── CHECK 9: 协议-脚本结构对齐 ────────────────────────────────────────────
+
+# 锚点表：文档声明的规则 → 对应脚本应含的关键词。
+# 白名单式（和 CHECK 5 同模式），只盯死已知锚点。
+#
+# 局限性：关键词存在 ≠ 语义一致（见 plan §2.4 三类假阳性）。
+# 本检查只做结构兜底，语义对齐由 LLM 审查层（protocol-alignment-review）保证。
+SCRIPT_ALIGNMENT_ANCHORS = [
+    {
+        "desc": "裁剪 P2 条件（design_trivial / follows_existing_pattern / legacy_p2_pruned）",
+        "script": "agate/scripts/check-pruning.sh",
+        "keywords": ["design_trivial", "follows_existing_pattern", "legacy_p2_pruned"],
+    },
+    {
+        "desc": "裁剪 P3 条件（risk_level）",
+        "script": "agate/scripts/check-pruning.sh",
+        "keywords": ["risk_level"],
+    },
+    {
+        "desc": "裁剪 P6 条件（no_behavior_change）",
+        "script": "agate/scripts/check-pruning.sh",
+        "keywords": ["no_behavior_change"],
+    },
+    {
+        "desc": "裁剪 P7 条件（源码文件数）",
+        "script": "agate/scripts/check-pruning.sh",
+        "keywords": ["源码"],
+    },
+    {
+        "desc": "裁剪 P8 条件（internal_only）",
+        "script": "agate/scripts/check-pruning.sh",
+        "keywords": ["internal_only"],
+    },
+    {
+        "desc": "重试上限检查（MAX_RETRY）",
+        "script": "agate/scripts/check-state-transition.sh",
+        "keywords": ["MAX_RETRY"],
+    },
+    {
+        "desc": "回退跳变检测",
+        "script": "agate/scripts/check-state-transition.sh",
+        "keywords": ["diff", "phase_num"],
+    },
+    {
+        "desc": "PROD_TOUCHED 检测",
+        "script": "agate/scripts/pre-commit-gate.sh",
+        "keywords": ["PROD_TOUCHED"],
+    },
+    {
+        "desc": "SCOPE+ 追踪",
+        "script": "agate/scripts/check-scope-resolved.sh",
+        "keywords": ["SCOPE_RESOLVED"],
+    },
+    {
+        "desc": "DESIGN_GAP 配对",
+        "script": "agate/scripts/check-gate.sh",
+        "keywords": ["DESIGN_GAP"],
+    },
+    {
+        "desc": "P6 evidence UI 检查",
+        "script": "agate/scripts/check-p6-evidence.sh",
+        "keywords": ["ui_affected"],
+    },
+    {
+        "desc": "P6 截图去重（md5）",
+        "script": "agate/scripts/check-p6-evidence.sh",
+        "keywords": ["md5", "去重"],
+    },
+    {
+        "desc": "P6 provenance 审计",
+        "script": "agate/scripts/check-p6-provenance.sh",
+        "keywords": ["EVIDENCE_DIR"],
+    },
+    {
+        "desc": "复盘提醒",
+        "script": "agate/scripts/check-retrospective.sh",
+        "keywords": ["retries"],
+    },
+    {
+        "desc": "P8 CHANGELOG 检查",
+        "script": "agate/scripts/check-changelog.sh",
+        "keywords": ["CHANGELOG"],
+    },
+    {
+        "desc": "state.yaml 格式校验",
+        "script": "agate/scripts/check-state-yaml.sh",
+        "keywords": ["task_id"],
+    },
+    {
+        "desc": "TDD 红灯检查",
+        "script": "agate/scripts/check-tdd-red.sh",
+        "keywords": ["pytest"],
+    },
+]
+
+
+def check_script_alignment(root: Path, rep: Report) -> None:
+    for anchor in SCRIPT_ALIGNMENT_ANCHORS:
+        script_path = root / anchor["script"]
+        if not script_path.exists():
+            rep.error("CHECK9-align",
+                      f"{anchor['desc']}: 脚本不存在 {anchor['script']}",
+                      loc=anchor["script"])
+            continue
+        text = script_path.read_text(encoding="utf-8")
+        for kw in anchor["keywords"]:
+            if kw not in text:
+                rep.warn("CHECK9-align",
+                         f"{anchor['desc']}: 脚本 {anchor['script']} 缺少关键词 '{kw}'"
+                         "（可能未实现，或措辞差异——需 LLM 审查确认）",
+                         loc=anchor["script"])
+            else:
+                rep.ok("CHECK9-align")
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
 
 CHECKS = [
@@ -486,6 +602,7 @@ CHECKS = [
     ("CHECK 6  LICENSE 与 gstack 归属", check_license),
     ("CHECK 7  version badge 与 git tag", check_version_badge),
     ("CHECK 8  v0.6 关键词存在性", check_v06_keywords),
+    ("CHECK 9  协议-脚本结构对齐", check_script_alignment),
 ]
 
 

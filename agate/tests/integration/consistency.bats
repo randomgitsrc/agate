@@ -33,3 +33,16 @@ setup() {
 @test "CON.7 CHECK 7: version badge 同步" {
     [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 7"* ]]
 }
+
+@test "CON.8 CHECK 9: 协议-脚本结构对齐" {
+    # md5 去重的 WARN 是已知的（文档声称 hook 强制但脚本未实现）
+    # 只要有 PASS 就说明锚点表在跑，不要求全 PASS
+    [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 9"* || "$CONSISTENCY_OUTPUT" == *"WARN  CHECK 9"* ]]
+    [[ "$CONSISTENCY_OUTPUT" != *"FAIL  CHECK 9"* ]]
+}
+
+@test "CON.9 CHECK 9: md5 去重缺口确实施 WARN" {
+    # 锁住已知缺口：文档声称 hook 强制 md5 去重但脚本未实现
+    # 防止"删锚点代实现"——如果有人删了 md5 锚点来清 WARN，此测试会红
+    [[ "$CONSISTENCY_OUTPUT" == *"缺少关键词 'md5'"* ]]
+}

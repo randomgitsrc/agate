@@ -6,7 +6,7 @@
 agate/              ← 协议本体（~/.agate 软链接指向这里）
   AGENTS.md         ← 协议本体入口（面向使用者）
   scripts/          ← gate 检查脚本（bash + python3）
-  tests/            ← 154 个 bats 测试用例
+  tests/            ← 161 个 bats 测试用例
   assets/           ← 角色/模板文件
 docs/               ← 项目开发资料（评审、计划、竞争分析）
 .github/workflows/  ← CI
@@ -56,9 +56,19 @@ bash agate/tests/scripts/count-tests.sh
 - mock pytest：`TEST_RUNNER` 环境变量指向 fake 脚本，无需真实 pytest
 - fixture `.state.yaml` 以 `.` 开头，`git add` 需 `-f` 才能暂存
 
+## 改 agate 协议本体的检查清单
+
+改协议文档或脚本时（`agate/scripts/*.sh`、`agate/scripts/check-protocol-consistency.py`、`agate/**/*.md`），除了常规测试，还需：
+
+1. **跑 check-protocol-consistency.py** — 确认 CHECK 1-9 无 ERROR
+2. **派发 protocol-alignment-review subagent** — 语义对齐审查（见 `dispatch-protocol.md`「agate 自身变更的对齐审查」+ `assets/review-roles/protocol-alignment-review.md`）
+3. **读审查报告** — MISALIGNED 必须修复，NEEDS_HUMAN_REVIEW 需附 `[HUMAN_CONFIRMED: ...]` 标记
+4. **跑全量 bats** — 确认无退化
+5. **如果改了 gate 逻辑** — 确认下游项目（如 PeekView）的 gate 仍能跑通
+
 ## 版本发布
 
-1. 确认 154 bats + 0 consistency ERROR + 0 shellcheck error
+1. 确认 161 bats + 0 consistency ERROR + 0 shellcheck error
 2. 更新 `README.md` version badge
 3. `git tag vN.N.0 && git push origin vN.N.0`
 4. CHECK 7（version badge vs git tag）自动通过

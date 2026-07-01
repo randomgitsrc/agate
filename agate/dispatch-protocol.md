@@ -910,4 +910,47 @@ rejected 时，主 Agent 的重试派发 prompt 里加一行：
 
 ---
 
+## agate 自身变更的对齐审查
+
+改 agate 协议本体或脚本时（触发条件：`agate/scripts/*.sh`、`agate/scripts/check-protocol-consistency.py`、`agate/**/*.md` 有改动），主 Agent 在 commit 前派发 `protocol-alignment-review` 角色做语义对齐审查。
+
+派发模板：
+
+```
+你是 agate 协议-脚本对齐审查员。
+
+## 变更内容
+{diff 摘要：哪些文件改了什么}
+
+## 审查范围
+读以下文件全文：
+- {变更的协议文件}
+- {变更的脚本}
+- agate/state-machine.md（裁剪表、重试表、转移规则——权威规则源）
+- agate/dispatch-protocol.md（gate 表、门槛表——检查项声明源）
+
+## 配套文件提示
+根据变更内容，可能还需要读以下文件确认一致性：
+- 如果变更涉及 gate 检查逻辑（check-gate.sh），同时读对应的角色文件
+  （implementer.md / architect.md / verifier.md）确认角色侧描述是否一致
+- 如果变更涉及文件格式/字段（check-pruning.sh / check-state-yaml.sh），
+  同时读 assets/templates/task-files.md 确认模板是否一致
+- 如果变更涉及 P6 证据格式，同时读 verifier.md 和 vision-analyst.md
+
+## 审查清单
+逐项检查 A1-A6（见 assets/review-roles/protocol-alignment-review.md），每项输出：
+- 审查项编号
+- 文档说了什么（引用原文 + 行号）
+- 脚本实现了什么（引用代码 + 行号）
+- 结论：ALIGNED / MISALIGNED / NEEDS_HUMAN_REVIEW
+- 若 MISALIGNED：具体差异描述 + 建议修复方向
+
+## 产出
+写到 docs/reviews/agate-alignment-review-{date}.md
+```
+
+闭环规则：MISALIGNED 必须修复；NEEDS_HUMAN_REVIEW 需附 `[HUMAN_CONFIRMED: ...]` 标记。详见角色文件。
+
+---
+
 *派发协议是 agate 解决上下文爆炸的核心，配合 state-machine.md 和 loop-orchestration.md 使用*

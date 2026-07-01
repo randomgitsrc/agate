@@ -81,6 +81,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
   - `[PROD_TOUCHED]` 检测（P1.2）：暂存 diff 含此标记 → 拦截 commit
   - 复盘提醒：异常模式（重试 ≥3 次、SCOPE+、override）触发 P2.12 复盘提醒，**不阻塞** commit
 - **CI 兜底**：push 后 GitHub Actions 重跑 gate + git blame 单 author WARNING，捕获 `--no-verify` 绕过
+- **agate 自身变更**：改协议/脚本时派发 protocol-alignment-review subagent 做语义对齐审查 + CHECK 9 结构兜底（见 AGENTS.md 检查清单）
 
 **Agent 字段用途**：所有阶段产出文件 Header 含 `agent:` 字段是协作规范，不是安全边界。`risk_level=high` 时 `agent=main`（自审）会发 WARNING 建议派发独立 subagent。
 
