@@ -83,14 +83,14 @@ known_risks:
   - "跨越 3 个改动端（API+CLI+客户端）"
   - "修改权限/认证逻辑（安全敏感）"
 
- executor_env:
-   platform: "opencode"          # opencode | claude-code | codex | claude-project
-   has_task_tool: true           # 能否派发 subagent（false = 单 Agent 模式）
-   has_local_runtime: true       # 有完整本地环境（npm/python/playwright/测试框架）
-   network: "full"               # full | restricted（restricted 时 npm install 等可能失败）
-   model_tier: "standard"        # 可选字段，非强制。协议不硬编码模型选择建议。
-                                 # standard = 用默认模型；premium = 方案设计/验收时用强模型；budget = 机械任务用便宜模型
-                                 # 实际可用性取决于项目环境，此处仅为项目自填的倾向说明
+executor_env:
+  platform: "opencode"          # opencode | claude-code | codex | claude-project
+  has_task_tool: true           # 能否派发 subagent（false = 单 Agent 模式）
+  has_local_runtime: true       # 有完整本地环境（npm/python/playwright/测试框架）
+  network: "full"               # full | restricted（restricted 时 npm install 等可能失败）
+  model_tier: "standard"        # 可选字段，非强制。协议不硬编码模型选择建议。
+                                # standard = 用默认模型；premium = 方案设计/验收时用强模型；budget = 机械任务用便宜模型
+                                # 实际可用性取决于项目环境，此处仅为项目自填的倾向说明
 
 env_constraints:
   debug_env: "项目的测试/调试环境命令或路径（从项目约定读取，如 CLAUDE.md）"
