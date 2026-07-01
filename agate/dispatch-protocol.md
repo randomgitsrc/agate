@@ -632,6 +632,12 @@ setTimeout(() => {
 格式：
 [SCOPE_RESOLVED: from P4-implementation.md] 新需求已增补为 AC-N，影响范围已评估
 
+**DESIGN_GAP 处理追踪（v0.6）**：implementer 在 P4 产出中标注 `[DESIGN_GAP: xxx]`（因 P2 设计歧义/缺口而自主做的决策），P7 architect 审查，主 Agent 在确认后追加 `[DESIGN_GAP_REVIEWED: 已确认 / 已打回 P2]` 配对标记。未配对 REVIEWED 标记的 DESIGN_GAP → gate 不通过（仿 SCOPE+/SCOPE_RESOLVED 模式）。
+
+格式：
+[DESIGN_GAP_REVIEWED: 已确认] 主 Agent 审查通过——implementer 的自主决策正确，P2 设计此处确实缺失
+[DESIGN_GAP_REVIEWED: 已打回 P2] 主 Agent 审查打回——implementer 的决策有问题，需 P2 补充设计后重新实现
+
 ---
 
 ## 重试与上限

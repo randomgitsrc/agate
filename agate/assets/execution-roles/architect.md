@@ -99,6 +99,10 @@ DEVIATION 标注必须注明"涉及 P2 哪个设计目标"：
 - DEVIATION 涉及 P2 核心设计目标但已部分落地 → 标 `[DEVIATION]` + `[NEED_CONFIRM]`（不硬阻塞，但需人工确认是否可接受）
 - DEVIATION 涉及命名风格/行数预算等非核心 → 标 `[DEVIATION]`（保持，不阻塞）
 
+**v0.6 DESIGN_GAP 捕获**：若 implementer 在实现中因 P2 设计歧义/缺口而自主做了决策并标了 `[DESIGN_GAP: xxx]`，P7 必须逐条审查：
+- 决策是否合理（如果是 → 标 `[DESIGN_GAP_REVIEWED: 已确认]`）
+- 是否需要回 P2 补充设计（如果是 → 标 `[DESIGN_GAP_REVIEWED: 已打回 P2]` + `[BLOCKER]`）
+
 判定"核心设计目标"的依据：P2-design.md 的改动方案节（§1）中明确列出的设计目标，被 P1 BDD 引用为验收条件的，为核心设计目标。
 
 ## 返回给主 Agent

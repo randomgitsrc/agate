@@ -59,15 +59,28 @@ case "$PHASE" in
       echo "GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL=$TOTAL。BDD 总数对照需主 Agent 手动核实 P1 条数。" >&2
       exit 2 ;;
   P7)
+      # v0.6：用显式 if/elif/else 替代链式写法——每加一个检查都要在链路里加新项，if 更易读易扩展
       # grep -c 无匹配时返回 exit 1，|| echo 0 处理此情况
-      BLOCKERS=$(grep -cE '^\s*-?\s*\[BLOCKER\]' "$TASK_DIR/P7-consistency.md" 2>/dev/null || echo 0)
-      DEVCRIT=$(grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$TASK_DIR/P7-consistency.md" 2>/dev/null || echo 0)
-      if [ "$BLOCKERS" -eq 0 ] && [ "$DEVCRIT" -eq 0 ]; then
-          exit 0
-      else
+      P7_FILE="$TASK_DIR/P7-consistency.md"
+      BLOCKERS=$(grep -cE '^\s*-?\s*\[BLOCKER\]' "$P7_FILE" 2>/dev/null || echo 0)
+      DEVCRIT=$(grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$P7_FILE" 2>/dev/null || echo 0)
+      BLOCKERS=$(echo "$BLOCKERS" | tail -1)
+      DEVCRIT=$(echo "$DEVCRIT" | tail -1)
+      if [ "$BLOCKERS" -gt 0 ] || [ "$DEVCRIT" -gt 0 ]; then
           echo "GATE P7: BLOCKER=$BLOCKERS, DEVIATION-CRITICAL=$DEVCRIT" >&2
           exit 1
-      fi ;;
+      fi
+      # DESIGN_GAP 配对检查（v0.6：未配对 REVIEWED 标记的 DESIGN_GAP → 不通过）
+      DESIGN_GAP_COUNT=$(grep -cE '\[DESIGN_GAP:' "$P7_FILE" 2>/dev/null || echo 0)
+      DESIGN_GAP_REVIEWED=$(grep -cE '\[DESIGN_GAP_REVIEWED' "$P7_FILE" 2>/dev/null || echo 0)
+      DESIGN_GAP_COUNT=$(echo "$DESIGN_GAP_COUNT" | tail -1)
+      DESIGN_GAP_REVIEWED=$(echo "$DESIGN_GAP_REVIEWED" | tail -1)
+      UNREVIEWED=$((DESIGN_GAP_COUNT - DESIGN_GAP_REVIEWED))
+      if [ "$UNREVIEWED" -gt 0 ]; then
+          echo "GATE P7: 有 ${UNREVIEWED} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]——主 Agent 需审查 implementer 的自主决策" >&2
+          exit 1
+      fi
+      exit 0 ;;
   P8)
       # P8 部分检查可脚本化，其余需主 Agent 自判
       # 注意：version 文件路径和 CHANGELOG 文件名因项目而异，
