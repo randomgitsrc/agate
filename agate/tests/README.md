@@ -39,11 +39,12 @@ bash agate/tests/scripts/count-tests.sh
 | check-tdd-red.sh | unit/check-tdd-red.bats | 9 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 5 |
-| 协议一致性 | integration/consistency.bats | 7 |
+| 协议一致性 | integration/consistency.bats | 10 |
+| self-gate | integration/protocol-alignment-review.bats | 6 |
 | 框架自检 | sanity.bats | 6 |
-| **总计** | | **154** |
+| **总计** | | **以 `count-tests.sh` 输出为准** |
 
-> 注：148 来自 `count-tests.sh`（不含 sanity.bats 的 6 用例），加上框架自检 6 = 154。以 `count-tests.sh` 输出为准。
+> 注：`count-tests.sh` 统计不含 sanity.bats 的 6 用例，加上框架自检 6 = 实际 bats 总数。以 `count-tests.sh` 输出为准。
 
 ## CI
 

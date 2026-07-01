@@ -6,7 +6,7 @@
 agate/              ← 协议本体（~/.agate 软链接指向这里）
   AGENTS.md         ← 协议本体入口（面向使用者）
   scripts/          ← gate 检查脚本（bash + python3）
-  tests/            ← 161 个 bats 测试用例
+  tests/            ← bats 测试用例（以 count-tests.sh 输出为准）
   assets/           ← 角色/模板文件
 docs/               ← 项目开发资料（评审、计划、竞争分析）
 .github/workflows/  ← CI
@@ -68,7 +68,7 @@ bash agate/tests/scripts/count-tests.sh
 
 ## 版本发布
 
-1. 确认 161 bats + 0 consistency ERROR + 0 shellcheck error
+1. 确认 bats 全过 + 0 consistency ERROR + 0 shellcheck error（用例数以 `count-tests.sh` 为准）
 2. 更新 `README.md` version badge
 3. `git tag vN.N.0 && git push origin vN.N.0`
 4. CHECK 7（version badge vs git tag）自动通过

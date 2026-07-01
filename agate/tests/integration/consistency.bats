@@ -46,3 +46,7 @@ setup() {
     # 防止"删锚点代实现"——如果有人删了 md5 锚点来清 WARN，此测试会红
     [[ "$CONSISTENCY_OUTPUT" == *"缺少关键词 'md5'"* ]]
 }
+
+@test "CON.10 CHECK 8: v0.6 关键词存在性" {
+    [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 8"* ]]
+}
