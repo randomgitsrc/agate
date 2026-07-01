@@ -644,9 +644,19 @@ setTimeout(() => {
     prompt_changed: <bool>,
     adjustment: split_task | add_navigation | switch_type | null
   })
-  if len(retries[Pn]) < MAX_RETRY (见 state-machine.md 重试上限表):
-      带着失败原因重新派发同阶段 subagent
-      （prompt 里加上"上次失败原因：xxx，请修正"）
+   if len(retries[Pn]) < MAX_RETRY (见 state-machine.md 重试上限表):
+       带着失败原因重新派发同阶段 subagent
+       （prompt 里加上"上次失败原因：xxx，请修正"）
+
+       # v0.6：临近重试上限时注入架构质疑提示（superpowers systematic-debugging 借鉴）
+       # ⚠️ 条件用 >= MAX_RETRY(Pn) - 1（本次已是最后一次允许的重派），
+       # 不能用 >= 3——详情见 state-machine.md 重试上限表（MAX_RETRY 因阶段而异）
+       if len(retries[Pn]) >= MAX_RETRY(Pn) - 1:
+          重派 prompt 追加：
+          "⚠️ 你已是该阶段最后一次允许的重派。前 {N-1} 次尝试均失败。
+           请优先质疑架构假设而非继续在同一层面试错。
+           具体方法：回溯 P2-design.md 的方案假设，检查是否有隐含前提不成立。
+           若确认架构假设有误，标 [SCOPE+] 触发回 P2 重新设计。"
   else:
       触发 L2 上溯（见 state-machine.md 评审迭代机制）
       上溯后重新开始该阶段
