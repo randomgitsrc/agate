@@ -89,6 +89,9 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -106,6 +109,9 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -123,6 +129,9 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'

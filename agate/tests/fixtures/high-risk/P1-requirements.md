@@ -1,5 +1,5 @@
 ---
-risk_level: medium
+risk_level: high
 agent: test
 ---
 

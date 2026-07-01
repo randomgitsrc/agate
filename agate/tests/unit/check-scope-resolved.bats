@@ -24,7 +24,7 @@ EOF
 
 @test "SC.3 check-scope-resolved.sh 有 SCOPE+ 但无 P1 文件 期望 exit 1" {
     local dir
-    dir=$(mktemp -d /tmp/task-XXXXXX)
+    dir=$(mktemp -d "$BATS_TEST_TMPDIR/task-XXXXXX")
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 [SCOPE+] 新增功能
@@ -32,7 +32,6 @@ EOF
     run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"无 P1-requirements.md"* ]]
-    rm -rf "$dir"
 }
 
 @test "SC.4 check-scope-resolved.sh 有 SCOPE+ 但 P1 无 SCOPE_RESOLVED 期望 exit 1" {

@@ -41,9 +41,9 @@ bash agate/tests/scripts/count-tests.sh
 | pre-commit-hook | integration/pre-commit-hook.bats | 5 |
 | 协议一致性 | integration/consistency.bats | 7 |
 | 框架自检 | sanity.bats | 6 |
-| **总计** | | **~152** |
+| **总计** | | **152** |
 
-> 注：数字由 `count-tests.sh` 生成，与本文档的"~152"可能不一致。以脚本输出为准。
+> 注：146 来自 `count-tests.sh`（不含 sanity.bats 的 6 用例），加上框架自检 6 = 152。以 `count-tests.sh` 输出为准。
 
 ## CI
 

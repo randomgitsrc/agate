@@ -27,6 +27,9 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
 ui_affected: true
 EOF
     # vision YAML 在 task 根目录（不是 P6-evidence/ 里）

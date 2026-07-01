@@ -36,9 +36,9 @@ EOF
 read_state_phase() {
     local state_file="$1"
     [ ! -f "$state_file" ] && { echo ""; return; }
-    python3 -c "
-import yaml
-with open('$state_file') as f:
+    STATE_FILE="$state_file" python3 -c "
+import yaml, os
+with open(os.environ['STATE_FILE']) as f:
     data = yaml.safe_load(f)
 print(data.get('phase', '') if data else '')
 " 2>/dev/null || echo ""
@@ -47,9 +47,9 @@ print(data.get('phase', '') if data else '')
 read_state_task_id() {
     local state_file="$1"
     [ ! -f "$state_file" ] && { echo ""; return; }
-    python3 -c "
-import yaml
-with open('$state_file') as f:
+    STATE_FILE="$state_file" python3 -c "
+import yaml, os
+with open(os.environ['STATE_FILE']) as f:
     data = yaml.safe_load(f)
 print(data.get('task_id', '') if data else '')
 " 2>/dev/null || echo ""

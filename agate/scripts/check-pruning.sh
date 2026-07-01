@@ -136,7 +136,7 @@ fi
 
 if [ -n "$ERRORS" ]; then
     echo "GATE PRUNING: 裁剪条件不满足：" >&2
-    printf "$ERRORS" | while IFS= read -r line; do
+    printf '%s' "$ERRORS" | while IFS= read -r line; do
         [ -n "$line" ] && echo "  - $line" >&2
     done
     exit 1

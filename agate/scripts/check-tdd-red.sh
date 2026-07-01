@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 检查 TDD 红灯：区分 A 类（测试代码有 bug）和 B 类（实现未写的 import 失败）
 # 退出 0 = 正确红灯（assertion failure > 0, collection error == 0）或 B 类红灯（import 未实现）
 # 退出 1 = A 类错误（测试代码自身有语法/import 错误）
@@ -36,7 +36,9 @@
 # - B 类：ImportError 目标是项目内模块（测试代码正确，只是依赖未实现）→ exit 0
 # - A 类：测试代码自身语法错误或 import 非项目模块失败 → exit 1
 
-if [ -n "$TEST_RUNNER" ]; then
+set -euo pipefail
+
+if [ -n "${TEST_RUNNER:-}" ]; then
     RUNNER="$TEST_RUNNER"
 elif command -v pytest &>/dev/null; then
     RUNNER="pytest"
@@ -46,11 +48,10 @@ else
     exit 3
 fi
 
-RESULT=$($RUNNER -q 2>&1)
-EXIT=$?
+RESULT=$($RUNNER -q 2>&1) && EXIT=0 || EXIT=$?
 
-FAILED=$(echo "$RESULT" | grep -oP '\d+ failed' | grep -oP '\d+')
-ERRORS=$(echo "$RESULT" | grep -oP '\d+ error' | grep -oP '\d+')
+FAILED=$(echo "$RESULT" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || true)
+ERRORS=$(echo "$RESULT" | grep -oE '[0-9]+ error' | grep -oE '[0-9]+' || true)
 
 echo "assertion_failures=${FAILED:-0}, collection_errors=${ERRORS:-0}"
 
@@ -74,7 +75,7 @@ if [ "${ERRORS:-0}" -gt 0 ]; then
         SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError|CompileError|ParseError)' || true)
         if [ -z "$SYNTAX_ERRORS" ]; then
             # 若设置了 PROJECT_MODULE，检查 import 目标是否是项目内模块
-            if [ -n "$PROJECT_MODULE" ]; then
+            if [ -n "${PROJECT_MODULE:-}" ]; then
                 INTERNAL_IMPORT=$(echo "$IMPORT_ERRORS" | grep -E "(from ${PROJECT_MODULE}|import ${PROJECT_MODULE}|${PROJECT_MODULE}\.)" || true)
                 if [ -n "$INTERNAL_IMPORT" ]; then
                     echo "TDD_CHECK: B-class red-light (import errors from missing project module '${PROJECT_MODULE}')"

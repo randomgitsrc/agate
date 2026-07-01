@@ -120,7 +120,7 @@ load ../helpers/load.bash
     git -C "$repo" add src_*.py
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-pruning.sh' 'task'"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"源文件数"* || "$output" == *"implicit_coupling"* || "$output" == *"跳过风险"* ]]
+    [[ "$output" == *"源文件数"* ]]
 }
 
 @test "P2.6b check-pruning.sh 裁剪 P7，源文件数 ≤ 5 通过" {

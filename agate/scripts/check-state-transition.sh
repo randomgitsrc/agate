@@ -30,9 +30,9 @@ except:
 
 get_new_phase() {
     [ -f "$STATE_FILE" ] || { echo ""; return; }
-    python3 -c "
-import yaml
-with open('$STATE_FILE') as f:
+    STATE_FILE="$STATE_FILE" python3 -c "
+import yaml, os
+with open(os.environ['STATE_FILE']) as f:
     data = yaml.safe_load(f)
 print(data.get('phase', '') if data else '')
 " 2>/dev/null || echo ""
@@ -70,14 +70,15 @@ fi
 # 检查 2：重试超限（P2.4）
 # .state.yaml 的 retries[Pn] 是列表（每次重试一个对象），不是整数（O2 修复）
 if [ -f "$STATE_FILE" ]; then
-    retries_json=$(python3 -c "
-import yaml
-with open('$STATE_FILE') as f:
+    retries_json=$(STATE_FILE="$STATE_FILE" MAX_RETRY="$MAX_RETRY" python3 -c "
+import yaml, os
+with open(os.environ['STATE_FILE']) as f:
     data = yaml.safe_load(f)
 retries = data.get('retries', {})
+max_retry = int(os.environ['MAX_RETRY'])
 if isinstance(retries, dict):
     for phase, attempts in retries.items():
-        if isinstance(attempts, list) and len(attempts) >= ${MAX_RETRY}:
+        if isinstance(attempts, list) and len(attempts) >= max_retry:
             print(f'{phase}={len(attempts)}')
             break
 " 2>/dev/null || echo "")

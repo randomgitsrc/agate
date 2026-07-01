@@ -9,9 +9,9 @@ CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
 
 [ ! -f "$CHANGELOG_FILE" ] && exit 0
 
-UNRELEASED_CONTENT=$(python3 -c "
-import re
-with open('${CHANGELOG_FILE}') as f:
+UNRELEASED_CONTENT=$(CHANGELOG_FILE="$CHANGELOG_FILE" python3 -c "
+import re, os
+with open(os.environ['CHANGELOG_FILE']) as f:
     text = f.read()
 m = re.search(r'##\s*\[Unreleased\](.*?)(?=##\s*\[|\Z)', text, re.S)
 if m:
