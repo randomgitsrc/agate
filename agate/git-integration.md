@@ -165,7 +165,7 @@ git 集成自 v0.4 hardening-roadmap 起承担了新的角色：**阶段 commit 
 | gate 通过后 | 状态转移合法性 + 重试上限（P2.3-P2.5）| 非法转移 → 拦截 commit |
 | gate 通过后 | 裁剪条件一致性（P2.7-P2.9）| 裁剪与执行不一致 → 拦截 commit |
 | gate 通过后 | SCOPE+ 已增补并标记（P2.11）| 未标 `[SCOPE_RESOLVED]` → 拦截 commit |
-| 任何 commit | 异常模式提醒（P2.12）| 检测到 gate 重试 ≥3 / SCOPE+ / override → 提醒写复盘（不阻塞）|
+| 任何 commit | 异常模式提醒（P2.12）| 检测到 gate 重试超限（P3/P5/P6/P7/P8 ≥2、P1/P2/P4 ≥3）/ SCOPE+ / override → 提醒写复盘（不阻塞）|
 | 任何 commit | CHANGELOG `[Unreleased]` 含 task_id（P1.6）| 缺记录 → 警告（不阻塞）|
 
 **`--cached` vs `HEAD~1`**：pre-commit hook 运行时 commit 尚未创建，所有 `git diff` 必须用 `--cached`（暂存区 vs HEAD），不能用 `HEAD~1`（上一个 commit）。P4/P7/P8 的源文件数检查、version bump 检查、CHANGELOG 检查均遵循此规则。主 Agent 手动验证（commit 后）可用 `HEAD~1`，但 hook 场景下 `--cached` 是唯一正确选择。

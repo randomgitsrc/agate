@@ -8,6 +8,9 @@
 
 ## [Unreleased]
 
+### 新增
+- **self-gate 反向传播机制**：SELF-GATE.md 派发模板加意图分析 + 反向传播两步。protocol-alignment-review 角色 A3 拆为 A3a（一致性连锁）+ A3b（反向传播），A5 加文档传播。加"反向传播常见路径"推理起点表。变更触发模式审查从"改了什么对不对"升级为"改了什么 + 应影响什么 + 影响到了没"
+
 ### 变更
 - **check-state-transition.sh 行为变更**：
   - 回退跳变（差 ≥2 阶段）从 WARNING 恢复为 exit 1（强制 PAUSED）。之前因 `.gate-history.jsonl` 未实现降级，现确认 HEAD/staged diff 机制已隐式覆盖 PAUSED 验证，无需等待精确历史记录

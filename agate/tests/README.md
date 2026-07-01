@@ -35,7 +35,7 @@ bash agate/tests/scripts/count-tests.sh
 | check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
 | check-state-transition.sh | unit/check-state-transition.bats | 8 |
 | check-changelog.sh | unit/check-changelog.bats | 5 |
-| check-retrospective.sh | unit/check-retrospective.bats | 4 |
+| check-retrospective.sh | unit/check-retrospective.bats | 6 |
 | check-tdd-red.sh | unit/check-tdd-red.bats | 9 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 5 |
