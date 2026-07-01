@@ -7,6 +7,52 @@
 
 ---
 
+## 零、测试位置：放在 `agate/tests/`（决策说明）
+
+**结论**：测试放在 `agate/tests/`（协议本体目录内），不放仓库根或单独仓库。
+
+### 为什么
+
+agate 协议本体由四类组成：
+- **协议文档**：`WORKFLOW.md` / `state-machine.md` / `dispatch-protocol.md` 等（告诉 Agent 怎么用）
+- **执行脚本**：`scripts/`（机器跑的 gate）
+- **角色模板**：`assets/`（用户拷贝的）
+- **入口文件**：`AGENTS.md` / `orchestrator-template.md`（文档索引）
+
+**测试是"执行脚本"的伴生物**——和 `scripts/` 同生死。放 `agate/tests/` 的硬理由：
+
+1. **发布时一起带出**：通过软链接 `~/.agate → ~/oclab/agate/agate/` 装的不是"半个 agate"——没有测试的 agate 是没有自检能力的协议。
+2. **pre-commit hook 路径自洽**：现有 `pre-commit-gate.sh` 用 `$AGATE_ROOT/scripts/...`，测试天然用 `$AGATE_ROOT/tests/...`，无需在文档里教"先装本体再装测试"。
+3. **改完脚本能本地验证**：maintainer 改 `check-pruning.sh` 后直接 `bats agate/tests/unit/check-pruning.bats`，不需要切换工作目录到另一个仓库。
+4. **CI 不变**：`.github/workflows/` 路径写 `agate/tests/` 即可，无需跨仓库。
+
+### 怎么避免"用户误以为这是给我的"
+
+`agate/tests/` 有清晰的语义边界：
+- `scripts/` 是用户用得上的（被 hook 调用）
+- `assets/` 是用户需要拷贝的
+- **`tests/` 是给协议 maintainer 的（用户不必读）**
+
+在 `AGENTS.md` 加一行：
+
+```markdown
+| 我要做什么 | 看这里 |
+|------|------|
+| 改 agate 协议本体并跑测试 | `tests/README.md`（maintainer 入口） |
+```
+
+`tests/README.md` 写明：这是协议自检套件，普通用户用 agate 完成自己的任务时不需要管它。
+
+### 拒绝的替代方案
+
+| 方案 | 否决理由 |
+|------|---------|
+| `~/oclab/agate/tests/`（仓库根） | 协议仓库根是项目开发资料（`docs/reviews/`、`docs/plans/` 等），放测试混淆"项目"和"协议"两个层级 |
+| `agate-test/` 单独仓库 | 双仓库分发：用户装 agate 还要装 agate-test。改脚本→测测试 跨仓库 PR，体验差 |
+| 嵌入式（每个脚本旁 `check-pruning.test.sh`） | agate/scripts/ 已经有 15 个文件，再加 15 个测试文件会让目录变 30 文件难导航 |
+
+---
+
 ## 一、目标与背景
 
 ### 当前状态
@@ -611,29 +657,27 @@ jobs:
 
 ## 十二、待评审问题
 
-1. **测试脚本放在 agate 仓库还是单独测试仓库？**
-   - 选 A（推荐）：`agate/tests/`——便于发布时一起带出去
-   - 选 B：`agate-test/` 单独仓库——避免协议仓库膨胀
-
-2. **夹具管理策略**
+1. **夹具管理策略**
    - 选 A：纯函数化（`fixtures.bash` 按需构造）——灵活但慢
    - 选 B：静态夹具 + 函数化混合（推荐）——Gold 任务 + 边界 case 函数化
 
-3. **回归测试来源**
+2. **回归测试来源**
    - 选 A：仅 v0.5+ 已知 bug（推荐，先打牢）
    - 选 B：所有 T001+ 历史 bug
 
-4. **是否引入 bats-assert / bats-support 库？**
+3. **是否引入 bats-assert / bats-support 库？**
    - 选 A：纯 Bats（推荐，最小依赖）
    - 选 B：带增强库（断言可读性 +）
 
-5. **TDD 检查脚本的 mock 策略**
+4. **TDD 检查脚本的 mock 策略**
    - 选 A：在测试目录里放伪 pytest 脚本（推荐）
    - 选 B：bash function override 真实 pytest
 
-6. **覆盖度指标 100% 是硬指标吗？**
+5. **覆盖度指标 100% 是硬指标吗？**
    - 选 A：100% 强制（推荐，符合 TDD 理念）
    - 选 B：核心 gate 100%，辅助工具宽松
+
+> 第 0 节已决定：测试放在 `agate/tests/`，不再列在待评审项中。
 
 ---
 
