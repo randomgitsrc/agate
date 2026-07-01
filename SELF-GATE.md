@@ -70,53 +70,75 @@ python3 agate/scripts/check-protocol-consistency.py
 ## 你的角色定义
 读取并遵循：agate/assets/review-roles/protocol-alignment-review.md
 
-## 变更内容
-{diff 摘要：哪些文件改了什么}
+## 第一步：意图分析
+本次变更的意图是什么？用 1-2 句话说清楚"为什么改"，不是"改了什么"。
+意图比 diff 更重要——diff 只是意图的物理表现。
 
-## 审查范围
+## 第二步：反向传播——列出应被影响的文件
+基于意图，主动推断"这次改动应该传播到哪些文件"。不只列 git diff 里的文件，还要列出：
+- 衍生改动（一致性连锁）：改了 X 应该跟着改 Y
+- 文档传播（应被影响但 git diff 里没出现的文件）：比如改了 state-machine.md 的 MAX_RETRY 表，orchestrator-template.md / WORKFLOW.md / dispatch-protocol.md 的描述是否需要同步？
+- 角色文件 / 模板文件：脚本行为变了，角色文件提示词是否过时？
+
+参考角色文件的"反向传播的常见路径"表作为推理起点，但不要局限于此——根据本次意图自行判断。
+
+输出格式：
+- 应被影响的文件列表（按优先级排序）
+- 每个文件被影响的理由
+
+## 第三步：实际审查范围
 读以下文件全文：
-- {变更的协议文件}
-- {变更的脚本}
-- agate/state-machine.md（裁剪表、重试表、转移规则——权威规则源）
-- agate/dispatch-protocol.md（gate 表、门槛表——检查项声明源）
+- git diff 涉及的变更文件（diff 直接列出的）
+- 第二步列出的应被影响文件
+- 权威规则源：
+  - agate/state-machine.md（裁剪表、重试表、转移规则）
+  - agate/dispatch-protocol.md（gate 表、门槛表）
+  - agate/WORKFLOW.md（风险矩阵、阶段总览）
 
 ## 配套文件提示
-根据变更内容，可能还需要读以下文件确认一致性：
 - 如果变更涉及 gate 检查逻辑（check-gate.sh），同时读对应的角色文件
-  （implementer.md / architect.md / verifier.md）确认角色侧描述是否一致
+  （implementer.md / architect.md / verifier.md）
 - 如果变更涉及文件格式/字段（check-pruning.sh / check-state-yaml.sh），
-  同时读 assets/templates/task-files.md 确认模板是否一致
+  同时读 assets/templates/task-files.md
 - 如果变更涉及 P6 证据格式，同时读 verifier.md 和 vision-analyst.md
 
 ## 审查清单
-逐项检查 A1-A6（见角色文件），每项输出：
+逐项检查 A1-A6（见角色文件），A3 和 A5 必须包含反向传播的检查：
+- A1 文档→脚本对齐
+- A2 脚本→文档对齐
+- A3 一致性连锁 + 反向传播：列出应被影响但 diff 未列出的文件，逐一验证
+- A4 测试覆盖
+- A5 下游影响 + 文档传播：CHANGELOG 是否标注？文档是否同步？
+- A6 锚点表覆盖
+
+每项输出：
 - 审查项编号
 - 文档说了什么（引用原文 + 行号）
-- 脚本实现了什么（引用代码 + 行号）
+- 脚本/其他文件实现了什么（引用代码 + 行号）
 - 结论：ALIGNED / MISALIGNED / NEEDS_HUMAN_REVIEW
 - 若 MISALIGNED：具体差异描述 + 建议修复方向
 
 ## 分阶段落盘（留痕文件，防空返回）
 留痕文件：docs/reviews/agate-alignment-{date}-{NN}.progress.md
 开始前先删除留痕文件（如已存在）：rm -f {留痕文件路径}
-每读完一个输入文件，立即用 bash 追加一行（不要整理、不格式化）：
+每读完一个文件，立即用 bash 追加一行（不要整理、不格式化）：
   echo "- [文件名] 关键逻辑摘要" >> {留痕文件路径}
-每完成一个对比判断，立即追加（原始记录，不整理）：
-  echo "- A{n}: 文档说X / 脚本是Y / 结论" >> {留痕文件路径}
+每完成一个对比判断或反向传播检查项，立即追加（原始记录，不整理）：
+  echo "- A{n}/{反向传播}: 文档说X / 实际是Y / 结论" >> {留痕文件路径}
 不要在留痕文件里做内容整理——那是成果文件的事。
 读一个写一个，判断一条写一条。
 
 ## 产出（成果文件，最终交付物）
 docs/reviews/agate-alignment-review-{date}.md
 审查完所有文件后，把结构化报告写入成果文件（覆盖写，不是追加）。
-成果文件含 frontmatter + A1-A6 结论汇总表 + 逐项审查详情。
+成果文件含 frontmatter + A1-A6 结论汇总表（含反向传播检查）+ 逐项审查详情。
 ```
 
 ### 全量审查模式 — 派发模板
 
 全量审查不带 diff，不给预设结论——给 subagent 全部文件，让它独立发现偏差。
 
-如果文件太多（>8 个），分批派发，每批用自己的留痕文件序号。
+如果文件太多（>8 个），分批派发，每批用自己的留痕文件序号。分批时注意：**每批覆盖的文件应包含相关的协议文档和对应脚本**（不能只审脚本不审文档），否则反向传播会断开。
 
 ```
 你是 agate 协议-脚本对齐审查员。
@@ -128,6 +150,9 @@ docs/reviews/agate-alignment-review-{date}.md
 全量审查 agate 所有协议文档和所有 gate 脚本的语义对齐。
 不要假设哪里有偏差——自己读文件，自己找。
 
+## 第一步：意图无关，但需要反向传播
+虽然没有"意图"，但发现偏差时必须做反向传播——列出"该偏差应该影响但未影响的其他文件"，逐一验证。
+
 ## 审查范围
 {本次批次要审查的文件列表}
 
@@ -136,15 +161,15 @@ docs/reviews/agate-alignment-review-{date}.md
 - 文档说了什么（引用原文 + 行号）
 - 脚本实现了什么（引用代码 + 行号）
 - 结论：ALIGNED / MISALIGNED / NEEDS_HUMAN_REVIEW
-- 若 MISALIGNED：具体差异描述 + 建议修复方向
+- 若 MISALIGNED：具体差异描述 + 建议修复方向 + **反向传播：列出该偏差应该影响的其他文件**
 
 ## 分阶段落盘（留痕文件，防空返回）
 留痕文件：docs/reviews/agate-alignment-{date}-{NN}.progress.md
 开始前先删除留痕文件（如已存在）：rm -f {留痕文件路径}
 每读完一个文件，立即用 bash 追加一行（不要整理、不格式化）：
   echo "- [文件名] 关键逻辑摘要" >> {留痕文件路径}
-每完成一个对比判断，立即追加（原始记录，不整理）：
-  echo "- A{n}: 文档说X / 脚本是Y / 结论" >> {留痕文件路径}
+每完成一个对比判断或反向传播检查项，立即追加（原始记录，不整理）：
+  echo "- A{n}/{反向传播}: 文档说X / 实际是Y / 结论" >> {留痕文件路径}
 不要在留痕文件里做内容整理——那是成果文件的事。
 读一个写一个，判断一条写一条。
 

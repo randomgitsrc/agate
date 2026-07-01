@@ -217,3 +217,25 @@ ST.15 关键：模拟 PAUSED 单独 commit 后恢复 Pn 的合法路径。这是
 - A5：`[HUMAN_CONFIRMED: 2026-07-01 已确认 — CHANGELOG.md [Unreleased] 节已加行为变更说明，含下游影响]`
 
 **最终结论**：A1-A6 全部 ALIGNED。可 commit。
+
+---
+
+# 补充审查（commit 后遗漏扫描）
+
+用户提出"所有影响面都涉及到了么"——重新扫描可能被本次 A+B 改动影响的文档。
+
+## 新发现
+
+| # | 位置 | 问题 | 严重度 |
+|---|------|------|--------|
+| 1 | `agate/orchestrator-template.md:82` | 复盘提醒描述"重试 ≥3 次"未区分阶段——本次改为按阶段差异化（P3/P5/P6/P7/P8 = 2）后，此处描述不准确 | Minor |
+| 2 | `agate/tests/unit/check-retrospective.bats` | 缺 RT.5/RT.6 测试验证 P3 retries 差异化（之前只测了 P2）| Minor |
+
+## 已修
+
+- `orchestrator-template.md:82` 改为："P3/P5/P6/P7/P8 ≥2 次、P1/P2/P4 ≥3 次"
+- 新增 RT.5（retries[P3]=2 触发）和 RT.6（retries[P3]=1 不触发）
+
+## 评估
+
+dispatch-protocol.md 已用 `MAX_RETRY(Pn)` 按阶段引用（不需要改），WORKFLOW.md 用"重试超限"泛指（引向 state-machine.md 表，不需要改）。loop-orchestration.md 同样引用重试上限表。

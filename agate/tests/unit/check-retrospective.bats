@@ -51,3 +51,36 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"override"* ]]
 }
+
+@test "RT.5 check-retrospective.sh retries[P3]=2 触发超限（P3 MAX=2）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/.state.yaml" <<'EOF'
+task_id: T001
+phase: PAUSED
+status: active
+retries:
+  P3:
+    - attempt: 1
+    - attempt: 2
+EOF
+    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"重试超限"* ]]
+}
+
+@test "RT.6 check-retrospective.sh retries[P3]=1 不触发（P3 MAX=2 未达）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/.state.yaml" <<'EOF'
+task_id: T001
+phase: P4
+status: active
+retries:
+  P3:
+    - attempt: 1
+EOF
+    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}

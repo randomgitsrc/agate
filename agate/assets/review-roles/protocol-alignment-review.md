@@ -19,10 +19,22 @@ agent: review
 |---|--------|------|
 | A1 | 文档→脚本对齐 | 变更涉及的协议规则，对应脚本是否同步实现？语义是否一致？ |
 | A2 | 脚本→文档对齐 | 变更涉及的脚本逻辑，对应协议文档是否同步更新？ |
-| A3 | 一致性连锁 | 变更是否需要同步改其他协议文件？（如 WORKFLOW.md 改了裁剪条件，state-machine.md 是否一致？）|
+| A3 | 一致性连锁 + 反向传播 | 变更是否需要同步改其他协议文件？**反向传播**：列出"应该被这次改动影响但未列在 diff 中的文件"，逐一验证影响到了没。A3 拆为 A3a（连锁：已知的衍生改动）和 A3b（反向传播：主动推断的应被影响文档） |
 | A4 | 测试覆盖 | 变更是否有对应 bats 测试？测试是否覆盖了新逻辑的边界？ |
-| A5 | 下游影响 | 变更是否影响已有项目的 gate 行为？是否有破坏性变更？ |
+| A5 | 下游影响 + 文档传播 | 变更是否影响已有项目的 gate 行为？是否有破坏性变更？CHANGELOG 是否标注？**文档传播**：除了代码改动，应该被影响的文档（orchestrator-template.md / WORKFLOW.md / dispatch-protocol.md / role-system.md / 角色文件 / 模板文件 / LIMITATIONS.md 等）是否需要同步？ |
 | A6 | 锚点表覆盖 | CHECK 9 的锚点表是否需要更新？新增的协议规则是否需要加入锚点表？ |
+
+### 反向传播的常见路径（subagent 推理起点）
+
+| 改了 X | 应传播到 Y |
+|--------|------------|
+| `agate/state-machine.md`（状态机表/规则）| `agate/WORKFLOW.md`、`agate/dispatch-protocol.md`、`agate/orchestrator-template.md`、`agate/role-system.md`、`agate/LIMITATIONS.md`、角色文件、模板文件 |
+| `agate/WORKFLOW.md`（阶段总览/风险矩阵）| `agate/orchestrator-template.md`、`agate/dispatch-protocol.md` |
+| `agate/dispatch-protocol.md`（派发模板/gate 表）| 角色文件（角色提示词）、模板文件 |
+| `agate/scripts/check-*.sh`（脚本行为）| `agate/scripts/README.md`、`agate/tests/README.md`、对应角色文件 |
+| `agate/assets/review-roles/*.md`（角色描述）| 模板文件、`dispatch-protocol.md` |
+| `CHANGELOG.md` 未更新 | 协议语义变更 + 未标注 = A5 下游影响不完整 |
+| `SELF-GATE.md` 或 `protocol-alignment-review.md` | self-gate 机制自身的递归适用 |
 
 ## 审查原则
 

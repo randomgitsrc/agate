@@ -79,7 +79,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
   - 状态转移合法性 + 重试上限（P2.3-P2.5）：非法转移拦截，重试超限须 PAUSED
   - SCOPE+ 增补追踪（P2.11）：有 `[SCOPE+]` 但 P1 无 `[SCOPE_RESOLVED]` → 拦截
   - `[PROD_TOUCHED]` 检测（P1.2）：暂存 diff 含此标记 → 拦截 commit
-  - 复盘提醒：异常模式（重试 ≥3 次、SCOPE+、override）触发 P2.12 复盘提醒，**不阻塞** commit
+  - 复盘提醒：异常模式（重试超限：P3/P5/P6/P7/P8 ≥2 次、P1/P2/P4 ≥3 次，SCOPE+、override）触发 P2.12 复盘提醒，**不阻塞** commit
 - **CI 兜底**：push 后 GitHub Actions 重跑 gate + git blame 单 author WARNING，捕获 `--no-verify` 绕过
 - **agate 自身变更**：改协议/脚本时派发 protocol-alignment-review subagent 做语义对齐审查 + CHECK 9 结构兜底（见 SELF-GATE.md）
 
