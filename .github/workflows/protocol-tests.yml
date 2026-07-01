@@ -1,0 +1,40 @@
+name: Protocol Tests
+
+on: [push, pull_request]
+
+jobs:
+  bats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Bats
+        run: sudo apt-get install -y bats
+      - name: Run Unit Tests
+        run: bats agate/tests/unit/
+      - name: Run Regression Tests
+        run: bats agate/tests/regression/
+      - name: Run Integration Tests
+        run: bats agate/tests/integration/
+      - name: Self-check framework
+        run: bats agate/tests/sanity.bats
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+      - name: Run shellcheck
+        run: shellcheck agate/scripts/*.sh
+
+  consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Run consistency check
+        run: python3 agate/scripts/check-protocol-consistency.py
