@@ -1,0 +1,12 @@
+- [check-state-transition.sh] MAX_RETRY_MAP=P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2 export; 检查1 回退跳变>=2 恢复 exit 1 配合 old_num>0守卫; 检查2 按 retries dict 按阶段差异化查 MAX
+- [check-retrospective.sh] 检查1重试超限 用内联 max_map（P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2）+ '与 check-state-transition.sh 保持同步'注释；未走 get_max_retry 函数（与 check-state-transition.sh 形式略有差异）
+- [state-machine.md L407-411] 回退跳变规则：current_phase_num - next_phase_num >= 2 → 强制 PAUSED；只查回退方向（不查前向跳）；L412 明确前向跳交由 P5 gate 兜底；例外 P5→P4 差1不需要 PAUSED
+- [state-machine.md L428-438 MAX_RETRY 表] P1=3,P2=3,P3=2,P4=3,P5=2,P6=2,P7=2,P8=2（与脚本 MAX_RETRY_MAP 完全一致）
+- [ST.9-ST.15] ST.9/10 验证 P3/P5 MAX=2 拦截; ST.11 多阶段都不超; ST.12 多阶段任一超即拦; ST.13/14 回退恢复 exit 1; ST.15 PAUSED→Pn 守卫不拦
+- A1: state-machine.md MAX_RETRY 表 P1=3,P2=3,P3=2,P4=3,P5=2,P6=2,P7=2,P8=2 vs check-state-transition.sh MAX_RETRY_MAP=P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2 vs check-retrospective.sh 内联 max_map 同字符串 — 三者字面完全一致 / 文档 L408 'current_phase_num - next_phase_num >= 2'（仅回退） vs 脚本 'old_num > new_num 即 diff=old_num-new_num >= 2' — 语义一致 / 结论: ALIGNED
+- A2: 检查1 恢复 exit 1 文档 L407-411 '强制 PAUSED'（去绝对值后是回退检测）描述准确；L412 明确说明只查回退方向 / 结论: ALIGNED
+- A3: check-state-transition.sh 行13 注释 '与 check-retrospective.sh 的 get_max_retry 保持同步' 但实际 check-retrospective.sh 没有 get_max_retry 函数（是内联 Python）；check-retrospective.sh 行14 注释 '与 check-state-transition.sh 保持同步' — 双向注释对称但 'get_max_retry' 表述不准（check-state-transition.sh 也没真叫 get_max_retry，是 export MAX_RETRY_MAP） / 结论: MISALIGNED-轻微（注释措辞误导，实际 MAP 字面一致，行为正确）
+- A4: ST.9/10 验证 P3/P5 MAX=2 拦截（差异化场景）；ST.11 验证多阶段都不超；ST.12 验证任一超即拦（独立性）；ST.13/14 验证回退恢复 exit 1；ST.15 验证 PAUSED→Pn 守卫不被误拦 / 测试覆盖完整 / 结论: ALIGNED（15/15 实测 pass）
+- A5: exit 行为变化 — 检查1 从 WARNING 变 exit 1 影响回退跳变 Pn→Pn-2 的合法 commit：这些 commit 在工作流上需要先 PAUSED，文档 L407-411 明确这一点，是协议意图；检查2 MAX 阈值降低（P3/P5/P6/P7/P8 从 3→2）让原本合法的 commit 被拦 — 这是协议变更，文档已同步 / 结论: ALIGNED-需文档提醒（用户应升级前看 CHANGELOG）
+- A6: CHECK 9 锚点表要求 check-state-transition.sh 含 'MAX_RETRY'/'diff'/'phase_num' — 实测 MAX_RETRY(行14+15)、diff(行68)、phase_num(行45+59+60) 全部存在；检查后报 'WARN CHECK 9'（pre-existing WARN, 不是新引入的 FAIL）/ 结论: ALIGNED
+- 完成审查。成果文件已写入 docs/reviews/agate-alignment-review-2026-07-01.md：A1/A2/A4/A6=ALIGNED, A3=MISALIGNED-轻微(get_max_retry注释误导), A5=NEEDS_HUMAN_REVIEW(CHANGELOG标注待确认)

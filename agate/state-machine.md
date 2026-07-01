@@ -405,10 +405,11 @@ function 执行一步(task_id):
               （CHANGELOG 是项目根文件，默认 CHANGELOG.md；项目可用 CHANGELOG_FILE 环境变量覆盖路径）
     6. 计算下一状态（按转移规则）
        **回退跳变检测**（T019 教训：P5→P2 跨 3 阶段回退未 PAUSED）：
-       若 |next_phase_num - current_phase_num| >= 2（跨 ≥2 阶段回退）
+       若 current_phase_num - next_phase_num >= 2（回退 ≥2 阶段）
        → 强制 PAUSED，报告"跨 N 阶段回退，需人工确认"
        检测基于 phase 编号差值，不依赖 commit message 格式。
        例外：P5→P4（差 1，正常回归）不需要 PAUSED。
+       注意：仅检查**回退**方向，不检查前向跨阶跳。前向跳（P2→P5）通常是裁剪后的合法跳变（state-machine.md:160-161），由 P5 gate 的阶段产出文件检查兜底。
     7. if 下一状态 == READY:
           输出交付小结（强制）：见「进入 READY 时」的格式要求
           再写回 .state.yaml

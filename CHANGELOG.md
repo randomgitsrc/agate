@@ -6,6 +6,20 @@
 
 ---
 
+## [Unreleased]
+
+### 变更
+- **check-state-transition.sh 行为变更**：
+  - 回退跳变（差 ≥2 阶段）从 WARNING 恢复为 exit 1（强制 PAUSED）。之前因 `.gate-history.jsonl` 未实现降级，现确认 HEAD/staged diff 机制已隐式覆盖 PAUSED 验证，无需等待精确历史记录
+  - 重试上限改为按阶段差异化：P3/P5/P6/P7/P8 = 2（上限定严，少轮次），P1/P2/P4 = 3。之前所有阶段统一为 3
+- **check-retrospective.sh 同步**：复盘提醒的重试阈值改为按阶段差异化，与 check-state-transition.sh 保持同步
+- **state-machine.md L407-411 回退跳变规则**：去绝对值，明确为回退方向（current - next >= 2）。前向跨阶跳不由本检查拦截，由 P5 gate 的阶段产出文件检查兜底
+
+### 影响
+- 下游项目（如 PeekView）：重试超限会更早触发 PAUSED（少 1 轮），跨阶段回退会被强制 PAUSED（之前只警告）
+
+---
+
 ## [0.5.0] - 2026-06-30
 
 ### 新增
