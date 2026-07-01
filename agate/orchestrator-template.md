@@ -144,16 +144,6 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 测试命令：pytest tests/ -q（或 npm test）
 ```
 
-## 执行环境
-
-```yaml
-platform: opencode          # opencode | claude-code | codex | claude-project
-has_task_tool: true         # false = 单 Agent 模式，参考 agate README 降级说明
-has_local_runtime: true     # false = P3-P8 需交接有本地环境的 Agent
-network: full               # full | restricted
-# model_tier: "standard"    # 可选：协议不硬编码模型选择，设了会写入 P0-brief 供 subagent 参考
-```
-
 ---
 
 > **使用说明**：
