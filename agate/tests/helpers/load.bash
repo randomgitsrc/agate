@@ -9,8 +9,25 @@
 
 # AGATE_ROOT 解析规则：
 #   1. 显式设过 → 用
-#   2. 否则 → 用 BATS_TEST_DIRNAME 反推（tests/ 的父目录 = agate/）
-export AGATE_ROOT="${AGATE_ROOT:-$(cd "$BATS_TEST_DIRNAME/.." && pwd)}"
+#   2. 否则 → 用 BATS_TEST_DIRNAME 反推
+#      - 顶层测试（如 sanity.bats）→ $BATS_TEST_DIRNAME = tests/ → 父目录 = agate/
+#      - 单元测试（unit/*.bats）→ $BATS_TEST_DIRNAME = tests/unit/ → 上溯两级 = agate/
+#
+# 用 git rev-parse 反推更可靠：tests/ 在 git 仓库的 agate/ 子目录下，
+# 找最近的 agate/scripts 即可
+_resolve_agate_root() {
+    local dir="$BATS_TEST_DIRNAME"
+    while [ "$dir" != "/" ]; do
+        if [ -d "$dir/scripts" ] && [ -d "$dir/assets" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir=$(dirname "$dir")
+    done
+    return 1
+}
+
+export AGATE_ROOT="${AGATE_ROOT:-$(_resolve_agate_root)}"
 
 # 验证 AGATE_ROOT 下有 scripts/ 和 assets/，防止路径错位
 if [ ! -d "$AGATE_ROOT/scripts" ] || [ ! -d "$AGATE_ROOT/assets" ]; then
@@ -20,9 +37,11 @@ if [ ! -d "$AGATE_ROOT/scripts" ] || [ ! -d "$AGATE_ROOT/assets" ]; then
     return 1
 fi
 
-# 加载 fixtures 库
-load "$BATS_TEST_DIRNAME/helpers/fixtures.bash"
-load "$BATS_TEST_DIRNAME/helpers/git-helper.bash"
+# 加载 fixtures 库（用绝对路径，避免 load() 的 $BATS_TEST_DIRNAME 解析问题）
+_HELPERS_DIR="$(cd "$BATS_TEST_DIRNAME/.." 2>/dev/null && pwd)/helpers"
+[ -d "$_HELPERS_DIR" ] || _HELPERS_DIR="$BATS_TEST_DIRNAME/helpers"
+source "$_HELPERS_DIR/fixtures.bash"
+source "$_HELPERS_DIR/git-helper.bash"
 
 # 通用常量
 export AGATE_SCRIPTS="$AGATE_ROOT/scripts"
