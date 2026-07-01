@@ -127,13 +127,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
    - 详见 dispatch-protocol.md「标准派发流程」步骤 0
 3. 有进行中任务 → 读 `.state.yaml` → 确认当前阶段 + 重试记录 → 进入「单步函数」流程（state-machine.md「主 Agent 的单步执行（一轮）」节）
 
-## 项目约定
-
-- 项目配置：`{project_root}/CLAUDE.md`（或 `AGENTS.md`）
-- 任务看板：`{project_root}/docs/tasks/active-tasks.md`
-- 任务目录：`{project_root}/docs/tasks/`（任务目录名是 `Txxx-描述` 格式，不是纯编号——见 WORKFLOW.md「任务目录命名约定」）
-
-## 项目特定约束
+## 项目特定约束（按项目填写）
 
 ```
 # 根据项目填写，示例：
