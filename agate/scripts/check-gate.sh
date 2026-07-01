@@ -86,7 +86,6 @@ case "$PHASE" in
       fi
       # R2.3 修复：P4/P7 DESIGN_GAP 数量交叉核对
       # architect 忘记把 P4 的 DESIGN_GAP 转抄到 P7 → 之前静默放过
-      P4_FILE="$TASK_DIR/P4-implementation.md"
       P4_DESIGN_GAP_COUNT=$(grep -rh '\[DESIGN_GAP:' "$TASK_DIR"/P4-implementation.md "$TASK_DIR"/P4-implementation/ 2>/dev/null | grep -cE '\[DESIGN_GAP:' 2>/dev/null || true)
       P4_DESIGN_GAP_COUNT=$(echo "$P4_DESIGN_GAP_COUNT" | tail -1)
       [ -z "$P4_DESIGN_GAP_COUNT" ] && P4_DESIGN_GAP_COUNT=0

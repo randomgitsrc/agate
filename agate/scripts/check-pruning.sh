@@ -78,8 +78,7 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     # R4(a) bug fix：补实现已文档化的文件数条件
     # ⚠️ 用 --cached（暂存区），不用 HEAD~1（pre-commit 时本次变更还没进 HEAD）
     SOURCE_FILE_COUNT=$(git diff --cached --name-only 2>/dev/null \
-        | grep -vE '^docs/tasks/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG' \
-        | wc -l || echo 0)
+        | grep -cvE '^docs/tasks/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG' || echo 0)
     SOURCE_FILE_COUNT=$(echo "$SOURCE_FILE_COUNT" | tail -1)
 
     if [ "$SOURCE_FILE_COUNT" -gt 5 ]; then
@@ -121,6 +120,7 @@ for phase in P1 P2 P3 P4 P5 P6 P7 P8; do
         continue  # 阶段未被裁剪，跳过
     fi
     # 阶段被声明裁剪，检查是否有该阶段的产出文件
+    # shellcheck disable=SC2231
     for f in "$TASK_DIR"/${phase}-*.md; do
         [ -f "$f" ] || continue
         # P2-implementation.md 实际上是 P4-implementation 的别名？不，严格按 P{n}- 开头

@@ -53,7 +53,7 @@ HEAD：$HEAD_SHA
 $RECENT_COMMITS
 
 防护机制（pre-commit + CI）：
-$(printf "$GUARDS")
+$(printf '%b' "$GUARDS")
 
 快速版本对比：bash ~/.agate/scripts/agate-changes.sh [since-tag]
 默认输出自上一个 tag 起的 commit + 受影响的协议文件。
