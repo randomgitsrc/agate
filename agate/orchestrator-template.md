@@ -120,6 +120,12 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
    - 详见 dispatch-protocol.md「标准派发流程」步骤 0
 3. 有进行中任务 → 读 `.state.yaml` → 确认当前阶段 + 重试记录 → 进入「单步函数」流程（state-machine.md「主 Agent 的单步执行（一轮）」节）
 
+## 项目文件（每次新会话先读）
+
+- `{project_root}/CLAUDE.md`（或 `AGENTS.md`）— 项目约定
+- `{project_root}/docs/tasks/active-tasks.md` — 任务看板
+- {项目特有的必读文件，如 DESIGN.md / INDEX.md / ARCHITECTURE.md 等，没有就删这行}
+
 ## 项目约定
 
 - 项目配置：`{project_root}/CLAUDE.md`（或 `AGENTS.md`）
