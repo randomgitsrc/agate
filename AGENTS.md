@@ -8,6 +8,7 @@ agate/              ← 协议本体（~/.agate 软链接指向这里）
   scripts/          ← gate 检查脚本（bash + python3）
   tests/            ← bats 测试用例（以 count-tests.sh 输出为准）
   assets/           ← 角色/模板文件
+SELF-GATE.md        ← agate 自身变更的 gate（改协议/脚本时必读）
 docs/               ← 项目开发资料（评审、计划、竞争分析）
 .github/workflows/  ← CI
 ```
@@ -58,13 +59,7 @@ bash agate/tests/scripts/count-tests.sh
 
 ## 改 agate 协议本体的检查清单
 
-改协议文档或脚本时（`agate/scripts/*.sh`、`agate/scripts/check-protocol-consistency.py`、`agate/**/*.md`），除了常规测试，还需：
-
-1. **跑 check-protocol-consistency.py** — 确认 CHECK 1-9 无 ERROR
-2. **派发 protocol-alignment-review subagent** — 语义对齐审查（见 `dispatch-protocol.md`「agate 自身变更的对齐审查」+ `assets/review-roles/protocol-alignment-review.md`）
-3. **读审查报告** — MISALIGNED 必须修复，NEEDS_HUMAN_REVIEW 需附 `[HUMAN_CONFIRMED: ...]` 标记
-4. **跑全量 bats** — 确认无退化
-5. **如果改了 gate 逻辑** — 确认下游项目（如 PeekView）的 gate 仍能跑通
+改协议文档或脚本时，遵循 **SELF-GATE.md**（agate 自身变更的 gate）。
 
 ## 版本发布
 

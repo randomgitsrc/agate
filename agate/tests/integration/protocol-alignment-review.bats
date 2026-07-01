@@ -27,18 +27,20 @@ load ../helpers/load.bash
     grep -q 'HUMAN_CONFIRMED' "$role_file"
 }
 
-@test "SG.4 dispatch-protocol.md 含派发模板" {
-    grep -q 'protocol-alignment-review' "$AGATE_ROOT/dispatch-protocol.md"
-    grep -q '审查清单' "$AGATE_ROOT/dispatch-protocol.md"
-    grep -q '配套文件提示' "$AGATE_ROOT/dispatch-protocol.md"
+@test "SG.4 SELF-GATE.md 含派发模板" {
+    local selfgate_file="$BATS_TEST_DIRNAME/../../../SELF-GATE.md"
+    [ -f "$selfgate_file" ]
+    grep -q 'protocol-alignment-review' "$selfgate_file"
+    grep -q '审查清单' "$selfgate_file"
+    grep -q '配套文件提示' "$selfgate_file"
 }
 
-@test "SG.5 AGENTS.md 含检查清单" {
-    local agents_file="$BATS_TEST_DIRNAME/../../../AGENTS.md"
-    [ -f "$agents_file" ]
-    grep -q 'protocol-alignment-review' "$agents_file"
-    grep -q 'CHECK 1-9' "$agents_file"
-    grep -q 'HUMAN_CONFIRMED' "$agents_file"
+@test "SG.5 SELF-GATE.md 含检查清单" {
+    local selfgate_file="$BATS_TEST_DIRNAME/../../../SELF-GATE.md"
+    [ -f "$selfgate_file" ]
+    grep -q 'protocol-alignment-review' "$selfgate_file"
+    grep -q 'CHECK 1-9' "$selfgate_file"
+    grep -q 'HUMAN_CONFIRMED' "$selfgate_file"
 }
 
 @test "SG.6 CHECK 9 锚点表覆盖全部 11 个 gate 脚本" {
