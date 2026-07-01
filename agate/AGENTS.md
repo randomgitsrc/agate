@@ -77,3 +77,5 @@ rm -rf <你克隆 agate 的目录>          # 删仓库
 仓库根的 `README.md` 有面向**新用户**的接入指南；本目录是面向**深入使用者和 Agent** 的协议本体入口。
 
 有问题看 `LIMITATIONS.md`，别在文档没覆盖的地方反复猜。
+
+**推荐伴侣**：superpowers（单 Agent 行为纪律层）——强化"Agent 自己怎么做对"，与 agate 的编排结构层（多 Agent 隔离+gate）正交互补。superpowers 不替代 agate，agate 不替代 superpowers，各管一层。
