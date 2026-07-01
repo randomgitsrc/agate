@@ -6,6 +6,7 @@
 > - `~/oclab/peekview/docs/reviews/t044-t045-retrospective-20260701.md`（复盘）
 > - `~/oclab/peekview/docs/reviews/t044-t045-behavioral-audit-20260701.md`（行为审计）
 > 评审对象：agate v0.5.0 协议本体（commit `b160c99`）
+> 注：R1-R5 已在 v0.6+ 逐步落地（P6 客观证据审计、P7 文件数检查、裁剪风险评估、P8 internal_only 声明等）
 > 修订：v5（吸收专家二次评审——R1 措辞澄清"已有规则 hook 化"、总结明确两类防线分野、补充实现顺序建议、加协议文档与脚本实现漂移风险观察）
 
 ---

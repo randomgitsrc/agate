@@ -1,7 +1,7 @@
 # subagent context 的真实状态
 
 > 本文记录 OpenCode / Claude Code 平台 subagent context 的实际构成，供 agate 协议设计参考。
-> 来源：`docs/reviews/agate-improvement-guide.md` 第一节（平台机制调研部分，事实性信息）。
+> 来源：`docs/archived/reviews/agate-improvement-guide.md` 第一节（平台机制调研部分，事实性信息）。
 
 ---
 

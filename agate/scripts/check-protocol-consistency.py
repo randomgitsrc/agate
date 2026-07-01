@@ -114,6 +114,8 @@ def iter_md_files(root: Path):
     for p in sorted(root.rglob("*.md")):
         if ".git" in p.parts:
             continue
+        if "archived" in p.parts:
+            continue
         yield p
 
 

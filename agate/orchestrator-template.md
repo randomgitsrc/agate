@@ -104,7 +104,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 ### 每个新会话启动（含中断恢复）
 
-**协议文件**（依次读完，不可跳过）：
+**协议文件**（8 个协议文件，依次读完，不可跳过）：
 
 1. `{agate_root}/WORKFLOW.md` — 阶段总览、角色映射、裁剪规则
 2. `{agate_root}/dispatch-protocol.md` — 派发模板、gate 表、特殊事件处理
