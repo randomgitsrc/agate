@@ -98,9 +98,9 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 ### 项目首次接入（一次性）
 
-1. `bash ~/.agate/scripts/install-hook.sh` — 安装 pre-commit hook（启用 9 项 gate 检查）
-2. `mkdir -p {project_root}/docs/tasks/` — 创建任务目录
-3. 从 `{agate_root}/assets/templates/active-tasks-template.md` 复制结构到 `docs/tasks/active-tasks.md`（清空示例数据）
+1. `bash ~/.agate/scripts/install-hook.sh` — 安装 pre-commit hook（重复执行安全，会覆盖旧链接）
+2. `mkdir -p {project_root}/docs/tasks/` — 创建任务目录（已存在不报错）
+3. 若 `docs/tasks/active-tasks.md` 不存在，从 `{agate_root}/assets/templates/active-tasks-template.md` 复制（**已存在则跳过，避免覆盖**）
 
 ### 每个新会话启动（含中断恢复）
 
