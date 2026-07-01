@@ -55,7 +55,7 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P2'; then
     elif grep -qE '^follows_existing_pattern:\s*\[[^]]+\]' "$P1_FILE" 2>/dev/null; then
         : # 放行
     else
-        ERRORS="${ERRORS}P2 不可裁剪（除非 design_trivial: true 或 follows_existing_pattern: [参照文件]）\n"
+        ERRORS="${ERRORS}P2 不可裁剪（例外口：design_trivial: true / follows_existing_pattern: [参照文件] / legacy_p2_pruned: true）\n"
     fi
 fi
 
