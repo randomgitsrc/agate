@@ -155,8 +155,8 @@ agate/
 │   ├── regression/                  # 回归测试：每个 bug 一组
 │   │   ├── v060-yaml-indent.bats    # task-files.md executor_env 缩进
 │   │   ├── v060-design-gap.bats     # DESIGN_GAP 配对
-│   │   ├── v050-shared-styles.bats  # 旧 shared_styles 名
-│   │   ├── v050-r4-bug.bats         # git diff --cached 路径
+│   │   ├── v060-r4-cached.bats      # T045 hardening 裁剪 P7 文件数 (--cached)
+│   │   ├── v060-p8-cached.bats      # P8 gate 用 --cached（评审新发现+已修）
 │   │   └── ...
 │   ├── integration/                 # 集成测试
 │   │   ├── pre-commit-hook.bats     # 完整 pre-commit 流程
@@ -173,6 +173,37 @@ agate/
 ---
 
 ## 四、夹具设计
+
+### 4.0 全局 setup（`tests/helpers/load.bash`）
+
+**所有 `.bats` 文件第一行 load 此文件**：
+
+```bash
+# tests/helpers/load.bash
+# BATS 全局 setup：导出 AGATE_ROOT + load fixtures 库
+# 用法：每个 .bats 文件第一行 load helpers/load.bash
+
+# AGATE_ROOT 解析规则（评审发现：CI 直接 checkout 时 ~/.agate 软链接不存在）
+# 1. 显式设过 → 用
+# 2. 否则 → 用 BATS_TEST_DIRNAME 反推（tests/ 的父目录 = agate/）
+export AGATE_ROOT="${AGATE_ROOT:-$(cd "$BATS_TEST_DIRNAME/.." && pwd)}"
+
+# 验证 AGATE_ROOT 下有 scripts/，防止路径错位
+[ -d "$AGATE_ROOT/scripts" ] || {
+    echo "FATAL: AGATE_ROOT=$AGATE_ROOT 下找不到 scripts/" >&2
+    echo "  BATS_TEST_DIRNAME=$BATS_TEST_DIRNAME" >&2
+    return 1
+}
+
+# 加载 fixtures 库
+load "$BATS_TEST_DIRNAME/helpers/fixtures.bash"
+load "$BATS_TEST_DIRNAME/helpers/git-helper.bash"
+```
+
+**为什么必须**：
+- CI 直接 checkout agate 仓库后 `bats agate/tests/`，`~/.agate` 软链接不存在
+- 没有这个文件，所有 `bash "$AGATE_ROOT/scripts/check-pruning.sh"` 会找不到脚本
+- 评审发现这条假设完全没在计划中明示
 
 ### 4.1 共享夹具（`tests/helpers/fixtures.bash`）
 
@@ -277,7 +308,13 @@ EOF
 | G2.3 | P2，2 个候选方案 | P2-design.md 2 个 heading | exit 2 |
 | G2.4 | P2，2 个候选 + 深层级 h4 | `#### 候选方案` | exit 1（regex 不匹配 h4） |
 | G2.5 | P2，无 P2 文件 | 空目录 | exit 2（design_trivial） |
-| G3 | P3，check-tdd-red.sh 调用 | TASK_DIR + 模拟 pytest | exit 0/1/2/3（按子脚本返回） |
+| G3.1 | P3，调用 check-tdd-red.sh 全绿 | mock 脚本输出 `5 passed` | exit 2（实现先于测试） |
+| G3.2 | P3，check-tdd-red.sh 经典红灯（assertion failure） | mock 输出 `2 failed` | exit 0 |
+| G3.3 | P3，check-tdd-red.sh B 类（项目内 import 失败） | mock 错误含 `from myapp` | exit 0 |
+| G3.4 | P3，check-tdd-red.sh A 类（第三方 import 失败） | mock 错误含 `import requests` | exit 1 |
+| G3.5 | P3，check-tdd-red.sh A 类（SyntaxError） | mock 含 `SyntaxError` | exit 1 |
+| G3.6 | P3，check-tdd-red.sh 无测试运行器 | unset TEST_RUNNER，PATH 空 | exit 3 |
+| G3.7 | P3，check-tdd-red.sh 混合（1 failed + 1 B 类 error） | mock 混合输出 | exit 0 |
 | G4.1 | P4，无代码文件 | 暂存区仅 .md | exit 1 |
 | G4.2 | P4，有 .py 代码 | 暂存区有 src/app.py | exit 0 |
 | G4.3 | P4，.md + .yaml + .py 都行 | 混合 | exit 0 |
@@ -325,7 +362,7 @@ EOF
 | PV.4 | 行末 (xxx) 多个括号 | `(a.png) (b.png)` 在同一行 | exit 0（取最后一个） |
 | PV.5 | PASS 数 > 证据文件数 | 3 PASS + 1 文件 | exit 1 |
 | PV.6 | 证据文件未被任何 PASS 引用 | 1 PASS + 2 文件 | exit 1 |
-| PV.7 | .gitkeep 算入证据 | .gitkeep + 引用 .gitkeep | exit 0（隐藏文件排除） |
+| PV.7 | .gitkeep 算入证据 | .gitkeep + 引用 .gitkeep | exit 1（hidden file 不计入证据数，触发"无证据"硬拦） |
 | PV.8 | dispatch-context 含 PASS 预判 | P6-dispatch-context.md `- PASS` | exit 1 |
 | PV.9 | P1 BDD Given 数 > P6 总数 | 3 Given + 1 PASS | exit 1 |
 | PV.10 | P1 无 Given 格式 | P1 无 BDD | exit 2（WARNING） |
@@ -444,24 +481,49 @@ EOF
 @test "DESIGN_GAP 不在 P7-consistency.md → 静默放过（已知风险）" { ... }
 ```
 
-### R3：v0.5 R4 文件数 bug（`git diff --cached` vs `HEAD~1`）
+### R3：v0.6 T045 hardening R4 文件数 bug（`git diff --cached` vs `HEAD~1`）
+
+> commit `fabca40` "feat(hardening): check-pruning.sh 补 P7/P8 裁剪条件 + 裁剪风险评估（R3/R4/R5）" 修复。
+> 测试目的是确保未来不会再有人"为了对齐"把 `--cached` 改回 `HEAD~1`。
 
 ```bash
-# tests/regression/v050-r4-bug.bats
+# tests/regression/v060-r4-cached.bats
 @test "裁剪 P7 时用 --cached 统计源文件数（不是 HEAD~1）" { ... }
 ```
 
-### R4：v0.5 P8 internal_only
+### R4：v0.6 T045 hardening P8 internal_only
 
 ```bash
 @test "P8 internal_only 缺失拦截" { ... }
 ```
 
-### R5：v0.5 shared_styles 弃用（保留向后兼容？）
+### R5：v0.6 P8 chicken-and-egg bug（本次实施评审新发现）
+
+> `check-gate.sh` P8 分支原本用 `git diff HEAD~1` 检查 version/CHANGELOG 变更。
+> pre-commit 时本次 commit 还没创建，`HEAD~1` 是上一个 commit，
+> P8 阶段 version/CHANGELOG 都在暂存区里——`HEAD~1` 永远看不到，必然 exit 1。
+>
+> 这是 P4/P7 已踩过的同款 bug，commit `fabca40` 修了 P4/P7，但漏了 P8。
+> 评审发现后已修复（HEAD~1 → --cached）。
 
 ```bash
-@test "旧任务用 shared_styles 仍可通过（向后兼容）" { ... }
+# tests/regression/v060-p8-cached.bats
+@test "P8 gate 用 --cached 检查 version 文件（不是 HEAD~1）" {
+    # 1. 初始化 git 仓库，commit 一个 init
+    # 2. 修改 package.json + CHANGELOG.md，但 git add 到暂存区但不 commit
+    # 3. 跑 check-gate.sh P8
+    # 4. 断言 exit 2（脚本化检查通过，进入主 Agent 验证）
+    # 5. 如果 exit 1 → 鸡生蛋 bug 复现
+}
+
+@test "P8 gate 用 --cached 检查 CHANGELOG（不是 HEAD~1）" {
+    # 同样套路，但只改 CHANGELOG.md
+}
 ```
+
+### R6：占位（未来 bug）
+
+每发现一个新 bug → 立即加一个 R{N}。
 
 ### R6：未来新发现的 bug
 
@@ -557,7 +619,7 @@ jobs:
 
 | 指标 | 当前 | 目标 |
 |------|------|------|
-| 脚本分支覆盖 | 22.6% (7/31) | 100% (31/31) |
+| 脚本分支覆盖 | 22.6% (7/31 exit 点) | 100% (130+ 决策点 + 63 exit 点) |
 | 持久化测试 | 0 个 | 90+ 个 |
 | 自动化触发 | 0 处 | 2 处 (pre-push + CI) |
 | 回归保护 | 0 个 | ≥5 个 |
@@ -701,4 +763,6 @@ jobs:
 | `agate-changes.sh` | 109 | 展示脚本 | 跳过 |
 | `install-hook.sh` | 34 | 安装脚本 | 1 用例 |
 
-**总测试用例数估计**：13+18+15+10+8+8+8+5+5+4+1 = **95 个核心测试用例**
+**总测试用例数估计**：17+27+11+15+6+9+8+5+4+8+1 = **111 个核心测试用例**
+
+> 注：v1 初版自报 95，实测行数 110+；G3 拆分为 7 个子用例后，check-gate.sh 从 18 增到 24。**真实决策点 130+，exit 点 63**，计划用例 111 覆盖约 85% 决策点，剩余边界靠夹具组合覆盖。**不要把"100% 决策点覆盖"作为可量化指标**——追求 100% 会逼出无意义测试（如 phase_num 对 "PAUSED" 返回 0 这种只对 happy path 有意义的函数）。

@@ -86,7 +86,8 @@ case "$PHASE" in
       # 注意：version 文件路径和 CHANGELOG 文件名因项目而异，
       # 主 Agent 应从 P2-design.md packages 字段读取具体路径。
       # 以下检查使用通用模式，可能需要主 Agent 补充验证。
-      # git diff HEAD~1 假设 P8 为单次 commit；若多 commit，主 Agent 需手动验证。
+      # 用 git diff --cached（暂存区），不用 HEAD~1——pre-commit 时本次变更还没进 HEAD
+      # 与 P4/P7 同款修复（v0.6 hardening R4 chicken-and-egg 教训）
       RC=0
       # 检查 bump_type 字段
       if ! grep -q 'bump_type:' "$TASK_DIR/P8-release.md" 2>/dev/null; then
@@ -94,14 +95,14 @@ case "$PHASE" in
           RC=1
       fi
       # 检查 version 文件变更（通用匹配，主 Agent 应从 P2 packages 补充验证）
-      if ! git diff HEAD~1 --stat 2>/dev/null | grep -qiE 'version|__version__|package.json|Cargo.toml|pyproject.toml|go.mod|pom.xml|gemspec|csproj'; then
-          echo "GATE P8: HEAD~1 无 version 文件变更（若项目用其他文件管理版本，主 Agent 需从 P2 packages 手动验证）" >&2
+      if ! git diff --cached --stat 2>/dev/null | grep -qiE 'version|__version__|package.json|Cargo.toml|pyproject.toml|go.mod|pom.xml|gemspec|csproj'; then
+          echo "GATE P8: 暂存区无 version 文件变更（若项目用其他文件管理版本，主 Agent 需从 P2 packages 手动验证）" >&2
           RC=1
       fi
       # 检查 CHANGELOG 变更（默认 CHANGELOG.md，项目可用 CHANGELOG_FILE 环境变量覆盖）
       CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
-      if ! git diff HEAD~1 -- "$CHANGELOG_FILE" 2>/dev/null | grep -q .; then
-          echo "GATE P8: ${CHANGELOG_FILE} 无变更（若项目用其他 changelog 文件，设置 CHANGELOG_FILE 环境变量）" >&2
+      if ! git diff --cached -- "$CHANGELOG_FILE" 2>/dev/null | grep -q .; then
+          echo "GATE P8: ${CHANGELOG_FILE} 暂存区无变更（若项目用其他 changelog 文件，设置 CHANGELOG_FILE 环境变量）" >&2
           RC=1
       fi
       if [ "$RC" -ne 0 ]; then
