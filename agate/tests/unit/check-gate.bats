@@ -285,6 +285,26 @@ EOF
     [ "$status" -eq 0 ]
 }
 
+@test "G7.7 check-gate.sh P7 P4 有 DESIGN_GAP 但 P7 未转抄 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P4-implementation.md" <<'EOF'
+---
+agent: test
+---
+- [DESIGN_GAP: P2 未指定错误处理]
+EOF
+    cat > "$dir/P7-consistency.md" <<'EOF'
+---
+agent: test
+---
+一致性检查完成。
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P4"*"DESIGN_GAP"*"P7"* ]]
+}
+
 # ========== P8 (5 用例) ==========
 
 @test "G8.1 check-gate.sh P8 缺 bump_type 期望 exit 1" {

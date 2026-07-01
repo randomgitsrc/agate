@@ -109,18 +109,19 @@ load ../helpers/load.bash
     dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)  # P7 不在声明
     local repo
     repo=$(git_init)
-    # 在 repo 创建 6 个源文件并 commit
-    for i in 1 2 3 4 5 6; do
-        echo "file $i" > "$repo/src_$i.py"
-    done
+    # 先 commit 空初始状态
+    echo "init" > "$repo/README.md"
     git_commit "$repo" "init"
     # 在 repo 复制 task dir
     cp -r "$dir" "$repo/task"
-    # 暂存 6 个文件
+    # 创建 6 个源文件并暂存（不 commit，让 git diff --cached 能看到）
+    for i in 1 2 3 4 5 6; do
+        echo "file $i" > "$repo/src_$i.py"
+    done
     git -C "$repo" add src_*.py
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-pruning.sh' 'task'"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"源文件数"* ]]
+    [[ "$output" == *"源码文件数"* ]]
 }
 
 @test "P2.6b check-pruning.sh 裁剪 P7，源文件数 ≤ 5 通过" {

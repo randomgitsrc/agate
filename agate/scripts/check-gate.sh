@@ -84,6 +84,16 @@ case "$PHASE" in
           echo "GATE P7: 有 ${UNREVIEWED} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]——主 Agent 需审查 implementer 的自主决策" >&2
           exit 1
       fi
+      # R2.3 修复：P4/P7 DESIGN_GAP 数量交叉核对
+      # architect 忘记把 P4 的 DESIGN_GAP 转抄到 P7 → 之前静默放过
+      P4_FILE="$TASK_DIR/P4-implementation.md"
+      P4_DESIGN_GAP_COUNT=$(grep -rh '\[DESIGN_GAP:' "$TASK_DIR"/P4-implementation.md "$TASK_DIR"/P4-implementation/ 2>/dev/null | grep -cE '\[DESIGN_GAP:' 2>/dev/null || true)
+      P4_DESIGN_GAP_COUNT=$(echo "$P4_DESIGN_GAP_COUNT" | tail -1)
+      [ -z "$P4_DESIGN_GAP_COUNT" ] && P4_DESIGN_GAP_COUNT=0
+      if [ "$P4_DESIGN_GAP_COUNT" -gt "$DESIGN_GAP_COUNT" ]; then
+          echo "GATE P7: P4 声明了 ${P4_DESIGN_GAP_COUNT} 条 [DESIGN_GAP]，P7 只转抄了 ${DESIGN_GAP_COUNT} 条——architect 遗漏转抄" >&2
+          exit 1
+      fi
       exit 0 ;;
   P8)
       # P8 部分检查可脚本化，其余需主 Agent 自判

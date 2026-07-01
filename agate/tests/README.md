@@ -28,7 +28,7 @@ bash agate/tests/scripts/count-tests.sh
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
 | check-pruning.sh | unit/check-pruning.bats | 20 |
-| check-gate.sh | unit/check-gate.bats | 33 |
+| check-gate.sh | unit/check-gate.bats | 34 |
 | check-p6-evidence.sh | unit/check-p6-evidence.bats | 11 |
 | check-p6-provenance.sh | unit/check-p6-provenance.bats | 16 |
 | check-scope-resolved.sh | unit/check-scope-resolved.bats | 6 |
@@ -37,13 +37,13 @@ bash agate/tests/scripts/count-tests.sh
 | check-changelog.sh | unit/check-changelog.bats | 5 |
 | check-retrospective.sh | unit/check-retrospective.bats | 4 |
 | check-tdd-red.sh | unit/check-tdd-red.bats | 9 |
-| 回归 (R1-R5) | regression/ | 13 |
+| 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 5 |
 | 协议一致性 | integration/consistency.bats | 7 |
 | 框架自检 | sanity.bats | 6 |
-| **总计** | | **152** |
+| **总计** | | **154** |
 
-> 注：146 来自 `count-tests.sh`（不含 sanity.bats 的 6 用例），加上框架自检 6 = 152。以 `count-tests.sh` 输出为准。
+> 注：148 来自 `count-tests.sh`（不含 sanity.bats 的 6 用例），加上框架自检 6 = 154。以 `count-tests.sh` 输出为准。
 
 ## CI
 
@@ -63,7 +63,7 @@ GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
 
 | 编号 | 风险 | 兜底 | 状态 |
 |------|------|------|------|
-| R2.3 | DESIGN_GAP 在 P4 但 architect 忘记转抄 P7 → 静默放过 | architect.md 纯文本指令 | 待关闭（打开 R2 待办） |
+| R2.3 | ~~DESIGN_GAP 在 P4 但 architect 忘记转抄 P7 → 静默放过~~ | P4/P7 交叉核对 | 已关闭（v0.6 hardening R2.3） |
 
 ## 目录
 

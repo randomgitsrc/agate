@@ -30,10 +30,11 @@ load ../helpers/load.bash
     add_pruning_excuse "$dir" P7 "小改动" "低"
     local repo
     repo=$(git_init)
+    echo "init" > "$repo/README.md"
+    git_commit "$repo" "init"
     for i in 1 2 3; do
         echo "f$i" > "$repo/src_$i.py"
     done
-    git_commit "$repo" "init"
     cp -r "$dir" "$repo/task"
     git -C "$repo" add src_*.py
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-pruning.sh' 'task'"

@@ -1,0 +1,11 @@
+task_id: T003
+phase: PAUSED
+status: paused
+retries:
+  P2:
+    - attempt: 1
+      reason: "gate failed"
+    - attempt: 2
+      reason: "gate failed"
+    - attempt: 3
+      reason: "gate failed"

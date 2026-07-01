@@ -48,7 +48,7 @@ fi
 
 if [ -n "$WARNINGS" ]; then
     echo "GATE RETRO: 建议复盘 — 检测到异常模式：" >&2
-    printf '%s' "$WARNINGS" | while IFS= read -r line; do
+    printf '%b' "$WARNINGS" | while IFS= read -r line; do
         [ -n "$line" ] && echo "  - $line" >&2
     done
     echo "  请在版本 bump 前写简版复盘（docs/releases/v{version}-retrospective.md）" >&2
