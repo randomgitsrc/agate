@@ -101,3 +101,158 @@ EOF
     run git -C "$REPO" commit -m "state format check"
     [ "$status" -eq 0 ]
 }
+
+# ========== 多任务架构测试 ==========
+
+@test "IT.6 pre-commit-hook 多任务：任务级 .state.yaml + P1 产出 → 正常 commit" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    # 任务级 .state.yaml（多任务架构）
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "T001 P1"
+    [ "$status" -eq 0 ]
+}
+
+@test "IT.7 pre-commit-hook 多任务：P4 产出但 phase 仍 P3 → WARNING 不拦截" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    # 先 commit 一个 P3 状态
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit -qm "T001 P3"
+    # 现在 commit P4 产出但忘改 phase
+    echo "implementation" > "$REPO/docs/tasks/T001/P4-implementation.md"
+    git -C "$REPO" add docs/tasks/T001/P4-implementation.md
+    run git -C "$REPO" commit -m "T001 P4 output only" 2>&1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"* || "$output" == *"phase"* ]]
+}
+
+@test "IT.8 pre-commit-hook 多任务：phase 变更无产出 → 不拦截不 WARNING" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    # 先 commit P1 状态（P1 产出 + phase=P1 一致）
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit -qm "T001 P1"
+    # 改 phase 到 P2 但无 P2 产出（P2 gate exit 2 不拦截）
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "T001 phase P2" 2>&1
+    [ "$status" -eq 0 ]
+}
+
+@test "IT.9 pre-commit-hook 多任务：裁剪跳阶 P2→P5 无 P3/P4 产出 → 不拦截" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    # P2 状态 + 声明裁剪 P3/P4
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P5, P6, P7, P8]
+跳过风险: 低
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit -qm "T001 P2"
+    # 跳到 P5（裁剪 P3/P4）
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P5-verification.md" <<'EOF'
+---
+agent: test
+---
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "T001 skip to P5"
+    [ "$status" -eq 0 ]
+}
+
+@test "IT.10 pre-commit-hook 向后兼容：根 .state.yaml 仍工作" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    # 根 .state.yaml（单任务架构）
+    cat > "$REPO/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add .state.yaml docs/tasks/T001/
+    run git -C "$REPO" commit -m "root state P1"
+    [ "$status" -eq 0 ]
+}

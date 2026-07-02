@@ -10,6 +10,9 @@
 #           P2.15 .state.yaml 格式校验
 #
 # 触发条件：.state.yaml phase 变更 OR 阶段产出文件变更
+#
+# 多任务架构：扫描所有暂存的 .state.yaml（根 + docs/tasks/{Txxx}/）
+# 单任务架构：向后兼容根 .state.yaml
 
 set -euo pipefail
 
@@ -17,8 +20,8 @@ set -euo pipefail
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 # AGATE_ROOT = 协议本体路径（默认 ~/.agate 软链接 → 你克隆的 agate 仓库的 agate/ 子目录）
-# 协议脚本路径用 AGATE_ROOT 解析；项目运行时文件用 REPO_ROOT 解析
 AGATE_ROOT="${AGATE_ROOT:-$HOME/.agate}"
+AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
 
 # R1 修复：source 后验证函数已加载，防止静默放行
 source "$AGATE_ROOT/scripts/gate-result.sh" \
@@ -26,97 +29,161 @@ source "$AGATE_ROOT/scripts/gate-result.sh" \
 type write_gate_result >/dev/null 2>&1 \
     || { echo "GATE ERROR: gate-result.sh 加载不完整（write_gate_result 未定义）" >&2; exit 1; }
 
-STATE_FILE="$REPO_ROOT/.state.yaml"
-AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
-
-# 0. 文件级校验：.state.yaml 有任何变更就跑格式校验（不依赖 phase 变更）
-# S1 修复：之前格式校验在 NEEDS_GATE 之后，phase 不变时不触发
-STATE_BASENAME=$(basename "$STATE_FILE")
-if git diff --cached --name-only 2>/dev/null | grep -qF "$STATE_BASENAME"; then
-    if [ -f "$STATE_FILE" ]; then
-        bash "$AGATE_ROOT/scripts/check-state-yaml.sh" "$STATE_FILE" || exit 1
-    fi
-fi
-
-# 1. 检测是否需要触发 gate（阶段级校验）
-NEEDS_GATE=false
-has_staged_phase_change "$STATE_FILE" && NEEDS_GATE=true
-[ "$NEEDS_GATE" = false ] && has_staged_phase_output && NEEDS_GATE=true
-
-if [ "$NEEDS_GATE" = false ]; then
-    exit 0
-fi
-
-# 2. 读取当前状态
-PHASE=$(read_state_phase "$STATE_FILE")
-TASK_ID=$(read_state_task_id "$STATE_FILE")
-
-[ -z "$PHASE" ] && exit 0
-
-TASK_DIR="$REPO_ROOT/$AGATE_TASKS_DIR/$TASK_ID"
-
-# 3. PROD_TOUCHED 检测（P1.2）
+# 0. PROD_TOUCHED 检测（P1.2）——全局，不按任务分
 # R2 修复：扫描暂存 diff 内容，不扫文件全文（协议文件本身含 PROD_TOUCHED 字样）
 if git diff --cached | grep -q '\[PROD_TOUCHED\]'; then
     echo "GATE: 检测到 [PROD_TOUCHED] 标记，中止 commit" >&2
     exit 1
 fi
 
-# 4. 状态转移检查（P2.3-P2.5）
-if [ -f "$STATE_FILE" ]; then
-    bash "$AGATE_ROOT/scripts/check-state-transition.sh" "$STATE_FILE" || exit 1
+# 1. 收集所有暂存的 .state.yaml 文件（根 + 任务级）
+STAGED_STATE_FILES=""
+if git diff --cached --name-only 2>/dev/null | grep -qF ".state.yaml"; then
+    while IFS= read -r f; do
+        case "$f" in
+            *.state.yaml)
+                STAGED_STATE_FILES="${STAGED_STATE_FILES}${REPO_ROOT}/${f} "
+                ;;
+        esac
+    done < <(git diff --cached --name-only 2>/dev/null | grep -F '.state.yaml' || true)
 fi
 
-# 5. 运行 gate（P1.1）
-GATE_OUTPUT=""
-GATE_EXIT=2
+# 2. 对每个暂存的 .state.yaml：格式校验 + 状态转移 + gate
+for STATE_FILE in $STAGED_STATE_FILES; do
+    [ -f "$STATE_FILE" ] || continue
 
-if [ "$PHASE" != "PAUSED" ] && [ "$PHASE" != "READY" ] && [ "$PHASE" != "DONE" ] && [ -d "$TASK_DIR" ]; then
-    GATE_OUTPUT=$(bash "$AGATE_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?
-fi
+    # 2a. 格式校验（任何变更都触发）
+    bash "$AGATE_ROOT/scripts/check-state-yaml.sh" "$STATE_FILE" || exit 1
 
-write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
-
-# 5.4 P6 客观行为审计（P2.1/P2.10 降级方案 v2）
-if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
-    PROV_EXIT=0
-    bash "$AGATE_ROOT/scripts/check-p6-provenance.sh" "$TASK_DIR" || PROV_EXIT=$?
-    if [ "$PROV_EXIT" -eq 1 ]; then
-        exit 1
+    # 2b. 检测 phase 是否变更
+    STATE_REL=$(realpath --relative-to="$REPO_ROOT" "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
+    PHASE_CHANGED=false
+    if git diff --cached -- "$STATE_REL" 2>/dev/null | grep -qE '^\+.*phase:'; then
+        PHASE_CHANGED=true
     fi
-fi
 
-# 5.5 裁剪条件检查（P2.7-P2.9）——gate 未通过时跳过（gate 错误优先）
-if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
-    bash "$AGATE_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
-fi
+    # 2c. 状态转移检查（phase 变更时）
+    if [ "$PHASE_CHANGED" = true ]; then
+        bash "$AGATE_ROOT/scripts/check-state-transition.sh" "$STATE_FILE" || exit 1
+    fi
 
-# 5.6 SCOPE+ 追踪检查（P2.11）——gate 未通过时跳过
-if [ "$GATE_EXIT" != "1" ] && [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
-    bash "$AGATE_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
-fi
+    # 2d. 读取状态
+    PHASE=$(read_state_phase "$STATE_FILE")
+    TASK_ID=$(read_state_task_id "$STATE_FILE")
 
-# 5.7 复盘异常触发（P2.12）——只提醒不中止，gate 失败时也提醒
-if [ -n "$TASK_ID" ] && [ -d "$TASK_DIR" ]; then
+    [ -z "$PHASE" ] && continue
+    [ -z "$TASK_ID" ] && continue
+
+    # 2e. 反推 TASK_DIR
+    STATE_DIR=$(dirname "$STATE_FILE")
+    # 如果 .state.yaml 在任务目录下，TASK_DIR = dirname
+    # 如果 .state.yaml 在根目录，TASK_DIR = REPO_ROOT/AGATE_TASKS_DIR/TASK_ID
+    if [ "$STATE_DIR" = "$REPO_ROOT" ]; then
+        TASK_DIR="$REPO_ROOT/$AGATE_TASKS_DIR/$TASK_ID"
+    else
+        TASK_DIR="$STATE_DIR"
+    fi
+
+    # 2f. phase-产出一致性检查（WARNING，不拦截）
+    # 只检查"暂存了 P{n}-*.md 产出但 phase 不匹配"的情况
+    TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
+    STAGED_OUTPUTS=$(git diff --cached --name-only 2>/dev/null \
+        | grep -E "^${TASK_REL}/P[0-8]-.*\.md$" || true)
+    if [ -n "$STAGED_OUTPUTS" ]; then
+        while IFS= read -r out_file; do
+            [ -z "$out_file" ] && continue
+            # 从文件名提取阶段号 Pn
+            out_phase=$(echo "$out_file" | grep -oE 'P[0-8]' | head -1)
+            if [ -n "$out_phase" ] && [ "$out_phase" != "$PHASE" ]; then
+                echo "GATE WARNING: 暂存了 ${out_phase} 产出但 phase=${PHASE}（${TASK_ID}）——请确认是否需要更新 phase" >&2
+            fi
+        done <<< "$STAGED_OUTPUTS"
+    fi
+
+    # 2g. 跳过非 gate 阶段
+    case "$PHASE" in
+        PAUSED|READY|DONE) continue ;;
+    esac
+
+    [ ! -d "$TASK_DIR" ] && continue
+
+    # 2h. 运行 gate（P1.1）
+    GATE_OUTPUT=""
+    GATE_EXIT=2
+    GATE_OUTPUT=$(bash "$AGATE_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?
+
+    # 2h.1 写 gate 结果（供 CI backstop 检测 --no-verify 绕过）
+    write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
+
+    # 2i. P6 客观行为审计（P2.1/P2.10）
+    if [ "$GATE_EXIT" != "1" ]; then
+        PROV_EXIT=0
+        bash "$AGATE_ROOT/scripts/check-p6-provenance.sh" "$TASK_DIR" || PROV_EXIT=$?
+        if [ "$PROV_EXIT" -eq 1 ]; then
+            exit 1
+        fi
+    fi
+
+    # 2j. 裁剪条件检查（P2.7-P2.9）
+    if [ "$GATE_EXIT" != "1" ]; then
+        bash "$AGATE_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
+    fi
+
+    # 2k. SCOPE+ 追踪检查（P2.11）
+    if [ "$GATE_EXIT" != "1" ]; then
+        bash "$AGATE_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
+    fi
+
+    # 2l. 复盘异常触发（P2.12）——只提醒不中止
     bash "$AGATE_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
-fi
 
-# 6. CHANGELOG 检查（P1.6）——警告不中止
-if [ -n "$TASK_ID" ]; then
+    # 2m. CHANGELOG 检查（P1.6）——警告不中止
     bash "$AGATE_ROOT/scripts/check-changelog.sh" "$TASK_ID" 2>/dev/null || \
         echo "GATE CHANGELOG: 警告 — [Unreleased] 未记录 ${TASK_ID}" >&2
-fi
 
-# 7. P6 证据格式检查（P1.7）——中止
-if [ "$PHASE" = "P6" ] || [ "$PHASE" = "P7" ]; then
-    if [ -d "$TASK_DIR" ]; then
+    # 2n. P6 证据格式检查（P1.7）
+    if [ "$PHASE" = "P6" ] || [ "$PHASE" = "P7" ]; then
         bash "$AGATE_ROOT/scripts/check-p6-evidence.sh" "$TASK_DIR" || exit 1
     fi
-fi
 
-# 8. gate 结果处理
-case "$GATE_EXIT" in
-    0) echo "GATE $PHASE: 通过" >&2; exit 0 ;;
-    1) echo "GATE $PHASE: 未通过" >&2; echo "$GATE_OUTPUT" >&2; exit 1 ;;
-    2) echo "GATE $PHASE: 需主 Agent 手动判断" >&2; echo "$GATE_OUTPUT" >&2; exit 0 ;;
-esac
+    # 2o. gate 结果处理
+    case "$GATE_EXIT" in
+        0) echo "GATE $PHASE ($TASK_ID): 通过" >&2 ;;
+        1) echo "GATE $PHASE ($TASK_ID): 未通过" >&2; echo "$GATE_OUTPUT" >&2; exit 1 ;;
+        2) echo "GATE $PHASE ($TASK_ID): 需主 Agent 手动判断" >&2; echo "$GATE_OUTPUT" >&2 ;;
+    esac
+done
+
+# 3. 扫描暂存的 P{n}-*.md 产出文件（无 .state.yaml 变更的任务也检查一致性）
+# 只做 WARNING，不拦截——覆盖"产出了但忘改 phase"的场景
+PROCESSED_DIRS=""
+for STATE_FILE in $STAGED_STATE_FILES; do
+    [ -f "$STATE_FILE" ] || continue
+    STATE_DIR=$(dirname "$STATE_FILE")
+    [ "$STATE_DIR" = "$REPO_ROOT" ] && continue
+    PROCESSED_DIRS="${PROCESSED_DIRS}${STATE_DIR} "
+done
+
+while IFS= read -r staged_file; do
+    [ -z "$staged_file" ] && continue
+    # 从路径提取任务目录：docs/tasks/{Txxx}/P{n}-*.md
+    task_dir_rel=$(echo "$staged_file" | sed -E 's|^(.*/P[0-8]-[^/]+\.md)$|\1|; s|/P[0-8]-[^/]+$||')
+    [ -z "$task_dir_rel" ] && continue
+    # 跳过已被 .state.yaml 扫描处理的任务
+    case " $PROCESSED_DIRS " in
+        *" $REPO_ROOT/$task_dir_rel "*) continue ;;
+    esac
+    # 读该任务的 .state.yaml（如果存在）
+    task_state="$REPO_ROOT/$task_dir_rel/.state.yaml"
+    [ -f "$task_state" ] || continue
+    task_phase=$(read_state_phase "$task_state")
+    [ -z "$task_phase" ] && continue
+    # 从文件名提取阶段号
+    out_phase=$(echo "$staged_file" | grep -oE 'P[0-8]' | head -1)
+    [ -n "$out_phase" ] || continue
+    if [ "$out_phase" != "$task_phase" ]; then
+        echo "GATE WARNING: 暂存了 ${out_phase} 产出但 phase=${task_phase}（${task_dir_rel##*/}）——请确认是否需要更新 phase" >&2
+    fi
+done < <(git diff --cached --name-only 2>/dev/null | grep -E 'P[0-8]-.*\.md$' || true)
+
+exit 0

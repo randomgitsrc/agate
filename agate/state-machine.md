@@ -220,6 +220,8 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
 | **P2.12** 复盘提醒 (scripts/check-retrospective.sh) | gate 任何结果 | 检测异常模式 → 提醒写复盘（exit 0 不拦截）|
 | **P2.15** 格式校验 (scripts/check-state-yaml.sh) | `.state.yaml` 暂存变更 | 格式错误 → exit 1 拦截 |
 
+**多任务 hook 扫描**：pre-commit-gate.sh 扫描暂存区中所有变更的 `.state.yaml`（根目录 + `docs/tasks/{Txxx}/`），对每个文件独立跑格式校验 + 状态转移 + gate。phase-产出不一致（暂存了 P{n}-*.md 但 phase 不匹配）只发 WARNING 不拦截。
+
 **CI 兜底（P1.3）**：push 后 GitHub Actions 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit。
 
 特殊转移：

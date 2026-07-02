@@ -638,6 +638,10 @@ setTimeout(() => {
 | 提醒级 P1.6 | `scripts/check-changelog.sh` | `[Unreleased]` 含 task_id |
 | 阶段级 P1.7 | `scripts/check-p6-evidence.sh` | P6/P7 阶段：证据目录非空 + BDD 行数 ≥ 1 |
 
+**多任务适配**：hook 扫描所有暂存的 `.state.yaml`（根 + `docs/tasks/{Txxx}/`），对每个变更的任务级 `.state.yaml` 独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。
+
+**phase-产出一致性 WARNING**：暂存了 `P{n}-*.md` 产出但 `.state.yaml` 的 phase 不匹配时，发 WARNING（不拦截）。覆盖"产出了但忘改 phase"场景，下次 agent 接手时由状态标记绑定检查兜底。
+
 **CI backstop（P1.3）**：`push` 后 GitHub Actions `.github/workflows/protocol-consistency.yml` 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit；并对 `P6-acceptance.md` 单 author 情况发 WARNING 作为兜底审计。
 
 **Gate 分类**：
