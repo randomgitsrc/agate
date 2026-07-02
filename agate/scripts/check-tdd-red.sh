@@ -25,7 +25,7 @@
 # 环境变量：
 #   TEST_RUNNER — 测试运行器命令（主 Agent 从 P0-brief.md env_constraints.debug_env 提取）
 #                 回退链：$TEST_RUNNER → which pytest → exit 3
-#   PROJECT_MODULE — 项目模块前缀（用于 B 类检测，如 "peekview"、"myapp"）
+#   PROJECT_MODULE — 项目模块前缀（用于 B 类检测，如 "myapp"、"webapp"）
 #                    若未设置，B 类检测退化为启发式（所有 ImportError 视为 B 类）
 #                    非 Python 项目应设置此变量以匹配项目内模块路径
 #

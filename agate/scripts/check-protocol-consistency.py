@@ -234,8 +234,8 @@ def check_internal_refs(root: Path, rep: Report) -> None:
                 ref = m.group(1)
                 if any(s in ref for s in PATH_IGNORE_SUBSTRINGS):
                     continue
-                # 跨仓引用：同行注明「PeekView 仓库」「非本仓」则跳过
-                if "PeekView" in line or "非本仓" in line:
+                # 跨仓引用：同行注明「非本仓」则跳过
+                if "非本仓" in line:
                     continue
                 target = root / ref
                 # 重构后兼容：协议文件内容引用可在 agate/ 子目录下
