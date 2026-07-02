@@ -62,3 +62,16 @@ load ../helpers/load.bash
         }
     done
 }
+
+@test "SG.7 commit-msg-self-gate.sh 存在且可执行" {
+    local hook_script="$AGATE_SCRIPTS/commit-msg-self-gate.sh"
+    [ -f "$hook_script" ]
+    [ -x "$hook_script" ]
+}
+
+@test "SG.8 SELF-GATE.md 含递归终止条件" {
+    local selfgate_file="$BATS_TEST_DIRNAME/../../../SELF-GATE.md"
+    [ -f "$selfgate_file" ]
+    grep -q '递归终止' "$selfgate_file"
+    grep -q 'ALIGNED' "$selfgate_file"
+}
