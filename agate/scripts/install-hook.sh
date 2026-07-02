@@ -32,3 +32,19 @@ ln -sf "$SOURCE" "$HOOK_FILE"
 chmod +x "$SOURCE"
 
 echo "pre-commit hook 已安装: $HOOK_FILE -> $SOURCE"
+
+# 安装 commit-msg hook（self-gate 强制触发）
+COMMIT_MSG_HOOK="$HOOK_DIR/commit-msg"
+COMMIT_MSG_SOURCE="$AGATE_ROOT/scripts/commit-msg-self-gate.sh"
+
+if [ -f "$COMMIT_MSG_SOURCE" ]; then
+    if [ -f "$COMMIT_MSG_HOOK" ] && [ ! -L "$COMMIT_MSG_HOOK" ]; then
+        cp "$COMMIT_MSG_HOOK" "$COMMIT_MSG_HOOK.bak.$(date +%s)"
+        echo "已备份现有 commit-msg hook"
+    fi
+    ln -sf "$COMMIT_MSG_SOURCE" "$COMMIT_MSG_HOOK"
+    chmod +x "$COMMIT_MSG_SOURCE"
+    echo "commit-msg hook 已安装: $COMMIT_MSG_HOOK -> $COMMIT_MSG_SOURCE"
+else
+    echo "提示: $COMMIT_MSG_SOURCE 不存在，跳过 commit-msg hook 安装"
+fi
