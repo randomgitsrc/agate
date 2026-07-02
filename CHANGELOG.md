@@ -6,6 +6,20 @@
 
 ---
 
+## [Unreleased]
+
+### 新增
+- **self-gate 强制触发**（issue #002）：`commit-msg-self-gate.sh` 检测暂存区含 self-gate 触发文件时，要求 commit message 含 `self-gate-review:` 路径或 `self-gate-skip:` 理由，否则 WARNING（不拦截）
+- **self-gate 递归终止条件**：审查报告全 ALIGNED = 自然终止，不需要额外标记
+- **CHECK 9 反向覆盖检查**：`check-protocol-consistency.py` 新增 `check_anchor_coverage`——扫描 `check-*.sh` + `pre-commit-gate.sh`，确认每个 gate 脚本都在锚点表里
+- **install-hook.sh 同时安装 commit-msg hook**
+
+### 变更
+- **CON.9 测试改写**：从"锁定 md5 缺口存在"改写为"锁定 md5 已实现"（commit `949055c` 实现后旧测试永久失败）
+- **SELF-GATE.md**：补"强制力边界"声明（WARNING 不拦截）+ "递归终止"条件
+
+---
+
 ## [0.8.0] - 2026-07-02
 
 ### 新增
