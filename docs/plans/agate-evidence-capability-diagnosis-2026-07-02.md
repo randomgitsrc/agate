@@ -2,7 +2,7 @@
 task_id: agate-evidence-capability-diagnosis
 agent: main
 date: 2026-07-02
-status: 设计文档（待评审）
+status: 设计文档（已评审，修订 Critical L3 位置 + 测试夹具 + 调用时机说明）
 来源: docs/archived/plans/agate-hotfix-evidence-2026-07-01.md 重新审视 + 用户实际使用场景反馈
 ---
 
@@ -61,7 +61,26 @@ if [ "$NON_TEXT_COUNT" -eq 0 ]; then
 fi
 ```
 
-放在现有 R1a 截图检查之后、md5 去重之后。
+**位置（关键）**：必须放在 `if [ "$UI_AFFECTED" = "true" ]` **之内**、`if [ "$HAS_SCREENSHOT_REF" -gt 0 ]` **之外**（平级，不嵌套）。
+
+```bash
+if [ "$UI_AFFECTED" = "true" ]; then
+    # L3：evidence 不能全是纯文本（无论是否有截图引用都检查）
+    NON_TEXT_COUNT=$(find "$EVIDENCE_DIR" -type f -not -name '.*' \
+        ! -name '*.md' ! -name '*.txt' 2>/dev/null | wc -l)
+    if [ "$NON_TEXT_COUNT" -eq 0 ]; then
+        echo "GATE P6-EVIDENCE: ui_affected=true 但 evidence 全是纯文本（.md/.txt），缺少运行时数据（.json/.log/.png/.yaml 等）。源码引用不算运行时证据。" >&2
+        exit 1
+    fi
+
+    HAS_SCREENSHOT_REF=$(grep -cE '\(screenshots/' "$P6_FILE" ...)
+    if [ "$HAS_SCREENSHOT_REF" -gt 0 ]; then
+        ...R1a + md5（原样不动）...
+    fi
+fi
+```
+
+**为什么不能放在"R1a 之后、md5 之后"**：R1a + md5 整块嵌套在 `HAS_SCREENSHOT_REF > 0` 分支内。L3 堵的目标场景是"evidence 全是 .md/.txt、没有任何 `(screenshots/...)` 引用"——此时 `HAS_SCREENSHOT_REF = 0`，分支被跳过，L3 跟着被跳过，永不触发。必须放在该分支之外（平级），且在 `UI_AFFECTED=true` 之内——这样无论有没有截图引用，只要 `ui_affected=true` 就先看 evidence 文件类型。
 
 #### 为什么用文件类型不用关键词
 
@@ -152,7 +171,11 @@ WARNING 不阻塞，和现有复盘提醒一致。超限时两个提醒都输出
 | 触发条件 | 输出 | 性质 |
 |----------|------|------|
 | retries >= MAX（现有） | "建议复盘" | 事后总结 |
-| retries >= 2 且 < MAX（新增） | "建议跑诊断命令" | 事中干预 |
+| retries >= 2 且 < MAX（新增） | "建议跑诊断命令" | 补充提醒 |
+
+**触发时机声明**：`check-retrospective.sh` 当前在 pre-commit hook（P8 复盘 + .state.yaml 变更时）触发，"事中干预"的定位依赖该脚本在每次重试后被调用。当前实现只在 commit 时点跑——所以这个新提醒实际上是**"下一次 commit 时补充提醒"**（如果 agent 在 P4 第 2 次重试后没立即 commit，提醒要等到下次 commit 才看到）。要实现真正的"事中干预"需要调整 hook 调用时机（每次 .state.yaml 变更即触发），本计划不动调用时机，保持诚实定位。
+
+如果未来要真正"事中"：把 `check-retrospective.sh` 调用从 pre-commit 改为 P 阶段转换点触发（即 .state.yaml 每次 phase 字段变化时跑），但那是另一个改动。
 
 ## 不做的事
 
@@ -179,12 +202,17 @@ WARNING 不阻塞，和现有复盘提醒一致。超限时两个提醒都输出
 
 ### check-p6-evidence.bats 扩展
 
-| ID | 描述 | 期望 |
-|----|------|------|
-| E.14 | ui_affected=true + evidence 全是 .txt | exit 1，含"纯文本" |
-| E.15 | ui_affected=true + evidence 有 .txt + .json | exit 0 |
-| E.16 | ui_affected=true + evidence 有 .txt + .png | exit 0 |
-| E.17 | ui_affected=false + evidence 全是 .txt | exit 0（跳过 L3） |
+| ID | evidence 目录内容 | P6-acceptance.md PASS 引用 | 期望 |
+|----|-------------------|---------------------------|------|
+| E.14 | `analysis.txt` | `- PASS AC-1 (analysis.txt)` | exit 1，含"纯文本" |
+| E.15 | `analysis.txt` + `response.json` | `- PASS AC-1 (analysis.txt) - PASS AC-2 (response.json)` | exit 0 |
+| E.16 | `analysis.txt` + `screenshots/ac1.png`（>1KB 合法 png） | `- PASS AC-1 (screenshots/ac1.png)` | exit 0 |
+| E.17 | `analysis.txt`（仅） | `- PASS AC-1 (analysis.txt)` | exit 0（ui_affected=false 跳过 L3） |
+
+**测试隔离说明**：
+- E.15 的 `.json` 不触发 R1a（只在有 `(screenshots/...)` 引用时才检查截图），测的就是 L3 单独行为
+- E.16 的 `.png` 必须放在 `screenshots/` 子目录、>1KB 且 md5 唯一，否则会被 R1a 拦掉（不是 L3 放行），测出 exit 0/1 分不清是 L3 的功劳还是 R1a 的副作用
+- E.17 用 `ui_affected=false` 验证 L3 的边界——这种情况 L3 不该触发
 
 ### check-retrospective.bats 扩展
 
@@ -201,3 +229,13 @@ WARNING 不阻塞，和现有复盘提醒一致。超限时两个提醒都输出
 3. verifier.md 角色强化
 4. dispatch-prompt.md + dispatch-protocol.md P5/P6 能力检查提醒
 5. 全量测试 + consistency + shellcheck + self-gate
+
+## 评审修订记录
+
+### 2026-07-02 专家评审（gate-evidence能力诊断计划评审-20260702.md）
+
+| 问题 | 严重度 | 修订 |
+|------|--------|------|
+| L3 插入位置错误——写在"R1a 之后、md5 之后"会被包进 `HAS_SCREENSHOT_REF>0` 分支，对"全纯文本"场景永不触发 | 🔴 | §1 改为"L3 放在 `UI_AFFECTED=true` 之内、`HAS_SCREENSHOT_REF>0` 之外（平级）"，附完整位置示例代码 + 解释为什么不能放原位置 |
+| E.15/E.16 夹具构造不明确，可能测到 R1a 而非 L3 | 🟠 | 测试表新增"evidence 目录内容"+"PASS 引用"两列；E.16 明确 .png 必须放 `screenshots/` 子目录、>1KB、md5 唯一，避免 R1a 副作用 |
+| 诊断提醒"事中干预"定位依赖 hook 调用时机 | 🟡 | §4 改为"补充提醒" + 补"触发时机声明"：当前仅 commit 时点跑，实际是"下次 commit 时补充提醒"；真正"事中"需要把 hook 调用从 pre-commit 改 P 阶段转换点触发，本计划不动 |

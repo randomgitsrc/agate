@@ -41,10 +41,13 @@ setup() {
     [[ "$CONSISTENCY_OUTPUT" != *"FAIL  CHECK 9"* ]]
 }
 
-@test "CON.9 CHECK 9: md5 去重缺口确实施 WARN" {
-    # 锁住已知缺口：文档声称 hook 强制 md5 去重但脚本未实现
-    # 防止"删锚点代实现"——如果有人删了 md5 锚点来清 WARN，此测试会红
-    [[ "$CONSISTENCY_OUTPUT" == *"缺少关键词 'md5'"* ]]
+@test "CON.9 CHECK 9: md5 去重锚点已实现" {
+    # 锁住"已实现"：check-p6-evidence.sh 实际包含 md5 去重逻辑
+    # 防回归——如果有人删了 md5 去重实现，此测试会红
+    # 历史：曾锁住"缺口存在"防止删锚点代实现；md5 在 commit 949055c 实现后，
+    # 缺口消失，断言改写为锁定"实现存在"
+    grep -q 'MD5_LIST' agate/scripts/check-p6-evidence.sh
+    grep -q 'md5sum' agate/scripts/check-p6-evidence.sh
 }
 
 @test "CON.10 CHECK 8: v0.6 关键词存在性" {

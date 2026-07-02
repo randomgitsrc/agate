@@ -6,14 +6,14 @@ files_changed:
   - docs/design-notes/README.md
   - docs/design-notes/production-isolation-origin.md
   - docs/issues/README.md
-  - docs/issues/001-peekview-commit-hook-inactive.md (moved → archived)
-  - docs/plans/agate-audit-fixes-2026-07-01.md (moved → archived)
-  - docs/plans/agate-audit-fixes-C-design-2026-07-01.md (moved → archived)
-  - docs/plans/agate-audit-fixes-D-design-2026-07-02.md (moved → archived)
-  - docs/plans/agate-hotfix-evidence-2026-07-01.md (moved → archived)
-  - docs/plans/agate-issue-001-design-2026-07-02.md (moved → archived)
-  - docs/plans/agate-output-path-constraint-design-2026-07-02.md (moved → archived)
-  - docs/plans/agate-self-gate-2026-07-01.md (moved → archived)
+  - docs/issues/001-peekview-commit-hook-inactive.md (moved → archived，非本仓)
+  - docs/plans/agate-audit-fixes-2026-07-01.md (moved → archived，非本仓)
+  - docs/plans/agate-audit-fixes-C-design-2026-07-01.md (moved → archived，非本仓)
+  - docs/plans/agate-audit-fixes-D-design-2026-07-02.md (moved → archived，非本仓)
+  - docs/plans/agate-hotfix-evidence-2026-07-01.md (moved → archived，非本仓)
+  - docs/plans/agate-issue-001-design-2026-07-02.md (moved → archived，非本仓)
+  - docs/plans/agate-output-path-constraint-design-2026-07-02.md (moved → archived，非本仓)
+  - docs/plans/agate-self-gate-2026-07-01.md (moved → archived，非本仓)
   - docs/reviews/*.md (25 files moved → archived)
   - docs/reviews/postmortem-template.md (重写：22 个机制检查项)
   - docs/plans/agate-evidence-capability-diagnosis-2026-07-02.md (新增，未归档)
@@ -124,9 +124,9 @@ files_changed:
 
 | archived review | 内部引用（已不存在的路径） |
 |-----------------|---------------------------|
-| `agate-audit-fixes-C-design-review-2026-07-01.md` | `docs/plans/agate-audit-fixes-2026-07-01.md §C` |
-| `agate-audit-fixes-D-design-review-2026-07-02.md` | `docs/plans/agate-audit-fixes-2026-07-01.md §D` |
-| `agate-self-gate-output-path-2026-07-02.md` | `docs/plans/agate-output-path-constraint-design-2026-07-02.md` |
+| `agate-audit-fixes-C-design-review-2026-07-01.md` | `docs/plans/agate-audit-fixes-2026-07-01.md §C`（非本仓） |
+| `agate-audit-fixes-D-design-review-2026-07-02.md` | `docs/plans/agate-audit-fixes-2026-07-01.md §D`（非本仓） |
+| `agate-self-gate-output-path-2026-07-02.md` | `docs/plans/agate-output-path-constraint-design-2026-07-02.md`（非本仓） |
 
 **影响**：仅 archived 内部之间的相互引用断链；active docs/ 和 agate/ 不引用这些 archived 文件。**不阻断 commit**。
 

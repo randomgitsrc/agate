@@ -578,7 +578,7 @@ def check_script_alignment(root: Path, rep: Report) -> None:
         if not script_path.exists():
             rep.error("CHECK9-align",
                       f"{anchor['desc']}: 脚本不存在 {anchor['script']}",
-                      loc=anchor["script"])
+                      loc=anchor['script'])
             continue
         text = script_path.read_text(encoding="utf-8")
         for kw in anchor["keywords"]:
@@ -591,7 +591,55 @@ def check_script_alignment(root: Path, rep: Report) -> None:
                 rep.ok("CHECK9-align")
 
 
+# 工具类脚本白名单——无 gate 逻辑，不需要锚点
+GATE_SCRIPT_EXEMPT = {
+    "agate/scripts/gate-result.sh",
+    "agate/scripts/install-hook.sh",
+    "agate/scripts/agate-changes.sh",
+    "agate/scripts/agate-summary.sh",
+    "agate/scripts/agate-init.sh",
+}
+
+
+def check_anchor_coverage(root: Path, rep: Report) -> None:
+    """反向检查：每个 gate 脚本（check-*.sh + pre-commit-gate.sh）至少在一条锚点里被引用。
+
+    锚点表本身可能漏——有人加了 check-newrule.sh 忘了加锚点，
+    正向检查（CHECK 9 主逻辑）只能盯死锚点表里有的，无法发现"该有但没列"。
+    本检查做反向兜底：遍历 gate 脚本目录，确认每个都在锚点表里有对应锚点。
+    """
+    scripts_dir = root / "agate" / "scripts"
+    if not scripts_dir.exists():
+        return
+    gate_scripts = sorted(
+        str(p.relative_to(root))
+        for p in scripts_dir.glob("check-*.sh")
+        if p.is_file()
+    )
+    pre_commit = root / "agate" / "scripts" / "pre-commit-gate.sh"
+    if pre_commit.exists():
+        gate_scripts.append("agate/scripts/pre-commit-gate.sh")
+
+    covered = {anchor["script"] for anchor in SCRIPT_ALIGNMENT_ANCHORS}
+    for script in gate_scripts:
+        if script in GATE_SCRIPT_EXEMPT:
+            continue
+        if script not in covered:
+            rep.warn("CHECK9-coverage",
+                     f"gate 脚本 {script} 未纳入 CHECK 9 锚点表"
+                     "——新增 gate 脚本需在 SCRIPT_ALIGNMENT_ANCHORS 加对应锚点",
+                     loc=script)
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
+
+def run_all_checks(root: Path, rep: Report) -> None:
+    """按顺序跑所有 CHECK。CHECK 9 拆成两步：先正向锚点对齐，再反向锚点覆盖。"""
+    for name, fn in CHECKS:
+        fn(root, rep)
+        if name.startswith("CHECK 9"):
+            check_anchor_coverage(root, rep)
+
 
 CHECKS = [
     ("CHECK 1  YAML 代码块可解析", check_yaml_parseable),
@@ -619,8 +667,7 @@ def main() -> int:
         return 1
 
     rep = Report()
-    for _, fn in CHECKS:
-        fn(root, rep)
+    run_all_checks(root, rep)
 
     if args.json:
         print(json.dumps({
