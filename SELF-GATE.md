@@ -3,6 +3,12 @@
 > agate 改自己的协议文档或脚本时，必须走本流程。
 > 和项目侧 agate 流程对等：项目用 check-gate.sh + P2 评审；agate 自身用 CHECK 9 + LLM 语义审查。
 
+## 强制力边界
+
+**本机制目前有 commit-msg hook 辅助提醒**：暂存区含 self-gate 触发文件时，commit message 须含 `self-gate-review:` 路径（或 `self-gate-skip:` 理由），否则 WARNING。
+
+但 WARNING 不拦截——遵循 hook 鲁棒性优先原则。主 Agent 仍可忽略 WARNING 直接 commit。真正的强制力依赖主 Agent 自觉 + CI 兜底（待实现）。详见 issue #002。
+
 ## 触发条件
 
 以下任一文件有改动并准备 commit 时：
@@ -189,9 +195,17 @@ docs/reviews/agate-alignment-review-{date}.md
 | MISALIGNED | **必须修复**——修脚本或修文档，修完重审 |
 | NEEDS_HUMAN_REVIEW | 附 `[HUMAN_CONFIRMED: 日期 确认：理由]` 标记后可 commit。未确认的等同于 MISALIGNED |
 
-## 递归适用
+## 递归适用与终止条件
 
 本机制自身的实施也走 self-gate。任何针对 agate 的变更 plan，实施时都必须走本流程。
+
+### 递归终止
+
+审查报告结论汇总表里所有项都是 ALIGNED 或 NEEDS_HUMAN_REVIEW（附 `[HUMAN_CONFIRMED: ...]`）→ **本轮终止**。
+
+如果审查发现 MISALIGNED → 必须修复 → 修复后重审 → 直到全 ALIGNED。这是自然终止，不需要额外标记。
+
+### 未实现时的等价检查
 
 如果 self-gate 尚未实现（如还在 plan 阶段），实施者至少手动执行等价检查：
 1. 跑现有 check-protocol-consistency.py
