@@ -3,7 +3,7 @@
 > 日期：2026-06-16（事故发生于 2026-06-13，本文档为事后提炼）
 > 状态：已决策，已落地
 > 落地位置：`dispatch-protocol.md`「环境隔离（强制，所有阶段适用）」一节、`[PROD_TOUCHED]` 标记机制
-> 原始事故记录（项目特定细节）：PeekView 仓库 `docs/reviews/workflow-v4-postmortem-T005-T006-2026-06-13.md`
+> 原始事故记录（项目特定细节）：PeekView 仓库 `docs/reviews/workflow-v4-postmortem-T005-T006-2026-06-13.md`（非本仓）
 
 ## 为什么 dispatch-protocol.md 里有这条强制规则
 

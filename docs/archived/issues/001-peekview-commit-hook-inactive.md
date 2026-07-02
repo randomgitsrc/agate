@@ -52,4 +52,4 @@ bash .git/hooks/pre-commit
 
 ## 状态
 
-**待修复**——不在 self-gate 机制范围内（属于项目侧 gate 的 bug），需要单独 plan + 实施。
+**已修复**（commit 7515f66）——多任务 hook 适配 + phase-产出一致性 WARNING。

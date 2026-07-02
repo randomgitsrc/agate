@@ -18,5 +18,5 @@
 
 | # | 标题 | 严重度 | 状态 |
 |---|------|--------|------|
-| 001 | PeekView 多任务架构下 commit hook 完全失效 | High | 待修复 |
+| 001 | PeekView 多任务架构下 commit hook 完全失效 | High | ✅ 已修复（commit 7515f66） |
 | 002 | self-gate 递归触发缺乏终止机制 | Medium | 待设计 |
