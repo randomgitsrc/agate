@@ -646,14 +646,14 @@ setTimeout(() => {
 
 **Gate 分类**：
 
-| 类型 | 阶段 | 判定对象 | 可伪造？ |
+| 类型 | 阶段 | 判定对象 | 造假风险 |
 |------|------|----------|----------|
-| 外部产出 gate | P3, P4, P5 | 外部工具输出（test runner exit code, type checker, git log） | 否 |
-| 自写文件 gate ⚠️ | P1, P2, P6, P7 | 主 Agent 写的文件内容 | 是（主 Agent 直接写文件） |
+| 外部产出 gate | P3, P4, P5 | 外部工具输出（test runner exit code, type checker, git log） | 低（主 Agent 无法伪造外部产出） |
+| 自写文件 gate ⚠️ | P1, P2, P6, P7 | 主 Agent 写的文件内容 | 高（主 Agent 直接写文件，作者和裁判同一人） |
 
 自写文件 gate 的缓解措施：
-- P1/P2：gate 条件简单（标记存在性、字段计数），伪造动机低
-- P6：证据存在性检查（`P6-evidence/` 非空）+ provenance 客观行为审计 + BDD 总数对照。三层防护：跳过 verifier 拦、伪造 N 个证据的成本极高、单 author WARNING 兜底
+- P1/P2：gate 条件简单（标记存在性、字段计数），造假动机低
+- P6：证据存在性检查（`P6-evidence/` 非空）+ provenance 客观行为审计 + BDD 总数对照。造假成本提升：需造 N 个证据文件 + 正确交叉引用 + BDD 总数匹配，成本远高于派 verifier subagent
 - P7：P5 回归测试兜底（一致性标注错误不会导致 bug 漏过）
 - C7 规则见下方：所有阶段遵守「subagent 自我报告不可信」
 

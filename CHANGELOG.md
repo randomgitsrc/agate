@@ -13,8 +13,11 @@
 - **self-gate 递归终止条件**：审查报告全 ALIGNED = 自然终止，不需要额外标记
 - **CHECK 9 反向覆盖检查**：`check-protocol-consistency.py` 新增 `check_anchor_coverage`——扫描 `check-*.sh` + `pre-commit-gate.sh`，确认每个 gate 脚本都在锚点表里
 - **install-hook.sh 同时安装 commit-msg hook**
+- **README gate 判定对象分类学**：外部产出 gate vs 自写文件 gate，正面表述 + 渐进采纳路径
 
 ### 变更
+- **措辞修正**："防伪/防伪造"→"造假成本提升 + 留痕审计"（LIMITATIONS.md / dispatch-protocol.md / WORKFLOW.md / verifier.md / CHANGELOG.md）——机制真实价值是 cost-raising + audit trail，不是硬保证
+- **LIMITATIONS.md 补方向性错配声明**：agate 防御重心在 subagent 侧，但主要事故源在主 Agent 侧——这是单编排者路线的结构性产物
 - **CON.9 测试改写**：从"锁定 md5 缺口存在"改写为"锁定 md5 已实现"（commit `949055c` 实现后旧测试永久失败）
 - **SELF-GATE.md**：补"强制力边界"声明（WARNING 不拦截）+ "递归终止"条件
 
@@ -116,8 +119,8 @@
 - P5 修复流程：修复 subagent 返回后主 Agent 必须重跑 P5 gate 全量测试，不是只检查修复项。修复重派 prompt 必须附修复历史
 - P8 gate CHANGELOG 覆盖率检查：`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目。`CHANGELOG_FILE` 环境变量支持非 CHANGELOG.md 项目
 - P6 BDD 结果格式约定：必须用行首 `- PASS`/`- FAIL`，不用表格/emoji，保证 gate grep 可靠匹配
-- P6 证据目录（`P6-evidence/`）：非空检查作为 self-authored gate 的防伪造措施
-- gate 分类体系：外部产出 gate（P3/P4/P5）vs 自写文件 gate（P1/P2/P6/P7），⚠️ 标记可伪造 gate
+- P6 证据目录（`P6-evidence/`）：非空检查作为 self-authored gate 的造假成本提升措施
+- gate 分类体系：外部产出 gate（P3/P4/P5）vs 自写文件 gate（P1/P2/P6/P7），⚠️ 标记造假风险较高的 gate
 - `check-gate.sh`：P3/P4/P6/P7/P8 脚本化 gate 检查（exit 0/1/2）
 - `check-protocol-consistency.py`：6 类结构一致性检查 + CI workflow
 - 任务粒度指引：拆分判据从"输出异构性"改为"产出文件数 > 3"（T026 实验证实 dispatch prompt 模板可处理异构产出）

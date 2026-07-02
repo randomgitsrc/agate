@@ -22,7 +22,7 @@ Agent 的"走捷径"不是"遇到困难时的行为退化"，是**出厂设置**
 
 ### 1.3 与现有协议的关系
 
-硬工具化是**加法，不是替换**。协议仍然告诉主 Agent "必须跑 gate"——现在多了一层：即使主 Agent 忘了跑，hook 也会跑。即使主 Agent 伪造结果，CI 会重跑验证。
+硬工具化是**加法，不是替换**。协议仍然告诉主 Agent "必须跑 gate"——现在多了一层：即使主 Agent 忘了跑，hook 也会跑。即使主 Agent 造假结果，CI 会重跑验证。
 
 ---
 
@@ -102,7 +102,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | P3.3 | gate 结果独立存储 | 平台提供主 Agent 不可写的存储位置 | .gate-result.json 防篡改的根治方案 | 待平台支持 |
 | P3.4 | gate 执行平台化 | 平台在 subagent 返回后自动触发 gate | 覆盖非 git 事件的 gate 执行 | 待平台支持 |
 
-**P2.1 P6 验收独立化的根治**：当前降级方案靠 provenance 审计（证据-结论对应 + BDD 总数对照 + vision YAML），但主 Agent 仍可伪造证据。根治需要平台支持独立 git author（P3.1 平台能力调查）。
+**P2.1 P6 验收独立化的根治**：当前降级方案靠 provenance 审计（证据-结论对应 + BDD 总数对照 + vision YAML），但主 Agent 仍可造假证据。根治需要平台支持独立 git author（P3.1 平台能力调查）。
 
 ---
 

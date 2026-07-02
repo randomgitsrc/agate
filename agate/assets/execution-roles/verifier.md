@@ -85,7 +85,7 @@ agent: verifier
 你的 P6-acceptance.md 会通过 `scripts/check-p6-provenance.sh` 客观行为审计：
 
 - **每条 PASS 后必须引证据路径**：`- PASS B01: 描述 (P6-evidence/screenshots/b01.png)`——括号内路径相对 P6-evidence/，文件**必须存在**
-- **PASS 行数 ≤ 证据文件数**：伪造"5/5 PASS"但只有 3 个截图会被拦
+- **PASS 行数 ≤ 证据文件数**：造假"5/5 PASS"但只有 3 个截图会被拦
 - **每个证据文件都被 PASS 行引用**：空 png 充数（创建但不引用）会被拦
 - **P{N}-dispatch-context.md 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦
 

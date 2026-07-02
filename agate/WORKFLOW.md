@@ -229,7 +229,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 - **0→1→1.6→1.7→2.* 顺序**：每个阶段有"关卡"——0 是格式关、1 是行为关、2.* 是合规/审计关。任何关卡失败 → 中止 commit。
 - **agent 字段协作规范（P2.1/P2.10 v2 协作层）**：所有阶段产出文件 Header 含 `agent: <角色>`，缺字段 WARNING 不阻塞（向后兼容），但 `risk_level=high` 时 `agent=main`（自审）WARNING。
 - **CI backstop（P1.3）**：push 后 GitHub Actions 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的恶意提交；git blame 单 author WARNING 作为 provenance 兜底审计。
-- **降级方案**（Phase 3 平台接口未实现前的最优方案）：证据-结论对应是**客观行为审计**——伪造 N 个证据文件的成本远高于填写一行 `agent: verifier` 自报字段。详见 `LIMITATIONS.md` 局限 3。
+- **降级方案**（Phase 3 平台接口未实现前的最优方案）：证据-结论对应是**客观行为审计**——造假 N 个证据文件的成本远高于填写一行 `agent: verifier` 自报字段。详见 `LIMITATIONS.md` 局限 3。
 
 ---
 

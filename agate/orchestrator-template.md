@@ -135,7 +135,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 commit 被 pre-commit hook 拦截时，stderr 会输出 gate 的错误消息（说明什么条件不满足）。处理流程：
 
 1. **先主动验 gate，再 commit** — 正常流程下不应该被拦截。被拦截说明你跳过了主动验的步骤
-2. 被拦截后：读错误消息 → 分析根因 → **修复产出文件，不伪造** → 重新验 gate → 再 commit
+2. 被拦截后：读错误消息 → 分析根因 → **修复产出文件（不作假）** → 重新验 gate → 再 commit
 3. **禁止 `--no-verify` 绕过** — CI 兜底会抓到
 4. **禁止按错误消息的提示直接凑条件** — 如缺 `risk_level` 就随手写 `risk_level: low`、缺证据就造假截图。gate 消息只告诉你什么不满足，不告诉你该怎么填——根因分析是你的职责
 
