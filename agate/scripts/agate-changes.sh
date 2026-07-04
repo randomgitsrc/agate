@@ -26,13 +26,14 @@ fi
 # --check-upstream：查远端是否有新版本
 if [ "${1:-}" = "--check-upstream" ]; then
     LOCAL_TAG="$(git -C "$GIT_TOPLEVEL" describe --tags --abbrev=0 2>/dev/null || echo "untagged")"
-    git -C "$GIT_TOPLEVEL" fetch --tags --quiet 2>/dev/null || true
+    git -C "$GIT_TOPLEVEL" fetch --all --tags --quiet 2>/dev/null || true
     UPSTREAM_TAG="$(git -C "$GIT_TOPLEVEL" tag --sort=-version:refname | head -1)"
     if [ "$LOCAL_TAG" = "$UPSTREAM_TAG" ]; then
         echo "agate 已是最新版本：$LOCAL_TAG"
     else
         echo "agate 有新版本可用：$UPSTREAM_TAG（本地 $LOCAL_TAG）"
         echo "更新方式：cd <agate 仓库> && git pull"
+        echo "如果持续落后，检查 git remote 是否指向 https://github.com/randomgitsrc/agate.git"
         RANGE="${LOCAL_TAG}..origin/main"
         COMMIT_COUNT=$(git -C "$GIT_TOPLEVEL" log --oneline "$RANGE" 2>/dev/null | wc -l || echo 0)
         COMMIT_COUNT=$(echo "$COMMIT_COUNT" | tail -1)
