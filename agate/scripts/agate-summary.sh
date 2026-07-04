@@ -12,21 +12,20 @@ if [ -z "$SCRIPT_DIR" ]; then
     exit 1
 fi
 
-# 用 git 向上找仓库根（处理 ~/.agate 是软链接的情况）
-GIT_TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
-if [ -z "$GIT_TOPLEVEL" ]; then
-    echo "GATE: 无法找到 git 仓库根——agent 不能获取版本信息" >&2
-    echo "      可能 ~/.agate 不是 git 仓库的子目录" >&2
+# agate 仓库根：从脚本路径向上找 git 仓库（不是当前工作目录的仓库）
+AGATE_REPO="$(git -C "$SCRIPT_DIR/../.." rev-parse --show-toplevel 2>/dev/null || echo "")"
+if [ -z "$AGATE_REPO" ]; then
+    echo "GATE: 无法找到 agate git 仓库——脚本不在 agate 仓库内？" >&2
     exit 1
 fi
 
-# 当前最新 tag
-CURRENT_TAG="$(git -C "$GIT_TOPLEVEL" describe --tags --abbrev=0 2>/dev/null || echo "untagged")"
-BRANCH="$(git -C "$GIT_TOPLEVEL" branch --show-current 2>/dev/null || echo "?")"
-HEAD_SHA="$(git -C "$GIT_TOPLEVEL" rev-parse --short HEAD 2>/dev/null || echo "?")"
+# 当前最新 tag（在 agate 仓库里查，不是项目仓库）
+CURRENT_TAG="$(git -C "$AGATE_REPO" describe --tags --abbrev=0 2>/dev/null || echo "untagged")"
+BRANCH="$(git -C "$AGATE_REPO" branch --show-current 2>/dev/null || echo "?")"
+HEAD_SHA="$(git -C "$AGATE_REPO" rev-parse --short HEAD 2>/dev/null || echo "?")"
 
-# 最近 3 commits（让 agent 看上下文）
-RECENT_COMMITS="$(git -C "$GIT_TOPLEVEL" log --oneline -3 2>/dev/null | sed 's/^/  /')"
+# 最近 3 commits（agate 仓库的，不是项目仓库的）
+RECENT_COMMITS="$(git -C "$AGATE_REPO" log --oneline -3 2>/dev/null | sed 's/^/  /')"
 
 # 防护机制清单（用于 agent 快速理解当前协议能力）
 GUARDS=""

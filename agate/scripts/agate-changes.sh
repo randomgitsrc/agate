@@ -16,10 +16,10 @@ if [ -z "$SCRIPT_DIR" ]; then
     exit 1
 fi
 
-# 找仓库根（处理 ~/.agate 软链接）
-GIT_TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+# agate 仓库根：从脚本路径向上找 git 仓库（不是当前工作目录的仓库）
+GIT_TOPLEVEL="$(git -C "$SCRIPT_DIR/../.." rev-parse --show-toplevel 2>/dev/null || echo "")"
 if [ -z "$GIT_TOPLEVEL" ]; then
-    echo "ERROR: 无法找到 git 仓库根" >&2
+    echo "ERROR: 无法找到 agate git 仓库——脚本不在 agate 仓库内？" >&2
     exit 1
 fi
 
