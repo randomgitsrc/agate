@@ -6,14 +6,28 @@
 set -euo pipefail
 
 # 当前路径（用 PWD 解析，避免依赖 $0）
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
+# 解析软链接，获取脚本真实路径
+SCRIPT_REAL="$(readlink -f "${BASH_SOURCE[0]:-$0}" 2>/dev/null || echo "${BASH_SOURCE[0]:-$0}")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_REAL")" 2>/dev/null && pwd || true)"
 if [ -z "$SCRIPT_DIR" ]; then
     echo "GATE: 无法解析脚本路径（非 git 仓库或非标准安装？）" >&2
     exit 1
 fi
 
-# agate 仓库根：从脚本路径向上找 git 仓库（不是当前工作目录的仓库）
-AGATE_REPO="$(git -C "$SCRIPT_DIR/../.." rev-parse --show-toplevel 2>/dev/null || echo "")"
+# agate 仓库根：从脚本路径向上逐级找 .git
+_find_git_root() {
+    local dir="$1"
+    while [ "$dir" != "/" ]; do
+        if [ -d "$dir/.git" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir=$(dirname "$dir")
+    done
+    return 1
+}
+
+AGATE_REPO="$(_find_git_root "$SCRIPT_DIR")"
 if [ -z "$AGATE_REPO" ]; then
     echo "GATE: 无法找到 agate git 仓库——脚本不在 agate 仓库内？" >&2
     exit 1
