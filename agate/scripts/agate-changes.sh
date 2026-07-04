@@ -27,14 +27,19 @@ fi
 RANGE="${1:-}"
 
 if [ -z "$RANGE" ]; then
-    # 找上一个 tag
-    PREV_TAG="$(git -C "$GIT_TOPLEVEL" describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")"
-    CURRENT_TAG="$(git -C "$GIT_TOPLEVEL" describe --tags --abbrev=0 2>/dev/null || echo "HEAD")"
-    if [ -z "$PREV_TAG" ]; then
-        echo "ERROR: 无法找到上一个 tag——显式指定：bash $0 v0.4.0" >&2
+    CURRENT_TAG="$(git -C "$GIT_TOPLEVEL" describe --tags --abbrev=0 2>/dev/null || echo "")"
+    if [ -z "$CURRENT_TAG" ]; then
+        echo "ERROR: 无法找到当前 tag——显式指定：bash $0 v0.4.0..HEAD" >&2
         exit 1
     fi
-    RANGE="$PREV_TAG..$CURRENT_TAG"
+    # 找当前 tag 的前一个 tag：列出当前 tag 的所有祖先 commit 能到达的 tag
+    PREV_TAG="$(git -C "$GIT_TOPLEVEL" tag --sort=-version:refname --merged "${CURRENT_TAG}^" 2>/dev/null | head -1)" || PREV_TAG=""
+    if [ -z "$PREV_TAG" ]; then
+        # 没有 更早的 tag，从当前 tag 开始
+        RANGE="${CURRENT_TAG}..HEAD"
+    else
+        RANGE="${PREV_TAG}..HEAD"
+    fi
 fi
 
 # 检查范围格式
