@@ -130,6 +130,17 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
    - 详见 dispatch-protocol.md「标准派发流程」步骤 0
 3. 有进行中任务 → 读 `.state.yaml` → 确认当前阶段 + 重试记录 → 进入「单步函数」流程（state-machine.md「主 Agent 的单步执行（一轮）」节）
 
+### 主 Agent 分阶段落盘（防无响应）
+
+主 Agent 和 subagent 一样会因长推理链认知过载而停止响应。机制：**在长操作前写一行 `NEXT: ...` 到 `orchestrator-log.md`**，降低单次推理复杂度——写下去的那一刻就完成了使命，不需要再读回来。恢复任务用 `.state.yaml` + 产出文件，不用这个。
+
+文件：`docs/tasks/{Txxx}/orchestrator-log.md`
+
+**规则**：
+- 想写就写，仅追加不编辑不整理
+- 不写思考过程、不写文件内容摘要、不写 subagent 返回原文——只写决策和下一步
+- 任务从 `DONE` 重新激活 → 清空后重建（旧决策基于旧上下文）；`active`/`PAUSED` 恢复 → 追加
+
 ### commit 被拦截后的处理
 
 commit 被 pre-commit hook 拦截时，stderr 会输出 gate 的错误消息（说明什么条件不满足）。处理流程：
