@@ -2,8 +2,8 @@
 # agate-changes.sh — 显示与指定 tag 之间的协议变更（commit + 受影响文件）
 # 用法：
 #   bash ~/.agate/scripts/agate-changes.sh                    # 默认上一个 tag → HEAD
-#   bash ~/.agate/scripts/agate-changes.sh v0.4.0            # v0.4.0 → HEAD
 #   bash ~/.agate/scripts/agate-changes.sh v0.4.0..v0.5.0    # 任意范围
+#   bash ~/.agate/scripts/agate-changes.sh --check-upstream   # 查远端是否有新版本
 #
 # 用途：agent 启动时快速掌握协议变化，对比'上次会话知道的版本'和当前版本
 # 输出：commits + 受影响的协议文件 + 是否触及 Pre-commit 检查总览
@@ -23,6 +23,31 @@ if [ -z "$GIT_TOPLEVEL" ]; then
     exit 1
 fi
 
+# --check-upstream：查远端是否有新版本
+if [ "${1:-}" = "--check-upstream" ]; then
+    LOCAL_TAG="$(git -C "$GIT_TOPLEVEL" describe --tags --abbrev=0 2>/dev/null || echo "untagged")"
+    git -C "$GIT_TOPLEVEL" fetch --tags --quiet 2>/dev/null || true
+    UPSTREAM_TAG="$(git -C "$GIT_TOPLEVEL" tag --sort=-version:refname | head -1)"
+    if [ "$LOCAL_TAG" = "$UPSTREAM_TAG" ]; then
+        echo "agate 已是最新版本：$LOCAL_TAG"
+    else
+        echo "agate 有新版本可用：$UPSTREAM_TAG（本地 $LOCAL_TAG）"
+        echo "更新方式：cd <agate 仓库> && git pull"
+        RANGE="${LOCAL_TAG}..origin/main"
+        COMMIT_COUNT=$(git -C "$GIT_TOPLEVEL" log --oneline "$RANGE" 2>/dev/null | wc -l || echo 0)
+        COMMIT_COUNT=$(echo "$COMMIT_COUNT" | tail -1)
+        if [ "$COMMIT_COUNT" -gt 0 ]; then
+            echo ""
+            echo "自 $LOCAL_TAG 以来的变更（$COMMIT_COUNT commits）："
+            git -C "$GIT_TOPLEVEL" log --oneline "$RANGE" 2>/dev/null | head -10 | sed 's/^/  /'
+            if [ "$COMMIT_COUNT" -gt 10 ]; then
+                echo "  ...（共 $COMMIT_COUNT commits，省略）"
+            fi
+        fi
+    fi
+    exit 0
+fi
+
 # 解析参数：默认 = 上一个 tag → HEAD
 RANGE="${1:-}"
 
@@ -32,20 +57,17 @@ if [ -z "$RANGE" ]; then
         echo "ERROR: 无法找到当前 tag——显式指定：bash $0 v0.4.0..HEAD" >&2
         exit 1
     fi
-    # 找当前 tag 的前一个 tag：列出当前 tag 的所有祖先 commit 能到达的 tag
     PREV_TAG="$(git -C "$GIT_TOPLEVEL" tag --sort=-version:refname --merged "${CURRENT_TAG}^" 2>/dev/null | head -1)" || PREV_TAG=""
     if [ -z "$PREV_TAG" ]; then
-        # 没有 更早的 tag，从当前 tag 开始
         RANGE="${CURRENT_TAG}..HEAD"
     else
         RANGE="${PREV_TAG}..HEAD"
     fi
 fi
 
-# 检查范围格式
+# 单个 tag 参数自动补 ..HEAD
 if ! [[ "$RANGE" == *..* ]]; then
-    echo "ERROR: 范围需 A..B 格式，例 v0.4.0..v0.5.0 或 v0.4.0..HEAD" >&2
-    exit 1
+    RANGE="${RANGE}..HEAD"
 fi
 
 # 检查两端 tag 是否存在（用 git rev-parse 验证）
