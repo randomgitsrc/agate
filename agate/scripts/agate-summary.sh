@@ -78,6 +78,6 @@ $(printf '%b' "$GUARDS")
 1. 第一行：上面这一段（确认协议版本 + 防护机制就位）
 2. 读 ~/.agate/AGENTS.md（协议本体入口指引）
 3. 读 ~/.agate/CHANGELOG.md（$CURRENT_TAG 段，了解自上次会话以来发生了什么）
-4. 按 orchestrator-template.md 列的 8 文件必读顺序读规则
+4. 按 orchestrator-template.md mapping 表读当前阶段卡片，按需查阅 Fallback reference 节
 
 EOF
