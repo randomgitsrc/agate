@@ -1,8 +1,17 @@
 #!/usr/bin/env bats
-# tests/unit/check-gate.bats — 33 用例覆盖 check-gate.sh
-# 计划：5.2 / 实际 33 行 / 与附录 A 一致
+# tests/unit/check-gate.bats — 41 用例覆盖 check-gate.sh
 
 load ../helpers/load.bash
+
+# ========== P0 (立项阶段，无需脚本 gate) ==========
+
+@test "G0 check-gate.sh P0 立项阶段 期望 exit 2（输出不含『未知』）" {
+    local dir
+    dir=$(create_task_dir)
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P0 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"未知"* ]]
+}
 
 # ========== P1 (固定 exit 2) ==========
 

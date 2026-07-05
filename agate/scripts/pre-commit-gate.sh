@@ -126,12 +126,20 @@ for STATE_FILE in $STAGED_STATE_FILES; do
 
     # 2j. 裁剪条件检查（P2.7-P2.9）
     if [ "$GATE_EXIT" != "1" ]; then
-        bash "$AGATE_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || exit 1
+        PRUNE_EXIT=0
+        bash "$AGATE_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || PRUNE_EXIT=$?
+        if [ "$PRUNE_EXIT" -eq 1 ]; then
+            exit 1
+        fi
     fi
 
     # 2k. SCOPE+ 追踪检查（P2.11）
     if [ "$GATE_EXIT" != "1" ]; then
-        bash "$AGATE_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || exit 1
+        SCOPE_EXIT=0
+        bash "$AGATE_ROOT/scripts/check-scope-resolved.sh" "$TASK_DIR" || SCOPE_EXIT=$?
+        if [ "$SCOPE_EXIT" -eq 1 ]; then
+            exit 1
+        fi
     fi
 
     # 2l. 复盘异常触发（P2.12）——只提醒不中止

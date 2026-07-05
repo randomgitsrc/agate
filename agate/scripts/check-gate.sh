@@ -3,7 +3,7 @@
 # exit 0 = gate 通过; exit 1 = gate 未通过; exit 2 = 需主 Agent 自判（含动态 gate_commands 或语义判断）
 #
 # 可脚本化的 gate（exit 0/1）：P3 / P4 / P7
-# 需主 Agent 自判的 gate（exit 2）：P1 / P2 / P5 / P6 / P8
+# 需主 Agent 自判的 gate（exit 2）：P0 / P1 / P2 / P5 / P6 / P8
 #
 # 本脚本的判定逻辑与 state-machine.md 步骤 5 保持同步。
 # 步骤 5 变更时必须同步更新本脚本。一致性检查脚本覆盖本文件。
@@ -15,6 +15,9 @@ PHASE="${1:?用法: check-gate.sh PHASE TASK_DIR}"
 TASK_DIR="${2:?用法: check-gate.sh PHASE TASK_DIR}"
 
 case "$PHASE" in
+  P0)
+      echo "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 五字段齐全即可推进 P1。" >&2
+      exit 2 ;;
   P1)
       echo "GATE P1: BDD 编号格式不固定，需主 Agent 自行判定" >&2
       exit 2 ;;
