@@ -1,6 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/check-state-transition.bats — 8 用例覆盖 check-state-transition.sh
-# 计划：5.7 / 实际 8 行 / 与附录 A 一致
+# tests/unit/check-state-transition.bats — 20 用例覆盖 check-state-transition.sh
 
 load ../helpers/load.bash
 
@@ -30,18 +29,25 @@ load ../helpers/load.bash
 @test "ST.3 check-state-transition.sh 顺序跳 P1→P3（差 2）期望 exit 0" {
     local repo
     repo=$(git_init)
-    # 先 commit 旧 .state.yaml
-    cat > "$repo/.state.yaml" <<'EOF'
+    # 先 commit 旧 .state.yaml + P1 产出（commit gate 要求旧产出已 commit）
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/P1-requirements.md" <<'EOF'
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test
+EOF
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    git_commit "$repo" "init"
+    git -C "$repo" add docs/tasks/T001/
+    git -C "$repo" commit -qm "init"
     # 改 phase 到 P3 并暂存
-    sed -i 's/phase: P1/phase: P3/' "$repo/.state.yaml"
-    git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    sed -i 's/phase: P1/phase: P3/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
     # 顺序跳 P1→P3 = forward，跳 2，没限制
     [ "$status" -eq 0 ]
 }
@@ -204,13 +210,16 @@ EOF
 @test "ST.11 check-state-transition.sh 多阶段 retries 不同阈值 期望 exit 0（P2:2 不超, P3:1 不超）" {
     local repo
     repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    echo "# P2 design" > "$repo/docs/tasks/T001/P2-design.md"
     cat > "$repo/.state.yaml" <<'EOF'
 task_id: T001
 phase: P2
 status: active
 retries: {}
 EOF
-    git_commit "$repo" "init"
+    git -C "$repo" add .state.yaml docs/tasks/T001/
+    git -C "$repo" commit -qm "init"
     cat > "$repo/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
@@ -324,4 +333,141 @@ EOF
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
     # PAUSED→P4 是合法恢复，应 exit 0
     [ "$status" -eq 0 ]
+}
+
+# ========== 检查 3: commit gate（逐阶段 commit 强制）==========
+
+@test "ST.16 commit gate: P1→P2 推进，P1 产出已 commit → exit 0" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/P1-requirements.md" <<'EOF'
+risk_level: medium
+phases: [P0, P1, P2, P3]
+- Given test
+EOF
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    git -C "$repo" add docs/tasks/T001/
+    git -C "$repo" commit -qm "T001 P1"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 0 ]
+}
+
+@test "ST.17 commit gate: P1→P2 推进，P1 产出在暂存区未 commit → exit 1" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" commit -qm "T001 phase P1"
+    # P1 产出 + phase 改 P2 在同一个暂存区
+    echo "# P1 output" > "$repo/docs/tasks/T001/P1-requirements.md"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    git -C "$repo" add docs/tasks/T001/
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"产出必须已 commit"* ]]
+}
+
+@test "ST.18 commit gate: P1→P2 推进，P1 产出从未 commit → exit 1" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" commit -qm "T001 phase P1"
+    # 改 phase 到 P2，但 P1 产出从未创建
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"尚未 commit"* ]]
+}
+
+@test "ST.19 commit gate: PAUSED→P3 恢复 → 跳过 commit gate" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    echo "# P2 design" > "$repo/docs/tasks/T001/P2-design.md"
+    git -C "$repo" add docs/tasks/T001/P2-design.md
+    # 状态 machine PAUSED（old_phase 无数字）
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: PAUSED
+status: active
+retries: {}
+EOF
+    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" commit -qm "Paused"
+    # 恢复到 P3
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 0 ]
+}
+
+@test "ST.20 commit gate: P3→P1 回退 → 跳过 commit gate" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    echo "# P1" > "$repo/docs/tasks/T001/P1-requirements.md"
+    git -C "$repo" add docs/tasks/T001/P1-requirements.md
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" commit -qm "T001 P3"
+    # 回退到 P1
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    # 回退自身被检查 1 拦截（exit 1），但我们只验证 commit gate 不触发
+    # 所以这里不 assert exit code，只 assert 输出不含 commit gate 消息
+    [[ "$output" != *"产出必须已 commit"* ]]
+    [[ "$output" != *"尚未 commit"* ]]
 }

@@ -22,7 +22,12 @@ STATE_BASENAME=$(basename "$STATE_FILE")
 get_old_phase() {
     # HEAD: 版本是 commit 前的旧版本（pre-commit hook 运行时 commit 还没创建）
     # :<path> 是暂存区版本（新的），HEAD:<path> 是旧版本
-    git show "HEAD:$STATE_BASENAME" 2>/dev/null | python3 -c "
+    local git_path="$STATE_BASENAME"
+    # 任务级 .state.yaml：保留完整路径（如 docs/tasks/T001/.state.yaml）
+    if echo "$STATE_FILE" | grep -qE 'docs/tasks/[^/]+/'; then
+        git_path="$STATE_FILE"
+    fi
+    git show "HEAD:$git_path" 2>/dev/null | python3 -c "
 import yaml, sys
 try:
     data = yaml.safe_load(sys.stdin)
@@ -97,5 +102,56 @@ if isinstance(retries, dict):
         exit 1
     fi
 fi
+
+# 检查 3：pre-phase-change commit gate（逐阶段 commit 强制）
+# 从 P{n} 推进到 P{n+1} 时，P{n} 产出必须已 commit
+# 仅适用于任务级 .state.yaml（docs/tasks/Txxx/.state.yaml），根 .state.yaml 跳过
+if [ "$old_num" -gt 0 ] && [ "$new_num" -gt 0 ] && [ "$new_num" -gt "$old_num" ] \
+   && [ "$old_phase" != "PAUSED" ]; then
+    TASK_DIR=$(dirname "$STATE_FILE")
+    # 仅任务级 .state.yaml 需要 commit gate（根 .state.yaml 无法映射 task 路径）
+    if echo "$STATE_FILE" | grep -qE 'docs/tasks/[^/]+/'; then
+        REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+        TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
+
+    _phase_output_for() {
+        case "$1" in
+            P0) echo "P0-brief.md" ;;
+            P1) echo "P1-requirements.md" ;;
+            P2) echo "P2-design.md" ;;
+            P3) echo "P3-test-cases.md" ;;
+            P4) ;;  # scope out — 代码在项目任意路径，无法 task-scoped 关联
+            P5) ;;  # 用文件存在性检查，不走路径
+            P6) echo "P6-acceptance.md" ;;
+            P7) echo "P7-consistency.md" ;;
+            P8) echo "P8-release.md" ;;
+        esac
+    }
+
+    OLD_OUTPUT=$(_phase_output_for "$old_phase")
+
+    if [ -n "$OLD_OUTPUT" ]; then
+        # 产出在暂存区但未 commit → 拦截（产出和推进不能同一个 commit）
+        if git diff --cached --name-only | grep -q "^${TASK_REL}/${OLD_OUTPUT}"; then
+            echo "GATE STATE: 在推进到 ${new_phase} 前，${old_phase} 产出必须已 commit" >&2
+            echo "      提示：先 git commit ${old_phase} 产出再改 phase" >&2
+            exit 1
+        fi
+        # 产出从未被 commit（不在暂存区也不在 HEAD）
+        # 注：git ls-files 退出码恒 0，用输出判空而非退出码
+        if [ -z "$(git ls-files "$TASK_REL/$OLD_OUTPUT")" ]; then
+            echo "GATE STATE: ${old_phase} 产出 ${OLD_OUTPUT} 尚未 commit" >&2
+            echo "      提示：先 commit ${old_phase} 产出再推进 phase" >&2
+            exit 1
+        fi
+    fi
+
+    # P5 特殊处理：目录级检查
+    if [ "$old_phase" = "P5" ] && [ ! -d "$TASK_DIR/P5-test-results" ]; then
+        echo "GATE STATE: ${old_phase} 产出 P5-test-results/ 目录不存在" >&2
+        exit 1
+    fi
+    fi  # 任务级 .state.yaml guard
+fi  # 检查 3 外层：向前推进 + 非 PAUSED
 
 exit 0

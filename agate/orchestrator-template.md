@@ -160,14 +160,36 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - 不写思考过程、不写文件内容摘要、不写 subagent 返回原文——只写决策和下一步
 - 任务从 `DONE` 重新激活 → 清空后重建（旧决策基于旧上下文）；`active`/`PAUSED` 恢复 → 追加
 
+### commit 时机（强制执行）
+
+**每阶段完成必须 commit**（`git-integration.md`）。一个 Pn 阶段的产出是一个原子的进度单位。推进 `.state.yaml` phase 到 Pn+1 前，Pn 产出必须已 commit——`check-state-transition.sh` 会拦截"产出未 commit 就推进 phase"的行为。
+
 ### commit 被拦截后的处理
 
-commit 被 pre-commit hook 拦截时，stderr 会输出 gate 的错误消息（说明什么条件不满足）。处理流程：
+commit 被 pre-commit hook 拦截时，stderr 会输出 gate 的错误消息（说明什么条件不满足）。通用流程：
 
-1. **先主动验 gate，再 commit** — 正常流程下不应该被拦截。被拦截说明你跳过了主动验的步骤
-2. 被拦截后：读错误消息 → 分析根因 → **修复产出文件（不作假）** → 重新验 gate → 再 commit
-3. **禁止 `--no-verify` 绕过** — CI 兜底会抓到
-4. **禁止按错误消息的提示直接凑条件** — 如缺 `risk_level` 就随手写 `risk_level: low`、缺证据就造假截图。gate 消息只告诉你什么不满足，不告诉你该怎么填——根因分析是你的职责
+```
+commit 被拦 → 读错误消息 → 分析根因 → 修复产出 → 重验 gate → 再 commit
+```
+
+**绝对不能**：
+- `--no-verify` 绕过（CI 会兜底抓到）
+- 按错误消息直接凑条件（如缺 `risk_level` 就随手写 `risk_level: low`）
+- 伪造证据（造 PASS 行/造截图/造 dispatch-context hash）
+
+**按拦截类型处理**：
+
+| 拦截类型 | 处理 |
+|----------|------|
+| gate 不通过（P2 缺评审 / P3 非红灯 / P6 FAIL） | 回到对应的 subagent 修复产出 |
+| 格式缺字段 | 补字段。subagent 结构性缺陷 → 回 subagent 重做 |
+| dispatch-context 缺失 | `agate-next-card.sh P{N}` → 嵌入 dispatch-context 模板 |
+| 未 commit 旧阶段就推进 phase | 先 commit 旧阶段产出，再改 phase |
+| SCOPE+ 未 resolve | 先处理 P1 增补，标 `[SCOPE_RESOLVED]` |
+| DESIGN_GAP 未配对 | 回 P7 配 `[DESIGN_GAP_REVIEWED]` 标记 |
+| `[PROD_TOUCHED]` | 立即 STOP，人工处置 |
+
+**同一阶段累计被拦 3 次** → PAUSED（不要无限重试，agent 明显走进了错误路径）。
 
 ---
 
