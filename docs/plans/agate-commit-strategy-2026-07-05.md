@@ -68,8 +68,8 @@ _phase_output_for() {
         P1) echo "P1-requirements.md" ;;
         P2) echo "P2-design.md" ;;
         P3) echo "P3-test-cases.md" ;;
-        P4) ;;  # P4 无单一 .md 产出，走下面的代码文件判断
-        P5) echo "P5-test-results" ;;  # 目录级检查
+        P4) ;;  # 不适用 commit gate——P4 代码在项目任意路径，无法靠 task 目录关联
+        P5) echo "P5-test-results" ;;
         P6) echo "P6-acceptance.md" ;;
         P7) echo "P7-consistency.md" ;;
         P8) echo "P8-release.md" ;;
@@ -77,18 +77,7 @@ _phase_output_for() {
 }
 ```
 
-**P4 分支**（复用 v0.9.1 dispatch-context 强制化的同一代码文件判断）：
-
-```bash
-if [ "$OLD_PHASE" = "P4" ]; then
-    # P4 产出是代码文件，用暂存区非 .md/.yaml 文件判断
-    if _phase_code_staged && ! _phase_code_committed; then
-        echo "GATE: P4 代码产出尚未 commit" >&2
-        echo "      提示：先 commit P4 代码再推进 phase" >&2
-        exit 1
-    fi
-fi
-```
+**P4 明确 scope out**：P4 implementer 产出的代码文件在项目 `src/` 目录下（非 `docs/tasks/Txxx/`），无法用 task-scoped 文件路径检查关联到具体任务。P4 代码的 commit 纪律由 agent、code review 和已有 P4 gate（暂存区含非 .md/.yaml 文件）保证，不在本 commit gate 的范围。
 
 **F0 修复**：`git ls-files` 退出码恒 0（文件不存在时输出为空但退出码仍 0），改为判空：
 
