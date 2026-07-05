@@ -59,6 +59,59 @@ fi
 
 ---
 
+## 补记（2026-07-05 修订复审）：F0 真修好，但 F1 是「伪装的修复」
+
+计划据本评审出了修订版（commit 848e8a0）。**把修订版伪代码原样再跑一遍**：
+
+| 发现 | 纸面 | 实测（跑修订版伪代码） |
+|------|------|----------------------|
+| **F0** git ls-files 判空 | 改了 | ✅ **真修好**——场景2「P1 从未 commit → 推进 P1→P2」现 GATE 拦截 |
+| **F1** P4 代码检查 | "改了" | ❌ **假修**——见下 |
+| **F2** 限定 `^TASK_REL/` | 改了 | ✅ |
+| **F3** 覆盖列诚实标注 | 加了 | ✅ |
+| **F4** 抽共享映射 | 加备注 | ✅ 方向对 |
+
+### F1 假修：P4 分支引用未定义函数，fail-open 到 PASS
+
+修订把 `P4) return 0` 改成 `P4) ;;` + 新增一个 P4 block：
+
+```bash
+if [ "$OLD_PHASE" = "P4" ]; then
+    if _phase_code_staged && ! _phase_code_committed; then
+        echo "GATE: P4 代码产出尚未 commit" >&2; exit 1; fi
+fi
+```
+
+**实测**：`_phase_code_staged` / `_phase_code_committed` **全库无定义**（grep agate/scripts/ 无结果）。跑起来 → `command not found` → `if` 条件为假 → **P4→P5 仍放行（退出码 0）**。
+
+**比原来的 `return 0` 更糟**：原来诚实地空着（一眼看出没做），现在挂了个引用空函数的 block，fail-open 到 PASS，**看起来解决了**。
+
+### 而 `_phase_code_committed` 恰是真难点，且 v0.9.1 无可复用
+
+计划说"复用 v0.9.1 dispatch-context 的代码文件判断"。但实测 v0.9.1（pre-commit-gate.sh:181）的 P4 判断**只查 staged**：
+
+```bash
+[ "$PHASE" = "P4" ] && echo "$STAGED_IN_TASK" | grep -qvE '\.(md|yaml)$|^\.state'
+```
+
+**v0.9.1 没有"已 commit"这个 helper**——`_phase_code_committed` 得**新写**，而它是真难点：
+
+- v0.9.1 的 `STAGED_IN_TASK` 限定 `^${TASK_REL}/`（task dir 内）
+- 但 P4 是 implementer 产出**实现代码**，代码通常在项目 `src/`——**在 task dir 之外、任意路径**
+- 若代码在 task dir 内 → 可查 `git ls-files "$TASK_REL/" | grep -v 文档`
+- 若在 `src/` → **根本无法和这个 task 关联**，"P4 代码是否已 commit"无从判起
+
+计划把这个前置难题（P4 代码在哪、怎么和 task 关联）**藏进一个未定义函数 + 一句"复用 v0.9.1"**，但 v0.9.1 没这东西可复用。
+
+### 必须做
+
+- **要么老实定义 `_phase_code_committed`**，但先回答"P4 实现代码的位置约定"——如果 agate 不强制 P4 代码落在 task dir，这个检查在架构上就做不出可靠版本
+- **要么诚实承认 P4 代码-commit 检测是难点、显式 scope 出去**（像"范围外"那节那样），别用假函数糊成"已解决"
+
+**F1 又是"看着修了、跑才知道没修"，与 F0 同类。** 修订复审的教训：修复也要跑验证，尤其"复用现有函数"这类声称——先确认那个函数真存在、真能复用，别假设。
+
+---
+
 ## 一、基础设施核实：假设大多成立
 
 | 伪代码假设 | 实测 |
