@@ -4,8 +4,8 @@ reviewer: main
 scope: agate 协议全貌审视 — 认知过载根因与渐进披露重构方向
 evidence:
   - docs/issues/003-main-agent-cognitive-overload.md
-  - docs/reviews/t046-postmortem-20260705.md（peekview 外部项目）
-  - docs/reviews/t046-retrospective-20260705.md（peekview 外部项目）
+  - docs/reviews/t046-postmortem-20260705.md（非本仓，peekview 项目）
+  - docs/reviews/t046-retrospective-20260705.md（非本仓，peekview 项目）
   - docs/plans/agate-cognitive-overload-gate-hardening-2026-07-05.md
 ---
 
