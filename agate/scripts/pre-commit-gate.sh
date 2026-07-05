@@ -142,6 +142,25 @@ for STATE_FILE in $STAGED_STATE_FILES; do
         fi
     fi
 
+    # 2p. dispatch-context.md 卡片 hash 校验（防漂移：嵌入卡片是当前版本）
+    DC_FILE="$TASK_DIR/${PHASE}-dispatch-context.md"
+    if [ -f "$DC_FILE" ] && [ -x "$AGATE_ROOT/scripts/agate-next-card.sh" ]; then
+        EXPECTED=$(bash "$AGATE_ROOT/scripts/agate-next-card.sh" "$PHASE" 2>/dev/null) || true
+        if [ -n "$EXPECTED" ]; then
+            EXPECTED_HASH=$(printf '%s' "$EXPECTED" | sha256sum | awk '{print $1}')
+            EMBEDDED=$(sed -n '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/p' "$DC_FILE" \
+                       | sed '1d;$d')
+            EMBEDDED_HASH=$(printf '%s' "$EMBEDDED" | sha256sum | awk '{print $1}')
+            if [ "$EMBEDDED_HASH" != "$EXPECTED_HASH" ]; then
+                echo "GATE: dispatch-context.md 卡片内容与 CLI 输出不一致（hash mismatch）" >&2
+                echo "      期望 sha256: $EXPECTED_HASH" >&2
+                echo "      实际 sha256: $EMBEDDED_HASH" >&2
+                echo "      提示：重新调 agate-next-card.sh ${PHASE} 复制到 dispatch-context.md" >&2
+                exit 1
+            fi
+        fi
+    fi
+
     # 2l. 复盘异常触发（P2.12）——只提醒不中止
     bash "$AGATE_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
 
