@@ -503,7 +503,7 @@ env_state:
 
 恢复时：
   0. 这是"重新接手任务"，等同于一次新的启动：
-     依次重读 orchestrator-template.md「工作流规则」列出的 8 个协议文件
+     依次重读：orchestrator-template.md 的 mapping 表查当前阶段卡片，然后按卡片指引加载协议文件（推荐），或回退到 orchestrator-template.md「工作流规则」列出的 8 个协议文件全量重读。
      （WORKFLOW.md / dispatch-protocol.md / state-machine.md / role-system.md /
       loop-orchestration.md / git-integration.md / platform-notes.md / LIMITATIONS.md）
      不能假设压缩前读过的内容还在上下文里。

@@ -70,4 +70,4 @@ T046 是本问题的完整实例（详见 `~/oclab/peekview/docs/reviews/t046-po
 
 ## 状态
 
-**分析中**。T046 实证已补充。待对各方向做可行性评估。
+**已实施 Phase Card 渐进披露**（commit `30cf55b`→当前）。9 张阶段卡片 + 2 个 rules 文件 = 856 行，单次加载从 ~2900 行降到 ~100 行。旧协议文件保留为 reference。gate 硬化计划（`agate-cognitive-overload-gate-hardening`）仍在待实施。

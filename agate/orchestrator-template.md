@@ -120,6 +120,25 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **中断恢复 = 新会话**：会话被压缩/中断后重新接手，等同于一次新的启动——重新读完上述文件。任务进度可以从 active-tasks.md 重建，但协议规则本身不会自动出现在上下文里（这是两类不同的状态，见 state-machine.md「为什么这样能抗中断」）。
 
+### 按阶段渐进加载（推荐）
+
+实际执行时不必每轮全读 8 个文件。根据当前任务阶段，优先只读一张阶段卡片——卡片自包含该阶段的完整执行信息（前置条件 / 派发 / 产出 / gate / 常见错误 / 下游影响）。卡片查不到的信息再回退到上方完整文件列表：
+
+| 当前阶段 | 优先读 |
+|---------|-------|
+| 启动/无任务 | `{agate_root}/phase-cards/P0-orchestrator.md` |
+| P1 | `{agate_root}/phase-cards/P1-requirements.md` |
+| P2 | `{agate_root}/phase-cards/P2-design.md` |
+| P3 | `{agate_root}/phase-cards/P3-tdd.md` |
+| P4 | `{agate_root}/phase-cards/P4-implementation.md` |
+| P5 | `{agate_root}/phase-cards/P5-verification.md` |
+| P6 | `{agate_root}/phase-cards/P6-acceptance.md` |
+| P7 | `{agate_root}/phase-cards/P7-consistency.md` |
+| P8 | `{agate_root}/phase-cards/P8-release.md` |
+| 跨阶段规则 | `{agate_root}/rules/state-transitions.md`（推进/重试时）或 `{agate_root}/rules/review-mapping.md`（派评审时） |
+
+每张卡片末尾指向下一张卡片。中断恢复时：读 `.state.yaml` → 查 phase → 按 mapping 表读对应卡片。
+
 `assets/execution-roles/` 和 `assets/templates/` 不在此列——这些是 subagent 在独立上下文里读的，编排者（你）不需要读，只需要知道"P1 派 analyst"，WORKFLOW.md 里已有角色映射表。
 
 ### 每个任务开始
