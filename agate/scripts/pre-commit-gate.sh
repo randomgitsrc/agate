@@ -143,7 +143,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     fi
 
     # 2p. dispatch-context.md 卡片 hash 校验（防漂移：嵌入卡片是当前版本）
-    # 派发阶段强制要求 dispatch-context.md 存在（P1/P2/P3/P4/P6）
+    # 派发阶段产出 commit 时强制要求 dispatch-context.md 存在
     if [ -x "$AGATE_ROOT/scripts/agate-next-card.sh" ]; then
         DC_FILE="$TASK_DIR/${PHASE}-dispatch-context.md"
         if [ -f "$DC_FILE" ]; then
@@ -162,12 +162,27 @@ for STATE_FILE in $STAGED_STATE_FILES; do
                 fi
             fi
         else
+            # 仅当暂存了该阶段的产出文件时才强制要求 dispatch-context
+            # 中间 commit / legacy 任务 / 裁剪跳阶 → 不强制
+            STAGED_IN_TASK=$(git diff --cached --name-only 2>/dev/null | grep "^${TASK_REL}/" || true)
+            PHASE_OUTPUT=""
             case "$PHASE" in
-                P1|P2|P3|P4|P6)
-                    echo "GATE: subagent 派发阶段需提供 ${PHASE}-dispatch-context.md（当前阶段卡片嵌入）" >&2
-                    echo "      提示：调 agate-next-card.sh ${PHASE} 嵌入 dispatch-context 模板" >&2
-                    exit 1 ;;
+                P1) PHASE_OUTPUT="P1-requirements\.md" ;;
+                P2) PHASE_OUTPUT="P2-design\.md" ;;
+                P3) PHASE_OUTPUT="P3-test-cases\.md" ;;
+                P6) PHASE_OUTPUT="P6-acceptance\.md" ;;
             esac
+            if [ -n "$PHASE_OUTPUT" ] && echo "$STAGED_IN_TASK" | grep -q "$PHASE_OUTPUT"; then
+                echo "GATE: subagent 派发阶段产出 commit 需提供 ${PHASE}-dispatch-context.md（当前阶段卡片嵌入）" >&2
+                echo "      提示：调 agate-next-card.sh ${PHASE} 嵌入 dispatch-context 模板" >&2
+                exit 1
+            fi
+            # P4: 用代码文件判断（同 P4 gate 逻辑）
+            if [ "$PHASE" = "P4" ] && echo "$STAGED_IN_TASK" | grep -qvE '\.(md|yaml)$|^\.state'; then
+                echo "GATE: subagent 派发阶段产出 commit 需提供 ${PHASE}-dispatch-context.md（当前阶段卡片嵌入）" >&2
+                echo "      提示：调 agate-next-card.sh ${PHASE} 嵌入 dispatch-context 模板" >&2
+                exit 1
+            fi
         fi
     fi
 
