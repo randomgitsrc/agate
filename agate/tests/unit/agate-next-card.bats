@@ -116,6 +116,27 @@ setup() {
     [ "$hash" = "$expected_hash" ]
 }
 
+# ========== 跨环境路径稳定性（绝对路径→相对路径） ==========
+
+@test "跨 checkout 路径：通过不同根路径调用 CLI 全量 hash 一致（P0-P8）" {
+    # 模拟两个不同 checkout 根：通过不同 symlink 前缀调用 CLI
+    # 全量 hash（含 header）：如果路径进 hash，不同前缀会 mismatch
+    local link_a link_b hash_a hash_b phase
+    link_a="$BATS_TEST_TMPDIR/checkout_a"
+    link_b="$BATS_TEST_TMPDIR/checkout_b"
+    mkdir -p "$link_a" "$link_b"
+    ln -sf "$AGATE_SCRIPTS/agate-next-card.sh" "$link_a/card"
+    ln -sf "$AGATE_SCRIPTS/agate-next-card.sh" "$link_b/card"
+    for phase in P0 P1 P2 P3 P4 P5 P6 P7 P8; do
+        hash_a="$(bash "$link_a/card" "$phase" | sha256sum | awk '{print $1}')"
+        hash_b="$(bash "$link_b/card" "$phase" | sha256sum | awk '{print $1}')"
+        [ "$hash_a" = "$hash_b" ] || {
+            echo "FAIL: $phase hash mismatch: checkout_a=$hash_a checkout_b=$hash_b" >&2
+            return 1
+        }
+    done
+}
+
 # ========== 失败路径 ==========
 
 @test "无参数 期望 exit 1" {

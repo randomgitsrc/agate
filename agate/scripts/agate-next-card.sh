@@ -64,6 +64,7 @@ if [ ! -f "$CARD_FILE" ]; then
 fi
 
 # 输出格式（固定，便于下游 hook 做 sha256 校验）
-# 字节稳定：不要用 echo，自动加换行会让 sed 区间边界错位
-printf '## 当前阶段卡片：%s\n\n路径：%s\n---\n' "$PHASE" "$CARD_FILE"
+# 路径用仓库相对路径——跨 checkout 保持字节稳定
+REL_CARD="${CARD_FILE#$AGATE_REPO/}"
+printf '## 当前阶段卡片：%s\n\n路径：%s\n---\n' "$PHASE" "$REL_CARD"
 cat "$CARD_FILE"
