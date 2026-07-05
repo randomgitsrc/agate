@@ -41,6 +41,21 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 
 **典型场景**：agent 上次会话用 v0.4.0，现在 agate 升到 v0.5.0——跑 `agate-changes.sh v0.4.0` 快速看变化，决定重读哪些必读文件。
 
+### 阶段卡片 CLI（Phase Card 渐进披露）
+
+| 脚本 | 用途 |
+|------|------|
+| `agate-next-card.sh` | 输出当前阶段卡片全文（PHASE 取值 P0-P8）|
+
+**用途**：Phase Card 防漂移机制的权威卡片源。主 Agent 调 `agate-next-card.sh P{N}` 拿到对应阶段卡片全文，嵌入 `dispatch-context.md`。后续 step 3 hook 会用 sha256 校验嵌入的卡片是当前版本（防过期/防篡改）。
+
+**退出码语义**：
+- 0：成功，stdout 输出卡片全文
+- 1：参数缺失或过多
+- 2：phase 不在 P0-P8 范围
+
+**字节稳定性保证**：`agate/tests/unit/agate-next-card.bats` 的 9 个 sha256 测试断言 CLI 输出 body（去掉前 4 行固定头）的 sha256 等于 `cat ${PHASE}-*.md` 的 sha256。这是 step 3 hook 校验的前提。
+
 ---
 
 ## 协议结构一致性检查（P3-1）

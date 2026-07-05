@@ -28,6 +28,11 @@
 - **反向传播同步**：loop-orchestration.md:238 / dispatch-protocol.md:247 / agate-changes.sh:144,146 同步删"8 文件必读"措辞
 - **scripts/README.md 改"8 类检查"**（从 6 类修正）
 
+### 阶段卡片 CLI（Phase Card 防漂移机制前置）
+- **agate-next-card.sh 新增**：主 Agent 调 `agate-next-card.sh P{N}` 拿到对应阶段卡片全文（`agate/phase-cards/P{N}-*.md`）。输出格式固定（`## 当前阶段卡片：P{N}\n\n路径：...\n---\n<card>`），便于后续 hook 做 sha256 校验。退出码：0 成功 / 1 参数错 / 2 phase 越界
+- **17 个 unit 测试**（`agate/tests/unit/agate-next-card.bats`）：9 个 sha256 byte-stability 测试（断言 CLI 输出 body 哈希 == 卡片文件哈希，是 step 3 hook 防漂移前提的硬证明）+ 字节稳定性 + 跨目录路径解析 + 软链接场景 + 失败路径
+- **scripts/README.md 新增「阶段卡片 CLI」小节**
+
 ---
 
 ## [0.8.0] - 2026-07-02
