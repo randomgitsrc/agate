@@ -12,12 +12,12 @@ status: 设计方案
 agate 协议写明了"每阶段 commit"（`git-integration.md:31`），但**没有强制执行**。Agent 可以 P0→P1→P2→P3→P4 产出全写完再一次性 commit。
 
 **后果**：
-| 后果 | 严重度 | 说明 |
-|------|--------|------|
-| 中间 gate 绕过 | 高 | P1/P2/P3 gate 从未被 hook 验证——P2 缺评审、P3 红灯变绿全漏 |
-| dispatch-context 跳过 | 高 | 中间阶段产出未经卡片 hash 校验 |
-| 审计轨迹缺失 | 中 | `.gate-history.jsonl` 只有一条记录，看起来每步都过了 |
-| 回退粒度粗 | 中 | 批量 commit 意味着回退时丢所有阶段——无法区分"P2 设计错"vs"P4 实现对" |
+| 后果 | 严重度 | 说明 | 本机制覆盖 |
+|------|--------|------|----------|
+| 中间 gate 绕过 | 高 | P1/P2/P3 gate 从未被 hook 验证 | 仅当 agent 诚实推进 phase 时缓解——agent 一直停在 P1 实际做 P4 的工作则不受影响 |
+| dispatch-context 跳过 | 高 | 中间阶段产出未经卡片 hash 校验 | 同上，推进到 dispatch phase 时生效 |
+| 审计轨迹缺失 | 中 | `.gate-history.jsonl` 只有一条记录 | 每阶段 commit → 每条都有记录 |
+| 回退粒度粗 | 中 | 批量 commit 回退丢所有阶段 | 每阶段独立 commit |
 
 ## 方案：状态转移级 commit gate
 
@@ -38,7 +38,8 @@ if [ "$NEW_PHASE" != "$OLD_PHASE" ] && [ "$OLD_PHASE" != "PAUSED" ]; then
     if [ -n "$NEW_NUM" ] && [ -n "$OLD_NUM" ] && [ "$NEW_NUM" -gt "$OLD_NUM" ]; then
         OLD_OUTPUT=$( _phase_output_for "$OLD_PHASE" )
         # 检查旧阶段产出是否已 commit（不在暂存区 + 在 HEAD 中存在）
-        if [ -n "$OLD_OUTPUT" ] && git diff --cached --name-only | grep -q "$OLD_OUTPUT"; then
+        # 限定到本任务目录，防跨任务误匹配
+        if [ -n "$OLD_OUTPUT" ] && git diff --cached --name-only | grep -q "^${TASK_REL}/${OLD_OUTPUT}"; then
             echo "GATE: 在推进到 ${NEW_PHASE} 前，${OLD_PHASE} 产出必须已 commit" >&2
             echo "      提示：先 git commit ${OLD_PHASE} 产出再改 phase" >&2
             exit 1
@@ -67,7 +68,7 @@ _phase_output_for() {
         P1) echo "P1-requirements.md" ;;
         P2) echo "P2-design.md" ;;
         P3) echo "P3-test-cases.md" ;;
-        P4) return 0 ;;  # P4 产出是代码文件，不在单一 .md 产物，用暂存区代码检查
+        P4) ;;  # P4 无单一 .md 产出，走下面的代码文件判断
         P5) echo "P5-test-results" ;;  # 目录级检查
         P6) echo "P6-acceptance.md" ;;
         P7) echo "P7-consistency.md" ;;
@@ -75,6 +76,28 @@ _phase_output_for() {
     esac
 }
 ```
+
+**P4 分支**（复用 v0.9.1 dispatch-context 强制化的同一代码文件判断）：
+
+```bash
+if [ "$OLD_PHASE" = "P4" ]; then
+    # P4 产出是代码文件，用暂存区非 .md/.yaml 文件判断
+    if _phase_code_staged && ! _phase_code_committed; then
+        echo "GATE: P4 代码产出尚未 commit" >&2
+        echo "      提示：先 commit P4 代码再推进 phase" >&2
+        exit 1
+    fi
+fi
+```
+
+**F0 修复**：`git ls-files` 退出码恒 0（文件不存在时输出为空但退出码仍 0），改为判空：
+
+```bash
+# ❌ 旧版（exit code 恒 0，永不触发）
+! git ls-files "$TASK_REL/$OLD_OUTPUT" >/dev/null 2>&1
+
+# ✅ 修正（exit code 不可靠，判断 output 是否为空）
+[ -z "$(git ls-files "$TASK_REL/$OLD_OUTPUT")" ]
 
 ## 拦截后的处理策略（补强）
 
@@ -141,3 +164,16 @@ commit 被拦 → 读错误消息 → 分析根因 → 修复产出 → 重验 g
 
 - 批量 commit 检测（暂存区含多个阶段产出）——误检风险大，且与 retry/修订场景冲突
 - commit 历史 clean up（squash/fixup）——git 层面已有工具
+
+## 与 v0.9.1 dispatch-context 的关系
+
+两处 gate 有重复的 phase→产出映射（本方案的 `_phase_output_for` 和 pre-commit-gate.sh 的 `PHASE_OUTPUT` case）。实施时抽成一个共享函数（如 `agate/scripts/lib/phase-outputs.sh`），两处 source 同一个定义。否则改一处忘另一处，gate 对"什么是 P3 产出"会各执一词。
+
+## 实施参考
+
+评审发现：
+- F0: `git ls-files` 退出码恒 0，不能用于判"文件未被跟踪"——改用 `[ -z "$(git ls-files ...)" ]` 判断输出
+- F1: P4 分支须实现代码文件检查（复用 v0.9.1 pre-commit-gate.sh 的代码文件判断）
+- F2: `git diff --cached --name-only` grep 须限定 `^${TASK_REL}/`
+- F3: 问题表"高"项标注"仅诚实推进 phase 时缓解"
+- F4: phase→产出映射抽成共享函数
