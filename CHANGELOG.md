@@ -30,6 +30,16 @@
 
 ---
 
+## [0.10.0] - 2026-07-05
+
+### 新增
+- **逐阶段 commit 强制**：`check-state-transition.sh` 检查 3（commit gate）。推进 phase 到 Pn+1 前，Pn 产出必须已 commit——产出+推进同 commit 或产出从未 commit 均拦截。仅任务级 `.state.yaml`（`docs/tasks/Txxx/`）生效，根 `.state.yaml` 跳过。回退/PAUSED 恢复不受影响
+- **拦截后处理策略**：`orchestrator-template.md` 补 8 种拦截类型对应处理方案 + 同一阶段累计 3 次拦截 → PAUSED
+- **`git-integration.md` 标记强制执行**：每阶段 commit 规则由 `check-state-transition.sh` 强制执行
+
+### 变更
+- `check-state-transition.sh`: `get_old_phase` 支持任务级 `.state.yaml` 路径（`HEAD:docs/tasks/Txxx/.state.yaml`），不再只读根路径
+
 ## [Unreleased]
 
 （空）
