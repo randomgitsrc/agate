@@ -91,3 +91,24 @@ DCTPL
     [ "$status" -ne 0 ]
     [[ "$output" == *"hash mismatch"* ]]
 }
+
+@test "DC.4 派发阶段 (P2) 缺 dispatch-context.md → exit 1（强制 barrier）" {
+    local dir="$REPO/task"
+    _setup_task_with_state "$dir" "P2"
+    echo "test" > "$dir/test.py"
+    # 不生成 dispatch-context.md
+    git add "$dir"
+    run git commit -m "test: missing dispatch-context in P2"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"需提供 P2-dispatch-context.md"* ]]
+}
+
+@test "DC.5 非派发阶段 (P5) 缺 dispatch-context.md → 不拦截" {
+    local dir="$REPO/task"
+    _setup_task_with_state "$dir" "P5"
+    echo "test" > "$dir/test.py"
+    # 不生成 dispatch-context.md，P5 不派 subagent
+    git add "$dir"
+    run git commit -m "test: no dispatch-context in P5"
+    [[ "$output" != *"需提供"* ]]
+}

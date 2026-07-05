@@ -1,3 +1,5 @@
+> **P1/P2/P3/P4/P6 阶段强制要求本文件存在**——commit 前必须含当前阶段卡片且 sha256 与 CLI 一致。其他阶段可选。
+
 ---
 phase: {P1-P8}
 generated_by: agate-next-card.sh
