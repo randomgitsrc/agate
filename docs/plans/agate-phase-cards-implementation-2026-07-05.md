@@ -20,12 +20,21 @@ status: 实施计划
 
 ### 前置修复（独立 bug，不影响卡片架构）
 
-**Issue #001**：`pre-commit-gate.sh` 在 P0 阶段对无 P1 文件的任务，`check-pruning.sh || exit 1` 把 exit 2（跳过）当 exit 1（硬拦截）处理，导致 P0 commit 被误拦。
+**Issue #001**：P0 commit 被 pre-commit hook 误拦截。两层根因：
 
-修复（3 行，`pre-commit-gate.sh` 第 2j 节）：
+**根因 1**：`check-gate.sh` 无 `P0)` 分支，P0 落到 `*)` → 输出"未知阶段"，且每次写 `.gate-history.jsonl` 审计轨迹（P0 是协议标准阶段，不应谎报"未知"）。
+
+**根因 2**：`pre-commit-gate.sh` 用 `check-pruning.sh || exit 1` 把 exit 2（P1 文件不存在 → 跳过）当 exit 1（硬拦截）处理。
+
+修复（两处都做，非二选一）：
 
 ```bash
-# 2j. 裁剪条件检查
+# 修复 1: check-gate.sh 加 P0 分支（停止谎报）
+P0)
+    echo "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 五字段齐全即可推进 P1。" >&2
+    exit 2 ;;
+
+# 修复 2: pre-commit-gate.sh 2j/2k 节改为捕获退出码（与 2i 节对齐）
 if [ "$GATE_EXIT" != "1" ]; then
     PRUNE_EXIT=0
     bash "$AGATE_ROOT/scripts/check-pruning.sh" "$TASK_DIR" || PRUNE_EXIT=$?
@@ -33,11 +42,10 @@ if [ "$GATE_EXIT" != "1" ]; then
         exit 1
     fi
 fi
+# 2k 节 check-scope-resolved.sh 同款处理
 ```
 
-与 2i 节 `check-p6-provenance.sh` 的 `|| PROV_EXIT=$?` 模式一致。顺带将 2k 节 `check-scope-resolved.sh` 同样处理。
-
-来源：`~/.agate/docs/issues/issue-001-pre-commit-p0-block.md`。
+来源：`~/.agate/docs/issues/issue-001-pre-commit-p0-block.md` + 评审 `docs/reviews/agate-issue-001-p0-hook-fix-review-2026-07-05.md`
 
 ### 新增文件（12 个）
 
