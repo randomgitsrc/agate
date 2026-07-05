@@ -27,7 +27,8 @@
 
 ## [Unreleased]
 
-（空）
+### 变更
+- **dispatch-context 强制化范围收窄**：barrier 从"派发阶段任何 commit"改为"派发阶段产出 commit"。仅当该阶段的产出文件（P1-requirements.md / P2-design.md 等）被暂存时才要求 dispatch-context.md，避免拦截中间 commit / legacy 根 .state.yaml 任务 / 裁剪跳阶场景
 
 ---
 
