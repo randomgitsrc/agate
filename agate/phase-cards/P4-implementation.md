@@ -95,3 +95,5 @@ check-gate.sh P4 $TASK_DIR
 - P5 验证依赖：P5 跑 gate_commands.P5 的命令（在 P2 声明），确保你的实现能通过
 - P6 验收依赖：实现路径的端点行为必须可验证（确认 API 返回正确的 Content-Type、状态码等）
 - 代码改动文件路径：P8 发布时确认版本文件变更需要知道你改动了哪些 package
+
+> 完成 → 读 phase-cards/P5-verification.md

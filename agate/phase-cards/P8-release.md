@@ -86,3 +86,5 @@ check-gate.sh P8 $TASK_DIR
 
 - READY → DONE：任务完成，代码可合并/发布
 - 本任务是 agate 链条的终点——P8 完成后任务状态转为 DONE
+
+> 完成 → 任务 DONE

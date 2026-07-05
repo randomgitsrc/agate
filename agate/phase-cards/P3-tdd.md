@@ -61,3 +61,5 @@ check-tdd-red.sh $TASK_DIR
 
 - P4 用测试驱动实现（implementer 看测试理解预期行为）
 - P5 跑同一套测试验证实现正确性（gate_commands.P5）
+
+> 完成 → 读 phase-cards/P4-implementation.md

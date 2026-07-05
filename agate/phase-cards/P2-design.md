@@ -100,3 +100,5 @@ check-gate.sh P2 $TASK_DIR
 - P5 依赖 gate_commands 执行验证命令
 - P6 依赖 ui_affected 判断是否需要 vision-helper
 - gate_commands 在 P2 固化后 P4-P6 不能改——设计阶段是声明验证契约的唯一窗口
+
+> 完成 → 读 phase-cards/P3-tdd.md

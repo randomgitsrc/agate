@@ -70,3 +70,5 @@ check-gate.sh P5 → exit 2。主 Agent 自判，不脚本化（命令从 P2 动
 
 - P6 验收在 P5 通过的基础上做用户视角验证
 - P8 发布时需重跑 P5 gate（确认 bump-version 后测试仍全绿）
+
+> 完成 → 读 phase-cards/P6-acceptance.md

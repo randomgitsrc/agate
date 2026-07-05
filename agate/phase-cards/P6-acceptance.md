@@ -83,3 +83,5 @@ check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 
 
 - P7 一致性检查依赖 P6 的 BDD 对照结果
 - 验收结果是判定任务成败的最终依据——P8 发布只是机械步骤
+
+> 完成 → 读 phase-cards/P7-consistency.md

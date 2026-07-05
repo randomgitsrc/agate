@@ -59,3 +59,5 @@ check-gate.sh P7 $TASK_DIR
 ## 下游影响
 
 - P8 发布前最后一道质量门——P7 通过后进入机械发布步骤
+
+> 完成 → 读 phase-cards/P8-release.md

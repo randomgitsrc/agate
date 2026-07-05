@@ -65,3 +65,5 @@ check-gate.sh P1 → exit 2。主 Agent 自行判定：
 ## 评审
 
 P1 当前无强制需求评审机制（已知缺口，待后续协议版本补充）。
+
+> 完成 → 读 phase-cards/P2-design.md
