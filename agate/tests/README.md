@@ -29,6 +29,7 @@ bash agate/tests/scripts/count-tests.sh
 |------|---------|-------|
 | check-pruning.sh | unit/check-pruning.bats | 20 |
 | check-gate.sh | unit/check-gate.bats | 34 |
+| agate-next-card.sh | unit/agate-next-card.bats | 17 |
 | check-p6-evidence.sh | unit/check-p6-evidence.bats | 11 |
 | check-p6-provenance.sh | unit/check-p6-provenance.bats | 16 |
 | check-scope-resolved.sh | unit/check-scope-resolved.bats | 6 |
