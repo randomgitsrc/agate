@@ -45,7 +45,8 @@ if [ "$NEW_PHASE" != "$OLD_PHASE" ] && [ "$OLD_PHASE" != "PAUSED" ]; then
             exit 1
         fi
         # 产出既不在暂存区也不在 HEAD → 从未被 commit
-        if [ -n "$OLD_OUTPUT" ] && ! git ls-files "$TASK_REL/$OLD_OUTPUT" >/dev/null 2>&1; then
+        # 注：git ls-files 退出码恒 0，不能用于判"文件未被跟踪"——改判输出是否为空
+        if [ -n "$OLD_OUTPUT" ] && [ -z "$(git ls-files "$TASK_REL/$OLD_OUTPUT")" ]; then
             echo "GATE: ${OLD_PHASE} 产出 ${OLD_OUTPUT} 尚未 commit" >&2
             echo "      提示：先 commit ${OLD_PHASE} 产出再推进 phase" >&2
             exit 1
@@ -78,15 +79,6 @@ _phase_output_for() {
 ```
 
 **P4 明确 scope out**：P4 implementer 产出的代码文件在项目 `src/` 目录下（非 `docs/tasks/Txxx/`），无法用 task-scoped 文件路径检查关联到具体任务。P4 代码的 commit 纪律由 agent、code review 和已有 P4 gate（暂存区含非 .md/.yaml 文件）保证，不在本 commit gate 的范围。
-
-**F0 修复**：`git ls-files` 退出码恒 0（文件不存在时输出为空但退出码仍 0），改为判空：
-
-```bash
-# ❌ 旧版（exit code 恒 0，永不触发）
-! git ls-files "$TASK_REL/$OLD_OUTPUT" >/dev/null 2>&1
-
-# ✅ 修正（exit code 不可靠，判断 output 是否为空）
-[ -z "$(git ls-files "$TASK_REL/$OLD_OUTPUT")" ]
 
 ## 拦截后的处理策略（补强）
 
@@ -162,7 +154,7 @@ commit 被拦 → 读错误消息 → 分析根因 → 修复产出 → 重验 g
 
 评审发现：
 - F0: `git ls-files` 退出码恒 0，不能用于判"文件未被跟踪"——改用 `[ -z "$(git ls-files ...)" ]` 判断输出
-- F1: P4 分支须实现代码文件检查（复用 v0.9.1 pre-commit-gate.sh 的代码文件判断）
+- F1: P4 commit gate scope out——代码在项目任意路径，无法 task-scoped 关联。由已有 P4 gate（暂存区含非 .md/.yaml）保证
 - F2: `git diff --cached --name-only` grep 须限定 `^${TASK_REL}/`
 - F3: 问题表"高"项标注"仅诚实推进 phase 时缓解"
 - F4: phase→产出映射抽成共享函数
