@@ -6,10 +6,28 @@
 
 ---
 
+## [0.10.0] - 2026-07-05
+
+### 新增
+- **逐阶段 commit 强制**：`check-state-transition.sh` 检查 3（commit gate）。推进 phase 到 Pn+1 前，Pn 产出必须已 commit——产出+推进同 commit 或产出从未 commit 均拦截。仅任务级 `.state.yaml`（`docs/tasks/Txxx/`）生效，根 `.state.yaml` 跳过。回退/PAUSED 恢复不受影响
+- **拦截后处理策略**：`orchestrator-template.md` 补 8 种拦截类型对应处理方案 + 同一阶段累计 3 次拦截 → PAUSED
+- **`git-integration.md` 标记强制执行**：每阶段 commit 规则由 `check-state-transition.sh` 强制执行
+
+### 变更
+- `check-state-transition.sh`: `get_old_phase` 支持任务级 `.state.yaml` 路径（`HEAD:docs/tasks/Txxx/.state.yaml`），不再只读根路径
+
+## [Unreleased]
+
+（空）
+
+---
+
 ## [0.9.1] - 2026-07-05
 
 ### 热修复
 - **dispatch-context 强制化范围收窄**：v0.9.0 barrier 从"派发阶段任何 commit"改为"派发阶段产出 commit"。仅当该阶段的产出文件（P1-requirements.md / P2-design.md 等）被暂存时才要求 dispatch-context.md，避免拦截中间 commit / legacy 根 .state.yaml 任务 / 裁剪跳阶场景
+
+---
 
 ## [0.9.0] - 2026-07-05
 
@@ -27,22 +45,6 @@
 
 ### 破坏性变更
 - 同 [Unreleased] 节（删 8 文件必读框架 + 删 CHECK 5 + state-machine.md:506 中断恢复语义更新 + 反向传播同步 + scripts/README.md 改检查数）
-
----
-
-## [0.10.0] - 2026-07-05
-
-### 新增
-- **逐阶段 commit 强制**：`check-state-transition.sh` 检查 3（commit gate）。推进 phase 到 Pn+1 前，Pn 产出必须已 commit——产出+推进同 commit 或产出从未 commit 均拦截。仅任务级 `.state.yaml`（`docs/tasks/Txxx/`）生效，根 `.state.yaml` 跳过。回退/PAUSED 恢复不受影响
-- **拦截后处理策略**：`orchestrator-template.md` 补 8 种拦截类型对应处理方案 + 同一阶段累计 3 次拦截 → PAUSED
-- **`git-integration.md` 标记强制执行**：每阶段 commit 规则由 `check-state-transition.sh` 强制执行
-
-### 变更
-- `check-state-transition.sh`: `get_old_phase` 支持任务级 `.state.yaml` 路径（`HEAD:docs/tasks/Txxx/.state.yaml`），不再只读根路径
-
-## [Unreleased]
-
-（空）
 
 ---
 
