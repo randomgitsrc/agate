@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/integration/consistency.bats — 7 用例覆盖 check-protocol-consistency.py
+# tests/integration/consistency.bats — 9 用例覆盖 check-protocol-consistency.py（CHECK 5 已删）
 load ../helpers/load.bash
 
 setup() {
@@ -22,15 +22,11 @@ setup() {
     [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 4"* ]]
 }
 
-@test "CON.5 CHECK 5: 协议文件计数声明正确" {
-    [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 5"* ]]
-}
-
-@test "CON.6 CHECK 6: LICENSE 归属" {
+@test "CON.5 CHECK 6: LICENSE 归属" {
     [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 6"* ]]
 }
 
-@test "CON.7 CHECK 7: version badge 同步" {
+@test "CON.6 CHECK 7: version badge 同步" {
     [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 7"* ]]
 }
 

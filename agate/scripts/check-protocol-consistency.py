@@ -12,7 +12,6 @@ agate 协议结构一致性检查 (P3-1)
   CHECK 2  协议文件内引用的 docs/assets/scripts 路径真实存在        (对应 P0-4, P1-3)
   CHECK 3  协议文件内的硬编码行号引用 `xxx.md L123`               (对应 P1-4)
   CHECK 4  跨文件字段集一致：gate_commands 键集合                  (对应 P1-2)
-  CHECK 5  「N 个协议文件」计数声明 vs 实际列表长度（锚点白名单）   (对应 P1-1)
    CHECK 6  README LICENSE 徽章指向的文件存在 + gstack MIT 归属保留  (对应 P0-2)
    CHECK 7  README version badge 与最新 git tag 一致
    CHECK 8  v0.6 关键词存在性（DESIGN_GAP / design_trivial / model_tier / --cached）
@@ -76,22 +75,11 @@ PATH_IGNORE_SUBSTRINGS = (
     "backend/", "src/", "app/", # 项目侧源码示例
 )
 
-# CHECK 5 的锚点白名单：已知的「N 个协议文件」声明，精确校验数字。
-# 这是有意为之的白名单式检查——散文里的计数无法通用解析，只盯死已知关键锚点。
-FILE_COUNT_ANCHORS = [
-    {
-        "file": "agate/orchestrator-template.md",
-        "expected": len(["WORKFLOW", "dispatch-protocol", "state-machine",
-                          "role-system", "loop-orchestration", "git-integration",
-                          "platform-notes", "LIMITATIONS"]),  # = 8
-        "desc": "启动必读协议文件清单（源声明在 orchestrator-template.md「工作流规则」）",
-    },
-    {
-        "file": "agate/state-machine.md",
-        "expected": 8,
-        "desc": "抗中断恢复重读的协议文件清单（引用 orchestrator-template.md 的 8 项列表）",
-    },
-] 
+# CHECK 5（协议文件计数声明）已删除：8 文件必读框架不再适用，Phase Card 取代它作为默认入口。
+# 历史锚点：
+#   - orchestrator-template.md 期望 8 文件列表
+#   - state-machine.md 期望 8 文件列表
+# 两个锚点都基于"必读清单"假设——这个清单已降级为 reference，不再是协议不变量。 
 
 # ── 工具函数 ──────────────────────────────────────────────────────────────
 
@@ -347,37 +335,6 @@ def check_gate_commands_keys(root: Path, rep: Report) -> None:
         rep.ok("CHECK4-gatekeys")
 
 
-# ── CHECK 5: 「N 个协议文件」计数 vs 实际列表 ────────────────────────────
-
-def check_file_count_anchors(root: Path, rep: Report) -> None:
-    all_ok = True
-    for anchor in FILE_COUNT_ANCHORS:
-        f = root / anchor["file"]
-        if not f.exists():
-            rep.warn("CHECK5-count", f"锚点文件不存在: {anchor['file']}")
-            all_ok = False
-            continue
-        text = f.read_text(encoding="utf-8")
-        # 找 "N 个...文件" 的声明
-        declared = None
-        for m in re.finditer(r"(\d+)\s*个[^。\n]*?文件", text):
-            declared = int(m.group(1))
-            break
-        if declared is None:
-            rep.warn("CHECK5-count",
-                     f"{anchor['file']}: 未找到「N 个文件」声明，无法校验 {anchor['desc']}")
-            all_ok = False
-            continue
-        if declared != anchor["expected"]:
-            all_ok = False
-            rep.error("CHECK5-count",
-                      f"{anchor['file']}: {anchor['desc']} 声明 {declared} 个文件，"
-                      f"但应为 {anchor['expected']} 个",
-                      anchor["file"])
-    if all_ok:
-        rep.ok("CHECK5-count")
-
-
 # ── CHECK 6: LICENSE 徽章 + gstack 归属 ──────────────────────────────────
 
 def check_license(root: Path, rep: Report) -> None:
@@ -479,7 +436,7 @@ def check_v06_keywords(root: Path, rep: Report) -> None:
 # ── CHECK 9: 协议-脚本结构对齐 ────────────────────────────────────────────
 
 # 锚点表：文档声明的规则 → 对应脚本应含的关键词。
-# 白名单式（和 CHECK 5 同模式），只盯死已知锚点。
+# 白名单式，只盯死已知锚点。
 #
 # 局限性：关键词存在 ≠ 语义一致（见 plan §2.4 三类假阳性）。
 # 本检查只做结构兜底，语义对齐由 LLM 审查层（protocol-alignment-review）保证。
@@ -646,7 +603,6 @@ CHECKS = [
     ("CHECK 2  仓库内文件引用存在", check_internal_refs),
     ("CHECK 3  协议文件无硬编码行号", check_line_refs),
     ("CHECK 4  gate_commands 键集合一致", check_gate_commands_keys),
-    ("CHECK 5  协议文件计数声明正确", check_file_count_anchors),
     ("CHECK 6  LICENSE 与 gstack 归属", check_license),
     ("CHECK 7  version badge 与 git tag", check_version_badge),
     ("CHECK 8  v0.6 关键词存在性", check_v06_keywords),

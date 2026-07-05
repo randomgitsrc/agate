@@ -502,11 +502,10 @@ env_state:
 场景：主 Agent 在 P4 派发到一半，会话被压缩/中断
 
 恢复时：
-  0. 这是"重新接手任务"，等同于一次新的启动：
-     依次重读：orchestrator-template.md 的 mapping 表查当前阶段卡片，然后按卡片指引加载协议文件（推荐），或回退到 orchestrator-template.md「工作流规则」列出的 8 个协议文件全量重读。
-     （WORKFLOW.md / dispatch-protocol.md / state-machine.md / role-system.md /
-      loop-orchestration.md / git-integration.md / platform-notes.md / LIMITATIONS.md）
-     不能假设压缩前读过的内容还在上下文里。
+   0. 这是"重新接手任务"，等同于一次新的启动：
+      依次重读：orchestrator-template.md 的 mapping 表查当前阶段卡片，按卡片指引执行。
+      卡片查不到的信息回退到 orchestrator-template.md「Fallback：完整协议文件列表」节（reference，非必读）。
+      不能假设压缩前读过的内容还在上下文里。
   1. 主 Agent 重新读 active-tasks.md → "T001 在 P4，重试 0"
   2. 读 docs/tasks/T001/ → P4-implementation/ 是否已有文件？
      - 有 → P4 已完成，直接判定门槛，进 P5

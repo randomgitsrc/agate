@@ -105,24 +105,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 ### 每个新会话启动（含中断恢复）
 
-**协议文件**（8 个协议文件，依次读完，不可跳过）：
-
-1. `{agate_root}/WORKFLOW.md` — 阶段总览、角色映射、裁剪规则
-2. `{agate_root}/dispatch-protocol.md` — 派发模板、gate 表、特殊事件处理
-3. `{agate_root}/state-machine.md` — 转移规则、重试上限、单步函数、状态标记绑定、READY 收尾清单
-4. `{agate_root}/role-system.md` — 双层角色体系、domains→评审角色映射
-5. `{agate_root}/loop-orchestration.md` — /loop 自动编排、护栏规则
-6. `{agate_root}/git-integration.md` — commit 规范（`wf()` 前缀）、push 策略
-7. `{agate_root}/platform-notes.md` — 各平台能力差异、已知坑
-8. `{agate_root}/LIMITATIONS.md` — 已知限制与缓解（subagent 空返回、prod_env 不在范围等）
-
-**版本感知**：先跑 `bash ~/.agate/scripts/agate-summary.sh` 确认当前协议版本；若知道上次会话版本，跑 `bash ~/.agate/scripts/agate-changes.sh v0.x.0` 看差异决定重读哪些文件，不知道就全量重读。
-
-**中断恢复 = 新会话**：会话被压缩/中断后重新接手，等同于一次新的启动——重新读完上述文件。任务进度可以从 active-tasks.md 重建，但协议规则本身不会自动出现在上下文里（这是两类不同的状态，见 state-machine.md「为什么这样能抗中断」）。
-
-### 按阶段渐进加载（推荐）
-
-实际执行时不必每轮全读 8 个文件。根据当前任务阶段，优先只读一张阶段卡片——卡片自包含该阶段的完整执行信息（前置条件 / 派发 / 产出 / gate / 常见错误 / 下游影响）。卡片查不到的信息再回退到上方完整文件列表：
+按当前任务阶段，**只读一张阶段卡片**——卡片自包含该阶段的完整执行信息（前置条件 / 派发 / 产出 / gate / 推进条件 / 常见错误 / 下游影响）。卡片查不到的信息再回退到本文件末尾的 Fallback reference 节：
 
 | 当前阶段 | 优先读 |
 |---------|-------|
@@ -140,6 +123,23 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 每张卡片末尾指向下一张卡片。中断恢复时：读 `.state.yaml` → 查 phase → 按 mapping 表读对应卡片。
 
 `assets/execution-roles/` 和 `assets/templates/` 不在此列——这些是 subagent 在独立上下文里读的，编排者（你）不需要读，只需要知道"P1 派 analyst"，WORKFLOW.md 里已有角色映射表。
+
+### 版本感知
+
+先跑 `bash ~/.agate/scripts/agate-summary.sh` 确认当前协议版本；若知道上次会话版本，跑 `bash ~/.agate/scripts/agate-changes.sh v0.x.0` 看差异决定重读哪些文件。
+
+### Fallback：完整协议文件列表（reference，非必读）
+
+如果 phase-cards 查不到需要的细节，按需查阅下列文件——**这些是 reference，不要求每轮必读**：
+
+1. `{agate_root}/WORKFLOW.md` — 阶段总览、角色映射、裁剪规则
+2. `{agate_root}/dispatch-protocol.md` — 派发模板、gate 表、特殊事件处理
+3. `{agate_root}/state-machine.md` — 转移规则、重试上限、单步函数、状态标记绑定、READY 收尾清单
+4. `{agate_root}/role-system.md` — 双层角色体系、domains→评审角色映射
+5. `{agate_root}/loop-orchestration.md` — /loop 自动编排、护栏规则
+6. `{agate_root}/git-integration.md` — commit 规范（`wf()` 前缀）、push 策略
+7. `{agate_root}/platform-notes.md` — 各平台能力差异、已知坑
+8. `{agate_root}/LIMITATIONS.md` — 已知限制与缓解（subagent 空返回、prod_env 不在范围等）
 
 ### 每个任务开始
 
