@@ -6,32 +6,28 @@
 
 ---
 
-## [Unreleased]
+## [0.9.0] - 2026-07-05
 
 ### 新增
-- **self-gate 强制触发**（issue #002）：`commit-msg-self-gate.sh` 检测暂存区含 self-gate 触发文件时，要求 commit message 含 `self-gate-review:` 路径或 `self-gate-skip:` 理由，否则 WARNING（不拦截）
-- **self-gate 递归终止条件**：审查报告全 ALIGNED = 自然终止，不需要额外标记
-- **CHECK 9 反向覆盖检查**：`check-protocol-consistency.py` 新增 `check_anchor_coverage`——扫描 `check-*.sh` + `pre-commit-gate.sh`，确认每个 gate 脚本都在锚点表里
-- **install-hook.sh 同时安装 commit-msg hook**
-- **README gate 判定对象分类学**：外部产出 gate vs 自写文件 gate，正面表述 + 渐进采纳路径
+- **Phase Card 渐进披露**：`agate/phase-cards/P{N}-*.md`（9 张）+ `agate/rules/state-transitions.md` + `review-mapping.md`（2 个）。主 Agent 按当前阶段只读一张卡片（~100 行），不再全量加载 8 个协议文件（~2900 行）。`orchestrator-template.md` mapping 表为默认入口，8 文件降级为 reference。旧 CHECK 5（协议文件计数校验）随之删除
+- **agate-next-card.sh CLI**：输出当前阶段卡片全文（PHASE P0-P8）。9 个 sha256 byte-stability 硬证明测试。跨 checkout/CI 路径 hash 稳定（相对路径）
+- **dispatch-context.md 防漂移**：新模板（`agate/assets/templates/dispatch-context.md`）+ hook 2p hash 校验。嵌入卡片 sha256 与 CLI 输出一致（防过期/防篡改）。**P1/P2/P3/P4/P6 派发阶段强制要求** dispatch-context.md 存在，缺则 exit 1
+- **P0 gate 显式分支**：check-gate.sh 加 `P0` 分支，停止把标准阶段谎报为"未知"写入审计轨迹
+- **pre-commit-gate.sh 2j/2k 容错**：仅 exit 1 拦截，exit 2 静默放过（与 2i 对齐）
+- **self-gate-review:/skip: 加 ^ 行锚**：修复 commit body 任意位置提一句即绕过的假阴性
+- **orchestrator-log.md 机制**：主 Agent 长操作前写 NEXT 锚点防无响应
 
 ### 变更
-- **措辞修正**："防伪/防伪造"→"造假成本提升 + 留痕审计"（LIMITATIONS.md / dispatch-protocol.md / WORKFLOW.md / verifier.md / CHANGELOG.md）——机制真实价值是 cost-raising + audit trail，不是硬保证
-- **LIMITATIONS.md 补方向性错配声明**：agate 防御重心在 subagent 侧，但主要事故源在主 Agent 侧——这是单编排者路线的结构性产物
-- **CON.9 测试改写**：从"锁定 md5 缺口存在"改写为"锁定 md5 已实现"（commit `949055c` 实现后旧测试永久失败）
-- **SELF-GATE.md**：补"强制力边界"声明（WARNING 不拦截）+ "递归终止"条件
+- 同 [Unreleased] 节（措辞修正 / LIMITATIONS 方向性错配 / self-gate 强制触发 / self-gate 递归终止 / CHECK 9 反向覆盖 / README gate 分类学 / CON.9 测试改写 / SELF-GATE 强制力边界）
 
-### 破坏性变更（Breaking Changes）
-- **删"8 个协议文件必读"框架**：orchestrator 启动从"读完 8 文件"改为"按 phase 读一张阶段卡片 + Fallback reference"。阶段卡片（`agate/phase-cards/P{N}-*.md`）成为默认入口，8 文件降为按需查阅的 reference。映射见 `agate/orchestrator-template.md` 的「按阶段加载」小节
-- **删 CHECK 5（协议文件计数校验）**：`check-protocol-consistency.py` 不再校验"8 文件必读清单计数"——该计数已无协议意义。检查项从 9 减到 8（CHECK 1-4, 6-9）。`agate/tests/integration/consistency.bats` 删 CON.5，重排后续编号
-- **state-machine.md:506 中断恢复语义更新**：从"重读 8 文件"改为"读 mapping 表查当前阶段卡片 + 按卡片指引"。删 :507-508 旧 8 文件枚举清单
-- **反向传播同步**：loop-orchestration.md:238 / dispatch-protocol.md:247 / agate-changes.sh:144,146 同步删"8 文件必读"措辞
-- **scripts/README.md 改"8 类检查"**（从 6 类修正）
+### 破坏性变更
+- 同 [Unreleased] 节（删 8 文件必读框架 + 删 CHECK 5 + state-machine.md:506 中断恢复语义更新 + 反向传播同步 + scripts/README.md 改检查数）
 
-### 阶段卡片 CLI（Phase Card 防漂移机制前置）
-- **agate-next-card.sh 新增**：主 Agent 调 `agate-next-card.sh P{N}` 拿到对应阶段卡片全文（`agate/phase-cards/P{N}-*.md`）。输出格式固定（`## 当前阶段卡片：P{N}\n\n路径：...\n---\n<card>`），便于后续 hook 做 sha256 校验。退出码：0 成功 / 1 参数错 / 2 phase 越界
-- **17 个 unit 测试**（`agate/tests/unit/agate-next-card.bats`）：9 个 sha256 byte-stability 测试（断言 CLI 输出 body 哈希 == 卡片文件哈希，是 step 3 hook 防漂移前提的硬证明）+ 字节稳定性 + 跨目录路径解析 + 软链接场景 + 失败路径
-- **scripts/README.md 新增「阶段卡片 CLI」小节**
+---
+
+## [Unreleased]
+
+（空）
 
 ---
 
