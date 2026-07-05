@@ -20,10 +20,10 @@ fi
 
 # 检查 commit message 是否含 self-gate-skip: 理由 或 self-gate-review: 路径
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE" 2>/dev/null || true)
-if echo "$COMMIT_MSG" | grep -qE 'self-gate-skip:\s*\S+'; then
+if echo "$COMMIT_MSG" | grep -qE '^self-gate-skip:\s*\S+'; then
     exit 0
 fi
-if echo "$COMMIT_MSG" | grep -qE 'self-gate-review:\s*\S+'; then
+if echo "$COMMIT_MSG" | grep -qE '^self-gate-review:\s*\S+'; then
     exit 0
 fi
 
