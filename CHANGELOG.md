@@ -21,6 +21,13 @@
 - **CON.9 测试改写**：从"锁定 md5 缺口存在"改写为"锁定 md5 已实现"（commit `949055c` 实现后旧测试永久失败）
 - **SELF-GATE.md**：补"强制力边界"声明（WARNING 不拦截）+ "递归终止"条件
 
+### 破坏性变更（Breaking Changes）
+- **删"8 个协议文件必读"框架**：orchestrator 启动从"读完 8 文件"改为"按 phase 读一张阶段卡片 + Fallback reference"。阶段卡片（`agate/phase-cards/P{N}-*.md`）成为默认入口，8 文件降为按需查阅的 reference。映射见 `agate/orchestrator-template.md` 的「按阶段加载」小节
+- **删 CHECK 5（协议文件计数校验）**：`check-protocol-consistency.py` 不再校验"8 文件必读清单计数"——该计数已无协议意义。检查项从 9 减到 8（CHECK 1-4, 6-9）。`agate/tests/integration/consistency.bats` 删 CON.5，重排后续编号
+- **state-machine.md:506 中断恢复语义更新**：从"重读 8 文件"改为"读 mapping 表查当前阶段卡片 + 按卡片指引"。删 :507-508 旧 8 文件枚举清单
+- **反向传播同步**：loop-orchestration.md:238 / dispatch-protocol.md:247 / agate-changes.sh:144,146 同步删"8 文件必读"措辞
+- **scripts/README.md 改"8 类检查"**（从 6 类修正）
+
 ---
 
 ## [0.8.0] - 2026-07-02

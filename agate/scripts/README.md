@@ -57,7 +57,7 @@ agate 教别人「gate 必须机器可判定」，但自己的文档一致性此
 
 **只做结构一致性，不碰语义一致性**——后者不可机器判定（协议自己也这么说），不在范围内。
 
-## 6 类检查
+## 8 类检查
 
 | 检查 | 抓什么 | 对应评审条目 |
 |------|--------|-------------|
@@ -65,8 +65,12 @@ agate 教别人「gate 必须机器可判定」，但自己的文档一致性此
 | CHECK 2 | 协议文件引用的 docs/assets/scripts 路径真实存在 | P0-4, P1-3 |
 | CHECK 3 | 协议文件无硬编码行号引用 `xxx.md L123`（应用节标题） | P1-4 |
 | CHECK 4 | `gate_commands` 键集合跨文件一致（以 architect.md 为权威） | P1-2 |
-| CHECK 5 | 「N 个协议文件」计数声明 == 实际列表长度 | P1-1 |
 | CHECK 6 | README LICENSE 徽章指向的文件存在 + gstack MIT 归属保留 | P0-2 |
+| CHECK 7 | README version badge 与最新 git tag 一致 | — |
+| CHECK 8 | v0.6 关键词存在性（DESIGN_GAP / design_trivial / model_tier / --cached） | — |
+| CHECK 9 | 协议-脚本结构对齐（锚点表：文档声明的规则 vs 脚本关键词存在性） | — |
+
+> **CHECK 5（协议文件计数校验）已删除**：该校验基于"8 文件必读清单"假设——此清单已降级为 reference，计数不再有意义。检查项从 9 减到 8（CHECK 1-4, 6-9）。
 
 ## 用法
 

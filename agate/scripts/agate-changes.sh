@@ -141,9 +141,9 @@ HIGH_IMPACT=$(echo "$HIGH_IMPACT" | tail -1)
 if [ "$HIGH_IMPACT" -eq 0 ]; then
     echo "  当前变更影响小（无核心文件改动）——可只读 CHANGELOG.md 即可"
 elif [ "$HIGH_IMPACT" -lt 3 ]; then
-    echo "  中等变更（$HIGH_IMPACT 个核心文件）——重读变更的 8 个必读文件中受影响的那几份"
+    echo "  中等变更（$HIGH_IMPACT 个核心文件）——查阅变更涉及的协议文件"
 else
-    echo "  重大变更（$HIGH_IMPACT 个核心文件）——完整重读 8 个必读文件"
+    echo "  重大变更（$HIGH_IMPACT 个核心文件）——完整重读所有协议文件"
 fi
 
 echo ""

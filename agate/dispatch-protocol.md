@@ -244,7 +244,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 - 读全文（禁止）：把文件内容复制进 prompt
 
 **导航的信息来源是协议知识，不是文件内容：**
-- 每个阶段产出文件的节结构由对应角色定义文件硬约束（analyst.md 定义 P1 的节、architect.md 定义 P2 的字段）。角色定义文件不在主 Agent 的 8 文件启动读取列表里——主 Agent 不需要读它们，导航用的节名称在下方已内联
+- 每个阶段产出文件的节结构由对应角色定义文件硬约束（analyst.md 定义 P1 的节、architect.md 定义 P2 的字段）。角色定义文件不在主 Agent 的 mapping 必读路径里——主 Agent 不需要读它们，导航用的节名称在下方已内联
 - P1 的节名称（来自 analyst.md）：需求复述 / 隐含需求识别 / BDD 验收条件 / 待确认清单 / 裁剪说明 / 范围声明 / 能力需求声明
 - P2 的字段（来自 architect.md）：packages / domains / ui_affected / gate_commands / env_constraints / files_to_read / minimal_validation（后两个控制 P4 implementer 上下文 + 方案可行性验证）
 - 主 Agent 用这些协议定义的节名称给导航，不需要读产出文件的实际内容
