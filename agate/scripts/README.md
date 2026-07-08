@@ -119,7 +119,7 @@ YAML 检查还区分：
 
 ## CI
 
-`.github/workflows/protocol-consistency.yml` 已配置：每次 push / PR 自动运行，默认 ERROR 阻断、
+`.github/workflows/protocol-tests.yml` 已配置：每次 push / PR 自动运行，默认 ERROR 阻断、
 WARNING 放行。想让 WARNING 也阻断，把 workflow 里的命令改成加 `--strict`。
 
 ## 已知 WARNING（当前仓库，均非缺陷）

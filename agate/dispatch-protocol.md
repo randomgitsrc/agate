@@ -660,7 +660,7 @@ setTimeout(() => {
 
 **非实现阶段代码暂存 WARNING**：非 P4/P5/P6 阶段暂存了代码文件（非 .md/.yaml）时，发 WARNING（不拦截）。覆盖"主 Agent 在非实现阶段直接改代码"场景。
 
-**CI backstop（P1.3）**：`push` 后 GitHub Actions `.github/workflows/protocol-consistency.yml` 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit；并对 `P6-acceptance.md` 单 author 情况发 WARNING 作为兜底审计。
+**CI backstop（P1.3）**：`push` 后 GitHub Actions `.github/workflows/protocol-tests.yml` 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit；并对 `P6-acceptance.md` 单 author 情况发 WARNING 作为兜底审计。
 
 **Gate 分类**：
 
