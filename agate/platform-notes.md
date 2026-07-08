@@ -58,7 +58,7 @@ hardening-roadmap 设计的核心 gate 机制（pre-commit hook + CI backstop）
 | 独立 git author 追踪（P2.10 根治）| ❌ | ❌ | ❌ | Phase 3 平台功能未实现 |
 | `~/.agate` 软链接 | ✅ | ✅ | ✅ | 文件系统级，无平台差异 |
 
-**CI backstop 说明**：`.github/workflows/protocol-consistency.yml` 的 `gate-backstop` job 用 GitHub Actions 实现。在自建 CI（Gitea/GitLab/本地）跑 agate 时：
+**CI backstop 说明**：`.github/workflows/protocol-tests.yml` 的 `gate-backstop` job 用 GitHub Actions 实现。在自建 CI（Gitea/GitLab/本地）跑 agate 时：
 - 需要等价实现：`git push` 后重跑 `scripts/check-gate.sh` + 调用 `ci-gate-backstop.py`
 - 不实现 CI backstop 也能用——只是失去 `--no-verify` 绕过 hook 的兜底审计
 

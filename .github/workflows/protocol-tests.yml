@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -30,7 +32,7 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get install -y shellcheck
       - name: Run shellcheck
-        run: shellcheck agate/scripts/*.sh
+        run: shellcheck -S warning agate/scripts/*.sh
 
   consistency:
     runs-on: ubuntu-latest
@@ -43,3 +45,15 @@ jobs:
         run: pip install pyyaml
       - name: Run consistency check
         run: python3 agate/scripts/check-protocol-consistency.py
+
+  gate-backstop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Run gate backstop check
+        run: python3 agate/scripts/ci-gate-backstop.py

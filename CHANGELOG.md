@@ -19,9 +19,11 @@
 ## [Unreleased]
 
 ### 变更
+- **CI workflow 合并**：`gate-backstop` job 并入 `protocol-tests.yml`，删除冗余的 `protocol-consistency.yml`。单一 workflow 为真相源，4 个 job：bats / shellcheck / consistency / gate-backstop
 - **P2 不可裁剪**：删除 design_trivial / follows_existing_pattern / legacy_p2_pruned 例外口。design_trivial / follows_existing_pattern 语义改为"可简化 P2（1 个候选方案），不可省略 P2"
 - **P6 不可裁剪**：删除 no_behavior_change 例外口。no_behavior_change 语义改为"可简化 P6（快速验收），不可省略 P6"
 - **P7 裁剪加强**：声明"无隐式耦合"时须有 coupling_checklist 列出检查过的耦合点
+- **T-G2.5 root_cause 更正**：从"bats not in CI"更正为"CI detective not preventive (no branch protection)"
 
 （空）
 
