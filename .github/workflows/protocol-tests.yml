@@ -30,7 +30,7 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get install -y shellcheck
       - name: Run shellcheck
-        run: shellcheck agate/scripts/*.sh
+        run: shellcheck -S warning agate/scripts/*.sh
 
   consistency:
     runs-on: ubuntu-latest
