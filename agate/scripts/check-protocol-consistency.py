@@ -412,8 +412,8 @@ V06_KEYWORD_ASSERTIONS = [
     ("DESIGN_GAP", "agate/assets/execution-roles/implementer.md", "implementer 角色文件"),
     ("DESIGN_GAP", "agate/assets/execution-roles/architect.md", "architect 角色文件"),
     ("DESIGN_GAP", "agate/scripts/check-gate.sh", "P7 gate 脚本"),
-    ("design_trivial", "agate/scripts/check-pruning.sh", "裁剪检查脚本"),
-    ("design_trivial", "agate/state-machine.md", "状态机文档"),
+    ("P2 不可裁剪", "agate/scripts/check-pruning.sh", "裁剪检查脚本"),
+    ("P2 不可裁剪", "agate/state-machine.md", "状态机文档"),
     ("model_tier", "agate/assets/templates/task-files.md", "任务文件模板"),
     ("--cached", "agate/scripts/check-gate.sh", "P4/P8 gate 脚本"),
     ("--cached", "agate/scripts/check-pruning.sh", "裁剪检查脚本"),
@@ -442,9 +442,9 @@ def check_v06_keywords(root: Path, rep: Report) -> None:
 # 本检查只做结构兜底，语义对齐由 LLM 审查层（protocol-alignment-review）保证。
 SCRIPT_ALIGNMENT_ANCHORS = [
     {
-        "desc": "裁剪 P2 条件（design_trivial / follows_existing_pattern / legacy_p2_pruned）",
+        "desc": "P2 不可裁剪（design_trivial / follows_existing_pattern 可简化不可省略）",
         "script": "agate/scripts/check-pruning.sh",
-        "keywords": ["design_trivial", "follows_existing_pattern", "legacy_p2_pruned"],
+        "keywords": ["P2 不可裁剪"],
     },
     {
         "desc": "裁剪 P3 条件（risk_level）",
@@ -452,9 +452,14 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "keywords": ["risk_level"],
     },
     {
-        "desc": "裁剪 P6 条件（no_behavior_change）",
+        "desc": "P6 不可裁剪（no_behavior_change 可简化不可省略）",
         "script": "agate/scripts/check-pruning.sh",
-        "keywords": ["no_behavior_change"],
+        "keywords": ["P6 不可裁剪"],
+    },
+    {
+        "desc": "裁剪 P7 coupling_checklist 声明",
+        "script": "agate/scripts/check-pruning.sh",
+        "keywords": ["coupling_checklist"],
     },
     {
         "desc": "裁剪 P7 条件（源码文件数）",

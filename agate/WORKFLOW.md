@@ -115,18 +115,17 @@ agate 的派发机制有固定开销——每次派发约需写 25 行派发 pro
 | 任务类型 | 建议 |
 |----------|------|
 | 微任务（typo、文案、单行配置、debug 后的精确修复）| 直接做，不走 agate |
-| 小任务（明确的 bug 修复、加一个字段）| 裁剪流程：P1 + P3 + P4 + P5（+ P6 若有 BDD 验收条件），跳过 P2/P7；P3 仅在满足可跳条件时才跳 |
+| 小任务（明确的 bug 修复、加一个字段）| 裁剪流程：P1 + P2 + P3 + P4 + P5 + P6，跳过 P7；P3 仅在满足可跳条件时才跳 |
 | 中任务（新功能）| 完整 P1-P8 |
 | 中任务（Claude Project 会话）| P0-P2 设计 + 交接给 OpenCode/Claude Code 执行 P3-P8 |
 | 大任务（跨模块重构）| P1 拆成多个子任务，各自走 P1-P8 |
 
 ### 可裁剪的阶段
 
-- **核心阶段（不可跳）**：P1 需求基线、P4 实现、P5 技术验证
+- **核心阶段（不可跳）**：P1 需求基线、P2 方案设计、P4 实现、P5 技术验证、P6 验收
 - **可选阶段（按需加）**：P7 一致性（多文件改动时）
-- **P2 设计+评审默认保留，方案明确时才可跳过**：
-  可跳过的情形：改动是纯实现层（修一个已知 bug、改一行配置），方案无需设计，P1 已足够清晰
-  「方案不明确」是**必须走 P2** 的信号，不是可选的条件——方案不明确就进 P4，实现什么都不知道
+- **P2 不可裁剪**：方案设计是必经阶段。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略。
+  design_trivial 适用于纯 typo/文案/配置值修改；follows_existing_pattern 适用于照搬已有模式
 - **P3 TDD 测试先行默认保留**：P3 不是「需要 TDD 时才加」，默认保留，有明确理由才跳过。
   可跳过的情形只有两种：
   ① 纯文档/配置类任务——没有可测试的行为（如更新 README、调整配置文件）
@@ -135,7 +134,7 @@ agate 的派发机制有固定开销——每次派发约需写 25 行派发 pro
   **单 Agent 模式**（`has_task_tool: false`）：P3 和 P4 由同一 Agent 执行，独立视角消失。
   此时 P3 的价值从「独立验证」变为「提前定义行为契约」——先写测试让自己明确"完成标准"，
   而不是边实现边定义。须在 P1 裁剪说明里声明 `single_agent_mode: true`。
-- **P6 验收默认保留**：P6 是质量保障的最后防线，默认不裁剪。仅微任务（直接做不走 agate）可免于 P6；小任务裁剪 P6 必须在 P1 裁剪说明里写明充分理由，并由主 Agent 独立判断是否接受
+- **P6 不可裁剪**：验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略。仅微任务（直接做不走 agate）可免于 P6
 - P8 发布准备：涉及发布的任务必做
 - **裁剪必须附理由**：P1 分析师判定复杂度后，在 `P1-requirements.md` 的「裁剪说明」节写明每个跳过阶段的理由；主 Agent 按声明推进，不强制全 8 阶段
 - **裁剪不等于跳过需求质疑**：无论任务大小，P1 的需求基线（哪怕一句话）都要建立，因为隐含需求的识别不依赖任务规模
@@ -191,7 +190,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks + pruning_tendency |
 | P1 | 需求基线 | analyst（需求质疑模式）| office-hours（任务属于"适用边界"表的"大任务（跨模块重构）"档，或 P1-requirements.md 的裁剪说明里 pruning_tendency 标"保守"时追加；判断结果写入 P1-requirements.md）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '\[NEED_CONFIRM\]'` → =0；无 `status: GAP`（supplementable 不阻塞） |
-| P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.sh 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；v0.6 不可裁（例外口：design_trivial / follows_existing_pattern）；v0.6 强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时跳过） |
+| P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.sh 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；不可裁（design_trivial / follows_existing_pattern 可简化，不可省略）；强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时可只写 1 个） |
 | P3 | 测试设计 | test-designer | gate 自检（TDD 红灯）| `scripts/check-tdd-red.sh` exit 0 |
 | P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5 | 技术验证 | verifier | gate 自检（从 P2 gate_commands.P5 读取命令）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |

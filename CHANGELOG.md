@@ -18,16 +18,10 @@
 
 ## [Unreleased]
 
-### 新增
-- **P2 agent=main 硬拦截**（E2）：`check-gate.sh` P2 分支对 `agent=main` exit 1（不可自行批准评审），原 provenance WARNING 逻辑移除
-- **dispatch-context 缺失 WARNING**（B）：`pre-commit-gate.sh` 2n.1 检测产出暂存但缺 dispatch-context.md 时发 WARNING
-- **非实现阶段代码暂存 WARNING**（E3）：`pre-commit-gate.sh` 2n.2 检测非 P4/P5/P6 阶段暂存代码文件时发 WARNING
-- **subagent 返回前自检 + files_modified**（D）：`dispatch-prompt.md` 新增"返回前自检"强制节 + `files_modified` 结构化返回；`dispatch-protocol.md` 新增校验 6/7
-
 ### 变更
-- **"写跑分离"重命名为"自查≠gate"**（G）：subagent 可自跑自查确认基本功能，但自查≠gate 通过。8 处文档/角色/模板统一替换，无残留
-- **6 个下游文档同步 agent=main 硬拦截**：loop-orchestration.md / platform-notes.md / orchestrator-template.md / role-system.md / WORKFLOW.md / LIMITATIONS.md
-- **state-machine.md P2→P3 转移补充 agent≠main 条件**
+- **P2 不可裁剪**：删除 design_trivial / follows_existing_pattern / legacy_p2_pruned 例外口。design_trivial / follows_existing_pattern 语义改为"可简化 P2（1 个候选方案），不可省略 P2"
+- **P6 不可裁剪**：删除 no_behavior_change 例外口。no_behavior_change 语义改为"可简化 P6（快速验收），不可省略 P6"
+- **P7 裁剪加强**：声明"无隐式耦合"时须有 coupling_checklist 列出检查过的耦合点
 
 （空）
 

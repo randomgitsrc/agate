@@ -43,27 +43,14 @@ if [ -z "$RISK_LEVEL" ]; then
     ERRORS="${ERRORS}P1-requirements.md 缺 risk_level 字段\n"
 fi
 
-# 检查 2：P2 不可裁剪（除非 design_trivial / follows_existing_pattern / legacy_p2_pruned）
+# 检查 2：P2 不可裁剪（无例外口）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P2'; then
-    # 过渡期：legacy_p2_pruned 字段放行（一次性迁移标记）
-    if grep -qE '^legacy_p2_pruned:\s*true' "$P1_FILE" 2>/dev/null; then
-        : # 放行，不报错
-    # 例外口 1：design_trivial（typo / 文案 / 配置值修改）
-    elif grep -qE '^design_trivial:\s*true' "$P1_FILE" 2>/dev/null; then
-        : # 放行
-    # 例外口 2：follows_existing_pattern（须含参照文件路径 [xxx]）
-    elif grep -qE '^follows_existing_pattern:\s*\[[^]]+\]' "$P1_FILE" 2>/dev/null; then
-        : # 放行
-    else
-        ERRORS="${ERRORS}P2 不可裁剪（例外口：design_trivial: true / follows_existing_pattern: [参照文件] / legacy_p2_pruned: true）\n"
-    fi
+    ERRORS="${ERRORS}P2 不可裁剪——方案设计是必经阶段，P1 analyst 做需求分析不做方案设计，无法预知 P2 architect 会发现哪些隐含问题。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略 P2\n"
 fi
 
-# 检查 3：裁剪 P6 的条件（不可裁，除非 no_behavior_change）
+# 检查 3：P6 不可裁剪（无例外口）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P6'; then
-    if ! grep -q 'no_behavior_change:\s*true' "$P1_FILE" 2>/dev/null; then
-        ERRORS="${ERRORS}P6 不可裁剪（除非 no_behavior_change: true）\n"
-    fi
+    ERRORS="${ERRORS}P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6\n"
 fi
 
 # 检查 4：裁剪 P3 的条件
@@ -90,6 +77,13 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     # 局限性：hook 只能检查字段存在性，不能检查声明准确性
     if grep -qE '^implicit_coupling:' "$P1_FILE" 2>/dev/null; then
         ERRORS="${ERRORS}裁剪 P7 不可行：P1 声明了 implicit_coupling（隐式耦合维度）\n"
+    fi
+
+    # R4(c)：裁剪 P7 时，若未声明 implicit_coupling，须有 coupling_checklist
+    if ! grep -qE '^implicit_coupling:' "$P1_FILE" 2>/dev/null; then
+        if ! grep -qE '^coupling_checklist:\s*\[' "$P1_FILE" 2>/dev/null; then
+            ERRORS="${ERRORS}裁剪 P7 需 coupling_checklist: [检查过的耦合点]（如 api-schema: checked, data-model: checked）\n"
+        fi
     fi
 fi
 

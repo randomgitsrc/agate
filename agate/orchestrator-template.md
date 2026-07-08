@@ -89,8 +89,8 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 - 永远不要 `--no-verify` 绕过 hook（CI 兜底会抓到）
 - 永远不要在 `dispatch-context.md` 里写 PASS/FAIL 预判（会被 provenance 拦）
-- 永远不要在没有 `no_behavior_change: true` 时裁剪 P6（不验证 P6 意味着没验收）
-- 永远不要在没有 `design_trivial: true` 或 `follows_existing_pattern: [参照文件]` 或 `legacy_p2_pruned: true` 时裁剪 P2（v0.6：方案设计是必经阶段，P1 看不到 P2 会发现什么）
+- P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略
+- P2 不可裁剪——方案设计是必经阶段。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略
 - P4 的 `[DESIGN_GAP:]` 必须在 P7 被转抄 + 配对 `[DESIGN_GAP_REVIEWED:]`——否则 gate 拦截（v0.6：P4/P7 交叉核对）
 
 ---

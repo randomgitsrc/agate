@@ -17,9 +17,9 @@ load ../helpers/load.bash
     [[ "$output" == *"缺 risk_level"* ]]
 }
 
-# ============== 检查 2：P2 不可裁剪（4 个例外口子用例） ==============
+# ============== 检查 2：P2 不可裁剪（无例外口） ==============
 
-@test "P2.2 check-pruning.sh 裁剪 P2 无例外口 期望 exit 1" {
+@test "P2.2 check-pruning.sh 裁剪 P2 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
@@ -27,46 +27,39 @@ load ../helpers/load.bash
     [[ "$output" == *"P2 不可裁剪"* ]]
 }
 
-@test "P2.3a check-pruning.sh 裁剪 P2 + legacy_p2_pruned: true 放行" {
+@test "P2.3a check-pruning.sh 裁剪 P2 + legacy_p2_pruned 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)
     add_p1_field "$dir" "legacy_p2_pruned" "true"
     add_pruning_excuse "$dir" P2 "v0.5 任务" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P2 不可裁剪"* ]]
 }
 
-@test "P2.3b check-pruning.sh 裁剪 P2 + design_trivial: true 放行" {
+@test "P2.3b check-pruning.sh 裁剪 P2 + design_trivial 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)
     add_p1_field "$dir" "design_trivial" "true"
     add_pruning_excuse "$dir" P2 "文案修改" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P2 不可裁剪"* ]]
 }
 
-@test "P2.3c check-pruning.sh 裁剪 P2 + follows_existing_pattern: [src/foo.py] 放行" {
+@test "P2.3c check-pruning.sh 裁剪 P2 + follows_existing_pattern 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)
     add_p1_field "$dir" "follows_existing_pattern" "[src/foo.py]"
     add_pruning_excuse "$dir" P2 "照搬" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
-    [ "$status" -eq 0 ]
-}
-
-@test "P2.3d check-pruning.sh 裁剪 P2 + follows_existing_pattern: [] 空参照 期望 exit 1" {
-    local dir
-    dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)
-    add_p1_field "$dir" "follows_existing_pattern" "[]"
-    add_pruning_excuse "$dir" P2 "空参照" "低"
-    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2 不可裁剪"* ]]
 }
 
-# ============== 检查 3：P6 不可裁剪 ==============
+# ============== 检查 3：P6 不可裁剪（无例外口） ==============
 
-@test "P2.4 check-pruning.sh 裁剪 P6 无 no_behavior_change 期望 exit 1" {
+@test "P2.4 check-pruning.sh 裁剪 P6 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P7 P8)
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
@@ -74,13 +67,14 @@ load ../helpers/load.bash
     [[ "$output" == *"P6 不可裁剪"* ]]
 }
 
-@test "P2.4a check-pruning.sh 裁剪 P6 + no_behavior_change: true 放行" {
+@test "P2.4a check-pruning.sh 裁剪 P6 + no_behavior_change 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P7 P8)
     add_p1_field "$dir" "no_behavior_change" "true"
     add_pruning_excuse "$dir" P6 "无行为变更" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P6 不可裁剪"* ]]
 }
 
 # ============== 检查 4：高风险不可裁 P3 ==============
@@ -124,9 +118,10 @@ load ../helpers/load.bash
     [[ "$output" == *"源码文件数"* ]]
 }
 
-@test "P2.6b check-pruning.sh 裁剪 P7，源文件数 ≤ 5 通过" {
+@test "P2.6b check-pruning.sh 裁剪 P7，源文件数 ≤ 5 + coupling_checklist 通过" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)  # P7 不在声明
+    add_p1_field "$dir" "coupling_checklist" "[api-schema: checked, data-model: checked]"
     add_pruning_excuse "$dir" P7 "小改动" "低"
     local repo
     repo=$(git_init)
@@ -148,6 +143,24 @@ load ../helpers/load.bash
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"implicit_coupling"* ]]
+}
+
+@test "P2.6d check-pruning.sh 裁剪 P7 无 coupling_checklist 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)
+    add_pruning_excuse "$dir" P7 "小改动" "低"
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"coupling_checklist"* ]]
+}
+
+@test "P2.6e check-pruning.sh 裁剪 P7 + coupling_checklist 放行" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)
+    add_p1_field "$dir" "coupling_checklist" "[api-schema: checked, data-model: checked]"
+    add_pruning_excuse "$dir" P7 "小改动" "低"
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 0 ]
 }
 
 # ============== 检查 7：P8 需 internal_only ==============
@@ -185,25 +198,25 @@ EOF
     [[ "$output" == *"跳过风险"* ]]
 }
 
-# ============== 检查 8a：P6 裁剪需跳过风险 ==============
+# ============== 检查 8a：P6 不可裁（no_behavior_change 不再放行） ==============
 
 @test "P2.12 check-pruning.sh P6 裁剪无跳过风险 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P7 P8)
     add_p1_field "$dir" "no_behavior_change" "true"
-    # 不写跳过风险
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"跳过风险"* ]]
+    [[ "$output" == *"P6 不可裁剪"* ]]
 }
 
-@test "P2.12a check-pruning.sh P6 裁剪 + no_behavior_change + 跳过风险 期望 exit 0" {
+@test "P2.12a check-pruning.sh P6 裁剪 + no_behavior_change + 跳过风险 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P7 P8)
     add_p1_field "$dir" "no_behavior_change" "true"
     add_pruning_excuse "$dir" P6 "无行为变更" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P6 不可裁剪"* ]]
 }
 
 # ============== 检查 8b：P8 裁剪需 internal_only_reason ==============
@@ -242,17 +255,16 @@ EOF
     [[ "$output" == *"裁剪声明与执行不一致"* ]]
 }
 
-@test "P2.9a check-pruning.sh 裁剪声明 vs 实际有产出文件 + override 放行" {
+@test "P2.9a check-pruning.sh 裁剪 P2 + override + 产出文件 期望 exit 1 (P2 不可裁)" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)
     echo "actual design" > "$dir/P2-design.md"
-    # override 只解除检查 9 (P2.9 声明与执行不一致)，不解除检查 2 (P2 不可裁)
-    # 所以需要同时给 P2 一个例外口（这里用 legacy_p2_pruned）
     add_p1_field "$dir" "override" "P2 retained manually"
     add_p1_field "$dir" "legacy_p2_pruned" "true"
     add_pruning_excuse "$dir" P2 "理由" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P2 不可裁剪"* ]]
 }
 
 # ============== 边界 case ==============

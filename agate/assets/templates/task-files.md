@@ -146,7 +146,8 @@ phases: [P1,P2,P4,P5,P6,P8]
 # internal_only: true               # P8 裁剪时必填
 # internal_only_reason: 内部工具，无外部用户  # P8 裁剪时必填
 - 跳过 P3 理由：...
-- 跳过 P7 理由：...
+ - 跳过 P7 理由：...
+# coupling_checklist: [api-schema: checked, data-model: checked]  # P7 裁剪时必填（列出检查过的耦合点）
 # override（裁剪声明与实际执行不一致时回写，见 dispatch-protocol.md P2.9）
 # override: P2 retained (reason: 主 Agent 判断需要方案设计)
 
@@ -183,7 +184,7 @@ capability_requirements:
 
 ```markdown
 ## 1. 候选方案（v0.6：至少 2 个 + 权衡 + 选择理由）
-# 例外口：design_trivial: true 或 follows_existing_pattern: [参照文件] 时可只写 1 个
+# design_trivial: true 或 follows_existing_pattern: [参照文件] 时可只写 1 个候选方案（P2 仍不可省略）
 # brainstorm 借鉴：强制 architect 至少走一遍"还有别的做法吗"的思考
 
 ### 候选方案 A：[简短标题]

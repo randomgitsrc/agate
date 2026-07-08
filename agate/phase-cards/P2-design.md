@@ -1,7 +1,7 @@
 # P2 — 方案设计
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
-> 裁剪跳阶 → 确认 P1 phases 不含 P2 + 有合规理由（design_trivial / follows_existing_pattern / legacy_p2_pruned）→ 跳过，读 P3 卡片
+> 裁剪跳阶 → P2 不可裁剪。design_trivial / follows_existing_pattern 可简化（1 个候选方案），不可省略。
 
 ## 如果是首次进入本阶段
 
@@ -37,15 +37,15 @@
 ## 产出规格
 
 P2-design.md 必须包含：
-- **候选方案 ≥2** + 权衡 + 选择理由（design_trivial / follows_existing_pattern 时例外，见下方）
+- **候选方案 ≥2** + 权衡 + 选择理由（design_trivial / follows_existing_pattern 时可只写 1 个，见下方）
 - **四字段**：`packages:` `domains:` `ui_affected:` `gate_commands:`
 - **files_to_read**：实现时需要参考的文件清单（控制 P4 implementer 上下文）
 - **env_constraints**：确认/细化 P0-brief 的环境约束
 - **minimal_validation**（若方案依赖外部行为）
 
-候选方案例外口：
-- `design_trivial: true` → 可只写 1 个方案
-- `follows_existing_pattern: [src/foo.py]` → 可只写 1 个方案（参照已有模式）
+候选方案简化：
+- `design_trivial: true` → 可只写 1 个候选方案（P2 仍不可省略）
+- `follows_existing_pattern: [src/foo.py]` → 可只写 1 个候选方案，参照已有模式（P2 仍不可省略）
 
 ## gate_commands 声明
 
@@ -76,14 +76,14 @@ gate_commands:
 check-gate.sh P2 $TASK_DIR
 ```
 
-- 候选方案数 ≥2（有例外口时放行）
+- 候选方案数 ≥2（design_trivial / follows_existing_pattern 时可只写 1 个）
 - P2-review.md status: approved（文件存在时检查）
 - 四字段齐全（packages/domains/ui_affected/gate_commands）
 - 候选方案 ≥2 时含权衡/选择理由
 
 ## 推进条件
 
-- [ ] P2-design.md 候选方案 ≥2（或例外口生效）+ 四字段齐全
+- [ ] P2-design.md 候选方案 ≥2（或 design_trivial/follows_existing_pattern 可只写 1 个）+ 四字段齐全
 - [ ] P2-review.md status: approved（P2 未被裁剪时）
 - [ ] gate_commands.P5_e2e 已声明（ui_affected: true 时）
 

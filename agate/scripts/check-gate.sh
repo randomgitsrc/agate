@@ -23,13 +23,20 @@ case "$PHASE" in
       exit 2 ;;
   P2)
       # v0.6：多方案探索检查（nudge 强度）
-      # design_trivial/follows_existing_pattern 时 P2 被裁剪根本不会到这里，不需要跳过分支
+      # P2 不可裁剪，不存在 P2-design.md 时直接报错
       P2_FILE="$TASK_DIR/P2-design.md"
       if [ -f "$P2_FILE" ]; then
           CANDIDATE_COUNT=$(grep -cE '^###?\s*(候选方案|方案\s*[ABC123abc一二三四五])' "$P2_FILE" 2>/dev/null || echo 0)
           CANDIDATE_COUNT=$(echo "$CANDIDATE_COUNT" | tail -1)
-          if [ "$CANDIDATE_COUNT" -lt 2 ]; then
-              echo "GATE P2: P2-design.md 需至少 2 个候选方案 + 权衡 + 选择理由（v0.6 多方案探索）" >&2
+          P1_FILE="$TASK_DIR/P1-requirements.md"
+          MIN_CANDIDATES=2
+          if [ -f "$P1_FILE" ]; then
+              if grep -qE '^(design_trivial|follows_existing_pattern):\s*\S' "$P1_FILE" 2>/dev/null; then
+                  MIN_CANDIDATES=1
+              fi
+          fi
+          if [ "$CANDIDATE_COUNT" -lt "$MIN_CANDIDATES" ]; then
+              echo "GATE P2: P2-design.md 需至少 ${MIN_CANDIDATES} 个候选方案 + 权衡 + 选择理由（design_trivial/follows_existing_pattern 时可只写 1 个）" >&2
               exit 1
           fi
           P2_REVIEW="$TASK_DIR/P2-review.md"

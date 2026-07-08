@@ -79,11 +79,12 @@ EOF
     [ "$status" -eq 1 ]
 }
 
-@test "G2.5 check-gate.sh P2 无 P2 文件（design_trivial 裁剪）期望 exit 2" {
+@test "G2.5 check-gate.sh P2 无 P2 文件 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)  # P2 不在
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
-    [ "$status" -eq 2 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P2-design.md"* ]]
 }
 
 @test "G2.8 check-gate.sh P2 候选方案 ≥2 但无权衡 期望 exit 1" {
@@ -112,6 +113,42 @@ EOF
 ### 候选方案 B：方案二
 ## 权衡
 方案 A 更简单但性能差，方案 B 复杂但性能好。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.9a check-gate.sh P2 design_trivial + 1 候选方案 + 含权衡 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" "design_trivial" "true"
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+## 权衡
+简单修改，无需多方案。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.9b check-gate.sh P2 follows_existing_pattern + 1 候选方案 + 含权衡 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" "follows_existing_pattern" "[src/foo.py]"
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：照搬已有模式
+## 权衡
+照搬 src/foo.py 模式。
 packages: [pkg-a]
 domains: [backend]
 ui_affected: false

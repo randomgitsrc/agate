@@ -161,10 +161,10 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   跳过时，当前阶段的 gate 自动判定为"通过"，直接转移到裁剪声明中的下一个阶段。
 
   **裁剪条件（hook 验证，见 scripts/check-pruning.sh）**：
-  - 裁剪 P2：不可裁（v0.6：方案设计 + 评审是必经阶段。P1 analyst 做需求分析不做方案设计，无法预知 P2 architect 会发现哪些 P0/P1 没想到的问题。例外口：`design_trivial: true` 纯 typo/文案/配置值修改，或 `follows_existing_pattern: [参照文件]` 照搬已有模式。过渡期：`legacy_p2_pruned: true`）
-  - 裁剪 P3：high 风险不可裁
-  - 裁剪 P6：不可裁（除非 no_behavior_change: true）
-  - 裁剪 P7：需源码文件数 ≤ 5 AND 无 implicit_coupling 声明（隐式耦合维度，self-declaration。如共享 CSS class、API schema、数据模型、配置项等）
+  - 裁剪 P2：不可裁剪（方案设计是必经阶段。P1 analyst 做需求分析不做方案设计，无法预知 P2 architect 会发现哪些隐含问题。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略 P2）
+  - 裁剪 P3：high 风险不可裁剪
+  - 裁剪 P6：不可裁剪（验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6）
+  - 裁剪 P7：需源码文件数 ≤ 5 AND 无 implicit_coupling 声明 AND 有 coupling_checklist（列出检查过的耦合点，如 api-schema: checked, data-model: checked。防止无脑写"无隐式耦合"）
   - 裁剪 P8：需声明 internal_only: true + internal_only_reason: <理由>
 
   **裁剪理由格式**：每条裁剪须含"跳过风险:"评估。没有评估风险的裁剪 = 无效裁剪。
@@ -183,7 +183,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
     跳过 P7（无一致性检查）→ P6--[P6 gate 通过]--> P8
     跳过 P8（无发布）→ P7--[P7 gate 通过]--> DONE（仅限不涉及发布的内部任务）
 
-  不可跳过的阶段：P1（需求基线）、P4（实现）、P5（技术验证）
+  不可跳过的阶段：P1（需求基线）、P2（方案设计）、P4（实现）、P5（技术验证）、P6（验收）
     P1 基线是全流程脊梁，无论任务大小都需建立（小任务可简化，见 WORKFLOW.md 适用边界）
     P4/P5 是交付底线——没有实现和验证就没有可发布产物
 

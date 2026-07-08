@@ -1,7 +1,7 @@
 # P7 — 一致性检查
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
-> 裁剪跳阶 → 确认 P1 phases 不含 P7 + 源文件数 ≤5 + 无 implicit_coupling → 跳过，读 P8 卡片
+> 裁剪跳阶 → 确认 P1 phases 不含 P7 + 源文件数 ≤5 + 无 implicit_coupling + 有 coupling_checklist → 跳过，读 P8 卡片
 
 ## 如果是首次进入本阶段
 
