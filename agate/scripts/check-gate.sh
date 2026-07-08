@@ -26,7 +26,7 @@ case "$PHASE" in
       # design_trivial/follows_existing_pattern 时 P2 被裁剪根本不会到这里，不需要跳过分支
       P2_FILE="$TASK_DIR/P2-design.md"
       if [ -f "$P2_FILE" ]; then
-          CANDIDATE_COUNT=$(grep -cE '^###?\s*候选方案|^###?\s*方案[ABC123]' "$P2_FILE" 2>/dev/null || echo 0)
+          CANDIDATE_COUNT=$(grep -cE '^###?\s*(候选方案|方案\s*[ABC123abc一二三四五])' "$P2_FILE" 2>/dev/null || echo 0)
           CANDIDATE_COUNT=$(echo "$CANDIDATE_COUNT" | tail -1)
           if [ "$CANDIDATE_COUNT" -lt 2 ]; then
               echo "GATE P2: P2-design.md 需至少 2 个候选方案 + 权衡 + 选择理由（v0.6 多方案探索）" >&2
@@ -45,7 +45,11 @@ case "$PHASE" in
               echo "GATE P2: P2-design.md 缺字段（需 packages/domains/ui_affected/gate_commands 四字段，实际 ${FIELD_COUNT}）" >&2
               exit 1
           fi
-          if ! grep -qE '权衡|选择理由' "$P2_FILE" 2>/dev/null; then
+          if grep -qE '权衡|选择理由|取舍|考量|trade-?off|理由与权衡' "$P2_FILE" 2>/dev/null; then
+              :
+          elif grep -qE '选择' "$P2_FILE" 2>/dev/null && grep -qE '理由|原因|因为' "$P2_FILE" 2>/dev/null; then
+              :
+          else
               echo "GATE P2: P2-design.md 有 ≥2 候选方案但缺'权衡'或'选择理由'描述" >&2
               exit 1
           fi
@@ -86,8 +90,8 @@ case "$PHASE" in
       # v0.6：用显式 if/elif/else 替代链式写法——每加一个检查都要在链路里加新项，if 更易读易扩展
       # grep -c 无匹配时返回 exit 1，|| echo 0 处理此情况
       P7_FILE="$TASK_DIR/P7-consistency.md"
-      BLOCKERS=$(grep -cE '^\s*-?\s*\[BLOCKER\]' "$P7_FILE" 2>/dev/null || echo 0)
-      DEVCRIT=$(grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$P7_FILE" 2>/dev/null || echo 0)
+      BLOCKERS=$(grep -E '^\s*-?\s*\[BLOCKER\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[BLOCKER\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
+      DEVCRIT=$(grep -E '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[DEVIATION-CRITICAL\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
       BLOCKERS=$(echo "$BLOCKERS" | tail -1)
       DEVCRIT=$(echo "$DEVCRIT" | tail -1)
       if [ "$BLOCKERS" -gt 0 ] || [ "$DEVCRIT" -gt 0 ]; then

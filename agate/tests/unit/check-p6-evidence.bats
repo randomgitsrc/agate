@@ -184,6 +184,18 @@ EOF
     [[ "$output" == *"md5"* || "$output" == *"重复"* ]]
 }
 
+@test "E.14 check-p6-evidence.sh PASS 引用带附加内容 (path.png, vision: OK) 期望 exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1 (result.png, vision: OK)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.png"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
 @test "E.13 check-p6-evidence.sh UI 任务 + 不同截图（md5 不同）期望 exit 0" {
     local dir
     dir=$(create_task_dir)

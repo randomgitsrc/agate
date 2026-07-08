@@ -531,6 +531,100 @@ EOF
     [[ "$output" == *"未知阶段"* ]]
 }
 
+@test "G2.14 check-gate.sh P2 方案 A（有空格）+ 方案 B 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 方案 A
+### 方案 B
+## 权衡
+A 简单，B 稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.15 check-gate.sh P2 方案一 + 方案二 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 方案一
+### 方案二
+## 权衡
+方案一简单，方案二稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.16 check-gate.sh P2 候选方案 ≥2 + 含'取舍' 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 取舍
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.17 check-gate.sh P2 候选方案 ≥2 + '选择'标题+正文'理由' 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+### 选择：方案 A
+**理由**：A 更简单。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G7.8 check-gate.sh P7 [BLOCKER]: 0 条（声明）期望 exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P7-consistency.md" <<'EOF'
+- [BLOCKER]: 0 条
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "G7.9 check-gate.sh P7 [BLOCKER]: 0 条 + 实际 BLOCKER 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P7-consistency.md" <<'EOF'
+- [BLOCKER]: 0 条
+- [BLOCKER] arch flaw
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"BLOCKER="* ]]
+}
+
 # ========== 额外边界（凑到 33 个用例） ==========
 
 @test "G2.6 check-gate.sh P2 方案 A/B/C 多种命名（regex [ABC123]）" {

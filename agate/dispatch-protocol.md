@@ -604,12 +604,12 @@ setTimeout(() => {
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
 | P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中`|
-| P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由' P2-design.md` → 命中 + 候选方案 ≥2（`scripts/check-gate.sh P2` 脚本化部分）|
+| P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由\|取舍\|考量\|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）+ 候选方案 ≥2（`scripts/check-gate.sh P2` 脚本化部分）|
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + `grep -rl '\[PROD_TOUCHED\]' {task}/` → 无命中（匹配标记格式）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
 | P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.sh P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.sh` → exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）+ 主 Agent 手动核实 `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md` = P1 BDD 总数（provenance exit 2 时必做）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
-| P7→P8 | 一致性通过 ⚠️ self-authored | `grep -cE '^\s*-?\s*\[BLOCKER\]' P7-consistency.md → =0` + `grep -cE '^\s*-?\s*\[DEVIATION-CRITICAL\]' P7-consistency.md → =0`（已知限制：定性分析，P5 回归测试兜底）|
+| P7→P8 | 一致性通过 ⚠️ self-authored | `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0 + 同理 `[DEVIATION-CRITICAL]` → =0（声明行如 `[BLOCKER]: 0 条` 被排除，不计为实际 BLOCKER）（已知限制：定性分析，P5 回归测试兜底）|
 | P8→READY | 发布准备完成 | `scripts/check-gate.sh P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + 从 P2 `packages` 验证 version 文件路径变更 + `grep -q 'bump_type:' P8-release.md` → 命中 + `git diff --cached --stat` → 含 version 文件变更 + `git diff --cached -- ${CHANGELOG_FILE:-CHANGELOG.md}` → 非空（默认 CHANGELOG.md，`CHANGELOG_FILE` 环境变量可覆盖）|
 
 **反例（禁止用作门槛）：**

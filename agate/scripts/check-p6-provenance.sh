@@ -62,7 +62,7 @@ if [ -f "$P6_FILE" ]; then
         exit 1
     fi
 
-    # 1b: PASS 数 ≤ 证据文件数（空证据拦截）
+    # 1b: 证据目录非空检查（多条 PASS 可共享同一证据文件）
     # I5 修复：排除隐藏文件（.gitkeep, .DS_Store 等）
     if [ -d "$EVIDENCE_DIR" ]; then
         EVIDENCE_COUNT=$(find "$EVIDENCE_DIR" -type f -not -name '.*' 2>/dev/null | wc -l)
@@ -72,11 +72,6 @@ if [ -f "$P6_FILE" ]; then
 
     if [ "$PASS_COUNT" -gt 0 ] && [ "$EVIDENCE_COUNT" -eq 0 ]; then
         echo "GATE PROVENANCE: 有 ${PASS_COUNT} 条 PASS 但 P6-evidence/ 为空或不存在" >&2
-        exit 1
-    fi
-
-    if [ "$PASS_COUNT" -gt "$EVIDENCE_COUNT" ]; then
-        echo "GATE PROVENANCE: PASS 条目数(${PASS_COUNT}) > 证据文件数(${EVIDENCE_COUNT})" >&2
         exit 1
     fi
 

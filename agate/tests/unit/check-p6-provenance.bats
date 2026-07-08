@@ -82,11 +82,13 @@ EOF
     [ "$status" -eq 1 ]
 }
 
-@test "PV.5 check-p6-provenance.sh PASS 数 > 证据文件数 期望 exit 1" {
+@test "PV.5 check-p6-provenance.sh 3 PASS 引用 1 共享证据文件 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
-    # 3 个 PASS 引用同一个文件（不算被引用多次，PASS 数 = 3，文件数 = 1）
     cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
 - PASS AC1 (shared.json)
 - PASS AC2 (shared.json)
 - PASS AC3 (shared.json)
@@ -94,8 +96,37 @@ EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/shared.json"
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"PASS 条目数"* ]]
+    [ "$status" -eq 0 ]
+}
+
+@test "PV.5b check-p6-provenance.sh 14 PASS 引用 8 共享证据文件 期望 exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS AC1 (e1.json)
+- PASS AC2 (e2.json)
+- PASS AC3 (e3.json)
+- PASS AC4 (e4.json)
+- PASS AC5 (e5.json)
+- PASS AC6 (e6.json)
+- PASS AC7 (e7.json)
+- PASS AC8 (e8.json)
+- PASS AC9 (e1.json)
+- PASS AC10 (e2.json)
+- PASS AC11 (e3.json)
+- PASS AC12 (e4.json)
+- PASS AC13 (e5.json)
+- PASS AC14 (e6.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    for i in 1 2 3 4 5 6 7 8; do
+        echo "log" > "$dir/P6-evidence/e${i}.json"
+    done
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
 }
 
 @test "PV.6 check-p6-provenance.sh 证据文件未被引用（充数文件）期望 exit 1" {

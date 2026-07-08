@@ -29,7 +29,7 @@ EVIDENCE_DIR="$TASK_DIR/P6-evidence"
 # 检查每条 PASS 行是否含文件引用（括号内路径）
 PASS_WITHOUT_REF=0
 while IFS= read -r line; do
-    if ! echo "$line" | grep -qE '\([a-zA-Z0-9_/.-]+\.(png|jpg|log|json|html|txt|yaml|yml)\)'; then
+    if ! echo "$line" | grep -qE '\([a-zA-Z0-9_/.-]+\.(png|jpg|log|json|html|txt|yaml|yml)[^)]*\)'; then
         PASS_WITHOUT_REF=$((PASS_WITHOUT_REF + 1))
     fi
 done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)

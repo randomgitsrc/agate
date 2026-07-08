@@ -18,7 +18,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 - P1-requirements.md 有效 + 含至少一条 BDD 验收条件 + 无未决 NEED_CONFIRM + 无 status: GAP（supplementable 不阻）
 
 ### P2 → P3
-- P2-review.md 有效 + status: approved + P2-design.md 声明 packages/domains/ui_affected/gate_commands + 候选方案 ≥2 + 含权衡/选择理由
+- P2-review.md 有效 + status: approved + P2-design.md 声明 packages/domains/ui_affected/gate_commands + 候选方案 ≥2 + 含权衡/选择理由/取舍/考量/trade-off
 
 ### P3 → P4
 - check-tdd-red.sh exit 0 + assertion_failures>0 + collection_errors==0
@@ -36,7 +36,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 - check-p6-provenance.sh exit 0 或 exit 2（主 Agent 手动核实 BDD 总数）
 
 ### P7 → P8
-- 无 [BLOCKER] / [DEVIATION-CRITICAL]
+- 声明行 [BLOCKER]: N 条 被排除后 =0 / [DEVIATION-CRITICAL] 同理
 - DESIGN_GAP 全部配对 REVIEWED
 
 ### P8 → READY
