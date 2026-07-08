@@ -171,12 +171,13 @@ fi
 - check-p6-provenance.bats: agent=main 检查移除（PV.15/PV.16）✓
 - dispatch-context-warning.bats: B3 WARNING ✓
 - pre-commit-hook.bats: IT.11 非实现阶段代码暂存 WARNING ✓
-- check-gate.bats: G2.5 P2 无 P2-design.md → exit 1 ✓
 - 漂移检测: D-drift-1/2, G-drift-1/2/3 ✓
 
-**未覆盖**：
-- check-gate.sh 缺 design_trivial/follows_existing_pattern 1 候选方案的测试（因脚本本身未实现此逻辑，见 A1-1）
-- check-gate.sh 缺 P2 无 P2-design.md + design_trivial 场景的测试（P2 不可裁剪，不存在 P2-design.md 应报错——G2.5 已覆盖 exit 1，但错误消息验证不够精确）
+**❌ 假✓ 更正**：
+- check-gate.bats: G2.5 "P2 无 P2-design.md → exit 1" — 实际 exit 2（缺 else 分支），本评审谎报 ✓。此为 self-authored 评审谎报绿灯事故，属 LIMITATIONS.md 局限 3 的教科书级复现。
+
+**未覆盖（修复后补入）**：
+- check-gate.sh G2.9a/G2.9b design_trivial/follows_existing_pattern 1 候选方案测试 ✓（已补）
 
 **结论**：NEEDS_HUMAN_REVIEW
 **说明**：核心变更（P2/P6 不可裁剪、P7 coupling_checklist、agent=main 硬拦截）均有测试覆盖。但 A1-1 的 MISALIGNMENT 意味着 design_trivial/follows_existing_pattern 简化逻辑的测试也缺失——需要先决定是补脚本逻辑还是改文档。

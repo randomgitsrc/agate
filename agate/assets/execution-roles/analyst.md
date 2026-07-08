@@ -43,9 +43,9 @@ capability_requirements:
   - need: browser-vision       # 需要什么能力
     why: P6 验收需要截图验证交互行为
     available:                 # 当前环境中可用的来源（先检查内置角色，再看外部 skill/agent）
-      - vision-analyst（agate 内置执行角色，首选）
-      - playwright-cdp skill（若已注入，作为补充）
-      - @vision-helper（若可调用，作为补充）
+      - "vision-analyst（agate 内置执行角色，首选）"
+      - "playwright-cdp skill（若已注入，作为补充）"
+      - "@vision-helper（若可调用，作为补充）"
     status: available          # available=已具备 / supplementable=可补充 / GAP=真缺失
 
   - need: external-network

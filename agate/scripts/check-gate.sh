@@ -69,6 +69,9 @@ case "$PHASE" in
               echo "GATE P2: P2-design.md 有 ≥2 候选方案但缺'权衡'或'选择理由'描述" >&2
               exit 1
           fi
+      else
+          echo "GATE P2: P2-design.md 不存在——P2 不可裁剪，方案设计是必经阶段" >&2
+          exit 1
       fi
       echo "GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;

@@ -181,11 +181,10 @@ EOF
     [[ "$output" == *"WARNING"* || "$output" == *"phase"* ]]
 }
 
-@test "IT.8 pre-commit-hook 多任务：phase 变更无产出 → 不拦截不 WARNING" {
+@test "IT.8 pre-commit-hook 多任务：phase 变更到 P2 但无 P2-design.md → 拦截" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    # 先 commit P1 状态（P1 产出 + phase=P1 一致）
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
@@ -205,7 +204,6 @@ EOF
     _add_dispatch_ctx "docs/tasks/T001" "P1"
     git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context.md"
     git -C "$REPO" commit -qm "T001 P1"
-    # 改 phase 到 P2 但无 P2 产出（P2 gate exit 2 不拦截）
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P2
@@ -214,14 +212,14 @@ retries: {}
 EOF
     git -C "$REPO" add docs/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "T001 phase P2" 2>&1
-    [ "$status" -eq 0 ]
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"P2-design.md 不存在"* || "$output" == *"P2 不可裁剪"* ]]
 }
 
 @test "IT.9 pre-commit-hook 多任务：裁剪跳阶 P2→P5 无 P3/P4 产出 → 不拦截" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    # P2 状态 + 声明裁剪 P3/P4
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
@@ -237,9 +235,30 @@ risk_level: medium
 phases: [P0, P1, P2, P5, P6, P7, P8]
 跳过风险: 低
 EOF
+    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+---
+agent: test
+phase: P2
+task_id: T001
+type: design
+parent: P1-requirements.md
+trace_id: T001-P2-20260708
+status: approved
+created: 2026-07-08
+---
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 简单 B 稳健
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
     git -C "$REPO" add docs/tasks/T001/
+    _add_dispatch_ctx "docs/tasks/T001" "P2"
+    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context.md"
     git -C "$REPO" commit -qm "T001 P2"
-    # 跳到 P5（裁剪 P3/P4）
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P5
