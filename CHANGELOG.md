@@ -16,7 +16,13 @@
 ### 变更
 - `check-state-transition.sh`: `get_old_phase` 支持任务级 `.state.yaml` 路径（`HEAD:docs/tasks/Txxx/.state.yaml`），不再只读根路径
 
-## [Unreleased]
+## [0.11.0] - 2026-07-08
+
+### 新增
+- **main 分支保护**：GitHub required status checks（bats / shellcheck / consistency / gate-backstop），红 CI 阻断 PR 合入
+- **CI gate-backstop job**：`protocol-tests.yml` 新增 `gate-backstop` job，CI 兜底重跑 gate + ci-gate-backstop.py
+- **shellcheck -S warning**：CI shellcheck 过滤 info 级误报，只报 warning 及以上
+- **bats fetch-depth: 0**：CI bats job 拉完整历史+tag，修复 CHECK 7 在浅克隆下失败
 
 ### 变更
 - **CI workflow 合并**：`gate-backstop` job 并入 `protocol-tests.yml`，删除冗余的 `protocol-consistency.yml`。单一 workflow 为真相源，4 个 job：bats / shellcheck / consistency / gate-backstop
@@ -24,8 +30,6 @@
 - **P6 不可裁剪**：删除 no_behavior_change 例外口。no_behavior_change 语义改为"可简化 P6（快速验收），不可省略 P6"
 - **P7 裁剪加强**：声明"无隐式耦合"时须有 coupling_checklist 列出检查过的耦合点
 - **T-G2.5 root_cause 更正**：从"bats not in CI"更正为"CI detective not preventive (no branch protection)"
-
-（空）
 
 ---
 
