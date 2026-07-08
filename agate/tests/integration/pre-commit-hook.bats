@@ -282,3 +282,39 @@ EOF
     run git -C "$REPO" commit -m "root state P1"
     [ "$status" -eq 0 ]
 }
+
+@test "IT.11 pre-commit-hook P2 阶段暂存代码文件 → WARNING" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit --no-verify -qm "T001 P2 setup"
+    echo "print('hello')" > "$REPO/hack.py"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries:
+  P2:
+    - round: 1
+      failure_mode: test
+EOF
+    git -C "$REPO" add hack.py docs/tasks/T001/.state.yaml
+    run bash -c "cd '$REPO' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
+    [[ "$output" == *"代码文件"* ]]
+}

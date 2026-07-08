@@ -201,21 +201,6 @@ if [ -f "$P6_FILE" ]; then
     fi
 fi
 
-# P2 评审：缺字段 WARNING；risk=high + agent=main WARNING
-P2_REVIEW_FILE="$TASK_DIR/P2-review.md"
-if [ -f "$P2_REVIEW_FILE" ]; then
-    RISK=$(get_risk_level)
-    AGENT=$(get_agent "$P2_REVIEW_FILE")
-    if [ -z "$AGENT" ]; then
-        echo "GATE PROVENANCE: P2-review.md 缺 agent 字段（协作规范，不阻塞）" >&2
-        exit 2
-    fi
-    if [ "$RISK" = "high" ] && [ "$AGENT" = "main" ]; then
-        echo "GATE PROVENANCE: risk_level=high 且 P2-review.md agent=main（自审），建议派发独立 reviewer" >&2
-        exit 2
-    fi
-fi
-
 # 所有阶段产出文件 agent 字段存在性（格式校验）
 # 向后兼容：v2 之前创建的文件无 agent 字段，降级为 WARNING 不阻塞
 if [ -f "$P6_FILE" ]; then

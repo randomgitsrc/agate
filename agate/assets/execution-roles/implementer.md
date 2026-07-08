@@ -42,7 +42,8 @@ agent: implementer
 - P4：P3 的测试从红灯变绿灯（不修改测试本身）
 - P8：**P2 声明的每个 package 都要** CHANGELOG 更新 + 版本 bump；commit message 列出变动文件
 
-## 写跑分离
+## 自查≠gate
+写完代码后应自跑测试确认基本功能（自查），但自查≠P5 gate。不要声称"P5 已过"。
 
 反馈循环长的脚本验证任务，**只写脚本不跑**——主 Agent 会跑脚本验证（这是"跑命令"不是"写产出"）。
 - 改常量值（timeout、selector、URL）= 最小修复，主 Agent 可做

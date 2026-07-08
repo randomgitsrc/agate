@@ -1,0 +1,34 @@
+- [check-gate.sh] P2 gate 新增 agent=main 硬拦截（exit 1），缺 agent 字段则 WARNING（exit 2）
+- [check-p6-provenance.sh] 移除 P2-review agent=main WARNING 逻辑（已迁至 check-gate.sh）
+- [pre-commit-gate.sh] 新增 2n.1 dispatch-context 缺失 WARNING + 2n.2 非实现阶段代码暂存 WARNING
+- [implementer.md] "写跑分离"重命名为"自查≠gate"，允许自跑自查但强调≠gate
+- [verifier.md] "写跑分离"重命名为"自查≠gate"（P5/P6 两处）
+- [dispatch-prompt.md] "写跑分离"→"自查≠gate"（P4/P5P6 两处）+ 新增"返回前自检"+"files_modified"
+- [dispatch-protocol.md] "写跑分离"→"自查≠gate"（P4/P5P6 两处+T020教训段落）+ 新增校验6/7
+- [P4-implementation.md] "写跑分离"→"自查≠gate" + 详细说明
+- [P6-acceptance.md] 新增"自查≠gate"节
+- [check-gate.bats] 新增 G2.18-G2.20（agent=subagent/main/缺字段）+ G-drift-1/2/3 漂移测试
+- [check-p6-provenance.bats] PV.15 改为 exit 0（agent=main 检查已移至 check-gate.sh）+ PV.16 新增
+- [pre-commit-hook.bats] 新增 IT.11（P2 阶段暂存代码文件→WARNING）
+- A1/E2: dispatch-protocol.md P2→P3 门槛描述 + WORKFLOW.md P2 行 → check-gate.sh P2 agent=main exit 1 / ALIGNED
+- A1/G: implementer.md + verifier.md + dispatch-prompt.md + dispatch-protocol.md + P4/P6 phase-cards "自查≠gate" 一致 / ALIGNED
+- A1/B: pre-commit-gate.sh 2n.1 dispatch-context WARNING 实现 / dispatch-protocol.md 有 dispatch-context 描述 / ALIGNED
+- A1/D: dispatch-prompt.md "返回前自检"+"files_modified" / dispatch-protocol.md 校验6/7 / ALIGNED
+- A1/E3: pre-commit-gate.sh 2n.2 非P4/P5/P6暂存代码WARNING / 无对应文档规则 / NEEDS_HUMAN_REVIEW
+- A2/E2: check-gate.sh agent=main exit 1 → dispatch-protocol.md P2→P3门槛表已含 agent=main 描述 / ALIGNED
+- A2/G: 全部"写跑分离"已替换为"自查≠gate" / ALIGNED
+- A3a/连锁: check-p6-provenance.sh 移除 agent=main → check-gate.bats PV.15 已更新 / ALIGNED
+- A3b/反向传播-loop-orchestration.md: L244 仍说"agent=main WARNING（仅信息层，不阻塞）"，但 check-gate.sh 已改为 exit 1 硬拦截 / MISALIGNED
+- A3b/反向传播-platform-notes.md: L67 仍说"check-p6-provenance.sh 会对 risk=high + agent=main 输出 WARNING"，但该逻辑已移至 check-gate.sh 且改为硬拦截 / MISALIGNED
+- A3b/反向传播-orchestrator-template.md: L86 仍说"agent=main（自审）会发 WARNING"，但 check-gate.sh 已硬拦截 / MISALIGNED
+- A3b/反向传播-role-system.md: L61 仍说"hook 对 agent=main 输出 WARNING"，但已改为硬拦截 / MISALIGNED
+- A3b/反向传播-WORKFLOW.md: L194 "hook 对 agent=main 输出 WARNING"，L230 "agent=main（自审）WARNING" / MISALIGNED
+- A3b/反向传播-LIMITATIONS.md: L42 "P2 评审：agent 字段软提醒（risk=high 自审 → WARNING）"/ MISALIGNED
+- A3b/反向传播-state-machine.md: P2→P3 转移规则未提 agent=main 硬拦截 / NEEDS_HUMAN_REVIEW
+- A4/E2: check-gate.bats G2.18(subagent→exit2) + G2.19(main→exit1) + G2.20(缺agent→exit2) / ALIGNED
+- A4/G: G-drift-1(自查≠gate) + G-drift-2/3(不含写跑分离) / ALIGNED
+- A4/B: IT.11 覆盖非实现阶段代码WARNING / ALIGNED
+- A4/D: 无专门测试覆盖 dispatch-prompt.md "返回前自检"+"files_modified" / 但 dispatch-protocol.md 校验6/7 无对应 bats / NEEDS_HUMAN_REVIEW
+- A5/CHANGELOG: [Unreleased] 为空，本次变更未标注 / MISALIGNED
+- A5/文档传播: 多个下游文档未更新 agent=main 从 WARNING→硬拦截 / MISALIGNED
+- A6/锚点表: CHECK 9 无"agent=main"锚点、无"自查≠gate"锚点、无"files_modified"锚点 / NEEDS_HUMAN_REVIEW

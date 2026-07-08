@@ -38,6 +38,15 @@ case "$PHASE" in
                   echo "GATE P2: P2-review.md 缺 status: approved" >&2
                   exit 1
               fi
+              P2_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+              if [ -z "$P2_REVIEW_AGENT" ]; then
+                  echo "GATE P2: P2-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）" >&2
+                  exit 2
+              fi
+              if [ "$P2_REVIEW_AGENT" = "main" ]; then
+                  echo "GATE P2: P2-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）" >&2
+                  exit 1
+              fi
           fi
           FIELD_COUNT=$(grep -cE '^(packages|domains|ui_affected|gate_commands):' "$P2_FILE" 2>/dev/null || echo 0)
           FIELD_COUNT=$(echo "$FIELD_COUNT" | tail -1)

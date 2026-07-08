@@ -523,6 +523,26 @@ EOF
 
 # ========== 默认 case ==========
 
+@test "D-drift-1: dispatch-prompt.md 含'返回前自检'" {
+    grep -q '返回前自检' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+}
+
+@test "D-drift-2: dispatch-prompt.md 含'files_modified'" {
+    grep -q 'files_modified' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+}
+
+@test "G-drift-1: dispatch-protocol.md 含'自查≠gate'关键词" {
+    grep -q '自查≠gate' "$AGATE_ROOT/dispatch-protocol.md"
+}
+
+@test "G-drift-2: implementer.md 不含'写跑分离'" {
+    ! grep -q '写跑分离' "$AGATE_ROOT/assets/execution-roles/implementer.md"
+}
+
+@test "G-drift-3: verifier.md 不含'写跑分离'" {
+    ! grep -q '写跑分离' "$AGATE_ROOT/assets/execution-roles/verifier.md"
+}
+
 @test "G_OTHER check-gate.sh 未知阶段 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
@@ -601,6 +621,77 @@ gate_commands: {}
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
+}
+
+@test "G2.18 check-gate.sh P2-review agent=subagent + status:approved → exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: subagent
+---
+status: approved
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.19 check-gate.sh P2-review agent=main + status:approved → exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: main
+---
+status: approved
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"agent=main"* ]]
+}
+
+@test "G2.20 check-gate.sh P2-review 缺 agent 字段 + status:approved → exit 2 (WARNING)" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+status: approved
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"agent"* ]]
 }
 
 @test "G7.8 check-gate.sh P7 [BLOCKER]: 0 条（声明）期望 exit 0" {

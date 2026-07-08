@@ -198,6 +198,30 @@ for STATE_FILE in $STAGED_STATE_FILES; do
         bash "$AGATE_ROOT/scripts/check-p6-evidence.sh" "$TASK_DIR" || exit 1
     fi
 
+    # 2n.1 dispatch-context missing WARNING (B3)
+    # Only warn when 2p hash check is not active (agate-next-card.sh not available)
+    if [ ! -x "$AGATE_ROOT/scripts/agate-next-card.sh" ]; then
+        STAGED_OUTPUT_IN_TASK=$(git diff --cached --name-only 2>/dev/null \
+            | grep -E "^${TASK_REL}/P[0-8]-.*\.md$" || true)
+        if [ -n "$STAGED_OUTPUT_IN_TASK" ]; then
+            DC_FILE="$TASK_DIR/${PHASE}-dispatch-context.md"
+            if [ ! -f "$DC_FILE" ] && ! git show "HEAD:${TASK_REL}/${PHASE}-dispatch-context.md" >/dev/null 2>&1; then
+                echo "GATE WARNING: ${PHASE} 产出已暂存但 ${PHASE}-dispatch-context.md 不存在——是否忘记先写 dispatch-context？" >&2
+            fi
+        fi
+    fi
+
+    # 2n.2 non-phase code staging WARNING (E3)
+    CODE_FILES=$(git diff --cached --name-only 2>/dev/null | grep -vE '\.(md|yaml)$|^\.state' || true)
+    if [ -n "$CODE_FILES" ]; then
+        case "$PHASE" in
+            P4|P5|P6) ;;
+            *)
+                echo "GATE WARNING: phase=$PHASE 但暂存了代码文件——主 Agent 是否在非实现阶段直接改代码？" >&2
+                ;;
+        esac
+    fi
+
     # 2o. gate 结果处理
     case "$GATE_EXIT" in
         0) echo "GATE $PHASE ($TASK_ID): 通过" >&2 ;;

@@ -64,7 +64,7 @@ hardening-roadmap 设计的核心 gate 机制（pre-commit hook + CI backstop）
 
 **Codex 兼容性**：Codex subagent max_depth=1 与 P2.1 强制派发独立 subagent（risk=high）的兼容性：
 - Codex 单层任务工具无法"再派发"——这种情况下 P2 review 必须由主 Agent 自己跑（agent=main）
-- `check-p6-provenance.sh` 会对 `risk=high` + `agent=main` 输出 WARNING（exit 2 不阻塞）
+- `check-gate.sh` P2 对 `agent=main` 硬拦截（exit 1，不可自行批准评审）
 - 升级到 Codex 多层派发（待官方发布）后兼容自动生效
 
 ---

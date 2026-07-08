@@ -84,4 +84,9 @@ check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 
 - P7 一致性检查依赖 P6 的 BDD 对照结果
 - 验收结果是判定任务成败的最终依据——P8 发布只是机械步骤
 
+## 自查≠gate
+写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
+P6 gate 由主 Agent 亲自执行验收检查，结果以主 Agent 为准。
+不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
+
 > 完成 → 读 phase-cards/P7-consistency.md

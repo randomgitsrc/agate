@@ -277,23 +277,38 @@ EOF
     [ "$status" -eq 2 ]
 }
 
-@test "PV.15 check-p6-provenance.sh risk=high + P2-review agent=main 期望 exit 2（WARNING）" {
+@test "PV.15 check-p6-provenance.sh risk=high + P2-review agent=main 期望 exit 0（agent=main 检查已移至 check-gate.sh）" {
     local dir
     dir=$(create_task_dir --risk-level high)
-    # P2-review 用 main agent
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: main
 ---
 review done
 EOF
-    # P6 必须有 PASS 才能通过 audit 3
     cat >> "$dir/P6-acceptance.md" <<'EOF'
 - PASS AC1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
-    [ "$status" -eq 2 ]
-    [[ "$output" == *"自审"* ]]
+    [ "$status" -eq 0 ]
+}
+
+@test "PV.16 check-p6-provenance.sh P2-review agent=subagent + status:approved → exit 0" {
+    local dir
+    dir=$(create_task_dir --risk-level high)
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: subagent
+---
+status: approved
+EOF
+    cat >> "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1 (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.json"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
 }

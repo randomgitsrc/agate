@@ -55,11 +55,21 @@ subagent 返回后，主 Agent 校验：
       没有或不完整 → 门槛不通过，计入重试
   4. 产出文件内容是否非空且有实质内容？
       空文件或半截内容（写一半崩了）→ 视为失败，重试
-  5. 独立验证 subagent 的声明：
-      主 Agent 必须亲自执行 gate 命令验证门槛，不能仅凭 subagent
-      返回的摘要或产出文件中的声明判定通过。
-      例：P5 subagent 说 "failed=0" → 主 Agent 跑 pytest -q
-          确认 exit 0 且 failed 行确实为 0，才算通过。
+   5. 独立验证 subagent 的声明：
+       主 Agent 必须亲自执行 gate 命令验证门槛，不能仅凭 subagent
+       返回的摘要或产出文件中的声明判定通过。
+       例：P5 subagent 说 "failed=0" → 主 Agent 跑 pytest -q
+           确认 exit 0 且 failed 行确实为 0，才算通过。
+   6. 修改类任务的文件内容校验（外部可观测）：
+      subagent 返回"已修复/已实现"后，主 Agent 对声称修改的文件做最小验证：
+      - 用 bash 执行 grep 确认新增/修改的代码行存在
+      - 如果声称修改但文件内容未变 → 视为假完成，重派
+      - 这不是"主 Agent 改代码"——主 Agent 只读验证，不写文件
+   7. files_modified 路径校验：
+      subagent 返回 files_modified: [path1, path2] 时，主 Agent 校验每个路径：
+      - 路径对应的文件存在 + 非空 → 通过
+      - 路径不存在或文件为空 → 假完成，重派
+      - 无 files_modified 字段 → 退回第 6 条的 grep 校验（兼容旧格式）
 
 任一校验失败 → 计入 `retries[Pn]`，超限则 PAUSED。
 ```
@@ -379,8 +389,10 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 ## 上下文控制
 读取代码文件以 P2-design.md 的 files_to_read 清单为准，按需读取（标了行号范围的只读片段）。
 不要在项目里盲目搜索或整目录全读。
-## 写跑分离
-若需写验证脚本（Playwright/测试脚本等），只写脚本不跑——主 Agent 会跑脚本验证。
+## 自查≠gate
+写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
+P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent 为准。
+不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
 ```
 
 **P5/P6 派发时追加**：
@@ -410,8 +422,10 @@ P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agen
 执行输出落盘到 P6-evidence/test-output.log。
 若主 Agent 需要自写脚本（如 verifier 脚本不兼容当前环境），自写脚本的执行输出也落盘到 P6-evidence/test-output.log。
 关键约束：P6-evidence/ 必须有执行产出，不接受空目录。
-## 写跑分离
-若需写验证脚本，只写脚本不跑——主 Agent 会跑脚本验证。
+## 自查≠gate
+写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
+P6 gate 由主 Agent 亲自执行验收检查，结果以主 Agent 为准。
+不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
 ```
 
 **P8 派发时追加**：
@@ -565,7 +579,7 @@ setTimeout(() => {
 主 Agent 跑 subagent 写的脚本 = "跑命令"不是"写产出"。
 主 Agent 重写脚本逻辑 = 降级，违规。
 
-—— T020 教训：主 Agent 空返回后以"跑脚本是 gate 验证"为由降级亲自写脚本。写脚本不是 gate 验证，是有创造性的工程工作。写跑分离让 subagent 写、主 Agent 跑，各司其职。
+—— T020 教训：主 Agent 空返回后以"跑脚本是 gate 验证"为由降级亲自写脚本。写脚本不是 gate 验证，是有创造性的工程工作。自查≠gate：subagent 可以自跑自查确认基本功能，但自查结论不等于 gate 结论。gate 由主 Agent 亲自执行，结果以主 Agent 为准。这防止 subagent 的"假完成"被当作 gate 通过。
 
 ### 主 Agent 的"inspect DOM"属于查证职责
 
@@ -641,6 +655,10 @@ setTimeout(() => {
 **多任务适配**：hook 扫描所有暂存的 `.state.yaml`（根 + `docs/tasks/{Txxx}/`），对每个变更的任务级 `.state.yaml` 独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。
 
 **phase-产出一致性 WARNING**：暂存了 `P{n}-*.md` 产出但 `.state.yaml` 的 phase 不匹配时，发 WARNING（不拦截）。覆盖"产出了但忘改 phase"场景，下次 agent 接手时由状态标记绑定检查兜底。
+
+**dispatch-context 缺失 WARNING**：暂存了阶段产出但 `dispatch-context.md` 不存在时，发 WARNING（不拦截）。覆盖"产出已写但忘记先写 dispatch-context"场景。
+
+**非实现阶段代码暂存 WARNING**：非 P4/P5/P6 阶段暂存了代码文件（非 .md/.yaml）时，发 WARNING（不拦截）。覆盖"主 Agent 在非实现阶段直接改代码"场景。
 
 **CI backstop（P1.3）**：`push` 后 GitHub Actions `.github/workflows/protocol-consistency.yml` 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit；并对 `P6-acceptance.md` 单 author 情况发 WARNING 作为兜底审计。
 

@@ -81,7 +81,7 @@ P1 --[存在 status: GAP]--> PAUSED（等人补充能力/确认降级方案。su
 任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（生产环境被意外触碰，需人工处置）
 任意阶段 --[出现 NEED_CONFIRM（不可逆操作）]--> PAUSED（等人确认后才可执行）
 
-P2 --[P2-review.md 有效 AND status==approved AND P2-design.md 声明 packages/domains/ui_affected/gate_commands AND 候选方案≥2 AND 含权衡/选择理由/取舍/考量]--> P3
+P2 --[P2-review.md 有效 AND status==approved AND agent≠main AND P2-design.md 声明 packages/domains/ui_affected/gate_commands AND 候选方案≥2 AND 含权衡/选择理由/取舍/考量]--> P3
 P2 --[P2-review.md status==rejected && retry<MAX]--> P2 (retry+1)
 P2 --[retry>=MAX]--> PAUSED
     （若 P2 设计涉及 UI：P2-design.md 必须声明 ui_affected: true，并列出需 E2E 覆盖的交互点）

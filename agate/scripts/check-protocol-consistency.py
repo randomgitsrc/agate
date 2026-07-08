@@ -526,6 +526,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-tdd-red.sh",
         "keywords": ["pytest"],
     },
+    {
+        "desc": "P2 agent=main 硬拦截",
+        "script": "agate/scripts/check-gate.sh",
+        "keywords": ["agent=main"],
+    },
 ]
 
 
