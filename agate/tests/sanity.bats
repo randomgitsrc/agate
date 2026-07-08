@@ -7,6 +7,10 @@
 
 load helpers/load.bash
 
+@test "RED-TEST-CI-BLOCK-VERIFICATION: this test must fail" {
+    [ "1" = "0" ]
+}
+
 @test "load.bash: AGATE_ROOT 解析正确" {
     [ -d "$AGATE_ROOT/scripts" ]
     [ -d "$AGATE_ROOT/assets" ]
