@@ -44,3 +44,17 @@ jobs:
 
       - name: Run gate backstop check
         run: python3 agate/scripts/ci-gate-backstop.py
+
+  bats-self-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y bats
+
+      - name: Run agate self-gate bats suite
+        run: |
+          bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
