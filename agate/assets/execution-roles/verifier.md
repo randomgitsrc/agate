@@ -45,6 +45,12 @@ agent: verifier
 - 有失败 → 如实记录，门槛不通过
 - **自查≠gate**：写完验证脚本后应自跑确认语法正确（自查），但自查≠P6 gate。不要声称"验收已通过"
 
+### P5 subagent 化说明
+
+P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_commands.P5` 字段读取测试命令并执行，产出 P5-test-results/。主 Agent 验 gate（检查产出文件 + failed 计数），CI backstop 兜底。
+
+你的 unit.md 是 subagent 写的文件，按 C7 规则主 Agent 不信你的自报。但 P5 是外部产出 gate（test runner exit code 是客观事实），CI backstop 会在 push 后重跑暴露伪造。
+
 ### 预存失败的处理（T005 教训）
 若发现改动前就存在的失败（预存失败）：
 - 在 unit.md 标注"预存失败：X（与本次改动无关，P1 基线已记录）"
