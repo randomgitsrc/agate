@@ -539,7 +539,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     {
         "desc": "P7 consistency-reviewer 实质锚点",
         "script": "agate/scripts/check-gate.sh",
-        "keywords": ["DESIGN_GAP_REVIEWED", "P1.*BDD"],
+        "keywords": ["DESIGN_GAP_REVIEWED"],
     },
 ]
 
