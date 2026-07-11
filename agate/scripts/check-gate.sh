@@ -158,6 +158,12 @@ case "$PHASE" in
           echo "GATE P7: P4 声明了 ${P4_DESIGN_GAP_COUNT} 条 [DESIGN_GAP]，P7 只转抄了 ${DESIGN_GAP_COUNT} 条——architect 遗漏转抄" >&2
           exit 1
       fi
+      # N3: review 实质锚点 WARNING——P7 有 DESIGN_GAP_REVIEWED 但缺跨文件引用
+      if [ "$DESIGN_GAP_REVIEWED" -gt 0 ]; then
+          if ! grep -qE 'P1.*BDD|P2.*packages|P4.*implementation' "$P7_FILE" 2>/dev/null; then
+              echo "WARNING P7: P7-consistency.md 有 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词（P1 BDD / P2 packages / P4 implementation）——review 可能未做实质性交叉检查" >&2
+          fi
+      fi
       exit 0 ;;
   P8)
       # P8 部分检查可脚本化，其余需主 Agent 自判
