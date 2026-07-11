@@ -13,13 +13,14 @@ load ../helpers/load.bash
     [[ "$output" != *"未知"* ]]
 }
 
-# ========== P1 (固定 exit 2) ==========
+# ========== P1 (需 P1-review.md) ==========
 
-@test "G1 check-gate.sh P1 期望 exit 2（主 Agent 判定）" {
+@test "G1 check-gate.sh P1 缺 P1-review.md 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
-    [ "$status" -eq 2 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P1-review.md"* ]]
 }
 
 # ========== P2 多方案探索（5 用例） ==========

@@ -19,7 +19,29 @@ case "$PHASE" in
       echo "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 五字段齐全即可推进 P1。" >&2
       exit 2 ;;
   P1)
-      echo "GATE P1: BDD 编号格式不固定，需主 Agent 自行判定" >&2
+      P1_REVIEW="$TASK_DIR/P1-review.md"
+      if [ ! -f "$P1_REVIEW" ]; then
+          echo "GATE P1: P1-review.md 不存在——P1 评审不可裁，所有任务都需独立 requirements-review" >&2
+          exit 1
+      fi
+      if ! grep -qE 'status:\s*approved' "$P1_REVIEW" 2>/dev/null; then
+          echo "GATE P1: P1-review.md 缺 status: approved" >&2
+          exit 1
+      fi
+      P1_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P1_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+      if [ -z "$P1_REVIEW_AGENT" ]; then
+          echo "GATE P1: P1-review.md status:approved 但缺 agent 字段" >&2
+          exit 1
+      fi
+      if [ "$P1_REVIEW_AGENT" = "main" ]; then
+          echo "GATE P1: P1-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）" >&2
+          exit 1
+      fi
+      if ! grep -qE 'BDD-|B[0-9]' "$P1_REVIEW" 2>/dev/null; then
+          echo "GATE P1: P1-review.md 不含 BDD 编号引用（裸 approved 极可能是假完成，review 结论须引用具体 BDD 编号）" >&2
+          exit 1
+      fi
+      echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式不固定，需主 Agent 自行判定" >&2
       exit 2 ;;
   P2)
       # v0.6：多方案探索检查（nudge 强度）
