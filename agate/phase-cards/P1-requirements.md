@@ -7,12 +7,17 @@
 
 1. 派发 analyst subagent → 产出 P1-requirements.md
 2. 主 Agent 确认：BDD 验收条件 ≥1 条 + 无未决 NEED_CONFIRM
+2.5 派发 requirements-review subagent（角色文件：{agate_root}/assets/review-roles/requirements-review.md）
+    输入：P1-requirements.md
+    产出：P1-review.md（agent≠main，含 BDD 编号引用 + 覆盖维度标注）
+    review 不通过 → analyst 修改 → 再 review → … → approved（⑩迭代循环）
 3. 预跑 check-gate.sh P1（exit 2，主 Agent 自判）
 4. 更新 .state.yaml phase=P1 → P2
 
 ## 如果是重试
 
 确认上一轮失败原因（BDD 不完整 / domains 声明错 / NEED_CONFIRM 未处理）
+→ review 不通过时：analyst 修改需求 → 重派 requirements-review → 共享 retry 预算
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P1 MAX=3）
 
 ## 前置条件
@@ -39,9 +44,8 @@ P1-requirements.md 必须包含：
 
 ## gate 规则
 
-check-gate.sh P1 → exit 2。主 Agent 自行判定：
-- BDD 编号格式不固定，不脚本化
-- 确认有 BDD 条件 + 无 NEED_CONFIRM
+check-gate.sh P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式不固定，主 Agent 自行判定）；缺 P1-review.md / agent=main / 无锚点 → exit 1
+P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 ## 推进条件
 
@@ -64,6 +68,7 @@ check-gate.sh P1 → exit 2。主 Agent 自行判定：
 
 ## 评审
 
-P1 当前无强制需求评审机制（已知缺口，待后续协议版本补充）。
+P1 评审与 P2 对称：requirements-review（独立 subagent，agent≠main），不可裁剪。
+review 不通过 → analyst 修改需求 → 再 review（⑩迭代循环），直至 approved。
 
 > 完成 → 读 phase-cards/P2-design.md
