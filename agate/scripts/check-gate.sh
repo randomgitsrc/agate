@@ -24,8 +24,9 @@ case "$PHASE" in
           echo "GATE P1: P1-review.md 不存在——P1 评审不可裁，所有任务都需独立 requirements-review" >&2
           exit 1
       fi
-      if ! grep -qE 'status:\s*approved' "$P1_REVIEW" 2>/dev/null; then
-          echo "GATE P1: P1-review.md 缺 status: approved" >&2
+      P1_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P1_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+      if [ "$P1_REVIEW_STATUS" != "approved" ]; then
+          echo "GATE P1: P1-review.md frontmatter status 非 approved（当前: ${P1_REVIEW_STATUS:-缺失}）" >&2
           exit 1
       fi
       P1_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P1_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
@@ -63,8 +64,9 @@ case "$PHASE" in
           fi
           P2_REVIEW="$TASK_DIR/P2-review.md"
           if [ -f "$P2_REVIEW" ]; then
-              if ! grep -qE 'status:\s*approved' "$P2_REVIEW" 2>/dev/null; then
-                  echo "GATE P2: P2-review.md 缺 status: approved" >&2
+              P2_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+              if [ "$P2_REVIEW_STATUS" != "approved" ]; then
+                  echo "GATE P2: P2-review.md frontmatter status 非 approved（当前: ${P2_REVIEW_STATUS:-缺失}）" >&2
                   exit 1
               fi
               P2_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)

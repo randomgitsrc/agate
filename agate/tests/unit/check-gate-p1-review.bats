@@ -145,3 +145,34 @@ EOF
     run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
 }
+
+@test "P1: frontmatter rejected + 正文含 status: approved 字面串 期望 exit 1（对抗绕过）" {
+    TASK_DIR=$(create_task_dir --no-state-yaml)
+    cat > "$TASK_DIR/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+EOF
+    cat > "$TASK_DIR/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: rejected
+agent: requirements-review
+---
+## 裁决说明
+
+gate 规则要求 status: approved 才放行，本次评审未通过。
+
+## BDD 评审
+- B01: FAIL - 不可二值判定
+EOF
+    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"非 approved"* ]]
+}
