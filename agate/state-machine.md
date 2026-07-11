@@ -74,7 +74,8 @@ status: approved        # ← 门槛判定字段
      （不能只看文件存在——subagent 可能写一半崩了，留下空/半截文件）
 
 P0 --[P0-brief.md 完成，五字段自查通过（task/known_risks/executor_env/env_constraints/pruning_tendency）]--> P1
-P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM AND 无 status: GAP（不含 supplementable）]--> P2
+P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
+P1 --[P1-review.md status==rejected && retry<MAX]--> P1 (retry+1, analyst 修改需求后再 review)
 P1 --[存在未决 NEED_CONFIRM]--> PAUSED（等人确认方向）
 P1 --[存在 status: GAP]--> PAUSED（等人补充能力/确认降级方案。supplementable 不阻塞，见 dispatch-protocol.md「supplementable 能力的传递规则」）
 
@@ -586,6 +587,8 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 ---
 
 ## 评审迭代机制
+
+**⑩ do→review 迭代循环**：P1/P2/P4/P6/P7 的"do→review"是迭代循环（见 dispatch-protocol.md「do→review 迭代循环」节），不是单次通过/失败。review 迭代和 gate 重试共享 retry 预算。
 
 ### L1：阶段内再评审循环
 
