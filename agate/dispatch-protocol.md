@@ -677,6 +677,14 @@ setTimeout(() => {
 
 **C7 规则（subagent 自我报告不可信）**：subagent 产出里的"检查结果""✅/通过"等自评，**仅供参考，绝不作为 gate 判定依据**。gate 一律以主 Agent 亲自跑命令的结果为准。T005 教训：P8 subagent 把 `1 failed` 标成 ✅，主 Agent 若信了就放行了缺陷。
 
+**P6 证据由 CI 执行生成原则**（长期目标，当前 L0 指导）：
+- 理想：P6 证据由 CI 从真实代码跑出，agent 只能引用 CI 产出物，不能自带
+- 短期（本方案）：若项目有 CI 流水线，优先要求 verifier 引用 CI 产出（如 pytest 结果路径）而非自带证据文件。⚠️ 安全收益为零（provenance 1a 只验引用存在性不验来源）
+- 中期：CI 独立重新生成证据，agent 产出若与 CI 不一致则暴露伪造
+- 长期：P6 证据产出完全由 CI 驱动，agent 只写引用
+- 测试类证据（pytest/bats 结果）：CI 天然可行
+- UI 类证据（截图 + vision YAML）：依赖项目有 e2e 流水线，无流水线时退化为"尽量锚 + 明标残余风险"
+
 **packages 动态注入（B4/B6）**：派发 P8 subagent 时，主 Agent 必须先读 P2-design.md 的 `packages:` 声明，把"需要 bump 哪些包"明确写进 prompt，并据此从 `gate_commands:` 字段生成各包的 gate 命令集。不能用固定的单包命令——不同项目的发布命令不同，必须从 P2 声明读取。
 
 **P5/P6 gate 命令固化（B7）**：P5/P6 的 gate 命令必须从 P2-design.md 的 `gate_commands:` 字段读取，不得在派发 prompt 里自行修改或降级。
