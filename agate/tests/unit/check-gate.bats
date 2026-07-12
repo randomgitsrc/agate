@@ -878,3 +878,21 @@ EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
+
+@test "G2.24 check-gate.sh P2 方案 1 + 方案 2（数字编号）期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 方案 1
+### 方案 2
+## 权衡
+方案 1 简单，方案 2 稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}

@@ -26,7 +26,7 @@ case "$PHASE" in
       # P2 不可裁剪，不存在 P2-design.md 时直接报错
       P2_FILE="$TASK_DIR/P2-design.md"
       if [ -f "$P2_FILE" ]; then
-          CANDIDATE_COUNT=$(grep -cE '^###?\s*(候选方案|方案\s*[A-Za-z一二三四五]|Alternative|Option)' "$P2_FILE" 2>/dev/null || echo 0)
+          CANDIDATE_COUNT=$(grep -cE '^###?\s*(候选方案|方案\s*[A-Za-z0-9一二三四五]|Alternative|Option)' "$P2_FILE" 2>/dev/null || echo 0)
           CANDIDATE_COUNT=$(echo "$CANDIDATE_COUNT" | tail -1)
           P1_FILE="$TASK_DIR/P1-requirements.md"
           MIN_CANDIDATES=2
