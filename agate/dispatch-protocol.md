@@ -76,6 +76,19 @@ subagent 返回后，主 Agent 校验：
 
 **关键：主 Agent 永远不信任 subagent 的口头返回，以自己执行的命令结果为准。**
 
+### Subagent 假完成校验（D2）
+
+subagent 报告"已修复/已实现"但文件未实际变更（T048 实证）。主 Agent 在收到 subagent 返回后，对产出文件做最小校验：
+
+| 校验项 | 方式 | 触发 |
+|--------|------|------|
+| 代码文件真改了 | `git diff --stat HEAD` 或 `git diff --cached --stat` → 有非 .md/.yaml 变更 | P4 实现 |
+| 测试真跑了 | grep test runner 输出签名于 P5-test-results/ | P5 验证 |
+| review 真审查了 | N3 锚点检查（BDD 编号引用 / DESIGN_GAP 配对引用） | P1/P7 review |
+| 验收真跑了 | provenance 审计（证据-结论对应 + BDD 总数对照） | P6 验收 |
+
+**假完成 ≠ 失败**：subagent 可能真的做了但结果和之前一样（如格式修复后 diff=0）。此时看 subagent 摘要判断是否合理，而非直接判假。但 diff=0 的"实现完成"值得怀疑，应复验。
+
 ### 主 Agent 跑 gate 时保护自己的上下文
 
 主 Agent 必须亲自跑 gate（上面铁律），但 gate 失败时的完整诊断（traceback/堆栈全文）会涌入主 Agent 自己的上下文，长流程下累积污染。
@@ -792,6 +805,21 @@ setTimeout(() => {
 - C7 规则见下方：所有阶段遵守「subagent 自我报告不可信」
 
 **C7 规则（subagent 自我报告不可信）**：subagent 产出里的"检查结果""✅/通过"等自评，**仅供参考，绝不作为 gate 判定依据**。gate 一律以主 Agent 亲自跑命令的结果为准。T005 教训：P8 subagent 把 `1 failed` 标成 ✅，主 Agent 若信了就放行了缺陷。
+
+**P6 证据由 CI 执行生成原则**（长期目标，当前 L0 指导）：
+- 理想：P6 证据由 CI 从真实代码跑出，agent 只能引用 CI 产出物，不能自带
+- 短期（本方案）：若项目有 CI 流水线，优先要求 verifier 引用 CI 产出（如 pytest 结果路径）而非自带证据文件。⚠️ 安全收益为零（provenance 1a 只验引用存在性不验来源）
+- 中期：CI 独立重新生成证据，agent 产出若与 CI 不一致则暴露伪造
+- 长期：P6 证据产出完全由 CI 驱动，agent 只写引用
+- 测试类证据（pytest/bats 结果）：CI 天然可行
+- UI 类证据（截图 + vision YAML）：依赖项目有 e2e 流水线，无流水线时退化为"尽量锚 + 明标残余风险"
+
+**verification_env 条件化**：verification_env（运行环境描述：debug server URL、测试数据库、临时端口等）仅在以下条件之一满足时需要写入 P5/P6 dispatch-context：
+- `ui_affected: true`（需要浏览器环境）
+- `gate_commands.P5` 含 Playwright/e2e 命令
+- P0-brief 声明 `known_risks` 含环境依赖
+
+非 UI、无 e2e、无环境依赖的任务无需声明 verification_env。避免为纯后端单元测试填写无意义的环境声明。
 
 **packages 动态注入（B4/B6）**：派发 P8 subagent 时，主 Agent 必须先读 P2-design.md 的 `packages:` 声明，把"需要 bump 哪些包"明确写进 prompt，并据此从 `gate_commands:` 字段生成各包的 gate 命令集。不能用固定的单包命令——不同项目的发布命令不同，必须从 P2 声明读取。
 

@@ -138,6 +138,8 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - 行为不符（FAIL）→ 门槛不通过，回 P4 重做
 - 拿不准"这个结果算不算符合预期" → 标 `[NEED_CONFIRM]` 交人判断
 - **自查≠gate**：写完验证脚本后应自跑确认语法正确（自查），但自查≠P6 gate
+- **CI 证据优先**：若项目有 CI 流水线，优先引用 CI 产出路径（如 CI artifacts 目录下的 test-results.json），而非自带证据文件。agent 自带证据是条件退让，非默认。
+- **verification_env 条件化**：若 P0-brief 声明 ui_affected=true，verification_env 字段必填（列出验收环境与生产环境的已知差异）。非 UI、无 e2e、无环境依赖的任务无需声明。
 
 ### 何时标 [NEED_CONFIRM]
 - 实跑结果和 BDD 条件有偏差，但不确定是 bug 还是需求理解问题

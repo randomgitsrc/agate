@@ -317,6 +317,9 @@ EOF
     local dir
     dir=$(create_task_dir --risk-level high)
     cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
 - PASS B01: verified (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"

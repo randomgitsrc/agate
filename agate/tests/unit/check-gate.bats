@@ -605,6 +605,10 @@ EOF
     grep -q '关注点：' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
 }
 
+@test "D-drift-4b: dispatch-context.md 含'任务上下文'节" {
+    grep -q '任务上下文' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+}
+
 @test "G-drift-1: dispatch-protocol.md 含'自查≠gate'关键词" {
     grep -q '自查≠gate' "$AGATE_ROOT/dispatch-protocol.md"
 }
@@ -859,6 +863,78 @@ EOF
     # 用非默认 changelog 文件
     echo "## [Unreleased]" > "$repo/HISTORY.md"
     git -C "$repo" add package.json HISTORY.md
-    CHANGELOG_FILE="HISTORY.md" run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+     CHANGELOG_FILE="HISTORY.md" run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.21 check-gate.sh P2 方案 Alpha（多词方案名）期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 方案 Alpha
+### 方案 Beta
+## 权衡
+Alpha 简单，Beta 稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.22 check-gate.sh P2 Alternative A + Option B 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### Alternative A
+### Option B
+## 权衡
+Alternative A is simpler, Option B is more robust.
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.23 check-gate.sh P2 方案 Recommended（多词方案名）期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 方案 Recommended
+### 方案 Conservative
+## 权衡
+Recommended 更激进，Conservative 更保守。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.24 check-gate.sh P2 方案 1 + 方案 2（数字编号）期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 方案 1
+### 方案 2
+## 权衡
+方案 1 简单，方案 2 稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
