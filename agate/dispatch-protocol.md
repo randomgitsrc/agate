@@ -698,6 +698,13 @@ setTimeout(() => {
 - 测试类证据（pytest/bats 结果）：CI 天然可行
 - UI 类证据（截图 + vision YAML）：依赖项目有 e2e 流水线，无流水线时退化为"尽量锚 + 明标残余风险"
 
+**verification_env 条件化**：verification_env（运行环境描述：debug server URL、测试数据库、临时端口等）仅在以下条件之一满足时需要写入 P5/P6 dispatch-context：
+- `ui_affected: true`（需要浏览器环境）
+- `gate_commands.P5` 含 Playwright/e2e 命令
+- P0-brief 声明 `known_risks` 含环境依赖
+
+非 UI、无 e2e、无环境依赖的任务无需声明 verification_env。避免为纯后端单元测试填写无意义的环境声明。
+
 **packages 动态注入（B4/B6）**：派发 P8 subagent 时，主 Agent 必须先读 P2-design.md 的 `packages:` 声明，把"需要 bump 哪些包"明确写进 prompt，并据此从 `gate_commands:` 字段生成各包的 gate 命令集。不能用固定的单包命令——不同项目的发布命令不同，必须从 P2 声明读取。
 
 **P5/P6 gate 命令固化（B7）**：P5/P6 的 gate 命令必须从 P2-design.md 的 `gate_commands:` 字段读取，不得在派发 prompt 里自行修改或降级。
