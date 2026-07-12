@@ -81,6 +81,8 @@ grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md
 
 计数 >0 才视为有效产出。这是轻量验证（确认文件包含真实 test runner 输出格式），不是重跑测试。CI backstop 在 push 后兜底全量验证。
 
+gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
+
 ## 下游影响
 
 - P6 验收在 P5 通过的基础上做用户视角验证

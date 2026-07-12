@@ -76,25 +76,25 @@ status: approved        # ← 门槛判定字段
 P0 --[P0-brief.md 完成，五字段自查通过（task/known_risks/executor_env/env_constraints/pruning_tendency）]--> P1
 P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
 P1 --[P1-review.md status==rejected && retry<MAX]--> P1 (retry+1, analyst 修改需求后再 review)
-P1 --[存在未决 NEED_CONFIRM]--> PAUSED（等人确认方向）
-P1 --[存在 status: GAP]--> PAUSED（等人补充能力/确认降级方案。supplementable 不阻塞，见 dispatch-protocol.md「supplementable 能力的传递规则」）
+P1 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+P1 --[存在 status: GAP]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。supplementable 不阻塞，见 dispatch-protocol.md「supplementable 能力的传递规则」）
 
-任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（生产环境被意外触碰，需人工处置）
-任意阶段 --[出现 NEED_CONFIRM（不可逆操作）]--> PAUSED（等人确认后才可执行）
+任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+任意阶段 --[出现 NEED_CONFIRM（不可逆操作）]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P2 --[P2-review.md 有效 AND status==approved AND agent≠main AND P2-design.md 声明 packages/domains/ui_affected/gate_commands AND 候选方案≥2 AND 含权衡/选择理由/取舍/考量]--> P3
 P2 --[P2-review.md status==rejected && retry<MAX]--> P2 (retry+1)
-P2 --[retry>=MAX]--> PAUSED
+P2 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
     （若 P2 设计涉及 UI：P2-design.md 必须声明 ui_affected: true，并列出需 E2E 覆盖的交互点）
 
 P3 --[scripts/check-tdd-red.sh exit 0 AND assertion_failures>0 AND collection_errors==0]--> P4
     （TDD 红灯：测试正确但因实现未写而断言失败。collection/import error 视为测试本身错误）
     （若 P2 声明 ui_affected：P3 必须包含对应的 Playwright/E2E 用例，主 Agent 确认）
-P3 --[retry>=MAX]--> PAUSED
+P3 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P4 --[暂存区含非 md/yaml 文件（git diff --cached）]--> P5
     （不能用 git diff，因为 P4 完成时会 commit，git diff 永远是空）
-P4 --[retry>=MAX]--> PAUSED
+P4 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P5 --[P2 gate_commands.P5 命令 exit 0 AND failed==0 AND 无 [PROD_TOUCHED] 标记 AND (若 ui_affected: P2 gate_commands.P5 E2E 命令 exit 0)]--> P6
     （gate 命令从 P2-design.md 的 gate_commands.P5 动态读取，不硬编码 pytest。规则见 dispatch-protocol.md「P5/P6 gate 命令固化（B7）」节）
@@ -111,8 +111,8 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
     （修复后必须重跑 P5 gate 全量测试，不是只检查修复项。T027 教训：修复引入回归）
     （修复重派 prompt 必须附修复历史，避免 subagent 重复踩坑。见 dispatch-protocol.md「P5 修复流程」）
     （gate 失败后主 Agent 诊断落盘 P{N}-gate-diagnosis.md，见 ⑫）
-P5 --[有 PROD_TOUCHED]--> PAUSED（生产环境被触碰，需人工处置后才能继续）
-P5 --[retry>=MAX]--> PAUSED
+P5 --[有 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+P5 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND scripts/check-p6-provenance.sh exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照）AND 主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）]--> P7
      ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3 平台支持独立 git author）
@@ -120,14 +120,14 @@ P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND scripts/c
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
      （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
 P6 --[任何 BDD 标 FAIL && retry<MAX]--> P4 (retry+1)（行为不符 → 回实现）
-P6 --[存在未决 NEED_CONFIRM]--> PAUSED（验收结果需人判断方向）
-P6 --[retry>=MAX]--> PAUSED
+P6 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+P6 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0 AND 同理 [DEVIATION-CRITICAL] → =0 AND (grep -cE '\[DESIGN_GAP:' P7-consistency.md) == (grep -cE '\[DESIGN_GAP_REVIEWED' P7-consistency.md)（v0.6：P4 implementer 自主决策偏差声明，主 Agent 审查后追加 REVIEWED 配对标记，未配对 → gate 不通过；声明行如 `[BLOCKER]: 0 条` 被排除）]--> P8
     （已知限制：P7 定性分析不可全自动验证。主 Agent 可抽查 1-2 条一致性声明，
      完整性由 P5 回归测试兜底）
     （⑨ P7 subagent 化：consistency-reviewer subagent 执行交叉检查，N3⑨ 实质锚点校验）
-P7 --[retry>=MAX]--> PAUSED
+P7 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空]--> READY
      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
@@ -576,11 +576,41 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 | P5 → P4 | ✅ 允许 | 测试失败回到实现，设计内的正常回归 |
 | P2 → P2 | ✅ 允许 | 评审打回重做（同阶段重试）|
 | P3/P6 → P2 | ⚠️ 谨慎 | 发现上游设计问题。允许，但 P2 的 retry 计数累积保留，且计入全局步数上限 |
-| 跨多阶段回退 | ❌ 禁止自动 | 如 P6→P1，说明问题严重，停下 PAUSED 报告人工。检测方式：单步函数步骤 6 的 phase 编号差值检查（|next - current| >= 2 → PAUSED） |
+| 跨多阶段回退 | ❌ 禁止自动 | 如 P6→P1，说明问题严重，停下 PAUSED 报告人工（正确路由，非 agent 失败）。检测方式：单步函数步骤 6 的 phase 编号差值检查（|next - current| >= 2 → PAUSED） |
 
 （回退时携带诊断：新写目标阶段 dispatch-context.md + 引用 gate-diagnosis.md 路径，诊断内容不 inline 到 dispatch-context，见 ⑪⑫）
 
 全局步数上限（护栏 2，默认 20）是最后兜底，但按阶段独立计数 + 回退规则让它不必单独扛所有失控场景。
+
+### 回退机制（诊断→跳转→PAUSED→人工批准→修→重跑）
+
+逐步是诊断过程，不是执行过程：
+
+1. **诊断**：主 Agent 分析 gate 失败原因，确定问题源头在哪一阶段，落盘 `P{N}-gate-diagnosis.md`
+2. **跳转**：直接改 .state.yaml phase 到目标阶段
+3. **PAUSED**（diff≥2 时）：check-state-transition.sh 拦截 → 主 Agent 在 PAUSED resolution 中写明诊断和目标 → 人工批准
+4. **恢复到目标**：修完后从目标往下逐阶段重跑
+5. **不在中间阶段停留**：诊断已确认问题在源头，中间阶段不需要重做
+
+#### diff=1 的回退（无需 PAUSED）
+
+| 回退 | diff | 流程 |
+|------|------|------|
+| P5→P4 | 1 | 直接退，带诊断信息（写入 P4-dispatch-context.md 的回退诊断节） |
+| P6→P5 | 1 | 直接退（但 P5 通常不是问题源头，更常见是 P6→P4） |
+
+#### diff≥2 的回退（PAUSED + 诊断）
+
+| 回退 | diff | 流程 |
+|------|------|------|
+| P4→P2 | 2 | PAUSED → 人工批准诊断 → 恢复 P2 → 修完 → P3→P4 重跑 |
+| P6→P4 | 2 | PAUSED → 人工批准诊断 → 恢复 P4 → 修完 → P5→P6 重跑 |
+| P6→P2 | 4 | PAUSED → 人工批准诊断 → 恢复 P2 → 修完 → P3→P4→P5→P6 重跑 |
+| P7→P4 | 3 | PAUSED → 人工批准诊断 → 恢复 P4 → 修完 → P5→P6→P7 重跑 |
+
+#### 对 check-state-transition.sh 的影响
+
+**不改脚本**。diff≥2 仍强制 PAUSED。但 PAUSED 的语义从"认输"变为"诊断通道"——主 Agent 在 PAUSED resolution 中写明诊断和目标，人工批准后恢复到目标阶段。这与 ② PAUSED 语义翻转协同。
 
 ---
 

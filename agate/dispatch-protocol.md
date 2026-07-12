@@ -832,6 +832,12 @@ P5 subagent 化后，主 Agent 验 gate 的方式：
 
 ## 重试与上限
 
+**红灯处理优先级**：
+1. 诊断：本步抖动还是上游输入问题？
+2. 本步抖动 → 重试一次（仅一次，避免在被污染的输入上打转）
+3. 上游问题 → 退回源头那一步（见 state-machine.md 逐步溯源）
+4. 退到 P0 仍无解 / 外部阻塞 → PAUSED 问人类（正确路由，非认输）
+
 ```
 门槛失败时：
   retries[Pn].append({
@@ -859,6 +865,21 @@ P5 subagent 化后，主 Agent 验 gate 的方式：
 ```
 
 重试记录落盘到 `.state.yaml` 的 `retries` 字段（格式见 state-machine.md「每任务独立状态文件」），避免主 Agent 忘记重试了几次、也无法区分"原样重试"和"调整策略后重试"。
+
+---
+
+## 回退处理（诊断→跳转→PAUSED→批准→重跑）
+
+gate 失败后，主 Agent 按以下步骤处理回退：
+
+1. **诊断**：分析 gate 失败根因，确定问题源头在哪一阶段，落盘 `P{N}-gate-diagnosis.md`（含：失败现象、根因分析、目标阶段、诊断依据）
+2. **跳转**：直接设置 .state.yaml phase 到目标阶段
+3. **PAUSED**（diff≥2 时）：check-state-transition.sh 拦截 → 主 Agent 在 PAUSED resolution 中写明诊断和目标 → 人工批准
+4. **恢复到目标**：修完后从目标往下逐阶段重跑
+5. **不在中间阶段停留**：诊断已确认问题在源头，中间阶段不需要重做
+
+diff=1 回退（如 P5→P4）：直接退，带诊断信息写入 P4-dispatch-context.md 的回退诊断节，无需 PAUSED。
+diff≥2 回退：PAUSED + 诊断 + 人工批准（见 state-machine.md 回退机制表）。
 
 ---
 
