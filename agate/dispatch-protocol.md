@@ -76,6 +76,19 @@ subagent 返回后，主 Agent 校验：
 
 **关键：主 Agent 永远不信任 subagent 的口头返回，以自己执行的命令结果为准。**
 
+### Subagent 假完成校验（D2）
+
+subagent 报告"已修复/已实现"但文件未实际变更（T048 实证）。主 Agent 在收到 subagent 返回后，对产出文件做最小校验：
+
+| 校验项 | 方式 | 触发 |
+|--------|------|------|
+| 代码文件真改了 | `git diff --stat HEAD` 或 `git diff --cached --stat` → 有非 .md/.yaml 变更 | P4 实现 |
+| 测试真跑了 | grep test runner 输出签名于 P5-test-results/ | P5 验证 |
+| review 真审查了 | N3 锚点检查（BDD 编号引用 / DESIGN_GAP 配对引用） | P1/P7 review |
+| 验收真跑了 | provenance 审计（证据-结论对应 + BDD 总数对照） | P6 验收 |
+
+**假完成 ≠ 失败**：subagent 可能真的做了但结果和之前一样（如格式修复后 diff=0）。此时看 subagent 摘要判断是否合理，而非直接判假。但 diff=0 的"实现完成"值得怀疑，应复验。
+
 ### 主 Agent 跑 gate 时保护自己的上下文
 
 主 Agent 必须亲自跑 gate（上面铁律），但 gate 失败时的完整诊断（traceback/堆栈全文）会涌入主 Agent 自己的上下文，长流程下累积污染。
