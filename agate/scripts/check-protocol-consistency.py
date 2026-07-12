@@ -536,6 +536,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-gate.sh",
         "keywords": ["agent=main"],
     },
+    {
+        "desc": "P1 review agent≠main 检查",
+        "script": "agate/scripts/check-gate.sh",
+        "keywords": ["P1", "agent=main"],
+    },
 ]
 
 

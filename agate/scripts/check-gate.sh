@@ -19,7 +19,30 @@ case "$PHASE" in
       echo "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 五字段齐全即可推进 P1。" >&2
       exit 2 ;;
   P1)
-      echo "GATE P1: BDD 编号格式不固定，需主 Agent 自行判定" >&2
+      P1_REVIEW="$TASK_DIR/P1-review.md"
+      if [ ! -f "$P1_REVIEW" ]; then
+          echo "GATE P1: P1-review.md 不存在——P1 评审不可裁，所有任务都需独立 requirements-review" >&2
+          exit 1
+      fi
+      P1_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P1_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+      if [ "$P1_REVIEW_STATUS" != "approved" ]; then
+          echo "GATE P1: P1-review.md frontmatter status 非 approved（当前: ${P1_REVIEW_STATUS:-缺失}）" >&2
+          exit 1
+      fi
+      P1_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P1_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+      if [ -z "$P1_REVIEW_AGENT" ]; then
+          echo "GATE P1: P1-review.md status:approved 但缺 agent 字段" >&2
+          exit 1
+      fi
+      if [ "$P1_REVIEW_AGENT" = "main" ]; then
+          echo "GATE P1: P1-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）" >&2
+          exit 1
+      fi
+      if ! grep -qE 'BDD-|B[0-9]' "$P1_REVIEW" 2>/dev/null; then
+          echo "GATE P1: P1-review.md 不含 BDD 编号引用（裸 approved 极可能是假完成，review 结论须引用具体 BDD 编号）" >&2
+          exit 1
+      fi
+      echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式不固定，需主 Agent 自行判定" >&2
       exit 2 ;;
   P2)
       # v0.6：多方案探索检查（nudge 强度）
@@ -41,8 +64,9 @@ case "$PHASE" in
           fi
           P2_REVIEW="$TASK_DIR/P2-review.md"
           if [ -f "$P2_REVIEW" ]; then
-              if ! grep -qE 'status:\s*approved' "$P2_REVIEW" 2>/dev/null; then
-                  echo "GATE P2: P2-review.md 缺 status: approved" >&2
+              P2_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+              if [ "$P2_REVIEW_STATUS" != "approved" ]; then
+                  echo "GATE P2: P2-review.md frontmatter status 非 approved（当前: ${P2_REVIEW_STATUS:-缺失}）" >&2
                   exit 1
               fi
               P2_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
@@ -135,6 +159,12 @@ case "$PHASE" in
       if [ "$P4_DESIGN_GAP_COUNT" -gt "$DESIGN_GAP_COUNT" ]; then
           echo "GATE P7: P4 声明了 ${P4_DESIGN_GAP_COUNT} 条 [DESIGN_GAP]，P7 只转抄了 ${DESIGN_GAP_COUNT} 条——architect 遗漏转抄" >&2
           exit 1
+      fi
+      # N3: review 实质锚点 WARNING——P7 有 DESIGN_GAP_REVIEWED 但缺跨文件引用
+      if [ "$DESIGN_GAP_REVIEWED" -gt 0 ]; then
+          if ! grep -qE 'P1.*BDD|P2.*packages|P4.*implementation' "$P7_FILE" 2>/dev/null; then
+              echo "WARNING P7: P7-consistency.md 有 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词（P1 BDD / P2 packages / P4 implementation）——review 可能未做实质性交叉检查" >&2
+          fi
       fi
       exit 0 ;;
   P8)

@@ -91,6 +91,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - 永远不要在 `dispatch-context.md` 里写 PASS/FAIL 预判（会被 provenance 拦）
 - P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略
 - P2 不可裁剪——方案设计是必经阶段。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略
+- P1 评审不可裁——所有任务都走独立 requirements-review（agent≠main），与 P2 design-review 对称。check-gate.sh P1 对 P1-review.md agent=main 硬拦截（exit 1）
 - P4 的 `[DESIGN_GAP:]` 必须在 P7 被转抄 + 配对 `[DESIGN_GAP_REVIEWED:]`——否则 gate 拦截（v0.6：P4/P7 交叉核对）
 
 ---

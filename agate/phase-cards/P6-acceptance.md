@@ -64,6 +64,8 @@ check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 
 - FAIL > 0 → gate exit 1 → 回 P4
 - NEED_CONFIRM > 0 → gate exit 1 → PAUSED
 
+格式问题 → verifier 调格式 → 再验 gate → … → 通过（⑩迭代循环，格式迭代和 gate 重试共享 retry 预算）
+
 ## 推进条件
 
 - [ ] 所有 BDD PASS（FAIL=0）

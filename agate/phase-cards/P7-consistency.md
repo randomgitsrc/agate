@@ -44,6 +44,8 @@ check-gate.sh P7 $TASK_DIR
 - DESIGN_GAP 未配对（P4 有但 P7 无 REVIEWED）→ exit 1
 - 全部通过 → exit 0
 
+BLOCKER → consistency-reviewer 修改 → 再验 gate → … → 通过（⑩迭代循环，review 和 gate 重试共享 retry 预算）
+
 ## 推进条件
 
 - [ ] P7-consistency.md 存在

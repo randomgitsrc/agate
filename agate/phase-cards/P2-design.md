@@ -70,6 +70,8 @@ gate_commands:
 多个评审角色 `专家组并行` → 组长汇总 → P2-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
 
+review 不通过 → architect 修改方案 → 再 review → … → approved（⑩迭代循环，review 和 gate 重试共享 retry 预算）
+
 ## gate 规则
 
 ```bash

@@ -13,13 +13,14 @@ load ../helpers/load.bash
     [[ "$output" != *"未知"* ]]
 }
 
-# ========== P1 (固定 exit 2) ==========
+# ========== P1 (需 P1-review.md) ==========
 
-@test "G1 check-gate.sh P1 期望 exit 2（主 Agent 判定）" {
+@test "G1 check-gate.sh P1 缺 P1-review.md 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
-    [ "$status" -eq 2 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P1-review.md"* ]]
 }
 
 # ========== P2 多方案探索（5 用例） ==========
@@ -158,7 +159,7 @@ EOF
     [ "$status" -eq 2 ]
 }
 
-@test "G2.10 check-gate.sh P2 有候选方案+权衡+四字段，P2-review.md 无 status:approved 期望 exit 1" {
+@test "G2.10 check-gate.sh P2 有候选方案+权衡+四字段，P2-review.md frontmatter status:rejected 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -175,15 +176,17 @@ EOF
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: test
----
 status: rejected
+---
+## 裁决
+未通过。
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"status: approved"* ]]
+    [[ "$output" == *"非 approved"* ]]
 }
 
-@test "G2.11 check-gate.sh P2 有候选方案+权衡+四字段+status:approved 期望 exit 2" {
+@test "G2.10a check-gate.sh P2 frontmatter rejected + 正文含 status: approved 字面串 期望 exit 1（对抗绕过）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -200,8 +203,37 @@ EOF
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: test
+status: rejected
 ---
+## 裁决说明
+
+gate 规则要求 status: approved 才放行，本次评审未通过。
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"非 approved"* ]]
+}
+
+@test "G2.11 check-gate.sh P2 有候选方案+权衡+四字段+frontmatter status:approved 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: test
 status: approved
+---
+通过。
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -660,7 +692,7 @@ EOF
     [ "$status" -eq 2 ]
 }
 
-@test "G2.18 check-gate.sh P2-review agent=subagent + status:approved → exit 2" {
+@test "G2.18 check-gate.sh P2-review agent=subagent + frontmatter status:approved → exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -677,14 +709,15 @@ EOF
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: subagent
----
 status: approved
+---
+通过。
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.19 check-gate.sh P2-review agent=main + status:approved → exit 1" {
+@test "G2.19 check-gate.sh P2-review agent=main + frontmatter status:approved → exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -701,15 +734,16 @@ EOF
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: main
----
 status: approved
+---
+通过。
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"agent=main"* ]]
 }
 
-@test "G2.20 check-gate.sh P2-review 缺 agent 字段 + status:approved → exit 2 (WARNING)" {
+@test "G2.20 check-gate.sh P2-review 缺 agent 字段 + frontmatter status:approved → exit 2 (WARNING)" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -724,7 +758,10 @@ ui_affected: false
 gate_commands: {}
 EOF
     cat > "$dir/P2-review.md" <<'EOF'
+---
 status: approved
+---
+通过。
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]

@@ -69,6 +69,8 @@ P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
 
+review 不通过 → implementer 修改代码 → 再 review → … → approved（⑩迭代循环，review 和 gate 重试共享 retry 预算）
+
 ## gate 规则（check-gate.sh 会跑）
 
 ```bash
