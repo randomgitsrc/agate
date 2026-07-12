@@ -57,7 +57,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - 写 P0-brief.md（PM 视角的任务简报）
 - 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或需复用时）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败（见 dispatch-protocol.md）
 - 给阶段产出文件 Header 加 `agent: <角色>` 字段（v2 hardening P2.1 协作规范）—— 由主 Agent 在派发 prompt Header 里填好，subagent 复制即可
-- P8 gate 通过后执行 READY 收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留，见 state-machine.md）
+- P8 gate 通过后执行 READY 收尾检查（按 releaser subagent 产出的 P8-release.md 临时资源清单，停止调试服务、清理临时数据、还原开发环境、确认生产无残留，见 state-machine.md）
 - PAUSED 时写 `PAUSED-resolution.md` 记录人工决策
 
 ## 关键检查（每轮开始时执行）

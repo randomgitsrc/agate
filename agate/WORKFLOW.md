@@ -61,6 +61,7 @@ agate 建立在两条主线上：
     │   ├── test-designer.md     # P3 测试设计师（TDD + E2E）
     │   ├── implementer.md       # P4 实现工程师（实现 + P8 多包发布）
     │   ├── verifier.md          # P5 技术验证 / P6 验收（BDD 实跑）
+    │   ├── consistency-reviewer.md  # P7 一致性交叉检查
     │   └── vision-analyst.md    # UI 视觉结构分析（被 P6 verifier 按需派发）
     └── templates/
         ├── active-tasks-template.md # active-tasks.md 看板模板
@@ -193,10 +194,10 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.sh 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；不可裁（design_trivial / follows_existing_pattern 可简化，不可省略）；强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时可只写 1 个） |
 | P3 | 测试设计 | test-designer | gate 自检（TDD 红灯）| `scripts/check-tdd-red.sh` exit 0 |
 | P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
-| P5 | 技术验证 | verifier | gate 自检（从 P2 gate_commands.P5 读取命令）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |
+| P5 | 技术验证 | verifier（P5 模式，subagent 派发）| gate 自检 + N5 最小校验（test runner 输出签名）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |
 | P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.sh P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）；`scripts/check-p6-provenance.sh` exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）；主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）；UI 条件须 vision-analyst YAML `summary.blocker_count==0`（R1b 已 hook 化）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） |
-| P7 | 一致性检查 | architect | gate 自检（grep BLOCKER + DEVIATION-CRITICAL）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
-| P8 | 发布准备 | implementer | gate 自检（发布检查命令）| `scripts/check-gate.sh P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；`git diff --cached --stat` 含 version 变更；`git diff --cached -- ${CHANGELOG_FILE:-CHANGELOG.md}` 非空；`check-pruning.sh` 验证裁剪 P8 时有 `internal_only: true` 声明 |
+| P7 | 一致性检查 | consistency-reviewer（subagent 派发）| gate 自检 + N3⑨ 实质锚点（跨文件引用关键词）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
+| P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.sh P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；`git diff --cached --stat` 含 version 变更；`git diff --cached -- ${CHANGELOG_FILE:-CHANGELOG.md}` 非空；`check-pruning.sh` 验证裁剪 P8 时有 `internal_only: true` 声明 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
 
 **P1 与 P6 的关系**：P1 用 BDD（Given/When/Then）写下"做完之后应该表现成什么样"，P6 把这些条件逐条实际跑一遍、把结果翻译成人能看懂的行为描述。P1 是"约定"，P6 是"兑现验证"。

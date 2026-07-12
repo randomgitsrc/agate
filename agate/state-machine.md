@@ -106,6 +106,7 @@ P5 --[P2 gate_commands.P5 命令 exit 0 AND failed==0 AND 无 [PROD_TOUCHED] 标
          具体检查方式由项目约定（如 conftest snapshot），agate 不硬编码路径。
       ③ 以上均为最低要求，项目应在代码层面实现强制隔离（见 README 隔离原则）。）
     （若 P5 过程中出现任何 [PROD_TOUCHED] 标记 → 立即 PAUSED，不允许进入 P6）
+    （⑨ P5 subagent 化：verifier subagent 从 P2-design.md gate_commands.P5 读取命令执行，主 Agent 验 gate + N5 最小校验）
 P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
     （修复后必须重跑 P5 gate 全量测试，不是只检查修复项。T027 教训：修复引入回归）
     （修复重派 prompt 必须附修复历史，避免 subagent 重复踩坑。见 dispatch-protocol.md「P5 修复流程」）
@@ -124,10 +125,12 @@ P6 --[retry>=MAX]--> PAUSED
 P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0 AND 同理 [DEVIATION-CRITICAL] → =0 AND (grep -cE '\[DESIGN_GAP:' P7-consistency.md) == (grep -cE '\[DESIGN_GAP_REVIEWED' P7-consistency.md)（v0.6：P4 implementer 自主决策偏差声明，主 Agent 审查后追加 REVIEWED 配对标记，未配对 → gate 不通过；声明行如 `[BLOCKER]: 0 条` 被排除）]--> P8
     （已知限制：P7 定性分析不可全自动验证。主 Agent 可抽查 1-2 条一致性声明，
      完整性由 P5 回归测试兜底）
+    （⑨ P7 subagent 化：consistency-reviewer subagent 执行交叉检查，N3⑨ 实质锚点校验）
 P7 --[retry>=MAX]--> PAUSED
 
 P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空]--> READY
      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
+    （⑨ P8 subagent 化：releaser subagent 执行发布准备，主 Agent 仍亲自做 READY 收尾）
 
 ### READY 收尾检查（P8 gate 通过后、标记 READY 前）
 
