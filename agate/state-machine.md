@@ -110,6 +110,7 @@ P5 --[P2 gate_commands.P5 命令 exit 0 AND failed==0 AND 无 [PROD_TOUCHED] 标
 P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
     （修复后必须重跑 P5 gate 全量测试，不是只检查修复项。T027 教训：修复引入回归）
     （修复重派 prompt 必须附修复历史，避免 subagent 重复踩坑。见 dispatch-protocol.md「P5 修复流程」）
+    （gate 失败后主 Agent 诊断落盘 P{N}-gate-diagnosis.md，见 ⑫）
 P5 --[有 PROD_TOUCHED]--> PAUSED（生产环境被触碰，需人工处置后才能继续）
 P5 --[retry>=MAX]--> PAUSED
 
@@ -576,6 +577,8 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 | P2 → P2 | ✅ 允许 | 评审打回重做（同阶段重试）|
 | P3/P6 → P2 | ⚠️ 谨慎 | 发现上游设计问题。允许，但 P2 的 retry 计数累积保留，且计入全局步数上限 |
 | 跨多阶段回退 | ❌ 禁止自动 | 如 P6→P1，说明问题严重，停下 PAUSED 报告人工。检测方式：单步函数步骤 6 的 phase 编号差值检查（|next - current| >= 2 → PAUSED） |
+
+（回退时携带诊断：新写目标阶段 dispatch-context.md + 引用 gate-diagnosis.md 路径，诊断内容不 inline 到 dispatch-context，见 ⑪⑫）
 
 全局步数上限（护栏 2，默认 20）是最后兜底，但按阶段独立计数 + 回退规则让它不必单独扛所有失控场景。
 

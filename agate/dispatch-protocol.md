@@ -266,24 +266,108 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 
 **残余风险**：如果 subagent 产出时偏离了角色定义的节结构（用了自定义标题），导航会静默失效——subagent 找不到对应节，大概率又是空返回循环。缓解方式：P1/P2 gate 检查时，主 Agent 顺带验证产出文件是否含角色定义要求的节名称，缺失则门槛不通过。
 
-### 客观信息落盘
+### dispatch-context.md 规范
 
-主 Agent 在派发前通过查证获得的客观信息（环境状态、URL、选择器、接口契约、命令输出等），当信息量较大（超过约 10 行）或需在同阶段多次派发中复用时，应落盘成文件，不写进 prompt。
+主 Agent 在派发前通过查证获得的客观信息 + 任务上下文，当信息量较大（超过约 10 行）或需在同阶段多次派发中复用时，应落盘成文件，不写进 prompt。
 
 **为什么这是铁律 2 的补全**：铁律 2"只传路径不传内容"当前只覆盖了阶段产出文件（P1-requirements.md 等），没覆盖主 Agent 自己查证的客观信息。这个缺口从 T016 就存在，T020 第一次被显式提出——主 Agent 把环境状态、URL、选择器全写进 prompt（约 50 行），违反铁律 2 精神且不可复用。
 
 **文件名**：`docs/tasks/{Txxx}/P{N}-dispatch-context.md`
 
-**内容**：主 Agent 已查证确认的客观事实：
+**内容结构**：
+
+```markdown
+## 客观信息（主 Agent 已查证）
 - 环境状态（服务是否运行、版本、数据是否就绪）
 - 关键路径/标识（正确的 URL、API 端点、文件 ID 等）
 - 接口/结构清单（DOM 选择器、API 字段、配置项等，从源码提取）
 - 参照文件路径（现有同类测试、可套用的模式）
 - 运行方式（如何执行脚本、必要的环境变量）
 
+## 任务上下文（主 Agent 从 P0-brief + gate + 摘要积累）
+- 目标：本阶段要解决什么问题
+- 关注点：从上游产出/gate 诊断中提取的关键约束
+- 已知风险：P0-brief 的 known_risks 中与本阶段相关的
+- 上游关键决策：上一阶段 subagent 摘要中提到的关键选择
+- 上游结构化字段（从 P2-design.md grep 提取，非读全文）：
+  - packages: {值}
+  - domains: {值}
+  - ui_affected: {值}
+  - gate_commands.P5: {值}（P5/P6/P8 派发时）
+  - files_to_read: {值}（P4 派发时）
+- 回退诊断（仅回退时）：见 P{N}-gate-diagnosis.md（路径引用，不 inline 内容）
+```
+
+**主 Agent 写 dispatch-context.md 的信息来源**：
+
+| 来源 | 何时写入 | 写什么 |
+|------|---------|--------|
+| P0-brief | 首次派发 P1 时 | 目标 + 已知风险 |
+| subagent 返回摘要 | 每次收到 subagent 返回时 | 上游关键决策 |
+| gate 诊断 | gate 失败时 | 关注点 + 回退诊断 |
+| 主 Agent 查证 | 派发前查证客观信息时 | 客观信息节 |
+| P2-design.md 结构化字段 | P4/P5/P6/P8 派发时 | packages/domains/gate_commands/files_to_read |
+
+**dispatch-context.md 生命周期**：
+- 每个阶段一个文件：`P{N}-dispatch-context.md`
+- 主 Agent 在派发前写，派发后**冻结**（provenance 审计需要初始版本不变）
+- 重试/回退时的诊断信息**不追加到 dispatch-context.md**，写入单独的 `P{N}-gate-diagnosis.md`（见 ⑫）
+- 回退时：新写目标阶段的 dispatch-context.md，包含回退诊断信息
+
 派发时 prompt 只给这个文件路径，不写具体内容。这个文件由主 Agent 在派发前查证后写（主 Agent 的合法职责，类似 P0-brief）。
 
 **判断标准**：信息量 > 10 行 → 落盘；同阶段多次派发复用 → 落盘；信息量小且单次使用 → 可写进 prompt。
+
+**关键约束**：
+- dispatch-context.md **禁止包含 PASS/FAIL 预判**（已有约束，不变）
+- dispatch-context.md **派发后冻结**——provenance 审计检查的是派发时的初始版本，追加内容会破坏审计基准
+- 任务上下文节写的是"关注点"和"已知约束"，不是"应该怎么做"——后者是 subagent 的自主决策空间
+- 主 Agent 不读产出文件全文——任务上下文的信息来源是 P0-brief + gate 诊断 + subagent 摘要 + P2 结构化字段 grep，不是主 Agent 读完 P1-requirements.md 后的提炼
+- P2 结构化字段的 grep 提取是**读特定字段**，不是读全文——`grep -E '^(packages|domains|ui_affected|gate_commands|files_to_read):' P2-design.md`
+
+### gate 诊断落盘
+
+gate 失败后，主 Agent 的诊断结果**写入单独的 `P{N}-gate-diagnosis.md`**，不追加到 dispatch-context.md（后者派发后冻结，见 ⑪）。
+
+**诊断信息结构**：
+
+```markdown
+---
+phase: P6
+date: 2026-07-11
+trigger: gate_fail
+---
+# P6 Gate 诊断
+
+- gate 结果：FAIL=3, NC=0
+- 失败项：B03 过期链接返回 404 非 410, B07 批量操作无确认, B12 并发竞态
+- 诊断：P4 实现问题（B03/B07）+ P2 设计问题（B12 未考虑并发）
+- 路由：B03/B07 → 退回 P4；B12 → 标 [SCOPE+] 增补 P1
+- 修复方向（P4）：link-service.ts 的 TTL 检查逻辑 + batch 的确认流程
+```
+
+**诊断格式禁令（N2）**：
+
+`gate-diagnosis.md` 和 `dispatch-context.md` 回退诊断节**禁止使用 `^\s*- (PASS|FAIL)` 行首格式**列失败项。理由：`check-p6-provenance.sh` 审计 2 grep `^\s*- (PASS|FAIL)\b` 于 dispatch-context.md，命中即判为"验收结论预判" exit 1。诊断中的失败项是**事后诊断**不是预判，但审计 2 分不出两者。
+
+**允许的格式**（不触审计 2）：
+- `失败项：B03, B07`（内联，非列表行首）
+- `- 失败BDD: B03 过期链接返回 404`（前缀 `失败BDD` 不匹配 `(PASS|FAIL)\b`）
+- `gate 结果：FAIL=3, NC=0`（等号后，非行首列表）
+
+**禁止的格式**（触审计 2）：
+- `- FAIL B03: 过期链接返回 404`（行首 `- FAIL` 命中审计 2）
+- `- PASS B01: 已验证`（同理）
+
+**dispatch-context.md 回退诊断节**只放 `gate-diagnosis.md` 的**路径引用**，不 inline 诊断内容（方案 ⑪ 已有此约束，此处重申并绑定 N2 禁令）。
+
+**落盘时机**：
+
+| 场景 | 落盘位置 | 何时写 |
+|------|---------|--------|
+| 重试（本步抖动） | `P{N}-gate-diagnosis.md` | 诊断后立即写 |
+| 退回上游 | `P{N}-gate-diagnosis.md` + 目标阶段新 dispatch-context.md 引用诊断 | 退回前写 |
+| PAUSED | `PAUSED-resolution.md` 引用 `P{N}-gate-diagnosis.md` | PAUSED 时写 |
 
 ---
 
@@ -313,7 +397,10 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 - docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息，如环境状态、URL、选择器等）
 
 ## 任务
-{这个阶段要做什么，一两句话}
+目标：{一句话：本阶段要产出什么}
+关注点：{从 dispatch-context.md 任务上下文节提取，2-5 条}
+已知约束：{从 P0-brief + 上游产出提取}
+与上阶段关联：{上一阶段 subagent 摘要中的关键信息}
 
 ## 分阶段落盘（留痕文件，防空返回）
 留痕文件：docs/tasks/{Txxx}/P{N}-progress.md
