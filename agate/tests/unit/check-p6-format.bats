@@ -55,3 +55,42 @@ EOF
     grep -q 'evidence/log.json' "$TASK_DIR/P6-acceptance.md"
     ! grep -q '(evidence/log.json)' "$TASK_DIR/P6-acceptance.md"
 }
+
+@test "F7 check-p6-format.sh --fix: lowercase fail: (colon, no space) → auto-fix to FAIL:" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- fail: BDD-2 broken
+EOF
+    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+    grep -q '^\- FAIL:' "$TASK_DIR/P6-acceptance.md"
+}
+
+@test "F8 check-p6-format.sh --check: lowercase fail: → exit 1" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- fail: BDD-2 broken
+EOF
+    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --check "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 1 ]
+}
+
+@test "F9 check-p6-format.sh --fix: lowercase fail with space → auto-fix" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- fail B03: timeout
+EOF
+    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+    grep -q '^\- FAIL B03' "$TASK_DIR/P6-acceptance.md"
+}
+
+@test "F10 check-p6-format.sh --fix: 'failure' NOT matched (word boundary)" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- failure mode detected in production
+EOF
+    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+    grep -q 'failure mode' "$TASK_DIR/P6-acceptance.md"
+}

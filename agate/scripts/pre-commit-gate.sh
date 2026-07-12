@@ -107,7 +107,13 @@ for STATE_FILE in $STAGED_STATE_FILES; do
 
     [ ! -d "$TASK_DIR" ] && continue
 
-    # 2h. 运行 gate（P1.1）
+    # 2h. P6 格式自动归一化（①）——verifier 产出后、gate 前
+    if [ "$PHASE" = "P6" ] && [ -f "$TASK_DIR/P6-acceptance.md" ]; then
+        bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md" || true
+        git add "$TASK_DIR/P6-acceptance.md" 2>/dev/null || true
+    fi
+
+    # 2h.1 运行 gate（P1.1）
     GATE_OUTPUT=""
     GATE_EXIT=2
     GATE_OUTPUT=$(bash "$AGATE_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?

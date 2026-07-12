@@ -9,8 +9,9 @@
 2. UI 任务：派 vision-analyst → 产出 vision-reports/
 3. 主 Agent 逐条核实 BDD 对照结果
 4. **先验证功能（用户视角），再满足 gate 格式**（T046 教训：别反过来）
-5. 预跑 check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh
-6. git commit → 更新 .state.yaml phase=P6 → P7
+5. **运行 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"`** 归一化 PASS/FAIL 大小写和行首空白（verifier 产出后、gate 前，① 自动格式化）
+6. 预跑 check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh
+7. git commit → 更新 .state.yaml phase=P6 → P7
 
 ## 如果是重试
 
@@ -56,6 +57,7 @@
 ## gate 规则
 
 ```bash
+check-p6-format.sh --fix $TASK_DIR/P6-acceptance.md  # ① 自动格式化（verifier 产出后、gate 前）
 check-gate.sh P6 $TASK_DIR      # FAIL=0 / NEED_CONFIRM=0 / 总数>0
 check-p6-evidence.sh $TASK_DIR  # 证据目录非空 / UI截图>1KB / md5去重
 check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 / BDD对照
@@ -64,7 +66,7 @@ check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 
 - FAIL > 0 → gate exit 1 → 回 P4
 - NEED_CONFIRM > 0 → gate exit 1 → PAUSED
 
-格式问题 → verifier 调格式 → 再验 gate → … → 通过（⑩迭代循环，格式迭代和 gate 重试共享 retry 预算）
+格式问题 → 运行 check-p6-format.sh --fix 归一化 → 再验 gate → … → 通过（⑩迭代循环，格式迭代和 gate 重试共享 retry 预算）
 
 ## 推进条件
 

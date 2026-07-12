@@ -109,11 +109,10 @@ case "$PHASE" in
       echo "GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P6)
-      # P6 PASS/FAIL regex: 语义宽松——只要求行首 "- PASS" 或 "- FAIL"（可选空白前缀），
-      # 后续格式灵活（BDD 编号、冒号、描述均可）。gate 检查"有没有"，格式由 CI lint 管。
-      TOTAL=$(grep -cE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      # P6 PASS/FAIL regex: 大小写不敏感计数（formatter 归一化在前，此为最后防线）
+      TOTAL=$(grep -ciE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       TOTAL=$(echo "$TOTAL" | tail -1)
-      FAIL=$(grep -cE '^\s*- FAIL\b' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      FAIL=$(grep -ciE '^\s*- FAIL([[:space:]:：]|$)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       FAIL=$(echo "$FAIL" | tail -1)
       NC=$(grep -cE '\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       NC=$(echo "$NC" | tail -1)
