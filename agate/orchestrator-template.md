@@ -53,13 +53,23 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **subagent 空返回时**：记入 `retries[Pn]`，调整策略（拆分任务 / 补导航 / 换类型）后重派，不允许原样重试。retry 超限 → PAUSED。不以"subagent 做不好"为由降级亲自写。分阶段落盘已默认启用（每次派发 prompt 模板自带），空返回时检查 `P{N}-progress.md` 内容判断 subagent 是否动过（详见 dispatch-protocol.md「空返回的恢复策略」）
 
+**PAUSED 不是失败**：PAUSED 是正确路由——把需要人工介入的问题交给人类，不是 agent 认输。常见 PAUSED 触发：未决 NEED_CONFIRM / PROD_TOUCHED / retry 超限 / 跨阶段回退。PAUSED 后由人工批准并写 `PAUSED-resolution.md`，主 Agent 据此继续。
+
+**回退机制**：诊断→跳转→PAUSED→人工批准→修→重跑（不是"一次退一阶"）。gate 失败需回退时：主 Agent 诊断落盘 `P{N}-gate-diagnosis.md` → 跳到目标阶段 → PAUSED 等人工批准 → 修 → 重跑。
+
+**do→review 迭代循环**：每个含 subagent 评审的阶段（P1/P2/P4/P6/P7）都是迭代循环，不是单次通过/失败。review 不通过 → 修改 → 再 review，直到 approved 才推进。格式迭代和 gate 重试共享 retry 预算。
+
+**P5/P7/P8 subagent 派发**：P5 由 verifier subagent 执行测试 + P5 gate；P7 由 consistency-reviewer subagent 执行跨文件交叉检查；P8 由 releaser subagent 执行发布准备。主 Agent 仍亲自做 P0-brief + P8 READY 收尾。
+
 **主 Agent 的合法职责（不是降级）**：
 - 写 P0-brief.md（PM 视角的任务简报）
 - 派发前查证客观信息 + 任务上下文（目标/关注点/已知约束/上游决策/P2结构化字段grep），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或需复用时）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败（见 dispatch-protocol.md）
 - **verification_env 条件化**：P5/P6 派发时，verification_env（运行环境描述）仅在 `ui_affected: true`、`gate_commands.P5` 含 Playwright/e2e 命令、或 P0-brief `known_risks` 含环境依赖时需要写入 dispatch-context。纯后端单元测试无需声明
+- P6 阶段：verifier subagent 返回后、跑 gate 前，运行 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"` 归一化 PASS/FAIL 大小写和行首空白（①）
 - 给阶段产出文件 Header 加 `agent: <角色>` 字段（v2 hardening P2.1 协作规范）—— 由主 Agent 在派发 prompt Header 里填好，subagent 复制即可
 - P8 gate 通过后执行 READY 收尾检查（按 releaser subagent 产出的 P8-release.md 临时资源清单，停止调试服务、清理临时数据、还原开发环境、确认生产无残留，见 state-machine.md）
 - PAUSED 时写 `PAUSED-resolution.md` 记录人工决策
+- gate 失败时写 `P{N}-gate-diagnosis.md` 落盘诊断（不追加到 dispatch-context，见 ⑫）
 
 ## 关键检查（每轮开始时执行）
 
