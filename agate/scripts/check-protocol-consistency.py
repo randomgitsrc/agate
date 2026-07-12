@@ -536,6 +536,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-gate.sh",
         "keywords": ["agent=main"],
     },
+    {
+        "desc": "dispatch-context 任务上下文节",
+        "script": "agate/scripts/check-p6-provenance.sh",
+        "keywords": ["dispatch-context"],
+    },
 ]
 
 

@@ -568,6 +568,11 @@ EOF
     grep -q 'files_modified' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
 }
 
+@test "D-drift-4: dispatch-prompt.md 含结构化任务节（目标/关注点）" {
+    grep -q '目标：' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+    grep -q '关注点：' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+}
+
 @test "G-drift-1: dispatch-protocol.md 含'自查≠gate'关键词" {
     grep -q '自查≠gate' "$AGATE_ROOT/dispatch-protocol.md"
 }

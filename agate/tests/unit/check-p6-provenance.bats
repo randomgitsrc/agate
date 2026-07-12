@@ -312,3 +312,27 @@ EOF
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+@test "PV.17 dispatch-context 含任务上下文节 → 审计 2 放行" {
+    local dir
+    dir=$(create_task_dir --risk-level high)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS B01: verified (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.json"
+    cat > "$dir/P6-dispatch-context.md" <<'EOF'
+## 客观信息（主 Agent 已查证）
+- 环境状态：debug server 运行中
+
+## 任务上下文（主 Agent 从 P0-brief + gate + 摘要积累）
+- 目标：逐条 BDD 验收
+- 关注点：P2 声明 ui_affected: true
+- 上游关键决策：architect 选择了方案 B
+- 上游结构化字段：
+  - packages: [pkg-a]
+  - ui_affected: true
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
