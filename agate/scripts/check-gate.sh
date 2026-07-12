@@ -26,7 +26,7 @@ case "$PHASE" in
       # P2 不可裁剪，不存在 P2-design.md 时直接报错
       P2_FILE="$TASK_DIR/P2-design.md"
       if [ -f "$P2_FILE" ]; then
-          CANDIDATE_COUNT=$(grep -cE '^###?\s*(候选方案|方案\s*[ABC123abc一二三四五])' "$P2_FILE" 2>/dev/null || echo 0)
+          CANDIDATE_COUNT=$(grep -cE '^###?\s*(候选方案|方案\s*[A-Za-z一二三四五]|Alternative|Option)' "$P2_FILE" 2>/dev/null || echo 0)
           CANDIDATE_COUNT=$(echo "$CANDIDATE_COUNT" | tail -1)
           P1_FILE="$TASK_DIR/P1-requirements.md"
           MIN_CANDIDATES=2
@@ -85,8 +85,8 @@ case "$PHASE" in
       echo "GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P6)
-      # grep -c 无匹配时返回 exit 1 + 触发 || echo 0 兜底，输出 "0\n0" 会让 [ -ne 0 ] 报整数错误
-      # 加 echo "$VAR" | tail -1 拿到最后一行（与 P7 同款 fix）
+      # P6 PASS/FAIL regex: 语义宽松——只要求行首 "- PASS" 或 "- FAIL"（可选空白前缀），
+      # 后续格式灵活（BDD 编号、冒号、描述均可）。gate 检查"有没有"，格式由 CI lint 管。
       TOTAL=$(grep -cE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       TOTAL=$(echo "$TOTAL" | tail -1)
       FAIL=$(grep -cE '^\s*- FAIL\b' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
