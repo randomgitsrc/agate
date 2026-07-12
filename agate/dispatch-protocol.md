@@ -737,6 +737,21 @@ setTimeout(() => {
 
 ---
 
+## 回退处理（诊断→跳转→PAUSED→批准→重跑）
+
+gate 失败后，主 Agent 按以下步骤处理回退：
+
+1. **诊断**：分析 gate 失败根因，确定问题源头在哪一阶段，落盘 `P{N}-gate-diagnosis.md`（含：失败现象、根因分析、目标阶段、诊断依据）
+2. **跳转**：直接设置 .state.yaml phase 到目标阶段
+3. **PAUSED**（diff≥2 时）：check-state-transition.sh 拦截 → 主 Agent 在 PAUSED resolution 中写明诊断和目标 → 人工批准
+4. **恢复到目标**：修完后从目标往下逐阶段重跑
+5. **不在中间阶段停留**：诊断已确认问题在源头，中间阶段不需要重做
+
+diff=1 回退（如 P5→P4）：直接退，带诊断信息写入 P4-dispatch-context.md 的回退诊断节，无需 PAUSED。
+diff≥2 回退：PAUSED + 诊断 + 人工批准（见 state-machine.md 回退机制表）。
+
+---
+
 ## Subagent 安全
 
 ### 硬超时保护
