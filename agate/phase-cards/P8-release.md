@@ -81,6 +81,7 @@ check-gate.sh P8 $TASK_DIR
 2. **CHANGELOG [Unreleased] 留在模板状态**：版本 bump 完但 CHANGELOG 没更新
 3. **忘记清理测试环境**：debug server 还在跑、临时数据没删 → READY 不干净
 4. **临时资源清单遗漏**：P4/P5 阶段启动的服务/安装的包没记录 → 清理时遗漏
+5. **gate 不过 ≠ 你失败了**：红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
 ## 下游影响
 

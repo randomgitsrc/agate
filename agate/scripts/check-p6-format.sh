@@ -26,13 +26,13 @@ CONTENT=$(cat "$FILE")
 FIXED="$CONTENT"
 CHANGES=0
 
-FIXED=$(printf '%b' "$FIXED" | sed -E 's/^([[:space:]]*)-\s+(pass)([[:space:]]+)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)-\s+(fail)([[:space:]]+)/\1- FAIL\3/' | sed -E 's/^([[:space:]]*)(pass)([[:space:]]+)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)(fail)([[:space:]]+)/\1- FAIL\3/')
+FIXED=$(printf '%s' "$FIXED" | sed -E 's/^([[:space:]]*)-\s+(pass)([[:space:]]+)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)-\s+(fail)([[:space:]]+)/\1- FAIL\3/' | sed -E 's/^([[:space:]]*)(pass)([[:space:]]+)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)(fail)([[:space:]]+)/\1- FAIL\3/')
 if [ "$FIXED" != "$CONTENT" ]; then
     CHANGES=1
 fi
 CONTENT="$FIXED"
 
-FIXED=$(printf '%b' "$FIXED" | sed -E 's/^[[:space:]]+(- (PASS|FAIL) )/\1/')
+FIXED=$(printf '%s' "$FIXED" | sed -E 's/^[[:space:]]+(- (PASS|FAIL) )/\1/')
 if [ "$FIXED" != "$CONTENT" ]; then
     CHANGES=1
 fi
