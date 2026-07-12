@@ -565,6 +565,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "desc": "P6 格式自动修复",
         "script": "agate/scripts/check-p6-format.sh",
         "keywords": ["--fix", "--check"],
+        "callers": ["agate/phase-cards/P6-acceptance.md", "agate/dispatch-protocol.md", "agate/scripts/pre-commit-gate.sh"],
     },
 ]
 
@@ -575,7 +576,7 @@ def check_script_alignment(root: Path, rep: Report) -> None:
         if not script_path.exists():
             rep.error("CHECK9-align",
                       f"{anchor['desc']}: 脚本不存在 {anchor['script']}",
-                      loc=anchor['script'])
+                      loc=anchor["script"])
             continue
         text = script_path.read_text(encoding="utf-8")
         for kw in anchor["keywords"]:
@@ -586,6 +587,23 @@ def check_script_alignment(root: Path, rep: Report) -> None:
                          loc=anchor["script"])
             else:
                 rep.ok("CHECK9-align")
+        callers = anchor.get("callers")
+        if callers:
+            script_basename = Path(anchor["script"]).name
+            found_caller = False
+            for caller_path in callers:
+                full = root / caller_path
+                if full.exists() and script_basename in full.read_text(encoding="utf-8"):
+                    found_caller = True
+                    break
+            if not found_caller:
+                rep.warn("CHECK9-callers",
+                         f"{anchor['desc']}: 脚本 {anchor['script']} 未被任何流程文件调用"
+                         f"（应出现在 {', '.join(callers)} 之一）"
+                         "——脚本存在但无调用路径 = 死代码",
+                         loc=anchor["script"])
+            else:
+                rep.ok("CHECK9-callers")
 
 
 # 工具类脚本白名单——无 gate 逻辑，不需要锚点

@@ -502,8 +502,9 @@ P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P
 ## P6 BDD 二值规则
 每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
 ## P6 BDD 结果格式
-每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令 `grep -cE '^\s*- (PASS|FAIL)'` 可靠匹配。
+每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。
 不要用表格格式（`| B01 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
+**大小写敏感**：必须大写 PASS/FAIL。主 Agent 在 verifier 返回后、跑 gate 前运行 `check-p6-format.sh --fix` 自动归一化（①）。
 示例：
 - PASS B01: 用户可以创建分享链接
 - FAIL B02: 过期链接返回 410

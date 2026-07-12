@@ -422,6 +422,44 @@ EOF
     [ "$status" -eq 2 ]
 }
 
+@test "G6.7 check-gate.sh P6 小写 fail: 被计为 FAIL（大小写不敏感）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1
+- fail: BDD-2 broken
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"FAIL=1"* ]]
+}
+
+@test "G6.8 check-gate.sh P6 小写 fail（空格）被计为 FAIL" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1
+- fail AC2: timeout
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"FAIL=1"* ]]
+}
+
+@test "G6.9 check-gate.sh P6 'failure' 不被计为 FAIL" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1
+- failure mode detected
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"FAIL=0"* ]]
+}
+
 # ========== P7 (5 用例) ==========
 
 @test "G7.1 check-gate.sh P7 含 [BLOCKER] 期望 exit 1" {
