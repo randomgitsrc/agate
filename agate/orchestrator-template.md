@@ -55,9 +55,10 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **主 Agent 的合法职责（不是降级）**：
 - 写 P0-brief.md（PM 视角的任务简报）
-- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或需复用时）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败（见 dispatch-protocol.md）
+- 派发前查证客观信息 + 任务上下文（目标/关注点/已知约束/上游决策/P2结构化字段grep），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或需复用时）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败（见 dispatch-protocol.md）
+- **verification_env 条件化**：P5/P6 派发时，verification_env（运行环境描述）仅在 `ui_affected: true`、`gate_commands.P5` 含 Playwright/e2e 命令、或 P0-brief `known_risks` 含环境依赖时需要写入 dispatch-context。纯后端单元测试无需声明
 - 给阶段产出文件 Header 加 `agent: <角色>` 字段（v2 hardening P2.1 协作规范）—— 由主 Agent 在派发 prompt Header 里填好，subagent 复制即可
-- P8 gate 通过后执行 READY 收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留，见 state-machine.md）
+- P8 gate 通过后执行 READY 收尾检查（按 releaser subagent 产出的 P8-release.md 临时资源清单，停止调试服务、清理临时数据、还原开发环境、确认生产无残留，见 state-machine.md）
 - PAUSED 时写 `PAUSED-resolution.md` 记录人工决策
 
 ## 关键检查（每轮开始时执行）
@@ -91,6 +92,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - 永远不要在 `dispatch-context.md` 里写 PASS/FAIL 预判（会被 provenance 拦）
 - P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略
 - P2 不可裁剪——方案设计是必经阶段。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略
+- P1 评审不可裁——所有任务都走独立 requirements-review（agent≠main），与 P2 design-review 对称。check-gate.sh P1 对 P1-review.md agent=main 硬拦截（exit 1）
 - P4 的 `[DESIGN_GAP:]` 必须在 P7 被转抄 + 配对 `[DESIGN_GAP_REVIEWED:]`——否则 gate 拦截（v0.6：P4/P7 交叉核对）
 
 ---

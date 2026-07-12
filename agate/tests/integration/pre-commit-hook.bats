@@ -47,14 +47,12 @@ DCTPL
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    # 添加 .state.yaml + .state.yaml 含 P1
     cat > "$REPO/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    # 添加 task 目录
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
 ---
@@ -63,6 +61,16 @@ agent: test
 risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add .state.yaml docs/tasks/T001/
     _add_dispatch_ctx "docs/tasks/T001" "P1"
@@ -128,7 +136,6 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    # 任务级 .state.yaml（多任务架构）
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
@@ -143,6 +150,16 @@ agent: test
 risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add docs/tasks/T001/
     _add_dispatch_ctx "docs/tasks/T001" "P1"
@@ -199,6 +216,16 @@ agent: test
 risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add docs/tasks/T001/
     _add_dispatch_ctx "docs/tasks/T001" "P1"
@@ -279,7 +306,6 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    # 根 .state.yaml（单任务架构）
     cat > "$REPO/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
@@ -294,6 +320,16 @@ agent: test
 risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add .state.yaml docs/tasks/T001/
     _add_dispatch_ctx "docs/tasks/T001" "P1"

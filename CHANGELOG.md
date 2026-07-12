@@ -6,6 +6,38 @@
 
 ---
 
+## [0.12.0] - 2026-07-12
+
+### 新增
+- **P1 强制需求评审**：P1 阶段须产出 `P1-review.md`（`status: approved` + `agent≠main` + BDD 锚点），gate 检查从 frontmatter 提取 status（非全文 grep，防正文误匹配）
+- **P1 评审角色**：`assets/review-roles/requirements-review.md`，P1 阶段由独立 subagent 执行需求基线评审
+- **do→review 迭代循环**：P2/P4/P6/P7 阶段卡片增加 do→review 迭代注释，retry 预算耗尽走 PAUSED
+- **P5/P7/P8 subagent 派发**：P5 verifier / P7 consistency-reviewer / P8 releaser 均由 subagent 执行，主 Agent 只做 P0-brief + P8 READY 收尾
+- **P7 一致性检查角色**：`assets/execution-roles/consistency-reviewer.md`，P7 阶段由 consistency-reviewer subagent 执行跨文件交叉检查
+- **dispatch-context 扩展**：任务上下文节（目标/关注点/已知约束/与上阶段关联）+ P2 结构化字段 grep
+- **gate 诊断落盘**：gate 失败时写入独立 `P{N}-gate-diagnosis.md`，不追加到 dispatch-context
+- **N2 诊断格式禁令**：`gate-diagnosis.md` 和 dispatch-context 回退节禁止 `- PASS/FAIL` 行首（防误触审计2）
+- **check-p6-format.sh**：`--fix`/`--check` 模式，仅修行首大小写+空白（无歧义自动修复），printf '%s' 防路径转义
+- **PAUSED 语义翻转**：PAUSED = 正确路由（非失败），state-machine 13 处标注 + 8/8 阶段卡片 + WORKFLOW 声明
+- **回退机制修正**：诊断→跳转→PAUSED→人工批准→修→重跑（替代"一次退一阶"）
+- **CI 证据原则**：P6 验收声明"CI 证据原则"（L0），CI backstop 兜底外部产出 gate
+- **subagent 假完成校验**：D2 最小校验 grep test runner 真实输出签名 + dispatch-prompt 返回前自检
+- **P2 gate regex 放宽**：支持 Alternative/Option/多词方案名 + 数字编号（方案1/2/3）
+- **verification_env 条件化**：仅 `ui_affected` 或 `e2e` 需要时声明，纯后端无需
+- **CHECK 9 锚点表扩展**：6 条新增锚点（P1 review agent≠main / consistency-reviewer / dispatch-context / PAUSED / check-p6-format / gate-diagnosis）
+
+### 变更
+- `check-gate.sh` P1 分支：frontmatter 提取 status（替代全文 grep）
+- `check-gate.sh` P7 分支：N3 WARNING（有 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词 → WARNING，不改变 exit code）
+- `check-gate.sh` P2 分支：regex 扩展支持数字编号方案名
+- `dispatch-protocol.md`：P1 评审 + 迭代循环 + P5/P7/P8 派发 + 任务上下文 + 诊断落盘 + N2 + D2 + CI 证据 + verification_env
+- `state-machine.md`：P1 转移 + P5/P7/P8 subagent 注释 + PAUSED 标注 + 回退修正 + 诊断落盘
+- `WORKFLOW.md`：P1/P5/P7/P8 角色更新 + PAUSED 声明
+- `orchestrator-template.md`：P1 不变量 + READY 交接 + 任务上下文 + verification_env
+- `dispatch-prompt.md`：结构化任务节 + 返回前自检
+- `verifier.md`：P5 subagent 派发说明
+- `AGENTS.md`：角色清单新增 consistency-reviewer + requirements-review
+
 ## [0.10.0] - 2026-07-05
 
 ### 新增

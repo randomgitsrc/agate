@@ -2,10 +2,11 @@
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
 > P5 不可裁剪（核心阶段）
+> ⑨ P5 subagent 化
 
 ## 如果是首次进入本阶段
 
-1. 主 Agent 亲自执行 gate_commands.P5 的全部命令（不派 subagent）
+1. 主 Agent 派发 verifier subagent（P5 模式）执行 gate_commands.P5
 2. 逐条判定通过/失败
 3. 若失败：判定是真失败还是环境问题 → 真失败回 P4，环境问题修复环境
 4. git commit
@@ -23,7 +24,7 @@
 
 ## 执行方式
 
-主 Agent 亲自跑命令，不派 subagent。从 P2-design.md 读取 gate_commands.P5：
+verifier subagent 从 P2-design.md 读取 gate_commands.P5 并执行：
 
 ```bash
 # 示例（实际命令取决于 P2 声明）
@@ -46,12 +47,14 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
 
 ## 产出规格
 
-- P5-test-results/unit.md：标注 failed 数量（仅供参考，以主 Agent 实跑为准）
-- UI 任务：P5-test-results/e2e.md（Playwright 实跑结果 + 截图路径）
+- P5-test-results/unit.md：标注 failed 数量（verifier subagent 产出）
+- UI 任务：P5-test-results/e2e.md（Playwright 实跑结果 + 截图路径，verifier subagent 产出）
 
 ## gate 规则
 
-check-gate.sh P5 → exit 2。主 Agent 自判，不脚本化（命令从 P2 动态读取）。
+check-gate.sh P5 → exit 2。主 Agent 验 gate（检查 P5-test-results/ 存在 + failed 计数），CI backstop 兜底。
+
+**external-output-gate vs self-authored-gate**：P5 的 gate 是 external-output-gate——主 Agent 验证的是 verifier subagent 的产出（P5-test-results/），而非自己跑的命令结果。这与 P4（主 Agent 自己写代码、自己跑 lint）的 self-authored-gate 不同。external-output-gate 的信任链依赖 subagent 隔离 + CI backstop 双重保障。
 
 ## 推进条件
 
@@ -65,6 +68,20 @@ check-gate.sh P5 → exit 2。主 Agent 自判，不脚本化（命令从 P2 动
 1. **不跑 E2E**：UI 任务只跑单元测试和类型检查 → 端到端行为未验证。T046 教训：38 个单元测试全绿 + vue-tsc OK，但浏览器里图片是破的
 2. **把测试绿了当作功能正确**：单元测试通过 ≠ 用户看到的功能正常。P5 是代码正确性验证，P6 才是用户视角验收
 3. **修复后不重跑全量**：只跑修复的那一个测试 → 修复引入的回归没被发现
+
+## P5 commit→push 窗口残余风险（N5）
+
+**残余风险**：verifier subagent 产出 P5-test-results/ 后，主 Agent commit 并推进到 P6，但 push→CI 之前存在时间窗口。伪造的 P5-test-results 可在此窗口内流向下游。
+
+**缓解**：主 Agent 在推进前做轻量签名校验——grep test runner 输出签名：
+
+```bash
+grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md
+```
+
+计数 >0 才视为有效产出。这是轻量验证（确认文件包含真实 test runner 输出格式），不是重跑测试。CI backstop 在 push 后兜底全量验证。
+
+gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
 ## 下游影响
 

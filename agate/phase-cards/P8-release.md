@@ -2,20 +2,36 @@
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
 > 裁剪跳阶 → 确认 P1 phases 不含 P8 + internal_only: true + internal_only_reason 已声明 → 跳过，标记 READY
+> ⑨ P8 subagent 化
 
 ## 如果是首次进入本阶段
 
-1. 主 Agent 写 P8-release.md（bump_type + 版本号 + 临时资源清单）
-2. 为 P2 声明的每个 package 执行发布检查命令
-3. bump-version → 重跑 P5 gate（确认版本 bump 后测试仍全绿）
-4. 更新 CHANGELOG [Unreleased] → 版本号
-5. git commit + git tag
-6. READY 收尾检查
-7. 更新 .state.yaml phase=READY → DONE
+1. 主 Agent 派发 releaser subagent（implementer P8 模式）执行发布准备
+2. releaser subagent 产出 P8-release.md（含临时资源清单）
+3. 主 Agent 执行 READY 收尾检查（参考 P8-release.md 临时资源清单）
+4. 更新 .state.yaml phase=READY → DONE
 
 ## 如果是重试
 
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P8 MAX=2）
+
+## 执行方式
+
+releaser subagent（implementer P8 模式）执行以下发布准备步骤：
+
+1. 读取 P2-design.md packages 声明，确定需 bump 的包
+2. 为每个 package 执行发布检查命令
+3. bump-version → 重跑 P5 gate（确认版本 bump 后测试仍全绿）
+4. 更新 CHANGELOG [Unreleased] → 版本号
+5. git commit + git tag
+6. 产出 P8-release.md（含 bump_type、版本号变更确认、CHANGELOG 更新确认、临时资源清单）
+
+## releaser→主 Agent 交接
+
+P8-release.md 中的**临时资源清单**是 releaser→主 Agent 的交接文件：
+- releaser subagent 负责写入临时资源清单（本任务启动的临时服务/进程/数据/开发安装）
+- 主 Agent 使用该清单执行 READY 收尾检查中的清理工作
+- P8-release.md 由 releaser subagent 产出，主 Agent 不直接编写
 
 ## 前置条件
 
@@ -46,7 +62,9 @@ check-gate.sh P8 $TASK_DIR
 - git log 对照 CHANGELOG 无遗漏
 - 从 P2 packages 验证 version 文件路径
 
-## READY 收尾检查（P8 gate 通过后）
+## READY 收尾检查（P8 gate 通过后）— 主 Agent 亲自执行（不派发 subagent）
+
+参考 P8-release.md 临时资源清单执行清理：
 
 **状态与版本**：
 - [ ] .state.yaml phase == READY
@@ -81,6 +99,7 @@ check-gate.sh P8 $TASK_DIR
 2. **CHANGELOG [Unreleased] 留在模板状态**：版本 bump 完但 CHANGELOG 没更新
 3. **忘记清理测试环境**：debug server 还在跑、临时数据没删 → READY 不干净
 4. **临时资源清单遗漏**：P4/P5 阶段启动的服务/安装的包没记录 → 清理时遗漏
+5. **gate 不过 ≠ 你失败了**：红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
 ## 下游影响
 

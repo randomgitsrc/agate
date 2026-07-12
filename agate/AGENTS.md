@@ -48,8 +48,9 @@
 assets/execution-roles/
 ├── analyst.md            # P1 需求分析
 ├── architect.md          # P2 设计
+├── consistency-reviewer.md # P7 一致性交叉检查
+├── implementer.md        # P4 实现/P8 发布
 ├── test-designer.md      # P3 测试设计
-├── implementer.md        # P4 实现
 ├── verifier.md           # P5/P6 验收
 └── vision-analyst.md     # P6 UI/视觉验收
 
@@ -63,7 +64,8 @@ assets/review-roles/
 ├── qa.md                 # 质量保障评审
 ├── investigate.md        # 事后排查
 ├── office-hours.md       # 自由提问
-└── protocol-alignment-review.md  # 协议-脚本对齐审查（self-gate）
+├── protocol-alignment-review.md  # 协议-脚本对齐审查（self-gate）
+└── requirements-review.md  # P1 需求基线评审
 ```
 
 ## 升级 agate

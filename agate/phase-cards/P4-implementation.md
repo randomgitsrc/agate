@@ -69,6 +69,8 @@ P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
 
+review 不通过 → implementer 修改代码 → 再 review → … → approved（⑩迭代循环，review 和 gate 重试共享 retry 预算）
+
 ## gate 规则（check-gate.sh 会跑）
 
 ```bash
@@ -91,6 +93,7 @@ check-gate.sh P4 $TASK_DIR
 2. **自行加范围外改动**：发现需要做但不在 P1 范围内的改动 → 标 [SCOPE+] 而非直接做
 3. **只跑单元测试不验证集成**：单元测试全绿 ≠ 功能可用。P5 会跑 gate_commands 做技术验证，但要确保实现时路径依赖的端点行为已验证
 4. **写完代码不改 .state.yaml 就 commit**：commit 后更新 phase 标记为 P5
+5. **gate 不过 ≠ 你失败了**：红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
 ## 下游影响
 

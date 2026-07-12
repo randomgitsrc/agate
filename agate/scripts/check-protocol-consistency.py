@@ -536,6 +536,36 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-gate.sh",
         "keywords": ["agent=main"],
     },
+    {
+        "desc": "P1 review agent≠main 检查",
+        "script": "agate/scripts/check-gate.sh",
+        "keywords": ["P1", "agent=main"],
+    },
+    {
+        "desc": "P7 consistency-reviewer 实质锚点",
+        "script": "agate/scripts/check-gate.sh",
+        "keywords": ["DESIGN_GAP_REVIEWED"],
+    },
+    {
+        "desc": "dispatch-context 任务上下文节",
+        "script": "agate/scripts/check-p6-provenance.sh",
+        "keywords": ["dispatch-context"],
+    },
+    {
+        "desc": "PAUSED 语义翻转（正确路由）",
+        "script": "agate/WORKFLOW.md",
+        "keywords": ["PAUSED 不是失败", "正确路由"],
+    },
+    {
+        "desc": "PAUSED 语义翻转（dispatch-protocol）",
+        "script": "agate/dispatch-protocol.md",
+        "keywords": ["正确路由", "非认输"],
+    },
+    {
+        "desc": "P6 格式自动修复",
+        "script": "agate/scripts/check-p6-format.sh",
+        "keywords": ["--fix", "--check"],
+    },
 ]
 
 
