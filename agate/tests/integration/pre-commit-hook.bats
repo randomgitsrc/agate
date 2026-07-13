@@ -83,16 +83,17 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    # 创建含 [PROD_TOUCHED] 标记的文件
-    echo "do something to production [PROD_TOUCHED]" > "$REPO/prod.log"
+    # 创建任务目录 + 含 [PROD_TOUCHED] 标记的产出文件
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "do something to production [PROD_TOUCHED]" > "$REPO/docs/tasks/T001/P5-verification.md"
     # 同时改 .state.yaml phase，触发 gate
-    cat > "$REPO/.state.yaml" <<'EOF'
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
-phase: P1
+phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add prod.log .state.yaml
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "should fail"
     [ "$status" -ne 0 ]
     [[ "$output" == *"PROD_TOUCHED"* ]]
