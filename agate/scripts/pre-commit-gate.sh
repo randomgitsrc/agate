@@ -29,13 +29,6 @@ source "$AGATE_ROOT/scripts/gate-result.sh" \
 type write_gate_result >/dev/null 2>&1 \
     || { echo "GATE ERROR: gate-result.sh 加载不完整（write_gate_result 未定义）" >&2; exit 1; }
 
-# 0. PROD_TOUCHED 检测（P1.2）——全局，不按任务分
-# R2 修复：扫描暂存 diff 内容，不扫文件全文（协议文件本身含 PROD_TOUCHED 字样）
-if git diff --cached | grep -q '\[PROD_TOUCHED\]'; then
-    echo "GATE: 检测到 [PROD_TOUCHED] 标记，中止 commit" >&2
-    exit 1
-fi
-
 # 1. 收集所有暂存的 .state.yaml 文件（根 + 任务级）
 STAGED_STATE_FILES=""
 if git diff --cached --name-only 2>/dev/null | grep -qF ".state.yaml"; then
@@ -106,6 +99,16 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     esac
 
     [ ! -d "$TASK_DIR" ] && continue
+
+    # 2g.1 PROD_TOUCHED 检测（P1.2）——仅扫任务目录下的暂存 diff
+    # R3 修复：只扫任务产出文件，不扫协议/模板/项目文档（后者引用标记是说明性文本，非真正标记）
+    TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
+    if git diff --cached --name-only 2>/dev/null | grep -qE "^${TASK_REL}/"; then
+        if git diff --cached -- "$TASK_REL" | grep -q '\[PROD_TOUCHED\]'; then
+            echo "GATE: 检测到 [PROD_TOUCHED] 标记（${TASK_ID}），中止 commit" >&2
+            exit 1
+        fi
+    fi
 
     # 2h. P6 格式自动归一化（①）——verifier 产出后、gate 前
     if [ "$PHASE" = "P6" ] && [ -f "$TASK_DIR/P6-acceptance.md" ]; then
