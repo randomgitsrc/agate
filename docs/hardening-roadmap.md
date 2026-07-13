@@ -130,3 +130,4 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | 诊断优先提醒 | `retries >= 2` 时 hook 提醒"跑诊断命令" | 待论证 |
 | verifier 工具困难处理 | 角色文件补"遇到工具困难标 NEED_CONFIRM，不回退源码" | 待论证 |
 | Issue #002 | self-gate 递归触发缺乏终止机制 | 待设计 |
+# verify
