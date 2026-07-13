@@ -1,7 +1,7 @@
 # agate 硬工具化路线图
 
 > 日期：2026-06-29（v2：2026-06-30 修订；v3：2026-06-30 评审反馈修订；v4：2026-07-02 状态更新）
-> 状态：Phase 1 + 2A + 2B 已落地；Phase 3 待平台支持
+> 状态：Phase 1 + 2A + 2B 已落地；Phase 3 已取消（依赖平台，非 agate 可独立实现）
 > 关联：LIMITATIONS.md 局限 3（主 Agent 判断力是单点故障）、局限 4（subagent 不可观测）
 
 ---
@@ -58,7 +58,7 @@ Agent 的"走捷径"不是"遇到困难时的行为退化"，是**出厂设置**
 | P2.1 | P6 验收独立化 | `scripts/check-p6-provenance.sh` | ✅ 降级方案 v2（客观行为审计：证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + R1b vision YAML 审计） |
 | P2.2 | BDD 格式 + 总数对照 | `scripts/check-p6-provenance.sh` | ✅ 已实现（provenance 审计覆盖） |
 | P2.7 | 风险等级字段 | `scripts/check-pruning.sh` | ✅ 已实现（low/medium/high） |
-| P2.8 | 裁剪条件 hook 检查 | `scripts/check-pruning.sh` | ✅ 已实现（P2 不可裁例外口 + P3 high 不可裁 + P6 no_behavior_change + P7 源码文件数 + P8 internal_only + 跳过风险 nudge） |
+| P2.8 | 裁剪条件 hook 检查 | `scripts/check-pruning.sh` | ✅ 已实现（P2/P4/P5/P6 不可裁 + P3 仅 low 可裁 + P7 源码文件数 + P8 internal_only + 跳过风险 nudge） |
 | P2.9 | 裁剪声明回写 | `scripts/check-pruning.sh` | ✅ 已实现（override 字段） |
 | P2.10 | P2 评审派发强制 | `scripts/check-p6-provenance.sh` | ✅ 降级方案 v2（agent 字段软提醒 + dispatch-context 审计） |
 | P2.11 | SCOPE+ 处理追踪 | `scripts/check-scope-resolved.sh` | ✅ 已实现 |
@@ -93,16 +93,16 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 ## 3. 待落地内容
 
-### Phase 3：平台接口规范（待平台支持）
+### Phase 3：平台接口规范（已取消 — 依赖平台能力，非 agate 可独立实现）
 
-| 编号 | 名称 | 做什么 | 解决什么 | 状态 |
-|------|------|--------|---------|------|
-| P3.1 | 平台接口规范文档 | 定义 agate 需要的平台能力 | 明确"需要什么"才能争取"平台给什么" | 待写 |
-| P3.2 | subagent 可观测性 | 平台暴露 subagent 活动信号 | 局限 4：subagent 卡死 vs 在干活不可区分 | 待平台支持 |
-| P3.3 | gate 结果独立存储 | 平台提供主 Agent 不可写的存储位置 | .gate-result.json 防篡改的根治方案 | 待平台支持 |
-| P3.4 | gate 执行平台化 | 平台在 subagent 返回后自动触发 gate | 覆盖非 git 事件的 gate 执行 | 待平台支持 |
+| 编号 | 名称 | 原计划 | 取消理由 |
+|------|------|--------|---------|
+| P3.1 | 平台接口规范文档 | 定义 agate 需要的平台能力 | 平台不会为 agate 实现专属接口 |
+| P3.2 | subagent 可观测性 | 平台暴露 subagent 活动信号 | 依赖平台支持，无法自行实现 |
+| P3.3 | gate 结果独立存储 | 平台提供主 Agent 不可写的存储位置 | 依赖平台支持，无法自行实现 |
+| P3.4 | gate 执行平台化 | 平台在 subagent 返回后自动触发 gate | 依赖平台支持，无法自行实现 |
 
-**P2.1 P6 验收独立化的根治**：当前降级方案靠 provenance 审计（证据-结论对应 + BDD 总数对照 + vision YAML），但主 Agent 仍可造假证据。根治需要平台支持独立 git author（P3.1 平台能力调查）。
+**P2.1 P6 验收独立化的根治**：当前降级方案靠 provenance 审计（证据-结论对应 + BDD 总数对照 + vision YAML），但主 Agent 仍可造假证据。根治需平台支持独立 git author，Phase 3 已取消——接受此为结构性局限。
 
 ---
 
@@ -112,9 +112,12 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 |------|------|-------------|-------------|-------------|
 | 局限 1 | 测试质量上限 | — | — | —（方法论边界） |
 | 局限 2 | 同源模型盲区 | — | — | —（方法论边界） |
-| 局限 3 | 主 Agent 判断力单点 | ✅ gate 执行不被跳过 | ✅ P6 审计 + 状态强制 + 流程选择硬约束 | 待：结果防篡改 |
-| 局限 4 | subagent 不可观测 | — | — | 待：平台可观测性 |
+| 局限 3 | 主 Agent 判断力单点 | ✅ gate 执行不被跳过 | ✅ P6 审计 + 状态强制 + 流程选择硬约束 | 取消（结构性局限，接受） |
+| 局限 4 | subagent 不可观测 | — | — | 取消（结构性局限，接受） |
 | 局限 5 | 协议文档一致性 | — | ✅ self-gate + CHECK 9 | — |
+| 局限 6 | 运行时依赖 | — | ✅ 文档化（LIMITATIONS.md + AGENTS.md） | — |
+| 局限 7 | vision/UI 基础设施 | — | ✅ 文档化（LIMITATIONS.md） | — |
+| 局限 8 | CI backstop 仅 GHA | — | ✅ 文档化（LIMITATIONS.md + AGATE_TASKS_DIR） | — |
 
 ---
 
