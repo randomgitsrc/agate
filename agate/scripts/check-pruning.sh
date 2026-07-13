@@ -53,14 +53,24 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P6'; then
     ERRORS="${ERRORS}P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6\n"
 fi
 
-# 检查 4：裁剪 P3 的条件
+# 检查 4: P4 不可裁剪（交付底线——没有实现就没有可发布产物）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P4'; then
+    ERRORS="${ERRORS}P4 不可裁剪——实现是交付底线，无实现则无可发布产物\n"
+fi
+
+# 检查 5: P5 不可裁剪（交付底线——没有验证就没有可发布产物）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P5'; then
+    ERRORS="${ERRORS}P5 不可裁剪——验证是交付底线，无验证则无可发布产物\n"
+fi
+
+# 检查 6：裁剪 P3 的条件
 if ! echo "$PHASES_DECLARED" | grep -qw 'P3'; then
-    if [ "$RISK_LEVEL" = "high" ]; then
-        ERRORS="${ERRORS}高风险任务不可裁剪 P3\n"
+    if [ "$RISK_LEVEL" != "low" ]; then
+        ERRORS="${ERRORS}P3 不可裁剪——仅 low 风险可裁剪 TDD 阶段（medium/high 必须走 TDD 红灯）\n"
     fi
 fi
 
-# 检查 5：裁剪 P7 的条件（R4：bug fix + implicit_coupling 维度）
+# 检查 7：裁剪 P7 的条件（R4：bug fix + implicit_coupling 维度）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     # R4(a) bug fix：补实现已文档化的文件数条件
     # ⚠️ 用 --cached（暂存区），不用 HEAD~1（pre-commit 时本次变更还没进 HEAD）
@@ -87,7 +97,7 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     fi
 fi
 
-# 检查 6：裁剪 P8 的条件（R5：internal_only 声明 + 理由）
+# 检查 8：裁剪 P8 的条件（R5：internal_only 声明 + 理由）
 if ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
     if ! grep -qE '^internal_only:\s*true' "$P1_FILE" 2>/dev/null; then
         ERRORS="${ERRORS}裁剪 P8 需声明 internal_only: true\n"
@@ -96,8 +106,9 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
     fi
 fi
 
-# 检查 7：裁剪理由必须含"跳过风险"评估（R3a：self-declaration nudge）
-if ! echo "$PHASES_DECLARED" | grep -qw 'P2' || ! echo "$PHASES_DECLARED" | grep -qw 'P3' || ! echo "$PHASES_DECLARED" | grep -qw 'P6' || ! echo "$PHASES_DECLARED" | grep -qw 'P7' || ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
+# 检查 9：裁剪理由必须含"跳过风险"评估（R3a：self-declaration nudge）
+# P4/P5 已被检查 4/5 硬拦，此处仍纳入条件以保持穷举（若未来 P4/P5 放开条件裁剪则自动生效）
+if ! echo "$PHASES_DECLARED" | grep -qw 'P2' || ! echo "$PHASES_DECLARED" | grep -qw 'P3' || ! echo "$PHASES_DECLARED" | grep -qw 'P4' || ! echo "$PHASES_DECLARED" | grep -qw 'P5' || ! echo "$PHASES_DECLARED" | grep -qw 'P6' || ! echo "$PHASES_DECLARED" | grep -qw 'P7' || ! echo "$PHASES_DECLARED" | grep -qw 'P8'; then
     if ! grep -qE '跳过风险:' "$P1_FILE" 2>/dev/null; then
         ERRORS="${ERRORS}裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）\n"
     fi

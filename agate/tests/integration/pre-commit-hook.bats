@@ -243,7 +243,7 @@ EOF
     [[ "$output" == *"P2-design.md 不存在"* || "$output" == *"P2 不可裁剪"* ]]
 }
 
-@test "IT.9 pre-commit-hook 多任务：裁剪跳阶 P2→P5 无 P3/P4 产出 → 不拦截" {
+@test "IT.9 pre-commit-hook 多任务：裁剪跳阶 P2→P5 无 P3 产出（low 风险）→ 不拦截" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
@@ -258,8 +258,8 @@ EOF
 ---
 agent: test
 ---
-risk_level: medium
-phases: [P0, P1, P2, P5, P6, P7, P8]
+risk_level: low
+phases: [P0, P1, P2, P4, P5, P6, P7, P8]
 跳过风险: 低
 EOF
     cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
@@ -300,6 +300,53 @@ EOF
     git -C "$REPO" add docs/tasks/T001/
     run git -C "$REPO" commit -m "T001 skip to P5"
     [ "$status" -eq 0 ]
+}
+
+@test "IT.9b pre-commit-hook 裁剪跳阶 P3 medium 风险 → 拦截（P1-8: 仅 low 可裁 P3）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P4, P5, P6, P7, P8]
+跳过风险: 低
+EOF
+    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+---
+agent: test
+phase: P2
+task_id: T001
+type: design
+parent: P1-requirements.md
+trace_id: T001-P2-20260708
+status: approved
+created: 2026-07-08
+---
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 简单 B 稳健
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    _add_dispatch_ctx "docs/tasks/T001" "P2"
+    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context.md"
+    run git -C "$REPO" commit -m "T001 P2 medium skip P3"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"P3 不可裁剪"*"仅 low"* ]]
 }
 
 @test "IT.10 pre-commit-hook 向后兼容：根 .state.yaml 仍工作" {

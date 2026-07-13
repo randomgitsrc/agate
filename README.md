@@ -3,7 +3,7 @@
 > 面向软件工程的 AI Agent 工作流协议。
 > 通过阶段 gate、状态落盘、角色隔离编排 subagent。
 
-[![version](https://img.shields.io/badge/version-v0.12.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.13.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **agate** 是一套面向软件工程的 AI Agent 编排协议。
@@ -188,8 +188,8 @@ gate 按判定对象分为两类，可信度天然不同：
 
 | 风险等级 | 推荐阶段 | 说明 |
 |----------|----------|------|
-| low | P0-P4 | 跳过 P5/P6 验收和 P7 一致性，适合探索性任务 |
-| medium | P0-P6 | 标准流程，P7 可裁剪 |
+| low | P0-P6 | P7 一致性可裁剪，P3 TDD 可裁剪（仅 low 风险） |
+| medium | P0-P6 | 标准流程，P7 可裁剪，P3 不可裁（必须走 TDD 红灯） |
 | high | P0-P8 | 全流程 + 人工终审 |
 
 在 `P1-requirements.md` 设 `risk_level: low` 即可裁剪后续阶段，无需改协议。

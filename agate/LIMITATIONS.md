@@ -79,6 +79,39 @@ agate 作为项目开发流程时，P2 评审角色（plan-eng-review / cso / de
 
 **缓解（v0.8）**：协议-脚本语义对齐审查（protocol-alignment-review）。改协议/脚本时派发独立 review subagent 做语义审查（A1-A6 审查清单），CHECK 9 做结构兜底（锚点表关键词存在性检查）。语义一致性仍非 100% 自动化——需要人触发审查 + 人确认 NEEDS_HUMAN_REVIEW 项。
 
+## 局限 6：运行时依赖 bash+git+python3+pyyaml，但不限制被管理项目语言
+
+agate 的 gate 脚本和 pre-commit hook 依赖 bash、git、python3（+pyyaml）作为运行时工具。这些是**工具依赖**，不是被管理项目的语言限制——agate 编排的项目可以是任何语言（Go、Rust、Java、Ruby 等），只要执行环境有 bash+git+python3 可用。
+
+具体影响：
+- **bash**：所有 gate 脚本（check-gate.sh、check-pruning.sh 等）和 pre-commit hook 用 bash 编写。无 bash 则无法运行 gate
+- **git**：状态落盘、pre-commit hook、P8 version 检测、P7 源文件计数均依赖 git。非 git 项目无法使用 agate
+- **python3 + pyyaml**：check-protocol-consistency.py 和 ci-gate-backstop.py 需要 python3 + pyyaml。此外 8 个 gate 脚本内联 python3 调用（见 AGENTS.md 依赖节完整列表），缺 python3 时这些脚本的 YAML 解析逻辑不可用
+
+**现状**：这些依赖是 agate 作为"零基础设施文档协议"的代价——用通用工具替代专用服务。如果执行环境不满足，gate 检查和 pre-commit hook 不可用，但协议的文档部分（阶段卡片、角色文件、状态机规则）仍可参考。
+
+## 局限 7：vision/UI 验收依赖外部基础设施
+
+P6 验收中的视觉验收（vision-analyst 角色）需要截图能力——这依赖 Agent 平台提供浏览器或截图工具。agate 协议本身不提供此基础设施。
+
+具体影响：
+- 无浏览器/截图工具时，P6 视觉验收退化为文本描述验收（verifier 角色替代 vision-analyst）
+- UI 变更的验收质量取决于截图工具的可用性和 Agent 的视觉理解能力
+- 截图证据的真实性无法机器验证（见局限 3 的证据-结论对应讨论）
+
+**现状**：视觉验收是可选增强，不是 P6 gate 的硬要求。P6 gate 检查的是 BDD 逐条验收 + provenance 审计，不要求必须有截图。
+
+## 局限 8：CI backstop 当前仅支持 GitHub Actions
+
+ci-gate-backstop.py 设计为 CI 层兜底——在 pre-commit hook 被绕过时（如 `git commit --no-verify`）重跑 gate 检查。当前实现仅支持 GitHub Actions 环境（通过 `GITHUB_ACTIONS` 环境变量检测，从 `$GITHUB_EVENT_PATH` 读取 PR 信息）。
+
+具体影响：
+- GitLab CI、Jenkins、CircleCI 等平台的用户需自行适配 ci-gate-backstop.py 的环境检测逻辑
+- 不使用 CI 的项目完全依赖 pre-commit hook，无兜底机制
+- AGATE_TASKS_DIR 环境变量（v0.13.0 新增）允许配置任务目录路径，但 CI 平台检测仍需手动适配
+
+**现状**：CI backstop 是可选增强层。核心 gate 检查在 pre-commit hook 中运行，不依赖特定 CI 平台。非 GHA 用户可参考 ci-gate-backstop.py 的逻辑自行实现对应平台的 backstop。
+
 ## 这些局限意味着什么
 
 如果你的任务涉及高风险操作（数据删除、生产环境交互、安全敏感逻辑），**不要把 agate 的 gate 通过当作"绝对安全"的保证**——它验证的是"测试这样写、主 Agent 这样判断时，结果是这样"，不是"这件事在所有意义上都是对的"。这类任务建议保留人工最终复核，不要让 agate 的 P8 发布准备成为唯一的把关点。

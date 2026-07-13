@@ -69,7 +69,7 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 ## 评审
 
-P1 评审与 P2 对称：requirements-review（独立 subagent，agent≠main），不可裁剪。
+P1 评审通用必有（所有任务都走 requirements-review），P2/P4 评审是 C8 域触发（见 review-mapping.md）——二者在"是否通用"上不对称，仅在"独立 subagent、agent≠main"上类比。P1 评审不可裁剪。
 review 不通过 → analyst 修改需求 → 再 review（⑩迭代循环），直至 approved。
 
 > 完成 → 读 phase-cards/P2-design.md

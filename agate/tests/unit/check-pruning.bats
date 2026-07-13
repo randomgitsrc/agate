@@ -77,30 +77,49 @@ load ../helpers/load.bash
     [[ "$output" == *"P6 不可裁剪"* ]]
 }
 
-# ============== 检查 4：高风险不可裁 P3 ==============
+# ============== 检查 4: P4 不可裁剪 ==============
+
+@test "P2.5c check-pruning.sh P4 裁剪 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P7 P8 --risk-level low)
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P4 不可裁剪"* ]]
+}
+
+# ============== 检查 5: P5 不可裁剪 ==============
+
+@test "P2.5d check-pruning.sh P5 裁剪 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P6 P7 P8 --risk-level low)
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P5 不可裁剪"* ]]
+}
+
+# ============== 检查 6: P3 仅 low 可裁 ==============
 
 @test "P2.5 check-pruning.sh risk=high 裁剪 P3 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P7 P8 --risk-level high)
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"高风险任务不可裁剪 P3"* ]]
+    [[ "$output" == *"P3 不可裁剪"*"仅 low"* ]]
 }
 
-@test "P2.5b check-pruning.sh risk=medium 裁剪 P3 缺跳过风险 期望 exit 1" {
+@test "P2.5b check-pruning.sh risk=medium 裁剪 P3 期望 exit 1（P1-8: 仅 low 可裁）" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P7 P8 --risk-level medium)
-    # medium 风险 + P3 裁剪是允许的，但需要写"跳过风险:"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"跳过风险"* ]]
+    [[ "$output" == *"P3 不可裁剪"*"仅 low"* ]]
 }
 
-# ============== 检查 5/6：裁剪 P7 需源码文件数 ≤ 5 + implicit_coupling ==============
+# ============== 检查 7: 裁剪 P7 需源码文件数 ≤ 5 + implicit_coupling ==============
 
 @test "P2.6a check-pruning.sh 裁剪 P7，源文件数 > 5 期望 exit 1" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)  # P7 不在声明
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)  # P7 不在声明
     local repo
     repo=$(git_init)
     # 先 commit 空初始状态
@@ -120,7 +139,7 @@ load ../helpers/load.bash
 
 @test "P2.6b check-pruning.sh 裁剪 P7，源文件数 ≤ 5 + coupling_checklist 通过" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)  # P7 不在声明
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)  # P7 不在声明
     add_p1_field "$dir" "coupling_checklist" "[api-schema: checked, data-model: checked]"
     add_pruning_excuse "$dir" P7 "小改动" "低"
     local repo
@@ -137,7 +156,7 @@ load ../helpers/load.bash
 
 @test "P2.6c check-pruning.sh 裁剪 P7 + implicit_coupling 字段 期望 exit 1" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)  # P7 不在声明
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)  # P7 不在声明
     add_p1_field "$dir" "implicit_coupling" "[api-schema, data-model]"
     add_pruning_excuse "$dir" P7 "理由" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
@@ -147,7 +166,7 @@ load ../helpers/load.bash
 
 @test "P2.6d check-pruning.sh 裁剪 P7 无 coupling_checklist 期望 exit 1" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)
     add_pruning_excuse "$dir" P7 "小改动" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
@@ -156,14 +175,14 @@ load ../helpers/load.bash
 
 @test "P2.6e check-pruning.sh 裁剪 P7 + coupling_checklist 放行" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)
     add_p1_field "$dir" "coupling_checklist" "[api-schema: checked, data-model: checked]"
     add_pruning_excuse "$dir" P7 "小改动" "低"
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 0 ]
 }
 
-# ============== 检查 7：P8 需 internal_only ==============
+# ============== 检查 8: P8 需 internal_only ==============
 
 @test "P2.7 check-pruning.sh 裁剪 P8 无 internal_only 期望 exit 1" {
     local dir

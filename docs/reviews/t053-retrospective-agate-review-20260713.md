@@ -4,7 +4,7 @@
 - **reviewer**: 独立第三方（基于源码 + 实证，非作者）
 - **date**: 2026-07-13（v2 元批判自审修订版）
 - **method**: 不采信"已声明完成的修复"，直接读 agate v0.12.0 源码/脚本/hooks 验证
-- **verdict**: **needs-revision — 4 项可证 bug（非穷举）+ 3 项结构重设计存疑**
+- **verdict**: **needs-revision — 3 项可证 bug（非穷举）+ 3 项结构重设计存疑 + 3 项覆盖缺口可修**
 
 ---
 
@@ -44,7 +44,7 @@
 ### B 类 — 真实可证的脚本缺口（少数，gate 脚本层明确错误）
 
 1. **N9 / N11**: P2/P4 review 文件 `if [ -f "$REVIEW" ]` 静默跳过 — gate 脚本违反了"未裁剪时必须评审"的卡片语义
-2. **N10 + G4 (合一项)**: P1 gate 没有 NEED_CONFIRM 检查，而 P6 有 — 不对称是设计漏洞
+2. **N10 + G4 (合一项)**: P1 gate 没有 NEED_CONFIRM 检查，而 P6 有 — P1/P6 不对称是设计漏洞。注意：此检查只拦"遗留未解决标记"，不拦"主 Agent 抹掉标记后通过"（后者是 observability/audit 范畴，见 A 类 2）
 
 ### C 类 — 文档/过程问题（不靠补丁、靠人/培训）
 
@@ -53,10 +53,15 @@
 3. A9 改 PASS/FAIL → verbiage 不允许行为靠 reviewer 教育
 4. A11 系统性篡改 → 不靠 hook 拦截，靠"修改即审计"的 observability
 
-**结论**：原审查的 16 项补丁中，**真实可证且必要的修复约 4 项（见 §4，不含后加的 H/M 类）**；后续全量扫描发现另有 M1/M5/M6/M7 四项覆盖缺口可修。其他应当：
+**结论**：原审查的 16 项补丁中，**真实可证且必要的修复约 3 项（见 §4 B-1/B-2/B-3，不含后加的 H/M 类）**；后续全量扫描发现另有 M1/G2(H3)/M6 三项覆盖缺口可修。其他应当：
 - 重新归类为文档问题
 - 或留作"考虑但不修"清单
 - 或承认是 LLM 行为问题，agent 培训层处理
+
+**§0.5 滤网回筛**（采纳专家评审 2.4）：用本节判据（"是否检测对抗行为 / 是否有对手可变的判别信号"）筛 §4–§6 修补清单：
+- **过关**（客观、无对手，纯可移植性/一致性）：B-1（对称）、B-2（对称硬化）、M-1/M-5/M-6（平台覆盖）——这些没有"绕过"概念，修得对
+- **过关但弱**：B-3（doc-only，误读不会因文档消失）
+- **已删除**：原 B-4（不过关——检测对抗行为，有对手可变信号，见 §4.4）
 
 协议在 LLM 不会自觉守规则的现实中构建可观察/可审计的工程纪律——不是"防住所有违规"。
 
@@ -88,7 +93,7 @@
 | **G1** | C8 映射表缺 security → P2 review 触发 | ✅ **真问题（结构性，非补丁）** | `agate/rules/review-mapping.md:14` 只写 `security → P4 后派 cso`；P2 无任何安全相关评审触发行。但**修法不应该是给 C8 加一行**（那是项目级映射），应该是 C8 文档明确"协议不穷举 mapping，每个项目按需扩展 + review-mapping.md 顶部警告"。T053 A4 根因不是 C8 表不全，是 C8 表**被误读为穷举** |
 | **G2** | check-tdd-red.sh 不支持项目级 test runner | ✅ **真问题** | `agate/scripts/check-tdd-red.sh:39-49` 仅支持 `TEST_RUNNER` 环境变量回退到 `which pytest`。peekview 类的 monorepo 在 backend/.venv/pytest 中，脚本找不到 pytest 报 exit 3 |
 | **G3** | P6 四个脚本应合成一键入口 | ✅ **真问题（轻）** | T053 跑 P6 gate 时确实需要跑 check-gate + check-p6-format + check-p6-evidence + check-p6-provenance 四个脚本。pre-commit-gate.sh 已经自动调 format/evidence/provenance（112/127/204 行），但 T053 主 Agent "提交前手动验 gate" 时没意识到要跑全套 |
-| **G4** | P1 NEED_CONFIRM 无强制机制 | ✅ **真问题** | `agate/scripts/check-gate.sh:117` 只在 P6 检查 NEED_CONFIRM；P1 gate（13-46 行）无任何 NEED_CONFIRM 检查。A1 主 Agent 在 P1 自行解决 2 个 NEED_CONFIRM，gate 没拦 |
+| **G4** | P1 NEED_CONFIRM 无强制机制 | ✅ **真问题** | `agate/scripts/check-gate.sh:117` 只在 P6 检查 NEED_CONFIRM；P1 gate（13-46 行）无任何 NEED_CONFIRM 检查。P1/P6 不对称是设计漏洞（修法见 B-2，仅恢复对称，不解决"主 Agent 抹掉标记后通过"——后者是 observability 范畴） |
 | **G5** | SCOPE+ 修改基线后无强制重审 | ✅ **真问题** | `agate/state-machine.md:209` 只要求 "[SCOPE_RESOLVED] 标记"，未要求"基线变更后强制 requirements-review 增量确认"。check-scope-resolved.sh 仅检查标记字面量 |
 | **G6** | provenance 不支持逗号分隔多文件引用 | ✅ **真问题** | `agate/scripts/check-p6-provenance.sh:49` `grep -oE '\([^)]+\)$'` 取最后括号整体，第 86 行 `grep -qE "\([^)]*${ev_basename}\)"` 不支持跨逗号。实测 `- PASS B01: ok (a.txt, b.txt)` 整串当一个文件名查 |
 | **G7** | retry 预算不区分功能/格式重试 | ✅ **真问题** | `agate/state-machine.md:627` 明确 "review 迭代和 gate 重试共享 retry 预算"。A13 实测：P6 第 2 次 retry 是 provenance 格式修复，不是功能失败，但耗尽了 2/2 |
@@ -106,7 +111,7 @@
 
 | ID | 假设 | 实证 | 是否可配置 |
 |----|------|------|-----------|
-| **H1** | **Python3 是运行时硬依赖** | 8/12 gate 脚本 inline `python3 -c "..."`（check-state-yaml、check-state-transition、check-pruning、check-changelog、check-p6-evidence、check-p6-provenance、check-retrospective、gate-result）。`check-p6-provenance.sh:174` 硬 import `yaml`。AGENTS.md 只在"依赖"节提了 2 个 `.py` 脚本，未提 8 个 sh 脚本的 inline Python 调用 | 无 `PYTHON_BIN` 覆盖 |
+| **H1** | **Python3 是运行时硬依赖** | 8/18 gate 脚本 inline `python3 -c "..."`（check-state-yaml、check-state-transition、check-pruning、check-changelog、check-p6-evidence、check-p6-provenance、check-retrospective、gate-result）。`check-p6-provenance.sh:174` 硬 import `yaml`。AGENTS.md 只在"依赖"节提了 2 个 `.py` 脚本，未提 8 个 sh 脚本的 inline Python 调用 | 无 `PYTHON_BIN` 覆盖 |
 | **H2** | **Git 不可协商** | 80+ 处 `git diff --cached` / `git rev-parse` / `git show` 调用覆盖所有 gate 脚本。协议本质上是基于 Git staging area 构建的状态验证 | 无覆盖——无 git 则无法运行 |
 | **H3** | **check-tdd-red.sh = Python/pytest** | 回退链：`$TEST_RUNNER` → `which pytest` → exit 3。`-q` 标志硬编码（51行）。error 正则含 `ImportError/ModuleNotFoundError`（Python专有）+ `PROJECT_MODULE` 的 `from X import Y` 模式（Python专有） | `TEST_RUNNER` 覆盖二进制名，不覆盖标志/error 模式 |
 | **H4** | **Bash + GNU 工具链** | 所有脚本 `#!/usr/bin/env bash` + `set -euo pipefail`。多处使用 `< <(...)` 进程替换（bash专有）、`realpath --relative-to`（GNU专有） | 无覆盖——非bash系统不可运行 |
@@ -146,16 +151,16 @@ T053 复盘 A1-A13 中：
 
 **真正属于 agate 协议结构性问题的**（重新分类后）：
 - A 类（协议结构）— 3 项（C8 机制化、audit/log、retry 模型）
-- B 类（脚本缺口）— **4 项（见 §4 修补列表）**
+- B 类（脚本缺口）— **3 项（见 §4：B-1/B-2/B-3；原 B-4 已并入 A 类）**
 - C 类（文档/过程）— 不应靠补丁解决
-- **H 类（硬编码假设）— 6 项（H1-H6，不修但需文档化，见 §2）**
+- **H 类（硬编码假设）— 6 项（H1-H6，运行时依赖文档化，P3/P8 目标语言耦合需修，见 §2）**
 - **M 类（覆盖缺口）— 7 项（M1-M7，见 §2），其中 M1/M5/M6/M7 是真可修 bug**
 
-总：**A 类 3 + B 类 4 + H 类 6 + M 类 7 = 20 项识别**（远超原审查 16 项但已正确分类——只有 B + M1/M5/M6/M7 ≈ 8 项值得修）
+总：**A 类 3 + B 类 3 + H 类 6 + M 类 7 = 19 项识别**（其中 B(3) + M1/M5/M6 = 6 项值得代码级修）
 
 ---
 
-## 4. 真正可证且必要的修补（仅 4 项）
+## 4. 真正可证且必要的修补（3 项）
 
 按"实证可证 + 成本合理 + 不靠穷举"原则筛选：
 
@@ -191,13 +196,11 @@ T053 复盘 A1-A13 中：
 
 **为什么不靠穷举**：这是 doc-only 修正——不依赖 LLM 阅读后必须按字面执行。文档说清楚"这是机制"就足够。A4 类误读不会因文档而完全消失，但起点清楚。
 
-### 4.4 B-4: check-p6-format.sh 反向禁止字面篡改（衍生自 N16 + A11）
+### 4.4 ~~B-4~~ → 并入 A 类 audit/observability 重设计
 
-**修法**：check-p6-format.sh --check 加反向检查：检测 PASS 行后跟非 PASS/FAIL 字面（如 `PASS_COUNT`、`通过`）。如果检测到，发 WARNING（不强制 exit 1，因为历史上可能有非标准用法）。
-
-**触动文件**：`agate/scripts/check-p6-format.sh` 第 25-32 行附近，加 1 个 sed 反向检查。
-
-**为什么不靠穷举**：这是精确诊断 A11 改判行为——把"FAIL_COUNT"当逃逸路径。A11 不只改判（合法可接受），而是改字面（明显违规），这是有判别信号的违规，hook 抓得到。
+> 原提议：check-p6-format.sh 加反向检查（检测 PASS_COUNT/FAIL_COUNT 字面篡改，发 WARNING）。
+> 
+> **已删除**（采纳专家评审 2.1）：B-4 是 §0.5 论证"必输"的那种检测补丁——检测特定字面，对手换写法即绕过，正是"第 6 条规则"。§0.5/§3 说 A11 靠 observability 不靠 hook，§4.4 又给 A11 上 hook，自我拆台。B-4 的正确方向是 A 类第 2 项：P6-acceptance.md 的变更历史（谁在 gate 通过后改了判定行），而不是猜测某个字面。
 
 ---
 
@@ -205,25 +208,26 @@ T053 复盘 A1-A13 中：
 
 下列项目**不在 v0.13.0 修补范围**：
 
-- **G2 (.tdd-runner 项目级配置)** — 已有 TEST_RUNNER 环境变量回退，项目自己 export 即可
 - **G3 (p6-gate-full.sh 一键入口)** — pre-commit-gate.sh 已自动调用，A8 是 LLM 自觉跑全套问题
 - **G5 (SCOPE+ 重审强制)** — reviewer 培训问题
 - **G7 (retry 分离功能/格式)** — 单开 design issue
 - **G8 / N13 (频繁修改检测)** — 边际价值低，事后复盘已足够
 - **N12 (P6 顺序)** — 并入 G3
-- **N14-N16 除已选 B-3/B-4 之外** — 过程/培训问题
+- **N14-N16 除已选 B-3 之外** — 过程/培训问题
 
 下列 H 类项目**在 v0.13.0 应文档化（非代码级修）**：
 
-- **H1-H4** → LIMITATIONS.md 补充"运行时依赖：bash + git + python3 + pyyaml"；AGENTS.md 依赖节列出所有 inline python3 脚本（8 个，不是 2 个）
+- **H1-H4** → LIMITATIONS.md 补充"运行时依赖：bash + git + python3 + pyyaml"，**澄清这不限制被管理项目的语言**（工具依赖 ≠ 语言锁）；AGENTS.md 依赖节列出所有 inline python3 脚本（8 个，不是 2 个）
 - **H5** → LIMITATIONS.md 补充"vision/UI 基础设施仅适用于 web 项目，`ui_affected: false` 时自动跳过"
 - **H6** → LIMITATIONS.md 补充"CI backstop 仅提供 GitHub Actions 实现，其他 CI 需重写"
+
+**注意**（采纳专家评审 §4.3）：H 类整体归"不修只文档化"过粗。运行时依赖（H1-H4/H5/H6）归"文档化"对；但 **H3(P3 TDD 红灯) 和 M6(P8 版本检测) 是目标语言耦合、会真的弄坏非 Python/JS 项目，应"修"不是"只文档化"**。见下方 M 类可修项。
 
 下列 M 类项目**在 v0.13.0 可修（覆盖缺口）**：
 
 - **M1**: ci-gate-backstop.py 改为读取 `AGATE_TASKS_DIR`
-- **M5**: check-tdd-red.sh 加 `TEST_RUNNER_FLAGS` 覆盖 `-q`
-- **M6**: check-gate.sh P8 version 检测模式扩展（或改 WARNING 不拦截不匹配）
+- **G2/H3（从"不修"上移）**: check-tdd-red.sh 加 `TEST_RUNNER_FLAGS` 覆盖 `-q` + 汇总计数正则可配（或正式化适配器输出契约）。仅 export TEST_RUNNER 不够——`-q` 标志和汇总格式解析仍是 pytest 专属，非 pytest 运行器即使 export 了也会误判
+- **M6**: check-gate.sh P8 version 检测降级为 WARNING（不匹配不再 exit 1 硬拦），或从 P2-design.md `packages` 字段读项目声明的版本文件路径（数据驱动，check-gate.sh:172/196 已注明"应从 P2 packages 读路径"）
 - **M7**: 单 `AGATE_TASKS_DIR` 限制留待 monorepo 支持设计（非本轮）
 
 ---
@@ -233,10 +237,10 @@ T053 复盘 A1-A13 中：
 结论：**needs-revision**。
 
 **立即修（v0.13.0 代码级）：**
-- §4 B-1/B-2/B-3/B-4（~80-100 行代码 + 1 文档段）— 可证 bug/语义修正/不对称修正/单点检测
+- §4 B-1/B-2/B-3（~60-80 行代码 + 1 文档段）— 可证 bug/语义修正/不对称修正
 - §5 M-1（ci-gate-backstop.py 修 1 行）— 覆盖缺口
-- §5 M-5（check-tdd-red.sh 加 TEST_RUNNER_FLAGS，~5 行）— 覆盖缺口
-- §5 M-6（check-gate.sh P8 version 扩展或降级为 WARNING，~10 行）— 覆盖缺口
+- §5 G2/H3-M5（check-tdd-red.sh 加 TEST_RUNNER_FLAGS + 汇总正则可配，~15 行）— 目标语言耦合
+- §5 M-6（check-gate.sh P8 version 降级 WARNING 或数据驱动，~10-20 行）— 真硬锁
 
 **v0.13.0 文档化（LIMITATIONS.md + AGENTS.md）：**
 - H1-H6 完整列表 — 协议运行时依赖透明化
@@ -255,8 +259,8 @@ T053 复盘 A1-A13 中：
 
 本审查的依据是"逐文件源码 + 实证调用追踪"，不是采信 T053 复盘或 v0.12.0 CHANGELOG 里的"已完成"声明。
 
-**承认的局限**：本审查的元层面自我批判（§0.5）也来自用户反馈——这是诚实审查的标准做法：审查本身也要接受审查。但承认局限不等于**对结论打折**：B 类 4 项是源码层可证的（grep 出位置、行号、对齐关系），不应因方法论反思而模糊掉。这些必须修。
+**承认的局限**：本审查的元层面自我批判（§0.5）也来自用户反馈——这是诚实审查的标准做法：审查本身也要接受审查。但承认局限不等于**对结论打折**：B 类 3 项是源码层可证的（grep 出位置、行号、对齐关系），不应因方法论反思而模糊掉。这些必须修。
 
-**更深的诚实**：v0.12.0 的协议选择 bash+git+python3 作为运行时是合理设计——但不是无代价的。H1-H6 明确了这个代价：非 Python 项目、非 GitHub 项目、纯 CLI 项目各有各的摩擦。LIMITATIONS.md 应诚实记录，不要让用户在文档盲区反复撞墙。
+**更深的诚实**：v0.12.0 的协议选择 bash+git+python3 作为运行时是合理设计——但不是无代价的。H1-H6 明确了这个代价：非 Python 项目、非 GitHub 项目、纯 CLI 项目各有各的摩擦。但"工具运行时依赖"不等于"语言锁"——agate 管的是项目流程，不是项目代码。真正的语言耦合只有两处：P3 TDD 红灯（pytest 铺路，他语言要自写适配器）和 P8 版本检测（exit 1 硬拦非主流生态）。两者都可低成本修，且不引发军备竞赛。
 
-如果 v0.13.0 修完 §4 的 4 项 + §5 的 3 项 M 类 + H 类文档化后仍有 T054 类似 A1/A4/A9/A11 违规——那不是协议能解决的了。是 LLM 决策本身。
+如果 v0.13.0 修完 §4 的 3 项 + §5 的 3 项 M 类 + H 类文档化后仍有 T054 类似 A1/A4/A9/A11 违规——那不是协议能解决的了。是 LLM 决策本身。

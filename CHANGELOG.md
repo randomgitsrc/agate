@@ -6,6 +6,29 @@
 
 ---
 
+## [0.13.0] - 2026-07-13
+
+### 新增
+- **P1 NEED_CONFIRM 检查**：check-gate.sh P1 分支加 NEED_CONFIRM 检查（与 P6 二行式对称），P1-requirements.md 含 `[NEED_CONFIRM]` 时 exit 1
+- **P4/P5 不可裁剪检查**：check-pruning.sh 补检查 4/5（P4 实现底线 + P5 验证底线），与 P2/P6 不可裁检查对称
+- **P3 裁剪条件收紧**：risk≠high可裁 → risk=low才可裁（medium/high 必须走 TDD 红灯），可裁比例从 ~80-90% 降到 ~33%
+- **P4 gate 排除收窄**：从排除所有 .md/.yaml → 仅排除 agate 流程产物（`P[0-8]-*.md` + `.state.yaml`），配置类 .yaml 交付不再被误拦
+- **P8 version 检测降级 WARNING**：不匹配时从 exit 1 降为 WARNING + `AGATE_VERSION_FILES` 环境变量覆盖
+- **TEST_RUNNER_FLAGS + 可配汇总正则**：check-tdd-red.sh 支持 `TEST_RUNNER_FLAGS`（多 flag 展开）、`TEST_FAIL_PATTERN`/`TEST_ERROR_PATTERN`（适配 go test/cargo test/jest 等非 pytest 输出格式）
+- **AGATE_TASKS_DIR 环境变量**：ci-gate-backstop.py 支持 `AGATE_TASKS_DIR` 配置任务目录路径 + 补 `import os`
+- **review-mapping.md C8 机制警告**：顶部加 C8 是 mapping 机制而非结果的警告，项目方应基于本表扩展自己的 mapping
+- **LIMITATIONS.md 局限 6/7/8**：运行时依赖（bash+git+python3+pyyaml）不限制被管理项目语言、vision/UI 验收依赖外部基础设施、CI backstop 仅 GHA
+
+### 变更
+- **P1 卡片评审措辞修正**：从"P1 评审与 P2 对称"改为"P1 评审通用必有，P2/P4 评审是 C8 域触发——二者不对称"
+- **WORKFLOW.md 删"纯文档"范畴**：P3 裁剪条件从"纯文档/配置类"改为"配置类任务"，文档任务不是独立范畴，配置类仍是软件工作
+- **state-machine.md 裁剪条件同步**：P3 从"high 风险不可裁剪"改为"仅 low 风险可裁剪"；补 P4/P5 不可裁剪
+- **P3-tdd.md 裁剪条件同步**：从"risk≠high"改为"risk=low"
+- **AGENTS.md 依赖节**：列出所有 8 个内联 python3 的 sh 脚本
+- **check-protocol-consistency.py**：PATH_IGNORE_SUBSTRINGS 加 `docs/decisions/`（项目侧决策记录示例路径）
+
+---
+
 ## [0.12.0] - 2026-07-12
 
 ### 新增
