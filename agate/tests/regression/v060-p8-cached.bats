@@ -23,7 +23,7 @@ EOF
     [[ "$output" == *"脚本化检查通过"* ]]
 }
 
-@test "R5.2 P8 gate 暂存区无 version 文件 → exit 1" {
+@test "R5.2 P8 gate 暂存区无 version 文件 → WARNING（P1-6: 降级非阻断）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -37,8 +37,9 @@ EOF
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add some.md CHANGELOG.md
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"version"* ]]
+    # P1-6: version 不匹配降为 WARNING → RC 不设 1 → CHANGELOG OK → exit 2
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"WARNING"*"version"* ]]
 }
 
 @test "R5.3 P8 gate 暂存区有 version 但 CHANGELOG 无变更 → exit 1" {

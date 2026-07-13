@@ -42,6 +42,14 @@ case "$PHASE" in
           echo "GATE P1: P1-review.md 不含 BDD 编号引用（裸 approved 极可能是假完成，review 结论须引用具体 BDD 编号）" >&2
           exit 1
       fi
+      # P1 NEED_CONFIRM 检查（与 P6 对称）
+      P1_FILE="$TASK_DIR/P1-requirements.md"
+      NC=$(grep -cE '\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null || echo 0)
+      NC=$(echo "$NC" | tail -1)
+      if [ "$NC" -ne 0 ]; then
+          echo "GATE P1: $NC 个未解决的 NEED_CONFIRM 项" >&2
+          exit 1
+      fi
       echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式不固定，需主 Agent 自行判定" >&2
       exit 2 ;;
   P2)
@@ -104,7 +112,7 @@ case "$PHASE" in
   P4)
       # pre-commit 阶段：检查暂存区有代码文件（非纯文档/状态文件）
       # N1 修复：原来查 git log，但 pre-commit 时 commit 还没创建，第一条 P4 commit 永远无法通过
-      git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state' && exit 0 || exit 1 ;;
+      git diff --cached --name-only | grep -qvE '(^|/)P[0-8]-.*\.md$|(^|/)\.state\.yaml$' && exit 0 || exit 1 ;;
   P5)
       echo "GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
@@ -180,9 +188,10 @@ case "$PHASE" in
           RC=1
       fi
       # 检查 version 文件变更（通用匹配，主 Agent 应从 P2 packages 补充验证）
-      if ! git diff --cached --stat 2>/dev/null | grep -qiE 'version|__version__|package.json|Cargo.toml|pyproject.toml|go.mod|pom.xml|gemspec|csproj'; then
-          echo "GATE P8: 暂存区无 version 文件变更（若项目用其他文件管理版本，主 Agent 需从 P2 packages 手动验证）" >&2
-          RC=1
+      VERSION_PATTERN="${AGATE_VERSION_FILES:-version|__version__|package.json|Cargo.toml|pyproject.toml|go.mod|pom.xml|gemspec|csproj}"
+      if ! git diff --cached --stat 2>/dev/null | grep -qiE "$VERSION_PATTERN"; then
+          echo "GATE P8 WARNING: 暂存区无 version 文件变更。若项目用其他文件管理版本，设置 AGATE_VERSION_FILES 环境变量。" >&2
+          # WARNING: 不设 RC=1，让 gate 继续（降级为非阻断）
       fi
       # 检查 CHANGELOG 变更（默认 CHANGELOG.md，项目可用 CHANGELOG_FILE 环境变量覆盖）
       CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"

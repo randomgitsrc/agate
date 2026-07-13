@@ -101,7 +101,7 @@ docs/tasks/T002-fix-db-migration/
 | Claude Project 会话 | ❌ | ❌（网络受限）| 仅 P0-P2 设计规划 |
 
 **Claude Project 会话的定位：**
-- 适合：P0-P2（设计决策、需求基线、方案评审）、代码审查、文档任务
+- 适合：P0-P2（设计决策、需求基线、方案评审）、代码审查
 - 不适合：P3-P6 技术验证、E2E 测试、发布准备
 - 建议工作方式：用 Claude Project 完成 P0-P2 并 push 到 main，再切换到 OpenCode/Claude Code 执行 P3-P8
 
@@ -129,7 +129,7 @@ agate 的派发机制有固定开销——每次派发约需写 25 行派发 pro
   design_trivial 适用于纯 typo/文案/配置值修改；follows_existing_pattern 适用于照搬已有模式
 - **P3 TDD 测试先行默认保留**：P3 不是「需要 TDD 时才加」，默认保留，有明确理由才跳过。
   可跳过的情形只有两种：
-  ① 纯文档/配置类任务——没有可测试的行为（如更新 README、调整配置文件）
+  ① 配置类任务——没有可测试的行为（如调整 CI/k8s/compose 配置文件）。注意：配置类任务仍是软件工作，只是测试策略不同（验证部署结果而非单元测试）
   ② 极小改动（≤3 行）且 P1 能明确指出哪条现有回归测试已覆盖该改动
   跳过 P3 须在 P1 裁剪说明里写明理由，由主 Agent 确认（「任务简单」不是合法理由）
   **单 Agent 模式**（`has_task_tool: false`）：P3 和 P4 由同一 Agent 执行，独立视角消失。

@@ -71,6 +71,7 @@ PATH_IGNORE_SUBSTRINGS = (
     "docs/tasks/",              # 运行时任务目录
     "docs/process/",            # 历史路径示例
     "docs/design/",             # 项目侧设计稿示例
+    "docs/decisions/",          # 项目侧决策记录示例
     "tests/",                   # 项目侧测试目录示例
     "backend/", "src/", "app/", # 项目侧源码示例
 )

@@ -566,7 +566,7 @@ EOF
     [[ "$output" == *"bump_type"* ]]
 }
 
-@test "G8.2 check-gate.sh P8 无 version 文件变更（暂存区）期望 exit 1" {
+@test "G8.2 check-gate.sh P8 无 version 文件变更（暂存区）期望 WARNING（不阻断）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -581,8 +581,9 @@ EOF
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add some.md CHANGELOG.md
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"version"* ]]
+    # P1-6: version 不匹配降级为 WARNING（不设 RC=1），但 CHANGELOG 已变更 → RC=0 → exit 2
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"WARNING"*"version"* ]]
 }
 
 @test "G8.3 check-gate.sh P8 有 version 但 CHANGELOG 无变更 期望 exit 1" {

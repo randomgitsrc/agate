@@ -19,7 +19,7 @@
 ## 依赖
 
 - Bats ≥ 1.2.0（需要 `BATS_TEST_TMPDIR`）
-- Python 3.8+ + `pyyaml`（`pip install pyyaml`）
+- Python 3.8+ + `pyyaml`（`pip install pyyaml`）— 8 个 sh 脚本内联 python3：check-changelog.sh、check-p6-evidence.sh、check-p6-provenance.sh、check-pruning.sh、check-retrospective.sh、check-state-transition.sh、check-state-yaml.sh、gate-result.sh
 - shellcheck
 
 ## 开发命令

@@ -48,10 +48,14 @@ else
     exit 3
 fi
 
-RESULT=$($RUNNER -q 2>&1) && EXIT=0 || EXIT=$?
+RUNNER_FLAGS="${TEST_RUNNER_FLAGS:--q}"
+# shellcheck disable=SC2086  # intentional: unquoted for multi-flag expansion (e.g. "--silent --no-coverage")
+RESULT=$($RUNNER $RUNNER_FLAGS 2>&1) && EXIT=0 || EXIT=$?
 
-FAILED=$(echo "$RESULT" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || true)
-ERRORS=$(echo "$RESULT" | grep -oE '[0-9]+ error' | grep -oE '[0-9]+' || true)
+FAIL_PATTERN="${TEST_FAIL_PATTERN:-[0-9]+ failed}"
+ERROR_PATTERN="${TEST_ERROR_PATTERN:-[0-9]+ error}"
+FAILED=$(echo "$RESULT" | grep -oE "$FAIL_PATTERN" | grep -oE '[0-9]+' || true)
+ERRORS=$(echo "$RESULT" | grep -oE "$ERROR_PATTERN" | grep -oE '[0-9]+' || true)
 
 echo "assertion_failures=${FAILED:-0}, collection_errors=${ERRORS:-0}"
 

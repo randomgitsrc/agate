@@ -176,3 +176,57 @@ EOF
     [ "$status" -eq 1 ]
     [[ "$output" == *"非 approved"* ]]
 }
+
+@test "P1: P1-requirements.md 含 NEED_CONFIRM 期望 exit 1" {
+    TASK_DIR=$(create_task_dir --no-state-yaml)
+    cat > "$TASK_DIR/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NEED_CONFIRM] z 的边界条件需确认
+EOF
+    cat > "$TASK_DIR/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS
+EOF
+    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"NEED_CONFIRM"* ]]
+}
+
+@test "P1: P1-requirements.md 无 NEED_CONFIRM 期望 exit 2" {
+    TASK_DIR=$(create_task_dir --no-state-yaml)
+    cat > "$TASK_DIR/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+EOF
+    cat > "$TASK_DIR/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS
+EOF
+    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    [ "$status" -eq 2 ]
+}

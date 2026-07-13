@@ -167,7 +167,9 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
 
   **裁剪条件（hook 验证，见 scripts/check-pruning.sh）**：
   - P2 不可裁剪（方案设计是必经阶段。P1 analyst 做需求分析不做方案设计，无法预知 P2 architect 会发现哪些隐含问题。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略 P2）
-  - P3：high 风险不可裁剪
+  - P3：仅 low 风险可裁剪（medium/high 必须走 TDD 红灯）
+  - P4 不可裁剪（实现是交付底线——没有实现就没有可发布产物）
+  - P5 不可裁剪（验证是交付底线——没有验证就没有可发布产物）
   - P6 不可裁剪（验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6）
   - 裁剪 P7：需源码文件数 ≤ 5 AND 无 implicit_coupling 声明 AND 有 coupling_checklist（列出检查过的耦合点，如 api-schema: checked, data-model: checked。防止无脑写"无隐式耦合"）
   - 裁剪 P8：需声明 internal_only: true + internal_only_reason: <理由>

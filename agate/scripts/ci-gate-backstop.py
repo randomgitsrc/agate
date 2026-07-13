@@ -8,6 +8,7 @@ push 时重跑 gate，与 .gate-result.json 对照。
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -47,7 +48,8 @@ def main() -> int:
         print(f"SKIP: phase={phase}，无 gate 需要对照")
         return 0
 
-    task_dir = str(repo_root / "docs/tasks" / task_id) if task_id else ""
+    tasks_base = os.environ.get("AGATE_TASKS_DIR", "docs/tasks")
+    task_dir = str(repo_root / tasks_base / task_id) if task_id else ""
     ci_exit, ci_output = run_gate(phase, task_dir)
 
     if not gate_result.exists():

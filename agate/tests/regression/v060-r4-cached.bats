@@ -7,7 +7,7 @@ load ../helpers/load.bash
 
 @test "R3.1 裁剪 P7 + 暂存区 6 个源文件 → exit 1（源码文件数 > 5 拦截）" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)  # P7 不在
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)  # P7 不在
     add_pruning_excuse "$dir" P7 "源文件多" "中等"
     local repo
     repo=$(git_init)
@@ -26,7 +26,7 @@ load ../helpers/load.bash
 
 @test "R3.2 裁剪 P7 + 暂存区 3 个源文件 + coupling_checklist → exit 0（≤ 5）" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P3 P5 P6 P8)  # P7 不在
+    dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)  # P7 不在
     add_p1_field "$dir" "coupling_checklist" "[api-schema: checked]"
     add_pruning_excuse "$dir" P7 "小改动" "低"
     local repo
