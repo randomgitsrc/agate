@@ -129,7 +129,7 @@ P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][
     （⑨ P7 subagent 化：consistency-reviewer subagent 执行交叉检查，N3⑨ 实质锚点校验）
 P7 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空]--> READY
+P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空 + git tag -l "${VERSION_TAG_PREFIX}{version}" 存在（推荐，不阻断）]--> READY
      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
     （⑨ P8 subagent 化：releaser subagent 执行发布准备，主 Agent 仍亲自做 READY 收尾）
 
@@ -412,8 +412,9 @@ function 执行一步(task_id):
               grep -q 'bump_type:' {task}/P8-release.md → 命中;
                git diff --cached --stat → 含 version 文件变更;
                git diff --cached -- ${CHANGELOG_FILE:-CHANGELOG.md} → 非空
-              （CHANGELOG 是项目根文件，默认 CHANGELOG.md；项目可用 CHANGELOG_FILE 环境变量覆盖路径）
-    6. 计算下一状态（按转移规则）
+               （CHANGELOG 是项目根文件，默认 CHANGELOG.md；项目可用 CHANGELOG_FILE 环境变量覆盖路径）
+        **若 gate 不通过**：追加至少一行到 orchestrator-log.md（记录 gate 失败阶段+原因）
+     6. 计算下一状态（按转移规则）
        **回退跳变检测**（T019 教训：P5→P2 跨 3 阶段回退未 PAUSED）：
        若 current_phase_num - next_phase_num >= 2（回退 ≥2 阶段）
        → 强制 PAUSED，报告"跨 N 阶段回退，需人工确认"

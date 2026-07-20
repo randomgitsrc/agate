@@ -629,6 +629,43 @@ EOF
     [ "$status" -eq 1 ]
 }
 
+@test "G8.7 check-gate.sh P8 tag 不存在 期望 WARNING（exit 2，不阻断）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P8-release.md" <<'EOF'
+bump_type: minor
+EOF
+    local repo
+    repo=$(git_init)
+    echo "init" > "$repo/README.md" && git_commit "$repo" "init"
+    cp -r "$dir" "$repo/task"
+    echo "v0.1.0" > "$repo/package.json"
+    printf '## [Unreleased]\n\n## [0.2.0] - 2026-07-20\n' > "$repo/CHANGELOG.md"
+    git -C "$repo" add package.json CHANGELOG.md
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"tag v0.2.0 不存在"* ]]
+}
+
+@test "G8.8 check-gate.sh P8 tag 存在 期望无 tag WARNING" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P8-release.md" <<'EOF'
+bump_type: minor
+EOF
+    local repo
+    repo=$(git_init)
+    echo "init" > "$repo/README.md" && git_commit "$repo" "init"
+    cp -r "$dir" "$repo/task"
+    echo "v0.2.0" > "$repo/package.json"
+    printf '## [Unreleased]\n\n## [0.2.0] - 2026-07-20\n' > "$repo/CHANGELOG.md"
+    git -C "$repo" add package.json CHANGELOG.md
+    git -C "$repo" tag v0.2.0
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"tag v0.2.0 不存在"* ]]
+}
+
 # ========== 默认 case ==========
 
 @test "D-drift-1: dispatch-prompt.md 含'返回前自检'" {

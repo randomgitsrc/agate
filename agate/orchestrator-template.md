@@ -102,6 +102,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - P4/P5 不可裁剪——实现和验证是交付底线，不可省略
 - P1 评审不可裁——所有任务都走独立 requirements-review（agent≠main），P2/P4 评审是 C8 域触发（见 review-mapping.md），二者不对称。check-gate.sh P1 对 P1-review.md agent=main 硬拦截（exit 1）
 - P4 的 `[DESIGN_GAP:]` 必须在 P7 被转抄 + 配对 `[DESIGN_GAP_REVIEWED:]`——否则 gate 拦截（v0.6：P4/P7 交叉核对）
+- 机制交叉改动（≥2 个子系统交互、时序依赖、跨层影响）必须走完整 agate——判断"直接做"前先评估改动性质（详见 WORKFLOW.md §改动性质判断）
 
 ---
 
@@ -167,7 +168,8 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 文件：`docs/tasks/{Txxx}/orchestrator-log.md`
 
 **规则**：
-- 想写就写，仅追加不编辑不整理
+- 以下事件应追加至少一行：gate 失败、subagent 失败/空返回、流程决策（PAUSED/回退/跳阶）、用户叫停
+- 其他事件自由追加，仅追加不编辑不整理
 - 不写思考过程、不写文件内容摘要、不写 subagent 返回原文——只写决策和下一步
 - 任务从 `DONE` 重新激活 → 清空后重建（旧决策基于旧上下文）；`active`/`PAUSED` 恢复 → 追加
 

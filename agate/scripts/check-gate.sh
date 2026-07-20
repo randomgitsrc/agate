@@ -202,6 +202,15 @@ case "$PHASE" in
       if [ "$RC" -ne 0 ]; then
           exit 1
       fi
+      # 检查 tag 存在性（WARNING，不阻断——tag 通常在 gate 通过后才打）
+      VERSION_TAG_PREFIX="${VERSION_TAG_PREFIX:-v}"
+      CHANGELOG_DIFF=$(git diff --cached -- "$CHANGELOG_FILE" 2>/dev/null || true)
+      TAG_VERSION=$(echo "$CHANGELOG_DIFF" | grep -oE '\[[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9.-]*\]' | head -1 | tr -d '[]' || true)
+      if [ -n "$TAG_VERSION" ]; then
+          if ! git tag -l "${VERSION_TAG_PREFIX}${TAG_VERSION}" 2>/dev/null | grep -q .; then
+              echo "GATE P8 WARNING: tag ${VERSION_TAG_PREFIX}${TAG_VERSION} 不存在。打 tag 后再推进到 READY。若 tag 前缀非 v，设置 VERSION_TAG_PREFIX 环境变量。" >&2
+          fi
+      fi
       echo "GATE P8: 脚本化检查通过。仍需主 Agent：① 从 P2 gate_commands 逐包读取发布检查命令 ② 重跑 P5 gate ③ 用 git log 对照 CHANGELOG 无遗漏 ④ 从 P2 packages 验证 version 文件路径" >&2
       exit 2 ;;
   *)

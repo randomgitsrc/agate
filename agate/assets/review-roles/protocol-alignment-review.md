@@ -23,6 +23,7 @@ agent: review
 | A4 | 测试覆盖 | 变更是否有对应 bats 测试？测试是否覆盖了新逻辑的边界？**必须附最近一次 bats 全量实跑输出（含 passed/failed 计数）**，无实跑输出的 ✓ 视为无效（T026/G2.5 事故教训：A4 看不跑导致假绿灯进 main） |
 | A5 | 下游影响 + 文档传播 | 变更是否影响已有项目的 gate 行为？是否有破坏性变更？CHANGELOG 是否标注？**文档传播**：除了代码改动，应该被影响的文档（orchestrator-template.md / WORKFLOW.md / dispatch-protocol.md / role-system.md / 角色文件 / 模板文件 / LIMITATIONS.md 等）是否需要同步？ |
 | A6 | 锚点表覆盖 | CHECK 9 的锚点表是否需要更新？新增的协议规则是否需要加入锚点表？ |
+| A7 | 设计原则一致性 | 变更是否符合 agate 声明的设计原则？审查员从变更涉及的协议文件中提炼该领域声明的设计原则，判断本次变更是否违反。结论只有 ALIGNED 或 NEEDS_HUMAN_REVIEW（设计原则是指导性的，不是可机器判定的硬规则，不存在 MISALIGNED） |
 
 ### 反向传播的常见路径（subagent 推理起点）
 
@@ -73,6 +74,7 @@ files_changed: [{文件列表}]
 | A4 | 测试覆盖 | ... |
 | A5 | 下游影响 + 文档传播 | ... |
 | A6 | 锚点表覆盖 | ... |
+| A7 | 设计原则一致性 | ALIGNED / NEEDS_HUMAN_REVIEW |
 
 ## 逐项审查
 
@@ -99,9 +101,11 @@ files_changed: [{文件列表}]
 
 每条 NEEDS_HUMAN_REVIEW 必须有一条 `[HUMAN_CONFIRMED: 日期 确认：理由]` 配对。未确认的 NEEDS_HUMAN_REVIEW 等同于 MISALIGNED——不允许 commit。
 
+**A7 特殊规则**：A7 只有 ALIGNED 和 NEEDS_HUMAN_REVIEW 两种结论，不存在 MISALIGNED——设计原则是指导性的，违反原则需人工裁决而非强制修复。
+
 ## 人工验收清单（每次使用后核对）
 
-- [ ] 审查报告含 A1-A6 六项，每项有结论
+- [ ] 审查报告含 A1-A7 七项，每项有结论
 - [ ] MISALIGNED 项有差异描述 + 建议方向
 - [ ] 每条 NEEDS_HUMAN_REVIEW 下面有 `[HUMAN_CONFIRMED: ...]` 标记
 - [ ] 审查报告落盘到 `docs/reviews/agate-alignment-review-{date}.md`
