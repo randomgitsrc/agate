@@ -99,7 +99,8 @@ fi
 
 DISPATCH_CTX="$TASK_DIR/P6-dispatch-context.md"
 if [ -f "$DISPATCH_CTX" ]; then
-    PREJUDICE=$(grep -cE '^\s*- (PASS|FAIL)\b' "$DISPATCH_CTX" 2>/dev/null || echo 0)
+    # Exclude AGATE_CARD embedded block (card template text like "- FAIL > 0" is not a prejudice)
+    PREJUDICE=$(sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$DISPATCH_CTX" | grep -cE '^\s*- (PASS|FAIL)\b' 2>/dev/null || echo 0)
     PREJUDICE=$(echo "$PREJUDICE" | tail -1)
     if [ "$PREJUDICE" -gt 0 ]; then
         echo "GATE PROVENANCE: P6-dispatch-context.md 含 ${PREJUDICE} 处验收结论预判" >&2
