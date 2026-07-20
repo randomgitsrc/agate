@@ -6,7 +6,7 @@
 
 ---
 
-## [Unreleased]
+## [0.15.0] - 2026-07-21
 
 ### 重大变更
 - **dispatch-context 单一信息源重构**：文件名 `P{N}-dispatch-context.md` → `P{N}-dispatch-context-{role}.md`（每个 subagent 一个），格式改为 Markdown+XML（`<dispatch_guide>` + `<objective_info>`），新增 4 子节（目标/约束/上游关联/输入文件），所有 P1-P8 统一强制，hook/provenance 校验改为 glob 匹配
