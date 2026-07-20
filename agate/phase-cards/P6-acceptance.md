@@ -6,6 +6,7 @@
 ## 如果是首次进入本阶段
 
 1. 派发 verifier subagent → 产出 P6-acceptance.md + P6-evidence/
+   1.1 写 P6-dispatch-context-verifier.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. UI 任务：派 vision-analyst → 产出 vision-reports/
 3. 主 Agent 逐条核实 BDD 对照结果
 4. **先验证功能（用户视角），再满足 gate 格式**（T046 教训：别反过来）

@@ -6,6 +6,7 @@
 ## 如果是首次进入本阶段
 
 1. 派发 implementer subagent → 产出代码文件
+   1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 必要评审派发（见下方）
 4. git add 代码文件 → git commit

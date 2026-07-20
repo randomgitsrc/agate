@@ -22,7 +22,7 @@ agent: consistency-reviewer
 - docs/tasks/{Txxx}/P2-design.md（packages、domains、方案设计）
 - docs/tasks/{Txxx}/P4-implementation.md（DESIGN_GAP 声明）
 - docs/tasks/{Txxx}/P6-acceptance.md（BDD 验收结果）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ## 输出
 - docs/tasks/{Txxx}/P7-consistency.md — 一致性审查结论

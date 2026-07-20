@@ -21,7 +21,7 @@ agent: test-designer
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
 - docs/tasks/{Txxx}/P1-requirements.md（BDD 验收条件 — 测试的主要来源）
 - docs/tasks/{Txxx}/P2-design.md（批准的方案，含 ui_affected 声明）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ## 输出
 - docs/tasks/{Txxx}/P3-test-cases.md — 测试用例清单（编号、对应的 BDD 条件、预期）

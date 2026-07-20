@@ -151,44 +151,59 @@ for STATE_FILE in $STAGED_STATE_FILES; do
         fi
     fi
 
-    # 2p. dispatch-context.md 卡片 hash 校验（防漂移：嵌入卡片是当前版本）
-    # 派发阶段产出 commit 时强制要求 dispatch-context.md 存在
+    # 2p. dispatch-context 卡片 hash 校验（防漂移：嵌入卡片是当前版本）
+    # 所有 P1-P8 阶段统一强制 dispatch-context 存在
     if [ -x "$AGATE_ROOT/scripts/agate-next-card.sh" ]; then
-        DC_FILE="$TASK_DIR/${PHASE}-dispatch-context.md"
-        if [ -f "$DC_FILE" ]; then
+        shopt -s nullglob
+        DC_FILES=("$TASK_DIR/${PHASE}-dispatch-context-"*.md)
+        shopt -u nullglob
+        if [ ${#DC_FILES[@]} -gt 0 ]; then
             EXPECTED=$(bash "$AGATE_ROOT/scripts/agate-next-card.sh" "$PHASE" 2>/dev/null) || true
             if [ -n "$EXPECTED" ]; then
                 EXPECTED_HASH=$(printf '%s' "$EXPECTED" | sha256sum | awk '{print $1}')
-                EMBEDDED=$(sed -n '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/p' "$DC_FILE" \
-                           | sed '1d;$d')
-                EMBEDDED_HASH=$(printf '%s' "$EMBEDDED" | sha256sum | awk '{print $1}')
-                if [ "$EMBEDDED_HASH" != "$EXPECTED_HASH" ]; then
-                    echo "GATE: dispatch-context.md 卡片内容与 CLI 输出不一致（hash mismatch）" >&2
-                    echo "      期望 sha256: $EXPECTED_HASH" >&2
-                    echo "      实际 sha256: $EMBEDDED_HASH" >&2
-                    echo "      提示：重新调 agate-next-card.sh ${PHASE} 复制到 dispatch-context.md" >&2
-                    exit 1
-                fi
+                for DC_FILE in "${DC_FILES[@]}"; do
+                    EMBEDDED=$(sed -n '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/p' "$DC_FILE" \
+                               | sed '1d;$d')
+                    EMBEDDED_HASH=$(printf '%s' "$EMBEDDED" | sha256sum | awk '{print $1}')
+                    if [ "$EMBEDDED_HASH" != "$EXPECTED_HASH" ]; then
+                        echo "GATE: $(basename "$DC_FILE") 卡片内容与 CLI 输出不一致（hash mismatch）" >&2
+                        echo "      期望 sha256: $EXPECTED_HASH" >&2
+                        echo "      实际 sha256: $EMBEDDED_HASH" >&2
+                        echo "      提示：重新调 agate-next-card.sh ${PHASE} 复制到 dispatch-context 文件" >&2
+                        exit 1
+                    fi
+                done
             fi
         else
             # 仅当暂存了该阶段的产出文件时才强制要求 dispatch-context
             # 中间 commit / legacy 任务 / 裁剪跳阶 → 不强制
             STAGED_IN_TASK=$(git diff --cached --name-only 2>/dev/null | grep "^${TASK_REL}/" || true)
             PHASE_OUTPUT=""
+            PHASE_OUTPUT_DIR=""
             case "$PHASE" in
                 P1) PHASE_OUTPUT="P1-requirements\.md" ;;
                 P2) PHASE_OUTPUT="P2-design\.md" ;;
                 P3) PHASE_OUTPUT="P3-test-cases\.md" ;;
+                P5) PHASE_OUTPUT_DIR="P5-test-results" ;;
                 P6) PHASE_OUTPUT="P6-acceptance\.md" ;;
+                P7) PHASE_OUTPUT="P7-consistency\.md" ;;
+                P8) PHASE_OUTPUT="P8-release\.md" ;;
             esac
+            HAS_OUTPUT=""
             if [ -n "$PHASE_OUTPUT" ] && echo "$STAGED_IN_TASK" | grep -q "$PHASE_OUTPUT"; then
-                echo "GATE: subagent 派发阶段产出 commit 需提供 ${PHASE}-dispatch-context.md（当前阶段卡片嵌入）" >&2
+                HAS_OUTPUT="yes"
+            fi
+            if [ -n "$PHASE_OUTPUT_DIR" ] && [ -d "$TASK_DIR/$PHASE_OUTPUT_DIR" ]; then
+                HAS_OUTPUT="yes"
+            fi
+            if [ "$HAS_OUTPUT" = "yes" ]; then
+                echo "GATE: subagent 派发阶段产出 commit 需提供 ${PHASE}-dispatch-context-{role}.md（至少一个，当前阶段卡片嵌入）" >&2
                 echo "      提示：调 agate-next-card.sh ${PHASE} 嵌入 dispatch-context 模板" >&2
                 exit 1
             fi
-            # P4: 用代码文件判断（同 P4 gate 逻辑）
+            # P4: 用代码文件判断（见 pre-commit-gate.sh 原有逻辑，不变）
             if [ "$PHASE" = "P4" ] && echo "$STAGED_IN_TASK" | grep -qvE '\.(md|yaml)$|^\.state'; then
-                echo "GATE: subagent 派发阶段产出 commit 需提供 ${PHASE}-dispatch-context.md（当前阶段卡片嵌入）" >&2
+                echo "GATE: subagent 派发阶段产出 commit 需提供 ${PHASE}-dispatch-context-{role}.md（至少一个，当前阶段卡片嵌入）" >&2
                 echo "      提示：调 agate-next-card.sh ${PHASE} 嵌入 dispatch-context 模板" >&2
                 exit 1
             fi
@@ -213,9 +228,15 @@ for STATE_FILE in $STAGED_STATE_FILES; do
         STAGED_OUTPUT_IN_TASK=$(git diff --cached --name-only 2>/dev/null \
             | grep -E "^${TASK_REL}/P[0-8]-.*\.md$" || true)
         if [ -n "$STAGED_OUTPUT_IN_TASK" ]; then
-            DC_FILE="$TASK_DIR/${PHASE}-dispatch-context.md"
-            if [ ! -f "$DC_FILE" ] && ! git show "HEAD:${TASK_REL}/${PHASE}-dispatch-context.md" >/dev/null 2>&1; then
-                echo "GATE WARNING: ${PHASE} 产出已暂存但 ${PHASE}-dispatch-context.md 不存在——是否忘记先写 dispatch-context？" >&2
+            shopt -s nullglob
+            DC_GLOB=("$TASK_DIR/${PHASE}-dispatch-context-"*.md)
+            shopt -u nullglob
+            if [ ${#DC_GLOB[@]} -eq 0 ]; then
+                # Check if old format exists in HEAD (transitional)
+                HAS_DC_IN_HEAD=$(git ls-tree HEAD "${TASK_REL}/" 2>/dev/null | grep -qE "${PHASE}-dispatch-context-.*\.md$" && echo yes || echo no)
+                if [ "$HAS_DC_IN_HEAD" = "no" ]; then
+                    echo "GATE WARNING: ${PHASE} 产出已暂存但 ${PHASE}-dispatch-context-*.md 不存在——是否忘记先写 dispatch-context？" >&2
+                fi
             fi
         fi
     fi

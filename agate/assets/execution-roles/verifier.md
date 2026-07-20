@@ -32,7 +32,7 @@ agent: verifier
 - docs/tasks/{Txxx}/P2-design.md（是否 ui_affected）
 - docs/tasks/{Txxx}/P3-test-code/（测试）
 - docs/tasks/{Txxx}/P4-implementation/（实现）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息，如环境状态、URL、选择器等）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ### 输出
 - docs/tasks/{Txxx}/P5-test-results/unit.md — 单元/回归结果（含 failed 计数）
@@ -93,7 +93,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - **每条 PASS 后必须引证据路径**：`- PASS B01: 描述 (P6-evidence/screenshots/b01.png)`——括号内路径相对 P6-evidence/，文件**必须存在**
 - **多条 PASS 可共享同一证据文件**：如 3 条 PASS 引用 `shared.json` 是允许的。但每条 PASS 必须有引用、每个证据文件必须被引用（充数文件被拦）
 - **每个证据文件都被 PASS 行引用**：空 png 充数（创建但不引用）会被拦
-- **P{N}-dispatch-context.md 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦
+- **dispatch-context 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦
 
 **你的诚实边界**：你看到的代码、跑过的命令、截到的图都是证据；你"觉得应该能过"不是证据。无法验证的 BDD 标 `[NEED_CONFIRM]`，不标 PASS。
 
@@ -109,7 +109,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
 - docs/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）
 - docs/tasks/{Txxx}/P5-test-results/（技术验证结果，可复用避免重复跑）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 - 运行环境（debug backend / 临时 HOME，严禁碰正式服务）
 
 ### 输出

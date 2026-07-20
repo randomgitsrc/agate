@@ -7,6 +7,7 @@
 ## 如果是首次进入本阶段
 
 1. 主 Agent 派发 releaser subagent（implementer P8 模式）执行发布准备
+   1.1 写 P8-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. releaser subagent 产出 P8-release.md（含临时资源清单）
 3. 主 Agent 执行 READY 收尾检查（参考 P8-release.md 临时资源清单）
 4. 更新 .state.yaml phase=READY → DONE

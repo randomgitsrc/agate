@@ -7,6 +7,7 @@
 ## 如果是首次进入本阶段
 
 1. 主 Agent 派发 verifier subagent（P5 模式）执行 gate_commands.P5
+   1.1 写 P5-dispatch-context-verifier.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 逐条判定通过/失败
 3. 若失败：判定是真失败还是环境问题 → 真失败回 P4，环境问题修复环境
 4. git commit

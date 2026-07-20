@@ -61,8 +61,8 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **主 Agent 的合法职责（不是降级）**：
 - 写 P0-brief.md（PM 视角的任务简报）
-- 派发前查证客观信息 + 任务上下文（目标/关注点/已知约束/上游决策/P2结构化字段grep），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或需复用时）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败
-- **verification_env 条件化**：仅在 `ui_affected: true`、`gate_commands.P5` 含 Playwright/e2e、或 P0-brief `known_risks` 含环境依赖时写入 dispatch-context。纯后端无需声明
+- 派发前为每个 subagent 写 dispatch-context（`P{N}-dispatch-context-{role}.md`），含派发指引（目标/约束/上游关联/输入文件）+ 客观查证信息。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败
+- **verification_env 条件化**：仅在 `ui_affected: true`、`gate_commands.P5` 含 Playwright/e2e、或 P0-brief `known_risks` 含环境依赖时写入 dispatch-context-{role}.md。纯后端无需声明
 - P6 阶段：verifier 返回后、跑 gate 前，运行 `check-p6-format.sh --fix` 归一化 PASS/FAIL 大小写
 - 给阶段产出文件 Header 加 `agent: <角色>` 字段（subagent 复制即可）
 - P8 gate 通过后执行 READY 收尾检查（按 releaser subagent 产出的 P8-release.md 临时资源清单清理）
@@ -96,7 +96,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 **关键不变量**：
 
 - 永远不要 `--no-verify` 绕过 hook（CI 兜底会抓到）
-- 永远不要在 `dispatch-context.md` 里写 PASS/FAIL 预判（会被 provenance 拦）
+- 永远不要在 `dispatch-context` 里写 PASS/FAIL 预判（会被 provenance 拦）
 - P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略
 - P2 不可裁剪——方案设计是必经阶段。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略
 - P4/P5 不可裁剪——实现和验证是交付底线，不可省略

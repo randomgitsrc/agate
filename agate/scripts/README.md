@@ -47,7 +47,7 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 |------|------|
 | `agate-next-card.sh` | 输出当前阶段卡片全文（PHASE 取值 P0-P8）|
 
-**用途**：Phase Card 防漂移机制的权威卡片源。主 Agent 调 `agate-next-card.sh P{N}` 拿到对应阶段卡片全文，嵌入 `dispatch-context.md`。后续 step 3 hook 会用 sha256 校验嵌入的卡片是当前版本（防过期/防篡改）。
+**用途**：Phase Card 防漂移机制的权威卡片源。主 Agent 调 `agate-next-card.sh P{N}` 拿到对应阶段卡片全文，嵌入 `dispatch-context-{role}.md`。后续 step 3 hook 会用 sha256 校验嵌入的卡片是当前版本（防过期/防篡改）。
 
 **退出码语义**：
 - 0：成功，stdout 输出卡片全文

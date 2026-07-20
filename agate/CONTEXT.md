@@ -21,7 +21,7 @@
 | gate exit code | 0=通过，1=不通过，2=需人工判断 | check-gate.sh |
 | PAUSED | 任务暂停状态，需人工介入后才能继续。不是失败，是正确路由 | state-machine.md |
 | READY | 任务完成所有 gate、准备发布的状态。实际发布由人手动触发 | state-machine.md |
-| dispatch-context | 派发前主 Agent 写的上下文文件，含环境状态和任务导航。禁止含 PASS/FAIL 预判 | dispatch-protocol.md |
+| dispatch-context | 派发前主 Agent 写的核心信息源，含派发指引（目标/约束/上游关联/输入文件）+ 阶段卡片 + 客观查证信息。文件名 P{N}-dispatch-context-{role}.md，每个 subagent 一个。禁止含 PASS/FAIL 预判 | dispatch-protocol.md |
 | PROD_TOUCHED | subagent 意外接触生产环境时标注的标记，触发 PAUSED | dispatch-protocol.md |
 | DESIGN_GAP | P4 实现中发现的设计偏差声明，须在 P7 被转抄 + 配对 DESIGN_GAP_REVIEWED | state-machine.md |
 | 自审 | agent=main 的评审，被 check-gate.sh 硬拦截（exit 1） | orchestrator-template.md |

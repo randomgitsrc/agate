@@ -163,7 +163,7 @@ EOF
 @test "PV.8 check-p6-provenance.sh dispatch-context 含 PASS 预判 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
-    cat > "$dir/P6-dispatch-context.md" <<'EOF'
+    cat > "$dir/P6-dispatch-context-subtask.md" <<'EOF'
 - PASS AC1 pre-judged
 EOF
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
@@ -324,7 +324,7 @@ agent: test
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
-    cat > "$dir/P6-dispatch-context.md" <<'EOF'
+    cat > "$dir/P6-dispatch-context-subtask.md" <<'EOF'
 ## 客观信息（主 Agent 已查证）
 - 环境状态：debug server 运行中
 

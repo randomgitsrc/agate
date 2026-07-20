@@ -97,16 +97,18 @@ fi
 # --- 审计 2：dispatch-context 内容约束 ---
 # P6 阶段的 dispatch-context 不能含验收结论预判
 
-DISPATCH_CTX="$TASK_DIR/P6-dispatch-context.md"
-if [ -f "$DISPATCH_CTX" ]; then
+shopt -s nullglob
+DISPATCH_CTXS=("$TASK_DIR/P6-dispatch-context-"*.md)
+shopt -u nullglob
+for DISPATCH_CTX in "${DISPATCH_CTXS[@]}"; do
     # Exclude AGATE_CARD embedded block (card template text like "- FAIL > 0" is not a prejudice)
     PREJUDICE=$(sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$DISPATCH_CTX" | grep -cE '^\s*- (PASS|FAIL)\b' 2>/dev/null || echo 0)
     PREJUDICE=$(echo "$PREJUDICE" | tail -1)
     if [ "$PREJUDICE" -gt 0 ]; then
-        echo "GATE PROVENANCE: P6-dispatch-context.md 含 ${PREJUDICE} 处验收结论预判" >&2
+        echo "GATE PROVENANCE: $(basename "$DISPATCH_CTX") 含 ${PREJUDICE} 处验收结论预判" >&2
         exit 1
     fi
-fi
+done
 
 # --- 审计 3：BDD 总数自动化对照 ---
 # P6 的 PASS+FAIL 数 ≥ P1 的 Given 行数（挑验拦截）
@@ -210,7 +212,8 @@ for f in "$TASK_DIR"/P[0-8]-*.md; do
     localname=$(basename "$f")
     [ "$localname" = "P0-brief.md" ] && continue
     case "$localname" in
-        *-dispatch-context.md|*-progress.md|*-paused-resolution.md) continue ;;
+        # TODO: remove old format compatibility in v2.0
+        *-dispatch-context.md|*-dispatch-context-*.md|*-progress.md|*-paused-resolution.md) continue ;;
     esac
     AGENT=$(get_agent "$f")
     if [ -z "$AGENT" ]; then

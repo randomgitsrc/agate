@@ -676,13 +676,15 @@ EOF
     grep -q 'files_modified' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
 }
 
-@test "D-drift-4: dispatch-prompt.md 含结构化任务节（目标/关注点）" {
-    grep -q '目标：' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
-    grep -q '关注点：' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+@test "D-drift-4: dispatch-context.md 含 XML 派发指引节（dispatch_guide/目标/约束）" {
+    grep -q '<dispatch_guide>' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+    grep -q '### 目标' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+    grep -q '### 约束' "$AGATE_ROOT/assets/templates/dispatch-context.md"
 }
 
-@test "D-drift-4b: dispatch-context.md 含'任务上下文'节" {
-    grep -q '任务上下文' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+@test "D-drift-4b: dispatch-context.md 含 XML 标记（dispatch_guide/objective_info）" {
+    grep -q '<dispatch_guide>' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+    grep -q '<objective_info>' "$AGATE_ROOT/assets/templates/dispatch-context.md"
 }
 
 @test "G-drift-1: dispatch-protocol.md 含'自查≠gate'关键词" {

@@ -271,7 +271,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 **主 Agent 的合法职责（非降级）：**
 - 写 P0-brief.md（PM 视角的任务简报，五字段自查）
-- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或同阶段复用时）
+- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context-{role}.md`（信息量 >10 行或同阶段复用时）
 - P8 gate 通过后执行 READY 收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留——见 state-machine.md）
 - PAUSED 时写 `PAUSED-resolution.md` 记录人工决策
 

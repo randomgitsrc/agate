@@ -10,7 +10,7 @@ P1_FILE="$TASK_DIR/P1-requirements.md"
 
 [ ! -d "$TASK_DIR" ] && exit 2
 
-# M2 修复：扫描所有 .md 文件（SCOPE+ 可能出现在非 P 前缀文件里，如 dispatch-context.md）
+# M2 修复：扫描所有 .md 文件（SCOPE+ 可能出现在非 P 前缀文件里，如 dispatch-context-{role}.md）
 SCOPE_FOUND=""
 for f in "$TASK_DIR"/*.md; do
     [ -f "$f" ] || continue

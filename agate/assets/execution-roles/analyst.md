@@ -22,8 +22,8 @@ agent: analyst
 - docs/tasks/{Txxx}/P0-brief.md（主 Agent 任务简报：环境约束、已知风险、裁剪倾向——**P1 的主要输入**）
 - 原始需求 / Bug 报告（主 Agent 在 prompt 里给路径或描述，或从 P0-brief 的 task 字段理解）
 - {agate_root}/WORKFLOW.md（尤其"需求与验收机制"一节）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
 - 相关现有代码/文档（理解现状，判断隐含依赖）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ## 输出
 
