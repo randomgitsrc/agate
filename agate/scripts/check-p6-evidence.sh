@@ -71,23 +71,35 @@ if [ "$UI_AFFECTED" = "true" ]; then
             exit 1
         fi
         EMPTY_COUNT=0
+        PNG_WARNING=0
         while IFS= read -r -d '' img; do
             SIZE=$(stat -c%s "$img" 2>/dev/null || stat -f%z "$img" 2>/dev/null || echo 0)
             if [ "$SIZE" -le 1024 ]; then
-                EMPTY_COUNT=$((EMPTY_COUNT + 1))
+                # PNG header check: 前 8 字节 = \x89PNG\r\n\x1a\n
+                HEADER=$(head -c 8 "$img" 2>/dev/null | od -A n -t x1 | tr -d ' ')
+                EXPECTED='89504e470d0a1a0a'
+                if [ "$HEADER" = "$EXPECTED" ]; then
+                    PNG_WARNING=$((PNG_WARNING + 1))
+                else
+                    EMPTY_COUNT=$((EMPTY_COUNT + 1))
+                fi
             fi
         done < <(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -print0 2>/dev/null)
         if [ "$EMPTY_COUNT" -gt 0 ]; then
-            echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个文件 ≤ 1KB（疑似空 png 充数）" >&2
+            echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个非 PNG 文件 ≤ 1KB（疑似充数）" >&2
             exit 1
+        fi
+        if [ "$PNG_WARNING" -gt 0 ]; then
+            echo "GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 ${PNG_WARNING} 个合法 PNG ≤ 1KB（元素级小截图，不阻断但请确认非充数）" >&2
+            exit 2
         fi
         MD5_LIST=$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -exec md5sum {} \; 2>/dev/null | cut -d' ' -f1 | sort)
         MD5_TOTAL=$(echo "$MD5_LIST" | wc -l)
         MD5_UNIQUE=$(echo "$MD5_LIST" | sort -u | wc -l)
         if [ "$MD5_TOTAL" -gt "$MD5_UNIQUE" ]; then
             MD5_DUPES=$((MD5_TOTAL - MD5_UNIQUE))
-            echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${MD5_DUPES} 个重复文件（md5 去重），操作类 BDD 截图必须互不相同" >&2
-            exit 1
+            echo "GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 ${MD5_DUPES} 个 md5 重复截图（行为差异类 BDD 截图可能视觉相同，不阻断但请在 acceptance report 说明原因）" >&2
+            exit 2
         fi
     fi
 fi

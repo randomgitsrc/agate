@@ -60,6 +60,8 @@ P8 不假设"一个任务一个包"。读 P2 的 `packages:` 声明，**逐个**
 
 漏掉 P2 声明的任一包 = P8 门槛不通过。
 
+- **P8 模式禁止执行 git commit / git tag**——由主 Agent 在 gate 验证后统一执行
+
 ## SCOPE_GAP 检查（T005 教训：主 Agent 的 prompt 漏了 P2 已声明的改动）
 
 收到 prompt 后，对照 P2-design.md 的改动清单和 packages 声明。如果发现 **prompt 遗漏了 P2 明确要做的事**（如 P2 说要改 mcp-server，但 prompt 没让你动它），在产出中标注：

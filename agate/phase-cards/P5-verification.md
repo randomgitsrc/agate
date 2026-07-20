@@ -45,11 +45,25 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
   - flaky test → 记入 P5-test-results/，三振记录
 - **PROD_TOUCHED**：任何生产环境触达 → 立即 PAUSED
 - **E2E 未执行**（ui_affected: true 但未跑 P5_e2e）：视为验证不完整
+- **全量测试 WARNING**：P5 阶段建议运行全量测试套件（含非本任务测试），若发现预存失败：
+  - 在 P5-test-results/unit.md 标注"预存失败：X（与本次改动无关）"
+  - 主 Agent 判断：修复成本 < 推迟成本 → 立即修复；否则记录到 known-failures.md
+  这是 WARNING 级建议，不阻断 P5 推进。
 
 ## 产出规格
 
 - P5-test-results/unit.md：标注 failed 数量（verifier subagent 产出）
 - UI 任务：P5-test-results/e2e.md（Playwright 实跑结果 + 截图路径，verifier subagent 产出）
+
+## 预存失败的处理
+
+若 verifier subagent 发现改动前就存在的失败（预存失败），按以下流程登记：
+
+1. 在 `docs/tasks/{Txxx}/known-failures.md`（从 `{agate_root}/assets/templates/known-failures-template.md` 拷贝模板）登记：
+   - 测试文件、失败数、根因、是否与当前任务相关
+2. 在 P5-test-results/unit.md 标注"预存失败：X（与本次改动无关）"
+3. 主 Agent 按修复成本判断：修复成本 < 推迟成本 → 立即修复；否则记录推迟
+4. 即使不立即修复，债务也可见、可追踪——不会因为"与本任务无关"而默默累积
 
 ## gate 规则
 

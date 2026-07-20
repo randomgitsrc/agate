@@ -61,7 +61,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **主 Agent 的合法职责（不是降级）**：
 - 写 P0-brief.md（PM 视角的任务简报）
-- 派发前为每个 subagent 写 dispatch-context（`P{N}-dispatch-context-{role}.md`），含派发指引（目标/约束/上游关联/输入文件）+ 客观查证信息。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败
+- 派发前为每个 subagent 写 dispatch-context（`P{N}-dispatch-context-{role}.md`），含派发指引（目标/约束/上游关联/输入文件）+ 客观查证信息。用 `agate-inject-card.sh P{N} TASK_DIR` 注入卡片，**禁止手写 AGATE_CARD 内容**。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败
 - **verification_env 条件化**：仅在 `ui_affected: true`、`gate_commands.P5` 含 Playwright/e2e、或 P0-brief `known_risks` 含环境依赖时写入 dispatch-context-{role}.md。纯后端无需声明
 - P6 阶段：verifier 返回后、跑 gate 前，运行 `check-p6-format.sh --fix` 归一化 PASS/FAIL 大小写
 - 给阶段产出文件 Header 加 `agent: <角色>` 字段（subagent 复制即可）
@@ -168,10 +168,16 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 文件：`docs/tasks/{Txxx}/orchestrator-log.md`
 
 **规则**：
-- 以下事件应追加至少一行：gate 失败、subagent 失败/空返回、流程决策（PAUSED/回退/跳阶）、用户叫停
-- 其他事件自由追加，仅追加不编辑不整理
+- 仅追加不编辑不整理
 - 不写思考过程、不写文件内容摘要、不写 subagent 返回原文——只写决策和下一步
 - 任务从 `DONE` 重新激活 → 清空后重建（旧决策基于旧上下文）；`active`/`PAUSED` 恢复 → 追加
+
+**必须追加的事件**（缺任一条 → 主 Agent 行为不合规）：
+- 派发 subagent 前：`NEXT: 派发 {角色} subagent 执行 {阶段}`
+- gate 失败后：`GATE FAIL: {阶段} gate 不通过，原因：{错误消息摘要}`
+- gate 失败诊断完成后：`DIAGNOSIS: {根因} → FIX: {修复方案}`（此条最重要——为后续类似失败提供恢复线索）
+- subagent 失败/空返回：`SUBAGENT FAIL: {角色} {失败原因}`
+- 流程决策：`DECISION: {PAUSED/回退/跳阶}，原因：{...}`
 
 ### commit 时机（强制执行）
 
@@ -196,7 +202,7 @@ commit 被拦 → 读错误消息 → 分析根因 → 修复产出 → 重验 g
 |----------|------|
 | gate 不通过（P2 缺评审 / P3 非红灯 / P6 FAIL） | 回到对应的 subagent 修复产出 |
 | 格式缺字段 | 补字段。subagent 结构性缺陷 → 回 subagent 重做 |
-| dispatch-context 缺失 | `agate-next-card.sh P{N}` → 嵌入 dispatch-context 模板 |
+| dispatch-context 缺失 | `agate-inject-card.sh P{N} TASK_DIR` → 自动注入 AGATE_CARD 块 |
 | 未 commit 旧阶段就推进 phase | 先 commit 旧阶段产出，再改 phase |
 | SCOPE+ 未 resolve | 先处理 P1 增补，标 `[SCOPE_RESOLVED]` |
 | DESIGN_GAP 未配对 | 回 P7 配 `[DESIGN_GAP_REVIEWED]` 标记 |

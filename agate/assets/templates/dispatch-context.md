@@ -2,7 +2,7 @@
 
 ---
 phase: {P1-P8}
-generated_by: agate-next-card.sh + 主 Agent
+generated_by: agate-inject-card.sh + 主 Agent
 task_id: {Txxx}
 role: {角色名，如 analyst / requirements-review / implementer}
 ---
@@ -27,7 +27,7 @@ role: {角色名，如 analyst / requirements-review / implementer}
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->
-{CLI 输出原文}
+{由 agate-inject-card.sh 注入，禁止手写}
 <!-- AGATE_CARD_END -->
 
 <objective_info>

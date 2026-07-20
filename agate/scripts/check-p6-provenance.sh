@@ -42,23 +42,34 @@ if [ -f "$P6_FILE" ]; then
     # 1a: PASS 行里的证据引用路径必须存在
     # I3 修复：取行末最后一个括号组（证据引用在行末），避免前置括号干扰
     # R1b 兼容：先剥离 (vision: ...) 引用，避免把它当证据文件路径
+    # R1c 修复：优先精确提取 screenshots/ 路径，避免嵌套括号（如 nth(1)）截断
     MISSING_REFS=0
+    MISSING_DETAILS=""
     while IFS= read -r line; do
         # 剥离 (vision: ...) 后再取行末括号组（去尾随空格避免行尾不是 )
         LINE_CLEAN=$(echo "$line" | sed 's/(vision:[^)]*)//g' | sed 's/[[:space:]]*$//')
-        REF=$(echo "$LINE_CLEAN" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1)
+        # 优先精确提取 screenshots/ 路径（处理嵌套括号如 nth(1)）
+        REF=$(echo "$LINE_CLEAN" | grep -oE 'screenshots/[^ )]+' | head -1 || true)
+        if [ -z "$REF" ]; then
+            # fallback: 取行末括号组（兼容非截图证据）
+            REF=$(echo "$LINE_CLEAN" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1 || true)
+        fi
         if [ -n "$REF" ]; then
             # I4 修复：去除 P6-evidence/ / p6-evidence/ / evidences/ 前缀
             REF_CLEAN=$(echo "$REF" | sed 's|^P6-evidence/||' | sed 's|^p6-evidence/||' | sed 's|^evidences/||')
             REF_PATH="$EVIDENCE_DIR/$REF_CLEAN"
             if [ ! -f "$REF_PATH" ]; then
                 MISSING_REFS=$((MISSING_REFS + 1))
+                MISSING_DETAILS="${MISSING_DETAILS}  PASS行: ${line}\n  缺失路径: ${REF_PATH}\n"
             fi
         fi
     done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)
 
     if [ "$MISSING_REFS" -gt 0 ]; then
         echo "GATE PROVENANCE: P6-acceptance.md 有 ${MISSING_REFS} 条 PASS 引用的证据文件不存在" >&2
+        if [ -n "$MISSING_DETAILS" ]; then
+            printf '%b' "$MISSING_DETAILS" >&2
+        fi
         exit 1
     fi
 
@@ -83,7 +94,7 @@ if [ -f "$P6_FILE" ]; then
         while IFS= read -r ev_file; do
             ev_basename=$(basename "$ev_file")
             # I4 修复：匹配时考虑子目录路径（evidences/ screenshots/ 等）
-            if ! grep -E '^\s*- PASS\b' "$P6_FILE" | grep -qE "\([^)]*${ev_basename}\)"; then
+            if ! grep -E '^\s*- PASS\b' "$P6_FILE" | grep -qE "(screenshots/${ev_basename}|\([^)]*${ev_basename}\))"; then
                 UNREFERENCED=$((UNREFERENCED + 1))
             fi
         done < <(find "$EVIDENCE_DIR" -type f -not -name '.*' 2>/dev/null)

@@ -129,9 +129,9 @@ P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][
     （⑨ P7 subagent 化：consistency-reviewer subagent 执行交叉检查，N3⑨ 实质锚点校验）
 P7 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空 + git tag -l "${VERSION_TAG_PREFIX}{version}" 存在（推荐，不阻断）]--> READY
-     （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
-    （⑨ P8 subagent 化：releaser subagent 执行发布准备，主 Agent 仍亲自做 READY 收尾）
+P8 --[每个声明的 package 的发布检查命令 exit 0 + 主 Agent 亲自执行 bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ 主 Agent 亲自执行 git commit + git tag + P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空 + git tag -l "${VERSION_TAG_PREFIX}{version}" 存在（推荐，不阻断）]--> READY
+      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
+     （⑨ P8 subagent 化：releaser subagent 执行发布准备（产出文件 + 验证命令），主 Agent 亲自执行 bump-version + commit + tag + READY 收尾）
 
 ### READY 收尾检查（P8 gate 通过后、标记 READY 前）
 

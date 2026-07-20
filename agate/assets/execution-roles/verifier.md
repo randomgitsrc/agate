@@ -131,7 +131,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 ### 质量门槛
 - P1 的**每条** BDD 条件都有实跑结果，只允许 **PASS 或 FAIL**（二值），**不允许"⚠️ 调整/跳过/覆盖"等中间态**（T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
-- **结果格式**：每条 BDD 结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。不要用表格、emoji 或其他格式
+- **结果格式**：每条 BDD 结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。不要用表格、emoji 或其他格式。遵循 PASS 行最小格式规范（见 P6-acceptance.md 产出规格）：`- PASS {BDD编号}: {描述} ({证据路径})`。描述文本可自由添加，不影响 provenance 脚本解析（脚本用精确正则提取路径）
 - UI 条件有截图佐证，不接受"应该能工作"
 - **截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图（断言值是唯一证据）
 - **证据完整性**：P6-evidence/ 目录必须存在且非空。无证据的 PASS 标记将被 gate 拦截
@@ -140,6 +140,14 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - **自查≠gate**：写完验证脚本后应自跑确认语法正确（自查），但自查≠P6 gate
 - **CI 证据优先**：若项目有 CI 流水线，优先引用 CI 产出路径（如 CI artifacts 目录下的 test-results.json），而非自带证据文件。agent 自带证据是条件退让，非默认。
 - **verification_env 条件化**：若 P0-brief 声明 ui_affected=true，verification_env 字段必填（列出验收环境与生产环境的已知差异）。非 UI、无 e2e、无环境依赖的任务无需声明。
+
+### gate 格式预检（返回主 Agent 前执行）
+
+1. 运行 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"` 归一化格式
+2. 运行 `bash $AGATE_ROOT/scripts/check-p6-evidence.sh "$TASK_DIR"` 预检证据格式
+3. 运行 `bash $AGATE_ROOT/scripts/check-p6-provenance.sh "$TASK_DIR"` 预检 provenance
+4. 预检 exit 0 → 返回主 Agent
+5. 预检 exit 1/2 → 修复后重试（最多 2 轮），仍失败 → 返回主 Agent 并附预检错误消息
 
 ### 何时标 [NEED_CONFIRM]
 - 实跑结果和 BDD 条件有偏差，但不确定是 bug 还是需求理解问题
