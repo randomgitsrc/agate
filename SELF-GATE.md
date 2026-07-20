@@ -116,7 +116,7 @@ python3 agate/scripts/check-protocol-consistency.py
 - A4 测试覆盖
 - A5 下游影响 + 文档传播：CHANGELOG 是否标注？文档是否同步？
 - A6 锚点表覆盖
-- A7 设计原则一致性：变更是否符合 agate 声明的设计原则？从变更涉及的协议文件中提炼设计原则，判断本次变更是否违反
+- A7 设计原则一致性：变更是否符合已记录的 ADR（agate/adr.md）？逐条检查相关 ADR。如发现未记录的架构决策，建议补充新 ADR
 
 每项输出：
 - 审查项编号

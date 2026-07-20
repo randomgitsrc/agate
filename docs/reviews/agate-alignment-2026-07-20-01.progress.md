@@ -1,0 +1,55 @@
+- [WORKFLOW.md] 改动性质判断(§改动性质判断)+P3测试设计指导+风险矩阵入口+P2.14改动性质声明+ADR-005引用
+- [orchestrator-template.md] 机制交叉引用+orchestrator-log最低纪律(应追加事件)
+- [state-machine.md] P8→READY tag条件(推荐不阻断)+单步函数log追加(gate不通过时)
+- [protocol-alignment-review.md] A7审查项+配套文件提示+输出格式+A7特殊规则+人工验收清单
+- [SELF-GATE.md] A7审查项+审查清单A1-A7
+- [P3-tdd.md] 常见错误5:只覆盖交互路径忽略前置状态
+- [check-gate.sh] P8 tag存在性WARNING(不阻断)+VERSION_TAG_PREFIX环境变量
+- [check-gate.bats] G8.7/G8.8 tag测试用例
+- [AGENTS.md] adr.md+CONTEXT.md文件清单条目
+- [adr.md] ADR-001~ADR-006 六条架构决策(新文件)
+- [CONTEXT.md] 术语表20个术语(新文件)
+- [dispatch-protocol.md] 未改但应被影响:改动性质判断引用
+- [role-system.md] 未改但应被影响:ADR-006双层角色引用
+- [LIMITATIONS.md] 未改但应被影响:ADR相关局限
+- A1/WORKFLOW改动性质: 文档说'声明性改动→可直接做'(WORKFLOW.md:129-131) / check-gate.sh无改动性质脚本检查（纯文档规则，无脚本实现） / ALIGNED(文档规则不需要脚本)
+- A1/WORKFLOW风险矩阵入口: 文档说'先用改动性质判断确定流程类型，再用矩阵确定裁剪程度'(WORKFLOW.md:187) / 无脚本变更 / ALIGNED(文档指引)
+- A1/P2.14改动性质声明: 文档说'commit message必须声明改动性质(声明性/行为逻辑/机制交叉)+为什么安全'(WORKFLOW.md:195) / 无脚本检查commit message格式 / NEEDS_HUMAN_REVIEW(应否有commit-msg hook检查?)
+- A1/P8-tag: 文档说P8→READY条件含'git tag存在(推荐不阻断)'(state-machine.md:132) / check-gate.sh:206-213实现tag存在性WARNING(不阻断) / ALIGNED
+- A1/orchestrator-log: 文档说'gate不通过时追加至少一行到orchestrator-log.md'(state-machine.md:416) / 无脚本检查 / ALIGNED(文档规则,主Agent行为约束)
+- A1/P3前置状态: 文档说'Given隐含的初始化路径需覆盖'(WORKFLOW.md:163-165) / P3-tdd.md:60常见错误5同步 / ALIGNED
+- A1/机制交叉引用: orchestrator-template.md:105引用WORKFLOW.md§改动性质判断 / WORKFLOW.md:124-143有完整改动性质判断节 / ALIGNED
+- A2/check-gate-P8-tag: check-gate.sh:206-213实现P8 tag WARNING / state-machine.md:132 P8→READY条件含tag(推荐不阻断) / ALIGNED
+- A2/check-gate-VERSION_TAG_PREFIX: check-gate.sh:206 VERSION_TAG_PREFIX环境变量 / state-machine.md:132用'v{version}'默认前缀 / ALIGNED(脚本更灵活,支持环境变量覆盖)
+- A2/A7审查项: protocol-alignment-review.md:26 A7行 / SELF-GATE.md:112 A7行 / ALIGNED(两处同步)
+- A3a/连锁: WORKFLOW.md改动性质→orchestrator-template.md已同步(机制交叉引用) / ALIGNED
+- A3a/连锁: state-machine.md P8 tag→check-gate.sh已同步 / ALIGNED
+- A3a/连锁: WORKFLOW.md P3指导→P3-tdd.md已同步(常见错误5) / ALIGNED
+- A3a/连锁: A7审查→protocol-alignment-review.md+SELF-GATE.md已同步 / ALIGNED
+- A3a/连锁: AGENTS.md文件清单→adr.md+CONTEXT.md条目已加 / ALIGNED
+- A3b/反向传播: dispatch-protocol.md — 改动性质判断在WORKFLOW.md,dispatch-protocol.md的P0模板/派发流程未引用改动性质判断 / 检查dispatch-protocol.md: P0模板(行186-202)无改动性质字段,派发流程(行176-256)无改动性质判断步骤 / NEEDS_HUMAN_REVIEW(P0-brief是否应含change_nature字段?当前P0-brief五字段不含改动性质,但改动性质判断发生在P0之前)
+- A3b/反向传播: role-system.md — ADR-006双层角色已记录在adr.md,role-system.md未引用ADR / 检查role-system.md: 无ADR引用 / ALIGNED(role-system.md是描述性文档,ADR是决策记录,两者独立但一致)
+- A3b/反向传播: LIMITATIONS.md — ADR-001/003/005后果中提到局限,但LIMITATIONS.md未引用ADR / 检查LIMITATIONS.md: 无ADR引用 / NEEDS_HUMAN_REVIEW(LIMITATIONS.md局限1-5是否应交叉引用ADR?当前局限描述自包含,加ADR引用是增强非必须)
+- A3b/反向传播细化: dispatch-protocol.md无改动性质引用 — 改动性质判断发生在P0之前(主Agent决定走不走agate),P0-brief是走agate后才写的,所以dispatch-protocol.md(描述派发协议)不需要引用改动性质判断 / ALIGNED(改动性质判断在WORKFLOW.md适用边界节,是主Agent决策入口,不是派发协议内容)
+- A4/P8-tag测试: check-gate.bats G8.7(tag不存在→WARNING exit2) + G8.8(tag存在→无WARNING) / ALIGNED(覆盖tag存在/不存在两种情况)
+- A4/VERSION_TAG_PREFIX: 无专门测试用例 / NEEDS_HUMAN_REVIEW(环境变量覆盖未测,但G8.7/G8.8覆盖默认v前缀场景)
+- A4/改动性质判断: 纯文档规则,无脚本实现 / ALIGNED(不需要脚本测试)
+- A4/P3前置状态: 纯文档指导 / ALIGNED(不需要脚本测试)
+- A4/A7审查项: 纯文档/流程规则 / ALIGNED(不需要脚本测试)
+- A4/bats实跑: 69 tests, 69 passed, 0 failed (check-gate.bats)
+- A5/CHANGELOG: CHANGELOG.md最新条目是[0.13.0],无[0.13.1]或[0.14.0]条目 / MISALIGNED(v0.13.1和v0.14.0变更未标注到CHANGELOG)
+- A5/破坏性变更: P8 tag检查是WARNING不阻断,无破坏性 / ALIGNED
+- A5/文档传播-orchestrator-template.md: 已同步(机制交叉引用+log纪律) / ALIGNED
+- A5/文档传播-state-machine.md: 已同步(P8 tag条件+log追加) / ALIGNED
+- A5/文档传播-P3-tdd.md: 已同步(常见错误5) / ALIGNED
+- A5/文档传播-dispatch-protocol.md: 不需要同步(改动性质判断不在派发协议范围) / ALIGNED
+- A5/文档传播-role-system.md: 不需要同步(ADR-006是决策记录,role-system.md是描述文档,内容一致) / ALIGNED
+- A5/文档传播-LIMITATIONS.md: ADR后果中提到局限但LIMITATIONS.md自包含,加ADR引用是增强非必须 / ALIGNED
+- A6/锚点表: CHECK 9 PASS,新增规则(改动性质判断/P3指导/P8 tag/A7)是否需要加入锚点表 / NEEDS_HUMAN_REVIEW(改动性质判断是文档规则无脚本,不需要锚点;P8 tag已有脚本检查,CHECK 9已覆盖;A7是审查流程规则,无脚本锚点需求)
+- A7/ADR-001隔离性: 改动性质判断允许'声明性改动→直接做',主Agent自己判断改动性质 / ADR-001说主Agent不写产出,但'直接做'是跳过agate流程不是主Agent写产出 / ALIGNED(直接做=不走agate,不违反隔离性;走agate时仍遵守隔离)
+- A7/ADR-002可判定性: P8 tag检查是WARNING(exit2不阻断),不是硬判定 / ADR-002说gate由脚本exit code决定 / ALIGNED(WARNING是exit2=需人工判断,符合ADR-002的三级判定)
+- A7/ADR-003最小约定: VERSION_TAG_PREFIX环境变量覆盖,不硬编码tag前缀 / ALIGNED(符合不绑定技术栈原则)
+- A7/ADR-004安全网分层: P8 tag WARNING在check-gate.sh中实现,主Agent主动验+hook+CI三层覆盖 / ALIGNED
+- A7/ADR-005改动性质决定流程: WORKFLOW.md改动性质判断节+ADR-005引用 / ALIGNED(本次变更就是ADR-005的落地)
+- A7/ADR-006双层角色: A7审查项新增,审查角色(protocol-alignment-review)独立于被审查的协议/脚本 / ALIGNED(符合执行+评审分离原则)
+- A7/未记录架构决策: orchestrator-log最低纪律(应追加事件)是流程规则不是架构决策;P3前置状态指导是测试设计指导不是架构决策 / ALIGNED(无遗漏ADR)
