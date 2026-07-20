@@ -102,7 +102,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 **UI 任务追加约束**（`ui_affected: true` 时）：
 - 含截图引用的 PASS 行必须同时含 vision YAML 引用：`(screenshots/b01.png) (vision: vision-reports/b01.yaml)`
 - vision YAML 的 `summary.blocker_count` 必须为 0
-- 截图文件大小必须 > 1KB（空 png 充数会被 `check-p6-evidence.sh` 拦截）
+- 截图文件大小 ≤ 1KB 时的处理：非 PNG 文件充数 → 拦截（exit 1）；合法 PNG 但 ≤ 1KB → WARNING（exit 2，元素级小截图不阻断但请确认非充数）
 - 查询类 BDD（断言值是唯一证据）可不截图、不要求 vision——但如果你截了图，就必须有 vision
 
 ### 输入（自己读取）

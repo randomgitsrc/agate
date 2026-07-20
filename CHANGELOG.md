@@ -6,6 +6,29 @@
 
 ---
 
+## [Unreleased]
+
+### 重大变更
+- **dispatch-context 单一信息源重构**：文件名 `P{N}-dispatch-context.md` → `P{N}-dispatch-context-{role}.md`（每个 subagent 一个），格式改为 Markdown+XML（`<dispatch_guide>` + `<objective_info>`），新增 4 子节（目标/约束/上游关联/输入文件），所有 P1-P8 统一强制，hook/provenance 校验改为 glob 匹配
+- **dispatch-prompt 精简**：移除任务特定内容（目标/关注点/约束/输入文件），保留执行框架 + 执行顺序 + 权威性声明
+
+### 新增
+- **`agate-inject-card.sh`**：自动注入 AGATE_CARD 到 dispatch-context 文件（替代手写），支持 glob 匹配多文件
+- **`known-failures-template.md`**：已知债务登记模板（预存失败可见、可追踪）
+- **BDD 反模式自检清单**：analyst.md 新增 5 项 BDD 质量自检
+
+### 变更
+- **G1 (provenance)**：PASS 行截图路径改用精确正则提取（兼容嵌套括号描述）
+- **G2 (evidence ≤1KB)**：PNG header 校验（非 PNG 仍拦截，合法小 PNG WARNING）
+- **G3 (evidence md5)**：md5 去重降级为 WARNING（行为差异类 BDD 截图可视觉相同）
+- **G5 (P8 gate)**：version/CHANGELOG 双路径检查（暂存区 + 最近 5 commit），CHANGELOG 降级为 WARNING
+- **G6 (SCOPE+)**：扫描排除 AGATE_CARD 嵌入块（防卡片模板文本误报）
+- **G8 (P8 提交控制)**：releaser subagent 只产出不提交，bump-version + commit + tag 由主 Agent 统一执行
+- **P5 全量测试 WARNING**：建议 P5 运行全量测试，预存失败登记到 known-failures.md
+- **P6 PASS 行格式标准化**：`- PASS {BDD}: {描述} ({证据路径})`，描述文本不影响解析
+- **verifier P6 gate 格式预检**：返回前预检格式/证据/provenance，最多 2 轮修复
+- **orchestrator-log 强制写入点**：5 种事件必须追加（派发/gate 失败/诊断/subagent 失败/流程决策）
+
 ## [0.14.0] - 2026-07-20
 
 ### 新增
