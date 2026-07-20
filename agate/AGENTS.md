@@ -23,6 +23,8 @@
 | /loop 自动编排 | `loop-orchestration.md` |
 | 不同平台适配（OpenCode/Claude Code） | `platform-notes.md` |
 | 已知局限 | `LIMITATIONS.md`（使用前建议先读） |
+| 架构决策记录 | `adr.md`（A7 审查锚点） |
+| 术语表 + 上下文 | `CONTEXT.md`（Ubiquitous Language） |
 | 改 agate 协议本体并跑测试（maintainer） | `tests/README.md` |
 
 ## 给 Agent 的快速指令

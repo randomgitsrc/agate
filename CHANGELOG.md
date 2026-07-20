@@ -6,6 +6,37 @@
 
 ---
 
+## [0.14.0] - 2026-07-20
+
+### 新增
+- **ADR 架构决策记录**：`adr.md` 含 6 条核心决策（隔离性/可判定性/最小约定/安全网分层/改动性质分类/双层角色），A7 审查锚点
+- **术语表 + 上下文**：`CONTEXT.md` 含 20 个术语的 Ubiquitous Language，跨文件术语统一入口
+- **A7 锚定到 ADR**：protocol-alignment-review.md A7 从"提炼设计原则"改为"引用 ADR"
+
+### 变更
+- **AGENTS.md 文件清单**：增加 adr.md 和 CONTEXT.md
+- **WORKFLOW.md 改动性质判断**：引用 ADR-005
+- **hardening-roadmap.md Phase 2C**：ADR + 术语表条目
+
+---
+
+## [0.13.1] - 2026-07-20
+
+### 新增
+- **改动性质分层判断**：WORKFLOW.md §适用边界从举例式定义改为分层判断（声明性/行为逻辑/机制交叉 × 单点/跨模块 + 高风险覆盖规则），替代旧"微任务"模糊定义
+- **P8 gate tag WARNING**：check-gate.sh P8 检查 CHANGELOG diff 中版本号对应 tag 是否存在，不存在 → WARNING（exit 2，不阻断），`VERSION_TAG_PREFIX` 环境变量覆盖
+- **P3 前置状态覆盖提示**：P3-tdd.md 常见错误第 5 条 + WORKFLOW.md §P3 测试设计指导（含 UI/后端/嵌入式跨领域举例）
+- **orchestrator-log 最低纪律**：从"想写就写"改为"gate 失败/subagent 失败/流程决策/用户叫停应追加至少一行"
+- **A7 设计原则一致性**：protocol-alignment-review.md + SELF-GATE.md 审查清单增加 A7
+
+### 变更
+- **风险矩阵前加入口判断**："先用上方改动性质判断确定流程类型，再用本矩阵确定裁剪程度"
+- **P2.14 改动性质声明**："直接做"commit message 须声明改动性质（声明性/行为逻辑/机制交叉）+ 为什么安全
+- **orchestrator-template.md 关键不变量**：增加"机制交叉改动必须走 agate"
+- **PROD_TOUCHED 检测范围收窄**：pre-commit-gate.sh 只扫任务目录下的暂存 diff，不扫协议/模板/项目文档
+
+---
+
 ## [0.13.0] - 2026-07-13
 
 ### 新增
