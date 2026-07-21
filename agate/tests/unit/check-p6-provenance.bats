@@ -397,3 +397,63 @@ EOF
     [[ "$output" == *"证据文件不存在"* ]]
     [[ "$output" == *"screenshots/missing.png"* ]]
 }
+
+# ========== 审计 5: EXIT_CODE 一致性检测 (M1.3b) ==========
+
+@test "PV.21 审计5: 日志 EXIT_CODE=1 但 P6 声明 PASS → exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS AC1 (logs/test.log)
+EOF
+    mkdir -p "$dir/P6-evidence/logs"
+    cat > "$dir/P6-evidence/logs/test.log" <<'EOF'
+=== Test Results ===
+total: 3, passed: 2, failed: 1
+EXIT_CODE: 1
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"EXIT_CODE"* ]] || [[ "$output" == *"矛盾"* ]]
+}
+
+@test "PV.22 审计5: 日志 EXIT_CODE=0 配 PASS → exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS AC1 (logs/test.log)
+EOF
+    mkdir -p "$dir/P6-evidence/logs"
+    cat > "$dir/P6-evidence/logs/test.log" <<'EOF'
+=== Test Results ===
+total: 3, passed: 3, failed: 0
+EXIT_CODE: 0
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PV.23 审计5: 日志缺少 EXIT_CODE 尾行 → WARNING 不阻断" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS AC1 (logs/test.log)
+EOF
+    mkdir -p "$dir/P6-evidence/logs"
+    cat > "$dir/P6-evidence/logs/test.log" <<'EOF'
+=== Test Results ===
+total: 3, passed: 3, failed: 0
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"EXIT_CODE"* || "$output" == *"跳过"* ]]
+}
