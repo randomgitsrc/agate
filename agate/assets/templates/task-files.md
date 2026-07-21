@@ -40,7 +40,7 @@ agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier|visio
 
 | 文件 | 产出者 | 说明 |
 |------|--------|------|
-| P{N}-dispatch-context.md | 主 Agent | 派发前查证的客观信息（环境状态、URL、选择器等），信息量 >10 行或需复用时落盘 |
+| P{N}-dispatch-context-{role}.md | 主 Agent | 派发前查证的客观信息（环境状态、URL、选择器等），每个 subagent 一个，信息量 >10 行或需复用时落盘 |
 | P{N}-progress.md | subagent | 分阶段落盘的中间产物（每步追加写入），空返回时供主 Agent 判断 subagent 是否动过 |
 | orchestrator-log.md | 主 Agent | 防无响应锚点（长操作前写 NEXT:），详见 orchestrator-template.md「主 Agent 分阶段落盘」节 |
 | PAUSED-resolution.md | 主 Agent | PAUSED 恢复时人工决策内容 |

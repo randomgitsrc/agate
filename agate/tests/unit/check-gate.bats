@@ -586,7 +586,7 @@ EOF
     [[ "$output" == *"WARNING"*"version"* ]]
 }
 
-@test "G8.3 check-gate.sh P8 有 version 但 CHANGELOG 无变更 期望 exit 1" {
+@test "G8.3 check-gate.sh P8 有 version 但 CHANGELOG 无变更 期望 exit 2 (WARNING)" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -597,10 +597,10 @@ EOF
     echo "init" > "$repo/README.md" && git_commit "$repo" "init"
     cp -r "$dir" "$repo/task"
     echo "v0.1.0" > "$repo/package.json"
-    # CHANGELOG 没改
+    # CHANGELOG 没改 → WARNING（不阻断）
     git -C "$repo" add package.json
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 2 ]
     [[ "$output" == *"CHANGELOG"* ]]
 }
 
@@ -676,13 +676,15 @@ EOF
     grep -q 'files_modified' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
 }
 
-@test "D-drift-4: dispatch-prompt.md 含结构化任务节（目标/关注点）" {
-    grep -q '目标：' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
-    grep -q '关注点：' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+@test "D-drift-4: dispatch-context.md 含 XML 派发指引节（dispatch_guide/目标/约束）" {
+    grep -q '<dispatch_guide>' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+    grep -q '### 目标' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+    grep -q '### 约束' "$AGATE_ROOT/assets/templates/dispatch-context.md"
 }
 
-@test "D-drift-4b: dispatch-context.md 含'任务上下文'节" {
-    grep -q '任务上下文' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+@test "D-drift-4b: dispatch-context.md 含 XML 标记（dispatch_guide/objective_info）" {
+    grep -q '<dispatch_guide>' "$AGATE_ROOT/assets/templates/dispatch-context.md"
+    grep -q '<objective_info>' "$AGATE_ROOT/assets/templates/dispatch-context.md"
 }
 
 @test "G-drift-1: dispatch-protocol.md 含'自查≠gate'关键词" {

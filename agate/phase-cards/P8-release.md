@@ -7,9 +7,11 @@
 ## 如果是首次进入本阶段
 
 1. 主 Agent 派发 releaser subagent（implementer P8 模式）执行发布准备
-2. releaser subagent 产出 P8-release.md（含临时资源清单）
-3. 主 Agent 执行 READY 收尾检查（参考 P8-release.md 临时资源清单）
-4. 更新 .state.yaml phase=READY → DONE
+   1.1 写 P8-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
+2. releaser subagent 产出 P8-release.md，**不执行 git commit/tag**
+3. 主 Agent 执行 gate 验证 → 通过后执行 bump-version → commit + tag
+4. 主 Agent 执行 READY 收尾检查（参考 P8-release.md 临时资源清单）
+5. 更新 .state.yaml phase=READY → DONE
 
 ## 如果是重试
 
@@ -21,10 +23,10 @@ releaser subagent（implementer P8 模式）执行以下发布准备步骤：
 
 1. 读取 P2-design.md packages 声明，确定需 bump 的包
 2. 为每个 package 执行发布检查命令
-3. bump-version → 重跑 P5 gate（确认版本 bump 后测试仍全绿）
-4. 更新 CHANGELOG [Unreleased] → 版本号
-5. git commit + git tag
-6. 产出 P8-release.md（含 bump_type、版本号变更确认、CHANGELOG 更新确认、临时资源清单）
+3. 更新 CHANGELOG [Unreleased] → 版本号
+4. 产出 P8-release.md（含 bump_type、版本号变更确认、CHANGELOG 更新确认、临时资源清单）
+
+> **注意**：releaser subagent 不执行 bump-version / git commit / git tag，这些由主 Agent 在 gate 验证通过后亲自执行。
 
 ## releaser→主 Agent 交接
 

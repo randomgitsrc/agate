@@ -548,9 +548,24 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "keywords": ["DESIGN_GAP_REVIEWED"],
     },
     {
-        "desc": "dispatch-context 任务上下文节",
+        "desc": "dispatch-context 派发指引节",
+        "script": "agate/dispatch-protocol.md",
+        "keywords": ["dispatch-context", "dispatch_guide"],
+    },
+    {
+        "desc": "dispatch-context provenance 审计引用",
         "script": "agate/scripts/check-p6-provenance.sh",
         "keywords": ["dispatch-context"],
+    },
+    {
+        "desc": "dispatch-context role frontmatter",
+        "script": "agate/assets/templates/dispatch-context.md",
+        "keywords": ["role:"],
+    },
+    {
+        "desc": "dispatch-context XML 标记",
+        "script": "agate/assets/templates/dispatch-context.md",
+        "keywords": ["<dispatch_guide>", "<objective_info>"],
     },
     {
         "desc": "PAUSED 语义翻转（正确路由）",

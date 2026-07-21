@@ -163,7 +163,7 @@ EOF
 @test "PV.8 check-p6-provenance.sh dispatch-context 含 PASS 预判 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
-    cat > "$dir/P6-dispatch-context.md" <<'EOF'
+    cat > "$dir/P6-dispatch-context-subtask.md" <<'EOF'
 - PASS AC1 pre-judged
 EOF
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
@@ -324,7 +324,7 @@ agent: test
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
-    cat > "$dir/P6-dispatch-context.md" <<'EOF'
+    cat > "$dir/P6-dispatch-context-subtask.md" <<'EOF'
 ## 客观信息（主 Agent 已查证）
 - 环境状态：debug server 运行中
 
@@ -338,4 +338,62 @@ EOF
 EOF
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
     [ "$status" -eq 0 ]
+}
+
+@test "PV.18 check-p6-provenance.sh PASS 行含嵌套括号描述如 nth(1) → 提取 screenshots/ 路径（exit 0）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS AC1 (screenshots/b07.png — element: .katex nth(1))
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PV.19 check-p6-provenance.sh PASS 行含嵌套括号 + vision 引用 → 提取 screenshots/ 路径（exit 0）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/vision.yaml" <<'EOF'
+vision_analysis:
+  summary:
+    blocker_count: 0
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS AC1 (screenshots/b07.png — element: .katex nth(1)) (vision: vision.yaml)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PV.20 check-p6-provenance.sh PASS 行含嵌套括号且路径不存在 → exit 1 + 含具体路径" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS AC1 (screenshots/missing.png — element: .katex nth(1))
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    # 不创建 missing.png
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"证据文件不存在"* ]]
+    [[ "$output" == *"screenshots/missing.png"* ]]
 }

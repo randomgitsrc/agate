@@ -25,8 +25,8 @@ agent: implementer
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
 - P4：docs/tasks/{Txxx}/P2-design.md + P3-test-cases.md + P3-test-code/
 - P8：docs/tasks/{Txxx}/P2-design.md（packages 声明）+ P5-test-results/ + P6-acceptance.md + P7-consistency.md
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
 - 项目约定文件（CLAUDE.md 或 AGENTS.md）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 **读取代码文件时，以 P2-design.md 的 `files_to_read` 清单为准**：
 - 该清单是 architect 设计时画好的"上下文地图"，列出了实现需要参考的文件（及为什么读、哪段行号）
@@ -59,6 +59,8 @@ P8 不假设"一个任务一个包"。读 P2 的 `packages:` 声明，**逐个**
 - P8-release.md 为每个包列出：包名 / 旧版本 → 新版本 / 验证命令 / 结果
 
 漏掉 P2 声明的任一包 = P8 门槛不通过。
+
+- **P8 模式禁止执行 git commit / git tag**——由主 Agent 在 gate 验证后统一执行
 
 ## SCOPE_GAP 检查（T005 教训：主 Agent 的 prompt 漏了 P2 已声明的改动）
 

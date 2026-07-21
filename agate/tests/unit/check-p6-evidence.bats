@@ -161,7 +161,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "E.12 check-p6-evidence.sh UI 任务 + 重复截图（md5 相同）期望 exit 1" {
+@test "E.12 check-p6-evidence.sh UI 任务 + 重复截图（md5 相同）期望 exit 2 (WARNING)" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -180,7 +180,7 @@ EOF
     printf '%s' "$content" > "$dir/P6-evidence/screenshots/login.png"
     printf '%s' "$content" > "$dir/P6-evidence/screenshots/dashboard.png"
     run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 2 ]
     [[ "$output" == *"md5"* || "$output" == *"重复"* ]]
 }
 

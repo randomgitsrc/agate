@@ -6,6 +6,7 @@
 ## 如果是首次进入本阶段
 
 1. 派发 architect subagent → 产出 P2-design.md
+   1.1 写 P2-dispatch-context-architect.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 C8 映射表派评审（见下方）
 3. 评审通过 → P2-review.md status: approved
 4. 预跑 check-gate.sh P2（脚本化检查）

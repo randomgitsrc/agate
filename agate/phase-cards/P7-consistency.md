@@ -7,6 +7,7 @@
 ## 如果是首次进入本阶段
 
 1. 主 Agent 派发 consistency-reviewer subagent 执行交叉检查
+   1.1 写 P7-dispatch-context-consistency-reviewer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 对照 P1-P6 产出做跨文件一致性审查
 3. 产出 P7-consistency.md
 4. 预跑 check-gate.sh P7

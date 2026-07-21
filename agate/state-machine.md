@@ -129,9 +129,9 @@ P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][
     （⑨ P7 subagent 化：consistency-reviewer subagent 执行交叉检查，N3⑨ 实质锚点校验）
 P7 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P8 --[每个声明的 package 的发布检查命令 exit 0 + bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ P8-release.md 含 bump_type: 字段 + git diff --cached --stat 确认各包 version bump + git diff --cached -- CHANGELOG.md 非空 + git tag -l "${VERSION_TAG_PREFIX}{version}" 存在（推荐，不阻断）]--> READY
-     （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
-    （⑨ P8 subagent 化：releaser subagent 执行发布准备，主 Agent 仍亲自做 READY 收尾）
+P8 --[每个声明的 package 的发布检查命令 exit 0 + 主 Agent 亲自执行 bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ 主 Agent 亲自执行 git commit + git tag + P8-release.md 含 bump_type: 字段 + version 文件双路径检查（暂存区或最近 5 commit，WARNING）+ CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING）+ git tag -l "${VERSION_TAG_PREFIX}{version}" 存在（推荐，不阻断）]--> READY
+      （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
+     （⑨ P8 subagent 化：releaser subagent 执行发布准备（产出文件 + 验证命令），主 Agent 亲自执行 bump-version + commit + tag + READY 收尾）
 
 ### READY 收尾检查（P8 gate 通过后、标记 READY 前）
 
@@ -581,7 +581,7 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 | P3/P6 → P2 | ⚠️ 谨慎 | 发现上游设计问题。允许，但 P2 的 retry 计数累积保留，且计入全局步数上限 |
 | 跨多阶段回退 | ❌ 禁止自动 | 如 P6→P1，说明问题严重，停下 PAUSED 报告人工（正确路由，非 agent 失败）。检测方式：单步函数步骤 6 的 phase 编号差值检查（|next - current| >= 2 → PAUSED） |
 
-（回退时携带诊断：新写目标阶段 dispatch-context.md + 引用 gate-diagnosis.md 路径，诊断内容不 inline 到 dispatch-context，见 ⑪⑫）
+（回退时携带诊断：新写目标阶段 dispatch-context 文件 + 引用 gate-diagnosis.md 路径，诊断内容不 inline 到 dispatch-context，见 ⑪⑫）
 
 全局步数上限（护栏 2，默认 20）是最后兜底，但按阶段独立计数 + 回退规则让它不必单独扛所有失控场景。
 
@@ -599,7 +599,7 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 
 | 回退 | diff | 流程 |
 |------|------|------|
-| P5→P4 | 1 | 直接退，带诊断信息（写入 P4-dispatch-context.md 的回退诊断节） |
+| P5→P4 | 1 | 直接退，带诊断信息（写入 P4-dispatch-context-{role}.md 的上游关联节引用 gate-diagnosis.md 路径） |
 | P6→P5 | 1 | 直接退（但 P5 通常不是问题源头，更常见是 P6→P4） |
 
 #### diff≥2 的回退（PAUSED + 诊断）

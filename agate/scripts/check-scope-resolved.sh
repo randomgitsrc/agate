@@ -10,11 +10,12 @@ P1_FILE="$TASK_DIR/P1-requirements.md"
 
 [ ! -d "$TASK_DIR" ] && exit 2
 
-# M2 修复：扫描所有 .md 文件（SCOPE+ 可能出现在非 P 前缀文件里，如 dispatch-context.md）
+# M2 修复：扫描所有 .md 文件（SCOPE+ 可能出现在非 P 前缀文件里，如 dispatch-context-{role}.md）
+# 排除 AGATE_CARD 嵌入块（卡片模板文本含字面 SCOPE+ 会触发误报）
 SCOPE_FOUND=""
 for f in "$TASK_DIR"/*.md; do
     [ -f "$f" ] || continue
-    if grep -q '\[SCOPE+\]' "$f" 2>/dev/null; then
+    if sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$f" | grep -q '\[SCOPE+\]'; then
         SCOPE_FOUND="${SCOPE_FOUND}$(basename "$f") "
     fi
 done

@@ -6,8 +6,10 @@
 ## 如果是首次进入本阶段
 
 1. 派发 analyst subagent → 产出 P1-requirements.md
+   1.1 写 P1-dispatch-context-analyst.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 主 Agent 确认：BDD 验收条件 ≥1 条 + 无未决 NEED_CONFIRM
 2.5 派发 requirements-review subagent（角色文件：{agate_root}/assets/review-roles/requirements-review.md）
+     2.5.1 写 P1-dispatch-context-requirements-review.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
     输入：P1-requirements.md
     产出：P1-review.md（agent≠main，含 BDD 编号引用 + 覆盖维度标注）
     review 不通过 → analyst 修改 → 再 review → … → approved（⑩迭代循环）

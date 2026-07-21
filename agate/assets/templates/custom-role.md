@@ -21,7 +21,7 @@ source: {可选，如果改编自某处}
 ## 输入（自己读取）
 {必须读取的文件路径，subagent 自己读，不靠主 Agent 传内容}
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——所有角色必读）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 - {其他角色特定输入}
 
 ## 输出

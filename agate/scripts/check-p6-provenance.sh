@@ -42,23 +42,34 @@ if [ -f "$P6_FILE" ]; then
     # 1a: PASS 行里的证据引用路径必须存在
     # I3 修复：取行末最后一个括号组（证据引用在行末），避免前置括号干扰
     # R1b 兼容：先剥离 (vision: ...) 引用，避免把它当证据文件路径
+    # R1c 修复：优先精确提取 screenshots/ 路径，避免嵌套括号（如 nth(1)）截断
     MISSING_REFS=0
+    MISSING_DETAILS=""
     while IFS= read -r line; do
         # 剥离 (vision: ...) 后再取行末括号组（去尾随空格避免行尾不是 )
         LINE_CLEAN=$(echo "$line" | sed 's/(vision:[^)]*)//g' | sed 's/[[:space:]]*$//')
-        REF=$(echo "$LINE_CLEAN" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1)
+        # 优先精确提取 screenshots/ 路径（处理嵌套括号如 nth(1)）
+        REF=$(echo "$LINE_CLEAN" | grep -oE 'screenshots/[^ )]+' | head -1 || true)
+        if [ -z "$REF" ]; then
+            # fallback: 取行末括号组（兼容非截图证据）
+            REF=$(echo "$LINE_CLEAN" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1 || true)
+        fi
         if [ -n "$REF" ]; then
             # I4 修复：去除 P6-evidence/ / p6-evidence/ / evidences/ 前缀
             REF_CLEAN=$(echo "$REF" | sed 's|^P6-evidence/||' | sed 's|^p6-evidence/||' | sed 's|^evidences/||')
             REF_PATH="$EVIDENCE_DIR/$REF_CLEAN"
             if [ ! -f "$REF_PATH" ]; then
                 MISSING_REFS=$((MISSING_REFS + 1))
+                MISSING_DETAILS="${MISSING_DETAILS}  PASS行: ${line}\n  缺失路径: ${REF_PATH}\n"
             fi
         fi
     done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)
 
     if [ "$MISSING_REFS" -gt 0 ]; then
         echo "GATE PROVENANCE: P6-acceptance.md 有 ${MISSING_REFS} 条 PASS 引用的证据文件不存在" >&2
+        if [ -n "$MISSING_DETAILS" ]; then
+            printf '%b' "$MISSING_DETAILS" >&2
+        fi
         exit 1
     fi
 
@@ -83,7 +94,7 @@ if [ -f "$P6_FILE" ]; then
         while IFS= read -r ev_file; do
             ev_basename=$(basename "$ev_file")
             # I4 修复：匹配时考虑子目录路径（evidences/ screenshots/ 等）
-            if ! grep -E '^\s*- PASS\b' "$P6_FILE" | grep -qE "\([^)]*${ev_basename}\)"; then
+            if ! grep -E '^\s*- PASS\b' "$P6_FILE" | grep -qE "(screenshots/${ev_basename}|\([^)]*${ev_basename}\))"; then
                 UNREFERENCED=$((UNREFERENCED + 1))
             fi
         done < <(find "$EVIDENCE_DIR" -type f -not -name '.*' 2>/dev/null)
@@ -97,16 +108,18 @@ fi
 # --- 审计 2：dispatch-context 内容约束 ---
 # P6 阶段的 dispatch-context 不能含验收结论预判
 
-DISPATCH_CTX="$TASK_DIR/P6-dispatch-context.md"
-if [ -f "$DISPATCH_CTX" ]; then
+shopt -s nullglob
+DISPATCH_CTXS=("$TASK_DIR/P6-dispatch-context-"*.md)
+shopt -u nullglob
+for DISPATCH_CTX in "${DISPATCH_CTXS[@]}"; do
     # Exclude AGATE_CARD embedded block (card template text like "- FAIL > 0" is not a prejudice)
     PREJUDICE=$(sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$DISPATCH_CTX" | grep -cE '^\s*- (PASS|FAIL)\b' 2>/dev/null || echo 0)
     PREJUDICE=$(echo "$PREJUDICE" | tail -1)
     if [ "$PREJUDICE" -gt 0 ]; then
-        echo "GATE PROVENANCE: P6-dispatch-context.md 含 ${PREJUDICE} 处验收结论预判" >&2
+        echo "GATE PROVENANCE: $(basename "$DISPATCH_CTX") 含 ${PREJUDICE} 处验收结论预判" >&2
         exit 1
     fi
-fi
+done
 
 # --- 审计 3：BDD 总数自动化对照 ---
 # P6 的 PASS+FAIL 数 ≥ P1 的 Given 行数（挑验拦截）
@@ -210,7 +223,8 @@ for f in "$TASK_DIR"/P[0-8]-*.md; do
     localname=$(basename "$f")
     [ "$localname" = "P0-brief.md" ] && continue
     case "$localname" in
-        *-dispatch-context.md|*-progress.md|*-paused-resolution.md) continue ;;
+        # TODO: remove old format compatibility in v2.0
+        *-dispatch-context.md|*-dispatch-context-*.md|*-progress.md|*-paused-resolution.md) continue ;;
     esac
     AGENT=$(get_agent "$f")
     if [ -z "$AGENT" ]; then

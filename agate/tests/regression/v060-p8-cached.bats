@@ -42,7 +42,7 @@ EOF
     [[ "$output" == *"WARNING"*"version"* ]]
 }
 
-@test "R5.3 P8 gate 暂存区有 version 但 CHANGELOG 无变更 → exit 1" {
+@test "R5.3 P8 gate 暂存区有 version 但 CHANGELOG 无变更 → exit 2 (WARNING)" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -53,9 +53,9 @@ EOF
     echo "init" > "$repo/README.md" && git_commit "$repo" "init"
     cp -r "$dir" "$repo/task"
     echo "v0.1.0" > "$repo/package.json"
-    # CHANGELOG 没改
+    # CHANGELOG 没改 → WARNING（不阻断）
     git -C "$repo" add package.json
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 2 ]
     [[ "$output" == *"CHANGELOG"* ]]
 }

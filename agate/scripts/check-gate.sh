@@ -181,27 +181,47 @@ case "$PHASE" in
       # 以下检查使用通用模式，可能需要主 Agent 补充验证。
       # 用 git diff --cached（暂存区），不用 HEAD~1——pre-commit 时本次变更还没进 HEAD
       # 与 P4/P7 同款修复（v0.6 hardening R4 chicken-and-egg 教训）
-      RC=0
-      # 检查 bump_type 字段
-      if ! grep -q 'bump_type:' "$TASK_DIR/P8-release.md" 2>/dev/null; then
-          echo "GATE P8: P8-release.md 缺 bump_type 字段" >&2
-          RC=1
-      fi
-      # 检查 version 文件变更（通用匹配，主 Agent 应从 P2 packages 补充验证）
-      VERSION_PATTERN="${AGATE_VERSION_FILES:-version|__version__|package.json|Cargo.toml|pyproject.toml|go.mod|pom.xml|gemspec|csproj}"
-      if ! git diff --cached --stat 2>/dev/null | grep -qiE "$VERSION_PATTERN"; then
-          echo "GATE P8 WARNING: 暂存区无 version 文件变更。若项目用其他文件管理版本，设置 AGATE_VERSION_FILES 环境变量。" >&2
-          # WARNING: 不设 RC=1，让 gate 继续（降级为非阻断）
-      fi
-      # 检查 CHANGELOG 变更（默认 CHANGELOG.md，项目可用 CHANGELOG_FILE 环境变量覆盖）
-      CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
-      if ! git diff --cached -- "$CHANGELOG_FILE" 2>/dev/null | grep -q .; then
-          echo "GATE P8: ${CHANGELOG_FILE} 暂存区无变更（若项目用其他 changelog 文件，设置 CHANGELOG_FILE 环境变量）" >&2
-          RC=1
-      fi
-      if [ "$RC" -ne 0 ]; then
-          exit 1
-      fi
+       # 检查 bump_type 字段
+       if ! grep -q 'bump_type:' "$TASK_DIR/P8-release.md" 2>/dev/null; then
+           echo "GATE P8: P8-release.md 缺 bump_type 字段" >&2
+           exit 1
+       fi
+       # 检查 version 文件变更（路径 A: 暂存区 + 路径 B: 最近 commit）
+       VERSION_PATTERN="${AGATE_VERSION_FILES:-version|__version__|package.json|Cargo.toml|pyproject.toml|go.mod|pom.xml|gemspec|csproj}"
+       CACHED_VERSION=no
+       if git diff --cached --stat 2>/dev/null | grep -qiE "$VERSION_PATTERN"; then
+           CACHED_VERSION=yes
+       fi
+       RECENT_VERSION=no
+       if [ "$CACHED_VERSION" = "no" ]; then
+           LOOKBACK="${AGATE_P8_LOOKBACK:-5}"
+           if git rev-parse "HEAD~${LOOKBACK}" >/dev/null 2>&1; then
+               if git diff "HEAD~${LOOKBACK}..HEAD" --stat 2>/dev/null | grep -qiE "$VERSION_PATTERN"; then
+                   RECENT_VERSION=yes
+               fi
+           fi
+       fi
+       if [ "$CACHED_VERSION" = "no" ] && [ "$RECENT_VERSION" = "no" ]; then
+           echo "GATE P8 WARNING: 暂存区和最近 ${LOOKBACK} 个 commit 均无 version 文件变更" >&2
+       fi
+       # 检查 CHANGELOG 变更（双路径，降级为 WARNING）
+       CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
+       CACHED_CHANGELOG=no
+       if git diff --cached -- "$CHANGELOG_FILE" 2>/dev/null | grep -q .; then
+           CACHED_CHANGELOG=yes
+       fi
+       RECENT_CHANGELOG=no
+       if [ "$CACHED_CHANGELOG" = "no" ]; then
+           LOOKBACK="${AGATE_P8_LOOKBACK:-5}"
+           if git rev-parse "HEAD~${LOOKBACK}" >/dev/null 2>&1; then
+               if git diff "HEAD~${LOOKBACK}..HEAD" -- "$CHANGELOG_FILE" 2>/dev/null | grep -q .; then
+                   RECENT_CHANGELOG=yes
+               fi
+           fi
+       fi
+       if [ "$CACHED_CHANGELOG" = "no" ] && [ "$RECENT_CHANGELOG" = "no" ]; then
+           echo "GATE P8 WARNING: 暂存区和最近 ${LOOKBACK} 个 commit 均无 ${CHANGELOG_FILE} 变更" >&2
+       fi
       # 检查 tag 存在性（WARNING，不阻断——tag 通常在 gate 通过后才打）
       VERSION_TAG_PREFIX="${VERSION_TAG_PREFIX:-v}"
       CHANGELOG_DIFF=$(git diff --cached -- "$CHANGELOG_FILE" 2>/dev/null || true)

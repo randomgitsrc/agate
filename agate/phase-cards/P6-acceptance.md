@@ -6,6 +6,7 @@
 ## 如果是首次进入本阶段
 
 1. 派发 verifier subagent → 产出 P6-acceptance.md + P6-evidence/
+   1.1 写 P6-dispatch-context-verifier.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. UI 任务：派 vision-analyst → 产出 vision-reports/
 3. 主 Agent 逐条核实 BDD 对照结果
 4. **先验证功能（用户视角），再满足 gate 格式**（T046 教训：别反过来）
@@ -43,10 +44,25 @@
 - UI 任务：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图但须有断言记录文件
 - UI 任务：每条 UI 类 PASS 含 vision 引用：`(vision: vision-reports/bxx.yaml)`
 
+**PASS 行最小格式规范**：
+
+```
+- PASS {BDD编号}: {描述} ({证据路径})
+```
+
+证据路径格式：
+- 截图：`(screenshots/{filename}.png)`
+- vision：`(vision: vision-reports/{filename}.yaml)`
+- 其他：`(result.json)` / `(assert.log)` / `(P6-evidence/{filename})` / ...
+
+描述文本可自由添加，不影响解析（provenance 脚本用精确正则提取路径）。
+
 ### P6-evidence/
 
 - 必须非空，每个文件含实质内容（截图 >1KB，断言文件含实际输出）
 - 不接受 1 行文本文件充数（T046 教训：15 个 1 行 txt 文件凑 provenance 数量）
+- 元素级截图建议使用父级元素 + padding，避免过小截图（≤1KB 虽不阻断但会触发 WARNING）
+- 行为差异类 BDD 截图可能视觉相同（md5 重复），建议在 acceptance report 说明原因
 
 ### vision-helper 结论绑定 ⚠️
 

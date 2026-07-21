@@ -32,7 +32,7 @@ agent: verifier
 - docs/tasks/{Txxx}/P2-design.md（是否 ui_affected）
 - docs/tasks/{Txxx}/P3-test-code/（测试）
 - docs/tasks/{Txxx}/P4-implementation/（实现）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息，如环境状态、URL、选择器等）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ### 输出
 - docs/tasks/{Txxx}/P5-test-results/unit.md — 单元/回归结果（含 failed 计数）
@@ -93,7 +93,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - **每条 PASS 后必须引证据路径**：`- PASS B01: 描述 (P6-evidence/screenshots/b01.png)`——括号内路径相对 P6-evidence/，文件**必须存在**
 - **多条 PASS 可共享同一证据文件**：如 3 条 PASS 引用 `shared.json` 是允许的。但每条 PASS 必须有引用、每个证据文件必须被引用（充数文件被拦）
 - **每个证据文件都被 PASS 行引用**：空 png 充数（创建但不引用）会被拦
-- **P{N}-dispatch-context.md 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦
+- **dispatch-context 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦
 
 **你的诚实边界**：你看到的代码、跑过的命令、截到的图都是证据；你"觉得应该能过"不是证据。无法验证的 BDD 标 `[NEED_CONFIRM]`，不标 PASS。
 
@@ -102,14 +102,14 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 **UI 任务追加约束**（`ui_affected: true` 时）：
 - 含截图引用的 PASS 行必须同时含 vision YAML 引用：`(screenshots/b01.png) (vision: vision-reports/b01.yaml)`
 - vision YAML 的 `summary.blocker_count` 必须为 0
-- 截图文件大小必须 > 1KB（空 png 充数会被 `check-p6-evidence.sh` 拦截）
+- 截图文件大小 ≤ 1KB 时的处理：非 PNG 文件充数 → 拦截（exit 1）；合法 PNG 但 ≤ 1KB → WARNING（exit 2，元素级小截图不阻断但请确认非充数）
 - 查询类 BDD（断言值是唯一证据）可不截图、不要求 vision——但如果你截了图，就必须有 vision
 
 ### 输入（自己读取）
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
 - docs/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）
 - docs/tasks/{Txxx}/P5-test-results/（技术验证结果，可复用避免重复跑）
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 - 运行环境（debug backend / 临时 HOME，严禁碰正式服务）
 
 ### 输出
@@ -131,7 +131,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 ### 质量门槛
 - P1 的**每条** BDD 条件都有实跑结果，只允许 **PASS 或 FAIL**（二值），**不允许"⚠️ 调整/跳过/覆盖"等中间态**（T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
-- **结果格式**：每条 BDD 结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。不要用表格、emoji 或其他格式
+- **结果格式**：每条 BDD 结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。不要用表格、emoji 或其他格式。遵循 PASS 行最小格式规范（见 P6-acceptance.md 产出规格）：`- PASS {BDD编号}: {描述} ({证据路径})`。描述文本可自由添加，不影响 provenance 脚本解析（脚本用精确正则提取路径）
 - UI 条件有截图佐证，不接受"应该能工作"
 - **截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图（断言值是唯一证据）
 - **证据完整性**：P6-evidence/ 目录必须存在且非空。无证据的 PASS 标记将被 gate 拦截
@@ -140,6 +140,14 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - **自查≠gate**：写完验证脚本后应自跑确认语法正确（自查），但自查≠P6 gate
 - **CI 证据优先**：若项目有 CI 流水线，优先引用 CI 产出路径（如 CI artifacts 目录下的 test-results.json），而非自带证据文件。agent 自带证据是条件退让，非默认。
 - **verification_env 条件化**：若 P0-brief 声明 ui_affected=true，verification_env 字段必填（列出验收环境与生产环境的已知差异）。非 UI、无 e2e、无环境依赖的任务无需声明。
+
+### gate 格式预检（返回主 Agent 前执行）
+
+1. 运行 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"` 归一化格式
+2. 运行 `bash $AGATE_ROOT/scripts/check-p6-evidence.sh "$TASK_DIR"` 预检证据格式
+3. 运行 `bash $AGATE_ROOT/scripts/check-p6-provenance.sh "$TASK_DIR"` 预检 provenance
+4. 预检 exit 0 → 返回主 Agent
+5. 预检 exit 1/2 → 修复后重试（最多 2 轮），仍失败 → 返回主 Agent 并附预检错误消息
 
 ### 何时标 [NEED_CONFIRM]
 - 实跑结果和 BDD 条件有偏差，但不确定是 bug 还是需求理解问题

@@ -16,22 +16,42 @@ setup() {
     chmod +x "$HOOK_PATH"
 }
 
-# 为派发阶段产出 commit 生成最小有效的 dispatch-context.md
-_add_dispatch_ctx() {
-    local dir="$1" phase="$2"
-    cat > "$dir/${phase}-dispatch-context.md" << 'DCTPL'
+_write_min_valid_dispatch_context() {
+    local dir="$1" phase="$2" role="$3"
+    cat > "$dir/${phase}-dispatch-context-${role}.md" << 'DCTPL'
 ---
 phase: PH_PLACEHOLDER
-generated_by: agate-next-card.sh
+generated_by: agate-next-card.sh + 主 Agent
+task_id: T001
+role: ROLE_PLACEHOLDER
 ---
+
+<dispatch_guide>
+### 目标
+测试
+
+### 约束
+无
+
+### 上游关联
+无
+
+### 输入文件
+- docs/tasks/T001/P0-brief.md
+</dispatch_guide>
 
 <!-- AGATE_CARD_START -->
 DCTPL
-    bash "$AGATE_SCRIPTS/agate-next-card.sh" "$phase" 2>/dev/null >> "$dir/${phase}-dispatch-context.md"
-    cat >> "$dir/${phase}-dispatch-context.md" << 'DCTPL'
+    bash "$AGATE_SCRIPTS/agate-next-card.sh" "$phase" 2>/dev/null >> "$dir/${phase}-dispatch-context-${role}.md"
+    cat >> "$dir/${phase}-dispatch-context-${role}.md" << 'DCTPL'
 <!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：正常
+</objective_info>
 DCTPL
-    sed -i "s/PH_PLACEHOLDER/${phase}/" "$dir/${phase}-dispatch-context.md"
+    sed -i "s/PH_PLACEHOLDER/${phase}/" "$dir/${phase}-dispatch-context-${role}.md"
+    sed -i "s/ROLE_PLACEHOLDER/${role}/" "$dir/${phase}-dispatch-context-${role}.md"
 }
 
 @test "IT.1 pre-commit-hook 无 .state.yaml 变更 不触发" {
@@ -73,8 +93,8 @@ agent: requirements-review
 - B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add .state.yaml docs/tasks/T001/
-    _add_dispatch_ctx "docs/tasks/T001" "P1"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context.md"
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
     run git -C "$REPO" commit -m "phase change to P1"
     [ "$status" -eq 0 ]
 }
@@ -163,8 +183,8 @@ agent: requirements-review
 - B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add docs/tasks/T001/
-    _add_dispatch_ctx "docs/tasks/T001" "P1"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context.md"
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
     run git -C "$REPO" commit -m "T001 P1"
     [ "$status" -eq 0 ]
 }
@@ -229,8 +249,8 @@ agent: requirements-review
 - B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add docs/tasks/T001/
-    _add_dispatch_ctx "docs/tasks/T001" "P1"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context.md"
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
     git -C "$REPO" commit -qm "T001 P1"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
@@ -284,8 +304,8 @@ ui_affected: false
 gate_commands: {}
 EOF
     git -C "$REPO" add docs/tasks/T001/
-    _add_dispatch_ctx "docs/tasks/T001" "P2"
-    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context.md"
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P2" "architect"
+    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context-architect.md"
     git -C "$REPO" commit -qm "T001 P2"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
@@ -343,8 +363,8 @@ ui_affected: false
 gate_commands: {}
 EOF
     git -C "$REPO" add docs/tasks/T001/
-    _add_dispatch_ctx "docs/tasks/T001" "P2"
-    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context.md"
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P2" "architect"
+    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context-architect.md"
     run git -C "$REPO" commit -m "T001 P2 medium skip P3"
     [ "$status" -ne 0 ]
     [[ "$output" == *"P3 不可裁剪"*"仅 low"* ]]
@@ -380,8 +400,8 @@ agent: requirements-review
 - B01: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add .state.yaml docs/tasks/T001/
-    _add_dispatch_ctx "docs/tasks/T001" "P1"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context.md"
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
     run git -C "$REPO" commit -m "root state P1"
     [ "$status" -eq 0 ]
 }

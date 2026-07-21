@@ -28,8 +28,8 @@ agent: architect
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
 - P2 时：docs/tasks/{Txxx}/P1-requirements.md（需求基线 + BDD 条件 + 范围声明）
 - P7 时：docs/tasks/{Txxx}/P2-design.md + P5-test-results/ + P6-acceptance.md
-- docs/tasks/{Txxx}/P{N}-dispatch-context.md（若存在：主 Agent 已查证的客观信息）
 - 相关现有代码（自己 grep/read）
+- dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ## 输出
 - P2：docs/tasks/{Txxx}/P2-design.md（影响域、设计、计划、风险），**必须含以下声明字段**：

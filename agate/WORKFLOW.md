@@ -221,7 +221,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | P5 | 技术验证 | verifier（P5 模式，subagent 派发）| gate 自检 + N5 最小校验（test runner 输出签名）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；`grep -rl '\[PROD_TOUCHED\]'` → 无命中 |
 | P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.sh P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）；`scripts/check-p6-provenance.sh` exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）；主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）；UI 条件须 vision-analyst YAML `summary.blocker_count==0`（R1b 已 hook 化）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） |
 | P7 | 一致性检查 | consistency-reviewer（subagent 派发）| gate 自检 + N3⑨ 实质锚点（跨文件引用关键词）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
-| P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.sh P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；`git diff --cached --stat` 含 version 变更；`git diff --cached -- ${CHANGELOG_FILE:-CHANGELOG.md}` 非空；`check-pruning.sh` 验证裁剪 P8 时有 `internal_only: true` 声明 |
+| P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.sh P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；version 双路径检查（暂存区或最近 5 commit，WARNING）；CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）；`check-pruning.sh` 验证裁剪 P8 时有 `internal_only: true` 声明 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
 
 **P1 与 P6 的关系**：P1 用 BDD（Given/When/Then）写下"做完之后应该表现成什么样"，P6 把这些条件逐条实际跑一遍、把结果翻译成人能看懂的行为描述。P1 是"约定"，P6 是"兑现验证"。
@@ -271,7 +271,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 **主 Agent 的合法职责（非降级）：**
 - 写 P0-brief.md（PM 视角的任务简报，五字段自查）
-- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context.md`（信息量 >10 行或同阶段复用时）
+- 派发前查证客观信息（环境状态、URL、选择器等），落盘成 `P{N}-dispatch-context-{role}.md`（信息量 >10 行或同阶段复用时）
 - P8 gate 通过后执行 READY 收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留——见 state-machine.md）
 - PAUSED 时写 `PAUSED-resolution.md` 记录人工决策
 
