@@ -54,12 +54,12 @@ hardening-roadmap 设计的核心 gate 机制（pre-commit hook + CI backstop）
 | `check-p6-provenance.sh` 审计 | ✅ | ✅ | ✅ | 纯 bash + 文件系统 |
 | `agent:` 字段协作规范 | ✅ | ✅ | ✅ | 文件级 metadata |
 | `risk=high` 自审 WARNING | ✅ | ✅ | ✅ | hook 输出 exit 2 |
-| CI backstop（gate 重跑 + git blame WARNING）| ⚠️ 自实现 | ⚠️ 自实现 | ⚠️ 自实现 | 仅 GitHub Actions 提供开箱实现 |
+| CI backstop（gate 重跑 + provenance 重跑 + git blame WARNING）| ⚠️ 自实现 | ⚠️ 自实现 | ⚠️ 自实现 | GitHub Actions / GitLab CI / Gitea Actions 提供开箱实现（⚠️ Gitea 未实测） |
 | 独立 git author 追踪（P2.10 根治）| ❌ | ❌ | ❌ | Phase 3 平台功能未实现 |
 | `~/.agate` 软链接 | ✅ | ✅ | ✅ | 文件系统级，无平台差异 |
 
-**CI backstop 说明**：`.github/workflows/protocol-tests.yml` 的 `gate-backstop` job 用 GitHub Actions 实现。在自建 CI（Gitea/GitLab/本地）跑 agate 时：
-- 需要等价实现：`git push` 后重跑 `scripts/check-gate.sh` + 调用 `ci-gate-backstop.py`
+**CI backstop 说明**：`.github/workflows/protocol-tests.yml` 的 `gate-backstop` job 用 GitHub Actions 实现。ci-gate-backstop.py 原生支持 GitHub Actions / GitLab CI / Gitea Actions（通过 `detect_ci_platform()` 自动检测）。在自建 CI（Jenkins/本地）跑 agate 时：
+- 需要等价实现：`git push` 后重跑 `scripts/check-gate.sh` + `scripts/check-p6-provenance.sh` + 调用 `ci-gate-backstop.py`
 - 不实现 CI backstop 也能用——只是失去 `--no-verify` 绕过 hook 的兜底审计
 
 **Codex 兼容性**：Codex subagent max_depth=1 与 P2.1 强制派发独立 subagent（risk=high）的兼容性：

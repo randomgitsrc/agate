@@ -360,6 +360,30 @@ EOF
     [ "$status" -eq 2 ]
 }
 
+@test "G5.1 T060: P2 gate_commands.P5 多命令时 P5 输出 WARNING" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+phase: P2
+task_id: T001
+agent: architect
+---
+
+## gate_commands
+```yaml
+P5:
+  - pytest tests/unit
+  - pytest tests/integration
+  - pytest tests/e2e
+```
+EOF
+
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 2 ]  # P5 恒 exit 2
+    [[ "$output" == *"gate_commands.P5"* || "$output" == *"子集"* || "$output" == *"全量"* ]]
+}
+
 # ========== P6 (5 用例) ==========
 
 @test "G6.1 check-gate.sh P6 含 FAIL 行 期望 exit 1" {

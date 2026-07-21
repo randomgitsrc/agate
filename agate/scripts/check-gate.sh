@@ -115,6 +115,16 @@ case "$PHASE" in
       git diff --cached --name-only | grep -qvE '(^|/)P[0-8]-.*\.md$|(^|/)\.state\.yaml$' && exit 0 || exit 1 ;;
   P5)
       echo "GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定" >&2
+      # WARNING: 如果 P2 声明了多个 gate_commands.P5 命令（单元+集成+E2E），
+      # 提醒主 Agent 确认是否全部执行（T060 教训：只跑子集可能掩盖预存失败）
+      if [ -f "$TASK_DIR/P2-design.md" ]; then
+          P5_CMD_COUNT=$(grep -cE '^\s+- ' "$TASK_DIR/P2-design.md" 2>/dev/null || echo 0)
+          P5_CMD_COUNT=$(echo "$P5_CMD_COUNT" | tail -1)
+          if [ "$P5_CMD_COUNT" -gt 1 ]; then
+              echo "GATE P5 WARNING: P2 声明了 ${P5_CMD_COUNT} 个 gate_commands.P5 命令，请确认已全部执行（非子集）。" >&2
+              echo "  T060 教训：只跑子集可能掩盖预存失败（T056 venv 遗漏跨 4 个任务周期无人发现）。" >&2
+          fi
+      fi
       exit 2 ;;
   P6)
       # P6 PASS/FAIL regex: 大小写不敏感计数（formatter 归一化在前，此为最后防线）

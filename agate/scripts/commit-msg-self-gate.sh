@@ -10,7 +10,7 @@ COMMIT_MSG_FILE="${1:?用法: commit-msg-self-gate.sh COMMIT_MSG_FILE}"
 # 检查暂存区是否含 self-gate 触发文件
 SELF_GATE_TRIGGERED=false
 STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
-if echo "$STAGED_FILES" | grep -qE '^(agate/scripts/.*\.sh|agate/scripts/check-protocol-consistency\.py|agate/[^/]+\.md|agate/.+/.*\.md|SELF-GATE\.md)$'; then
+if echo "$STAGED_FILES" | grep -qE '^(agate/scripts/.*\.(sh|py)|agate/[^/]+\.md|agate/.+/.*\.md|SELF-GATE\.md)$'; then
     SELF_GATE_TRIGGERED=true
 fi
 
@@ -27,7 +27,7 @@ if echo "$COMMIT_MSG" | grep -qE '^self-gate-review:\s*\S+'; then
     exit 0
 fi
 
-echo "GATE SELF-GATE: 暂存区含 self-gate 触发文件（agate/scripts/*.sh / agate/*.md / SELF-GATE.md），" >&2
+echo "GATE SELF-GATE: 暂存区含 self-gate 触发文件（agate/scripts/*.sh / agate/scripts/*.py / agate/*.md / SELF-GATE.md），" >&2
 echo "  但 commit message 未含 self-gate-review: 路径。" >&2
 echo "  请先派发 protocol-alignment-review subagent，审查报告路径写入 commit message：" >&2
 echo "    self-gate-review: docs/reviews/agate-alignment-review-{date}.md" >&2

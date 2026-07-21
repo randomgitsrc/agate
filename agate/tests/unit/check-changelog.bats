@@ -65,3 +65,48 @@ EOF
     # task_id 在历史版本不算在 [Unreleased] → exit 1
     [ "$status" -eq 1 ]
 }
+
+# ========== T060 Bug 3 修复：短前缀提取 ==========
+
+@test "CL.6 CHANGELOG 含短前缀 T060 但 task_id 为完整目录名时正确匹配" {
+    local repo
+    repo=$(git_init)
+    cd "$repo"
+    cat > CHANGELOG.md <<'EOF'
+## [Unreleased]
+
+### Fixed
+- T060: 修复 archived 条目可见性
+EOF
+    run bash "$AGATE_SCRIPTS/check-changelog.sh" T060-archived-visibility-auth-refresh
+    [ "$status" -eq 0 ]
+}
+
+@test "CL.7 CHANGELOG 含 T0601 时短前缀 T060 不误匹配" {
+    local repo
+    repo=$(git_init)
+    cd "$repo"
+    cat > CHANGELOG.md <<'EOF'
+## [Unreleased]
+
+### Fixed
+- T0601: 其他条目
+EOF
+    run bash "$AGATE_SCRIPTS/check-changelog.sh" T060-archived-visibility-auth-refresh
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"未找到"* ]]
+}
+
+@test "CL.8 CHANGELOG 含 T060-archived-visibility-auth-refresh: 时后缀 - 正确匹配" {
+    local repo
+    repo=$(git_init)
+    cd "$repo"
+    cat > CHANGELOG.md <<'EOF'
+## [Unreleased]
+
+### Fixed
+- T060-archived-visibility-auth-refresh: 条目
+EOF
+    run bash "$AGATE_SCRIPTS/check-changelog.sh" T060-archived-visibility-auth-refresh
+    [ "$status" -eq 0 ]
+}

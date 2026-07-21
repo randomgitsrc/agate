@@ -12,8 +12,8 @@
 ## 触发条件
 
 以下任一文件有改动并准备 commit 时：
-- `agate/scripts/*.sh`
-- `agate/scripts/check-protocol-consistency.py`
+  - `agate/scripts/*.sh`
+  - `agate/scripts/*.py`
 - `agate/*.md`（协议文档：WORKFLOW.md / state-machine.md / dispatch-protocol.md 等）
 - `agate/**/*.md`（角色文件、模板文件等子目录）
 - `SELF-GATE.md`（本文件自身的改动也走 self-gate）

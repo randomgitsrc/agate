@@ -15,6 +15,8 @@ P1_FILE="$TASK_DIR/P1-requirements.md"
 SCOPE_FOUND=""
 for f in "$TASK_DIR"/*.md; do
     [ -f "$f" ] || continue
+    # 跳过 dispatch-context 文件（编排指令，非阶段产出，不含实际 SCOPE+ 指令）
+    basename "$f" | grep -q 'dispatch-context' && continue
     if sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$f" | grep -q '\[SCOPE+\]'; then
         SCOPE_FOUND="${SCOPE_FOUND}$(basename "$f") "
     fi

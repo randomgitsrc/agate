@@ -6,6 +6,35 @@
 
 ---
 
+## [Unreleased]
+
+### 修复
+- T060 复盘 bugfix：`agate-inject-card.sh` 找不到占位符时 exit 1（非静默成功）
+- T060 复盘 bugfix：`check-scope-resolved.sh` 跳过 dispatch-context 文件（约束指令中的 `[SCOPE+]` 字面引用不再误报）
+- T060 复盘 bugfix：`check-changelog.sh` 从完整 task_id 目录名提取 `T\d+` 短前缀搜索 CHANGELOG
+
+### 新增
+- **M3.1 像素方差检测**：`check-p6-evidence.sh` 检测低方差/疑似占位图（WARNING 不阻断，需 Pillow）
+- **M3.2 average hash 相似度检测**：`check-p6-evidence.sh` 检测视觉高度相似截图（WARNING 不阻断，纯 Pillow 实现）
+- **M4.1 多平台 CI 支持**：`ci-gate-backstop.py` 自动检测 Gitea Actions / GitLab CI / GitHub Actions（Gitea 未实测）
+- **M4.2 provenance 审计 CI 兜底**：`ci-gate-backstop.py` 重跑 `check-p6-provenance.sh`
+- **M5.1 pre-push hook**：`install-hook.sh` 安装 pre-push hook，`agate/*.md` 大改动自动提示 alignment-review
+- **M1.3a 日志格式约定**：`dispatch-prompt.md` 定义 `EXIT_CODE: <n>` 标准日志尾行
+- **M1.3b 日志一致性检测**：`check-p6-provenance.sh` 审计 5——`EXIT_CODE` 与 PASS/FAIL 声明一致性检测
+- **P5 全量测试 WARNING**：`check-gate.sh` P5 多命令时提醒主 Agent 确认是否全量执行
+- `AGATE_SKIP_IMAGE_CHECKS=1` 主动跳过图像检测开关
+
+### 变更
+- **BREAKING**：`check-p6-evidence.sh` md5 完全重复截图从 exit 2 (WARNING) 升级为 exit 1（阻断）
+- `commit-msg-self-gate.sh` 触发正则通配 `*.py`（原仅匹配 `check-protocol-consistency.py`）
+- `check-protocol-consistency.py` CHECK 9 扫描范围追加 `ci-gate-backstop.py`
+- `check-changelog.sh` 搜索方式从全路径精确匹配改为 `T\d+` 短前缀 + 全路径 fallback
+
+### 已评估
+- **M1.1 时间戳弱信号**：已评估，判定不值得实现（CI 场景 mtime 被 checkout 重置 + 威胁模型对伪造行为无区分力）。完全依赖独立 git author 根治方向
+
+---
+
 ## [0.15.0] - 2026-07-21
 
 ### 重大变更

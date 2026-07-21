@@ -520,7 +520,8 @@ P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P
 **P5/P6 派发时追加**：
 ```
 ## 截图质量标准
-操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。
+操作类 BDD 截图必须互不相同（md5 逐字节去重，hook 阻断；average hash 视觉相似度检测，WARNING 不阻断），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。
+截图须通过像素方差检测（低方差/疑似占位图 WARNING 不阻断）；Pillow 未安装时检测跳过并输出 WARNING，可设 `AGATE_SKIP_IMAGE_CHECKS=1` 主动跳过。
 ## P6 BDD 二值规则
 每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
 ## P6 BDD 结果格式
@@ -799,7 +800,7 @@ setTimeout(() => {
 
 **Pre-commit 检查全景（hook + CI 兜底）**：
 
-每次 `git commit` 触发 `.git/hooks/pre-commit`（由 `~/.agate/scripts/install-hook.sh` 安装），按顺序执行：
+每次 `git commit` 触发 `.git/hooks/pre-commit`（由 `~/.agate/scripts/install-hook.sh` 安装 pre-commit + commit-msg + pre-push hook），按顺序执行：
 
 | 阶段/机制 | 检查脚本 | 用途 |
 |------|------|------|
@@ -822,7 +823,9 @@ setTimeout(() => {
 
 **非实现阶段代码暂存 WARNING**：非 P4/P5/P6 阶段暂存了代码文件（非 .md/.yaml）时，发 WARNING（不拦截）。覆盖"主 Agent 在非实现阶段直接改代码"场景。
 
-**CI backstop（P1.3）**：`push` 后 GitHub Actions `.github/workflows/protocol-tests.yml` 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit；并对 `P6-acceptance.md` 单 author 情况发 WARNING 作为兜底审计。
+**Pre-push hook**：`git push` 时自动检测 `agate/*.md` 改动量，超过阈值（默认 20 行，可通过 `AGATE_ALIGNMENT_REVIEW_THRESHOLD` 环境变量配置）时提示建议先派发 protocol-alignment-review。不阻断 push（exit 0）。
+
+**CI backstop（P1.3）**：`push` 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py` + `check-p6-provenance.sh`，捕获 `--no-verify` 绕过 hook 的 commit；provenance 审计重跑 + `P6-acceptance.md` 单 author WARNING 作为兜底审计。
 
 **Gate 分类**：
 
