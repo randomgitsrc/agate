@@ -25,7 +25,40 @@ def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
     return result.returncode, result.stderr + result.stdout
 
 
+def detect_ci_platform() -> str | None:
+    if os.environ.get("GITEA_ACTIONS") == "true":
+        return "gitea"
+    if os.environ.get("GITLAB_CI") == "true":
+        return "gitlab"
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return "github"
+    return None
+
+
+def get_pr_metadata(platform: str) -> dict:
+    if platform == "gitlab":
+        return {
+            "iid": os.environ.get("CI_MERGE_REQUEST_IID", ""),
+            "source_branch": os.environ.get("CI_MERGE_REQUEST_SOURCE_BRANCH_NAME", ""),
+            "target_branch": os.environ.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME", ""),
+            "project_id": os.environ.get("CI_PROJECT_ID", ""),
+        }
+    if platform in ("github", "gitea"):
+        event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+        if event_path and Path(event_path).exists():
+            with open(event_path) as f:
+                return json.load(f)
+        return {}
+    return {}
+
+
 def main() -> int:
+    platform = detect_ci_platform()
+    print(f"CI platform: {platform}")
+    if platform is None:
+        print("SKIP: 未识别的 CI 平台（非 Gitea/GitLab/GitHub），backstop 不生效")
+        return 0
+
     repo_root = Path.cwd()
     state_file = repo_root / ".state.yaml"
     gate_result = repo_root / ".gate-result.json"
@@ -113,6 +146,18 @@ def main() -> int:
                     print(f"WARN: P6-acceptance.md 只有一个 author: {authors.pop()}（可能为主 Agent 自写，建议审查证据真实性）")
             except Exception as e:
                 print(f"WARN: P6 git blame 审计无法完成（{e}）")
+
+    # provenance 审计兜底（--no-verify 绕过 hook 时，backstop 层补跑）
+    provenance_script = repo_root / "agate/scripts/check-p6-provenance.sh"
+    if task_dir and provenance_script.exists() and Path(task_dir, "P6-acceptance.md").exists():
+        prov_result = subprocess.run(
+            ["bash", str(provenance_script), task_dir],
+            capture_output=True, text=True
+        )
+        if prov_result.returncode == 1:
+            print(f"FAIL: check-p6-provenance.sh 重跑未通过：\n{prov_result.stdout}{prov_result.stderr}")
+            return 1
+        print("PASS: provenance 审计 CI 层重跑通过")
 
     return 0
 

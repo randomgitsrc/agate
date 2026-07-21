@@ -2,6 +2,7 @@
 # check-p6-evidence.sh — P6 证据格式检查（P1.7）
 # 检查 P6-evidence/ 目录非空 + UI 截图实质检查（R1a）
 # 查询类 BDD 可不截图，但须有断言记录证据（response.json / assert.log 等）
+# 含像素方差检测（低方差/疑似占位图, WARNING）+ md5 去重（阻断）+ average hash 相似度（WARNING）
 # exit 0 = 通过; exit 1 = 证据缺失; exit 2 = 无 P6 文件
 
 set -euo pipefail
@@ -72,6 +73,10 @@ if [ "$UI_AFFECTED" = "true" ]; then
         fi
         EMPTY_COUNT=0
         PNG_WARNING=0
+        VARIANCE_WARNING=0
+        if [ "${AGATE_SKIP_IMAGE_CHECKS:-0}" = "1" ]; then
+            echo "GATE P6-EVIDENCE WARNING: AGATE_SKIP_IMAGE_CHECKS=1，方差/相似度检测已主动跳过" >&2
+        else
         while IFS= read -r -d '' img; do
             SIZE=$(stat -c%s "$img" 2>/dev/null || stat -f%z "$img" 2>/dev/null || echo 0)
             if [ "$SIZE" -le 1024 ]; then
@@ -84,7 +89,34 @@ if [ "$UI_AFFECTED" = "true" ]; then
                     EMPTY_COUNT=$((EMPTY_COUNT + 1))
                 fi
             fi
+            VARIANCE=$(python3 -c "
+try:
+    from PIL import Image
+except ImportError:
+    print('SKIP_NO_PILLOW')
+    exit()
+try:
+    img = Image.open('$img').convert('L')
+    pixels = list(img.tobytes())
+    mean = sum(pixels) / len(pixels)
+    variance = sum((p - mean) ** 2 for p in pixels) / len(pixels)
+    print(int(variance))
+except Exception:
+    print(-1)
+" 2>/dev/null || echo -1)
+            if [ "$VARIANCE" = "SKIP_NO_PILLOW" ]; then
+                echo "GATE P6-EVIDENCE WARNING: Pillow 未安装，方差/相似度检测已跳过" >&2
+                break
+            elif [ "$VARIANCE" -ge 0 ] && [ "$VARIANCE" -lt 50 ]; then
+                VARIANCE_WARNING=$((VARIANCE_WARNING + 1))
+                echo "GATE P6-EVIDENCE WARNING: $(basename "$img") 像素方差 ${VARIANCE}（<50，疑似纯色/占位图，请确认非充数）" >&2
+            fi
         done < <(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -print0 2>/dev/null)
+        if [ "$VARIANCE_WARNING" -gt 0 ]; then
+            echo "GATE P6-EVIDENCE WARNING: 有 ${VARIANCE_WARNING} 张截图像素方差 < 50（疑似纯色/占位图，请确认非充数）" >&2
+            exit 2
+        fi
+        fi
         if [ "$EMPTY_COUNT" -gt 0 ]; then
             echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个非 PNG 文件 ≤ 1KB（疑似充数）" >&2
             exit 1
@@ -94,12 +126,47 @@ if [ "$UI_AFFECTED" = "true" ]; then
             exit 2
         fi
         MD5_LIST=$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -exec md5sum {} \; 2>/dev/null | cut -d' ' -f1 | sort)
-        MD5_TOTAL=$(echo "$MD5_LIST" | wc -l)
-        MD5_UNIQUE=$(echo "$MD5_LIST" | sort -u | wc -l)
+        MD5_TOTAL=$(echo "$MD5_LIST" | grep -c . || echo 0)
+        MD5_TOTAL=$(echo "$MD5_TOTAL" | tail -1)
+        MD5_UNIQUE=$(echo "$MD5_LIST" | sort -u | grep -c . || echo 0)
+        MD5_UNIQUE=$(echo "$MD5_UNIQUE" | tail -1)
         if [ "$MD5_TOTAL" -gt "$MD5_UNIQUE" ]; then
             MD5_DUPES=$((MD5_TOTAL - MD5_UNIQUE))
-            echo "GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 ${MD5_DUPES} 个 md5 重复截图（行为差异类 BDD 截图可能视觉相同，不阻断但请在 acceptance report 说明原因）" >&2
-            exit 2
+            echo "GATE P6-EVIDENCE: 有 ${MD5_DUPES} 个截图文件逐字节完全相同（md5 重复，疑似同一物理文件被多条 PASS 引用充数）" >&2
+            exit 1
+        fi
+        if [ "${AGATE_SKIP_IMAGE_CHECKS:-0}" != "1" ]; then
+        AHASH_LIST=$(python3 -c "
+import sys
+try:
+    from PIL import Image
+except ImportError:
+    print('SKIP_NO_PILLOW', file=sys.stderr)
+    sys.exit(1)
+import glob
+def ahash(path):
+    img = Image.open(path).convert('L').resize((8, 8))
+    pixels = list(img.tobytes())
+    avg = sum(pixels) / len(pixels)
+    return ''.join('1' if p >= avg else '0' for p in pixels)
+for f in sorted(glob.glob('$SCREENSHOTS_DIR/*')):
+    try:
+        print(ahash(f))
+    except Exception:
+        pass
+" 2>/dev/null || echo "")
+        if echo "$AHASH_LIST" | grep -q "SKIP_NO_PILLOW"; then
+            echo "GATE P6-EVIDENCE WARNING: Pillow 未安装，相似度检测已跳过" >&2
+        else
+        AHASH_TOTAL=$(echo "$AHASH_LIST" | grep -c . || echo 0)
+        AHASH_TOTAL=$(echo "$AHASH_TOTAL" | tail -1)
+        AHASH_UNIQUE=$(echo "$AHASH_LIST" | sort -u | grep -c . || echo 0)
+        AHASH_UNIQUE=$(echo "$AHASH_UNIQUE" | tail -1)
+        if [ "$AHASH_TOTAL" -gt "$AHASH_UNIQUE" ]; then
+            AHASH_DUPES=$((AHASH_TOTAL - AHASH_UNIQUE))
+            echo "GATE P6-EVIDENCE WARNING: 有 ${AHASH_DUPES} 组视觉高度相似截图（average hash 相同但非逐字节相同，不阻断，行为差异类 BDD 截图可能视觉相同，请在 acceptance report 说明原因）" >&2
+        fi
+        fi
         fi
     fi
 fi

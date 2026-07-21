@@ -219,8 +219,8 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
 |------|--------|------|
 | **P1.1** gate (scripts/check-gate.sh) | phase 变更或阶段产出变更 | exit 1 拦截 |
 | **P1.6** CHANGELOG (scripts/check-changelog.sh) | gate 通过后 | 缺 `[Unreleased]` → 警告不拦截 |
-| **P1.7** P6 证据 (scripts/check-p6-evidence.sh) | phase ∈ {P6,P7} | 缺证据目录/BDD → 拦截 |
-| **P2.1/P2.10** provenance (scripts/check-p6-provenance.sh) | gate 通过后 | 四道客观审计失败 → exit 1 拦截；agent 字段/BDD 非标 → exit 2 警告 |
+| **P1.7** P6 证据 (scripts/check-p6-evidence.sh) | phase ∈ {P6,P7} | 缺证据目录/BDD → 拦截；md5 重复 → 拦截；方差/相似度 → WARNING |
+| **P2.1/P2.10** provenance (scripts/check-p6-provenance.sh) | gate 通过后 | 五道客观审计失败 → exit 1 拦截；agent 字段/BDD 非标 → exit 2 警告 |
 | **P2.3-P2.5** 状态转移 (scripts/check-state-transition.sh) | gate 通过后 | 非法转移 → exit 1 拦截 |
 | **P2.7-P2.9** 裁剪 (scripts/check-pruning.sh) | gate 通过后 | 裁剪条件不满足 → exit 1 拦截 |
 | **P2.11** SCOPE_RESOLVED (scripts/check-scope-resolved.sh) | gate 通过后 | 缺标记 → exit 1 拦截 |
@@ -229,7 +229,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
 
 **多任务 hook 扫描**：pre-commit-gate.sh 扫描暂存区中所有变更的 `.state.yaml`（根目录 + `docs/tasks/{Txxx}/`），对每个文件独立跑格式校验 + 状态转移 + gate。phase-产出不一致（暂存了 P{n}-*.md 但 phase 不匹配）只发 WARNING 不拦截。
 
-**CI 兜底（P1.3）**：push 后 GitHub Actions 重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的 commit。
+**CI 兜底（P1.3）**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py` + `check-p6-provenance.sh`，捕获 `--no-verify` 绕过 hook 的 commit。
 
 特殊转移：
 READY --[人手动触发 make publish]--> DONE

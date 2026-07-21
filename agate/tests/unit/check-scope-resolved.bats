@@ -71,3 +71,25 @@ EOF
     run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+# ========== T060 Bug 2 修复：dispatch-context 排除 ==========
+
+@test "SC.6 dispatch-context 文件中的 [SCOPE+] 字面引用不触发检查" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P4-dispatch-context-implementer.md" <<'EOF'
+---
+phase: P4
+task_id: T001
+role: implementer
+---
+
+<dispatch_guide>
+### 约束
+如果发现需求与设计矛盾，标 [SCOPE+] 而非直接做
+</dispatch_guide>
+EOF
+    # P1 无 SCOPE_RESOLVED，但 SCOPE+ 在 dispatch-context 中应被忽略
+    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    [ "$status" -eq 0 ]
+}

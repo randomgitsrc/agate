@@ -583,6 +583,37 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "keywords": ["--fix", "--check"],
         "callers": ["agate/phase-cards/P6-acceptance.md", "agate/dispatch-protocol.md", "agate/scripts/pre-commit-gate.sh"],
     },
+    {
+        "desc": "证据日志 EXIT_CODE 格式约定（文档侧）",
+        "script": "agate/assets/templates/dispatch-prompt.md",
+        "keywords": ["EXIT_CODE"],
+    },
+    {
+        "desc": "证据日志 EXIT_CODE 一致性检测（脚本侧）",
+        "script": "agate/scripts/check-p6-provenance.sh",
+        "keywords": ["EXIT_CODE"],
+    },
+    {
+        "desc": "CI 平台探测（Gitea/GitLab/GitHub）",
+        "script": "agate/scripts/ci-gate-backstop.py",
+        "keywords": ["detect_ci_platform", "GITEA_ACTIONS", "GITLAB_CI"],
+        "callers": [".github/workflows/protocol-tests.yml"],
+    },
+    {
+        "desc": "pre-push alignment-review 阈值（决定 7：install-hook.sh 保留豁免，单独加锚点）",
+        "script": "agate/scripts/install-hook.sh",
+        "keywords": ["AGATE_ALIGNMENT_REVIEW_THRESHOLD"],
+    },
+    {
+        "desc": "截图像素方差检测（M3.1）",
+        "script": "agate/scripts/check-p6-evidence.sh",
+        "keywords": ["VARIANCE_WARNING", "AGATE_SKIP_IMAGE_CHECKS"],
+    },
+    {
+        "desc": "截图 average hash 相似度检测（M3.2）",
+        "script": "agate/scripts/check-p6-evidence.sh",
+        "keywords": ["AHASH_LIST", "AHASH_DUPES"],
+    },
 ]
 
 
@@ -650,6 +681,9 @@ def check_anchor_coverage(root: Path, rep: Report) -> None:
     pre_commit = root / "agate" / "scripts" / "pre-commit-gate.sh"
     if pre_commit.exists():
         gate_scripts.append("agate/scripts/pre-commit-gate.sh")
+    ci_backstop = root / "agate" / "scripts" / "ci-gate-backstop.py"
+    if ci_backstop.exists():
+        gate_scripts.append("agate/scripts/ci-gate-backstop.py")
 
     covered = {anchor["script"] for anchor in SCRIPT_ALIGNMENT_ANCHORS}
     for script in gate_scripts:

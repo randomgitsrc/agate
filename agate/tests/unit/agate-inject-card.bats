@@ -177,3 +177,28 @@ EOF
     run grep -c '旧' "$task_dir/P1-dispatch-context.md" || true
     [ "$output" = "0" ]
 }
+
+# ========== T060 Bug 1 修复：占位符缺失检测 ==========
+
+@test "dispatch-context 无 AGATE_CARD 占位符时 exit 1（非静默成功）" {
+    local task_dir
+    task_dir="$BATS_TEST_TMPDIR/task_no_placeholder"
+    mkdir -p "$task_dir"
+
+    cat > "$task_dir/P1-dispatch-context-analyst.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+role: analyst
+---
+
+<dispatch_guide>
+### 目标
+无占位符文件
+</dispatch_guide>
+EOF
+
+    run bash "$INJECT_CMD" P1 "$task_dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"未找到"* ]] || [[ "$output" == *"占位符"* ]]
+}

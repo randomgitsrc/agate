@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # check-p6-provenance.sh — P6 验收客观行为审计（P2.1/P2.10 降级方案 v2）
-# 四道客观审计 + agent 字段协作规范
+# 五道客观审计 + agent 字段协作规范
 # exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
 
 set -euo pipefail
@@ -201,6 +201,23 @@ except Exception:
             fi
         done < <(grep -oE '\(vision:\s*[^)]+\)' "$P6_FILE" 2>/dev/null | sort -u || true)
     fi
+fi
+
+# --- 审计 5：日志 EXIT_CODE 与 PASS/FAIL 声明一致性（依赖 M1.3a 约定）---
+if [ -f "$P6_FILE" ]; then
+    while IFS= read -r log_file; do
+        LAST_LINE=$(tail -1 "$log_file" 2>/dev/null || echo "")
+        if echo "$LAST_LINE" | grep -qE '^EXIT_CODE: [0-9]+$'; then
+            LOG_EXIT=$(echo "$LAST_LINE" | grep -oE '[0-9]+$')
+            LOG_BASENAME=$(basename "$log_file")
+            if grep -qE "PASS.*\\(${LOG_BASENAME}\\)" "$P6_FILE" 2>/dev/null && [ "$LOG_EXIT" != "0" ]; then
+                echo "GATE PROVENANCE: ${LOG_BASENAME} 声明 PASS 但日志 EXIT_CODE=${LOG_EXIT}（矛盾）" >&2
+                exit 1
+            fi
+        else
+            echo "GATE PROVENANCE: $(basename "$log_file") 缺少标准 EXIT_CODE 尾行，跳过一致性核验（不阻塞）" >&2
+        fi
+    done < <(find "$TASK_DIR/P6-evidence" -name "*.log" 2>/dev/null)
 fi
 
 # --- 协作规范：agent 字段 ---

@@ -178,7 +178,7 @@ wf(T042): P2 review approved
 - 风险: high，由独立 plan-eng-review 评审通过
 ```
 
-**禁止 `--no-verify` 绕过 hook**：CI backstop 会重跑 `check-gate.sh` + git blame 单 author WARNING，绕过 hook 的"恶意 commit"会被抓到并在日志暴露。详见 LIMITATIONS.md 局限 3。
+**禁止 `--no-verify` 绕过 hook**：CI backstop 会重跑 `check-gate.sh` + `check-p6-provenance.sh` + git blame 单 author WARNING，绕过 hook 的"恶意 commit"会被抓到并在日志暴露。详见 LIMITATIONS.md 局限 3。
 
 **P6 单 author WARNING**：当 P6-acceptance.md git blame 显示只有一个 author（通常是主 Agent 自写而不是独立 verifier），CI 会发 WARNING——这是 provenance 客观审计之外的最后一层可观测性兜底。
 

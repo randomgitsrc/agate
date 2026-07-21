@@ -40,7 +40,7 @@ for DC_FILE in "${DC_FILES[@]}"; do
     CARD_FILE=$(mktemp)
     printf '%s' "$CARD_CONTENT" > "$CARD_FILE"
     DC_FILE="$DC_FILE" CARD_FILE="$CARD_FILE" python3 -c "
-import os, re
+import os, re, sys
 dc = os.environ['DC_FILE']
 with open(dc) as f:
     text = f.read()
@@ -49,6 +49,9 @@ with open(os.environ['CARD_FILE']) as f:
 pattern = r'(<!-- AGATE_CARD_START -->\n)(.*?)(<!-- AGATE_CARD_END -->)'
 replacement = r'\g<1>' + card + r'\n\3'
 new_text = re.sub(pattern, replacement, text, flags=re.DOTALL)
+if new_text == text:
+    print(f'AGATE_CARD 注入失败: {os.path.basename(dc)} 中未找到 AGATE_CARD_START/END 占位符', file=sys.stderr)
+    sys.exit(1)
 with open(dc, 'w') as f:
     f.write(new_text)
 "

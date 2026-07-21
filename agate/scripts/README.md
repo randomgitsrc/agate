@@ -12,8 +12,8 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 | `check-state-yaml.sh` (P2.15) | `.state.yaml` 格式校验 | 0=通过, 1=格式错, 2=无文件 |
 | `check-gate.sh` (P1.1) | 各阶段脚本化 gate | 0=通过, 1=未通过, 2=需自判 |
 | `check-changelog.sh` (P1.6) | `[Unreleased]` 含 task_id | 0=通过, 1=未记录 |
-| `check-p6-evidence.sh` (P1.7) | P6/P7 证据目录非空 | 0=通过, 1=缺证据, 2=无 P6 文件 |
-| `check-p6-provenance.sh` (P2.1/P2.10) | P6 客观行为审计（三道）| 0=通过, 1=审计失败, 2=WARNING |
+| `check-p6-evidence.sh` (P1.7) | P6 证据目录非空 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）| 0=通过, 1=阻断, 2=WARNING |
+| `check-p6-provenance.sh` (P2.1/P2.10) | P6 客观行为审计（五道 + EXIT_CODE 一致性 + 协作规范）| 0=通过, 1=审计失败, 2=WARNING |
 | `check-state-transition.sh` (P2.3-P2.5) | 状态转移合法性 + 重试上限 | 0=通过, 1=非法转移 |
 | `check-pruning.sh` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
 | `check-scope-resolved.sh` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
@@ -24,13 +24,13 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 
 | 脚本 | 用途 |
 |------|------|
-| `ci-gate-backstop.py` (P1.3) | push 后重跑 gate + P6 git blame 单 author WARNING |
+| `ci-gate-backstop.py` (P1.3) | push 后重跑 gate + provenance 审计重跑 + git blame 单 author WARNING；多平台自动检测（GitHub/GitLab/Gitea）|
 
 ### 安装
 
 | 脚本 | 用途 |
 |------|------|
-| `install-hook.sh` | 在项目仓库内安装 pre-commit hook（接受 `AGATE_ROOT` 参数）|
+| `install-hook.sh` | 在项目仓库内安装 pre-commit + commit-msg + pre-push hook（接受 `AGATE_ROOT` 参数）|
 
 ### 版本发现（agent 快速掌握协议变化）
 
