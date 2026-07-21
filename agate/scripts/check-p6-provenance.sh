@@ -210,7 +210,7 @@ if [ -f "$P6_FILE" ]; then
         if echo "$LAST_LINE" | grep -qE '^EXIT_CODE: [0-9]+$'; then
             LOG_EXIT=$(echo "$LAST_LINE" | grep -oE '[0-9]+$')
             LOG_BASENAME=$(basename "$log_file")
-            if grep -qE "PASS.*\\(${LOG_BASENAME}\\)" "$P6_FILE" 2>/dev/null && [ "$LOG_EXIT" != "0" ]; then
+            if grep -qE "PASS.*\(.*${LOG_BASENAME}\)" "$P6_FILE" 2>/dev/null && [ "$LOG_EXIT" != "0" ]; then
                 echo "GATE PROVENANCE: ${LOG_BASENAME} 声明 PASS 但日志 EXIT_CODE=${LOG_EXIT}（矛盾）" >&2
                 exit 1
             fi
