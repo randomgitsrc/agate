@@ -61,7 +61,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **主 Agent 的合法职责（不是降级）**：
 - 写 P0-brief.md（PM 视角的任务简报）
-- 派发前为每个 subagent 写 dispatch-context（`P{N}-dispatch-context-{role}.md`），含派发指引（目标/约束/上游关联/输入文件）+ 客观查证信息。用 `agate-inject-card.sh P{N} TASK_DIR` 注入卡片，**禁止手写 AGATE_CARD 内容**。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败
+- 派发前为每个 subagent 写 dispatch-context（`P{N}-dispatch-context-{role}.md`），含派发指引（目标/约束/上游关联/输入文件）+ 客观查证信息。用 `agate-inject-card.sh P{N} TASK_DIR` 注入卡片——**这是唯一合法方式**。禁止自行操作 AGATE_CARD 内容（手写、python3 脚本、任意手动注入——hash 由脚本保证，绕过必 mismatch）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败
 - **verification_env 条件化**：仅在 `ui_affected: true`、`gate_commands.P5` 含 Playwright/e2e、或 P0-brief `known_risks` 含环境依赖时写入 dispatch-context-{role}.md。纯后端无需声明
 - P6 阶段：verifier 返回后、跑 gate 前，运行 `check-p6-format.sh --fix` 归一化 PASS/FAIL 大小写
 - 给阶段产出文件 Header 加 `agent: <角色>` 字段（subagent 复制即可）
