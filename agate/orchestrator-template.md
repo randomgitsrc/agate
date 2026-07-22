@@ -77,24 +77,24 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 ## Hardening-roadmap 关键机制
 
-你的 commit 会触发 pre-commit hook 的 9 项检查（详见 WORKFLOW.md「Pre-commit 检查总览」）：
+你的 commit 会触发 pre-commit hook 自动检查（详见 WORKFLOW.md「Pre-commit 检查总览」）。
 
-- **格式关**：`.state.yaml` 必须含 `task_id/phase/status/retries` 字段——不合法直接拦截
-- **行为关**：派发 subagent 返回后、commit 前，主动执行 `bash {agate_root}/scripts/check-gate.sh Pn {task_dir}` 验证 gate 通过——这是正常流程，不是等 pre-commit hook 报错再修。hook 是兜底，主动验是主流程
-- **审计关**：
-  - P6 客观行为审计：证据文件存在 + 数量匹配 + BDD 总数对照 + vision YAML 引用；缺 agent 字段 WARNING（不阻塞，向后兼容）
-  - 裁剪条件验证：声明裁剪的阶段必须满足条件（如仅 low 风险可裁 P3，P4/P5 不可裁），否则拦截
-  - 状态转移合法性 + 重试上限（P2.3-P2.5）：非法转移拦截，重试超限须 PAUSED
-  - SCOPE+ 增补追踪（P2.11）：有 `[SCOPE+]` 但 P1 无 `[SCOPE_RESOLVED]` → 拦截
-  - `[PROD_TOUCHED]` 检测（P1.2）：暂存 diff 含此标记 → 拦截 commit
-  - 复盘提醒：异常模式（重试超限：P3/P5/P6/P7/P8 ≥2 次、P1/P2/P4 ≥3 次，SCOPE+、override）触发 P2.12 复盘提醒，**不阻塞** commit
-- **CI 兜底**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 gate + provenance 审计 + git blame 单 author WARNING，捕获 `--no-verify` 绕过
-- **agate 自身变更**：改协议/脚本时派发 protocol-alignment-review subagent 做语义对齐审查 + CHECK 9 结构兜底（见 SELF-GATE.md）
+commit 前你只需做一件事：**主动跑 `bash {agate_root}/scripts/check-gate.sh Pn {task_dir}`**，exit 0 或 exit 2 才能 commit，exit 1 则修产出直到通过。hook 是兜底，主动验是主流程。
+
+以下是 hook 自动检查的类别（你不需要记住每个条件——脚本会判）：
+
+- **格式**：`.state.yaml` 字段完整性
+- **gate**：阶段产出合规（`check-gate.sh`）
+- **审计**：provenance / 裁剪 / 状态转移 / SCOPE+ / PROD_TOUCHED / 复盘
+- **证据**：P6 证据目录非空 + BDD 行数（P6/P7 阶段）
+- **CI 兜底**：push 后 CI 平台重跑 gate + provenance + git blame，捕获 `--no-verify`
+- **agate 自身变更**：改协议/脚本时派发 protocol-alignment-review（见 SELF-GATE.md）
 
 **Agent 字段用途**：所有阶段产出文件 Header 含 `agent:` 字段是协作规范，不是安全边界。`agent=main`（自审）会被 check-gate.sh 硬拦截（exit 1，不可自行批准评审）。
 
 **关键不变量**：
 
+- **你不是 gate**：只跑 `check-gate.sh` 让它判，**不要手动 grep 文件验证 gate 条件**，**不要绕过工具失败（如 inject-card 失败后别瞎改文件）**——直接修根因
 - 永远不要 `--no-verify` 绕过 hook（CI 兜底会抓到）
 - 永远不要在 `dispatch-context` 里写 PASS/FAIL 预判（会被 provenance 拦）
 - P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略
