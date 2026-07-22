@@ -6,7 +6,7 @@
 
 ---
 
-## [Unreleased]
+## [0.16.0] - 2026-07-22
 
 ### 修复
 - T060 复盘 bugfix：`agate-inject-card.sh` 找不到占位符时 exit 1（非静默成功）
