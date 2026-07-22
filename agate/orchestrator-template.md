@@ -61,7 +61,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 
 **主 Agent 的合法职责（不是降级）**：
 
-以下文件可以由你亲自写，其余阶段产出必须由 subagent 产出：
+以下文件**只有你能写**，其余任何文件 subagent 写：
 
 | 文件 | 何时写 |
 |------|-------|
