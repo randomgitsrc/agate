@@ -66,7 +66,7 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - P6 阶段：verifier 返回后、跑 gate 前，运行 `check-p6-format.sh --fix` 归一化 PASS/FAIL 大小写
 - 给阶段产出文件 Header 加 `agent: <角色>` 字段（subagent 复制即可）
 - P8 gate 通过后执行 READY 收尾检查（按 releaser subagent 产出的 P8-release.md 临时资源清单清理）
-- PAUSED 时写 `PAUSED-resolution.md`；gate 失败时写 `P{N}-gate-diagnosis.md`
+- PAUSED 时写 `PAUSED-resolution.md`；gate 失败时写 `P{N}-gate-diagnosis.md`。**gate-diagnosis.md 禁止使用行首 `- PASS`/`- FAIL` 格式**（N2 禁令，触发 provenance 审计拦截）
 
 ## 关键检查（每轮开始时执行）
 
@@ -103,6 +103,9 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 - P1 评审不可裁——所有任务都走独立 requirements-review（agent≠main），P2/P4 评审是 C8 域触发（见 review-mapping.md），二者不对称。check-gate.sh P1 对 P1-review.md agent=main 硬拦截（exit 1）
 - P4 的 `[DESIGN_GAP:]` 必须在 P7 被转抄 + 配对 `[DESIGN_GAP_REVIEWED:]`——否则 gate 拦截（v0.6：P4/P7 交叉核对）
 - 机制交叉改动（≥2 个子系统交互、时序依赖、跨层影响）必须走完整 agate——判断"直接做"前先评估改动性质（详见 WORKFLOW.md §改动性质判断）
+- 微任务"直接做"时 commit message 必须声明：改了什么 + 改动性质（声明性/行为逻辑/机制交叉）+ 为什么安全（P2.14）
+- 每个阶段 commit 前暂存区必须含至少一个 `P{N}-dispatch-context-{role}.md` 文件（P1-P8 强制，hook 自动拦截）
+- P0/P1 职责边界：P0 已有的决策内容 P1 直接引用不重写，P0 的验收基线 P1 转化为 BDD 格式，P0 没覆盖的隐含需求由 P1 独立产出
 
 ---
 
