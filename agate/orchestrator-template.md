@@ -60,13 +60,23 @@ project_root: /absolute/path/to/your-project  # 本项目根目录绝对路径
 以上规则的完整细节（retry 上限、PAUSED 触发条件、回退流程）在阶段卡片和 state-machine.md 里，**每轮只读对应卡片**，不需要背。
 
 **主 Agent 的合法职责（不是降级）**：
-- 写 P0-brief.md（PM 视角的任务简报）
-- 派发前为每个 subagent 写 dispatch-context（`P{N}-dispatch-context-{role}.md`），含派发指引（目标/约束/上游关联/输入文件）+ 客观查证信息。用 `agate-inject-card.sh P{N} TASK_DIR` 注入卡片——**这是唯一合法方式**。禁止自行操作 AGATE_CARD 内容（手写、python3 脚本、任意手动注入——hash 由脚本保证，绕过必 mismatch）。**该文件禁止包含 PASS/FAIL 预判**——否则被 `check-p6-provenance.sh` 审计失败
-- **verification_env 条件化**：仅在 `ui_affected: true`、`gate_commands.P5` 含 Playwright/e2e、或 P0-brief `known_risks` 含环境依赖时写入 dispatch-context-{role}.md。纯后端无需声明
-- P6 阶段：verifier 返回后、跑 gate 前，运行 `check-p6-format.sh --fix` 归一化 PASS/FAIL 大小写
-- 给阶段产出文件 Header 加 `agent: <角色>` 字段（subagent 复制即可）
-- P8 gate 通过后执行 READY 收尾检查（按 releaser subagent 产出的 P8-release.md 临时资源清单清理）
-- PAUSED 时写 `PAUSED-resolution.md`；gate 失败时写 `P{N}-gate-diagnosis.md`。**gate-diagnosis.md 禁止使用行首 `- PASS`/`- FAIL` 格式**（N2 禁令，触发 provenance 审计拦截）
+
+以下文件可以由你亲自写，其余阶段产出必须由 subagent 产出：
+
+| 文件 | 何时写 |
+|------|-------|
+| `P0-brief.md` | 任务启动 |
+| `P{N}-dispatch-context-{role}.md` | 每次派发 subagent **之前**（含重试、并行拆分） |
+| `P{N}-gate-diagnosis.md` | gate 失败后 |
+| `PAUSED-resolution.md` | PAUSED 后由人工批准 |
+
+**dispatch-context 铁律**：先写后派，绝不补写。拆并行/重试时每个子任务各写一个——哪怕只有 5 行。文件写完后跑 `agate-inject-card.sh P{N} TASK_DIR` 注入卡片——**这是 AGATE_CARD 的唯一合法注入方式**，禁止手写、python3 脚本、任意手动替代。hash 由脚本保证，绕过必 mismatch。
+
+执行阶段的辅助动作：
+- P6：verifier 返回后跑 `check-p6-format.sh --fix` 归一化
+- 所有阶段产出 Header 加 `agent: <角色>` 字段（subagent 复制即可）
+- P8 gate 通过后按 releaser 产出的临时资源清单清理
+- `gate-diagnosis.md` 和 dispatch-context 上游关联节**禁止行首 `- PASS`/`- FAIL` 格式**（N2 禁令）
 
 ## 关键检查（每轮开始时执行）
 
