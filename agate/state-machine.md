@@ -525,7 +525,23 @@ env_state:
 
 **协议文件同样要重建，不止任务状态**：步骤 1-3 重建的是"任务进度"，但若压缩/中断丢失的是上下文里的协议规则本身（不是任务状态），单靠重读 active-tasks.md 不够——主 Agent 会"知道任务在 P4"，但可能已经不记得 P4 派发 prompt 该怎么写、gate 该怎么判。步骤 0 解决的是这一层：协议规则和任务状态是两类不同的东西，要分别确保能重建。
 
-**`orchestrator-log.md` 防无响应**：主 Agent 在长操作前写 `NEXT: ...` 到 `orchestrator-log.md`，写下去就完成使命——不需要再读回来。恢复任务用 `.state.yaml` + 产出文件。
+**`orchestrator-log.md` 防无响应**：
+
+文件：`docs/tasks/{Txxx}/orchestrator-log.md`，主 Agent 专用，记录关键决策和下一步——写下去就完成使命，恢复任务用 `.state.yaml` + 产出文件，不依赖此文件。
+
+规则：
+- 仅追加不编辑不整理
+- 不写思考过程、不写文件内容摘要、不写 subagent 返回原文——只写决策和下一步
+- 任务从 DONE 重新激活 → 清空后重建（旧决策基于旧上下文）；active/PAUSED 恢复 → 追加
+
+必须记录的事件：
+- 派发 subagent 前：`NEXT: 派发 {角色} subagent 执行 {阶段}`
+- gate 失败后：`GATE FAIL: {阶段} gate 不通过，原因：{错误消息摘要}`
+- gate 诊断完成：`DIAGNOSIS: {根因} → FIX: {修复方案}`
+- subagent 失败/空返回：`SUBAGENT FAIL: {角色} {失败原因}`
+- 流程决策：`DECISION: {PAUSED/回退/跳阶}，原因：{...}`
+
+**commit 被 hook 拦截**：同一阶段累计被拦 3 次 → PAUSED（不要无限重试，Agent 明显走进了错误路径）。
 
 ---
 
