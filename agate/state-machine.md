@@ -512,7 +512,7 @@ env_state:
 恢复时：
    0. 这是"重新接手任务"，等同于一次新的启动：
       依次重读：orchestrator-template.md 的 mapping 表查当前阶段卡片，按卡片指引执行。
-      卡片查不到的信息回退到 orchestrator-template.md「Fallback：完整协议文件列表」节（reference，非必读）。
+      卡片查不到的信息回退到 orchestrator-template.md「Fallback（按需查阅，不要求每轮必读）」节。
       不能假设压缩前读过的内容还在上下文里。
   1. 主 Agent 重新读 active-tasks.md → "T001 在 P4，重试 0"
   2. 读 docs/tasks/T001/ → P4-implementation/ 是否已有文件？
