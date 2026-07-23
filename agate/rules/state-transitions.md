@@ -65,6 +65,22 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 | Pn → Pn-1（单步回退）| ✅ 允许 | retry+1，定向回补不清零目标阶段已有的 retry |
 | |n-m| ≥ 2（跨多阶段）| ❌ 强制 PAUSED |
 
+**回退时的自撰产出归档（self-authored gate 专属）**：P1/P2/P6/P7 的产出文件（判定对象是主 Agent/verifier 自己写的 markdown）在被跨过时必须先归档，不能留在原位——否则重新走到该阶段时，旧文件的内容可能被误当作仍然有效，`check-gate.sh` 不会区分"修复前写的"还是"修复后写的"。P4/P5 属于外部产出 gate（判定对象是测试运行器 exit code），没有跨重试持久化的自撰文件，不需要归档。
+
+```bash
+bash agate/scripts/agate-archive-stale-outputs.sh {被跨过的阶段} {TASK_DIR}
+```
+
+`check-state-transition.sh` 会在检测到单步回退时，检查被跨过阶段的产出文件是否仍在原位——若未归档，直接拦截 commit，提示先跑上面这条命令。归档不是删除：文件被移到 `{TASK_DIR}/.archived/{时间戳}-{阶段}/`，历史证据留痕保留；同时会在 `{TASK_DIR}/.retreat-history.md`（不被归档，始终留在当前任务目录）追加一份摘要，P6 的话还会摘录具体 FAIL 详情，避免重新派发时忘记"当初是哪里失败的"。
+
+**多步回退的自动化**：若诊断已经明确指向 2 阶之外（如 P6→P4），不需要手动分两次执行"归档→改 phase→commit"，可以直接：
+
+```bash
+bash agate/scripts/agate-retreat-to.sh {TASK_DIR} {目标阶段} "{诊断原因}"
+```
+
+这个脚本会依次产生多个独立的、diff=1 的真实 commit（每一步都归档 + 过 gate 校验），不会绕过或放宽 `check-state-transition.sh` 对大跳回退的 PAUSED 限制——它只是自动化了合法的单步回退序列，不是让大跳直接放行。调用前需确保暂存区没有与本次回退无关的文件（脚本会检查并拒绝）。
+
 ## PAUSED 恢复
 
 - 人工确认/决策后恢复到 PAUSED 前的阶段

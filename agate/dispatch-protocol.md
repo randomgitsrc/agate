@@ -898,7 +898,7 @@ P5 subagent 化后，主 Agent 验 gate 的方式：
 **红灯处理优先级**：
 1. 诊断：本步抖动还是上游输入问题？
 2. 本步抖动 → 重试一次（仅一次，避免在被污染的输入上打转）
-3. 上游问题 → 退回源头那一步（见 state-machine.md 逐步溯源）
+3. 上游问题 → 退回源头那一步（见 state-machine.md 逐步溯源）。退回前须先归档被跨过阶段的自撰产出（`agate-archive-stale-outputs.sh`，仅 P1/P2/P6/P7 需要，check-state-transition.sh 会强制检查）；若诊断已确定源头在 2 阶之外，用 `agate-retreat-to.sh {TASK_DIR} {目标阶段} "{诊断原因}"` 自动化执行多步单向回退（每一步仍是独立、真实、受 gate 校验的 commit，不改变 diff≥2 强制 PAUSED 的安全网本身）
 4. 退到 P0 仍无解 / 外部阻塞 → PAUSED 问人类（正确路由，非认输）
 
 ```

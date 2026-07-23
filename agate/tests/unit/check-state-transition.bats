@@ -471,3 +471,78 @@ EOF
     [[ "$output" != *"产出必须已 commit"* ]]
     [[ "$output" != *"尚未 commit"* ]]
 }
+
+@test "ST_ARCHIVE.1 回退 P6→P5，P6-acceptance.md 仍在原位（未归档）期望 exit 1" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P6
+status: active
+retries: {}
+EOF2
+    echo "old p6" > "$repo/docs/tasks/T001/P6-acceptance.md"
+    git_commit "$repo" "init"
+
+    sed -i 's/phase: P6/phase: P5/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P6 的自撰产出"* ]]
+    [[ "$output" == *"agate-archive-stale-outputs.sh"* ]]
+}
+
+@test "ST_ARCHIVE.2 回退 P6→P5，P6-acceptance.md 已被归档（原位不存在）期望 exit 0" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P6
+status: active
+retries: {}
+EOF2
+    git_commit "$repo" "init"
+
+    sed -i 's/phase: P6/phase: P5/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 0 ]
+}
+
+@test "ST_ARCHIVE.3 回退 P5→P4（P5 不在 self-authored 名单）不受归档检查影响" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF2
+    git_commit "$repo" "init"
+
+    sed -i 's/phase: P5/phase: P4/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 0 ]
+}
+
+@test "ST_ARCHIVE.4 前进 P4→P5（非回退方向）不触发归档检查" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P4
+status: active
+retries: {}
+EOF2
+    git_commit "$repo" "init"
+
+    sed -i 's/phase: P4/phase: P5/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 0 ]
+}

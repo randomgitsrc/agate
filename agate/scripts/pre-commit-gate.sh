@@ -67,6 +67,18 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     [ -z "$PHASE" ] && continue
     [ -z "$TASK_ID" ] && continue
 
+    # 2d.1 读取 HEAD（commit 前）版本的 phase，供 check-gate.sh 判断是否为回退抵达
+    # （HEAD 里没有这个文件，或字段缺失，都当作"无法判断方向"，OLD_PHASE 留空，
+    #  check-gate.sh 收到空的 OLD_PHASE 时行为与不传完全一致，不影响首次 commit 等场景）
+    OLD_PHASE=$(git show "HEAD:$STATE_REL" 2>/dev/null | python3 -c "
+import yaml, sys
+try:
+    data = yaml.safe_load(sys.stdin)
+    print(data.get('phase', '') if data else '')
+except Exception:
+    print('')
+" 2>/dev/null || echo "")
+
     # 2e. 反推 TASK_DIR
     STATE_DIR=$(dirname "$STATE_FILE")
     # 如果 .state.yaml 在任务目录下，TASK_DIR = dirname
@@ -134,7 +146,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     # 2h.1 运行 gate（P1.1）
     GATE_OUTPUT=""
     GATE_EXIT=2
-    GATE_OUTPUT=$(bash "$AGATE_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?
+    GATE_OUTPUT=$(bash "$AGATE_ROOT/scripts/check-gate.sh" "$PHASE" "$TASK_DIR" "$OLD_PHASE" 2>&1) && GATE_EXIT=0 || GATE_EXIT=$?
 
     # 2h.1 写 gate 结果（供 CI backstop 检测 --no-verify 绕过）
     write_gate_result "$PHASE" "$TASK_ID" "$GATE_EXIT" "$GATE_OUTPUT"
@@ -256,11 +268,21 @@ for STATE_FILE in $STAGED_STATE_FILES; do
         fi
     fi
 
-    # 2n.2 non-phase code staging WARNING (E3)
-    CODE_FILES=$(git diff --cached --name-only 2>/dev/null | grep -vE '\.(md|yaml)$|^\.state' || true)
-    if [ -n "$CODE_FILES" ]; then
+    # 2n.2 non-phase code staging WARNING/BLOCK (E3, P6 self-authored gate 区分证据/源码)
+    ALL_NONMD=$(git diff --cached --name-only 2>/dev/null | grep -vE '\.(md|yaml)$|^\.state' || true)
+    # 证据文件例外：TASK_REL/P{n}-evidence/ 下的文件不算"代码"
+    NON_EVIDENCE_FILES=$(echo "$ALL_NONMD" | grep -vE "^${TASK_REL}/P[0-9]-evidence/" || true)
+    if [ -n "$NON_EVIDENCE_FILES" ]; then
         case "$PHASE" in
-            P4|P5|P6) ;;
+            P4|P5) ;;  # 外部产出 gate：代码变更是预期行为
+            P6)
+                echo "GATE: phase=P6 暂存了项目源码/非证据文件（不在 P6-evidence/ 下）——" >&2
+                echo "  P6 是 self-authored gate 的验收阶段，不应直接改代码。" >&2
+                echo "  若验收发现问题，应退回至实现阶段重新派发 implementer，而非在 P6 自行修复。" >&2
+                echo "  （见 LIMITATIONS.md「主 Agent 遇到困难时倾向于自行解决」已知风险模式，" >&2
+                echo "   退回步骤见 agate/rules/state-transitions.md 回退规则）" >&2
+                exit 1
+                ;;
             *)
                 echo "GATE WARNING: phase=$PHASE 但暂存了代码文件——主 Agent 是否在非实现阶段直接改代码？" >&2
                 ;;
