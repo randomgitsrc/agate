@@ -131,7 +131,17 @@ agate 在 git worktree 下无需特殊配置即可工作：
 | 脚本 | 现状 | 改法 |
 |------|------|------|
 | `agate-next-card.sh:49` | `$AGATE_REPO/agate/phase-cards/...` | `AGATE_ROOT="$(dirname "$SCRIPT_DIR")"`（脚本自身位置反推，保留仓库相对路径给 `REL_CARD` 计算），然后 `$AGATE_ROOT/phase-cards/...` |
-| `ci-gate-backstop.py:18,151` | `Path("agate/scripts/...")` | `Path(__file__).resolve().parent / "check-gate.sh"`（同级查找，CI 无 `~/.agate` 软链接也能工作）|
+| `ci-gate-backstop.py:18,151` | `Path("agate/scripts/check-gate.sh")` + `repo_root / "agate/scripts/check-p6-provenance.sh"` | 两处都改为同级查找：
+
+```python
+# 第 18 行：Path("agate/scripts/check-gate.sh") →
+Path(__file__).resolve().parent / "check-gate.sh"
+
+# 第 151 行：repo_root / "agate/scripts/check-p6-provenance.sh" →
+Path(__file__).resolve().parent / "check-p6-provenance.sh"
+```
+
+两行处理方式必须一致（都用 `__file__` 同级查找），不能一行改 `__file__` 另一行只做 sed 替换——那样下一次改名又得改这一行，违背"永久免疫"的初衷 |
 
 这两个脚本读的是协议文件（phase-cards、check-gate.sh）。`agate-next-card.sh` 用脚本自身位置反推（`dirname $SCRIPT_DIR`）而非 `~/.agate` 软链接，因为它的 `REL_CARD` 计算需要仓库相对路径（`#${AGATE_REPO}/` 前缀剥离），直接用 `~/.agate` 会破坏这个逻辑。`ci-gate-backstop.py` 用 `__file__` 同级查找，因为 CI 环境没有 `~/.agate` 软链接。
 
@@ -157,9 +167,9 @@ agate 在 git worktree 下无需特殊配置即可工作：
 | `tests/unit/agate-next-card.bats` | 9 | 文件移到 `agate-core/` -> sha256sum 失败 |
 | `tests/integration/pre-push-hook.bats` | 6 | pathspec 改了但测试用旧路径 -> diff 返回 0 -> 断言失败 |
 | `tests/integration/consistency.bats` | 4 | 文件移到 `agate-core/scripts/` -> grep 失败 |
-| `tests/integration/commit-msg-self-gate.bats` | 8 | 同 unit 测试 |
+| `tests/integration/commit-msg-self-gate.bats` | 9 | 同 unit 测试 |
 
-**5 个测试文件、34 处硬编码路径**必须同步更新。
+**5 个测试文件、35 处硬编码路径**必须同步更新。
 
 ### 文档引用（应改，不 break 功能）
 
@@ -185,6 +195,8 @@ agate 在 git worktree 下无需特殊配置即可工作：
 - `docs/plans/` 下历史 plan--同上
 - `tests/helpers/load.bash`--`_resolve_agate_root` 通过目录特征（`scripts/` + `assets/`）反推，不依赖目录名
 - `count-tests.sh`--相对自身路径，不依赖目录名
+- `agate/scripts/agate-summary.sh`--含 5 处 `~/.agate/scripts/...` 引用，全部是软链接路径（`~/.agate` 改名后不变），naive sed 会误改为 `~/.agate-core/...`，**不能 sed，需保持在"不改"清单**
+- `pre-commit-gate.sh:22`--注释中的 `agate/ 子目录` 字面量，过时但不影响功能，改名后建议顺手更新为 `agate-core/`
 
 ### 总结
 
@@ -255,6 +267,7 @@ CHANGELOG 需显著标注此 breaking change。
 - `shellcheck -S warning agate-core/scripts/*.sh` clean
 - `count-tests.sh` 计数不变
 - CI workflow 路径更新后全部 pass
+- **手动冒烟测试**：`install.sh` 是整个迁移链路中后果最严重的文件（`LINK_TARGET` 漏改会导致所有下游项目的 hook 失效），但 bats 测试套件不覆盖 `install.sh`。改名后应在临时目录里跑一遍 `install.sh`，检查生成的软链接确实指向 `agate-core/`
 
 ---
 
