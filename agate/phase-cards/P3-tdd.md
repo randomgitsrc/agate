@@ -45,6 +45,8 @@ check-tdd-red.sh $TASK_DIR
 - **exit 2**：绿了 — 实现先于测试，违反 TDD
 - **exit 3**：无可用测试运行器
 
+**非 pytest 技术栈**：设置 `TEST_RUNNER` 环境变量指向项目实际测试命令（如 `TEST_RUNNER="npm test"`），check-tdd-red.sh 会使用该命令而非默认的 pytest 探测。这是 agate 协议保持技术栈无关的标准接入点，不需要绕过脚本手动验证。
+
 ## 推进条件
 
 - [ ] check-tdd-red.sh exit 0（真红灯确认）

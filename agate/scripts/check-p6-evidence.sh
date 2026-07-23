@@ -30,7 +30,7 @@ EVIDENCE_DIR="$TASK_DIR/P6-evidence"
 # 检查每条 PASS 行是否含文件引用（括号内路径）
 PASS_WITHOUT_REF=0
 while IFS= read -r line; do
-    if ! echo "$line" | grep -qE '\([a-zA-Z0-9_/.-]+\.(png|jpg|log|json|html|txt|yaml|yml)[^)]*\)'; then
+    if ! echo "$line" | grep -qE '\([a-zA-Z0-9_/. -]*[a-zA-Z0-9_-]\.[a-zA-Z0-9]+[^)]*\)'; then
         PASS_WITHOUT_REF=$((PASS_WITHOUT_REF + 1))
     fi
 done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)
@@ -89,14 +89,15 @@ if [ "$UI_AFFECTED" = "true" ]; then
                     EMPTY_COUNT=$((EMPTY_COUNT + 1))
                 fi
             fi
-            VARIANCE=$(python3 -c "
+            VARIANCE=$(IMG_PATH="$img" python3 -c "
+import os
 try:
     from PIL import Image
 except ImportError:
     print('SKIP_NO_PILLOW')
     exit()
 try:
-    img = Image.open('$img').convert('L')
+    img = Image.open(os.environ['IMG_PATH']).convert('L')
     pixels = list(img.tobytes())
     mean = sum(pixels) / len(pixels)
     variance = sum((p - mean) ** 2 for p in pixels) / len(pixels)
@@ -136,20 +137,19 @@ except Exception:
             exit 1
         fi
         if [ "${AGATE_SKIP_IMAGE_CHECKS:-0}" != "1" ]; then
-        AHASH_LIST=$(python3 -c "
-import sys
+        AHASH_LIST=$(SCREENSHOTS_DIR="$SCREENSHOTS_DIR" python3 -c "
+import sys, os, glob
 try:
     from PIL import Image
 except ImportError:
     print('SKIP_NO_PILLOW', file=sys.stderr)
     sys.exit(1)
-import glob
 def ahash(path):
     img = Image.open(path).convert('L').resize((8, 8))
     pixels = list(img.tobytes())
     avg = sum(pixels) / len(pixels)
     return ''.join('1' if p >= avg else '0' for p in pixels)
-for f in sorted(glob.glob('$SCREENSHOTS_DIR/*')):
+for f in sorted(glob.glob(os.environ['SCREENSHOTS_DIR'] + '/*')):
     try:
         print(ahash(f))
     except Exception:

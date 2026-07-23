@@ -36,6 +36,8 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
 
 紧凑输出模式：用工具的汇总模式（pytest --tb=no / vitest --reporter=dot / go test | tail -30）。只保留通过/失败汇总+失败清单，不逐项 traceback。
 
+**非 pytest 技术栈**：若 P5 gate_commands 包含 check-tdd-red.sh（重跑 TDD 红灯检查），设置 `TEST_RUNNER` 环境变量指向项目实际测试命令（如 `TEST_RUNNER="npm test"`），check-tdd-red.sh 会使用该命令而非默认的 pytest 探测。这是 agate 协议保持技术栈无关的标准接入点。
+
 ## 判定规则
 
 - **exit 0 + failed=0**：全通过 → 继续

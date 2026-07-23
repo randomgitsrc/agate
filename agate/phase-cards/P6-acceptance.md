@@ -54,6 +54,7 @@
 - 截图：`(screenshots/{filename}.png)`
 - vision：`(vision: vision-reports/{filename}.yaml)`
 - 其他：`(result.json)` / `(assert.log)` / `(P6-evidence/{filename})` / ...
+- 多文件引用（逗号分隔）：`(file1.json, file2.log)` / `(screenshots/a.png, screenshots/b.png)`
 
 描述文本可自由添加，不影响解析（provenance 脚本用精确正则提取路径）。
 
@@ -62,7 +63,11 @@
 - 必须非空，每个文件含实质内容（截图 >1KB，断言文件含实际输出）
 - 不接受 1 行文本文件充数（T046 教训：15 个 1 行 txt 文件凑 provenance 数量）
 - 元素级截图建议使用父级元素 + padding，避免过小截图（≤1KB 虽不阻断但会触发 WARNING）
-- 行为差异类 BDD 截图可能视觉相同（md5 重复），建议在 acceptance report 说明原因
+- 操作类 BDD 截图必须互不相同（md5 完全重复会被 hook 硬阻断，无例外）。
+  若某个行为差异类 BDD 天然会产出视觉相同的页面（如两个不同查询都命中同一个空状态），
+  优先改用非截图证据（断言日志 / response.json）而非截图，或截图时带上能体现差异的元素
+  （如带时间戳的调试面板、高亮差异区域），确保截图本身逐字节不同。
+  查询类 BDD 本来就可以不截图，这类场景应优先归为查询类而非勉强用截图。
 
 ### vision-helper 结论绑定 ⚠️
 
