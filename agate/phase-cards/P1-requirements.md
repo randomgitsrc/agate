@@ -42,7 +42,7 @@ P1-requirements.md 必须包含：
 - `risk_level:` 声明（low / medium / high）→ 决定 P2 评审强度
 - `phases:` 裁剪声明（跳过哪些阶段 + 理由）
 - `capability_requirements:` 能力需求声明（available / supplementable / GAP 三态）
-- 无未决 `[NEED_CONFIRM]`（有则 PAUSED）
+- 无未决 `[NEED_CONFIRM]`（有则 PAUSED）；无待确认项时写 `[NO_NEED_CONFIRM]`
 
 ## gate 规则
 

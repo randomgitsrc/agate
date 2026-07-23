@@ -49,3 +49,11 @@ setup() {
 @test "CON.10 CHECK 8: v0.6 关键词存在性" {
     [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 8"* ]]
 }
+
+@test "CON.11 CHECK 9: PROD_TOUCHED 锚点含 PROD_NOT_TOUCHED" {
+    grep -q 'PROD_NOT_TOUCHED' agate/scripts/pre-commit-gate.sh
+}
+
+@test "CON.12 CHECK 9: NEED_CONFIRM 二值锚点存在" {
+    grep -q 'NO_NEED_CONFIRM' agate/scripts/check-gate.sh
+}

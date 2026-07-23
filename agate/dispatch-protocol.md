@@ -576,11 +576,10 @@ P8 releaser subagent 的职责边界：
 
 **理由**：`git commit` + `git tag` 是发布状态的最终确认，必须由主 Agent（编排层）在 gate 验证通过后统一执行，确保发布状态与 gate 结果绑定。subagent 的工作范围限于产出文件和执行验证命令，不触及版本提交边界。
 
-**[PROD_TOUCHED] 标记说明**：任何 subagent 若在执行过程中意外接触了生产环境（写入、读取真实数据、触发外部调用），立即在产出文件标注：
+**[PROD_TOUCHED] 标记说明**：任何 subagent 若在执行过程中意外接触了生产环境（写入、读取真实数据、触发外部调用），立即在产出文件标注。采用二值声明：
 ```
-[PROD_TOUCHED] 接触了生产环境：{描述具体行为}
-影响范围：{估计}
-是否可逆：{是/否}
+[PROD_TOUCHED] {描述}      = 正向（触发了）
+[PROD_NOT_TOUCHED]         = 负向（未触发）
 ```
 主 Agent 看到 [PROD_TOUCHED] → 立即暂停流程 → PAUSED → 报告人工处置。
 
@@ -780,11 +779,11 @@ setTimeout(() => {
 
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
-| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 BDD-/B[0-9] 锚点（check-gate.sh P1 检查）|
+| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 BDD-/B[0-9] 锚点（check-gate.sh P1 检查）|
 | P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由\|取舍\|考量\|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）+ 候选方案 ≥2（`scripts/check-gate.sh P2` 脚本化部分）|
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
-| P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + N5 最小校验（grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md → 计数 >0）+ `grep -rl '\[PROD_TOUCHED\]' {task}/` → 无命中（匹配标记格式）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
+| P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + N5 最小校验（grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md → 计数 >0）+ 行首锚点扫描（主 Agent 参照 pre-commit 三步逻辑手动判断：正向→PAUSED / 不合规→修正 / 缺失→静默通过）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
 | P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.sh P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.sh` → exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）+ 主 Agent 手动核实 `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md` = P1 BDD 总数（provenance exit 2 时必做）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
 | P7→P8 | 一致性通过（consistency-reviewer subagent 产出） | `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0 + 同理 `[DEVIATION-CRITICAL]` → =0（声明行如 `[BLOCKER]: 0 条` 被排除，不计为实际 BLOCKER）（已知限制：定性分析，P5 回归测试兜底）|
 | P8→READY | 发布准备完成（bump-version + commit + tag 由主 Agent 在 gate 验证后亲自执行） | `scripts/check-gate.sh P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + 从 P2 `packages` 验证 version 文件路径变更 + `grep -q 'bump_type:' P8-release.md` → 命中 + version 文件双路径检查（暂存区或最近 5 commit，WARNING 级）+ CHANGELOG 双路径检查（`git diff --cached` + `git diff HEAD~5..HEAD`，WARNING 级，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）|
@@ -805,7 +804,7 @@ setTimeout(() => {
 | 阶段/机制 | 检查脚本 | 用途 |
 |------|------|------|
 | 文件级 P2.15 | `scripts/check-state-yaml.sh` | `.state.yaml` 格式合法（必填字段、phase 取值、retries 结构）|
-| 全局 P1.2 | — | `[PROD_TOUCHED]` 标记检测（扫描暂存 diff 内容，命中则中止 commit）|
+| 全局 P1.2 | — | `[PROD_TOUCHED]` 标记三步检测（正向→中止 / 不合规→中止 / 缺失→静默通过）|
 | 阶段级 P2.3-P2.5 | `scripts/check-state-transition.sh` | 状态转移合法性 + 重试上限 |
 | 阶段级 P1.1 | `scripts/check-gate.sh` | 各阶段门控规则 |
 | 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（证据-结论对应 + dispatch-context + BDD 总数）|
@@ -864,14 +863,14 @@ setTimeout(() => {
 - 命令本身跑不通（能力缺口）→ `[CAPABILITY_GAP]` 交人决策，不得自行降级为目测
 - T004 教训 B7：P6 子代理连续失败后，主 Agent 要求「不用 Playwright，纯命令行验证」—— 这是主 Agent 降级了 P2 已固化的验收标准，属于违规。
 
-**SCOPE+ / SCOPE_GAP 扫描**：每次 subagent 返回后，主 Agent 扫描产出是否含 `[SCOPE+]`（新隐含需求 → 增补 P1 基线 + 定向回补）或 `[SCOPE_GAP]`（prompt 漏了 P2 已声明的改动 → 修正 prompt 重派）。
+**SCOPE+ / SCOPE_GAP 扫描**：每次 subagent 返回后，主 Agent 扫描产出是否含 `[SCOPE+]`（新隐含需求 → 增补 P1 基线 + 定向回补）或 `[SCOPE_GAP]`（prompt 漏了 P2 已声明的改动 → 修正 prompt 重派）。行首声明格式（`^\s*-?\s*\[SCOPE+\]`）。
 
 **SCOPE+ 处理追踪（P2.11）**：产出含 [SCOPE+] 时，主 Agent 必须在 P1-requirements.md 增补对应条目并标记 [SCOPE_RESOLVED: 来源文件]。未标记 [SCOPE_RESOLVED] 的 [SCOPE+] → gate 不通过（scripts/check-scope-resolved.sh）。
 
 格式：
 [SCOPE_RESOLVED: from P4-implementation.md] 新需求已增补为 AC-N，影响范围已评估
 
-**DESIGN_GAP 处理追踪（v0.6）**：implementer 在 P4 产出中标注 `[DESIGN_GAP: xxx]`（因 P2 设计歧义/缺口而自主做的决策），P7 architect 审查，主 Agent 在确认后追加 `[DESIGN_GAP_REVIEWED: 已确认 / 已打回 P2]` 配对标记。未配对 REVIEWED 标记的 DESIGN_GAP → gate 不通过（仿 SCOPE+/SCOPE_RESOLVED 模式）。
+**DESIGN_GAP 处理追踪（v0.6）**：implementer 在 P4 产出中标注 `[DESIGN_GAP: xxx]`（因 P2 设计歧义/缺口而自主做的决策），P7 architect 审查，主 Agent 在确认后追加 `[DESIGN_GAP_REVIEWED: 已确认 / 已打回 P2]` 配对标记。未配对 REVIEWED 标记的 DESIGN_GAP → gate 不通过（仿 SCOPE+/SCOPE_RESOLVED 模式）。行首声明格式（`^\s*-?\s*\[DESIGN_GAP\]`）。
 
 格式：
 [DESIGN_GAP_REVIEWED: 已确认] 主 Agent 审查通过——implementer 的自主决策正确，P2 设计此处确实缺失
@@ -885,7 +884,7 @@ P5 subagent 化后，主 Agent 验 gate 的方式：
 |--------|------|------|
 | P5-test-results/ 存在且非空 | check-gate 脚本检查 | 产出存在性 |
 | failed 计数 | gate 脚本读 unit.md 的 failed 字段 | 外部产出 gate（test runner exit code），非自写文件 gate |
-| PROD_TOUCHED | gate 脚本扫描暂存 diff | 客观检查 |
+| PROD_TOUCHED | 行首锚点 + 二值声明检测（pre-commit 三步） | 客观检查 |
 | 测试是否真的跑了 | N5 最小校验 + CI backstop 兜底 | commit 前无法 100% 验证 subagent 确实跑了测试 |
 
 **C7 规则与 P5 的关系**：C7 说"subagent 自我报告不可信"。P5 的 failed 计数写在 unit.md 里——这是 subagent 写的文件，按 C7 不可信。但 P5 是外部产出 gate（test runner exit code 是客观事实），不是自写文件 gate。区分：
@@ -993,7 +992,11 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 - **数据 schema 迁移**：测试环境的迁移逻辑需人工确认后再执行
 - **不可逆的外部调用**：发送邮件/通知、扣费、第三方 API 写操作（应在测试环境用 mock）
 
-`[NEED_CONFIRM]` 输出格式（T005/T006 教训）：
+`[NEED_CONFIRM]` 采用二值声明（T005/T006 教训）：
+- `[NEED_CONFIRM] {描述}` = 有待确认项（正向，可多条）
+- `[NO_NEED_CONFIRM]` = 无待确认项（负向）
+
+每条 `[NEED_CONFIRM]` 须包含：
 ```
 [NEED_CONFIRM] 不可逆操作待确认
 
@@ -1007,6 +1010,21 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 **严禁在未收到人工确认的情况下执行上述操作。**
 备份先于删除——若无法备份，必须在 [NEED_CONFIRM] 中说明原因，等人决策。
+
+## 标记声明规范
+
+状态标记采用二值声明——必须写正向或负向之一，不允许第三种写法：
+
+| 标记 | 正向（触发了）| 负向（未触发）|
+|------|-------------|-------------|
+| PROD_TOUCHED | `[PROD_TOUCHED] {描述}` | `[PROD_NOT_TOUCHED]` |
+| NEED_CONFIRM | `[NEED_CONFIRM] {描述}`（可多条）| `[NO_NEED_CONFIRM]` |
+
+**禁止**：在产出文件中引用标记文本做否定描述（如"无 [PROD_TOUCHED]"、"所有 [NEED_CONFIRM] 已解决"）。
+要表达"未触发"，写负向格式（`[PROD_NOT_TOUCHED]` / `[NO_NEED_CONFIRM]`）。
+写了协议未定义的格式 → gate 拦截 → 重派修正。
+
+**注**：缺失声明处理不对称——PROD_TOUCHED 缺失静默通过（安全网性质，缺失≠风险）；NEED_CONFIRM 缺失触发 WARNING（语义判断可能被遗漏，需要提醒）。
 
 ### gate 无法执行时的处理路径
 

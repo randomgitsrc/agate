@@ -164,7 +164,7 @@ git 集成自 v0.4 hardening-roadmap 起承担了新的角色：**阶段 commit 
 | gate 通过后 | 三道客观行为审计（P2.1/P2.10）| 客观审计失败 → exit 1 拦截；agent 字段等协作规范问题 → exit 2 WARNING |
 | gate 通过后 | 状态转移合法性 + 重试上限（P2.3-P2.5）| 非法转移 → 拦截 commit |
 | gate 通过后 | 裁剪条件一致性（P2.7-P2.9）| 裁剪与执行不一致 → 拦截 commit |
-| gate 通过后 | SCOPE+ 已增补并标记（P2.11）| 未标 `[SCOPE_RESOLVED]` → 拦截 commit |
+| gate 通过后 | SCOPE+ 已增补并标记（P2.11）（行首声明格式）| 未标 `[SCOPE_RESOLVED]` → 拦截 commit |
 | 任何 commit | 异常模式提醒（P2.12）| 检测到 gate 重试超限（P3/P5/P6/P7/P8 ≥2、P1/P2/P4 ≥3）/ SCOPE+ / override → 提醒写复盘（不阻塞）|
 | 任何 commit | CHANGELOG `[Unreleased]` 含 task_id（P1.6）| 缺记录 → 警告（不阻塞）|
 

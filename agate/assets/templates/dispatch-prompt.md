@@ -22,6 +22,7 @@
 本任务的环境约束见 P0-brief.md 的 env_constraints 字段。
 - 调试/验证必须使用 P0-brief 的 debug_env 声明的测试环境，严禁直接操作生产环境
 - 开发全程不应接触生产环境；若意外接触，立即停止并标注 [PROD_TOUCHED] 报告主 Agent
+- 状态标记用二值格式：触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`。不要写"无 [PROD_TOUCHED]"
 
 ## 执行顺序
 1. 读取 dispatch-context 派发指引（目标/约束/上游关联/输入文件）

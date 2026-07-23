@@ -42,13 +42,20 @@ case "$PHASE" in
           echo "GATE P1: P1-review.md 不含 BDD 编号引用（裸 approved 极可能是假完成，review 结论须引用具体 BDD 编号）" >&2
           exit 1
       fi
-      # P1 NEED_CONFIRM 检查（与 P6 对称）
+      # P1 NEED_CONFIRM 检查（与 P6 对称）——v0.17 三步检测
       P1_FILE="$TASK_DIR/P1-requirements.md"
-      NC=$(grep -cE '\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null || echo 0)
+      NC=$(grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null || echo 0)
       NC=$(echo "$NC" | tail -1)
-      if [ "$NC" -ne 0 ]; then
+      if [ "$NC" -gt 0 ]; then
           echo "GATE P1: $NC 个未解决的 NEED_CONFIRM 项" >&2
           exit 1
+      fi
+      if grep -q '\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null; then
+          echo "GATE P1: 不合规的 NEED_CONFIRM 标记格式（须用行首 [NEED_CONFIRM] 或 [NO_NEED_CONFIRM] 声明）" >&2
+          exit 1
+      fi
+      if ! grep -qE '^\s*-?\s*\[NO_NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null; then
+          echo "GATE P1 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] 或 [NO_NEED_CONFIRM]）" >&2
       fi
       echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式不固定，需主 Agent 自行判定" >&2
       exit 2 ;;
@@ -132,10 +139,21 @@ case "$PHASE" in
       TOTAL=$(echo "$TOTAL" | tail -1)
       FAIL=$(grep -ciE '^\s*- FAIL([[:space:]:：]|$)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       FAIL=$(echo "$FAIL" | tail -1)
-      NC=$(grep -cE '\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
+      NC=$(grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       NC=$(echo "$NC" | tail -1)
-      if [ "$FAIL" -ne 0 ] || [ "$NC" -ne 0 ] || [ "$TOTAL" -eq 0 ]; then
+      if [ "$NC" -gt 0 ]; then
           echo "GATE P6: FAIL=$FAIL, NEED_CONFIRM=$NC, TOTAL=$TOTAL" >&2
+          exit 1
+      fi
+      if grep -q '\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null; then
+          echo "GATE P6: 不合规的 NEED_CONFIRM 标记格式（须用行首 [NEED_CONFIRM] 或 [NO_NEED_CONFIRM] 声明）" >&2
+          exit 1
+      fi
+      if ! grep -qE '^\s*-?\s*\[NO_NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null; then
+          echo "GATE P6 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] 或 [NO_NEED_CONFIRM]）" >&2
+      fi
+      if [ "$FAIL" -ne 0 ] || [ "$TOTAL" -eq 0 ]; then
+          echo "GATE P6: FAIL=$FAIL, TOTAL=$TOTAL" >&2
           exit 1
       fi
       # 证据存在性检查（⚠️ self-authored gate 的缓解措施）
@@ -159,8 +177,8 @@ case "$PHASE" in
           exit 1
       fi
       # DESIGN_GAP 配对检查（v0.6：未配对 REVIEWED 标记的 DESIGN_GAP → 不通过）
-      DESIGN_GAP_COUNT=$(grep -cE '\[DESIGN_GAP:' "$P7_FILE" 2>/dev/null || echo 0)
-      DESIGN_GAP_REVIEWED=$(grep -cE '\[DESIGN_GAP_REVIEWED' "$P7_FILE" 2>/dev/null || echo 0)
+      DESIGN_GAP_COUNT=$(grep -cE '^\s*-?\s*\[DESIGN_GAP:' "$P7_FILE" 2>/dev/null || echo 0)
+      DESIGN_GAP_REVIEWED=$(grep -cE '^\s*-?\s*\[DESIGN_GAP_REVIEWED' "$P7_FILE" 2>/dev/null || echo 0)
       DESIGN_GAP_COUNT=$(echo "$DESIGN_GAP_COUNT" | tail -1)
       DESIGN_GAP_REVIEWED=$(echo "$DESIGN_GAP_REVIEWED" | tail -1)
       UNREVIEWED=$((DESIGN_GAP_COUNT - DESIGN_GAP_REVIEWED))
@@ -170,7 +188,7 @@ case "$PHASE" in
       fi
       # R2.3 修复：P4/P7 DESIGN_GAP 数量交叉核对
       # architect 忘记把 P4 的 DESIGN_GAP 转抄到 P7 → 之前静默放过
-      P4_DESIGN_GAP_COUNT=$(grep -rh '\[DESIGN_GAP:' "$TASK_DIR"/P4-implementation.md "$TASK_DIR"/P4-implementation/ 2>/dev/null | grep -cE '\[DESIGN_GAP:' 2>/dev/null || true)
+      P4_DESIGN_GAP_COUNT=$(grep -rh '\[DESIGN_GAP:' "$TASK_DIR"/P4-implementation.md "$TASK_DIR"/P4-implementation/ 2>/dev/null | grep -cE '^\s*-?\s*\[DESIGN_GAP:' 2>/dev/null || true)
       P4_DESIGN_GAP_COUNT=$(echo "$P4_DESIGN_GAP_COUNT" | tail -1)
       [ -z "$P4_DESIGN_GAP_COUNT" ] && P4_DESIGN_GAP_COUNT=0
       if [ "$P4_DESIGN_GAP_COUNT" -gt "$DESIGN_GAP_COUNT" ]; then

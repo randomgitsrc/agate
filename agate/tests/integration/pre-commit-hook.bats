@@ -441,3 +441,131 @@ EOF
     run bash -c "cd '$REPO' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
     [[ "$output" == *"代码文件"* ]]
 }
+
+# ========== 标记二值声明：PROD_TOUCHED ==========
+
+@test "IT_PT_BINARY.1 暂存 diff 含行首 [PROD_TOUCHED] 描述 → 中止 commit（步骤 1）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "[PROD_TOUCHED] 接触了生产环境：修改了线上配置" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "should fail"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"PROD_TOUCHED"* ]]
+}
+
+@test "IT_PT_BINARY.2 暂存 diff 含 [PROD_NOT_TOUCHED] → 不中止" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "[PROD_NOT_TOUCHED]" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "should pass"
+    [ "$status" -eq 0 ]
+}
+
+@test "IT_PT_BINARY.3 暂存 diff 含删除行 [PROD_TOUCHED] → 不中止（只扫 ^+ 行）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "[PROD_TOUCHED] 旧内容" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" commit --no-verify -qm "setup with PROD_TOUCHED"
+    echo "clean content" > "$REPO/docs/tasks/T001/P5-verification.md"
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md
+    run git -C "$REPO" commit -m "remove PROD_TOUCHED"
+    [ "$status" -eq 0 ]
+}
+
+@test "IT_PT_BINARY.4 暂存 diff 含不合规格式（句中引用）→ 中止（步骤 2）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "无 [PROD_TOUCHED] 需要报告" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "should fail"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"不合规"* ]]
+}
+
+@test "IT_PT_BINARY.5 暂存 diff 含句中引用 [PROD_TOUCHED] → 中止（步骤 2）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "检查了 [PROD_TOUCHED] 标记" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "should fail"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"不合规"* ]]
+}
+
+@test "IT_PT_BINARY.6 暂存 diff 既无正向也无负向 → 不中止 + 无 WARNING（步骤 3 静默通过）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "normal content without any marker" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "should pass"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"WARNING"* ]]
+}
+
+@test "IT_PT_BINARY.7 暂存 diff 含 [PROD_NOT_TOUCHED] 确认未接触（负向+描述）→ 不中止" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "[PROD_NOT_TOUCHED] 确认未接触" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "should pass"
+    [ "$status" -eq 0 ]
+}

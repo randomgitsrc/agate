@@ -13,7 +13,7 @@
 | 声明性改动 | 不改变程序运行时控制流的改动（改前改后控制流相同） | WORKFLOW.md §改动性质判断 |
 | 行为逻辑改动 | 改变程序运行时控制流的改动（条件分支、状态转换、数据处理） | WORKFLOW.md §改动性质判断 |
 | BDD | Behavior-Driven Development，Given/When/Then 格式的验收条件 | WORKFLOW.md §需求基线 |
-| NEED_CONFIRM | 需人工确认的标记，subagent 拿不准方向时标注 | WORKFLOW.md §[NEED_CONFIRM] |
+| NEED_CONFIRM | 需人工确认的标记（行首声明格式），subagent 拿不准方向时标注；无待确认项写 `[NO_NEED_CONFIRM]` | WORKFLOW.md §[NEED_CONFIRM] |
 | SCOPE+ | 新发现的隐含需求标记，任何阶段 subagent 可标注，主 Agent 增补 P1 基线 | WORKFLOW.md §[SCOPE+] |
 | SCOPE_GAP | 主 Agent 派发 prompt 漏了 P2 已声明的改动，subagent 标注 | dispatch-protocol.md |
 | C8 域 | role-system.md 定义的协作域，命中时触发 P2/P4 评审 | role-system.md |
@@ -22,7 +22,7 @@
 | PAUSED | 任务暂停状态，需人工介入后才能继续。不是失败，是正确路由 | state-machine.md |
 | READY | 任务完成所有 gate、准备发布的状态。实际发布由人手动触发 | state-machine.md |
 | dispatch-context | 派发前主 Agent 写的核心信息源，含派发指引（目标/约束/上游关联/输入文件）+ 阶段卡片 + 客观查证信息。文件名 P{N}-dispatch-context-{role}.md，每个 subagent 一个。禁止含 PASS/FAIL 预判 | dispatch-protocol.md |
-| PROD_TOUCHED | subagent 意外接触生产环境时标注的标记，触发 PAUSED | dispatch-protocol.md |
+| PROD_TOUCHED | subagent 意外接触生产环境时标注的标记（二值格式：触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`），触发 PAUSED | dispatch-protocol.md |
 | DESIGN_GAP | P4 实现中发现的设计偏差声明，须在 P7 被转抄 + 配对 DESIGN_GAP_REVIEWED | state-machine.md |
 | 自审 | agent=main 的评审，被 check-gate.sh 硬拦截（exit 1） | orchestrator-template.md |
 | 裁剪说明 | P1-requirements.md 中声明跳过阶段及理由的节 | WORKFLOW.md §可裁剪的阶段 |

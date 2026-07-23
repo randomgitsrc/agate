@@ -93,3 +93,28 @@ EOF
     run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+# ========== 行首锚点 ==========
+
+@test "SC.7 句中 [SCOPE+]（非行首）不触发检查 期望 exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+检查了 [SCOPE+] 的引用情况
+EOF
+    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "SC.8 行首 - [SCOPE+] 触发检查 期望 exit 1（无 RESOLVED）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+- [SCOPE+] 新增功能
+EOF
+    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"SCOPE_RESOLVED"* ]]
+}

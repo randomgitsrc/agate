@@ -1040,3 +1040,185 @@ EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
+
+# ========== 标记二值声明：NEED_CONFIRM ==========
+
+@test "G_NC_BINARY.1 P1 含 [NO_NEED_CONFIRM] 期望 exit 2（NC=0，通过）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NO_NEED_CONFIRM]
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G_NC_BINARY.2 P1 含行首 [NEED_CONFIRM] 描述 期望 exit 1（NC>0）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NEED_CONFIRM] z 的边界条件需确认
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"NEED_CONFIRM"* ]]
+}
+
+@test "G_NC_BINARY.3 P1 含不合规格式（句中引用）期望 exit 1（步骤 2 拦截）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+无 [NEED_CONFIRM] 需要确认
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"不合规"* ]]
+}
+
+@test "G_NC_BINARY.4 P6 含 [NO_NEED_CONFIRM] + 最小有效 fixture 期望 exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS AC1
+- [NO_NEED_CONFIRM]
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G_NC_BINARY.5 P1 既无正向也无负向声明 期望 exit 2 + WARNING" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"WARNING"* ]]
+}
+
+@test "G_NC_BINARY.6 P1 含 [NO_NEED_CONFIRM] 确认无不可逆操作（负向+描述）期望 exit 2" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NO_NEED_CONFIRM] 确认无不可逆操作
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+# ========== 行首锚点：DESIGN_GAP ==========
+
+@test "G_DG_ANCHOR.1 P7 句中 [DESIGN_GAP: xxx]（非行首）不计入 GAP 计数" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P7-consistency.md" <<'EOF'
+# P7 一致性检查
+检查了 [DESIGN_GAP: xxx] 的引用
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "G_DG_ANCHOR.2 P7 行首 [DESIGN_GAP: xxx] 计入 GAP 计数" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P7-consistency.md" <<'EOF'
+# P7 一致性检查
+- [DESIGN_GAP: xxx] 未配对
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"DESIGN_GAP"* ]]
+}

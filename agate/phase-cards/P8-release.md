@@ -85,7 +85,7 @@ check-gate.sh P8 $TASK_DIR
 - [ ] 项目依赖恢复到发布版本
 
 **生产环境无残留**：
-- [ ] 无 PROD_TOUCHED 标记
+- [ ] 无 PROD_TOUCHED 标记（触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`）
 - [ ] 生产数据/API 未被测试写入
 
 ## 推进条件

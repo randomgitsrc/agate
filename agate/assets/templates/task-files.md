@@ -96,7 +96,7 @@ executor_env:
 env_constraints:
   debug_env: "项目的测试/调试环境命令或路径（从项目约定读取，如 CLAUDE.md）"
   # 注意：不写 prod_env。生产环境不在开发流程范围内。
-  # 若 subagent 接触了生产环境（[PROD_TOUCHED]），说明它走错路了，立即停止。
+  # 若 subagent 接触了生产环境，须行首声明 [PROD_TOUCHED] {描述}（触发 PAUSED）或 [PROD_NOT_TOUCHED]（未触发，静默通过）。
 
 pruning_tendency: "保守 — 涉及 schema 变更，建议走完整 P1-P8"
 # 或："激进 — 单文件 typo 修复，直接做"

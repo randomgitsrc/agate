@@ -485,7 +485,12 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     {
         "desc": "PROD_TOUCHED 检测",
         "script": "agate/scripts/pre-commit-gate.sh",
-        "keywords": ["PROD_TOUCHED"],
+        "keywords": ["PROD_TOUCHED", "PROD_NOT_TOUCHED"],
+    },
+    {
+        "desc": "NEED_CONFIRM 二值声明",
+        "script": "agate/scripts/check-gate.sh",
+        "keywords": ["NEED_CONFIRM", "NO_NEED_CONFIRM"],
     },
     {
         "desc": "SCOPE+ 追踪",
