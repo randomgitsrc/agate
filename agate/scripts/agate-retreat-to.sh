@@ -7,8 +7,15 @@ TASK_DIR="${1:?用法: agate-retreat-to.sh TASK_DIR TARGET_PHASE REASON}"
 TARGET_PHASE="${2:?用法: agate-retreat-to.sh TASK_DIR TARGET_PHASE REASON}"
 REASON="${3:?必须提供诊断原因（用于每一步回退的 commit message）}"
 STATE_FILE="$TASK_DIR/.state.yaml"
+# MAX_RETRY_MAP 从 check-state-transition.sh 提取（单一数据源，避免漂移）；
+# 环境变量覆盖仍有效（check-state-transition.sh 也读 MAX_RETRY_MAP 环境变量）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -z "${MAX_RETRY_MAP:-}" ]; then
+    MAX_RETRY_MAP=$(grep -oE 'MAX_RETRY_MAP="\$\{MAX_RETRY_MAP:-[^"]*\}"' "$SCRIPT_DIR/check-state-transition.sh" \
+        | grep -oE 'P[0-9]:[0-9](,P[0-9]:[0-9])*' || true)
+fi
 MAX_RETRY_MAP="${MAX_RETRY_MAP:-P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2}"
-ARCHIVE_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/agate-archive-stale-outputs.sh"
+ARCHIVE_SCRIPT="$SCRIPT_DIR/agate-archive-stale-outputs.sh"
 
 [ -f "$STATE_FILE" ] || { echo "GATE RETREAT: $STATE_FILE 不存在" >&2; exit 1; }
 phase_num() { echo "$1" | grep -oE '[0-9]+' || echo ""; }
@@ -70,14 +77,14 @@ while [ "$n" -gt "$tgt_num" ]; do
     next=$((n - 1))
     old_p="P${n}"; new_p="P${next}"
     bash "$ARCHIVE_SCRIPT" "$old_p" "$TASK_DIR"
-    STATE_FILE="$STATE_FILE" NEW_PHASE="$new_p" python3 -c "
+    STATE_FILE="$STATE_FILE" NEW_PHASE="$new_p" RETREAT_REASON="$REASON" python3 -c "
 import yaml, os
 with open(os.environ['STATE_FILE']) as f:
     data = yaml.safe_load(f) or {}
 retries = data.setdefault('retries', {})
 new_phase = os.environ['NEW_PHASE']
 attempts = retries.setdefault(new_phase, [])
-attempts.append({'attempt': len(attempts) + 1})
+attempts.append({'attempt': len(attempts) + 1, 'reason': os.environ['RETREAT_REASON']})
 data['phase'] = new_phase
 with open(os.environ['STATE_FILE'], 'w') as f:
     yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)

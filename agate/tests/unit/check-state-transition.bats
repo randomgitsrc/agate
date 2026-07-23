@@ -546,3 +546,44 @@ EOF2
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
+
+@test "ST_ARCHIVE.5 回退 P1->P0（退到起始阶段），P1-review.md 仍在原位 -> 不触发归档检查（与检查 1 一致，P0 是起始阶段）" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF2
+    echo "req" > "$repo/docs/tasks/T001/P1-requirements.md"
+    echo "review" > "$repo/docs/tasks/T001/P1-review.md"
+    git_commit "$repo" "init"
+
+    sed -i 's/phase: P1/phase: P0/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    # P0 是起始阶段，退到 P0 不受归档检查约束（new_num=0，与检查 1 的守卫一致）
+    [ "$status" -eq 0 ]
+}
+
+@test "ST_ARCHIVE.6 回退 P2->P1，P2-design.md 已归档但 P2-review.md 仍在原位 期望 exit 1" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF2
+    echo "review" > "$repo/docs/tasks/T001/P2-review.md"
+    git_commit "$repo" "init"
+
+    sed -i 's/phase: P2/phase: P1/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P2-review.md"* ]]
+}
