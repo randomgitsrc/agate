@@ -79,15 +79,24 @@ for STATE_FILE in $STAGED_STATE_FILES; do
 
     # 2f. phase-产出一致性检查（WARNING，不拦截）
     # 只检查"暂存了 P{n}-*.md 产出但 phase 不匹配"的情况
+    # 方向判断：产出阶段号 < 当前 phase 且为新增文件 → 历史产出晚提交，不 WARNING
     TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
     STAGED_OUTPUTS=$(git diff --cached --name-only 2>/dev/null \
+        | grep -E "^${TASK_REL}/P[0-8]-.*\.md$" || true)
+    STAGED_ADDED=$(git diff --cached --diff-filter=A --name-only 2>/dev/null \
         | grep -E "^${TASK_REL}/P[0-8]-.*\.md$" || true)
     if [ -n "$STAGED_OUTPUTS" ]; then
         while IFS= read -r out_file; do
             [ -z "$out_file" ] && continue
-            # 从文件名提取阶段号 Pn
             out_phase=$(echo "$out_file" | grep -oE 'P[0-8]' | head -1)
             if [ -n "$out_phase" ] && [ "$out_phase" != "$PHASE" ]; then
+                out_num=${out_phase#P}
+                phase_num=${PHASE#P}
+                if [[ "$out_num" =~ ^[0-9]+$ ]] && [[ "$phase_num" =~ ^[0-9]+$ ]] \
+                    && [ "$out_num" -lt "$phase_num" ] \
+                    && echo "$STAGED_ADDED" | grep -qxF "$out_file"; then
+                    continue
+                fi
                 echo "GATE WARNING: 暂存了 ${out_phase} 产出但 phase=${PHASE}（${TASK_ID}）——请确认是否需要更新 phase" >&2
             fi
         done <<< "$STAGED_OUTPUTS"
@@ -268,7 +277,9 @@ done
 
 # 3. 扫描暂存的 P{n}-*.md 产出文件（无 .state.yaml 变更的任务也检查一致性）
 # 只做 WARNING，不拦截——覆盖"产出了但忘改 phase"的场景
+# 方向判断：产出阶段号 < 当前 phase 且为新增文件 → 历史产出晚提交，不 WARNING
 PROCESSED_DIRS=""
+STAGED_ADDED_ALL=$(git diff --cached --diff-filter=A --name-only 2>/dev/null | grep -E 'P[0-8]-.*\.md$' || true)
 for STATE_FILE in $STAGED_STATE_FILES; do
     [ -f "$STATE_FILE" ] || continue
     STATE_DIR=$(dirname "$STATE_FILE")
@@ -278,22 +289,25 @@ done
 
 while IFS= read -r staged_file; do
     [ -z "$staged_file" ] && continue
-    # 从路径提取任务目录：docs/tasks/{Txxx}/P{n}-*.md
     task_dir_rel=$(echo "$staged_file" | sed -E 's|^(.*/P[0-8]-[^/]+\.md)$|\1|; s|/P[0-8]-[^/]+$||')
     [ -z "$task_dir_rel" ] && continue
-    # 跳过已被 .state.yaml 扫描处理的任务
     case " $PROCESSED_DIRS " in
         *" $REPO_ROOT/$task_dir_rel "*) continue ;;
     esac
-    # 读该任务的 .state.yaml（如果存在）
     task_state="$REPO_ROOT/$task_dir_rel/.state.yaml"
     [ -f "$task_state" ] || continue
     task_phase=$(read_state_phase "$task_state")
     [ -z "$task_phase" ] && continue
-    # 从文件名提取阶段号
     out_phase=$(echo "$staged_file" | grep -oE 'P[0-8]' | head -1)
     [ -n "$out_phase" ] || continue
     if [ "$out_phase" != "$task_phase" ]; then
+        out_num=${out_phase#P}
+        phase_num=${task_phase#P}
+        if [[ "$out_num" =~ ^[0-9]+$ ]] && [[ "$phase_num" =~ ^[0-9]+$ ]] \
+            && [ "$out_num" -lt "$phase_num" ] \
+            && echo "$STAGED_ADDED_ALL" | grep -qxF "$staged_file"; then
+            continue
+        fi
         echo "GATE WARNING: 暂存了 ${out_phase} 产出但 phase=${task_phase}（${task_dir_rel##*/}）——请确认是否需要更新 phase" >&2
     fi
 done < <(git diff --cached --name-only 2>/dev/null | grep -E 'P[0-8]-.*\.md$' || true)

@@ -457,3 +457,68 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"EXIT_CODE"* || "$output" == *"跳过"* ]]
 }
+
+# ========== PROV_MULTI: 多文件引用解析 (v2 plan Part 1) ==========
+
+@test "PROV_MULTI.1 PASS 行引用 2 个逗号分隔的证据文件，均存在 → exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1: works (screenshots/file1.png, screenshots/file2.png)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/file1.png"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/file2.png"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PROV_MULTI.2 PASS 行引用 2 个逗号分隔的证据文件，其中 1 个不存在 → exit 1 + 报告缺失" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1: works (screenshots/file1.png, screenshots/file2.png)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/file1.png"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"证据文件不存在"* ]]
+    [[ "$output" == *"screenshots/file2.png"* ]]
+}
+
+@test "PROV_MULTI.3 PASS 行含 nth(1) 嵌套括号 + 行末单一证据路径 → exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1: works (screenshots/b07.png — element: .katex nth(1))
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PROV_MULTI.4 PASS 行引用单一证据文件（原有场景回归）→ exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1: works (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.json"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}

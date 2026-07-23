@@ -6,6 +6,32 @@
 
 ---
 
+## [0.18.0] - 2026-07-23
+
+### 修复
+- check-p6-provenance.sh 支持逗号分隔的多文件证据引用（原会把逗号和空格当路径一部分导致误判缺失）
+- check-p6-provenance.sh 审计 1c/5 用 grep -F 替代 grep -E（防止文件名含正则元字符时误判）
+- agate-inject-card.sh 幂等注入误报修复：判定逻辑从"替换前后文本是否相同"改为"正则是否匹配"，
+  消除同一 phase 卡片内容未变时重复注入被误判为"占位符缺失"的问题
+- agate-inject-card.sh 替换逻辑改用 lambda（防止卡片内容含 `\1` 等 backreference 被误解析）
+- pre-commit-gate.sh phase 跨度 WARNING 误报修复：阶段号低于当前 phase 的新增文件（历史产出晚提交）
+  不再被误判为"过期跨阶段产出"；阶段号高于当前 phase 的新增文件（提前产出）仍正确报 WARNING，
+  修复带方向判断以避免破坏既有测试 IT.7
+- check-p6-evidence.sh 证据引用检测从扩展名白名单改为结构判定（含路径分隔符或"文件名.扩展名"结构即视为
+  有效引用，不再枚举扩展名；不锚定行末，与 check-p6-provenance.sh 的逗号多文件解析兼容；边界误判交给
+  provenance 的文件存在性硬验证兜底）
+- check-p6-evidence.sh 内联 Python 改用 os.environ 传递路径（防止文件名含单引号时的命令注入风险）
+
+### 变更
+- phase-cards/P6-acceptance.md 更正 md5 完全重复截图的处理指引，与 verifier.md 及脚本实际行为
+  （hook 硬阻断，无例外）保持一致
+
+### 新增
+- phase-cards/P3-tdd.md、P5-verification.md、verifier.md 补充 TEST_RUNNER 环境变量的可发现性提示
+  （能力已存在，仅补充文档醒目度）
+
+---
+
 ## [0.17.0] - 2026-07-23
 
 ### 新增

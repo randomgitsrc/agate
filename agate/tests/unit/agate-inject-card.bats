@@ -202,3 +202,87 @@ EOF
     [ "$status" -eq 1 ]
     [[ "$output" == *"未找到"* ]] || [[ "$output" == *"占位符"* ]]
 }
+
+# ========== 幂等注入修复（Part 2 v2 plan） ==========
+
+@test "IC_IDEMPOTENT.1: 重复调用（卡片内容未变）应 exit 0" {
+    local task_dir
+    task_dir="$BATS_TEST_TMPDIR/task_idem1"
+    mkdir -p "$task_dir"
+
+    cat > "$task_dir/P1-dispatch-context-analyst.md" <<'EOF'
+<!-- AGATE_CARD_START -->
+{占位}
+<!-- AGATE_CARD_END -->
+EOF
+
+    run bash "$INJECT_CMD" P1 "$task_dir"
+    [ "$status" -eq 0 ]
+
+    run bash "$INJECT_CMD" P1 "$task_dir"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"AGATE_CARD 已注入"* ]]
+}
+
+@test "IC_IDEMPOTENT.2: 重复调用且卡片内容变化时应更新为新卡片" {
+    local task_dir
+    task_dir="$BATS_TEST_TMPDIR/task_idem2"
+    mkdir -p "$task_dir"
+
+    cat > "$task_dir/P3-dispatch-context-test-designer.md" <<'EOF'
+<!-- AGATE_CARD_START -->
+{占位}
+<!-- AGATE_CARD_END -->
+EOF
+
+    run bash "$INJECT_CMD" P3 "$task_dir"
+    [ "$status" -eq 0 ]
+
+    local first_hash
+    first_hash=$(sed -n '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/p' \
+        "$task_dir/P3-dispatch-context-test-designer.md" \
+        | sed '1d;$d' | sha256sum | awk '{print $1}')
+
+    local card_src="$AGATE_ROOT/phase-cards/P3-tdd.md"
+    local backup
+    backup=$(mktemp)
+    cp "$card_src" "$backup"
+
+    echo "" >> "$card_src"
+    echo "## 临时测试追加内容" >> "$card_src"
+
+    run bash "$INJECT_CMD" P3 "$task_dir"
+    [ "$status" -eq 0 ]
+
+    local second_hash
+    second_hash=$(sed -n '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/p' \
+        "$task_dir/P3-dispatch-context-test-designer.md" \
+        | sed '1d;$d' | sha256sum | awk '{print $1}')
+
+    cp "$backup" "$card_src"
+    rm -f "$backup"
+
+    [ "$first_hash" != "$second_hash" ]
+}
+
+@test "IC_MISSING.1: 无 AGATE_CARD 占位符时 exit 1" {
+    local task_dir
+    task_dir="$BATS_TEST_TMPDIR/task_missing1"
+    mkdir -p "$task_dir"
+
+    cat > "$task_dir/P1-dispatch-context-analyst.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+role: analyst
+---
+
+<dispatch_guide>
+### 目标
+完全没有占位符
+</dispatch_guide>
+EOF
+
+    run bash "$INJECT_CMD" P1 "$task_dir"
+    [ "$status" -eq 1 ]
+}

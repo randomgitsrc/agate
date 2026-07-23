@@ -46,23 +46,25 @@ if [ -f "$P6_FILE" ]; then
     MISSING_REFS=0
     MISSING_DETAILS=""
     while IFS= read -r line; do
-        # 剥离 (vision: ...) 后再取行末括号组（去尾随空格避免行尾不是 )
         LINE_CLEAN=$(echo "$line" | sed 's/(vision:[^)]*)//g' | sed 's/[[:space:]]*$//')
-        # 优先精确提取 screenshots/ 路径（处理嵌套括号如 nth(1)）
-        REF=$(echo "$LINE_CLEAN" | grep -oE 'screenshots/[^ )]+' | head -1 || true)
-        if [ -z "$REF" ]; then
-            # fallback: 取行末括号组（兼容非截图证据）
-            REF=$(echo "$LINE_CLEAN" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1 || true)
+
+        mapfile -t REFS < <(echo "$LINE_CLEAN" | grep -oE 'screenshots/[^ ),]+' || true)
+
+        if [ ${#REFS[@]} -eq 0 ]; then
+            REF_GROUP=$(echo "$LINE_CLEAN" | grep -oE '\([^)]+\)$' | sed 's/[()]//g' | head -1 || true)
+            IFS=',' read -ra REFS <<< "$REF_GROUP"
         fi
-        if [ -n "$REF" ]; then
-            # I4 修复：去除 P6-evidence/ / p6-evidence/ / evidences/ 前缀
+
+        for REF in "${REFS[@]}"; do
+            REF=$(echo "$REF" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [ -z "$REF" ] && continue
             REF_CLEAN=$(echo "$REF" | sed 's|^P6-evidence/||' | sed 's|^p6-evidence/||' | sed 's|^evidences/||')
             REF_PATH="$EVIDENCE_DIR/$REF_CLEAN"
             if [ ! -f "$REF_PATH" ]; then
                 MISSING_REFS=$((MISSING_REFS + 1))
                 MISSING_DETAILS="${MISSING_DETAILS}  PASS行: ${line}\n  缺失路径: ${REF_PATH}\n"
             fi
-        fi
+        done
     done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)
 
     if [ "$MISSING_REFS" -gt 0 ]; then
@@ -94,7 +96,8 @@ if [ -f "$P6_FILE" ]; then
         while IFS= read -r ev_file; do
             ev_basename=$(basename "$ev_file")
             # I4 修复：匹配时考虑子目录路径（evidences/ screenshots/ 等）
-            if ! grep -E '^\s*- PASS\b' "$P6_FILE" | grep -qE "(screenshots/${ev_basename}|\([^)]*${ev_basename}\))"; then
+            # 用 grep -F 做固定字符串匹配（ev_basename 可能含正则元字符如 + ）
+            if ! grep -E '^\s*- PASS\b' "$P6_FILE" | grep -qF "$ev_basename"; then
                 UNREFERENCED=$((UNREFERENCED + 1))
             fi
         done < <(find "$EVIDENCE_DIR" -type f -not -name '.*' 2>/dev/null)
@@ -210,7 +213,7 @@ if [ -f "$P6_FILE" ]; then
         if echo "$LAST_LINE" | grep -qE '^EXIT_CODE: [0-9]+$'; then
             LOG_EXIT=$(echo "$LAST_LINE" | grep -oE '[0-9]+$')
             LOG_BASENAME=$(basename "$log_file")
-            if grep -qE "PASS.*\(.*${LOG_BASENAME}\)" "$P6_FILE" 2>/dev/null && [ "$LOG_EXIT" != "0" ]; then
+            if grep -qF "$LOG_BASENAME" "$P6_FILE" 2>/dev/null && [ "$LOG_EXIT" != "0" ]; then
                 echo "GATE PROVENANCE: ${LOG_BASENAME} 声明 PASS 但日志 EXIT_CODE=${LOG_EXIT}（矛盾）" >&2
                 exit 1
             fi

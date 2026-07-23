@@ -553,6 +553,242 @@ EOF
     [[ "$output" != *"WARNING"* ]]
 }
 
+# ========== Phase-span WARNING 方向检查 ==========
+
+@test "IT_PHASE_SPAN.1 新增 P1/P2 产出文件 phase=P3（历史产出晚提交）→ 不报 WARNING" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+---
+agent: test
+phase: P2
+task_id: T001
+type: design
+parent: P1-requirements.md
+trace_id: T001-P2-20260708
+status: approved
+created: 2026-07-08
+---
+### 候选方案 A：方案一
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "T001 late commit P1/P2 outputs" 2>&1
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"WARNING"*"P1"* ]]
+    [[ "$output" != *"WARNING"*"P2"* ]]
+}
+
+@test "IT_PHASE_SPAN.2 已存在 P1 产出被重新暂存 phase=P3 → 报 WARNING（真实过期）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit --no-verify -qm "T001 P1 setup"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    echo "updated requirements" >> "$REPO/docs/tasks/T001/P1-requirements.md"
+    git -C "$REPO" add docs/tasks/T001/P1-requirements.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "T001 modify P1 while phase=P3" 2>&1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"*"P1"* ]]
+}
+
+@test "IT_PHASE_SPAN.3 新增 P4 产出文件 phase=P3（提前产出）→ 报 WARNING" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
+    echo "implementation" > "$REPO/docs/tasks/T001/P4-implementation.md"
+    git -C "$REPO" add docs/tasks/T001/P4-implementation.md
+    run git -C "$REPO" commit -m "T001 P4 output while phase=P3" 2>&1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"*"P4"* ]]
+}
+
+@test "IT_PHASE_SPAN.4 多任务场景：T001 历史产出晚提交不 WARNING / T002 已存在产出修改报 WARNING / T003 提前产出报 WARNING" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    # T001: phase=P3, 新增 P1 产出（历史产出晚提交）→ 不 WARNING
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+---
+agent: test
+phase: P2
+task_id: T001
+type: design
+parent: P1-requirements.md
+trace_id: T001-P2-20260708
+status: approved
+created: 2026-07-08
+---
+### 候选方案 A：方案一
+EOF
+    cat > "$REPO/docs/tasks/T001/P3-test-cases.md" <<'EOF'
+---
+agent: test
+---
+test cases
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- B01: PASS + 覆盖维度：数据✓
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P3" "test-designer"
+    git -C "$REPO" add "docs/tasks/T001/P3-dispatch-context-test-designer.md"
+    git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
+    # T002: phase=P3, 已存在 P1 产出被修改 → WARNING
+    mkdir -p "$REPO/docs/tasks/T002"
+    cat > "$REPO/docs/tasks/T002/.state.yaml" <<'EOF'
+task_id: T002
+phase: P1
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T002/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T002/
+    git -C "$REPO" commit --no-verify -qm "T002 P1 setup"
+    cat > "$REPO/docs/tasks/T002/.state.yaml" <<'EOF'
+task_id: T002
+phase: P3
+status: active
+retries: {}
+EOF
+    echo "updated" >> "$REPO/docs/tasks/T002/P1-requirements.md"
+    # T003: phase=P3, 新增 P4 产出（提前产出）→ WARNING
+    # .state.yaml 已在上一 commit 提交，本次只暂存 P4 产出
+    mkdir -p "$REPO/docs/tasks/T003"
+    cat > "$REPO/docs/tasks/T003/.state.yaml" <<'EOF'
+task_id: T003
+phase: P3
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T003/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T003/
+    git -C "$REPO" commit --no-verify -qm "T003 P3 setup"
+    echo "implementation" > "$REPO/docs/tasks/T003/P4-implementation.md"
+    git -C "$REPO" add docs/tasks/T002/ docs/tasks/T003/P4-implementation.md
+    run git -C "$REPO" commit -m "multi-task phase-span" 2>&1
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"WARNING"*"T001"*"P1"* ]]
+    [[ "$output" == *"WARNING"*"P1"* ]]
+    [[ "$output" == *"WARNING"*"P4"* ]]
+}
+
+@test "IT_PHASE_SPAN.5 phase=PAUSED 暂存阶段号不符文件 → 不崩溃、报 WARNING、无 integer expression expected" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: PAUSED
+status: active
+retries: {}
+EOF
+    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "T001 PAUSED with P1 output" 2>&1
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"integer expression expected"* ]]
+}
+
+# ========== 标记二值声明：PROD_TOUCHED ==========
+
 @test "IT_PT_BINARY.7 暂存 diff 含 [PROD_NOT_TOUCHED] 确认未接触（负向+描述）→ 不中止" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
