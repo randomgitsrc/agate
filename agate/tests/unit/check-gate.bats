@@ -1222,3 +1222,60 @@ EOF
     [ "$status" -eq 1 ]
     [[ "$output" == *"DESIGN_GAP"* ]]
 }
+
+# ========== 回退抵达检测（OLD_PHASE 可选第 3 参数）==========
+
+@test "G_RETREAT.1 P1 无 OLD_PHASE（省略）→ 行为不变，P1-review.md 缺失仍 exit 1" {
+    local dir
+    dir="$BATS_TEST_TMPDIR/g_retreat1"
+    mkdir -p "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 1 ]
+}
+
+@test "G_RETREAT.2 P1 OLD_PHASE=P2（回退抵达）→ exit 2，跳过完成度校验" {
+    local dir
+    dir="$BATS_TEST_TMPDIR/g_retreat2"
+    mkdir -p "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir" P2
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"回退抵达"* ]]
+}
+
+@test "G_RETREAT.3 P4 OLD_PHASE=P6（回退抵达，本次 plan 的核心场景）→ exit 2" {
+    local dir
+    dir="$BATS_TEST_TMPDIR/g_retreat3"
+    mkdir -p "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P4 "$dir" P6
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"回退抵达"* ]]
+}
+
+@test "G_RETREAT.4 P6 OLD_PHASE=P7（回退抵达）→ exit 2，即使证据目录不存在" {
+    local dir
+    dir="$BATS_TEST_TMPDIR/g_retreat4"
+    mkdir -p "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir" P7
+    [ "$status" -eq 2 ]
+}
+
+@test "G_RETREAT.5 P4 OLD_PHASE=P3（正常推进方向，非回退）→ 仍按原逻辑要求代码文件" {
+    local dir
+    dir="$BATS_TEST_TMPDIR/g_retreat5"
+    mkdir -p "$dir"
+    cd "$dir"
+    git init -q
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P4 "$dir" P3
+    # 暂存区没有代码文件，仍应 exit 1（不因为传了 OLD_PHASE 就被误判成回退而放行）
+    [ "$status" -eq 1 ]
+}
+
+@test "G_RETREAT.6 OLD_PHASE 与 PHASE 相同（非法/无意义输入）→ 不触发回退检测，走原逻辑" {
+    local dir
+    dir="$BATS_TEST_TMPDIR/g_retreat6"
+    mkdir -p "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir" P1
+    # OLD_NUM 不大于 NEW_NUM，不判定为回退，走原有 P1 逻辑（P1-review.md 缺失 exit 1）
+    [ "$status" -eq 1 ]
+    [[ "$output" != *"回退抵达"* ]]
+}

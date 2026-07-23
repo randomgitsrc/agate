@@ -6,7 +6,38 @@
 
 ---
 
-## [0.18.0] - 2026-07-23
+## [0.19.0] - 2026-07-23
+
+### 新增
+- `agate-archive-stale-outputs.sh`：回退时归档被跨过阶段的 self-authored 产出（P1/P2/P6/P7），
+  归档到 `docs/tasks/Txxx/.archived/{时间戳}-{阶段}/`（留痕，非删除），并在
+  `docs/tasks/Txxx/.retreat-history.md`（不被归档）追加摘要，P6 时摘录具体 FAIL 详情，
+  防止重新派发时忘记当初失败原因
+- `agate-retreat-to.sh`：自动化多步单向回退，主 Agent 只需调用一次即可完成多步
+  "归档 + phase 更新 + commit"序列，每一步仍是独立、真实、受 `pre-commit-gate.sh`/
+  `check-state-transition.sh` 完整校验的 commit，不改变 diff≥2 强制 PAUSED 的安全网
+
+### 修复
+- **`check-gate.sh` 新增回退抵达检测**（实施过程中发现的架构性问题，超出原 plan 范围）：
+  原本每个阶段分支检查的是"这个阶段是否已完成"（文件存在/approved/FAIL=0 等），这个假设
+  只对"正常推进抵达"成立——对"回退抵达"（如从 P6 退到 P4，归档后刚落地）不成立，因为退回
+  来的那一刻工作本来就还没重做。此前这会导致 `agate-retreat-to.sh` 的退回序列中途被硬拦截
+  （P1/P2/P4/P6/P7 等有完成度硬校验的阶段皆受影响，不止 P4）。现支持可选第 3 个参数
+  `OLD_PHASE`，`pre-commit-gate.sh` 会自动计算并传入；省略时行为与之前完全一致（向后兼容，
+  不影响任何现有调用方）。检测到回退抵达时跳过完成度校验、返回 exit 2（视为"待重做"，不是
+  "已通过"），重新推进离开该阶段时会再次正常校验
+- `check-state-transition.sh` 新增检查：单步回退时若被跨过阶段（P1/P2/P6/P7）的自撰产出
+  仍在原位（未归档），拦截 commit 并提示先跑归档脚本——此前回退没有任何机制防止旧产出被
+  静默复用，gate 可能基于修复前的验收结果误判通过
+- `pre-commit-gate.sh` E3 检查区分证据文件与项目源码：P6 阶段暂存 `P6-evidence/` 之外的
+  文件（即项目源码）现在会被硬拦截（此前 P6 与 P4/P5 一样被无脑放行）——P6 是
+  self-authored gate 的验收阶段，验收失败应退回重新派发实现，而非在 P6 原地改代码
+
+### 变更
+- `phase-cards/P6-acceptance.md` 补充"验收失败不能直接改代码"的显式指引
+- `phase-cards/P4-implementation.md` 补充"重新派发时须引用 `.retreat-history.md`"的要求
+- `dispatch-protocol.md` 红灯处理优先级补充归档前置要求 + `agate-retreat-to.sh` 用法
+- `agate/rules/state-transitions.md` 回退规则补充自撰产出归档要求
 
 ### 修复
 - check-p6-provenance.sh 支持逗号分隔的多文件证据引用（原会把逗号和空格当路径一部分导致误判缺失）

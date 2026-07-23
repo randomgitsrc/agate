@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# check-gate.sh PHASE TASK_DIR
+# check-gate.sh PHASE TASK_DIR [OLD_PHASE]
 # exit 0 = gate 通过; exit 1 = gate 未通过; exit 2 = 需主 Agent 自判（含动态 gate_commands 或语义判断）
+#
+# OLD_PHASE（可选第 3 参数）：上一个 phase。省略时行为与之前完全一致（无回退检测）。
+# 提供且数字上大于 PHASE 时，判定为"回退抵达"，跳过该阶段的完成度校验直接 exit 2
+# （回退抵达 ≠ 阶段已完成，不该被当"未完成"硬拦截；也不应假装"已通过"）。
 #
 # 可脚本化的 gate（exit 0/1）：P3 / P4 / P7
 # 需主 Agent 自判的 gate（exit 2）：P0 / P1 / P2 / P5 / P6 / P8
@@ -13,6 +17,22 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PHASE="${1:?用法: check-gate.sh PHASE TASK_DIR}"
 TASK_DIR="${2:?用法: check-gate.sh PHASE TASK_DIR}"
+OLD_PHASE="${3:-}"
+
+# 回退到达检测（可选第 3 参数，向后兼容：不传 = 行为与之前完全一致）。
+# 背景：本脚本每个阶段分支检查的是"这个阶段的完成度"（文件存在/approved/FAIL=0 等），
+# 这个假设只对"正常推进抵达"成立——对"回退抵达"（如 P6→P4 归档后刚落地 P4）不成立，
+# 因为退回来的那一刻工作本来就还没重做，不该被当成"没完成"而硬拦截。
+# 用 OLD_PHASE 与 PHASE 的数字大小关系判断方向：OLD_PHASE 数字更大 = 回退。
+if [ -n "$OLD_PHASE" ]; then
+    OLD_NUM=$(echo "$OLD_PHASE" | grep -oE '[0-9]+' || echo "")
+    NEW_NUM=$(echo "$PHASE" | grep -oE '[0-9]+' || echo "")
+    if [ -n "$OLD_NUM" ] && [ -n "$NEW_NUM" ] && [ "$OLD_NUM" -gt "$NEW_NUM" ]; then
+        echo "GATE $PHASE: 检测到回退抵达（上一阶段 $OLD_PHASE → $PHASE），本次 commit 视为回退声明，暂不做完成度校验" >&2
+        echo "  该阶段的工作尚待重新进行；重新推进离开 $PHASE 时会再次正常校验" >&2
+        exit 2
+    fi
+fi
 
 case "$PHASE" in
   P0)

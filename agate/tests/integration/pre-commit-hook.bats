@@ -805,3 +805,162 @@ EOF
     run git -C "$REPO" commit -m "should pass"
     [ "$status" -eq 0 ]
 }
+
+# ========== P6 self-authored gate 代码直改硬拦截 ==========
+
+@test "IT_P6_CODE.1 phase=P6，暂存 P6-evidence/ 下截图 → 不拦（证据文件例外）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots"
+    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/a.png"
+    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P6
+status: active
+retries: {}
+EOF2
+    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "p6 evidence only"
+    [[ "$output" != *"暂存了项目源码"* ]]
+    [[ "$output" != *"不应直接改代码"* ]]
+}
+
+@test "IT_P6_CODE.2 phase=P6，暂存项目源码文件 → exit 1 硬拦截" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots" "$REPO/src"
+    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/a.png"
+    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
+    echo "print('fix')" > "$REPO/src/app.py"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P6
+status: active
+retries: {}
+EOF2
+    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add src/app.py docs/tasks/T001/
+    run git -C "$REPO" commit -m "should be blocked"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"不应直接改代码"* ]]
+}
+
+@test "IT_P6_CODE.3 phase=P4，暂存源码文件 → 不拦（回归）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001" "$REPO/src"
+    echo "print('impl')" > "$REPO/src/app.py"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P4
+status: active
+retries: {}
+EOF2
+    git -C "$REPO" add src/app.py docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "p4 impl"
+    [[ "$output" != *"不应直接改代码"* ]]
+}
+
+@test "IT_P6_CODE.4 phase=P5，暂存源码文件 → 不拦（回归）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001" "$REPO/src"
+    echo "print('fix')" > "$REPO/src/app.py"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF2
+    git -C "$REPO" add src/app.py docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "p5 fix"
+    [[ "$output" != *"不应直接改代码"* ]]
+}
+
+@test "IT_P6_CODE.5 phase=P2，暂存源码文件 → WARNING 而非硬拦截（回归，现有行为不变）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001" "$REPO/src"
+    echo "print('early')" > "$REPO/src/app.py"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF2
+    git -C "$REPO" add src/app.py docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "p2 early code"
+    [[ "$output" == *"是否在非实现阶段直接改代码"* ]]
+    [[ "$output" != *"不应直接改代码"* ]]
+}
+
+# ========== agate-retreat-to.sh 与真实 pre-commit hook 的集成 ==========
+
+@test "IT_RETREAT.1 agate-retreat-to.sh 在装了真实 hook 的仓库里，每一步都真的过 hook 校验" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots"
+    echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
+    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/x.png"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P6
+status: active
+retries: {}
+EOF2
+    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit -qm "setup P6 state"
+
+    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' docs/tasks/T001 P4 '集成测试诊断'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"共 2 步"* ]]
+
+    # 关键：确认每一步 commit 真的经过了装好的 hook（而不是绕过了 hook）——
+    # 用 hook 里必定会打印的一段特征文本来确认 hook 真的跑过
+    run bash -c "cd '$REPO' && git log -p -2 --format=''"
+    run bash -c "cd '$REPO' && git log --oneline"
+    [[ "$output" == *"retreat: P6 -> P5"* ]]
+    [[ "$output" == *"retreat: P5 -> P4"* ]]
+}
+
+@test "IT_RETREAT.2 中途一步的 commit 被 hook 拒绝时，agate-retreat-to.sh 明确报告停在哪步且不继续" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots"
+    echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
+    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/x.png"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P6
+status: active
+retries: {}
+EOF2
+    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit -qm "setup P6 state"
+
+    # 故意在工作区留一个句中引用 [PROD_TOUCHED] 的文件（不合规格式，phase 无关，
+    # 会被 pre-commit-gate.sh 的二值声明步骤 2 硬拦截）。agate-retreat-to.sh 的
+    # git add "$TASK_DIR" 会在第一步（P6->P5）把它一并带上，验证中途拒绝时脚本
+    # 能正确报告"已停在 P6"且不会继续尝试后续步骤
+    echo "记录：曾经不小心碰到了 [PROD_TOUCHED] 生产环境" > "$REPO/docs/tasks/T001/note.md"
+
+    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' docs/tasks/T001 P4 '集成测试：中途拒绝'"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"未通过 pre-commit hook 校验"* ]]
+    [[ "$output" == *"已停在 P6"* ]]
+
+    # 确认没有任何一步真的成功提交（P6 仍是当前 phase，没有 retreat commit 落地）
+    run bash -c "cd '$REPO' && git log --oneline"
+    [[ "$output" != *"retreat:"* ]]
+}

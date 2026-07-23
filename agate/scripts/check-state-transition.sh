@@ -154,4 +154,37 @@ if [ "$old_num" -gt 0 ] && [ "$new_num" -gt 0 ] && [ "$new_num" -gt "$old_num" ]
     fi  # 任务级 .state.yaml guard
 fi  # 检查 3 外层：向前推进 + 非 PAUSED
 
+# 检查 4：回退时若被跨过阶段是 self-authored 产出阶段（P1/P2/P6/P7），
+# 且该阶段的产出文件仍在原位（未归档）-> 拦截，要求先跑 agate-archive-stale-outputs.sh
+# （self-authored gate 产出不能跨重试静默复用，见 LIMITATIONS.md self-authored 分类）
+# 文件列表须与 agate-archive-stale-outputs.sh 的 _outputs_for() 保持一致
+if [ "$old_num" -gt 0 ] && [ "$new_num" -gt 0 ] && [ "$diff" -eq 1 ]; then
+    case "$old_phase" in
+        P1|P2|P6|P7)
+            TASK_DIR=$(dirname "$STATE_FILE")
+            STALE_FOUND=""
+            case "$old_phase" in
+                P1)
+                    for f in P1-requirements.md P1-review.md; do
+                        [ -f "$TASK_DIR/$f" ] && STALE_FOUND="$f" && break
+                    done
+                    ;;
+                P2)
+                    for f in P2-design.md P2-review.md; do
+                        [ -f "$TASK_DIR/$f" ] && STALE_FOUND="$f" && break
+                    done
+                    ;;
+                P6) [ -f "$TASK_DIR/P6-acceptance.md" ] && STALE_FOUND="P6-acceptance.md" ;;
+                P7) [ -f "$TASK_DIR/P7-consistency.md" ] && STALE_FOUND="P7-consistency.md" ;;
+            esac
+            if [ -n "$STALE_FOUND" ]; then
+                echo "GATE STATE: 回退 P${old_num}->P${new_num}，但 ${old_phase} 的自撰产出（${STALE_FOUND}）仍在原位" >&2
+                echo "  退回前须先跑：bash agate/scripts/agate-archive-stale-outputs.sh ${old_phase} ${TASK_DIR}" >&2
+                echo "  （self-authored gate 产出不能跨重试静默复用，见 LIMITATIONS.md self-authored 分类）" >&2
+                exit 1
+            fi
+            ;;
+    esac
+fi
+
 exit 0
