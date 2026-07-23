@@ -42,7 +42,7 @@
 | 阶段 | 产出文件 | 门槛（见 state-machine.md） |
 |------|----------|------|
 | P0 | P0-brief.md | 主 Agent 亲自写，五字段非空 |
-| P1 | P1-requirements.md | ≥1 条 BDD + 无 NEED_CONFIRM + 无 CAPABILITY_GAP |
+| P1 | P1-requirements.md | ≥1 条 BDD + 无行首 [NEED_CONFIRM] + 无 CAPABILITY_GAP |
 | P2 | P2-design.md + P2-review.md | review.status=approved |
 | P3 | P3-test-design.md | TDD 红灯正确（`check-tdd-red.sh` exit 0） |
 | P4 | P4-implementation.md | 文件非空 + gate 通过 |

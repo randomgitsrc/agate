@@ -34,7 +34,7 @@ fi
 if [ -d "$TASK_DIR" ]; then
     for f in "$TASK_DIR"/*.md; do
         [ -f "$f" ] || continue
-        if grep -q '\[SCOPE+\]' "$f" 2>/dev/null; then
+        if grep -qE '^\s*-?\s*\[SCOPE\+\]' "$f" 2>/dev/null; then
             WARNINGS="${WARNINGS}SCOPE+ 触发（$(basename "$f")）\n"
             break
         fi

@@ -85,13 +85,13 @@ check-gate.sh P4 $TASK_DIR
 
 - [ ] 暂存区含代码文件（非 .md/.yaml）
 - [ ] 评审完成（若有触发）：P4-review.md status: approved
-- [ ] SCOPE+ 已处理（若本阶段产生）：P1-requirements.md 有 [SCOPE_RESOLVED]
+- [ ] SCOPE+ 已处理（若本阶段产生）：P1-requirements.md 有 [SCOPE_RESOLVED]（行首声明格式）
 - [ ] git commit 完成
 
 ## 常见错误
 
 1. **不读 files_to_read，在项目里乱翻**：implementer 拿到 P2 的 files_to_read 清单后应按清单阅读，不要在项目里全文搜索或整目录全读——上下文会爆炸
-2. **自行加范围外改动**：发现需要做但不在 P1 范围内的改动 → 标 [SCOPE+] 而非直接做
+2. **自行加范围外改动**：发现需要做但不在 P1 范围内的改动 → 标 [SCOPE+]（行首声明格式）而非直接做
 3. **只跑单元测试不验证集成**：单元测试全绿 ≠ 功能可用。P5 会跑 gate_commands 做技术验证，但要确保实现时路径依赖的端点行为已验证
 4. **写完代码不改 .state.yaml 就 commit**：commit 后更新 phase 标记为 P5
 5. **gate 不过 ≠ 你失败了**：红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。

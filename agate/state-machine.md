@@ -79,7 +79,7 @@ P1 --[P1-review.md status==rejected && retry<MAX]--> P1 (retry+1, analyst 修改
 P1 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 P1 --[存在 status: GAP]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。supplementable 不阻塞，见 dispatch-protocol.md「supplementable 能力的传递规则」）
 
-任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）（`[PROD_TOUCHED]` 正向声明触发，`[PROD_NOT_TOUCHED]` 不触发）
 任意阶段 --[出现 NEED_CONFIRM（不可逆操作）]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P2 --[P2-review.md 有效 AND status==approved AND agent≠main AND P2-design.md 声明 packages/domains/ui_affected/gate_commands AND 候选方案≥2 AND 含权衡/选择理由/取舍/考量]--> P3
@@ -197,7 +197,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   gate 判定方式：主 Agent 读 P1-requirements.md 的 phases 字段，确认跳过列表，按上述转移规则推进。
   若 P1 声明的 phases 列表与实际 gate 判定冲突（如声明跳过 P6 但 P5 发现行为不符需验收），主 Agent PAUSED 报告人工决策。
 
-特殊转移（SCOPE+ 定向回补）：
+特殊转移（SCOPE+ 定向回补）：（行首声明格式：`^\s*-?\s*\[SCOPE+\]`）
 任意阶段 Pn 产出含 [SCOPE+] → 主 Agent 增补 P1 基线 → 判断影响范围 → 定向回补：
   Pn --[SCOPE+ 增补基线]--> P1（仅增补 requirements.md，不重跑 P1 分析）
   → 主 Agent 判断该新需求实际需要哪些阶段，定向回到最早受影响的阶段
@@ -388,7 +388,7 @@ function 执行一步(task_id):
         （subagent 的自我检查结果仅供参考，不作为 gate 判定依据——gate 以主 Agent 跑命令为准）
     5. 主 Agent 亲自跑 gate 命令验证门槛（A1 原则：跑命令不信文件）：
        - P1: P1-requirements.md 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）;
-             grep -cE '\[NEED_CONFIRM\]' {task}/P1-requirements.md → =0;
+             grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' {task}/P1-requirements.md → =0;
              grep -cE 'status:.*GAP\b' {task}/P1-requirements.md → =0（仅匹配 status: GAP，不匹配 supplementable）
        - P2: grep 'status: approved' {task}/P2-review.md → 命中;
              grep -cE '^(packages|domains|ui_affected|gate_commands):' {task}/P2-design.md → ≥4;
@@ -397,7 +397,7 @@ function 执行一步(task_id):
              （UI 任务：确认 P3-test-cases.md 含 Playwright/E2E 用例描述）
        - P4: git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'
        - P5: 从 P2-design.md gate_commands.P5 读取命令执行 → exit 0 AND failed==0;
-             grep -rl '\[PROD_TOUCHED\]' {task}/ → 无命中（匹配标记格式，不匹配说明性文本）;
+             grep -rlE '^\s*-?\s*\[PROD_TOUCHED\]' {task}/ → 无命中（行首锚点匹配正向声明，不匹配句中引用）;
              （UI 任务：从 gate_commands.P5 读取 E2E 命令执行 → exit 0）
          - P6: scripts/check-gate.sh P6 → 脚本化部分通过（exit 2，FAIL=0/NC=0/证据非空已验，BDD 总数对照需主 Agent 手动核实）;
               grep -cE '^\s*- (PASS|FAIL)' {task}/P6-acceptance.md → =P1 BDD 总数（主 Agent 手动核实）;

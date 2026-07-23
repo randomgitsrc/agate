@@ -43,7 +43,7 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
   - 真 bug → 回 P4 修复
   - 环境问题（超时/端口占用/依赖缺失）→ 修复环境重新跑
   - flaky test → 记入 P5-test-results/，三振记录
-- **PROD_TOUCHED**：任何生产环境触达 → 立即 PAUSED
+- **PROD_TOUCHED**：任何生产环境触达 → 立即 PAUSED（触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`）
 - **E2E 未执行**（ui_affected: true 但未跑 P5_e2e）：视为验证不完整
 - **全量测试 WARNING**：P5 阶段建议运行全量测试套件（含非本任务测试），若发现预存失败：
   - 在 P5-test-results/unit.md 标注"预存失败：X（与本次改动无关）"

@@ -102,10 +102,16 @@ for STATE_FILE in $STAGED_STATE_FILES; do
 
     # 2g.1 PROD_TOUCHED 检测（P1.2）——仅扫任务目录下的暂存 diff
     # R3 修复：只扫任务产出文件，不扫协议/模板/项目文档（后者引用标记是说明性文本，非真正标记）
+    # v0.17：三步检测（正向→中止 / 不合规→中止 / 缺失→静默通过）+ 只扫新增行
     TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
     if git diff --cached --name-only 2>/dev/null | grep -qE "^${TASK_REL}/"; then
-        if git diff --cached -- "$TASK_REL" | grep -q '\[PROD_TOUCHED\]'; then
-            echo "GATE: 检测到 [PROD_TOUCHED] 标记（${TASK_ID}），中止 commit" >&2
+        DIFF_ADDED=$(git diff --cached -- "$TASK_REL" | grep '^+[^+]' | sed 's/^+//' || true)
+        if echo "$DIFF_ADDED" | grep -qE '^\s*-?\s*\[PROD_TOUCHED\]'; then
+            echo "GATE: [PROD_TOUCHED] 检测到生产环境接触（${TASK_ID}），commit 中止" >&2
+            exit 1
+        fi
+        if echo "$DIFF_ADDED" | grep -q '\[PROD_TOUCHED\]'; then
+            echo "GATE: 不合规的 PROD_TOUCHED 标记格式（${TASK_ID}），须用行首 [PROD_TOUCHED] 或 [PROD_NOT_TOUCHED] 声明" >&2
             exit 1
         fi
     fi

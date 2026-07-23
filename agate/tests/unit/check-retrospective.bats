@@ -84,3 +84,16 @@ EOF
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
+
+# ========== 行首锚点 ==========
+
+@test "RT.7 句中 [SCOPE+]（非行首）不触发复盘提醒 期望 exit 0 + 无输出" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+检查了 [SCOPE+] 的引用情况
+EOF
+    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}

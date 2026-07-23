@@ -80,14 +80,14 @@ check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 
 ```
 
 - FAIL > 0 → gate exit 1 → 回 P4
-- NEED_CONFIRM > 0 → gate exit 1 → PAUSED
+- NEED_CONFIRM > 0 → gate exit 1 → PAUSED（无行首 `[NEED_CONFIRM]` 时写 `[NO_NEED_CONFIRM]` 为合规负向声明）
 
 格式问题 → 运行 check-p6-format.sh --fix 归一化 → 再验 gate → … → 通过（⑩迭代循环，格式迭代和 gate 重试共享 retry 预算）
 
 ## 推进条件
 
 - [ ] 所有 BDD PASS（FAIL=0）
-- [ ] 无 [NEED_CONFIRM]
+- [ ] 无行首 `[NEED_CONFIRM]`（`[NO_NEED_CONFIRM]` 为合规负向声明）
 - [ ] P6-evidence/ 目录非空 + 证据文件被引用
 - [ ] UI 任务：vision-helper blocker_count=0 或 blocker>0 已追查
 - [ ] provenance 审计通过

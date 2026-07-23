@@ -47,7 +47,7 @@ review 类 subagent 不能靠代码改动校验兜底。结论必须附带实质
    - P2 packages 与 P8 release bump 范围一致
    - P1 BDD 数量与 P6 验收结果数量匹配
    - P4 实现路径与 P2 方案设计吻合
-4. **未决项清零**：全阶段产出无残留 [NEED_CONFIRM]、[BLOCKER]、[DEVIATION-CRITICAL]
+4. **未决项清零**：全阶段产出无残留行首 `[NEED_CONFIRM]`（`[NO_NEED_CONFIRM]` 为合规负向声明）、[BLOCKER]、[DEVIATION-CRITICAL]
 
 ## 质量门槛
 - 无 [BLOCKER] / [DEVIATION-CRITICAL]

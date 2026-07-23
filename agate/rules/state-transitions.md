@@ -15,7 +15,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 - P0-brief.md 完成，五字段自查通过（task / known_risks / executor_env / env_constraints / pruning_tendency）
 
 ### P1 → P2
-- P1-requirements.md 有效 + 含至少一条 BDD 验收条件 + 无未决 NEED_CONFIRM + 无 status: GAP（supplementable 不阻）
+- P1-requirements.md 有效 + 含至少一条 BDD 验收条件 + 无未决行首 NEED_CONFIRM（无待确认项写 `[NO_NEED_CONFIRM]`）+ 无 status: GAP（supplementable 不阻）
 
 ### P2 → P3
 - P2-review.md 有效 + status: approved + P2-design.md 声明 packages/domains/ui_affected/gate_commands + 候选方案 ≥2 + 含权衡/选择理由/取舍/考量/trade-off
@@ -28,7 +28,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 - 暂存区含非 md/yaml 文件（git diff --cached）
 
 ### P5 → P6
-- gate_commands.P5 全部 exit 0 + failed==0 + 无 PROD_TOUCHED
+- gate_commands.P5 全部 exit 0 + failed==0 + 无 PROD_TOUCHED（二值格式：触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`）
 - UI 任务：gate_commands.P5 E2E 命令 exit 0
 
 ### P6 → P7
@@ -69,7 +69,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 
 - 人工确认/决策后恢复到 PAUSED 前的阶段
 - PAUSED 原因 = retry 耗尽 → recovery_bonus=1，允许额外 1 次重试（可选，写入 .state.yaml）
-- SCOPE+ 暂不处理，恢复后一并纳入 P1 基线增补
+- SCOPE+（行首声明格式）暂不处理，恢复后一并纳入 P1 基线增补
 
 ## 中断恢复步骤
 
@@ -85,4 +85,4 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 
 ## PROD_TOUCHED
 
-任意阶段出现 PROD_TOUCHED 标记 → 立即 PAUSED，报告人工。
+任意阶段出现行首 PROD_TOUCHED 标记（二值格式：触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`）→ 立即 PAUSED，报告人工。

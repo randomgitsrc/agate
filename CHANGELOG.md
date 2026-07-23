@@ -6,6 +6,26 @@
 
 ---
 
+## [0.17.0] - 2026-07-23
+
+### 新增
+- 标记二值声明：PROD_TOUCHED / NEED_CONFIRM 采用正向/负向二选一格式
+- `[PROD_NOT_TOUCHED]` / `[NO_NEED_CONFIRM]` 负向声明格式
+- 缺失声明 WARNING（NEED_CONFIRM 两个都没写时提醒；PROD_TOUCHED 缺失静默通过）
+- 标记声明规范节（dispatch-protocol.md）
+
+### 变更
+- **BREAKING**：`[PROD_TOUCHED]` / `[NEED_CONFIRM]` 标记必须行首声明，句中引用会被 gate 拦截
+- **BREAKING**：`无 [PROD_TOUCHED]` 等否定语境写法不再被接受，须用 `[PROD_NOT_TOUCHED]`
+- pre-commit-gate.sh PROD_TOUCHED 检测只扫 git diff 新增行（`^+`），不再匹配删除行/上下文行
+- SCOPE+ / DESIGN_GAP / SCOPE_RESOLVED grep 加行首锚点
+- NEED_CONFIRM grep 加行首锚点
+
+### 修复
+- pre-commit-gate.sh 扫描 git diff 删除行/上下文行导致 PROD_TOUCHED 误判
+
+---
+
 ## [0.16.0] - 2026-07-22
 
 ### 修复
