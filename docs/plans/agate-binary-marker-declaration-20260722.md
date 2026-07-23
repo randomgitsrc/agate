@@ -189,6 +189,8 @@ fi
   **禁止**：在产出文件中引用标记文本做否定描述（如"无 [PROD_TOUCHED]"、"所有 [NEED_CONFIRM] 已解决"）。
   要表达"未触发"，写负向格式（`[PROD_NOT_TOUCHED]` / `[NO_NEED_CONFIRM]`）。
   写了协议未定义的格式 → gate 拦截 → 重派修正。
+
+  **注**：缺失声明处理不对称——PROD_TOUCHED 缺失静默通过（安全网性质，缺失≠风险）；NEED_CONFIRM 缺失触发 WARNING（语义判断可能被遗漏，需要提醒）。
   ```
 
 **dispatch-prompt.md**（派发模板）：
@@ -258,7 +260,13 @@ fi
 | IT_PT_BINARY.7 | 暂存 diff 含 `+ [PROD_NOT_TOUCHED] 确认未接触`（负向+描述）| 不中止 |
 
 **修改测试**：
-- IT.3（pre-commit-hook.bats:102-119）：更新为二值格式
+- IT.3（pre-commit-hook.bats:102-119）：更新为二值格式。当前 fixture 是句中引用（`do something to production [PROD_TOUCHED]`），在新三步逻辑下走步骤 2（不合规格式）而非步骤 1（正向声明）。更新为：
+  ```bash
+  # fixture 改为行首正向声明（步骤 1 场景）：
+  echo "[PROD_TOUCHED] 接触了生产环境：修改了线上配置" > "$REPO/docs/tasks/T001/P5-verification.md"
+  # 断言改为精确匹配步骤 1 消息：
+  [[ "$output" == *"检测到 [PROD_TOUCHED] 检测到生产环境接触"* ]]
+  ```
 
 ---
 
@@ -439,6 +447,10 @@ v0.16.0 → v0.17.0（minor bump）
 ### 6.2 已知局限
 
 **check-retrospective.sh 不剥离 AGATE_CARD 块**：check-scope-resolved.sh 用 sed 剥离卡片嵌入块后再 grep `[SCOPE+]`，但 check-retrospective.sh 直接 grep。加行首锚点后风险降低（卡片模板中的 `[SCOPE+]` 通常不在行首），但仍可能误触发复盘提醒。由于 check-retrospective.sh 始终 exit 0（WARNING-only），可接受。**实施者注意**：check-retrospective.sh:37 的行首锚点改动与 check-scope-resolved.sh:20 不同——后者先 sed 剥离 AGATE_CARD 再 grep，前者不剥离。
+
+**`+` 列表前缀被 diff 过滤器静默丢弃**：`grep '^+[^+]'` 会把内容本身以字面 `+` 开头的新增行（如 markdown 方言用 `+` 做列表符号：`+ [PROD_TOUCHED] ...`）整行过滤掉——不是误判为"不合规格式"，而是完全不可见，静默放行。现有锚点正则 `^\s*-?\s*` 也只认 `-` 前缀，两者恰好自洽（项目约定列表符号是 `-`）。标记声明的合法列表前缀仅为 `-`，`+`/`*`/数字列表前缀不受支持且会被 diff 过滤器静默丢弃。
+
+**pre-commit-gate.sh 未排除 dispatch-context-*.md**：check-scope-resolved.sh 对 SCOPE+ 检测显式跳过 dispatch-context 文件名（"编排指令，非阶段产出"），但 pre-commit-gate.sh 的 PROD_TOUCHED 检测对整个任务目录做 `git diff --cached -- "$TASK_REL"`，未做同类排除。当前 dispatch-context 模板不含 PROD_TOUCHED/NEED_CONFIRM 文本，无实际风险。若未来 dispatch-context 模板引入 PROD_TOUCHED/NEED_CONFIRM 示例文本，需比照 check-scope-resolved.sh 的文件名排除逻辑做同类处理。
 
 ---
 
