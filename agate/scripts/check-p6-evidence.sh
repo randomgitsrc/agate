@@ -29,14 +29,17 @@ EVIDENCE_DIR="$TASK_DIR/P6-evidence"
 
 # 检查每条 PASS 行是否含文件引用（括号内路径）
 PASS_WITHOUT_REF=0
+PASS_WITHOUT_REF_DETAILS=""
 while IFS= read -r line; do
     if ! echo "$line" | grep -qE '\([a-zA-Z0-9_/. -]*[a-zA-Z0-9_-]\.[a-zA-Z0-9]+[^)]*\)'; then
         PASS_WITHOUT_REF=$((PASS_WITHOUT_REF + 1))
+        PASS_WITHOUT_REF_DETAILS="${PASS_WITHOUT_REF_DETAILS}  - ${line}"$'\n'
     fi
 done < <(grep -E '^\s*- PASS\b' "$P6_FILE" 2>/dev/null || true)
 
 if [ "$PASS_WITHOUT_REF" -gt 0 ]; then
     echo "GATE P6-EVIDENCE: 有 ${PASS_WITHOUT_REF} 条 PASS 缺文件证据引用（每条 PASS 必须引用证据文件，形式不限：截图/日志/JSON/文本）" >&2
+    printf '%s\n' "$PASS_WITHOUT_REF_DETAILS" >&2
     exit 1
 fi
 
@@ -72,7 +75,9 @@ if [ "$UI_AFFECTED" = "true" ]; then
             exit 1
         fi
         EMPTY_COUNT=0
+        EMPTY_DETAILS=""
         PNG_WARNING=0
+        PNG_DETAILS=""
         VARIANCE_WARNING=0
         if [ "${AGATE_SKIP_IMAGE_CHECKS:-0}" = "1" ]; then
             echo "GATE P6-EVIDENCE WARNING: AGATE_SKIP_IMAGE_CHECKS=1，方差/相似度检测已主动跳过" >&2
@@ -85,8 +90,10 @@ if [ "$UI_AFFECTED" = "true" ]; then
                 EXPECTED='89504e470d0a1a0a'
                 if [ "$HEADER" = "$EXPECTED" ]; then
                     PNG_WARNING=$((PNG_WARNING + 1))
+                    PNG_DETAILS="${PNG_DETAILS}  - $(basename "$img")"$'\n'
                 else
                     EMPTY_COUNT=$((EMPTY_COUNT + 1))
+                    EMPTY_DETAILS="${EMPTY_DETAILS}  - $(basename "$img")"$'\n'
                 fi
             fi
             VARIANCE=$(IMG_PATH="$img" python3 -c "
@@ -120,20 +127,28 @@ except Exception:
         fi
         if [ "$EMPTY_COUNT" -gt 0 ]; then
             echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个非 PNG 文件 ≤ 1KB（疑似充数）" >&2
+            printf '%s\n' "$EMPTY_DETAILS" >&2
             exit 1
         fi
         if [ "$PNG_WARNING" -gt 0 ]; then
             echo "GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 ${PNG_WARNING} 个合法 PNG ≤ 1KB（元素级小截图，不阻断但请确认非充数）" >&2
+            printf '%s\n' "$PNG_DETAILS" >&2
             exit 2
         fi
-        MD5_LIST=$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -exec md5sum {} \; 2>/dev/null | cut -d' ' -f1 | sort)
+        MD5_LIST=$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -exec md5sum {} \; 2>/dev/null | sort)
         MD5_TOTAL=$(echo "$MD5_LIST" | grep -c . || echo 0)
         MD5_TOTAL=$(echo "$MD5_TOTAL" | tail -1)
-        MD5_UNIQUE=$(echo "$MD5_LIST" | sort -u | grep -c . || echo 0)
+        MD5_UNIQUE=$(echo "$MD5_LIST" | cut -d' ' -f1 | sort -u | grep -c . || echo 0)
         MD5_UNIQUE=$(echo "$MD5_UNIQUE" | tail -1)
         if [ "$MD5_TOTAL" -gt "$MD5_UNIQUE" ]; then
             MD5_DUPES=$((MD5_TOTAL - MD5_UNIQUE))
+            MD5_DUPE_DETAILS=$(echo "$MD5_LIST" | cut -d' ' -f1 | sort | uniq -d | while read -r hash; do
+                echo "$MD5_LIST" | grep "^${hash}" | while read -r _ path; do
+                    printf '  - %s\n' "$(basename "$path")"
+                done
+            done)
             echo "GATE P6-EVIDENCE: 有 ${MD5_DUPES} 个截图文件逐字节完全相同（md5 重复，疑似同一物理文件被多条 PASS 引用充数）" >&2
+            printf '%s' "$MD5_DUPE_DETAILS" >&2
             exit 1
         fi
         if [ "${AGATE_SKIP_IMAGE_CHECKS:-0}" != "1" ]; then

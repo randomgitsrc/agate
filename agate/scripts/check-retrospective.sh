@@ -34,7 +34,8 @@ fi
 if [ -d "$TASK_DIR" ]; then
     for f in "$TASK_DIR"/*.md; do
         [ -f "$f" ] || continue
-        if grep -qE '^\s*-?\s*\[SCOPE\+\]' "$f" 2>/dev/null; then
+        basename "$f" | grep -q 'dispatch-context' && continue
+        if sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$f" | grep -qE '^\s*-?\s*\[SCOPE\+\]'; then
             WARNINGS="${WARNINGS}SCOPE+ 触发（$(basename "$f")）\n"
             break
         fi
