@@ -192,6 +192,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | — | T5: agate-next-card.sh 路径解析 | ✅ 已修复（v0.21.1：用 AGATE_ROOT 替代 AGATE_REPO，ci-gate-backstop.py 用 __file__ 相对路径） | — |
 | — | M2: 证据扩展名白名单 | 实测已无白名单（by design, ADR-003），关闭 | — |
 | — | 目录改名 agate/ → agate-core/ | 高成本中收益（~205 引用 / ~33 文件 / 下游 breaking），留待 v2.0 窗口重新派生 | PR #46 已关 |
+| — | P4 gate 不验证 P4-review.md agent≠main | P4 gate（check-gate.sh:139-142）只检查暂存区代码文件，不验证 review 文件 agent 字段；P2 gate 有此检查（:112-114）但 P4 无；文档说"与 P2 评审同规则"但脚本未强制执行；留待 v0.23.0+ 补充 P4 gate agent 检查 | R2 评审 S-R2-1 |
 
 ### 结构性限制（需平台支持，记录不修）
 
