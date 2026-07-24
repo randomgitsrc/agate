@@ -71,6 +71,24 @@ gate_commands:
 多个评审角色 `专家组并行` → 组长汇总 → P2-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
 
+**并行派发**（多个评审角色时）：
+1. 同时派发所有触发的评审 subagent（每个一个 task 调用）
+2. 每个评审 subagent 各写一个 dispatch-context + 各自产出文件（示例非穷举，按 C8 映射表触发）：
+   - plan-eng-review → P2-review-eng.md
+   - plan-design-review → P2-review-design.md
+   - plan-ceo-review → P2-review-ceo.md
+   - cso → P2-review-cso.md
+3. 所有评审返回后，派发组长汇总 subagent（角色：review + 指定为「专家组组长」）
+4. 组长输入：所有评审文件路径
+5. 组长产出：P2-review.md（统一 status: approved / rejected）。**组长 subagent 产出的 P2-review.md 的 Header agent 字段必须是组长角色名（非 main）——check-gate.sh P2 硬拦截 agent=main 的 approved**
+6. 组长规则：
+   - 不发表新意见，只汇总
+   - 任何专家标 BLOCKER → status: rejected
+   - 多位专家分歧 → 标「专家组分歧」交人工
+   - 全票无 BLOCKER → status: approved
+
+**单评审角色时**：直接派发，无需组长汇总，产出直接写 P2-review.md。
+
 review 不通过 → architect 修改方案 → 再 review → … → approved（⑩迭代循环，review 和 gate 重试共享 retry 预算）
 
 ## gate 规则
