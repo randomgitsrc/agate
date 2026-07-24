@@ -78,7 +78,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"- BDD-1"* ]]
     [[ "$output" == *"- BDD-2"* ]]
-    [[ "$output" == *"仅供参考"* ]]
+    [[ "$output" == *"P5 failed 参考: 1"* ]]
 }
 
 @test "EC.8: P7 extracts PASS/FAIL counts" {
