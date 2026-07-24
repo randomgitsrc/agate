@@ -106,10 +106,10 @@ agent: {角色名}
 每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
 ## P6 BDD 结果格式
 每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令 `grep -cE '^\s*- (PASS|FAIL)'` 可靠匹配。
-不要用表格格式（`| B01 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
+不要用表格格式（`| BDD-1 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
 示例：
-- PASS B01: 用户可以创建分享链接
-- FAIL B02: 过期链接返回 410
+- PASS BDD-1: 用户可以创建分享链接
+- FAIL BDD-2: 过期链接返回 410
 ## P6 BDD 覆盖完整性
 P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
 P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
@@ -122,7 +122,7 @@ P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 
 无证据的 PASS 标记 = gate 不通过。
 ## P6 证据引用格式
 每条 PASS 结果必须在括号内引用对应证据文件路径（相对于 P6-evidence/ 目录）。
-示例：- PASS B01: 用户可以创建分享链接（p6-b01.png）
+示例：- PASS BDD-1: 用户可以创建分享链接（p6-bdd-1.png）
 hook 会检查引用路径是否真实存在。无引用的 PASS 行不算有证据。
 ## P6 verifier 脚本执行
 P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agent 执行。

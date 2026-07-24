@@ -58,7 +58,7 @@ case "$PHASE" in
           echo "GATE P1: P1-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）" >&2
           exit 1
       fi
-      if ! grep -qE 'BDD-|B[0-9]' "$P1_REVIEW" 2>/dev/null; then
+      if ! grep -qE 'BDD-[0-9]' "$P1_REVIEW" 2>/dev/null; then
           echo "GATE P1: P1-review.md 不含 BDD 编号引用（裸 approved 极可能是假完成，review 结论须引用具体 BDD 编号）" >&2
           exit 1
       fi
@@ -77,7 +77,7 @@ case "$PHASE" in
       if ! grep -qE '^\s*-?\s*\[NO_NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null; then
           echo "GATE P1 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] 或 [NO_NEED_CONFIRM]）" >&2
       fi
-      echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式不固定，需主 Agent 自行判定" >&2
+      echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式为 #### BDD-NN:" >&2
       exit 2 ;;
   P2)
       # v0.6：多方案探索检查（nudge 强度）
@@ -145,7 +145,18 @@ case "$PHASE" in
       # WARNING: 如果 P2 声明了多个 gate_commands.P5 命令（单元+集成+E2E），
       # 提醒主 Agent 确认是否全部执行（T060 教训：只跑子集可能掩盖预存失败）
       if [ -f "$TASK_DIR/P2-design.md" ]; then
-          P5_CMD_COUNT=$(grep -cE '^\s+- ' "$TASK_DIR/P2-design.md" 2>/dev/null || echo 0)
+          P5_CMD_COUNT=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 -c "
+import re, os
+with open(os.environ['GATE_FILE']) as f:
+    content = f.read()
+m = re.search(r'^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)', content, re.MULTILINE)
+if not m:
+    print(0)
+    exit()
+block = m.group(1)
+count = len(re.findall(r'^  (P5\w*):', block, re.MULTILINE))
+print(count)
+" 2>/dev/null || echo 0)
           P5_CMD_COUNT=$(echo "$P5_CMD_COUNT" | tail -1)
           if [ "$P5_CMD_COUNT" -gt 1 ]; then
               echo "GATE P5 WARNING: P2 声明了 ${P5_CMD_COUNT} 个 gate_commands.P5 命令，请确认已全部执行（非子集）。" >&2
@@ -182,7 +193,7 @@ case "$PHASE" in
           echo "GATE P6: P6-evidence/ 目录不存在或为空" >&2
           exit 1
       fi
-      echo "GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL=$TOTAL。BDD 总数对照需主 Agent 手动核实 P1 条数。" >&2
+      echo "GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL=$TOTAL。BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行。" >&2
       exit 2 ;;
   P7)
       # v0.6：用显式 if/elif/else 替代链式写法——每加一个检查都要在链路里加新项，if 更易读易扩展

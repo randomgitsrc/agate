@@ -134,8 +134,18 @@ P0-brief 是把这些约束注入每次派发的桥梁——所有 subagent 的 
 - 隐含需求 B：... | 为什么必须：...
 
 ## 3. BDD 验收条件
-- AC1: Given ... When ... Then ...
-- AC2: Given ... When ... Then ...
+
+### {功能分组名}
+
+#### BDD-1: {行为描述}
+- Given ...
+- When ...
+- Then ...
+
+#### BDD-2: {行为描述}
+- Given ...
+- When ...
+- Then ...
 
 ## 4. 待确认清单
 - [NEED_CONFIRM] 问题描述 + 几种可能的理解
@@ -247,29 +257,29 @@ env_constraints:
 **BDD 二值规则**：每条 BDD 结果只允许 PASS 或 FAIL，不允许"⚠️ 调整/跳过/覆盖"等中间态。
 **截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。
 
-### AC1: entry 不指定过期时间默认 15 天
-- PASS 创建 entry 不填过期 → 实测 15 天后过期（p6-ac1.png）
+#### BDD-1: entry 不指定过期时间默认 15 天
+- PASS 创建 entry 不填过期 → 实测 15 天后过期（p6-bdd-1.png）
 - PASS MCP publish_files 不传 expires → 实测同样生效
 
-### AC2: ...
+#### BDD-2: ...
 - FAIL 实测结果与预期不符：... → 触发回 P4
 
 ## 验收小结
 BDD 通过 X/Y，UI 截图 N 张，NEED_CONFIRM M 个
 ```
 
-**证据引用格式**：每条 PASS 结果必须在括号内引用对应证据文件路径（相对于 `P6-evidence/` 目录）。示例：`- PASS B01: ... (p6-b01.png)`。hook 会检查引用路径必须真实存在。无引用的 PASS 行不算有证据。
+**证据引用格式**：每条 PASS 结果必须在括号内引用对应证据文件路径（相对于 `P6-evidence/` 目录）。示例：`- PASS BDD-1: ... (p6-bdd-1.png)`。hook 会检查引用路径必须真实存在。无引用的 PASS 行不算有证据。
 
 **UI 任务证据追加约定**（`ui_affected: true` 时）：
 - `P6-evidence/screenshots/` 目录必须非空，每个截图文件大小 > 1KB（防空 png 充数，hook 检查）
-- 每条 UI 类 PASS 必须含 vision-analyst YAML 引用：`- PASS B01: ... (screenshots/b01.png) (vision: vision-reports/b01.yaml)`
+- 每条 UI 类 PASS 必须含 vision-analyst YAML 引用：`- PASS BDD-1: ... (screenshots/bdd-1.png) (vision: vision-reports/bdd-1.yaml)`
 - vision YAML 文件必须存在且 `summary.blocker_count == 0`（hook 检查）
 - vision YAML 格式见 `assets/execution-roles/vision-analyst.md` 的完整 YAML 结构
 
 **查询类 BDD 证据约定**：
 - 查询类 BDD（断言值是唯一证据）可不截图，但**须有断言记录文件**作为客观证据
 - 断言记录形式：API 响应 JSON（`response.json`）、测试输出日志（`assert.log`）、数据库查询结果（`query-result.txt`）等
-- 引用格式：`- PASS B01: 返回 3 条记录 (response.json)`——括号内路径相对 P6-evidence/，文件必须存在
+- 引用格式：`- PASS BDD-1: 返回 3 条记录 (response.json)`——括号内路径相对 P6-evidence/，文件必须存在
 - **所有 PASS 都必须有文件引用**（hook 强制）——无文件引用的纯断言 PASS 不被接受。文件形式不限（截图/日志/JSON/文本），不绑定技术栈
 
 ## READY 收尾检查（P8 gate 通过后、标记 READY 前）

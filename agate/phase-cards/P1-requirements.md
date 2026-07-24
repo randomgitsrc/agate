@@ -46,7 +46,7 @@ P1-requirements.md 必须包含：
 
 ## gate 规则
 
-check-gate.sh P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式不固定，主 Agent 自行判定）；缺 P1-review.md / agent=main / 无锚点 → exit 1
+check-gate.sh P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式为 `#### BDD-NN:`）；缺 P1-review.md / agent=main / 无锚点 → exit 1
 P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 ## 推进条件

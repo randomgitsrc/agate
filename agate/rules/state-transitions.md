@@ -33,7 +33,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 
 ### P6 → P7
 - check-gate.sh P6 exit 2（FAIL=0 / NC=0 / 证据非空）
-- check-p6-provenance.sh exit 0 或 exit 2（主 Agent 手动核实 BDD 总数）
+- check-p6-provenance.sh exit 0（由审计 3 自动对照 BDD 总数，exit 1 硬阻，无过渡期兜底）
 
 ### P7 → P8
 - 声明行 [BLOCKER]: N 条 被排除后 =0 / [DEVIATION-CRITICAL] 同理

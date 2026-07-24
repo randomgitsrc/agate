@@ -374,9 +374,9 @@ trigger: gate_fail
 # P6 Gate 诊断
 
 - gate 结果：FAIL=3, NC=0
-- 失败项：B03 过期链接返回 404 非 410, B07 批量操作无确认, B12 并发竞态
-- 诊断：P4 实现问题（B03/B07）+ P2 设计问题（B12 未考虑并发）
-- 路由：B03/B07 → 退回 P4；B12 → 标 [SCOPE+] 增补 P1
+- 失败项：BDD-3 过期链接返回 404 非 410, BDD-7 批量操作无确认, BDD-12 并发竞态
+- 诊断：P4 实现问题（BDD-3/BDD-7）+ P2 设计问题（BDD-12 未考虑并发）
+- 路由：BDD-3/BDD-7 → 退回 P4；BDD-12 → 标 [SCOPE+] 增补 P1
 - 修复方向（P4）：link-service.ts 的 TTL 检查逻辑 + batch 的确认流程
 ```
 
@@ -385,13 +385,13 @@ trigger: gate_fail
 `gate-diagnosis.md` 和 `dispatch-context` 上游关联节引用 gate-diagnosis.md 路径**禁止使用 `^\s*- (PASS|FAIL)` 行首格式**列失败项。理由：`check-p6-provenance.sh` 审计 2 grep `^\s*- (PASS|FAIL)\b` 于 dispatch-context 文件，命中即判为"验收结论预判" exit 1。诊断中的失败项是**事后诊断**不是预判，但审计 2 分不出两者。
 
 **允许的格式**（不触审计 2）：
-- `失败项：B03, B07`（内联，非列表行首）
-- `- 失败BDD: B03 过期链接返回 404`（前缀 `失败BDD` 不匹配 `(PASS|FAIL)\b`）
+- `失败项：BDD-3, BDD-7`（内联，非列表行首）
+- `- 失败BDD: BDD-3 过期链接返回 404`（前缀 `失败BDD` 不匹配 `(PASS|FAIL)\b`）
 - `gate 结果：FAIL=3, NC=0`（等号后，非行首列表）
 
 **禁止的格式**（触审计 2）：
-- `- FAIL B03: 过期链接返回 404`（行首 `- FAIL` 命中审计 2）
-- `- PASS B01: 已验证`（同理）
+- `- FAIL BDD-3: 过期链接返回 404`（行首 `- FAIL` 命中审计 2）
+- `- PASS BDD-1: 已验证`（同理）
 
 **dispatch-context 上游关联节**只放 `gate-diagnosis.md` 的**路径引用**，不 inline 诊断内容（方案 ⑪ 已有此约束，此处重申并绑定 N2 禁令）。
 
@@ -526,11 +526,11 @@ P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P
 每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
 ## P6 BDD 结果格式
 每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。
-不要用表格格式（`| B01 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
+不要用表格格式（`| BDD-1 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
 **大小写敏感**：必须大写 PASS/FAIL。主 Agent 在 verifier 返回后、跑 gate 前运行 `check-p6-format.sh --fix` 自动归一化（①）。
 示例：
-- PASS B01: 用户可以创建分享链接
-- FAIL B02: 过期链接返回 410
+- PASS BDD-1: 用户可以创建分享链接
+- FAIL BDD-2: 过期链接返回 410
 ## P6 BDD 覆盖完整性
 P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
 P1 有 N 条 BDD → P6 必须有 ≥N 条验收结果（PASS 或 FAIL，允许 SCOPE+ 增补）。挑验 < N = gate 不通过。
@@ -779,12 +779,12 @@ setTimeout(() => {
 
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
-| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）+ `grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 BDD-/B[0-9] 锚点（check-gate.sh P1 检查）|
+| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式为 `#### BDD-NN:`）+ `grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点（check-gate.sh P1 检查）|
 | P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由\|取舍\|考量\|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）+ 候选方案 ≥2（`scripts/check-gate.sh P2` 脚本化部分）|
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + N5 最小校验（grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md → 计数 >0）+ 行首锚点扫描（主 Agent 参照 pre-commit 三步逻辑手动判断：正向→PAUSED / 不合规→修正 / 缺失→静默通过）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
-| P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.sh P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.sh` → exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照 + UI vision YAML 审计 [R1b hook 化]）+ 主 Agent 手动核实 `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md` = P1 BDD 总数（provenance exit 2 时必做）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
+| P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.sh P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.sh` → exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 `grep -cE '^\s*- (PASS|FAIL)'` 结果数不符时 exit 1 硬阻 + UI vision YAML 审计 [R1b hook 化]）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
 | P7→P8 | 一致性通过（consistency-reviewer subagent 产出） | `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0 + 同理 `[DEVIATION-CRITICAL]` → =0（声明行如 `[BLOCKER]: 0 条` 被排除，不计为实际 BLOCKER）（已知限制：定性分析，P5 回归测试兜底）|
 | P8→READY | 发布准备完成（bump-version + commit + tag 由主 Agent 在 gate 验证后亲自执行） | `scripts/check-gate.sh P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + 从 P2 `packages` 验证 version 文件路径变更 + `grep -q 'bump_type:' P8-release.md` → 命中 + version 文件双路径检查（暂存区或最近 5 commit，WARNING 级）+ CHANGELOG 双路径检查（`git diff --cached` + `git diff HEAD~5..HEAD`，WARNING 级，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）|
 

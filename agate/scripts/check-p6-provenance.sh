@@ -125,23 +125,22 @@ for DISPATCH_CTX in "${DISPATCH_CTXS[@]}"; do
 done
 
 # --- 审计 3：BDD 总数自动化对照 ---
-# P6 的 PASS+FAIL 数 ≥ P1 的 Given 行数（挑验拦截）
+# P6 的 PASS+FAIL 数 ≥ P1 的 BDD 标题数（挑验拦截）
 
 if [ -f "$P6_FILE" ] && [ -f "$P1_FILE" ]; then
-    P1_BDD=$(grep -cE '^\s*-?\s*Given\b' "$P1_FILE" 2>/dev/null || echo 0)
+    P1_BDD=$(grep -cE '^#### BDD-[0-9]' "$P1_FILE" 2>/dev/null || echo 0)
     P1_BDD=$(echo "$P1_BDD" | tail -1)
 
     P6_TOTAL=$(grep -cE '^\s*- (PASS|FAIL)\b' "$P6_FILE" 2>/dev/null || echo 0)
     P6_TOTAL=$(echo "$P6_TOTAL" | tail -1)
 
-    if [ "$P1_BDD" -gt 0 ]; then
-        if [ "$P6_TOTAL" -lt "$P1_BDD" ]; then
-            echo "GATE PROVENANCE: P6 结果数(${P6_TOTAL}) < P1 BDD 条目数(${P1_BDD})，挑验不通过" >&2
-            exit 1
-        fi
-    else
-        echo "GATE PROVENANCE: P1 BDD 格式非标准（无 Given 行），BDD 总数对照需主 Agent 手动核实" >&2
-        exit 2
+    if [ "$P1_BDD" -eq 0 ]; then
+        echo "GATE PROVENANCE: P1-requirements.md 未使用标准 #### BDD-NN: 格式（或没有 BDD），标准化后必须使用该格式" >&2
+        exit 1
+    fi
+    if [ "$P6_TOTAL" -lt "$P1_BDD" ]; then
+        echo "GATE PROVENANCE: P6 结果数(${P6_TOTAL}) < P1 BDD 条目数(${P1_BDD})，挑验不通过" >&2
+        exit 1
     fi
 fi
 
