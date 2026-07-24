@@ -393,9 +393,9 @@ P6 与 P3/P4/P5 并行有本质区别：P6 是 **self-authored gate**，4 个脚
 
 **P6 并行模式（方案 A：证据并行，验收文件不并行）**：
 
-1. **证据收集可并行**：各包 verifier subagent 并行跑各包的 BDD 验证，证据写入 `P6-evidence/{pkg}/` 独立目录
-2. **验收文件不并行**：所有并行 verifier 返回后，派**一个汇总 verifier**（或主 Agent 派单个 verifier）把所有包的 BDD 结果整合进**唯一**的 `P6-acceptance.md`
-3. **交叉核对**：汇总 verifier 必须确认"各包声称验的 BDD 数之和 = P1 总 BDD 数，且无重复/遗漏编号"，在 P6-acceptance.md 中记录核对结果
+1. **证据收集可并行**：各包 verifier subagent 并行跑各包的 BDD 验证，证据写入 `P6-evidence/{pkg}/` 独立目录。**每包 verifier 还需在该目录下写一份中间记录 `P6-evidence/{pkg}/results.md`**（格式与 P6-acceptance.md 的 PASS/FAIL 行一致，但不被任何 gate 脚本识别/校验），记录该包各 BDD 的验收结论 + 证据引用路径
+2. **验收文件不并行**：所有并行 verifier 返回后，派**一个汇总 verifier**逐包读取 `P6-evidence/{pkg}/results.md`，转抄整合进**唯一**的 `P6-acceptance.md`。汇总 verifier 不重新跑验证，只做格式整合 + 交叉核对
+3. **交叉核对**：汇总 verifier 必须确认"各包 results.md 中声称验的 BDD 编号合集 = P1 全部 BDD 编号，无重复/遗漏"，在 P6-acceptance.md 中记录核对结果
 
 **基础设施隔离（证据收集并行时）**：
 - 验收端口：各 verifier 使用独立端口
@@ -412,9 +412,9 @@ P6 与 P3/P4/P5 并行有本质区别：P6 是 **self-authored gate**，4 个脚
 
 P6 采用**证据并行、验收文件不并行**模式：
 
-1. 各包 verifier 并行跑 BDD 验证，证据写入 P6-evidence/{pkg}/
-2. 所有 verifier 返回后，派一个汇总 verifier 整合所有包的 BDD 结果进唯一的 P6-acceptance.md
-3. 汇总 verifier 确认各包 BDD 数之和 = P1 总 BDD 数，无重复/遗漏
+1. 各包 verifier 并行跑 BDD 验证，证据写入 P6-evidence/{pkg}/，同时写 P6-evidence/{pkg}/results.md（PASS/FAIL 行 + 证据引用，不进 gate）
+2. 所有 verifier 返回后，派一个汇总 verifier 逐包读取 results.md，转抄整合进唯一的 P6-acceptance.md
+3. 汇总 verifier 确认各包 BDD 编号合集 = P1 全部 BDD 编号，无重复/遗漏
 
 基础设施隔离同 P5（端口/数据库/截图目录独立）。
 ```
@@ -526,3 +526,9 @@ P6 采用**证据并行、验收文件不并行**模式：
 | R3-1 P6 并行验收缺合并规则 | BLOCKING | P6 改为方案 A（证据并行、验收文件不并行）：各包 verifier 并行跑验证写 P6-evidence/{pkg}/，汇总 verifier 整合进唯一 P6-acceptance.md + 交叉核对 BDD 总数。不扩展脚本（P6 是 self-authored gate，4 脚本硬编码单文件名，改动风险高于限制并行范围） |
 | R3-2 提取脚本 P5/P6 递归扫描 | SUGGESTION | 实施时 bats 测试覆盖单文件和按包子目录两种布局 |
 | R3-3 组长 agent 字段非 main | SUGGESTION | P2 评审并行指引补充"组长产出的 P2-review.md agent 字段必须非 main（check-gate.sh P2 硬拦截 agent=main 的 approved）" |
+
+## R4 评审修复记录（docs/reviews/review-20260724-1708.md）
+
+| 评审项 | 级别 | 修复 |
+|--------|------|------|
+| R4-1 汇总 verifier 交接格式未指定 | NEEDS_FIX | 各包 verifier 除写证据外，还需写 P6-evidence/{pkg}/results.md 中间记录（PASS/FAIL 行 + 证据引用，不进 gate），供汇总 verifier 逐包读取转抄进唯一 P6-acceptance.md |
