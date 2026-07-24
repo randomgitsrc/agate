@@ -13,9 +13,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+_AGATE_ROOT = Path(__file__).resolve().parent.parent
+
 
 def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
-    script = Path("agate/scripts/check-gate.sh")
+    script = _AGATE_ROOT / "scripts/check-gate.sh"
     if not script.exists():
         return 2, "check-gate.sh not found"
     result = subprocess.run(
@@ -148,7 +150,7 @@ def main() -> int:
                 print(f"WARN: P6 git blame 审计无法完成（{e}）")
 
     # provenance 审计兜底（--no-verify 绕过 hook 时，backstop 层补跑）
-    provenance_script = repo_root / "agate/scripts/check-p6-provenance.sh"
+    provenance_script = _AGATE_ROOT / "scripts/check-p6-provenance.sh"
     if task_dir and provenance_script.exists() and Path(task_dir, "P6-acceptance.md").exists():
         prov_result = subprocess.run(
             ["bash", str(provenance_script), task_dir],
