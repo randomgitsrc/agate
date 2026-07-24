@@ -173,3 +173,29 @@ EOF
     [[ "$output" == *"gate-diagnosis 引用"* ]]
     [[ "$output" == *"P1-gate-diagnosis.md"* ]]
 }
+
+@test "EC.14: P5 extracts implementation_dir from package subdirectories" {
+    cat > "$TEST_TASK_DIR/P2-design.md" <<'EOF'
+gate_commands:
+  P5: "pytest -q"
+EOF
+    mkdir -p "$TEST_TASK_DIR/P4-implementation/pkg-a" "$TEST_TASK_DIR/P4-implementation/pkg-b"
+    echo "implementation_dir: pkg-a/src" > "$TEST_TASK_DIR/P4-implementation/pkg-a/notes.md"
+    echo "implementation_dir: pkg-b/lib" > "$TEST_TASK_DIR/P4-implementation/pkg-b/notes.md"
+    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P5 "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"implementation_dir: pkg-a/src"* ]]
+    [[ "$output" == *"implementation_dir: pkg-b/lib"* ]]
+}
+
+@test "EC.15: P6 extracts failed count from package subdirectories" {
+    cat > "$TEST_TASK_DIR/P1-requirements.md" <<'EOF'
+#### BDD-1: feature works
+EOF
+    mkdir -p "$TEST_TASK_DIR/P5-test-results/pkg-a" "$TEST_TASK_DIR/P5-test-results/pkg-b"
+    echo "  failed: 2" > "$TEST_TASK_DIR/P5-test-results/pkg-a/unit.md"
+    echo "  failed: 1" > "$TEST_TASK_DIR/P5-test-results/pkg-b/unit.md"
+    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P6 "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"P5 failed 参考: 3"* ]]
+}
