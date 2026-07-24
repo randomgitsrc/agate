@@ -259,7 +259,7 @@ bash $AGATE_ROOT/scripts/agate-extract-context.sh P4 $TASK_DIR
 | P3 TDD | 多包各写各的测试文件 | 无 | 低（测试不启动服务） | ✅ 安全 |
 | P4 实现 | 多包各写各的代码目录 | **有**——共享类型/接口 | **有**——debug server 端口/测试数据库 | ⚠️ 需约束 |
 | P5 验证 | 多包各跑各的测试 | 无 | **有**——测试端口/数据库/临时文件 | ⚠️ 需隔离 |
-| P6 验收 | 多包各验各的 BDD | 无 | **有**——验收端口/截图目录 | ⚠️ 需隔离 |
+| P6 验收 | 证据收集并行；验收文件不并行（self-authored gate） | 无 | **有**--验收端口/截图目录 | ⚠️ 受限并行（方案 A） |
 
 **基础设施隔离维度**：
 
@@ -301,7 +301,7 @@ P2-design.md 评审派发节改为：
    - cso -> P2-review-cso.md
 3. 所有评审返回后，派发组长汇总 subagent（角色：review + 指定为「专家组组长」）
 4. 组长输入：所有评审文件路径
-5. 组长产出：P2-review.md（统一 status: approved / rejected）
+5. 组长产出：P2-review.md（统一 status: approved / rejected）。**组长 subagent 产出的 P2-review.md 的 Header agent 字段必须是组长角色名（非 main）--check-gate.sh P2 硬拦截 agent=main 的 approved**
 6. 组长规则：
    - 不发表新意见，只汇总
    - 任何专家标 BLOCKER -> status: rejected
@@ -385,7 +385,39 @@ P4-implementation.md 评审派发节同理扩展。
 主 Agent 在并行派发前应确认每个 verifier 的 dispatch-context 已包含独立的基础设施参数（nudge，同 P4）。
 ```
 
-**P6-acceptance.md 同理新增按包拆分并行指引**，基础设施隔离要求与 P5 一致（验收端口、截图目录 `P6-evidence/{pkg}/` 独立）。
+**P6-acceptance.md 按包拆分并行（受限并行）**
+
+> 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+
+P6 与 P3/P4/P5 并行有本质区别：P6 是 **self-authored gate**，4 个脚本（check-gate.sh / check-p6-format.sh / check-p6-provenance.sh / agate-archive-stale-outputs.sh）全部硬编码单一文件名 `P6-acceptance.md`。provenance 审计 3（BDD 总数对照）比对的是**这一个文件**内的 BDD 覆盖数。因此 P6 不能像 P5 那样各包各写独立产出文件。
+
+**P6 并行模式（方案 A：证据并行，验收文件不并行）**：
+
+1. **证据收集可并行**：各包 verifier subagent 并行跑各包的 BDD 验证，证据写入 `P6-evidence/{pkg}/` 独立目录
+2. **验收文件不并行**：所有并行 verifier 返回后，派**一个汇总 verifier**（或主 Agent 派单个 verifier）把所有包的 BDD 结果整合进**唯一**的 `P6-acceptance.md`
+3. **交叉核对**：汇总 verifier 必须确认"各包声称验的 BDD 数之和 = P1 总 BDD 数，且无重复/遗漏编号"，在 P6-acceptance.md 中记录核对结果
+
+**基础设施隔离（证据收集并行时）**：
+- 验收端口：各 verifier 使用独立端口
+- 截图目录：`P6-evidence/{pkg}/` 独立
+- 测试数据库：各 verifier 用独立数据库
+
+**为什么 P6 不用方案 B（扩展脚本支持目录模式）**：P6 是全协议被加固次数最多的阶段（T026 事故 + provenance 审计 + self-authored gate 专项加固）。扩展 3 个脚本的改动风险高于"限制并行范围"的成本。方案 A 保留了 P6 的全部现有审计机制不变，只在证据收集层引入并行，是最安全的选择。
+
+**P6-acceptance.md 阶段卡片新增内容**：
+```markdown
+## 按包拆分并行（可选，受限模式）
+
+> 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+
+P6 采用**证据并行、验收文件不并行**模式：
+
+1. 各包 verifier 并行跑 BDD 验证，证据写入 P6-evidence/{pkg}/
+2. 所有 verifier 返回后，派一个汇总 verifier 整合所有包的 BDD 结果进唯一的 P6-acceptance.md
+3. 汇总 verifier 确认各包 BDD 数之和 = P1 总 BDD 数，无重复/遗漏
+
+基础设施隔离同 P5（端口/数据库/截图目录独立）。
+```
 
 **为什么 P4 并行要额外约束**：P4 是唯一有写冲突风险的阶段。多个 implementer 同时改同一个共享文件（如 `types.ts`、`config.py`）会导致 git 冲突。解决方案是**dispatch-context 约束节显式限定每个 implementer 的改动范围**——这和现有的 files_to_read 机制一致，只是从"读什么"扩展到"改什么"。
 
@@ -486,3 +518,11 @@ P4-implementation.md 评审派发节同理扩展。
 | S1-dispatch-context 注入膨胀 | SUGGESTION | 并行节加仅当 P2 packages > 1 时适用前缀单包任务快速跳过 |
 | S2-P2.42 --write 模式 | SUGGESTION | 已采纳脚本支持 --write 直接写入 |
 | S3-提取规则实现细节 | SUGGESTION | 已采纳实施时先写 bats 测试再写提取逻辑 |
+
+## R3 评审修复记录（docs/reviews/review-20260724-1645.md）
+
+| 评审项 | 级别 | 修复 |
+|--------|------|------|
+| R3-1 P6 并行验收缺合并规则 | BLOCKING | P6 改为方案 A（证据并行、验收文件不并行）：各包 verifier 并行跑验证写 P6-evidence/{pkg}/，汇总 verifier 整合进唯一 P6-acceptance.md + 交叉核对 BDD 总数。不扩展脚本（P6 是 self-authored gate，4 脚本硬编码单文件名，改动风险高于限制并行范围） |
+| R3-2 提取脚本 P5/P6 递归扫描 | SUGGESTION | 实施时 bats 测试覆盖单文件和按包子目录两种布局 |
+| R3-3 组长 agent 字段非 main | SUGGESTION | P2 评审并行指引补充"组长产出的 P2-review.md agent 字段必须非 main（check-gate.sh P2 硬拦截 agent=main 的 approved）" |
