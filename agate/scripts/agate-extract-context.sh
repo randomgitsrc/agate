@@ -109,14 +109,20 @@ extract() {
             ;;
         P6)
             if [ -f "$task_dir/P1-requirements.md" ]; then
-                output+="### P1 BDD 条件数"$'\n'
-                local bdd_count
-                bdd_count="$(grep -cE '^#### BDD-' "$task_dir/P1-requirements.md" 2>/dev/null || echo 0 | tail -1)"
-                output+="- BDD 条件数: ${bdd_count}"$'\n'
+                output+="### P1 BDD 编号列表"$'\n'
+                local bdd_list
+                bdd_list="$(grep -E '^#### (BDD-[^:]+):' "$task_dir/P1-requirements.md" 2>/dev/null | sed 's/^#### //' | sed 's/:.*//' || true)"
+                if [ -n "$bdd_list" ]; then
+                    while IFS= read -r line; do
+                        [ -n "$line" ] && output+="- ${line}"$'\n'
+                    done <<< "$bdd_list"
+                else
+                    output+="- (无 BDD 条件)"$'\n'
+                fi
             fi
             if [ -d "$task_dir/P5-test-results" ]; then
                 local failed
-                failed="$(grep -ciE 'failed' "$task_dir/P5-test-results/"*.md 2>/dev/null | tail -1 || echo 0 | tail -1)"
+                failed="$(grep -cE '^\s*failed:' "$task_dir/P5-test-results/unit.md" 2>/dev/null || echo 0 | tail -1)"
                 output+="- P5 failed 参考: ${failed}（仅供参考，gate 以主 Agent 实跑为准）"$'\n'
             fi
             ;;

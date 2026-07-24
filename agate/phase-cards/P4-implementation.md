@@ -76,7 +76,7 @@ P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent
 1. 同时派发所有触发的评审 subagent（每个一个 task 调用）
 2. 每个评审 subagent 各写一个 dispatch-context + 各自产出文件
 3. 所有评审返回后，派发组长汇总 subagent（角色：review + 指定为「专家组组长」）
-4. 组长产出：P4-review.md。**agent 字段必须非 main**（check-gate.sh P4 硬拦截 agent=main 的 approved）
+4. 组长产出：P4-review.md。**agent 字段必须非 main**（与 P2 评审同规则，check-gate.sh 在 P2 分支硬拦截 agent=main 的 approved）
 5. 组长规则：不发表新意见，只汇总；任何 BLOCKER → rejected；分歧 → 交人工；全票无 BLOCKER → approved
 
 **单评审角色时**：直接派发，无需组长汇总，产出直接写 P4-review.md。
