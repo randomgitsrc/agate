@@ -176,8 +176,9 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | — | N14-N16: 流程/训练问题 | 非协议层面 | — |
 | — | M6: P6 发现已知局限无后续跟踪 | workflow 问题 | — |
 | — | T4: P3 测试覆盖边界条件 | test-designer 职责 | — |
-| — | T5: inject-card 路径问题 | 等 PR #46 目录改名 | — |
+| — | T5: agate-next-card.sh 路径解析 | ✅ 已修复（用 AGATE_ROOT 替代 AGATE_REPO，ci-gate-backstop.py 用 __file__ 相对路径） | — |
 | — | M2: 证据扩展名白名单 | 实测已无白名单（by design, ADR-003），关闭 | — |
+| — | 目录改名 agate/ → agate-core/ | 高成本中收益（~205 引用 / ~33 文件 / 下游 breaking），留待 v2.0 窗口重新派生 | PR #46 已关 |
 
 ### 结构性限制（需平台支持，记录不修）
 
