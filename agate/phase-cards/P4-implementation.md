@@ -72,7 +72,41 @@ P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
 
+**并行派发**（多个评审角色时）：
+1. 同时派发所有触发的评审 subagent（每个一个 task 调用）
+2. 每个评审 subagent 各写一个 dispatch-context + 各自产出文件
+3. 所有评审返回后，派发组长汇总 subagent（角色：review + 指定为「专家组组长」）
+4. 组长产出：P4-review.md。**agent 字段必须非 main**（check-gate.sh P4 硬拦截 agent=main 的 approved）
+5. 组长规则：不发表新意见，只汇总；任何 BLOCKER → rejected；分歧 → 交人工；全票无 BLOCKER → approved
+
+**单评审角色时**：直接派发，无需组长汇总，产出直接写 P4-review.md。
+
 review 不通过 → implementer 修改代码 → 再 review → … → approved（⑩迭代循环，review 和 gate 重试共享 retry 预算）
+
+## 按包拆分并行（可选，需额外约束）
+
+> 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+
+当 P2 声明多个 packages 且包间无数据依赖时，P4 可拆分并行，但**有额外约束**：
+
+1. 每个 package 派一个 implementer subagent
+2. **各 implementer 只改自己 package 目录下的文件**——跨包的共享文件（类型定义、接口、配置）由主 Agent 在所有并行 implementer 返回后统一处理
+3. 各自返回路径 + 摘要
+4. 主 Agent 汇总后统一 commit
+5. 主 Agent 在所有 implementer 返回后，统一处理共享文件改动（如果有）
+
+**冲突预防**：
+- dispatch-context 约束节必须写明：`只改动 {pkg}/ 目录下的文件。共享文件（{列出}）不在本次改动范围内`
+- 如果某个 implementer 必须改共享文件 → 该包不能并行，改为串行（主 Agent 先派其他包并行，再串行处理含共享改动的包）
+- 无法确定是否有共享改动 → 串行（安全默认值）
+
+**基础设施隔离（并行时强制）**：
+- debug server 端口：每个 implementer 的 dispatch-context 约束节分配不同端口（如 pkg-a: 3001, pkg-b: 3002）
+- 测试数据库：每个 implementer 用独立数据库路径（如 `test-{pkg}.db`），不共享同一 test.db
+- 环境变量：dispatch-context 写明各 subagent 独立的环境变量值（如 `PORT=3001` vs `PORT=3002`）
+- 临时文件：各 subagent 写入 `P4-implementation/{pkg}/` 独立目录
+
+主 Agent 在并行派发前应确认每个 subagent 的 dispatch-context 已包含上述隔离参数。**注意**：这是 nudge 不是强制规则（无 gate 脚本检查），与 design_trivial 的形式义务同级。未分配隔离参数的后果是运行时冲突（端口占用/数据库锁），由 subagent 报错暴露。
 
 ## gate 规则（check-gate.sh 会跑）
 

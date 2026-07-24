@@ -105,6 +105,22 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - 截图文件大小 ≤ 1KB 时的处理：非 PNG 文件充数 → 拦截（exit 1）；合法 PNG 但 ≤ 1KB → WARNING（exit 2，元素级小截图不阻断但请确认非充数）
 - 查询类 BDD（断言值是唯一证据）可不截图、不要求 vision——但如果你截了图，就必须有 vision
 
+### 验证纪律（P6 模式）
+
+**铁律：先验证，后结论。**
+
+每条 BDD 的验收流程：
+1. 跑验证命令 / 检查证据 → 看到客观结果
+2. 根据客观结果写 PASS 或 FAIL
+3. 引用证据路径
+
+**禁止**：
+- 先写 PASS 再找证据（T026 事故模式）
+- "应该能过"→ 写 PASS（"应该"不是证据，命令输出才是）
+- 复用上一轮验收的结论（每轮验收必须重新验证）
+
+**无法验证的 BDD**：标 `[NEED_CONFIRM]`，不标 PASS。诚实比完整更重要。
+
 ### 输入（自己读取）
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
 - docs/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）

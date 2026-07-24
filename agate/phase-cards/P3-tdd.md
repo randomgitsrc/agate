@@ -47,6 +47,24 @@ check-tdd-red.sh $TASK_DIR
 
 **非 pytest 技术栈**：设置 `TEST_RUNNER` 环境变量指向项目实际测试命令（如 `TEST_RUNNER="npm test"`），check-tdd-red.sh 会使用该命令而非默认的 pytest 探测。这是 agate 协议保持技术栈无关的标准接入点，不需要绕过脚本手动验证。
 
+## 按包拆分并行（可选）
+
+> 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+
+当 P2 声明多个 packages 且包间无数据依赖时，P3 可拆分并行：
+
+1. 每个 package 派一个 test-designer subagent
+2. 各自写各自的测试文件（不同目录）
+3. 各自返回路径 + 摘要
+4. 主 Agent 汇总后统一 commit
+
+拆分判据：
+- P2 packages > 1 且包间无数据依赖 → 可并行
+- 单包或包间有依赖 → 串行（不拆分）
+- P2 未声明 packages → 串行
+
+每个 subagent 的 dispatch-context 必须明确其负责的 package 范围（约束节写"只写 {pkg} 目录下的测试"）。
+
 ## 推进条件
 
 - [ ] check-tdd-red.sh exit 0（真红灯确认）

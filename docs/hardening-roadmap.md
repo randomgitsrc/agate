@@ -154,6 +154,19 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 **DOWNGRADE 项**：P2.24（ADR-007 事后记录低优先级）、P2.27（python3 环境变量零真实报告）
 
+### v0.22.0 — Superpowers 吸收 + 上下文编排 + 并行执行
+
+| ID | 内容 | 涉及文件 | 状态 |
+|----|------|----------|------|
+| P2.37 | architect.md 方案探索方法论（按场景类型） | architect.md | ✅ 已实现 |
+| P2.38 | investigate.md 结构化诊断强化（≥3 原因/排除留痕/禁止先改试试） | investigate.md | ✅ 已实现 |
+| P2.39 | dispatch-prompt.md P4 回退诊断模板自动注入 | dispatch-prompt.md | ✅ 已实现 |
+| P2.40 | verifier.md 验证纪律（先验证后结论） | verifier.md | ✅ 已实现 |
+| P2.41 | implementer.md 最小实现原则 + 测试不通过决策树 | implementer.md | ✅ 已实现 |
+| P2.42 | dispatch-context 上游关联自动提取脚本（--write 模式） | agate-extract-context.sh + bats | ✅ 已实现 |
+| P2.43 | 阶段卡片并行执行操作指引（评审+按包拆分+基础设施隔离） | 5 phase cards + dispatch-protocol.md | ✅ 已实现 |
+| P2.44 | loop-orchestration.md 并行执行状态更新 | loop-orchestration.md | ✅ 已实现 |
+
 ### v0.23.0+ — 设计讨论（P4，按需启动）
 
 | ID | 内容 | 依赖 | Issue |
@@ -176,7 +189,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | — | N14-N16: 流程/训练问题 | 非协议层面 | — |
 | — | M6: P6 发现已知局限无后续跟踪 | workflow 问题 | — |
 | — | T4: P3 测试覆盖边界条件 | test-designer 职责 | — |
-| — | T5: agate-next-card.sh 路径解析 | ✅ 已修复（用 AGATE_ROOT 替代 AGATE_REPO，ci-gate-backstop.py 用 __file__ 相对路径） | — |
+| — | T5: agate-next-card.sh 路径解析 | ✅ 已修复（v0.21.1：用 AGATE_ROOT 替代 AGATE_REPO，ci-gate-backstop.py 用 __file__ 相对路径） | — |
 | — | M2: 证据扩展名白名单 | 实测已无白名单（by design, ADR-003），关闭 | — |
 | — | 目录改名 agate/ → agate-core/ | 高成本中收益（~205 引用 / ~33 文件 / 下游 breaking），留待 v2.0 窗口重新派生 | PR #46 已关 |
 

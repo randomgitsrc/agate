@@ -100,6 +100,22 @@ grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md
 
 gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
+## 按包拆分并行（可选）
+
+> 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+
+当 P2 声明多个 packages 时，P5 可按包拆分并行——各 verifier subagent 跑各包的 gate_commands，各写 P5-test-results/{pkg}/。
+
+拆分判据同 P3。P5 是只读验证，无代码写冲突风险。
+
+**基础设施隔离（并行时强制）**：
+- 测试端口：各 verifier 使用独立端口（与 P4 并行时分配的端口一致，或新分配）
+- 测试数据库：各 verifier 用独立数据库（与 P4 隔离方案一致），不共享同一 test.db
+- 临时输出：各 verifier 写入 `P5-test-results/{pkg}/` 独立目录，不共享同一 unit.md
+- E2E 浏览器：Playwright 默认隔离 browser context，但若 E2E 测试启动了本地 server，各 verifier 需用不同端口
+
+主 Agent 在并行派发前应确认每个 verifier 的 dispatch-context 已包含独立的基础设施参数（nudge，同 P4）。
+
 ## 下游影响
 
 - P6 验收在 P5 通过的基础上做用户视角验证
