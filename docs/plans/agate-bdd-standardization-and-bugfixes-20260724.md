@@ -2,7 +2,7 @@
 
 > 日期：2026-07-24
 > 版本影响：minor bump（v0.19.0 -> v0.20.0，P1 产出格式变更是破坏性变更）
-> 破坏性变更：**有**--P1-requirements.md 的 BDD 格式从"非结构化列表项"变为"标准 heading 编号"。现有任务的 P1 需迁移（把 `- AC1: GWT` 改为 `#### BDD-1: 描述` + GWT）
+> 破坏性变更：**有，且不做过渡期兼容**——P1-requirements.md 的 BDD 格式从"非结构化列表项"变为"标准 heading 编号"（`#### BDD-NN:`）。相关检查（provenance 审计 3、P1-review.md BDD 锚点）均直接 `exit 1` 硬阻，不设 legacy 格式的 WARNING 退化路径。**前提确认**：当前无任何在途任务使用旧格式，已完成任务不需要追溯符合新标准，因此没有"legacy 任务需要保护"这个场景，不引入过渡期兼容反而更简单、更一致（两处检查此前有一处直接硬阻、一处曾计划留 exit 2 缓冲，不一致；现统一为都硬阻）
 > 来源：`docs/reviews/review-20260723-2311.md` T068 复盘 + 用户关于 BDD 计量单位的设计讨论
 
 ---
@@ -222,7 +222,7 @@ agate 的 Feature 层级由 P0-brief 承载（任务本身就是"做一个 Featu
 - `agate/state-machine.md:390` — "BDD 编号格式不固定，按实际格式 grep" → "BDD 编号格式为 `#### BDD-NN:`"
 - `agate/state-machine.md:117` — "BDD 总数对照需主 Agent 手动核实" → "BDD 总数对照由 provenance 审计 3 自动执行"
 - `agate/state-machine.md:402-403` — "BDD 总数对照需主 Agent 手动核实" + `grep -cE '^\s*- (PASS|FAIL)'` → 更新为 provenance 审计 3 自动执行
-- `agate/rules/state-transitions.md:36` — "主 Agent 手动核实 BDD 总数" → "exit 0 自动对照 / exit 2 需手动核实并迁移"
+- `agate/rules/state-transitions.md:36` — "主 Agent 手动核实 BDD 总数" → "由 provenance 审计 3 自动对照，exit 1 硬阻（无过渡期兜底）"
 - `agate/WORKFLOW.md:222` — "主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）" → 更新为 provenance 审计 3 自动执行（exit 0 时无需手动核实）
 - `agate/dispatch-protocol.md:787` — "主 Agent 手动核实 `grep -cE '^\s*- (PASS\|FAIL)' P6-acceptance.md` = P1 BDD 总数（provenance exit 2 时必做）" → 更新为 provenance 审计 3 自动执行
 - `agate/dispatch-protocol.md:782` — "BDD 编号格式不固定，按实际格式 grep" + `含 BDD-/B[0-9] 锚点` → "BDD 编号格式为 `#### BDD-NN:`" + `含 BDD-[0-9] 锚点`
@@ -494,9 +494,24 @@ P1_BDD=$(grep -cE '^\s*-?\s*Given\b' "$P1_FILE" 2>/dev/null || echo 0)
 # P6 的 PASS+FAIL 数 ≥ P1 的 BDD 标题数（挑验拦截）
 ...
 P1_BDD=$(grep -cE '^#### BDD-[0-9]' "$P1_FILE" 2>/dev/null || echo 0)
+P1_BDD=$(echo "$P1_BDD" | tail -1)
+
+P6_TOTAL=$(grep -cE '^\s*- (PASS|FAIL)\b' "$P6_FILE" 2>/dev/null || echo 0)
+P6_TOTAL=$(echo "$P6_TOTAL" | tail -1)
+
+if [ "$P1_BDD" -eq 0 ]; then
+    echo "GATE PROVENANCE: P1-requirements.md 未使用标准 #### BDD-NN: 格式（或没有 BDD），标准化后必须使用该格式" >&2
+    exit 1
+fi
+if [ "$P6_TOTAL" -lt "$P1_BDD" ]; then
+    echo "GATE PROVENANCE: P6 结果数(${P6_TOTAL}) < P1 BDD 条目数(${P1_BDD})，挑验不通过" >&2
+    exit 1
+fi
 ```
 
-`exit 2` 兜底分支（无 BDD 标题行）保留 exit 2 而非升级为 exit 1：**过渡期兼容**--现有未迁移的 legacy P1 文件（用 `- AC1: Given...` 格式）在迁移前仍需能过 gate，exit 2（WARNING）让主 Agent 手动核实而非硬阻。迁移完成后（下个 major version）可考虑升级为 exit 1。消息更新为"P1 无 `#### BDD-NN` 标准格式 BDD（可能使用 legacy 格式），需主 Agent 手动核实并迁移为标准格式"。
+**不做过渡期兼容——直接硬阻**：初版方案在这里设计了一条"P1 无标准 BDD 标题时退化为 exit 2（WARNING）"的过渡期兜底，理由是"保护现有未迁移的 legacy 任务"。经与用户确认：**当前没有任何在途任务**，已完成的任务也不需要追溯符合新标准——不存在"legacy 任务需要保护"这个前提，过渡期兼容是解决一个不存在的问题。
+
+去掉这层兜底后，还顺带修正了一处本来会遗留的不一致：`check-gate.sh:61`（下方 BDD 正则收紧部分）从一开始就是直接 `exit 1` 硬阻、没有过渡期宽限；如果 provenance 审计 3 这边留一条"legacy 退化为 WARNING"的口子，两处检查对"legacy 格式"的处理力度就不一致（一边硬阻一边放行）。现在两边统一都是"不使用标准 `#### BDD-NN:` 格式 → 直接 exit 1"，不再需要额外补一条宽限逻辑去对齐，是更简单也更一致的结果。
 
 ### 测试
 
@@ -504,13 +519,13 @@ P1_BDD=$(grep -cE '^#### BDD-[0-9]' "$P1_FILE" 2>/dev/null || echo 0)
 |------|------|------|
 | PV_BDD_COUNT.1 | P1 含 3 条 `#### BDD-NN`，P6 有 3 条 PASS | exit 0 |
 | PV_BDD_COUNT.2 | P1 含 2 条 `#### BDD-NN`，P6 有 1 条 PASS | exit 1（挑验拦截，硬阻恢复） |
-| PV_BDD_COUNT.3 | P1 无 `#### BDD-NN` 标题（legacy 格式） | exit 2（过渡期兜底） |
+| PV_BDD_COUNT.3 | P1 无 `#### BDD-NN` 标题 | exit 1（不再有过渡期兜底，直接硬阻） |
 | PV_BDD_COUNT.4 | P1 含 1 条带 Examples 表的 BDD-NN，P6 有 1 条 PASS | exit 0（数据驱动共享编号） |
 | PV_BDD_COUNT.5 | P1 BDD 编号有间隔（BDD-1, BDD-3，无 BDD-2），P6 有 2 条 PASS | exit 0（按标题计数，非 max 编号） |
 
 **现有测试影响**：
 - PV.9（原 4 Given vs 1 PASS -> exit 1）：fixture 改为标准格式后 P1_BDD=1（不再是 4），需更新场景为"P1 含 2 条 BDD，P6 有 1 条 PASS -> exit 1"
-- PV.10（无 Given -> exit 2）：改为"P1 无 `#### BDD-NN` -> exit 2"
+- PV.10（无 Given -> exit 2）：改为"P1 无 `#### BDD-NN` -> exit 1"（不再有过渡期兜底）
 - 其他 PV 测试：fixture 改为标准格式后 P1_BDD 计数不变（1 条 BDD = 1 个标题），exit 0 不变
 
 ### Bug 3：M5 -- P5 gate_commands 计数统计所有缩进 bullet 行
