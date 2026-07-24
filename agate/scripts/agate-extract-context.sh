@@ -125,7 +125,7 @@ extract() {
             fi
             if [ -d "$task_dir/P5-test-results" ]; then
                 local failed
-                failed="$(grep -rh '^\s*failed:' "$task_dir/P5-test-results/unit.md" "$task_dir/P5-test-results/" 2>/dev/null | grep -oE '[0-9]+' | paste -sd+ 2>/dev/null | bc 2>/dev/null || echo 0 | tail -1)"
+                failed="$(grep -rh '^\s*failed:' "$task_dir/P5-test-results/" 2>/dev/null | grep -oE '[0-9]+' | paste -sd+ 2>/dev/null | bc 2>/dev/null || echo 0 | tail -1)"
                 output+="- P5 failed 参考: ${failed}（仅供参考，gate 以主 Agent 实跑为准）"$'\n'
             fi
             ;;
