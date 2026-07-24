@@ -451,6 +451,15 @@ EOF
     [[ "$output" != *"gate_commands.P5 命令"* ]]
 }
 
+@test "G5_CMD.5 gate_commands 块位于文件末尾且无尾随换行 -> 仍正确计数 2 个 P5 键（回归：末尾换行边界）" {
+    local dir
+    dir=$(create_task_dir)
+    printf 'gate_commands:\n  P5: "pytest"\n  P5_e2e: "playwright"' > "$dir/P2-design.md"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"2 个 gate_commands.P5"* ]]
+}
+
 # ========== P6 (5 用例) ==========
 
 @test "G6.1 check-gate.sh P6 含 FAIL 行 期望 exit 1" {

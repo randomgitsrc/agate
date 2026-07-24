@@ -149,6 +149,8 @@ case "$PHASE" in
 import re, os
 with open(os.environ['GATE_FILE']) as f:
     content = f.read()
+if not content.endswith(chr(10)):
+    content += chr(10)
 m = re.search(r'^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)', content, re.MULTILINE)
 if not m:
     print(0)
