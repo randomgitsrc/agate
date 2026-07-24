@@ -331,3 +331,88 @@ EOF
     run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+# ========== 错误消息详情（P2.32）==========
+
+@test "EVIDENCE_NO_REF_DETAIL.1 PASS 缺引用时错误消息含具体 PASS 行" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1
+- PASS BDD-2 (result.json)
+- PASS BDD-3
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.json"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"  -"*"PASS BDD-1"* ]]
+    [[ "$output" == *"  -"*"PASS BDD-3"* ]]
+}
+
+@test "EVIDENCE_EMPTY_DETAIL.1 小文件错误消息含具体 basename" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (screenshots/tiny.txt)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    head -c 100 /dev/urandom > "$dir/P6-evidence/screenshots/tiny.txt"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"  -"*"tiny.txt"* ]]
+}
+
+@test "EVIDENCE_MD5_DETAIL.1 md5 重复错误消息含具体 basename" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (screenshots/a.png)
+- PASS BDD-2 (screenshots/b.png)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    local content
+    content=$(head -c 5000 /dev/urandom | base64)
+    printf '%s' "$content" > "$dir/P6-evidence/screenshots/a.png"
+    printf '%s' "$content" > "$dir/P6-evidence/screenshots/b.png"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"  -"*"a.png"* ]]
+    [[ "$output" == *"  -"*"b.png"* ]]
+}
+
+@test "EVIDENCE_MD5_DETAIL.2 md5 重复文件名含空格时错误消息含完整 basename" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (screenshots/login page.png)
+- PASS BDD-2 (screenshots/dashboard view.png)
+EOF
+    mkdir -p "$dir/P6-evidence/screenshots"
+    local content
+    content=$(head -c 5000 /dev/urandom | base64)
+    printf '%s' "$content" > "$dir/P6-evidence/screenshots/login page.png"
+    printf '%s' "$content" > "$dir/P6-evidence/screenshots/dashboard view.png"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"  -"*"login page.png"* ]]
+    [[ "$output" == *"  -"*"dashboard view.png"* ]]
+}

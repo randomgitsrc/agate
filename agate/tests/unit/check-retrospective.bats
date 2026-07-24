@@ -97,3 +97,31 @@ EOF
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
+
+# ========== dispatch-context / AGATE_CARD 排除 ==========
+
+@test "RETRO_SCOPE_DC.1 dispatch-context 含 [SCOPE+] 不触发复盘提醒" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-dispatch-context-verifier.md" <<'EOF'
+- [SCOPE+] 发现：新增功能需重新验收
+EOF
+    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"SCOPE+"* ]]
+}
+
+@test "RETRO_SCOPE_CARD.1 AGATE_CARD 块内 [SCOPE+] 不触发复盘提醒" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+设计内容
+<!-- AGATE_CARD_START -->
+- [SCOPE+] 示例：范围扩展
+<!-- AGATE_CARD_END -->
+正常设计
+EOF
+    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"SCOPE+"* ]]
+}

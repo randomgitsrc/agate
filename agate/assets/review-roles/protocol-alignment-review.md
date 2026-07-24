@@ -34,6 +34,7 @@ agent: review
 | `agate/dispatch-protocol.md`（派发模板/gate 表）| 角色文件（角色提示词）、模板文件 |
 | `agate/scripts/check-*.sh`（脚本行为）| `agate/scripts/README.md`、`agate/tests/README.md`、对应角色文件 |
 | `agate/assets/review-roles/*.md`（角色描述）| 模板文件、`dispatch-protocol.md` |
+| `agate/` 内 BDD 编号格式（`#### BDD-NN:` heading / `###` 功能分组）| `check-p6-provenance.sh`（BDD 计数正则）、`check-gate.sh`（P1 BDD 锚点）、`check-protocol-consistency.py`（CHECK 9 锚点）、`task-files.md`（P1 模板）、`dispatch-prompt.md`（verifier BDD 格式指令）、`analyst.md`/`test-designer.md`/`verifier.md`/`requirements-review.md`/`consistency-reviewer.md`/`architect.md`（角色 BDD 指令）、`P1-requirements.md`/`P3-tdd.md`/`P6-acceptance.md`/`P7-consistency.md`（阶段卡片 BDD 引用）、`state-machine.md`（转移条件 BDD 引用）、`dispatch-protocol.md`（P6 结果格式 + gate 表）、`WORKFLOW.md`（gate 表 BDD 引用）、`CONTEXT.md`（BDD 定义）、`LIMITATIONS.md`（BDD 计数描述） |
 | `CHANGELOG.md` 未更新 | 协议语义变更 + 未标注 = A5 下游影响不完整 |
 | `SELF-GATE.md` 或 `protocol-alignment-review.md` | self-gate 机制自身的递归适用 |
 
