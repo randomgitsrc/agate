@@ -89,7 +89,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS + 覆盖维度：数据✓ 前端✓ 多端✗ 边界✓ 兼容✓
+- BDD-1: PASS + 覆盖维度：数据✓ 前端✓ 多端✗ 边界✓ 兼容✓
 EOF
     run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
     [ "$status" -eq 2 ]
@@ -115,7 +115,7 @@ status: rejected
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: FAIL - 不可二值判定
+- BDD-1: FAIL - 不可二值判定
 EOF
     run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
@@ -140,7 +140,7 @@ task_id: T001-test
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS + 覆盖维度：数据✓
+- BDD-1: PASS + 覆盖维度：数据✓
 EOF
     run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
@@ -170,7 +170,7 @@ agent: requirements-review
 gate 规则要求 status: approved 才放行，本次评审未通过。
 
 ## BDD 评审
-- B01: FAIL - 不可二值判定
+- BDD-1: FAIL - 不可二值判定
 EOF
     run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
@@ -198,7 +198,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS
+- BDD-1: PASS
 EOF
     run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
@@ -225,7 +225,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS
+- BDD-1: PASS
 EOF
     run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
     [ "$status" -eq 2 ]

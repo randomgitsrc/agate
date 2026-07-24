@@ -15,7 +15,7 @@ load ../helpers/load.bash
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (ghost.png)
+- PASS BDD-1 (ghost.png)
 EOF
     mkdir -p "$dir/P6-evidence"
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
@@ -39,7 +39,7 @@ vision_analysis:
     blocker_count: 0
 EOF
     cat >> "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png) (vision: vision.yaml)
+- PASS BDD-1 (screenshots/login.png) (vision: vision.yaml)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
@@ -56,7 +56,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (a.png) (b.png)
+- PASS BDD-1 (a.png) (b.png)
 EOF
     mkdir -p "$dir/P6-evidence"
     head -c 1000 /dev/urandom > "$dir/P6-evidence/b.png"
@@ -74,7 +74,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (a.png) (b.png)
+- PASS BDD-1 (a.png) (b.png)
 EOF
     mkdir -p "$dir/P6-evidence"
     # 都不存在
@@ -89,9 +89,9 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (shared.json)
-- PASS AC2 (shared.json)
-- PASS AC3 (shared.json)
+- PASS BDD-1 (shared.json)
+- PASS BDD-2 (shared.json)
+- PASS BDD-3 (shared.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/shared.json"
@@ -106,20 +106,20 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (e1.json)
-- PASS AC2 (e2.json)
-- PASS AC3 (e3.json)
-- PASS AC4 (e4.json)
-- PASS AC5 (e5.json)
-- PASS AC6 (e6.json)
-- PASS AC7 (e7.json)
-- PASS AC8 (e8.json)
-- PASS AC9 (e1.json)
-- PASS AC10 (e2.json)
-- PASS AC11 (e3.json)
-- PASS AC12 (e4.json)
-- PASS AC13 (e5.json)
-- PASS AC14 (e6.json)
+- PASS BDD-1 (e1.json)
+- PASS BDD-2 (e2.json)
+- PASS BDD-3 (e3.json)
+- PASS BDD-4 (e4.json)
+- PASS BDD-5 (e5.json)
+- PASS BDD-6 (e6.json)
+- PASS BDD-7 (e7.json)
+- PASS BDD-8 (e8.json)
+- PASS BDD-9 (e1.json)
+- PASS BDD-10 (e2.json)
+- PASS BDD-11 (e3.json)
+- PASS BDD-12 (e4.json)
+- PASS BDD-13 (e5.json)
+- PASS BDD-14 (e6.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     for i in 1 2 3 4 5 6 7 8; do
@@ -133,7 +133,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (r1.json)
+- PASS BDD-1 (r1.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/r1.json"
@@ -147,7 +147,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat >> "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     : > "$dir/P6-evidence/.gitkeep"
@@ -164,25 +164,20 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-dispatch-context-subtask.md" <<'EOF'
-- PASS AC1 pre-judged
+- PASS BDD-1 pre-judged
 EOF
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P6-dispatch-context"* ]]
 }
 
-@test "PV.9 check-p6-provenance.sh P1 BDD Given 数 > P6 总数 期望 exit 1" {
+@test "PV.9 check-p6-provenance.sh P1 BDD 标题数 > P6 总数 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
-    # 3 个 Given 但 P6 只 1 条 PASS
-    cat >> "$dir/P1-requirements.md" <<'EOF'
-
-- Given a
-- Given b
-- Given c
-EOF
+    # create_task_dir 默认给 1 条 BDD-1，再加一条 BDD-2，但 P6 只 1 条 PASS
+    add_p1_bdd "$dir" "second scenario"
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
@@ -191,20 +186,79 @@ EOF
     [[ "$output" == *"挑验"* ]]
 }
 
-@test "PV.10 check-p6-provenance.sh P1 无 Given 格式 期望 exit 2" {
+@test "PV.10 check-p6-provenance.sh P1 无标准 BDD 标题 期望 exit 1（无过渡期兜底）" {
     local dir
     dir=$(create_task_dir)
-    # 去掉默认的 Given 行
-    sed -i '/^- Given /d' "$dir/P1-requirements.md"
+    # 去掉默认的 #### BDD-N: 标题行
+    sed -i '/^#### BDD-/d' "$dir/P1-requirements.md"
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
-    [ "$status" -eq 2 ]
-    [[ "$output" == *"BDD 格式非标准"* ]]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"未使用标准"* ]]
 }
+
+@test "PV_BDD_COUNT.1 P1 含 3 条 #### BDD-NN，P6 有 3 条 PASS 期望 exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    add_p1_bdd "$dir" "second"
+    add_p1_bdd "$dir" "third"
+    cat >> "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (a.json)
+- PASS BDD-2 (b.json)
+- PASS BDD-3 (c.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo x > "$dir/P6-evidence/a.json"
+    echo x > "$dir/P6-evidence/b.json"
+    echo x > "$dir/P6-evidence/c.json"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PV_BDD_COUNT.4 P1 含 1 条带 Examples 表的 BDD-NN，P6 有 1 条 PASS 期望 exit 0（数据驱动共享编号）" {
+    local dir
+    dir=$(create_task_dir)
+    cat >> "$dir/P1-requirements.md" <<'EOF'
+
+| existing | result |
+|----------|--------|
+| 0        | 201    |
+| 5        | 400    |
+EOF
+    cat >> "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo x > "$dir/P6-evidence/result.json"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PV_BDD_COUNT.5 P1 BDD 编号有间隔（BDD-1,BDD-3，无 BDD-2），P6 有 2 条 PASS 期望 exit 0（按标题计数非 max 编号）" {
+    local dir
+    dir=$(create_task_dir)
+    cat >> "$dir/P1-requirements.md" <<'EOF'
+
+#### BDD-3: third (skipped BDD-2 numbering on purpose)
+- Given x
+- When y
+- Then z
+EOF
+    cat >> "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (a.json)
+- PASS BDD-3 (b.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo x > "$dir/P6-evidence/a.json"
+    echo x > "$dir/P6-evidence/b.json"
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
 
 @test "PV.11 check-p6-provenance.sh UI + 截图 PASS 缺 vision 引用 期望 exit 1" {
     local dir
@@ -213,7 +267,7 @@ EOF
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png)
+- PASS BDD-1 (screenshots/login.png)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
@@ -230,7 +284,7 @@ EOF
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png) (vision: vision/missing.yaml)
+- PASS BDD-1 (screenshots/login.png) (vision: vision/missing.yaml)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
@@ -253,7 +307,7 @@ vision_analysis:
     blocker_count: 1
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png) (vision: vision.yaml)
+- PASS BDD-1 (screenshots/login.png) (vision: vision.yaml)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
@@ -268,7 +322,7 @@ EOF
     # 去掉 P6 的 agent frontmatter
     sed -i '/^---$/d; /^agent: test$/d' "$dir/P6-acceptance.md"
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
@@ -287,7 +341,7 @@ agent: main
 review done
 EOF
     cat >> "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
@@ -305,7 +359,7 @@ agent: subagent
 status: approved
 EOF
     cat >> "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
@@ -320,7 +374,7 @@ EOF
 ---
 agent: test
 ---
-- PASS B01: verified (result.json)
+- PASS BDD-1: verified (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
@@ -347,7 +401,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (screenshots/b07.png — element: .katex nth(1))
+- PASS BDD-1 (screenshots/b07.png — element: .katex nth(1))
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
@@ -373,7 +427,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (screenshots/b07.png — element: .katex nth(1)) (vision: vision.yaml)
+- PASS BDD-1 (screenshots/b07.png — element: .katex nth(1)) (vision: vision.yaml)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
@@ -388,7 +442,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (screenshots/missing.png — element: .katex nth(1))
+- PASS BDD-1 (screenshots/missing.png — element: .katex nth(1))
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     # 不创建 missing.png
@@ -407,7 +461,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (logs/test.log)
+- PASS BDD-1 (logs/test.log)
 EOF
     mkdir -p "$dir/P6-evidence/logs"
     cat > "$dir/P6-evidence/logs/test.log" <<'EOF'
@@ -427,7 +481,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (logs/test.log)
+- PASS BDD-1 (logs/test.log)
 EOF
     mkdir -p "$dir/P6-evidence/logs"
     cat > "$dir/P6-evidence/logs/test.log" <<'EOF'
@@ -446,7 +500,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (logs/test.log)
+- PASS BDD-1 (logs/test.log)
 EOF
     mkdir -p "$dir/P6-evidence/logs"
     cat > "$dir/P6-evidence/logs/test.log" <<'EOF'

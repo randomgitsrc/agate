@@ -90,7 +90,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS + 覆盖维度：数据✓
+- BDD-1: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add .state.yaml docs/tasks/T001/
     _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
@@ -180,7 +180,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS + 覆盖维度：数据✓
+- BDD-1: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add docs/tasks/T001/
     _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
@@ -246,7 +246,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS + 覆盖维度：数据✓
+- BDD-1: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add docs/tasks/T001/
     _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
@@ -397,7 +397,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS + 覆盖维度：数据✓
+- BDD-1: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add .state.yaml docs/tasks/T001/
     _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
@@ -703,7 +703,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS + 覆盖维度：数据✓
+- BDD-1: PASS + 覆盖维度：数据✓
 EOF
     git -C "$REPO" add docs/tasks/T001/
     _write_min_valid_dispatch_context "docs/tasks/T001" "P3" "test-designer"
@@ -963,4 +963,78 @@ EOF2
     # 确认没有任何一步真的成功提交（P6 仍是当前 phase，没有 retreat commit 落地）
     run bash -c "cd '$REPO' && git log --oneline"
     [[ "$output" != *"retreat:"* ]]
+}
+
+# ========== T6: PROD_TOUCHED 步骤2 不再误拦 AGATE_CARD 注入文本 ==========
+
+@test "IT_PT_T6.1 P8 dispatch-context 含 AGATE_CARD 注入块（[PROD_TOUCHED] 说明文本）→ 不误拦" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P8" "releaser"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P8
+status: active
+retries: {}
+EOF2
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "p8 dispatch-context with AGATE_CARD"
+    [[ "$output" != *"不合规的 PROD_TOUCHED"* ]]
+    [[ "$output" != *"检测到生产环境接触"* ]]
+}
+
+@test "IT_PT_T6.2 任务产出文件含句中 [PROD_TOUCHED]（非 AGATE_CARD 块内）→ 仍拦截（不回归）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "记录：曾经不小心碰到了 [PROD_TOUCHED] 生产环境" > "$REPO/docs/tasks/T001/note.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF2
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "should still be blocked"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"不合规的 PROD_TOUCHED"* ]]
+}
+
+@test "IT_PT_T6.3 任务产出文件含行首 [PROD_TOUCHED]（步骤1）→ 拦截（回归）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "[PROD_TOUCHED] 意外接触生产环境" > "$REPO/docs/tasks/T001/note.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF2
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "should be blocked"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"检测到生产环境接触"* ]]
+}
+
+@test "IT_PT_T6.4 任务产出文件含 [PROD_NOT_TOUCHED]（负向声明）→ 不拦截（回归）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "[PROD_NOT_TOUCHED] 未接触生产环境" > "$REPO/docs/tasks/T001/note.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF2
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "should not be blocked by PROD_TOUCHED check"
+    [[ "$output" != *"不合规的 PROD_TOUCHED"* ]]
+    [[ "$output" != *"检测到生产环境接触"* ]]
 }

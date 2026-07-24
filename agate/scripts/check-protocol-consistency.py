@@ -619,6 +619,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-p6-evidence.sh",
         "keywords": ["AHASH_LIST", "AHASH_DUPES"],
     },
+    {
+        "desc": "P1 BDD 编号格式检查（标准 #### BDD-NN: 格式）",
+        "script": "agate/scripts/check-gate.sh",
+        "keywords": ["BDD-[0-9]"],
+    },
 ]
 
 

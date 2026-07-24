@@ -90,7 +90,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 你的 P6-acceptance.md 会通过 `scripts/check-p6-provenance.sh` 客观行为审计：
 
-- **每条 PASS 后必须引证据路径**：`- PASS B01: 描述 (P6-evidence/screenshots/b01.png)`——括号内路径相对 P6-evidence/，文件**必须存在**。一条 PASS 也可引用多个证据文件（逗号分隔）：`- PASS B01: 描述 (file1.json, file2.log)`
+- **每条 PASS 后必须引证据路径**：`- PASS BDD-1: 描述 (P6-evidence/screenshots/bdd-1.png)`——括号内路径相对 P6-evidence/，文件**必须存在**。一条 PASS 也可引用多个证据文件（逗号分隔）：`- PASS BDD-1: 描述 (file1.json, file2.log)`
 - **多条 PASS 可共享同一证据文件**：如 3 条 PASS 引用 `shared.json` 是允许的。但每条 PASS 必须有引用、每个证据文件必须被引用（充数文件被拦）
 - **每个证据文件都被 PASS 行引用**：空 png 充数（创建但不引用）会被拦
 - **dispatch-context 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦

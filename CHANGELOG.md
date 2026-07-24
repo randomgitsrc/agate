@@ -6,6 +6,35 @@
 
 ---
 
+## [0.20.0] - 2026-07-24
+
+### 破坏性变更
+- **BDD 格式标准化，不做过渡期兼容**：P1-requirements.md 的 BDD 验收条件从"格式不固定"变为标准
+  `#### BDD-NN: {描述}` 标题 + 一条 Given/When/Then。`### {功能分组名}` 必选，保证 heading 层级
+  `##` → `###` → `####` 不跳级。相关检查（provenance 审计 3、P1-review.md BDD 锚点）均直接
+  `exit 1` 硬阻，不设 legacy 格式的 WARNING 退化路径（当前无在途任务使用旧格式，已完成任务不需要
+  追溯符合新标准）
+
+### 修复
+- `check-p6-provenance.sh` BDD 总数对照改为按 `#### BDD-NN` 标题精确计数（原按 Given 行数启发式
+  计数，一条 BDD 挂多个 Given 时虚增，导致挑验误判）
+- `pre-commit-gate.sh` PROD_TOUCHED 步骤2 扫描前剥离 AGATE_CARD 注入块，不再误拦卡片说明文本中的
+  `[PROD_TOUCHED]` 字面量（复用 `check-p6-provenance.sh` 已验证的剥离模式）
+- `check-gate.sh` P5 gate_commands 计数改为解析 `gate_commands:` YAML 块内的 P5 相关键，不再统计
+  P2-design.md 全文所有缩进 bullet 行（原会把候选方案、权衡列表等无关 bullet 一并计入，"27 个命令"
+  的误报即由此产生）
+- `check-gate.sh` P1-review.md BDD 编号锚点正则从 `BDD-|B[0-9]` 收紧为 `BDD-[0-9]`（原正则会误匹配
+  "B2B"/"B2C" 这类词）
+
+### 变更
+- 17 处协议文档（模板、角色定义、phase-cards、state-machine.md、dispatch-protocol.md、
+  WORKFLOW.md、LIMITATIONS.md、CONTEXT.md、rules/state-transitions.md 等）BDD 编号示例统一为
+  `BDD-NN` 格式
+- `check-protocol-consistency.py` CHECK 9 锚点表追加 BDD 编号格式检查
+- 测试 fixture（5 个 P1 + 5 个 P6）与 8 个测试文件中约 112 处 `AC\d+`/`B0\d` 编号批量替换为
+  `BDD-\d` 格式；`tests/helpers/fixtures.bash` 新增 `add_p1_bdd` helper，`add_given_line`/
+  `add_p1_given` 标记废弃（无调用者，保留代码避免破坏下游 fork）
+
 ## [0.19.0] - 2026-07-23
 
 ### 新增

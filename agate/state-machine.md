@@ -114,7 +114,7 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
 P5 --[有 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 P5 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND scripts/check-p6-provenance.sh exit 0 或 exit 2（证据-结论对应 + dispatch-context 审计 + BDD 总数对照）AND 主 Agent 手动核实 BDD 总数 = P1 BDD 总数（provenance exit 2 时必做）]--> P7
+P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND scripts/check-p6-provenance.sh exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻）]--> P7
      ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3 平台支持独立 git author）
      （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
@@ -387,7 +387,7 @@ function 执行一步(task_id):
         - [SCOPE_GAP]：prompt 漏了 P2 已声明的改动 → 暂停修正 prompt 重派
         （subagent 的自我检查结果仅供参考，不作为 gate 判定依据——gate 以主 Agent 跑命令为准）
     5. 主 Agent 亲自跑 gate 命令验证门槛（A1 原则：跑命令不信文件）：
-       - P1: P1-requirements.md 含 ≥1 条 BDD 条件（BDD 编号格式不固定，按实际格式 grep）;
+       - P1: P1-requirements.md 含 ≥1 条 BDD 条件（BDD 编号格式为 `#### BDD-NN:`）;
              grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' {task}/P1-requirements.md → =0;
              grep -cE 'status:.*GAP\b' {task}/P1-requirements.md → =0（仅匹配 status: GAP，不匹配 supplementable）
        - P2: grep 'status: approved' {task}/P2-review.md → 命中;
@@ -399,8 +399,8 @@ function 执行一步(task_id):
        - P5: 从 P2-design.md gate_commands.P5 读取命令执行 → exit 0 AND failed==0;
              grep -rlE '^\s*-?\s*\[PROD_TOUCHED\]' {task}/ → 无命中（行首锚点匹配正向声明，不匹配句中引用）;
              （UI 任务：从 gate_commands.P5 读取 E2E 命令执行 → exit 0）
-         - P6: scripts/check-gate.sh P6 → 脚本化部分通过（exit 2，FAIL=0/NC=0/证据非空已验，BDD 总数对照需主 Agent 手动核实）;
-              grep -cE '^\s*- (PASS|FAIL)' {task}/P6-acceptance.md → =P1 BDD 总数（主 Agent 手动核实）;
+         - P6: scripts/check-gate.sh P6 → 脚本化部分通过（exit 2，FAIL=0/NC=0/证据非空已验，BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行）;
+              grep -cE '^\s*- (PASS|FAIL)' {task}/P6-acceptance.md → =P1 BDD 总数（审计 3 自动执行，不符时 exit 1）;
               （UI 条件：vision-analyst YAML summary.blocker_count → =0）
        - P7: grep -E '^\s*-?\s*\[BLOCKER\]' {task}/P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0;
               grep -E '^\s*-?\s*\[DEVIATION-CRITICAL\]' {task}/P7-consistency.md | grep -cvE '\[DEVIATION-CRITICAL\][:：]?\s*\d+\s*条?\s*$' → =0

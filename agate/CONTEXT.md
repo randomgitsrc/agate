@@ -12,7 +12,7 @@
 | 机制交叉 | ≥2 个子系统交互、时序依赖、跨层影响的改动 | WORKFLOW.md §改动性质判断 |
 | 声明性改动 | 不改变程序运行时控制流的改动（改前改后控制流相同） | WORKFLOW.md §改动性质判断 |
 | 行为逻辑改动 | 改变程序运行时控制流的改动（条件分支、状态转换、数据处理） | WORKFLOW.md §改动性质判断 |
-| BDD | Behavior-Driven Development，Given/When/Then 格式的验收条件 | WORKFLOW.md §需求基线 |
+| BDD | Behavior-Driven Development，`#### BDD-NN:` 标题编号 + 一条 Given/When/Then 的验收条件 | WORKFLOW.md §需求基线 |
 | NEED_CONFIRM | 需人工确认的标记（行首声明格式），subagent 拿不准方向时标注；无待确认项写 `[NO_NEED_CONFIRM]` | WORKFLOW.md §[NEED_CONFIRM] |
 | SCOPE+ | 新发现的隐含需求标记，任何阶段 subagent 可标注，主 Agent 增补 P1 基线 | WORKFLOW.md §[SCOPE+] |
 | SCOPE_GAP | 主 Agent 派发 prompt 漏了 P2 已声明的改动，subagent 标注 | dispatch-protocol.md |

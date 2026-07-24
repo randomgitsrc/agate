@@ -126,7 +126,11 @@ except Exception:
     # v0.17：三步检测（正向→中止 / 不合规→中止 / 缺失→静默通过）+ 只扫新增行
     TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
     if git diff --cached --name-only 2>/dev/null | grep -qE "^${TASK_REL}/"; then
-        DIFF_ADDED=$(git diff --cached -- "$TASK_REL" | grep '^+[^+]' | sed 's/^+//' || true)
+        DIFF_ADDED=$(git diff --cached -- "$TASK_REL" \
+            | grep '^+[^+]' \
+            | sed 's/^+//' \
+            | sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' \
+            || true)
         if echo "$DIFF_ADDED" | grep -qE '^\s*-?\s*\[PROD_TOUCHED\]'; then
             echo "GATE: [PROD_TOUCHED] 检测到生产环境接触（${TASK_ID}），commit 中止" >&2
             exit 1

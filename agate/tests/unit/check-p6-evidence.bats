@@ -26,7 +26,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
+- PASS BDD-1
 EOF
     run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
     [ "$status" -eq 1 ]
@@ -37,7 +37,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
@@ -51,7 +51,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     # 不创建 P6-evidence/
     run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
@@ -63,7 +63,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.json)
+- PASS BDD-1 (result.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     # 不放任何文件（包括 .gitkeep）
@@ -75,8 +75,8 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result1.json)
-- PASS AC2 (result2.json)
+- PASS BDD-1 (result1.json)
+- PASS BDD-2 (result2.json)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result1.json"
@@ -95,7 +95,7 @@ agent: test
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png)
+- PASS BDD-1 (screenshots/login.png)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"  # 让 P6-evidence 目录"非空"
@@ -115,7 +115,7 @@ agent: test
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png)
+- PASS BDD-1 (screenshots/login.png)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     # 创建 100 字节的"假 png"
@@ -135,7 +135,7 @@ agent: test
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png)
+- PASS BDD-1 (screenshots/login.png)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
@@ -147,11 +147,11 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.log)
-- PASS AC2 (data.json)
-- PASS AC3 (page.html)
-- PASS AC4 (notes.txt)
-- PASS AC5 (config.yaml)
+- PASS BDD-1 (result.log)
+- PASS BDD-2 (data.json)
+- PASS BDD-3 (page.html)
+- PASS BDD-4 (notes.txt)
+- PASS BDD-5 (config.yaml)
 EOF
     mkdir -p "$dir/P6-evidence"
     for ext in log json html txt yaml; do
@@ -171,8 +171,8 @@ agent: test
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png)
-- PASS AC2 (screenshots/dashboard.png)
+- PASS BDD-1 (screenshots/login.png)
+- PASS BDD-2 (screenshots/dashboard.png)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     local content
@@ -188,7 +188,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (result.png, vision: OK)
+- PASS BDD-1 (result.png, vision: OK)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.png"
@@ -203,7 +203,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (report.pdf)
+- PASS BDD-1 (report.pdf)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "pdf content" > "$dir/P6-evidence/report.pdf"
@@ -218,7 +218,7 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (photo.jpeg)
+- PASS BDD-1 (photo.jpeg)
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "jpeg content" > "$dir/P6-evidence/photo.jpeg"
@@ -295,14 +295,14 @@ EOF
 ---
 agent: test
 ---
-- PASS AC1 (result.png)
-- PASS AC2 (photo.jpg)
-- PASS AC3 (output.log)
-- PASS AC4 (data.json)
-- PASS AC5 (page.html)
-- PASS AC6 (notes.txt)
-- PASS AC7 (config.yaml)
-- PASS AC8 (config2.yml)
+- PASS BDD-1 (result.png)
+- PASS BDD-2 (photo.jpg)
+- PASS BDD-3 (output.log)
+- PASS BDD-4 (data.json)
+- PASS BDD-5 (page.html)
+- PASS BDD-6 (notes.txt)
+- PASS BDD-7 (config.yaml)
+- PASS BDD-8 (config2.yml)
 EOF
     mkdir -p "$dir/P6-evidence"
     for f in result.png photo.jpg output.log data.json page.html notes.txt config.yaml config2.yml; do
@@ -322,8 +322,8 @@ agent: test
 ui_affected: true
 EOF
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1 (screenshots/login.png)
-- PASS AC2 (screenshots/dashboard.png)
+- PASS BDD-1 (screenshots/login.png)
+- PASS BDD-2 (screenshots/dashboard.png)
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"

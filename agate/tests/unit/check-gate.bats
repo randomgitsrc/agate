@@ -370,18 +370,94 @@ task_id: T001
 agent: architect
 ---
 
-## gate_commands
-```yaml
-P5:
-  - pytest tests/unit
-  - pytest tests/integration
-  - pytest tests/e2e
-```
+gate_commands:
+  P5: "pytest -q --tb=no"
+  P5_e2e: "playwright test --reporter=line tests/e2e/"
 EOF
 
     run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
     [ "$status" -eq 2 ]  # P5 恒 exit 2
     [[ "$output" == *"gate_commands.P5"* || "$output" == *"子集"* || "$output" == *"全量"* ]]
+}
+
+@test "G5_CMD.1 P2 gate_commands 声明 P5+P5_e2e（2 键），其他节含 20 个 bullet -> WARNING 含 2 而非 22" {
+    local dir
+    dir=$(create_task_dir)
+    {
+        echo "---"
+        echo "phase: P2"
+        echo "---"
+        echo ""
+        echo "候选方案："
+        for i in $(seq 1 20); do echo "- 要点 $i"; done
+        echo ""
+        echo "gate_commands:"
+        echo '  P5: "pytest -q"'
+        echo '  P5_e2e: "playwright test"'
+    } > "$dir/P2-design.md"
+
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"2 个 gate_commands.P5"* ]]
+    [[ "$output" != *"22 个"* ]]
+}
+
+@test "G5_CMD.2 P2 gate_commands 只声明 P5（1 键），其他节含 10 个 bullet -> 无 WARNING" {
+    local dir
+    dir=$(create_task_dir)
+    {
+        echo "---"
+        echo "phase: P2"
+        echo "---"
+        echo ""
+        for i in $(seq 1 10); do echo "- 要点 $i"; done
+        echo ""
+        echo "gate_commands:"
+        echo '  P5: "pytest -q"'
+    } > "$dir/P2-design.md"
+
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"gate_commands.P5 命令"* ]]
+}
+
+@test "G5_CMD.3 P2 无 gate_commands 块 -> 无 WARNING，无崩溃" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+phase: P2
+---
+候选方案：无 gate_commands 声明
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"gate_commands.P5 命令"* ]]
+}
+
+@test "G5_CMD.4 P2 gate_commands 声明 P5+P6（1 个 P5 键）-> 无 WARNING（P6 不算 P5 命令）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+phase: P2
+---
+gate_commands:
+  P5: "pytest -q"
+  P6: "pytest tests/acceptance"
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"gate_commands.P5 命令"* ]]
+}
+
+@test "G5_CMD.5 gate_commands 块位于文件末尾且无尾随换行 -> 仍正确计数 2 个 P5 键（回归：末尾换行边界）" {
+    local dir
+    dir=$(create_task_dir)
+    printf 'gate_commands:\n  P5: "pytest"\n  P5_e2e: "playwright"' > "$dir/P2-design.md"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"2 个 gate_commands.P5"* ]]
 }
 
 # ========== P6 (5 用例) ==========
@@ -390,8 +466,8 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
-- FAIL AC2
+- PASS BDD-1
+- FAIL BDD-2
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
     [ "$status" -eq 1 ]
@@ -402,8 +478,8 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
-- [NEED_CONFIRM] AC2
+- PASS BDD-1
+- [NEED_CONFIRM] BDD-2
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
     [ "$status" -eq 1 ]
@@ -424,8 +500,8 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
-- PASS AC2
+- PASS BDD-1
+- PASS BDD-2
 EOF
     # 没有 P6-evidence/ 目录
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
@@ -437,8 +513,8 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
-- PASS AC2
+- PASS BDD-1
+- PASS BDD-2
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.log"
@@ -450,7 +526,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
+- PASS BDD-1
 - fail: BDD-2 broken
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
@@ -462,8 +538,8 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
-- fail AC2: timeout
+- PASS BDD-1
+- fail BDD-2: timeout
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
     [ "$status" -eq 1 ]
@@ -474,7 +550,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
+- PASS BDD-1
 - failure mode detected
 EOF
     mkdir -p "$dir/P6-evidence"
@@ -943,8 +1019,8 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
-- [NEED_CONFIRM] AC2
+- PASS BDD-1
+- [NEED_CONFIRM] BDD-2
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
     [ "$status" -eq 1 ]
@@ -1065,7 +1141,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS
+- BDD-1: PASS
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 2 ]
@@ -1093,7 +1169,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS
+- BDD-1: PASS
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 1 ]
@@ -1122,7 +1198,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS
+- BDD-1: PASS
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 1 ]
@@ -1133,7 +1209,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS AC1
+- PASS BDD-1
 - [NO_NEED_CONFIRM]
 EOF
     mkdir -p "$dir/P6-evidence"
@@ -1163,7 +1239,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS
+- BDD-1: PASS
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 2 ]
@@ -1192,7 +1268,7 @@ status: approved
 agent: requirements-review
 ---
 ## BDD 评审
-- B01: PASS
+- BDD-1: PASS
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 2 ]

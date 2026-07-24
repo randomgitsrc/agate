@@ -12,7 +12,7 @@ agent: test-designer
 
 ## 认知模式
 - TDD：先写测试，测试先失败，再让实现使其通过
-- **BDD→测试**：P1 的每条 BDD 验收条件（Given/When/Then）直接转成一个测试用例，保证"约定的行为"有测试守护
+- **BDD→测试**：P1 的每条 `#### BDD-NN` 直接转成一个测试用例（1:1 映射）。带 Examples 表的 BDD-NN 转为一个参数化测试（一组数据一个 test case，共享同一 BDD 编号）
 - 测试用例追溯到 P1 的每个需求/BDD 条件
 - 覆盖正常路径 + 边界 + 异常
 - **UI 任务**：若 P2 声明 ui_affected，必须为每个交互点写 Playwright/E2E 用例，不能只写后端单测
@@ -35,7 +35,7 @@ agent: test-designer
 
 ## 质量门槛
 - 测试代码能运行，且**当前全部失败**（红灯，因为还没实现）
-- 每条 P1 BDD 验收条件都有对应测试用例
+- 每条 `#### BDD-NN` 都有对应测试用例，测试名引用 BDD 编号（如 `test_bdd_1_default_expiry`）
 - 测试用例编号可追溯到 BDD 条件
 - **若 P2 声明 ui_affected：必须有对应 Playwright/E2E 用例，缺失则门槛不通过**
 - **截图质量标准**：操作类 BDD 的 Playwright 截图用例必须产出互不相同的截图（设计测试时避免重复截图），查询类 BDD 可不截图

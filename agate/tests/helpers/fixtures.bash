@@ -26,6 +26,8 @@ add_agent_field() {
 
 # add_given_line <file>
 # 在 P1 加一个 Given 行（如果还没有）
+# 已废弃（v0.20.0 BDD 标准化后无调用者）：Given 行不再计入 BDD 计数，
+# 保留代码但不再使用，避免破坏可能存在的下游 fork。新测试请用 add_p1_bdd。
 add_given_line() {
     local f="$1"
     if ! grep -qE '^\s*-\s*Given\b' "$f" 2>/dev/null; then
@@ -108,7 +110,13 @@ agent: test
 ---
 risk_level: $risk_level
 phases: [$phases_csv]
+
+### 主流程
+
+#### BDD-1: test
 - Given test precondition
+- When test action
+- Then test result
 EOF
 
     # 写其他阶段文件（空文件，足以让脚本"不报缺文件"）
@@ -239,10 +247,26 @@ add_p6_need_confirm() {
 
 # 用法：add_p1_given <task_dir> <text>
 # 在 P1-requirements.md 加一行 BDD Given
+# 已废弃（v0.20.0 BDD 标准化后无调用者）：Given 行不再计入 BDD 计数，
+# 保留代码但不再使用，避免破坏可能存在的下游 fork。新测试请用 add_p1_bdd。
 add_p1_given() {
     local dir="$1"
     local text="$2"
     local p1="$dir/P1-requirements.md"
 
     echo "- Given ${text}" >> "$p1"
+}
+
+# 用法：add_p1_bdd <task_dir> [description]
+# 在 P1-requirements.md 末尾追加一个 `#### BDD-NN:` 标题行（仅标题，不含 GWT 子行——
+# GWT 由调用方自行追加）。NN 为当前最大编号 +1，若无已有 BDD 则从 1 开始。
+add_p1_bdd() {
+    local dir="$1"
+    local desc="${2:-test}"
+    local p1="$dir/P1-requirements.md"
+    local n
+    n=$(grep -cE '^#### BDD-[0-9]' "$p1" 2>/dev/null || echo 0)
+    n=$(echo "$n" | tail -1)
+    n=$((n + 1))
+    echo "#### BDD-${n}: ${desc}" >> "$p1"
 }

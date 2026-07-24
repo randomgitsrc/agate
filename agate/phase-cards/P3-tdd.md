@@ -24,14 +24,14 @@
 ## 派发
 
 - **角色**：test-designer（`{agate_root}/assets/execution-roles/test-designer.md`）
-- **输入**：P2-design.md + P1-requirements.md（BDD 验收条件）
+- **输入**：P2-design.md + P1-requirements.md（BDD 验收条件，每条 `#### BDD-NN` 对应一个测试用例）
 - **输出**：P3-test-cases.md + test_code_dir/
 - **派发 prompt**：`{agate_root}/assets/templates/dispatch-prompt.md`
 
 ## 产出规格
 
 - P3-test-cases.md 必须声明 `test_code_dir: {路径}`
-- 每条测试用例对应一条 P1 的 BDD 验收条件
+- 每条测试用例对应一条 P1 的 `#### BDD-NN` 验收条件（1:1 映射）
 - UI 任务（P2 ui_affected: true）：必须含 Playwright/E2E 用例
 
 ## gate 规则（check-tdd-red.sh）
