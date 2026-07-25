@@ -21,6 +21,23 @@ EOF
     echo "$f"
 }
 
+make_args_recording_runner() {
+    local output="$1"
+    local exit_code="$2"
+    local sentinel="$3"
+    local f="$BATS_TEST_TMPDIR/fake-args-runner-$BATS_TEST_NUMBER"
+    cat > "$f" <<EOF
+#!/bin/bash
+printf '%s\n' "\$@" > "$sentinel"
+cat <<'OUT'
+$output
+OUT
+exit $exit_code
+EOF
+    chmod +x "$f"
+    echo "$f"
+}
+
 @test "TD.1 check-tdd-red.sh TEST_RUNNER 指向不存在 + 无 pytest 期望 exit 3" {
     # 把 TEST_RUNNER 设为不存在的命令，但 [ -n "$TEST_RUNNER" ] 为 true
     # 这样不会走 which pytest 路径
@@ -105,4 +122,52 @@ ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
     run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
+}
+
+@test "TDD.N1: TEST_RUNNER_FLAGS empty string does not fall back to -q" {
+    local sentinel="$BATS_TEST_TMPDIR/runner-args-$BATS_TEST_NUMBER"
+    local fake
+    fake=$(make_args_recording_runner "2 failed, 5 passed" 1 "$sentinel")
+    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+    run cat "$sentinel"
+    [[ "$output" != *"-q"* ]]
+}
+
+@test "TDD.N1b: unset TEST_RUNNER_FLAGS still uses -q default" {
+    local sentinel="$BATS_TEST_TMPDIR/runner-args-unset-$BATS_TEST_NUMBER"
+    local fake
+    fake=$(make_args_recording_runner "2 failed, 5 passed" 1 "$sentinel")
+    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+    run cat "$sentinel"
+    [[ "$output" == *"-q"* ]]
+}
+
+@test "TDD.N2: vitest pure assertion failure (no Failed Suites) → classic red-light exit 0" {
+    local fake
+    fake=$(make_fake_pytest "Tests  11 failed | 6 passed" 1)
+    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" TEST_ERROR_PATTERN="Failed Suites [0-9]+" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}
+
+@test "TDD.N3: vitest B-class (import from PROJECT_MODULE) → exit 0" {
+    local fake
+    fake=$(make_fake_pytest "Failed Suites 1
+FAIL tests/test_x.ts > ImportError: cannot import name 'Yyy' from 'myapp.foo'" 1)
+    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" TEST_ERROR_PATTERN="Failed Suites [0-9]+" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"B-class"* ]]
+}
+
+@test "TDD.N4: vitest A-class (import from third-party) → exit 1" {
+    local fake
+    fake=$(make_fake_pytest "Failed Suites 1
+FAIL tests/test_x.ts > ImportError: No module named 'requests'" 1)
+    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" TEST_ERROR_PATTERN="Failed Suites [0-9]+" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"A-class"* ]]
 }

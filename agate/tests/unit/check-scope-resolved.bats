@@ -34,6 +34,17 @@ EOF
     [[ "$output" == *"无 P1-requirements.md"* ]]
 }
 
+@test "SC.7: dispatch-prompt file excluded from SCOPE+ scan" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P4-dispatch-prompt-implementer.md" <<'EOF'
+> render product
+- [SCOPE+] this should be ignored
+EOF
+    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
 @test "SC.4 check-scope-resolved.sh 有 SCOPE+ 但 P1 无 SCOPE_RESOLVED 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
