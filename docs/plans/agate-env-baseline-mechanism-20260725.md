@@ -206,8 +206,8 @@ exit 0
   P5 gate 检测到缺失时优雅降级为原有 WARNING-only 行为，不因此新增拦截。
 ```
 
-**落地注意**：需同步修改 `phase-cards/P5-verification.md` 的"产出规格"节和"返回前自检"节，
-把 fail-list.txt 加入产出物列表和自检清单。
+**落地注意**：需同步修改 `phase-cards/P5-verification.md` 的"产出规格"节，
+把 fail-list.txt 加入产出物列表。
 
 ### `check-gate.sh` P5 分支新增（在现有 WARNING 逻辑之后，`exit 2` 之前插入）
 
@@ -215,6 +215,14 @@ exit 0
 BASELINE="$TASK_DIR/pre-task-baseline.md"
 POST_FAILS="$TASK_DIR/P5-test-results/fail-list.txt"
 if [ -f "$BASELINE" ] && [ -f "$POST_FAILS" ]; then
+    # 合法性校验：基线文件必须含 captured_at_commit: frontmatter（由捕获脚本写入）。
+    # 缺失说明文件损坏（磁盘/merge conflict/手误），此时不应做 diff——
+    # 损坏基线会导致 PRE_LIST 为空，所有 post 失败被误判为新增回归（比文件缺失更危险）。
+    if ! grep -q '^captured_at_commit:' "$BASELINE" 2>/dev/null; then
+        echo "GATE P5: pre-task-baseline.md 存在但缺少 captured_at_commit: 标记，视为损坏，" >&2
+        echo "  降级为 WARNING-only（exit 2），不做机械 diff——请检查基线文件完整性" >&2
+        exit 2
+    fi
     PRE_LIST=$(sed -n '/```fail-list/,/```/p' "$BASELINE" | sed '1d;$d')
     NEW_FAILS=$(comm -13 <(echo "$PRE_LIST" | sort -u) <(sort -u "$POST_FAILS"))
     STILL_FAILING=$(comm -12 <(echo "$PRE_LIST" | sort -u) <(sort -u "$POST_FAILS"))
