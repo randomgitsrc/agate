@@ -43,7 +43,7 @@ EOF
     [[ "$output" == *"SCOPE+"* ]]
 }
 
-@test "RT.5: dispatch-prompt file excluded from SCOPE+ scan" {
+@test "RT.DP1: dispatch-prompt file excluded from SCOPE+ scan" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P4-dispatch-prompt-implementer.md" <<'EOF'

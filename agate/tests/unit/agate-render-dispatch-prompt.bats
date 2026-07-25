@@ -28,9 +28,12 @@ teardown() {
 @test "RP.4: placeholder replacement for phase/role/task_id" {
     run bash "$AGATE_ROOT/scripts/agate-render-dispatch-prompt.sh" P2 architect "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"P2 阶段"* ]]
-    [[ "$output" == *"architect"* ]]
+    [[ "$output" == *"P2 阶段的 architect 子 Agent"* ]]
+    [[ "$output" != *"阶段 阶段"* ]]
     [[ "$output" == *"$(basename "$TEST_TASK_DIR")"* ]]
+    [[ "$output" == *"P2-dispatch-context-architect.md"* ]]
+    [[ "$output" != *"P{N}"* ]]
+    [[ "$output" != *"{role}"* ]]
 }
 
 @test "RP.5: P2 selects P2 appendix (minimal validation)" {

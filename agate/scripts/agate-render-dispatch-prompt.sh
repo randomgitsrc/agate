@@ -90,9 +90,11 @@ if [ -n "$appendix" ]; then
 fi
 
 rendered="$(printf '%s' "$rendered" | sed \
-    -e "s/{阶段 Pn}/${PHASE} 阶段/g" \
+    -e "s/{阶段 Pn}/${PHASE}/g" \
     -e "s/{Pn}/${PHASE}/g" \
+    -e "s/P{N}/P${PHASE_NUM}/g" \
     -e "s/{角色名}/${ROLE}/g" \
+    -e "s/{role}/${ROLE}/g" \
     -e "s|{Txxx}|${TASK_ID}|g" \
     -e "s/{YYYY-MM-DD}/${TODAY}/g" \
     -e "s/{YYYYMMDD}/${TODAY//-/}/g" \
