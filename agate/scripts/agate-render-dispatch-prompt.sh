@@ -14,6 +14,11 @@
 #
 # 注意：本脚本生成的 P{N}-dispatch-prompt-{role}.md 是渲染产物，不是协议模板。
 # 修改渲染产物不会影响 agate/assets/templates/dispatch-prompt.md 模板。
+#
+# 渲染后仍保留的占位符（需要主 Agent / subagent 手动填充）：
+#   {上一阶段文件名}   — Header parent 字段，依赖具体任务产出
+#   {project_conventions_file} — 项目约定文件路径，项目级配置
+#   {problems|design|review|...|release} — Header type 字段，角色级枚举
 
 set -euo pipefail
 
@@ -55,6 +60,14 @@ PHASE_NUM="${PHASE#P}"
 TODAY="$(date +%Y-%m-%d)"
 TRACE_ID="${TASK_ID}-${PHASE}-${TODAY//-/}"
 
+ROLE_DIR="execution-roles"
+if [ -f "$AGATE_ROOT/assets/review-roles/${ROLE}.md" ] && [ ! -f "$AGATE_ROOT/assets/execution-roles/${ROLE}.md" ]; then
+    ROLE_DIR="review-roles"
+elif [ ! -f "$AGATE_ROOT/assets/review-roles/${ROLE}.md" ] && [ ! -f "$AGATE_ROOT/assets/execution-roles/${ROLE}.md" ]; then
+    echo "agate-render-dispatch-prompt.sh: 角色文件不存在: $ROLE (checked execution-roles/ and review-roles/)" >&2
+    exit 2
+fi
+
 safe_role="$(printf '%s' "$ROLE" | sed 's/[^a-zA-Z0-9_-]/_/g')"
 OUTPUT_FILE="$TASK_DIR/P${PHASE_NUM}-dispatch-prompt-${safe_role}.md"
 
@@ -90,6 +103,8 @@ if [ -n "$appendix" ]; then
 fi
 
 rendered="$(printf '%s' "$rendered" | sed \
+    -e "s|{agate_root}|${AGATE_ROOT}|g" \
+    -e "s/{execution-roles|review-roles}/${ROLE_DIR}/g" \
     -e "s/{阶段 Pn}/${PHASE}/g" \
     -e "s/{Pn}/${PHASE}/g" \
     -e "s/P{N}/P${PHASE_NUM}/g" \
@@ -102,8 +117,13 @@ rendered="$(printf '%s' "$rendered" | sed \
     -e "s/{Txxx}-${PHASE}-{YYYYMMDD}/${TRACE_ID}/g" \
 )"
 
+PARENT_NOTE=""
+if printf '%s' "$rendered" | grep -q '{上一阶段文件名}'; then
+    PARENT_NOTE=$'\n'$'\n'"> ⚠️ 上述 parent 字段（{上一阶段文件名}）需要主 Agent 手动填写：渲染脚本无法自动推断上一阶段产出文件名。请复制渲染结果后补全此字段。"
+fi
+
 header="> 本文件是 agate-render-dispatch-prompt.sh 的渲染产物，不是协议模板。修改本文件不会影响模板。"
-final="${header}"$'\n\n'"${rendered}"
+final="${header}"$'\n\n'"${rendered}${PARENT_NOTE}"
 
 printf '%s\n' "$final" > "$OUTPUT_FILE"
 printf '%s\n' "$final"
