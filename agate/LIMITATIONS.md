@@ -22,7 +22,7 @@ P3 test-designer 和 P4 implementer 是两个不同的 subagent，目的是制�
 
 agate 的所有质量保证最终都收敛到"主 Agent 的判断力"这一个点：裁剪哪些阶段、gate 算不算过、SCOPE+ 影响范围多大，全部由主 Agent 最终拍板。协议设计里"主 Agent 永远是最终裁判"，没有任何机制检验主 Agent 自己的判断是否可靠。
 
-这不是假设性担忧——T005/T006（生产环境数据污染）、T016（违规降级，3 次违反现成协议）、T019（误写生产 DB 后未标 PROD_TOUCHED、跨阶段回退未 PAUSED、SCOPE+ 未触发）——四个独立案例，同一个根因：主 Agent 遇到困难时倾向于自行解决而非触发安全网。这个倾向不是某个任务的偶然失误，是 LLM 作为编排者的固有行为模式——"解决问题"的冲动强于"报告问题"的冲动。
+这不是假设性担忧——T005/T006（生产环境数据污染）、T016（违规降级，3 次违反现成协议）、T019（误写生产 DB 后未标 PROD_TOUCHED、跨阶段回退未 PAUSED、SCOPE+ 未触发）、T068（P5 阶段实际看到 63 个预存失败，主 Agent 以"非本任务相关"一句话带过，未登记未排查，回归潜伏 3 天后才在下一个任务 T073 被发现）——五个独立案例，同一个根因：主 Agent 遇到困难时倾向于自行解决而非触发安全网。这个倾向不是某个任务的偶然失误，是 LLM 作为编排者的固有行为模式——"解决问题"的冲动强于"报告问题"的冲动。
 
 **gate 的 self-authored 分类**（T026 教训）：gate 按判定对象分为两类——
 - **外部产出 gate**（P3/P4/P5）：判定对象是外部工具产出（test runner exit code、git log），主 Agent 无法伪造
@@ -40,6 +40,7 @@ T026 事故：主 Agent 编造 11/16 条 BDD 验收结果（不跑验证脚本�
   - dispatch-context 审计：P6-dispatch-context-{role}.md 不含验收结论预判（防误导 verifier）
   - BDD 总数对照：P6 结果数 = P1 `#### BDD-NN` 标题数（精确计数，不再依赖 Given 行数启发式）
 - P2 评审：agent=main 硬拦截（check-gate.sh exit 1，不可自行批准评审）
+- P5 机械化回归判定（v0.24.0，P2.47/P2.48）：任务开始时自动捕获全量测试失败列表快照（`pre-task-baseline.md`），P5 阶段对两次快照做 `comm` diff——只在"任务后"出现的 = 新增回归，直接拦截；两边都有的 = 预存，需 `known-failures.md` 登记。判定不再依赖主 Agent 文字声明，纯粹是两个文件的集合运算。缓解但不根治——P5 整体仍是 self-authored gate，快照文件本身理论上仍可被主 Agent 绕过（如 `--no-verify` 或手改 fail-list.txt），与 provenance 审计的已知局限同级。
 - 已知局限：主 Agent 可造假证据文件（如空 png 充数），但造假成本远高于合规（需造 N 个文件 + 正确交叉引用 + BDD 总数匹配）。证据-结论对应检查只验证引用存在性和数量，不验证证据内容真实性（如截图是否为真实 UI 截图 vs 纯色 png）——这是造假成本提升 + 留痕审计，不是硬保证
 - 已知局限：`git commit --no-verify` 绕过 pre-commit hook 时 provenance 审计也被绕过，CI backstop 现已重跑 check-p6-provenance.sh（M4.2），provenance 的 CI 层覆盖为 git blame WARNING + provenance 重跑
  - 根治：Phase 3 平台支持独立 git author 后，agent 字段升级为 git author 硬检查

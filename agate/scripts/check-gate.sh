@@ -165,6 +165,30 @@ print(count)
               echo "  T060 教训：只跑子集可能掩盖预存失败（T056 venv 遗漏跨 4 个任务周期无人发现）。" >&2
           fi
       fi
+      # 机械 diff：pre-task-baseline.md vs fail-list.txt
+      BASELINE="$TASK_DIR/pre-task-baseline.md"
+      POST_FAILS="$TASK_DIR/P5-test-results/fail-list.txt"
+      if [ -f "$BASELINE" ] && [ -f "$POST_FAILS" ]; then
+          if ! grep -q '^captured_at_commit:' "$BASELINE" 2>/dev/null; then
+              echo "GATE P5: pre-task-baseline.md 存在但缺少 captured_at_commit: 标记，视为损坏，" >&2
+              echo "  降级为 WARNING-only（exit 2），不做机械 diff——请检查基线文件完整性" >&2
+              exit 2
+          fi
+          PRE_LIST=$(sed -n '/```fail-list/,/```/p' "$BASELINE" | sed '1d;$d')
+          NEW_FAILS=$(comm -13 <(echo "$PRE_LIST" | sort -u) <(sort -u "$POST_FAILS"))
+          STILL_FAILING=$(comm -12 <(echo "$PRE_LIST" | sort -u) <(sort -u "$POST_FAILS"))
+
+          if [ -n "$NEW_FAILS" ]; then
+              echo "GATE P5: 检测到基线快照中不存在的新增失败，视为本任务引入的回归，拦截：" >&2
+              echo "$NEW_FAILS" | sed 's/^/  - /' >&2
+              exit 1
+          fi
+          if [ -n "$STILL_FAILING" ] && [ ! -f "$TASK_DIR/known-failures.md" ]; then
+              echo "GATE P5: 检测到 $(echo "$STILL_FAILING" | grep -c . | tail -1) 个预存失败仍未修复，" >&2
+              echo "  基线快照证实这些失败早于本任务存在，但 known-failures.md 不存在——按协议必须登记" >&2
+              exit 1
+          fi
+      fi
       exit 2 ;;
   P6)
       # P6 PASS/FAIL regex: 大小写不敏感计数（formatter 归一化在前，此为最后防线）
