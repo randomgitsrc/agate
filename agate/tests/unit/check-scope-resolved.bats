@@ -34,7 +34,7 @@ EOF
     [[ "$output" == *"无 P1-requirements.md"* ]]
 }
 
-@test "SC.7: dispatch-prompt file excluded from SCOPE+ scan" {
+@test "SC.DP1: dispatch-prompt file excluded from SCOPE+ scan" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P4-dispatch-prompt-implementer.md" <<'EOF'

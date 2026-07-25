@@ -577,7 +577,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "PV.16: dispatch-prompt file excluded from agent field check" {
+@test "PV.DP1: dispatch-prompt file excluded from agent field check" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
