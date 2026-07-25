@@ -89,7 +89,7 @@ if [ "${ERRORS:-0}" -gt 0 ]; then
         if [ -z "$SYNTAX_ERRORS" ]; then
             # 若设置了 PROJECT_MODULE，检查 import 目标是否是项目内模块
             if [ -n "${PROJECT_MODULE:-}" ]; then
-                INTERNAL_IMPORT=$(echo "$IMPORT_ERRORS" | grep -E "(from ${PROJECT_MODULE}|import ${PROJECT_MODULE}|${PROJECT_MODULE}\.)" || true)
+                INTERNAL_IMPORT=$(echo "$IMPORT_ERRORS" | grep -F "$PROJECT_MODULE" || true)
                 if [ -n "$INTERNAL_IMPORT" ]; then
                     echo "TDD_CHECK: B-class red-light (import errors from missing project module '${PROJECT_MODULE}')"
                     echo "  ImportError lines:"
