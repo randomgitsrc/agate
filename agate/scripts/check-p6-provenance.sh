@@ -243,7 +243,7 @@ for f in "$TASK_DIR"/P[0-8]-*.md; do
     [ "$localname" = "P0-brief.md" ] && continue
     case "$localname" in
         # TODO: remove old format compatibility in v2.0
-        *-dispatch-context.md|*-dispatch-context-*.md|*-progress.md|*-paused-resolution.md) continue ;;
+        *-dispatch-context.md|*-dispatch-context-*.md|*-dispatch-prompt-*.md|*-progress.md|*-paused-resolution.md) continue ;;
     esac
     AGENT=$(get_agent "$f")
     if [ -z "$AGENT" ]; then

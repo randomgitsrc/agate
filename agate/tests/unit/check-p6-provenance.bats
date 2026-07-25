@@ -576,3 +576,30 @@ EOF
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+@test "PV.16: dispatch-prompt file excluded from agent field check" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: T001-test
+type: acceptance
+parent: P5-test-results.md
+trace_id: T001-test-P6-20260725
+status: draft
+created: 2026-07-25
+agent: verifier
+---
+- PASS BDD-1: works (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.json"
+    cat > "$dir/P4-dispatch-prompt-implementer.md" <<'EOF'
+> render product
+你是 P4 阶段的 implementer 子 Agent。
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"dispatch-prompt"* ]]
+}

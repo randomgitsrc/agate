@@ -43,6 +43,18 @@ EOF
     [[ "$output" == *"SCOPE+"* ]]
 }
 
+@test "RT.5: dispatch-prompt file excluded from SCOPE+ scan" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P4-dispatch-prompt-implementer.md" <<'EOF'
+> render product
+- [SCOPE+] this should be ignored
+EOF
+    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"SCOPE+"* ]]
+}
+
 @test "RT.4 check-retrospective.sh override 触发 期望 exit 0 + 含'override'" {
     local dir
     dir=$(create_task_dir)

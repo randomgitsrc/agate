@@ -29,6 +29,13 @@
 #                    若未设置，B 类检测退化为启发式（所有 ImportError 视为 B 类）
 #                    非 Python 项目应设置此变量以匹配项目内模块路径
 #
+# 已验证的非 pytest runner 适配示例：
+#   vitest 项目示例（已验证）：
+#     TEST_RUNNER="npx vitest run"
+#     TEST_RUNNER_FLAGS="--reporter=default"   # 必须显式设置为非 -q 值，vitest 不识别 -q
+#     TEST_ERROR_PATTERN="Failed Suites [0-9]+"  # vitest 的 collection-error 摘要不含 "N error" 文本
+#     PROJECT_MODULE="{项目内模块前缀}"
+#
 # T027 教训：P3 test-designer 不写 stub（那是 P4 implementer 的活），
 # 所以 TDD 红灯几乎都是 ImportError（from myapp.xxx import Yyy），
 # 不可能是 assertion failure。旧版脚本把所有 collection error 判为 A 类（exit 1），
@@ -48,7 +55,7 @@ else
     exit 3
 fi
 
-RUNNER_FLAGS="${TEST_RUNNER_FLAGS:--q}"
+RUNNER_FLAGS="${TEST_RUNNER_FLAGS--q}"
 # shellcheck disable=SC2086  # intentional: unquoted for multi-flag expansion (e.g. "--silent --no-coverage")
 RESULT=$($RUNNER $RUNNER_FLAGS 2>&1) && EXIT=0 || EXIT=$?
 

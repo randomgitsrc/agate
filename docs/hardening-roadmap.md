@@ -167,6 +167,13 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | P2.43 | 阶段卡片并行执行操作指引（评审+按包拆分+基础设施隔离） | 5 phase cards + dispatch-protocol.md | ✅ 已实现 |
 | P2.44 | loop-orchestration.md 并行执行状态更新 | loop-orchestration.md | ✅ 已实现 |
 
+### v0.23.0 — 通用化兼容修复 + dispatch-prompt 持久化自动化
+
+| ID | 内容 | 涉及文件 | 状态 |
+|----|------|----------|------|
+| P2.45 | check-tdd-red.sh 通用化兼容修复（flags 默认值 + vitest 适配示例 + 4 bats） | check-tdd-red.sh + bats | ✅ 已实现 |
+| P2.46 | dispatch-prompt 持久化自动生成（渲染脚本 + 3 处排除列表 + bats） | agate-render-dispatch-prompt.sh + 3 scripts + bats | ✅ 已实现 |
+
 ### v0.23.0+ — 设计讨论（P4，按需启动）
 
 | ID | 内容 | 依赖 | Issue |
