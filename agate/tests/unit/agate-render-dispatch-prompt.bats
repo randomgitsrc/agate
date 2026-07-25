@@ -95,3 +95,28 @@ teardown() {
     [[ "$output" == *"P2 最小验证"* ]]
     [[ "$output" != *"回退诊断"* ]]
 }
+
+@test "RP.13: no residual placeholders except whitelisted" {
+    run bash "$AGATE_ROOT/scripts/agate-render-dispatch-prompt.sh" P4 implementer "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    local residual
+    residual="$(printf '%s' "$output" | grep -oE '\{[a-zA-Z0-9_|： -]+\}' \
+        | grep -v '{上一阶段文件名}' \
+        | grep -v '{project_conventions_file}' \
+        | grep -v '{problems|design|review|test-cases|implementation|test-results|acceptance|consistency|release}' \
+        || true)"
+    [ -z "$residual" ]
+}
+
+@test "RP.14: {agate_root} replaced with actual path" {
+    run bash "$AGATE_ROOT/scripts/agate-render-dispatch-prompt.sh" P4 implementer "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"{agate_root}"* ]]
+    [[ "$output" == *"assets/execution-roles/implementer.md"* ]]
+}
+
+@test "RP.15: review-roles detected for review role" {
+    run bash "$AGATE_ROOT/scripts/agate-render-dispatch-prompt.sh" P2 design-review "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"assets/review-roles/design-review.md"* ]]
+}

@@ -34,6 +34,7 @@
 #     TEST_RUNNER="npx vitest run"
 #     TEST_RUNNER_FLAGS="--reporter=default"   # 必须显式设置为非 -q 值，vitest 不识别 -q
 #     TEST_ERROR_PATTERN="Failed Suites [0-9]+"  # vitest 的 collection-error 摘要不含 "N error" 文本
+#     TEST_IMPORT_PATTERN="Cannot find (module|package) '"  # vitest 的 import 错误格式不含 "ImportError:"，需覆盖
 #     PROJECT_MODULE="{项目内模块前缀}"
 #
 # T027 教训：P3 test-designer 不写 stub（那是 P4 implementer 的活），
@@ -61,6 +62,7 @@ RESULT=$($RUNNER $RUNNER_FLAGS 2>&1) && EXIT=0 || EXIT=$?
 
 FAIL_PATTERN="${TEST_FAIL_PATTERN:-[0-9]+ failed}"
 ERROR_PATTERN="${TEST_ERROR_PATTERN:-[0-9]+ error}"
+IMPORT_PATTERN="${TEST_IMPORT_PATTERN:-(ImportError|ModuleNotFoundError|Cannot find module|ClassNotFoundException|NoClassDefFoundError|unresolved import):}"
 FAILED=$(echo "$RESULT" | grep -oE "$FAIL_PATTERN" | grep -oE '[0-9]+' || true)
 ERRORS=$(echo "$RESULT" | grep -oE "$ERROR_PATTERN" | grep -oE '[0-9]+' || true)
 
@@ -80,7 +82,7 @@ fi
 # 有 collection error → 区分 A 类 / B 类
 if [ "${ERRORS:-0}" -gt 0 ]; then
     # 提取 import 错误行
-    IMPORT_ERRORS=$(echo "$RESULT" | grep -E '(ImportError|ModuleNotFoundError|Cannot find module|ClassNotFoundException|NoClassDefFoundError|unresolved import):' || true)
+    IMPORT_ERRORS=$(echo "$RESULT" | grep -E "$IMPORT_PATTERN" || true)
     if [ -n "$IMPORT_ERRORS" ]; then
         # 检查是否有测试代码自身语法错误
         SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError|CompileError|ParseError)' || true)

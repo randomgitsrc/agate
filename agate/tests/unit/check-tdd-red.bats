@@ -157,8 +157,8 @@ ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
 @test "TDD.N3: vitest B-class (import from PROJECT_MODULE) → exit 0" {
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
-FAIL tests/test_x.ts > ImportError: cannot import name 'Yyy' from 'myapp.foo'" 1)
-    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" TEST_ERROR_PATTERN="Failed Suites [0-9]+" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+Error: Cannot find module 'myapp.foo' imported from /tmp/test/foo.test.ts" 1)
+    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" TEST_ERROR_PATTERN="Failed Suites [0-9]+" TEST_IMPORT_PATTERN="Cannot find (module|package) '" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
@@ -166,8 +166,8 @@ FAIL tests/test_x.ts > ImportError: cannot import name 'Yyy' from 'myapp.foo'" 1
 @test "TDD.N4: vitest A-class (import from third-party) → exit 1" {
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
-FAIL tests/test_x.ts > ImportError: No module named 'requests'" 1)
-    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" TEST_ERROR_PATTERN="Failed Suites [0-9]+" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1)
+    run env TEST_RUNNER="$fake" TEST_RUNNER_FLAGS="" TEST_ERROR_PATTERN="Failed Suites [0-9]+" TEST_IMPORT_PATTERN="Cannot find (module|package) '" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
