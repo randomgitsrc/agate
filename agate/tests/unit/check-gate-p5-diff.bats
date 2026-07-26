@@ -64,14 +64,22 @@ make_post_fails() {
     [[ "$output" == *"test_b.py::test_y"* ]]
 }
 
-@test "PG.4 有预存失败（pre/post 都有）、已有 known-failures.md → exit 2" {
+@test "PG.4 有预存失败（pre/post 都有）、已有 known-failures.md 且登记条目足够 → exit 2" {
     local dir
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123" "tests/test_a.py::test_x"
     make_post_fails "$dir" "tests/test_a.py::test_x"
-    echo "---" > "$dir/known-failures.md"
-    echo "agent: test" >> "$dir/known-failures.md"
-    echo "---" >> "$dir/known-failures.md"
+    cat > "$dir/known-failures.md" <<'EOF'
+---
+agent: test
+---
+
+## 预存失败
+
+| # | 测试文件 | 失败数 | 根因 | 与本任务相关 | 处理计划 |
+|---|---------|--------|------|-------------|---------|
+| 1 | test_a | 1 | root cause | 否 | postpone |
+EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -114,15 +122,43 @@ make_post_fails() {
     [ "$status" -eq 2 ]
 }
 
-@test "PG.9 known-failures.md 存在但为空（只有 frontmatter）→ exit 2" {
+@test "PG.9 known-failures.md 存在但登记条目数 < 预存失败数 → exit 1" {
     local dir
     dir=$(create_task_dir)
-    make_baseline "$dir" "abc123" "tests/test_a.py::test_x"
-    make_post_fails "$dir" "tests/test_a.py::test_x"
+    make_baseline "$dir" "abc123" "tests/test_a.py::test_x" "tests/test_b.py::test_y"
+    make_post_fails "$dir" "tests/test_a.py::test_x" "tests/test_b.py::test_y"
     cat > "$dir/known-failures.md" <<'EOF'
 ---
 agent: test
 ---
+
+## 预存失败
+
+| # | 测试文件 | 失败数 | 根因 | 与本任务相关 | 处理计划 |
+|---|---------|--------|------|-------------|---------|
+| 1 | test_a | 1 | root cause | 否 | postpone |
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"登记不完整"* ]]
+}
+
+@test "PG.9a known-failures.md 登记条目数 ≥ 预存失败数 → exit 2" {
+    local dir
+    dir=$(create_task_dir)
+    make_baseline "$dir" "abc123" "tests/test_a.py::test_x" "tests/test_b.py::test_y"
+    make_post_fails "$dir" "tests/test_a.py::test_x" "tests/test_b.py::test_y"
+    cat > "$dir/known-failures.md" <<'EOF'
+---
+agent: test
+---
+
+## 预存失败
+
+| # | 测试文件 | 失败数 | 根因 | 与本任务相关 | 处理计划 |
+|---|---------|--------|------|-------------|---------|
+| 1 | test_a | 1 | root cause | 否 | postpone |
+| 2 | test_b | 1 | root cause | 否 | postpone |
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
     [ "$status" -eq 2 ]

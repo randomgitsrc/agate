@@ -183,10 +183,20 @@ print(count)
               echo "$NEW_FAILS" | sed 's/^/  - /' >&2
               exit 1
           fi
-          if [ -n "$STILL_FAILING" ] && [ ! -f "$TASK_DIR/known-failures.md" ]; then
-              echo "GATE P5: 检测到 $(echo "$STILL_FAILING" | grep -c . | tail -1) 个预存失败仍未修复，" >&2
-              echo "  基线快照证实这些失败早于本任务存在，但 known-failures.md 不存在——按协议必须登记" >&2
-              exit 1
+          if [ -n "$STILL_FAILING" ]; then
+              if [ ! -f "$TASK_DIR/known-failures.md" ]; then
+                  echo "GATE P5: 检测到 $(echo "$STILL_FAILING" | grep -c . | tail -1) 个预存失败仍未修复，" >&2
+                  echo "  基线快照证实这些失败早于本任务存在，但 known-failures.md 不存在——按协议必须登记" >&2
+                  exit 1
+              fi
+              STILL_COUNT=$(echo "$STILL_FAILING" | grep -c . | tail -1)
+              KNOWN_ENTRIES=$(grep -cE '^\|\s*[0-9]+\s*\|' "$TASK_DIR/known-failures.md" 2>/dev/null || echo 0)
+              KNOWN_ENTRIES=$(echo "$KNOWN_ENTRIES" | tail -1)
+              if [ "$KNOWN_ENTRIES" -lt "$STILL_COUNT" ]; then
+                  echo "GATE P5: known-failures.md 登记条目数($KNOWN_ENTRIES) < 预存失败数($STILL_COUNT)，" >&2
+                  echo "  登记不完整——每个预存失败都应有对应登记行" >&2
+                  exit 1
+              fi
           fi
       fi
       exit 2 ;;
