@@ -174,9 +174,9 @@ print(count)
               echo "  降级为 WARNING-only（exit 2），不做机械 diff——请检查基线文件完整性" >&2
               exit 2
           fi
-          PRE_LIST=$(sed -n '/```fail-list/,/```/p' "$BASELINE" | sed '1d;$d')
-          NEW_FAILS=$(comm -13 <(echo "$PRE_LIST" | sort -u) <(sort -u "$POST_FAILS"))
-          STILL_FAILING=$(comm -12 <(echo "$PRE_LIST" | sort -u) <(sort -u "$POST_FAILS"))
+          PRE_LIST=$(sed -n '/```fail-list/,/```/p' "$BASELINE" | sed '1d;$d' | grep -v '^$' || true)
+          NEW_FAILS=$(comm -13 <(echo "$PRE_LIST" | sort -u) <(grep -v '^$' "$POST_FAILS" 2>/dev/null | sort -u || true))
+          STILL_FAILING=$(comm -12 <(echo "$PRE_LIST" | sort -u) <(grep -v '^$' "$POST_FAILS" 2>/dev/null | sort -u || true))
 
           if [ -n "$NEW_FAILS" ]; then
               echo "GATE P5: 检测到基线快照中不存在的新增失败，视为本任务引入的回归，拦截：" >&2
