@@ -5,6 +5,9 @@
 
 ## 如果是首次进入本阶段
 
+0. 跑 `agate-capture-env-baseline.sh $TASK_DIR`（自动捕获环境基线）。
+   该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
+   无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
 1. 派发 test-designer subagent → 产出 P3-test-cases.md + 测试代码目录
    1.1 写 P3-dispatch-context-test-designer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 主 Agent 跑 check-tdd-red.sh 确认红灯

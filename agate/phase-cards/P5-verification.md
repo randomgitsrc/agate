@@ -55,6 +55,9 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
 ## 产出规格
 
 - P5-test-results/unit.md：标注 failed 数量（verifier subagent 产出）
+- P5-test-results/fail-list.txt：verifier subagent 产出，failed 测试 id 逐行列出（`FAILED ` 前缀同上，
+  pytest 参考实现），可为空文件（无失败时）。runner 格式无法提取 id 列表时可省略此文件——
+  P5 gate 检测到缺失时优雅降级为原有 WARNING-only 行为，不因此新增拦截。
 - UI 任务：P5-test-results/e2e.md（Playwright 实跑结果 + 截图路径，verifier subagent 产出）
 
 ## 预存失败的处理

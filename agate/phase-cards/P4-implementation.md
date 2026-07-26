@@ -5,6 +5,9 @@
 
 ## 如果是首次进入本阶段
 
+0. 跑 `agate-capture-env-baseline.sh $TASK_DIR`（自动捕获环境基线）。
+   该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
+   无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
 1. 派发 implementer subagent → 产出代码文件
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）

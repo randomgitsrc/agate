@@ -174,6 +174,14 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | P2.45 | check-tdd-red.sh 通用化兼容修复（flags 默认值 + vitest 适配示例 + 4 bats） | check-tdd-red.sh + bats | ✅ 已实现 |
 | P2.46 | dispatch-prompt 持久化自动生成（渲染脚本 + 3 处排除列表 + bats） | agate-render-dispatch-prompt.sh + 3 scripts + bats | ✅ 已实现 |
 
+### v0.24.0 — 环境基线快照 + P5 机械化回归判定
+
+| ID | 内容 | 涉及文件 | 状态 |
+|----|------|----------|------|
+| P2.47 | 环境基线快照捕获脚本（幂等、缓存、不阻塞）+ P3/P4 挂载点 | agate-capture-env-baseline.sh + P3-tdd.md + P4-implementation.md + bats | ✅ 已实现 |
+| P2.48 | P5 gate 机械化回归判定（pre/post diff + 新增拦截 + 预存登记强制）+ fail-list.txt 产出规格 | check-gate.sh + P5-verification.md + bats | ✅ 已实现 |
+| — | LIMITATIONS.md T068 实证案例 | LIMITATIONS.md | ✅ 已实现 |
+
 ### v0.23.0+ — 设计讨论（P4，按需启动）
 
 | ID | 内容 | 依赖 | Issue |
