@@ -36,7 +36,7 @@ fi
 
 case "$PHASE" in
   P0)
-      echo "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 五字段齐全即可推进 P1。" >&2
+      echo "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 四字段齐全即可推进 P1。" >&2
       exit 2 ;;
   P1)
       P1_REVIEW="$TASK_DIR/P1-review.md"

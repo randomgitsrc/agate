@@ -1,0 +1,24 @@
+- [diff] 10个协议文件+1个roadmap: pruning_tendency全部移除, 五字段→四字段, office-hours条件简化
+- [state-machine.md:76] P0→P1转移条件已改为四字段(task/known_risks/executor_env/env_constraints)
+- [dispatch-protocol.md:200] phase_hint缩进异常: 原在env_constraints下缩进3格, 现顶格写(与yaml块不一致)
+- [dispatch-protocol.md:203] 四字段自查列表正确(4项)
+- [WORKFLOW.md:216] P0门槛改为debug_env+known_risks(简化表述)
+- [WORKFLOW.md:217] office-hours条件改为'大任务时追加'
+- [check-gate.sh:39] P0消息改为四字段齐全
+- [task-files.md:25] P0字段列表已移除pruning_tendency
+- [反向传播] docs/plans/agate-protocol-maintenance-patch-20260724.md:16 仍引用pruning_tendency作为P0-brief现有字段(活跃计划文档)
+- [analyst.md:22] 仍写'裁剪倾向'(pruning_tendency的中文): '环境约束、已知风险、裁剪倾向' — 应移除
+- [orchestrator-template.md] 无pruning_tendency/五字段引用, clean
+- [role-system.md] 无pruning_tendency引用, clean
+- [CHANGELOG.md] 无本次变更条目
+- [A4] bats全量470测试全过(ok 470)
+- [反向传播] analyst.md:22/implementer.md:31/architect.md:28/test-designer.md:21 仍含'裁剪倾向'描述P0-brief输入
+- [反向传播] dispatch-protocol.md:217 T005/T006教训文本含'裁剪倾向'(历史描述)
+- [A1] dispatch-protocol.md:200 phase_hint缩进错误: 原3空格缩进, 现顶格(yaml块内格式破坏)
+- [A5] CHANGELOG.md无本次变更条目(最新v0.20.0)
+- [A3b] docs/plans/agate-protocol-maintenance-patch-20260724.md:16 引用pruning_tendency为P0-brief现有字段(活跃计划)
+- [A3b] CONTEXT.md/LIMITATIONS.md/orchestrator-template.md/role-system.md 无pruning_tendency引用, clean
+- [A6] CHECK 9锚点表无pruning_tendency相关锚点, 无需更新
+- [A7] 移除主观字段符合ADR-002(可判定性), 无ADR违反
+- [consistency] check-protocol-consistency.py: 0 ERROR, 12 WARNING(均为既有叙事文件死链)
+- [count-tests] 464个测试用例, 470个bats测试全过

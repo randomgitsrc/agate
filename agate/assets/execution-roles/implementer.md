@@ -28,7 +28,7 @@ agent: implementer
   4. 不确定是 1 还是 2 → 按 investigate.md 诊断，不猜
 
 ## 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
+- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
 - P4：docs/tasks/{Txxx}/P2-design.md + P3-test-cases.md + P3-test-code/
 - P8：docs/tasks/{Txxx}/P2-design.md（packages 声明）+ P5-test-results/ + P6-acceptance.md + P7-consistency.md
 - 项目约定文件（CLAUDE.md 或 AGENTS.md）

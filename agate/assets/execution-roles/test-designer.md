@@ -18,7 +18,7 @@ agent: test-designer
 - **UI 任务**：若 P2 声明 ui_affected，必须为每个交互点写 Playwright/E2E 用例，不能只写后端单测
 
 ## 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险、裁剪倾向）
+- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
 - docs/tasks/{Txxx}/P1-requirements.md（BDD 验收条件 — 测试的主要来源）
 - docs/tasks/{Txxx}/P2-design.md（批准的方案，含 ui_affected 声明）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取

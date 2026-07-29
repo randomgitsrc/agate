@@ -8,7 +8,7 @@
 
 P0 是立项阶段。主 Agent 自己写完 P0-brief.md，不派 subagent。
 
-## P0-brief.md 五字段
+## P0-brief.md 四字段
 
 ```yaml
 task: "一句话描述任务（工程视角）"
@@ -22,10 +22,9 @@ executor_env:
   network: "full"
 env_constraints:
   debug_env: "项目的测试/调试环境命令或路径"
-pruning_tendency: "保守 / 激进"
 ```
 
-任一字段为空占位符 → 补完再推进 P1。五字段是 agate 要求的最小集，项目可按需扩展。
+任一字段为空占位符 → 补完再推进 P1。四字段是 agate 要求的最小集，项目可按需扩展。
 
 ## 环境自检
 
@@ -40,7 +39,7 @@ pruning_tendency: "保守 / 激进"
 
 ## 推进条件
 
-P0-brief.md 五字段齐全 → 写 active-tasks.md（新任务行）→ 读 P1 卡片
+P0-brief.md 四字段齐全 → 写 active-tasks.md（新任务行）→ 读 P1 卡片
 
 ## loop 模式
 
