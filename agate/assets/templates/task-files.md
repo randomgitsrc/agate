@@ -22,7 +22,7 @@ agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier|visio
 
 | 阶段 | 文件 | 关键 Header 字段 |
 |------|------|-----------------|
-| P0 | P0-brief.md | 主 Agent 亲自填写（非 subagent 产出）：task/known_risks/executor_env/env_constraints/pruning_tendency |
+| P0 | P0-brief.md | 主 Agent 亲自填写（非 subagent 产出）：task/known_risks/executor_env/env_constraints |
 | P1 | P1-requirements.md | 含 BDD 验收条件 + `packages:` `domains:` 初判 + 裁剪说明；无未决 `[NEED_CONFIRM]`（门槛）|
 | P2 | P2-design.md | **必须声明 `packages:` `domains:` `ui_affected:` `gate_commands:` `files_to_read:` `env_constraints:`；确认/细化 P0-brief 的 `env_constraints`** |
 | P2 | P2-review.md | **status: approved/rejected**（门槛）|
@@ -97,9 +97,6 @@ env_constraints:
   debug_env: "项目的测试/调试环境命令或路径（从项目约定读取，如 CLAUDE.md）"
   # 注意：不写 prod_env。生产环境不在开发流程范围内。
   # 若 subagent 接触了生产环境，须行首声明 [PROD_TOUCHED] {描述}（触发 PAUSED）或 [PROD_NOT_TOUCHED]（未触发，静默通过）。
-
-pruning_tendency: "保守 — 涉及 schema 变更，建议走完整 P1-P8"
-# 或："激进 — 单文件 typo 修复，直接做"
 
 phase_hint: [P1, P2, P3, P4, P5, P6, P8]  # 主 Agent 预判；P3 默认保留，跳过须有理由
 # has_task_tool=false 时所有阶段由主 Agent 直接执行，subagent 派发步骤自动降级

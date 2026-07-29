@@ -231,6 +231,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | 改进 | 内容 | 状态 |
 |------|------|------|
 | evidence 类型检查 | `ui_affected: true` 时 evidence 不能全是 .md/.txt（防源码分析充数） | 待论证（`docs/archived/plans/agate-evidence-diagnosis-v2-2026-07-02.md`） |
+| office-hours 角色清理 | 触发条件"大任务"无定义、从未被触发、非门槛评审零约束力。选项：(1) 删除角色+全部引用 (2) 给"大任务"客观定义（如 packages>2 或 risk_level:high）并写入机械映射 | 待处理 |
 | 能力使用检查提醒 | P5/P6 派发 prompt 加能力对账（防忘了派 vision-analyst） | 待论证 |
 | 诊断优先提醒 | `retries >= 2` 时 hook 提醒"跑诊断命令" | 待论证 |
 | verifier 工具困难处理 | 角色文件补"遇到工具困难标 NEED_CONFIRM，不回退源码" | 待论证 |

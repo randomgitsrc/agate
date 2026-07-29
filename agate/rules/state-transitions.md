@@ -12,7 +12,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 ## 转移条件（逐阶段）
 
 ### P0 → P1
-- P0-brief.md 完成，五字段自查通过（task / known_risks / executor_env / env_constraints / pruning_tendency）
+- P0-brief.md 完成，四字段自查通过（task / known_risks / executor_env / env_constraints）
 
 ### P1 → P2
 - P1-requirements.md 有效 + 含至少一条 BDD 验收条件 + 无未决行首 NEED_CONFIRM（无待确认项写 `[NO_NEED_CONFIRM]`）+ 无 status: GAP（supplementable 不阻）

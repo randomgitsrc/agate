@@ -6,6 +6,13 @@
 
 ---
 
+## [Unreleased]
+
+### 变更
+- **P0-brief 四字段**：移除 `pruning_tendency` 字段（五字段→四字段：task/known_risks/executor_env/env_constraints）。理由：P0 阶段无足够信息判断裁剪倾向，与 P1 risk_level 重复，给 P1 analyst 施压。office-hours 触发条件简化为"大任务"（去掉 pruning_tendency 条件）
+
+---
+
 ## [0.20.0] - 2026-07-24
 
 ### 破坏性变更

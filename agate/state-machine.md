@@ -73,7 +73,7 @@ status: approved        # ← 门槛判定字段
 注意：所有"文件存在"判定 = 文件存在 AND 含合法 Header AND 有实质内容
      （不能只看文件存在——subagent 可能写一半崩了，留下空/半截文件）
 
-P0 --[P0-brief.md 完成，五字段自查通过（task/known_risks/executor_env/env_constraints/pruning_tendency）]--> P1
+P0 --[P0-brief.md 完成，四字段自查通过（task/known_risks/executor_env/env_constraints）]--> P1
 P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
 P1 --[P1-review.md status==rejected && retry<MAX]--> P1 (retry+1, analyst 修改需求后再 review)
 P1 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
@@ -378,7 +378,7 @@ function 执行一步(task_id):
        注意：此步骤只适用于 .state.yaml 显式记录了 env_state 的任务。
        无 env_state 的任务跳过此步骤。
     2. 若当前阶段 == P0：主 Agent 亲自写 P0-brief.md（见 dispatch-protocol.md 步骤0），完成后继续
-       否则：确认 docs/tasks/{task_id}/P0-brief.md 已存在（必填字段：task/known_risks/executor_env/env_constraints/pruning_tendency）
+       否则：确认 docs/tasks/{task_id}/P0-brief.md 已存在（必填字段：task/known_risks/executor_env/env_constraints）
        读 docs/tasks/{task_id}/ → 确认当前阶段输入文件就绪
     3. 派发当前阶段的 subagent（见 dispatch-protocol.md）
     4. subagent 返回摘要（路径 + 一句话）

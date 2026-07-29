@@ -197,16 +197,14 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    env_constraints:
      debug_env: {项目的测试/调试环境路径/命令，从项目约定读取}
      # 不写 prod_env：生产环境不在 agate 开发流程范围内
-   pruning_tendency: {保守/激进 + 一句话理由}
-   phase_hint: [P1, P2, ..., P8]  # 主 Agent 预判，P1 analyst 可调整，但须经主 Agent 确认
+    phase_hint: [P1, P2, ..., P8]  # 主 Agent 预判，P1 analyst 可调整，但须经主 Agent 确认
    ```
 
-   P0-brief 完成后，主 Agent 自查五个必填字段是否有实质内容：
+   P0-brief 完成后，主 Agent 自查四个必填字段是否有实质内容：
    - task：是否是工程视角的一句话描述。若写不出一句话 → 任务太大，拆分
    - known_risks：至少列出一条，没有风险也要写「无已知风险」而不是留空
    - executor_env：platform/has_task_tool/has_local_runtime/network 四项都要填实际值，不是占位符
    - env_constraints.debug_env：是否从项目约定（CLAUDE.md）读取了具体路径/命令
-   - pruning_tendency：是否有明确的「保守/激进 + 理由」，不是占位符
    任一字段为空占位符状态 → 补完再继续。
 
    P0-brief 完成后，第一步输出只允许两种内容之一：
@@ -985,7 +983,7 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 产出：P1-review.md（agent≠main，含 BDD 编号引用 + 覆盖维度标注）
 
-可选追加：`office-hours`（大任务或 pruning_tendency 标"保守"时）
+可选追加：`office-hours`（大任务时）
 
 ### 不可逆操作保护协议（通用）
 
