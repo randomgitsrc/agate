@@ -226,6 +226,43 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 ---
 
+## 5. 版本计划
+
+### v0.25.0 — 阶段卡片措辞加固 + gate_commands.P3
+
+**P2.50: 阶段卡片措辞加固 — 消除 agent 可钻空子**
+
+**状态**：已实施
+**来源**：T082 复盘（agent 跳过 P4 评审，用 gate exit 0 作为合理化借口）
+**改动**：
+- 所有阶段卡片"推进条件"改为显式 AND checklist，标注"全部满足才推进"
+- 消灭"可选"/"若有触发"/"若方案依赖"/"可以考虑"等模糊措辞
+- "按包拆分并行（可选）"统一改为"（条件触发）"
+- check-gate.sh P2 review 文件不存在时 exit 1（bug fix：原来文件不存在时跳过检查）
+- design_trivial / follows_existing_pattern 须附理由
+- minimal_validation 强制声明（"纯代码逻辑"也须写明理由）
+- P4 自查节"P5 由主 Agent 亲自执行"→"派发 verifier subagent 执行"
+- P6 "先验证功能再满足格式"→"两者都必须满足"
+- P5 签名校验"轻量验证"→"必须"
+- P8 "手动确认"→"必须亲自执行"
+- 基础设施隔离"nudge"→"必须，未分配导致冲突时计为重试"
+
+**P2.49: gate_commands.P3 — check-tdd-red.sh 自动读取测试运行器**
+
+**状态**：已实施
+**来源**：T076 复盘（非 pytest 项目测试命令重复声明问题）
+**改动**：
+- gate_commands 新增可选 P3 键（architect 在 P2 声明测试运行器命令）
+- check-tdd-red.sh 回退链扩展：`$TEST_RUNNER → gate_commands.P3 → which pytest → exit 3`
+- P3 键用 verbose 输出（区分 A/B 类错误），P5 键用紧凑输出（只判过没过），两者分离
+
+**不修理由**（P3 e2e 质量闸门）：
+- "选择器写得好不好"不是机器可判定的，gate 不做语义判断
+- P5 实跑 e2e 已经是正确的防线，T076 也在 P5 发现并修复了
+- test-designer.md 已有指导，执行不到位是 subagent 质量问题
+
+---
+
 ## 6. 待论证的改进
 
 | 改进 | 内容 | 状态 |
