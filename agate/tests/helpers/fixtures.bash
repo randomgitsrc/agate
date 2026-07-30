@@ -192,6 +192,22 @@ add_p1_field() {
     fi
 }
 
+# 用法：add_p2_review <task_dir> [status] [agent]
+# 创建一个合规的 P2-review.md（status: approved, agent: reviewer-subagent）
+# 用于 P2 gate 测试中需要 P2-review.md 存在的场景
+add_p2_review() {
+    local dir="$1"
+    local status="${2:-approved}"
+    local agent="${3:-reviewer-subagent}"
+    cat > "$dir/P2-review.md" <<EOF
+---
+status: ${status}
+agent: ${agent}
+---
+P2 review approved.
+EOF
+}
+
 # 用法：add_evidence_file <task_dir> <rel_path> <content> [size]
 # 在 P6-evidence/ 放文件，可指定大小（用于空 png 测试）
 add_evidence_file() {
