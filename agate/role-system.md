@@ -59,7 +59,7 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 | mcp | 任意 | review + 关注 MCP 接口契约（T005 教训：MCP 改动需专项评审）|
 | security | 任意 | cso（P4 后）|
 | 任意 | **high** | **plan-eng-review 必须派发**（P2.1 硬规则，check-gate.sh 对 agent=main 硬拦截 exit 1）|
-| 业务方向不明 | 任意 | office-hours / plan-ceo-review（P1 后 / P2）|
+| P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | office-hours / plan-ceo-review（P1 后 / P2）|
 
 T005 漏 MCP 评审的根因：靠主 Agent 临场判断，它没有 MCP 评审意识。机械映射消除这个盲区。
 

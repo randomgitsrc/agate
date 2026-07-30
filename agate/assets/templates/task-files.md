@@ -228,13 +228,14 @@ files_to_read:
 # 只列实现确实需要参考的文件，不是相关文件大杂烩。
 # P4 implementer 按此清单读取，不在项目里乱窜——这是上下文不爆炸的关键。
 
-## 5. 最小验证（若方案依赖浏览器行为/安全模型/外部系统行为）
+## 5. 最小验证
 minimal_validation:
   assumption: "srcdoc iframe 继承父页面 CSP"
   method: "10 行 HTML 测试页验证 srcdoc 的 CSP 行为"
   result: "confirmed | refuted | not_needed"
   note: "（验证过程和结论简述）"
-# 纯代码逻辑不需要最小验证（TDD 覆盖），项目内已有模式不需要（已有先例）。
+# 方案依赖浏览器行为/安全模型/外部系统行为 → 必须做最小验证
+# 纯代码逻辑 → 须声明"纯代码逻辑，无外部系统依赖"（写明依赖了哪些内部函数/数据转换）
 # T019 教训：srcdoc 方案到 P6 才发现不可行，P2 用 10 行 HTML 5 分钟就能发现。
 
 ## 6. env_constraints（确认/细化 P0-brief）

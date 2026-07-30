@@ -30,9 +30,11 @@
 - **派发 prompt 追加**：
 
 ```
-## P2 最小验证（若方案依赖浏览器行为/安全模型/外部系统行为）
+## P2 最小验证
 方案设计前，先用最小验证确认关键假设（10 行 HTML 测试页 / curl 请求 / 20 行脚本）。
-验证结果写入 P2-design.md 的 minimal_validation 字段。纯代码逻辑不需要最小验证。
+验证结果写入 P2-design.md 的 minimal_validation 字段。
+- 方案依赖浏览器行为/安全模型/外部系统行为 → 必须做最小验证
+- 纯代码逻辑 → 须在 minimal_validation 字段声明 `纯代码逻辑，无外部系统依赖`（须写明依赖了哪些内部函数/数据转换）
 ```
 
 ## 产出规格
@@ -42,11 +44,11 @@ P2-design.md 必须包含：
 - **四字段**：`packages:` `domains:` `ui_affected:` `gate_commands:`
 - **files_to_read**：实现时需要参考的文件清单（控制 P4 implementer 上下文）
 - **env_constraints**：确认/细化 P0-brief 的环境约束
-- **minimal_validation**（若方案依赖外部行为）
+- **minimal_validation**：验证结果 或 声明"纯代码逻辑，无外部系统依赖"（声明时须附理由）
 
-候选方案简化：
-- `design_trivial: true` → 可只写 1 个候选方案（P2 仍不可省略）
-- `follows_existing_pattern: [src/foo.py]` → 可只写 1 个候选方案，参照已有模式（P2 仍不可省略）
+候选方案简化（须附理由，无理由视为无效声明，要求 ≥2 候选方案）：
+- `design_trivial: true` + 理由（为什么 trivial）→ 可只写 1 个候选方案（P2 仍不可省略）
+- `follows_existing_pattern: [src/foo.py]`（列出参照文件路径）→ 可只写 1 个候选方案，参照已有模式（P2 仍不可省略）
 
 ## gate_commands 声明
 
@@ -66,7 +68,7 @@ gate_commands:
 |--------|------------|------------|
 | frontend | 任意 | plan-design-review |
 | 任意 | high | plan-eng-review（硬规则，必须派独立 subagent） |
-| 业务方向不明 | 任意 | plan-ceo-review / office-hours |
+| P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review / office-hours |
 
 多个评审角色 `专家组并行` → 组长汇总 → P2-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -98,14 +100,14 @@ check-gate.sh P2 $TASK_DIR
 ```
 
 - 候选方案数 ≥2（design_trivial / follows_existing_pattern 时可只写 1 个）
-- P2-review.md status: approved（文件存在时检查）
+- P2-review.md 存在且 status: approved（agent≠main）— 不存在 → gate exit 1
 - 四字段齐全（packages/domains/ui_affected/gate_commands）
 - 候选方案 ≥2 时含权衡/选择理由
 
-## 推进条件
+## 推进条件（全部满足才写 phase: P3）
 
-- [ ] P2-design.md 候选方案 ≥2（或 design_trivial/follows_existing_pattern 可只写 1 个）+ 四字段齐全
-- [ ] P2-review.md status: approved（P2 未被裁剪时）
+- [ ] P2-design.md 候选方案 ≥2（或 design_trivial/follows_existing_pattern 须附理由时可只写 1 个）+ 四字段齐全
+- [ ] P2-review.md 存在且 status: approved（agent≠main）
 - [ ] gate_commands.P5_e2e 已声明（ui_affected: true 时）
 
 ## 常见错误

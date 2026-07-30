@@ -20,7 +20,7 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 | mcp | 任意 | review + 关注 MCP 接口契约 | P4 后 |
 | security | 任意 | cso | P4 后 |
 | 任意 | **high** | plan-eng-review（硬规则，必须派独立 subagent） | P2 |
-| 业务方向不明 | 任意 | office-hours / plan-ceo-review | P1 后 / P2 |
+| P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | office-hours / plan-ceo-review | P1 后 / P2 |
 
 ## 评审产出规范
 
