@@ -137,7 +137,7 @@ case "$PHASE" in
       echo "GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P3)
-      exec "$SCRIPT_DIR/check-tdd-red.sh" ;;
+      exec "$SCRIPT_DIR/check-tdd-red.sh" "$TASK_DIR" ;;
   P4)
       # pre-commit 阶段：检查暂存区有代码文件（非纯文档/状态文件）
       # N1 修复：原来查 git log，但 pre-commit 时 commit 还没创建，第一条 P4 commit 永远无法通过

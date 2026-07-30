@@ -46,13 +46,41 @@
 
 set -euo pipefail
 
+# 接收可选的 TASK_DIR 位置参数（由 check-gate.sh 传递）
+# 也可通过 TASK_DIR 环境变量提供
+if [ -z "${TASK_DIR:-}" ] && [ $# -gt 0 ]; then
+    TASK_DIR="$1"
+fi
+
 if [ -n "${TEST_RUNNER:-}" ]; then
     RUNNER="$TEST_RUNNER"
+elif [ -n "${TASK_DIR:-}" ] && [ -f "$TASK_DIR/P2-design.md" ]; then
+    # 从 P2-design.md 的 gate_commands.P3 读取测试运行器（可选键，architect 在 P2 声明）
+    P3_CMD=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 -c '
+import re, os, sys
+content = open(os.environ["GATE_FILE"]).read()
+if not content.endswith(chr(10)):
+    content += chr(10)
+m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
+if not m:
+    sys.exit(0)
+for line in re.findall(r"^  (P3):\s*(.+)$", m.group(1), re.MULTILINE):
+    print(line[1].strip().strip("\"").strip(chr(39)))
+' 2>/dev/null || true)
+    if [ -n "$P3_CMD" ]; then
+        RUNNER="$P3_CMD"
+    elif command -v pytest &>/dev/null; then
+        RUNNER="pytest"
+    else
+        echo "TDD_CHECK: no test runner found. Set TEST_RUNNER env var, declare gate_commands.P3, or install pytest." >&2
+        echo "  (本脚本是 pytest 参考实现，非 Python 项目请在 P2 gate_commands.P3 声明测试命令)" >&2
+        exit 3
+    fi
 elif command -v pytest &>/dev/null; then
     RUNNER="pytest"
 else
-    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER env var or install pytest." >&2
-    echo "  (本脚本是 pytest 参考实现，非 Python 项目请提供适配脚本)" >&2
+    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER env var, declare gate_commands.P3, or install pytest." >&2
+    echo "  (本脚本是 pytest 参考实现，非 Python 项目请在 P2 gate_commands.P3 声明测试命令)" >&2
     exit 3
 fi
 
