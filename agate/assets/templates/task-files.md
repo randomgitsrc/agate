@@ -208,10 +208,14 @@ ui_affected: false
 
 ## 3. gate 命令（在 P2 固化，后续不得修改）
 gate_commands:
+  P3: "pytest"                     # 可选：测试运行器（verbose 输出，供 check-tdd-red.sh 自动读取）
   P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
   P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected: true 时必填
   P6: "pytest -q --tb=no tests/acceptance/"
-# 紧凑输出要求：gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式
+# P3 键（可选）：声明后 check-tdd-red.sh 自动读取，无需主 Agent 手动设 TEST_RUNNER。
+# P3 用 verbose 输出（区分 A/B 类错误），P5 用紧凑输出（只判过没过），两者分离。
+# 非 pytest 项目建议声明此键（如 P3: "npx vitest run"）。
+# 紧凑输出要求：P5/P6 gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式
 # （pytest --tb=no / cargo --quiet / dotnet --verbosity quiet / vitest --reporter=dot
 #  / go test | tail -30 / mvn -q），保留通过失败汇总+失败清单，去掉逐项 traceback。
 # 工具无紧凑模式时用 shell 兜底：命令 2>&1 | tail -N（语言无关）。

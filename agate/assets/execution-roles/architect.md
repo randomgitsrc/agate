@@ -36,13 +36,15 @@ agent: architect
   - `packages: [pkg-a, pkg-b]` — 本任务改动涉及哪些独立版本的包（供 P8 多包发布消费）
   - `domains: [backend, frontend, mcp, security]` — 涉及领域（供主 Agent 机械映射评审角色）
   - `ui_affected: true/false` — 是否有显示/交互变化。若 true，列出需 E2E 覆盖的交互点（供 P3/P5/P6 落实 UI 实测）
-  - `gate_commands:` — **P5/P6 的 gate 命令集，在 P2 固化，后续阶段不得修改**：
+  - `gate_commands:` — **P3/P5/P6 的 gate 命令集，在 P2 固化，后续阶段不得修改**：
     ```yaml
     gate_commands:
+      P3: "pytest"                            # 可选：测试运行器（不带紧凑输出 flags，P3 红灯检查需 verbose 输出）
       P5: "pytest -q --tb=no"                 # 紧凑输出（见下方规范）
       P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected 时必填
       P6: "pytest -q --tb=no tests/acceptance/"
     ```
+    **P3 键说明**（可选）：声明后 check-tdd-red.sh 自动读取作为测试运行器，无需主 Agent 手动设置 TEST_RUNNER 环境变量。P3 用 verbose 输出（区分 A/B 类错误），P5 用紧凑输出（只判过没过），两者分离。非 pytest 项目建议声明此键。
     **gate 命令必须用紧凑输出模式**（主 Agent 跑 gate 只判断「过没过」，完整诊断留给修复 subagent）：
     - 优先用工具自带的汇总/安静模式，保留通过/失败汇总和失败项清单，去掉逐项详细诊断（traceback/堆栈全文）
     - 工具无紧凑模式时，用 shell 管道兜底：`命令 2>&1 | tail -N`（语言无关）

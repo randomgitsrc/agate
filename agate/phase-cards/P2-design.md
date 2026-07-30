@@ -56,6 +56,7 @@ gate_commands 在 P2 固化，后续阶段按此执行：
 
 ```yaml
 gate_commands:
+  P3: "pytest"                  # 可选：测试运行器（verbose 输出，供 check-tdd-red.sh 自动读取）
   P5: "pytest -q --tb=no"       # 紧凑输出模式
   P5_e2e: "playwright test --reporter=line tests/e2e/"  # ui_affected: true 时必填
 ```

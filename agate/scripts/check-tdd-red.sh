@@ -23,15 +23,24 @@
 #   - 将适配脚本路径设为 TEST_RUNNER 环境变量
 #
 # 环境变量：
-#   TEST_RUNNER — 测试运行器命令（主 Agent 从 P0-brief.md env_constraints.debug_env 提取）
-#                 回退链：$TEST_RUNNER → which pytest → exit 3
+#   TEST_RUNNER — 测试运行器命令（最高优先级，手动覆盖）
+#   TASK_DIR — 任务目录路径（用于读取 P2-design.md 的 gate_commands.P3）
+#              也可通过位置参数 $1 传入（check-gate.sh 调用时传递）
 #   PROJECT_MODULE — 项目模块前缀（用于 B 类检测，如 "myapp"、"webapp"）
 #                    若未设置，B 类检测退化为启发式（所有 ImportError 视为 B 类）
 #                    非 Python 项目应设置此变量以匹配项目内模块路径
 #
+# 测试运行器探测链：$TEST_RUNNER → gate_commands.P3（P2-design.md）→ which pytest → exit 3
+#
+# gate_commands.P3（可选键，architect 在 P2 声明）：
+#   非 pytest 项目在 P2-design.md 声明 gate_commands.P3 后，本脚本自动读取，无需主 Agent 手动设环境变量。
+#   P3 键用 verbose 输出（区分 A/B 类错误），P5 键用紧凑输出（只判过没过），两者分离。
+#
 # 已验证的非 pytest runner 适配示例：
 #   vitest 项目示例（已验证）：
-#     TEST_RUNNER="npx vitest run"
+#     方式一（推荐）：在 P2-design.md 声明 gate_commands.P3: "npx vitest run"
+#     方式二（手动）：TEST_RUNNER="npx vitest run"
+#     以下环境变量两种方式都需设置：
 #     TEST_RUNNER_FLAGS="--reporter=default"   # 必须显式设置为非 -q 值，vitest 不识别 -q
 #     TEST_ERROR_PATTERN="Failed Suites [0-9]+"  # vitest 的 collection-error 摘要不含 "N error" 文本
 #     TEST_IMPORT_PATTERN="Cannot find (module|package) '"  # vitest 的 import 错误格式不含 "ImportError:"，需覆盖

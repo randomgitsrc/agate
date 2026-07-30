@@ -6,7 +6,7 @@
 # 提供且数字上大于 PHASE 时，判定为"回退抵达"，跳过该阶段的完成度校验直接 exit 2
 # （回退抵达 ≠ 阶段已完成，不该被当"未完成"硬拦截；也不应假装"已通过"）。
 #
-# 可脚本化的 gate（exit 0/1）：P3 / P4 / P7
+# 可脚本化的 gate（exit 0/1）：P3（check-tdd-red.sh，自动读取 gate_commands.P3）/ P4 / P7
 # 需主 Agent 自判的 gate（exit 2）：P0 / P1 / P2 / P5 / P6 / P8
 #
 # 本脚本的判定逻辑与 state-machine.md 步骤 5 保持同步。
