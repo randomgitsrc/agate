@@ -103,6 +103,7 @@ check-gate.sh P2 $TASK_DIR
 - 候选方案数 ≥2（design_trivial / follows_existing_pattern 时可只写 1 个）
 - P2-review.md 存在且 status: approved（agent≠main）— 不存在 → gate exit 1
 - 四字段齐全（packages/domains/ui_affected/gate_commands）
+- gate_commands.P3 可选（非 pytest 项目建议声明，供 check-tdd-red.sh 自动读取测试运行器）
 - 候选方案 ≥2 时含权衡/选择理由
 
 ## 推进条件（全部满足才写 phase: P3）
