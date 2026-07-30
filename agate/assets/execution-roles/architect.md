@@ -36,13 +36,15 @@ agent: architect
   - `packages: [pkg-a, pkg-b]` — 本任务改动涉及哪些独立版本的包（供 P8 多包发布消费）
   - `domains: [backend, frontend, mcp, security]` — 涉及领域（供主 Agent 机械映射评审角色）
   - `ui_affected: true/false` — 是否有显示/交互变化。若 true，列出需 E2E 覆盖的交互点（供 P3/P5/P6 落实 UI 实测）
-  - `gate_commands:` — **P5/P6 的 gate 命令集，在 P2 固化，后续阶段不得修改**：
+  - `gate_commands:` — **P3/P5/P6 的 gate 命令集，在 P2 固化，后续阶段不得修改**：
     ```yaml
     gate_commands:
+      P3: "pytest"                            # 可选：测试运行器（不带紧凑输出 flags，P3 红灯检查需 verbose 输出）
       P5: "pytest -q --tb=no"                 # 紧凑输出（见下方规范）
       P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected 时必填
       P6: "pytest -q --tb=no tests/acceptance/"
     ```
+    **P3 键说明**（可选）：声明后 check-tdd-red.sh 自动读取作为测试运行器，无需主 Agent 手动设置 TEST_RUNNER 环境变量。P3 用 verbose 输出（区分 A/B 类错误），P5 用紧凑输出（只判过没过），两者分离。非 pytest 项目建议声明此键。
     **gate 命令必须用紧凑输出模式**（主 Agent 跑 gate 只判断「过没过」，完整诊断留给修复 subagent）：
     - 优先用工具自带的汇总/安静模式，保留通过/失败汇总和失败项清单，去掉逐项详细诊断（traceback/堆栈全文）
     - 工具无紧凑模式时，用 shell 管道兜底：`命令 2>&1 | tail -N`（语言无关）
@@ -68,7 +70,7 @@ agent: architect
     ```
     只列**实现确实需要参考**的文件，不是相关文件的大杂烩。大文件标行号范围。
     P4 implementer 的 prompt 会引用此清单，按需读取——这是控制 subagent 上下文体量的关键。
-  - `minimal_validation:` — **若方案依赖浏览器行为/安全模型/外部系统行为，P2 必须做最小验证**（T019 教训：srcdoc 方案到 P6 才发现不可行，P2 用 10 行 HTML 测试页 5 分钟就能发现）：
+  - `minimal_validation:` — **必须声明**。方案依赖浏览器行为/安全模型/外部系统行为时必须做最小验证（T019 教训：srcdoc 方案到 P6 才发现不可行，P2 用 10 行 HTML 测试页 5 分钟就能发现）；纯代码逻辑时须声明"纯代码逻辑，无外部系统依赖"（写明依赖了哪些内部函数/数据转换）：
     ```yaml
     minimal_validation:
       assumption: "srcdoc iframe 继承父页面 CSP"
@@ -77,7 +79,7 @@ agent: architect
       note: "（验证过程和结论简述）"
     ```
     **什么需要最小验证**：浏览器安全模型、外部库核心能力、跨系统交互。
-    **不需要**：纯代码逻辑（TDD 覆盖）、项目内已有模式（已有先例）。
+    **纯代码逻辑**：须声明"纯代码逻辑，无外部系统依赖"（写明依赖了哪些内部函数/数据转换）。
 - P7：docs/tasks/{Txxx}/P7-consistency.md（实现 vs 设计的一致性检查）
 - 含 Header（parent 指向上一阶段文件）
 

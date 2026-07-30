@@ -171,3 +171,83 @@ Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1)
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
+
+@test "TDD.G1: gate_commands.P3 in P2-design.md → auto-read as TEST_RUNNER" {
+    local fake
+    fake=$(make_fake_pytest "2 failed, 5 passed" 1)
+    local task_dir="$BATS_TEST_TMPDIR/task-g1"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+## gate_commands
+gate_commands:
+  P3: "$fake"
+  P5: "pytest -q --tb=no"
+EOF
+    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}
+
+@test "TDD.G2: no gate_commands.P3 → TEST_RUNNER still works (backward compat)" {
+    local task_dir="$BATS_TEST_TMPDIR/task-g2"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<'EOF'
+## gate_commands
+gate_commands:
+  P5: "pytest -q --tb=no"
+EOF
+    local fake
+    fake=$(make_fake_pytest "2 failed, 5 passed" 1)
+    run env TEST_RUNNER="$fake" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}
+
+@test "TDD.G3: TEST_RUNNER env var takes priority over gate_commands.P3" {
+    local fake_env
+    fake_env=$(make_fake_pytest "2 failed, 5 passed" 1)
+    local fake_p3
+    # Use different filename to avoid overwriting fake_env (make_fake_pytest uses same $BATS_TEST_NUMBER)
+    fake_p3="$BATS_TEST_TMPDIR/fake-p3-g3-$BATS_TEST_NUMBER"
+    cat > "$fake_p3" <<'PEOF'
+#!/bin/bash
+cat <<'OUT'
+all passed
+OUT
+exit 0
+PEOF
+    chmod +x "$fake_p3"
+    local task_dir="$BATS_TEST_TMPDIR/task-g3"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake_p3"
+  P5: "pytest -q --tb=no"
+EOF
+    run env TEST_RUNNER="$fake_env" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}
+
+@test "TDD.G4: no TASK_DIR → skip gate_commands read, fall back to TEST_RUNNER" {
+    local fake
+    fake=$(make_fake_pytest "2 failed, 5 passed" 1)
+    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}
+
+@test "TDD.G5: gate_commands.P3 with double-quoted value → strip quotes" {
+    local task_dir="$BATS_TEST_TMPDIR/task-g5"
+    mkdir -p "$task_dir"
+    local fake
+    fake=$(make_fake_pytest "2 failed, 5 passed" 1)
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P5: "pytest -q --tb=no"
+EOF
+    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}

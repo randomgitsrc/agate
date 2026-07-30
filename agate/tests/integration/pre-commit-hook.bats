@@ -303,6 +303,13 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    cat > "$REPO/docs/tasks/T001/P2-review.md" <<'EOF2'
+---
+status: approved
+agent: reviewer-subagent
+---
+P2 review approved.
+EOF2
     git -C "$REPO" add docs/tasks/T001/
     _write_min_valid_dispatch_context "docs/tasks/T001" "P2" "architect"
     git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context-architect.md"
@@ -362,6 +369,13 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    cat > "$REPO/docs/tasks/T001/P2-review.md" <<'EOF2'
+---
+status: approved
+agent: reviewer-subagent
+---
+P2 review approved.
+EOF2
     git -C "$REPO" add docs/tasks/T001/
     _write_min_valid_dispatch_context "docs/tasks/T001" "P2" "architect"
     git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context-architect.md"

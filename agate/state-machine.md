@@ -287,15 +287,35 @@ PAUSED 恢复协议：
 # 非 Python 项目应提供自己的 TDD 红灯检查脚本，遵循 TEST_RUNNER 输出契约
 #（见 scripts/check-tdd-red.sh 完整注释）。
 #
-# 环境变量 TEST_RUNNER：主 Agent 从 P0-brief.md env_constraints.debug_env 提取。
+# 测试运行器探测链：$TEST_RUNNER → gate_commands.P3（P2-design.md 声明）→ which pytest → exit 3
+# 环境变量 TEST_RUNNER：最高优先级，手动覆盖。
+# 环境变量 TASK_DIR：任务目录路径，用于读取 P2-design.md 的 gate_commands.P3（可选键）。
 # 环境变量 PROJECT_MODULE：项目模块前缀（用于 B 类检测），未设置则退化为启发式。
 
 if [ -n "$TEST_RUNNER" ]; then
     RUNNER="$TEST_RUNNER"
+elif [ -n "${TASK_DIR:-}" ] && [ -f "$TASK_DIR/P2-design.md" ]; then
+    # 从 gate_commands.P3 读取（可选键，见 scripts/check-tdd-red.sh 完整实现）
+    P3_CMD=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 -c '
+import re, os, sys
+content = open(os.environ["GATE_FILE"]).read()
+m = re.search(r"^gate_commands:.*\n((?:  .*\n)*)", content, re.MULTILINE)
+if m:
+    for k, v in re.findall(r"^  (P3):\s*(.+)$", m.group(1), re.MULTILINE):
+        print(v.strip().strip("\""))
+' 2>/dev/null || true)
+    if [ -n "$P3_CMD" ]; then
+        RUNNER="$P3_CMD"
+    elif command -v pytest &>/dev/null; then
+        RUNNER="pytest"
+    else
+        echo "TDD_CHECK: no test runner found. Set TEST_RUNNER, declare gate_commands.P3, or install pytest." >&2
+        exit 3
+    fi
 elif command -v pytest &>/dev/null; then
     RUNNER="pytest"
 else
-    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER env var." >&2
+    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER, declare gate_commands.P3, or install pytest." >&2
     exit 3
 fi
 

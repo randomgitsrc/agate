@@ -6,7 +6,7 @@
 # 提供且数字上大于 PHASE 时，判定为"回退抵达"，跳过该阶段的完成度校验直接 exit 2
 # （回退抵达 ≠ 阶段已完成，不该被当"未完成"硬拦截；也不应假装"已通过"）。
 #
-# 可脚本化的 gate（exit 0/1）：P3 / P4 / P7
+# 可脚本化的 gate（exit 0/1）：P3（check-tdd-red.sh，自动读取 gate_commands.P3）/ P4 / P7
 # 需主 Agent 自判的 gate（exit 2）：P0 / P1 / P2 / P5 / P6 / P8
 #
 # 本脚本的判定逻辑与 state-machine.md 步骤 5 保持同步。
@@ -98,21 +98,23 @@ case "$PHASE" in
               exit 1
           fi
           P2_REVIEW="$TASK_DIR/P2-review.md"
-          if [ -f "$P2_REVIEW" ]; then
-              P2_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
-              if [ "$P2_REVIEW_STATUS" != "approved" ]; then
-                  echo "GATE P2: P2-review.md frontmatter status 非 approved（当前: ${P2_REVIEW_STATUS:-缺失}）" >&2
-                  exit 1
-              fi
-              P2_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
-              if [ -z "$P2_REVIEW_AGENT" ]; then
-                  echo "GATE P2: P2-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）" >&2
-                  exit 2
-              fi
-              if [ "$P2_REVIEW_AGENT" = "main" ]; then
-                  echo "GATE P2: P2-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）" >&2
-                  exit 1
-              fi
+          if [ ! -f "$P2_REVIEW" ]; then
+              echo "GATE P2: P2-review.md 不存在（P2 评审不可裁剪，必须派发独立 subagent 产出）" >&2
+              exit 1
+          fi
+          P2_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+          if [ "$P2_REVIEW_STATUS" != "approved" ]; then
+              echo "GATE P2: P2-review.md frontmatter status 非 approved（当前: ${P2_REVIEW_STATUS:-缺失}）" >&2
+              exit 1
+          fi
+          P2_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+          if [ -z "$P2_REVIEW_AGENT" ]; then
+              echo "GATE P2: P2-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）" >&2
+              exit 2
+          fi
+          if [ "$P2_REVIEW_AGENT" = "main" ]; then
+              echo "GATE P2: P2-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）" >&2
+              exit 1
           fi
           FIELD_COUNT=$(grep -cE '^(packages|domains|ui_affected|gate_commands):' "$P2_FILE" 2>/dev/null || echo 0)
           FIELD_COUNT=$(echo "$FIELD_COUNT" | tail -1)
@@ -135,7 +137,7 @@ case "$PHASE" in
       echo "GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P3)
-      exec "$SCRIPT_DIR/check-tdd-red.sh" ;;
+      exec "$SCRIPT_DIR/check-tdd-red.sh" "$TASK_DIR" ;;
   P4)
       # pre-commit 阶段：检查暂存区有代码文件（非纯文档/状态文件）
       # N1 修复：原来查 git log，但 pre-commit 时 commit 还没创建，第一条 P4 commit 永远无法通过

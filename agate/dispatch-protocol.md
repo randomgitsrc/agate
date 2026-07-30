@@ -197,7 +197,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    env_constraints:
      debug_env: {项目的测试/调试环境路径/命令，从项目约定读取}
      # 不写 prod_env：生产环境不在 agate 开发流程范围内
-    phase_hint: [P1, P2, ..., P8]  # 主 Agent 预判，P1 analyst 可调整，但须经主 Agent 确认
+   phase_hint: [P1, P2, ..., P8]  # 主 Agent 预判，P1 analyst 可调整，但须经主 Agent 确认
    ```
 
    P0-brief 完成后，主 Agent 自查四个必填字段是否有实质内容：
@@ -499,9 +499,11 @@ trigger: gate_fail
 
 **P2 派发时追加**：
 ```
-## P2 最小验证（若方案依赖浏览器行为/安全模型/外部系统行为）
+## P2 最小验证
 方案设计前，先用最小验证确认关键假设（10 行 HTML 测试页 / curl 请求 / 20 行脚本）。
-验证结果写入 P2-design.md 的 minimal_validation 字段。纯代码逻辑不需要最小验证。
+验证结果写入 P2-design.md 的 minimal_validation 字段。
+- 方案依赖浏览器行为/安全模型/外部系统行为 → 必须做最小验证
+- 纯代码逻辑 → 须在 minimal_validation 字段声明 `纯代码逻辑，无外部系统依赖`（须写明依赖了哪些内部函数/数据转换）
 ```
 
 **P4 派发时追加**：
@@ -546,7 +548,7 @@ P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agen
 关键约束：P6-evidence/ 必须有执行产出，不接受空目录。
 ## 自查≠gate
 写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
-P6 gate 由主 Agent 亲自执行验收检查，结果以主 Agent 为准。
+P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
 不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
 ```
 
@@ -621,7 +623,7 @@ P8 releaser subagent 的职责边界：
 |------|-----|--------|---------|
 | P1 | analyst 写需求 | requirements-review（agent≠main） | review 否 → analyst 修改 → 再 review → … → approved |
 | P2 | architect 写方案 | design-review（agent≠main） | review 否 → architect 修改 → 再 review → … → approved |
-| P4 | implementer 写代码 | design-review(可选) | review 否 → implementer 修改 → 再 review → … → approved |
+| P4 | implementer 写代码 | 按 C8 映射触发（非可选） | review 否 → implementer 修改 → 再 review → … → approved |
 | P6 | verifier 写验收 | provenance 审计 | 格式问题 → verifier 调格式 → 再审计 → … → 通过 |
 | P7 | consistency-reviewer | gate 脚本 | BLOCKER → reviewer 修改 → 再验 gate → … → 通过 |
 
@@ -768,9 +770,9 @@ setTimeout(() => {
 - 一个 curl 请求验证 API 行为
 - 一个 20 行的脚本验证库的核心 API
 
-**不需要最小验证的**：
-- 纯代码逻辑（函数输入输出、数据转换）——TDD 单元测试覆盖
-- 项目内已有模式（API 路由、Vue 组件）——已有先例
+**纯代码逻辑的声明**：
+- 纯代码逻辑（函数输入输出、数据转换）→ 须在 minimal_validation 字段声明"纯代码逻辑"（写明依赖了哪些内部函数/数据转换），TDD 单元测试覆盖
+- 项目内已有模式（API 路由、Vue 组件）→ 须声明"已有先例"并列出参照路径
 
 —— T019 教训：srcdoc 方案在 P2 设计、P3 写 57 个测试、P4 完整实现后，到 P6 实跑才发现 srcdoc iframe 继承父 CSP，方案根本不可行。如果 P2 阶段用一个 10 行 HTML 测试页验证 srcdoc 的 CSP 行为，5 分钟就能发现方案不可行，避免 P2-P4 全部返工。
 

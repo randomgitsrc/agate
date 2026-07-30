@@ -155,7 +155,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - 拿不准"这个结果算不算符合预期" → 标 `[NEED_CONFIRM]` 交人判断
 - **自查≠gate**：写完验证脚本后应自跑确认语法正确（自查），但自查≠P6 gate
 - **CI 证据优先**：若项目有 CI 流水线，优先引用 CI 产出路径（如 CI artifacts 目录下的 test-results.json），而非自带证据文件。agent 自带证据是条件退让，非默认。
-- **非 pytest 技术栈**：若 gate_commands 包含 check-tdd-red.sh，设置 `TEST_RUNNER` 环境变量指向项目实际测试命令（如 `TEST_RUNNER="npm test"`），check-tdd-red.sh 会使用该命令而非默认的 pytest 探测。这是 agate 协议保持技术栈无关的标准接入点。
+- **非 pytest 技术栈**：若 P2 gate_commands 声明了 `P3` 键，check-tdd-red.sh 自动读取测试运行器命令。也可通过 `TEST_RUNNER` 环境变量手动覆盖（优先级最高）。这是 agate 协议保持技术栈无关的标准接入点。
 - **verification_env 条件化**：若 P0-brief 声明 ui_affected=true，verification_env 字段必填（列出验收环境与生产环境的已知差异）。非 UI、无 e2e、无环境依赖的任务无需声明。
 
 ### gate 格式预检（返回主 Agent 前执行）

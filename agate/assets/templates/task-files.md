@@ -208,10 +208,14 @@ ui_affected: false
 
 ## 3. gate 命令（在 P2 固化，后续不得修改）
 gate_commands:
+  P3: "pytest"                     # 可选：测试运行器（verbose 输出，供 check-tdd-red.sh 自动读取）
   P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
   P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected: true 时必填
   P6: "pytest -q --tb=no tests/acceptance/"
-# 紧凑输出要求：gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式
+# P3 键（可选）：声明后 check-tdd-red.sh 自动读取，无需主 Agent 手动设 TEST_RUNNER。
+# P3 用 verbose 输出（区分 A/B 类错误），P5 用紧凑输出（只判过没过），两者分离。
+# 非 pytest 项目建议声明此键（如 P3: "npx vitest run"）。
+# 紧凑输出要求：P5/P6 gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式
 # （pytest --tb=no / cargo --quiet / dotnet --verbosity quiet / vitest --reporter=dot
 #  / go test | tail -30 / mvn -q），保留通过失败汇总+失败清单，去掉逐项 traceback。
 # 工具无紧凑模式时用 shell 兜底：命令 2>&1 | tail -N（语言无关）。
@@ -228,13 +232,14 @@ files_to_read:
 # 只列实现确实需要参考的文件，不是相关文件大杂烩。
 # P4 implementer 按此清单读取，不在项目里乱窜——这是上下文不爆炸的关键。
 
-## 5. 最小验证（若方案依赖浏览器行为/安全模型/外部系统行为）
+## 5. 最小验证
 minimal_validation:
   assumption: "srcdoc iframe 继承父页面 CSP"
   method: "10 行 HTML 测试页验证 srcdoc 的 CSP 行为"
   result: "confirmed | refuted | not_needed"
   note: "（验证过程和结论简述）"
-# 纯代码逻辑不需要最小验证（TDD 覆盖），项目内已有模式不需要（已有先例）。
+# 方案依赖浏览器行为/安全模型/外部系统行为 → 必须做最小验证
+# 纯代码逻辑 → 须声明"纯代码逻辑，无外部系统依赖"（写明依赖了哪些内部函数/数据转换）
 # T019 教训：srcdoc 方案到 P6 才发现不可行，P2 用 10 行 HTML 5 分钟就能发现。
 
 ## 6. env_constraints（确认/细化 P0-brief）

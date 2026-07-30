@@ -49,12 +49,13 @@ P1-requirements.md 必须包含：
 check-gate.sh P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式为 `#### BDD-NN:`）；缺 P1-review.md / agent=main / 无锚点 → exit 1
 P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
-## 推进条件
+## 推进条件（全部满足才写 phase: P2）
 
 - [ ] P1-requirements.md 含 BDD ≥1 条
 - [ ] domains / packages / risk_level / phases 已声明
 - [ ] 无 [NEED_CONFIRM] 标记
 - [ ] 无 status: GAP（supplementable 不阻，GAP 阻）
+- [ ] P1-review.md status: approved（agent≠main，含 BDD 编号锚点）
 
 ## 常见错误
 

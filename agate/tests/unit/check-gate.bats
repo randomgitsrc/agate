@@ -33,6 +33,7 @@ load ../helpers/load.bash
 ## 设计
 无候选方案。
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"需至少 2 个候选方案"* ]]
@@ -45,6 +46,7 @@ EOF
 # P2 design
 ### 候选方案 A：方案一
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
 }
@@ -63,6 +65,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -76,6 +79,7 @@ EOF
 #### 候选方案 B：方案二
 EOF
     # h4 不被 ^###? 匹配
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
 }
@@ -83,6 +87,7 @@ EOF
 @test "G2.5 check-gate.sh P2 无 P2 文件 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)  # P2 不在
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-design.md"* ]]
@@ -100,6 +105,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"权衡"* ]]
@@ -119,6 +125,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -137,6 +144,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -155,6 +163,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -251,12 +260,13 @@ A 更简单，B 更稳健。
 packages: [pkg-a]
 domains: [backend]
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"缺字段"* ]]
 }
 
-@test "G2.13 check-gate.sh P2 有候选方案+权衡+四字段，无 P2-review.md 期望 exit 2" {
+@test "G2.13 check-gate.sh P2 有候选方案+权衡+四字段，无 P2-review.md 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -271,7 +281,27 @@ ui_affected: false
 gate_commands: {}
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
-    [ "$status" -eq 2 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P2-review.md"* ]]
+}
+
+@test "PG.P2REVIEW: P2-review.md not found → exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P2-review.md 不存在"* ]]
 }
 
 # ========== P3 check-tdd-red.sh 委托（7 个子用例） ==========
@@ -821,6 +851,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -839,6 +870,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -857,6 +889,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -875,6 +908,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -993,6 +1027,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -1011,6 +1046,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -1059,6 +1095,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -1077,6 +1114,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -1095,6 +1133,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
@@ -1113,6 +1152,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
 }
