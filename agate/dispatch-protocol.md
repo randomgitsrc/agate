@@ -197,7 +197,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    env_constraints:
      debug_env: {项目的测试/调试环境路径/命令，从项目约定读取}
      # 不写 prod_env：生产环境不在 agate 开发流程范围内
-    phase_hint: [P1, P2, ..., P8]  # 主 Agent 预判，P1 analyst 可调整，但须经主 Agent 确认
+   phase_hint: [P1, P2, ..., P8]  # 主 Agent 预判，P1 analyst 可调整，但须经主 Agent 确认
    ```
 
    P0-brief 完成后，主 Agent 自查四个必填字段是否有实质内容：
