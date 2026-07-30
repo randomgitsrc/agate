@@ -58,15 +58,15 @@ check-gate.sh P8 $TASK_DIR
 - 暂存区有 version 文件变更
 - 暂存区 CHANGELOG 有变更
 
-仍须主 Agent 手动确认：
-- 从 P2 packages 逐包读取发布检查命令并执行
+主 Agent **必须亲自执行**以下验证（不可跳过、不可委托 subagent）：
+- 从 P2 packages 逐包读取发布检查命令并执行 → 全部 exit 0
 - 重跑 P5 gate（gate_commands.P5 exit 0 + failed==0）
-- git log 对照 CHANGELOG 无遗漏
+- `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏
 - 从 P2 packages 验证 version 文件路径
 
 ## READY 收尾检查（P8 gate 通过后）— 主 Agent 亲自执行（不派发 subagent）
 
-参考 P8-release.md 临时资源清单执行清理：
+参考 P8-release.md 临时资源清单执行清理。以上检查项无 gate 脚本自动验证（已知缺口），**必须逐项实际执行检查命令**（如 `ps aux | grep debug` 确认服务已停止、`git status` 确认工作区干净），不得仅凭记忆打勾。
 
 **状态与版本**：
 - [ ] .state.yaml phase == READY
@@ -88,7 +88,7 @@ check-gate.sh P8 $TASK_DIR
 - [ ] 无 PROD_TOUCHED 标记（触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`）
 - [ ] 生产数据/API 未被测试写入
 
-## 推进条件
+## 推进条件（全部满足才写 phase: READY）
 
 - [ ] bump-version 完成 + P5 重跑全绿
 - [ ] CHANGELOG 已更新

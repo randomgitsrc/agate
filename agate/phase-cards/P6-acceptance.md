@@ -9,7 +9,7 @@
    1.1 写 P6-dispatch-context-verifier.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. UI 任务：派 vision-analyst → 产出 vision-reports/
 3. 主 Agent 逐条核实 BDD 对照结果
-4. **先验证功能（用户视角），再满足 gate 格式**（T046 教训：别反过来）
+4. **功能验证和 gate 格式都必须满足**（T046 教训：先做功能验证，不要只凑格式）
 5. **运行 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"`** 归一化 PASS/FAIL 大小写和行首空白（verifier 产出后、gate 前，① 自动格式化）
 6. 预跑 check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh
 7. git commit → 更新 .state.yaml phase=P6 → P7
@@ -21,7 +21,7 @@
 
 ## 核心原则 ⚠️
 
-**先验证功能（用户视角），再满足 gate 格式。** gate 是必要条件（格式不对 → commit 不了），不是充分条件（格式对了 ≠ 功能正确）。T046 教训：花 2 小时凑 PASS 格式，没花 5 分钟检查 API 响应头。
+**功能验证和 gate 格式都必须满足。** T046 教训：花 2 小时凑 PASS 格式，没花 5 分钟检查 API 响应头。不接受只满足格式不验证功能，也不接受只验证功能不满足格式。gate 是必要条件（格式不对 → commit 不了），不是充分条件（格式对了 ≠ 功能正确）。
 
 ## 前置条件
 
@@ -91,7 +91,7 @@ check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 
 
 **⚠️ FAIL > 0 时，主 Agent 不能直接改项目源码让它变绿**：P6 是 self-authored gate（判定对象是 verifier 自己写的 P6-acceptance.md），验收阶段本身不应该有代码变更——`pre-commit-gate.sh` 会硬拦截 phase=P6 时暂存的非证据文件（不在 `P6-evidence/` 下的文件）。正确流程：诊断问题出在哪个上游阶段 → 退回该阶段（`agate/rules/state-transitions.md` 回退规则，退回前须先跑 `agate-archive-stale-outputs.sh` 归档当前 P6 产出，或用 `agate-retreat-to.sh` 自动化多步回退）→ 重新派发对应角色 subagent 修复 → 重新走到 P6 时，旧的 P6-acceptance.md/P6-evidence/ 已被归档清空，verifier 必须重新产出真实证据，不存在"挑几条改改、其余沿用旧结论"的空间。
 
-## 按包拆分并行（可选，受限模式）
+## 按包拆分并行（条件触发，受限模式）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
 
@@ -103,12 +103,12 @@ P6 采用**证据并行、验收文件不并行**模式：
 
 基础设施隔离同 P5（端口/数据库/截图目录独立）。
 
-## 推进条件
+## 推进条件（全部满足才写 phase: P7）
 
 - [ ] 所有 BDD PASS（FAIL=0）
 - [ ] 无行首 `[NEED_CONFIRM]`（`[NO_NEED_CONFIRM]` 为合规负向声明）
 - [ ] P6-evidence/ 目录非空 + 证据文件被引用
-- [ ] UI 任务：vision-helper blocker_count=0 或 blocker>0 已追查
+- [ ] UI 任务：vision-helper blocker_count=0；blocker>0 时须在 P6-acceptance.md 写明追查命令 + 输出 + 根因结论（仅写"已追查"不合规）
 - [ ] provenance 审计通过
 
 ## 常见错误（T046 实证）
@@ -128,7 +128,7 @@ gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你
 
 ## 自查≠gate
 写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
-P6 gate 由主 Agent 亲自执行验收检查，结果以主 Agent 为准。
+P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
 不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
 
 > 完成 → 读 phase-cards/P7-consistency.md

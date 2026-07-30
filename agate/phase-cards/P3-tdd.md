@@ -5,9 +5,8 @@
 
 ## 如果是首次进入本阶段
 
-0. 跑 `agate-capture-env-baseline.sh $TASK_DIR`（自动捕获环境基线）。
-   该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
-   无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
+0. 跑 `agate-capture-env-baseline.sh $TASK_DIR`（自动捕获环境基线）。**必须执行**。
+   该步骤不阻塞流程——脚本的 stderr 输出（含 WARNING）均可忽略，执行完直接继续步骤 1。
 1. 派发 test-designer subagent → 产出 P3-test-cases.md + 测试代码目录
    1.1 写 P3-dispatch-context-test-designer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 主 Agent 跑 check-tdd-red.sh 确认红灯
@@ -22,7 +21,7 @@
 ## 前置条件
 
 - [ ] P2-design.md files_to_read 完整（测试设计需要知道实现导航）
-- [ ] P2-review.md status: approved（P2 未被裁剪时）
+- [ ] P2-review.md status: approved（P2 不可裁剪）
 
 ## 派发
 
@@ -50,7 +49,7 @@ check-tdd-red.sh $TASK_DIR
 
 **非 pytest 技术栈**：设置 `TEST_RUNNER` 环境变量指向项目实际测试命令（如 `TEST_RUNNER="npm test"`），check-tdd-red.sh 会使用该命令而非默认的 pytest 探测。这是 agate 协议保持技术栈无关的标准接入点，不需要绕过脚本手动验证。
 
-## 按包拆分并行（可选）
+## 按包拆分并行（条件触发，非强制）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
 
@@ -68,7 +67,7 @@ check-tdd-red.sh $TASK_DIR
 
 每个 subagent 的 dispatch-context 必须明确其负责的 package 范围（约束节写"只写 {pkg} 目录下的测试"）。
 
-## 推进条件
+## 推进条件（全部满足才写 phase: P4）
 
 - [ ] check-tdd-red.sh exit 0（真红灯确认）
 - [ ] P3-test-cases.md 存在且含 test_code_dir

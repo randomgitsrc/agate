@@ -1,7 +1,7 @@
 # P7 — 一致性检查
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
-> 裁剪跳阶 → 确认 P1 phases 不含 P7 + 源文件数 ≤5 + 无 implicit_coupling + 有 coupling_checklist → 跳过，读 P8 卡片
+> 裁剪跳阶 → 确认 P1 phases 不含 P7 + 源文件数 ≤5 + 无 implicit_coupling + 有 coupling_checklist（须列出至少 2 个已检查的耦合点，空清单不合规）→ 跳过，读 P8 卡片
 > ⑨ P7 subagent 化
 
 ## 如果是首次进入本阶段
@@ -61,7 +61,7 @@ check-gate.sh P7 $TASK_DIR
 
 BLOCKER → consistency-reviewer 修改 → 再验 gate → … → 通过（⑩迭代循环，review 和 gate 重试共享 retry 预算）
 
-## 推进条件
+## 推进条件（全部满足才写 phase: P8）
 
 - [ ] P7-consistency.md 存在
 - [ ] 无 [BLOCKER] / [DEVIATION-CRITICAL]

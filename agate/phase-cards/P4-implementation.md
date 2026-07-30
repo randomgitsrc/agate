@@ -11,7 +11,7 @@
 1. 派发 implementer subagent → 产出代码文件
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
-3. 必要评审派发（见下方）
+3. 按 C8 映射表派发评审（见下方）
 4. git add 代码文件 → git commit
 5. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 6. 更新 .state.yaml phase=P4 → P5
@@ -28,7 +28,7 @@
 ## 前置条件
 
 - [ ] P2-design.md 存在且 files_to_read 字段完整（导航清单）
-- [ ] P2-review.md status: approved（P2 未被裁剪时）
+- [ ] P2-review.md status: approved（P2 不可裁剪）
 - [ ] P3-test-cases.md 存在（测试已设计）
 - [ ] check-tdd-red.sh 确认红灯（测试先于实现）
 - [ ] 未跳过 P4（如有裁剪理由，见上方裁剪跳阶）
@@ -47,7 +47,7 @@
 
 ## 自查≠gate
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
-P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent 为准。
+P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
 
 ## 生产环境隔离
@@ -62,7 +62,7 @@ P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent
 
 ## 评审派发（C8 机械映射）
 
-**在 P4 实现完成后、gate 前**，按 P1 声明的 domains 和 risk_level 派评审：
+**在 P4 实现完成后、gate 前**，按 P1 声明的 domains 和 risk_level 派评审。C8 映射表是机械规则，不靠判断"需不需要"：
 
 | domain | 派哪些评审 | 产出 |
 |--------|----------|------|
@@ -86,7 +86,7 @@ P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands，结果以主 Agent
 
 review 不通过 → implementer 修改代码 → 再 review → … → approved（⑩迭代循环，review 和 gate 重试共享 retry 预算）
 
-## 按包拆分并行（可选，需额外约束）
+## 按包拆分并行（条件触发，需额外约束）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
 
@@ -109,7 +109,7 @@ review 不通过 → implementer 修改代码 → 再 review → … → approve
 - 环境变量：dispatch-context 写明各 subagent 独立的环境变量值（如 `PORT=3001` vs `PORT=3002`）
 - 临时文件：各 subagent 写入 `P4-implementation/{pkg}/` 独立目录
 
-主 Agent 在并行派发前应确认每个 subagent 的 dispatch-context 已包含上述隔离参数。**注意**：这是 nudge 不是强制规则（无 gate 脚本检查），与 design_trivial 的形式义务同级。未分配隔离参数的后果是运行时冲突（端口占用/数据库锁），由 subagent 报错暴露。
+主 Agent 在并行派发前**必须**为每个 subagent 的 dispatch-context 分配上述隔离参数。当前无 gate 脚本检查（已知缺口），但未分配导致运行时冲突（端口占用/数据库锁）时计为重试，不算环境问题。
 
 ## gate 规则（check-gate.sh 会跑）
 
@@ -123,7 +123,7 @@ check-gate.sh P4 $TASK_DIR
 ## 推进条件（全部满足才写 phase: P5）
 
 - [ ] 暂存区含代码文件（非 .md/.yaml）
-- [ ] 评审完成（若有触发）：P4-review.md status: approved
+- [ ] 按 C8 映射表触发的评审全部完成：P4-review.md status: approved（无触发评审角色时此项自动满足）
 - [ ] SCOPE+ 已处理（若本阶段产生）：P1-requirements.md 有 [SCOPE_RESOLVED]（行首声明格式）
 - [ ] git commit 完成
 

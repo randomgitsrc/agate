@@ -47,10 +47,10 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
   - flaky test → 记入 P5-test-results/，三振记录
 - **PROD_TOUCHED**：任何生产环境触达 → 立即 PAUSED（触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`）
 - **E2E 未执行**（ui_affected: true 但未跑 P5_e2e）：视为验证不完整
-- **全量测试 WARNING**：P5 阶段建议运行全量测试套件（含非本任务测试），若发现预存失败：
+- **全量测试**：P5 阶段应运行全量测试套件（含非本任务测试）。发现预存失败时：
   - 在 P5-test-results/unit.md 标注"预存失败：X（与本次改动无关）"
   - 主 Agent 判断：修复成本 < 推迟成本 → 立即修复；否则记录到 known-failures.md
-  这是 WARNING 级建议，不阻断 P5 推进。
+  全量测试不阻断 P5 推进，但未运行全量测试时须在 P5-test-results/unit.md 标注"未运行全量测试"。
 
 ## 产出规格
 
@@ -76,7 +76,7 @@ check-gate.sh P5 → exit 2。主 Agent 验 gate（检查 P5-test-results/ 存�
 
 **external-output-gate vs self-authored-gate**：P5 的 gate 是 external-output-gate——主 Agent 验证的是 verifier subagent 的产出（P5-test-results/），而非自己跑的命令结果。这与 P4（主 Agent 自己写代码、自己跑 lint）的 self-authored-gate 不同。external-output-gate 的信任链依赖 subagent 隔离 + CI backstop 双重保障。
 
-## 推进条件
+## 推进条件（全部满足才写 phase: P6）
 
 - [ ] gate_commands.P5 全部命令 exit 0 + failed=0
 - [ ] UI 任务：gate_commands.P5_e2e 已执行且通过
@@ -93,17 +93,17 @@ check-gate.sh P5 → exit 2。主 Agent 验 gate（检查 P5-test-results/ 存�
 
 **残余风险**：verifier subagent 产出 P5-test-results/ 后，主 Agent commit 并推进到 P6，但 push→CI 之前存在时间窗口。伪造的 P5-test-results 可在此窗口内流向下游。
 
-**缓解**：主 Agent 在推进前做轻量签名校验——grep test runner 输出签名：
+**缓解**：主 Agent 在推进前**必须**执行签名校验——grep test runner 输出签名：
 
 ```bash
 grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md
 ```
 
-计数 >0 才视为有效产出。这是轻量验证（确认文件包含真实 test runner 输出格式），不是重跑测试。CI backstop 在 push 后兜底全量验证。
+计数 >0 才视为有效产出，计数=0 视为假完成，计为重试。这不是重跑测试（CI backstop 在 push 后兜底全量验证）。
 
 gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
-## 按包拆分并行（可选）
+## 按包拆分并行（条件触发，非强制）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
 
@@ -117,7 +117,7 @@ gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你
 - 临时输出：各 verifier 写入 `P5-test-results/{pkg}/` 独立目录，不共享同一 unit.md
 - E2E 浏览器：Playwright 默认隔离 browser context，但若 E2E 测试启动了本地 server，各 verifier 需用不同端口
 
-主 Agent 在并行派发前应确认每个 verifier 的 dispatch-context 已包含独立的基础设施参数（nudge，同 P4）。
+主 Agent 在并行派发前**必须**为每个 verifier 的 dispatch-context 分配独立的基础设施参数（同 P4，未分配导致冲突时计为重试）。
 
 ## 下游影响
 

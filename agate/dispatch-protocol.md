@@ -548,7 +548,7 @@ P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agen
 关键约束：P6-evidence/ 必须有执行产出，不接受空目录。
 ## 自查≠gate
 写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
-P6 gate 由主 Agent 亲自执行验收检查，结果以主 Agent 为准。
+P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
 不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
 ```
 
@@ -623,7 +623,7 @@ P8 releaser subagent 的职责边界：
 |------|-----|--------|---------|
 | P1 | analyst 写需求 | requirements-review（agent≠main） | review 否 → analyst 修改 → 再 review → … → approved |
 | P2 | architect 写方案 | design-review（agent≠main） | review 否 → architect 修改 → 再 review → … → approved |
-| P4 | implementer 写代码 | design-review(可选) | review 否 → implementer 修改 → 再 review → … → approved |
+| P4 | implementer 写代码 | 按 C8 映射触发（非可选） | review 否 → implementer 修改 → 再 review → … → approved |
 | P6 | verifier 写验收 | provenance 审计 | 格式问题 → verifier 调格式 → 再审计 → … → 通过 |
 | P7 | consistency-reviewer | gate 脚本 | BLOCKER → reviewer 修改 → 再验 gate → … → 通过 |
 
