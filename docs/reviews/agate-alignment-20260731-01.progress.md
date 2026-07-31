@@ -1,73 +1,33 @@
-- [check-gate.sh] P2 review 文件不存在时 exit 1（bug fix），P0 五字段→四字段，P5 新增机械 diff 检查，P3 exec 传 $TASK_DIR
-- [check-tdd-red.sh] 新增 gate_commands.P3 自动读取，探测链 TEST_RUNNER→P3→pytest→exit3，接收位置参数 $1
-- [P0-orchestrator.md] 五字段→四字段，推进条件改 AND checklist，环境自检强制
-- [P1-requirements.md] 五字段→四字段引用，推进条件加 P1-review.md approved
-- [P2-design.md] minimal_validation 强制声明，design_trivial 须附理由，gate_commands.P3 可选，P2-review 不存在→exit1，推进条件 AND checklist
-- [P3-tdd.md] 步骤0跑基线，测试运行器探测链文档化，"可选"→"条件触发"
-- [P4-implementation.md] P5 改为 verifier subagent 执行，评审 C8 映射强制，"可选"→"条件触发"，基础设施隔离"必须"
-- [P5-verification.md] 非 pytest 技术栈改引用 gate_commands.P3，全量测试 WARNING→必须标注，签名校验"必须"
-- [P6-acceptance.md] "先验证功能再满足格式"→"两者都必须满足"，P6 gate 明确跑哪些脚本
-- [P7-consistency.md] 裁剪跳阶 coupling_checklist 须≥2个耦合点，推进条件 AND checklist
-- [P8-release.md] "手动确认"→"必须亲自执行"，推进条件 AND checklist
-- [state-machine.md] P0 四字段，check-tdd-red.sh 设计块更新探测链，步骤2 四字段
-- [dispatch-protocol.md] P0 四字段，P2 最小验证改措辞，P4 评审 C8 映射，P6 自查节改，office-hours 触发条件改
-- [task-files.md] P0 删除 pruning_tendency，gate_commands.P3 新增，minimal_validation 强制声明
-- [dispatch-prompt.md] P2 最小验证改措辞（与 P2-design.md/ dispatch-protocol.md 一致）
-- [architect.md] 输入删 pruning_tendency，gate_commands P3/P5/P6，minimal_validation 强制声明
-- [verifier.md] 非 pytest 技术栈改引用 gate_commands.P3
-- [plan-eng-review.md] P2 最小验证检查项更新
-- [role-system.md] office-hours 触发条件改
-- [review-mapping.md] office-hours 触发条件改
-- [hardening-roadmap.md] v0.25.0 记录 P2.49+P2.50
+- [check-tdd-red.sh] 完全重写：废弃 pytest pattern 解析，改用 formatter+JSON 标准格式。探测链：$TEST_RUNNER→gate_commands.P3→which pytest→exit3。judge_result 按 JSON 字段判定 A/B 类。
+- [agate-capture-env-baseline.sh] fail-list 提取改用 formatter+JSON。无 formatter 时放弃捕获（不写文件，exit 0）。缓存 key 含 formatter 集合。
+- [gate-result.sh] 新增 resolve_formatter() 和 run_test_with_formatter() 公共函数。formatter 路径解析：绝对路径→task_dir/.agate/formatters→agate_root/assets/formatters。
+- [check-gate.sh] P7 DESIGN_GAP 正则从 ^\s*-?\s*\[ 改为 ^\s*>?\s*-?\s*\[ 匹配 blockquote。其余未变。
+- [check-p6-evidence.sh] 截图格式从 PNG-only 放宽为任意图片（file 命令检测 MIME，fallback magic number 检测 PNG/JPEG/GIF/WebP）。变量名 PNG_WARNING→SMALL_IMAGE_WARNING。
+- [state-machine.md] 删除内联 check-tdd-red.sh bash 代码（~80行），替换为 formatter 契约描述。探测链描述更新含 exit-code-only 退化说明。
+- [architect.md] gate_commands 示例增加 P3_formatter/P5_formatter/project_module 键。P3/P5 formatter 说明段。
+- [task-files.md] gate_commands 模板增加 formatter 键。P5 门槛描述从"跑 pytest"改为"跑 gate_commands.P5"。
+- [dispatch-prompt.md] P6 verifier 脚本从 "Playwright / shell / pytest" 改为 "Playwright / shell / 测试框架"。
+- [verifier.md] "非 pytest 技术栈"段改为"技术栈无关"段，指向 formatter。
+- [P3-tdd.md] 增加"技术栈无关"段+formatter 选择指引。
+- [P5-verification.md] "非 pytest 技术栈"改为"技术栈无关"。fail-list.txt 描述改为 formatter 提取。
+- [P0-orchestrator.md] 测试框架自检从 "pytest/vitest" 扩展为 "pytest/vitest/go test/cargo test"。
+- [check-protocol-consistency.py] CHECK 9 锚点 check-tdd-red.sh keywords 从 ["pytest"] 改为 ["formatter","pytest"]。
+- [tests/README.md] check-tdd-red.sh 用例数从 9 更新为 28，新增 formatters 行 12。
+- [formatters/] 6 个新文件：pytest.sh/vitest.sh/go-test.sh/generic-tap.sh/generic-junit-xml.sh/generic-exit-only.sh + README.md 契约文档。
+- [hardening-roadmap.md] 新增 v0.26.0 P2.51 条目记录本次改动。
+- [test-designer.md] 新增 vitest mock hoisting 反模式说明（T079 教训）。
 
-A1/文档→脚本: P2-design.md 说 P2-review.md 不存在→exit 1 / check-gate.sh:101-103 实现 exit 1 / 结论: ALIGNED
-A1/文档→脚本: P2-design.md 说 gate_commands.P3 可选 / check-tdd-red.sh:66-78 实现自动读取 / 结论: ALIGNED
-A1/文档→脚本: state-machine.md:76 说 P0 四字段 / check-gate.sh:39 P0 提示也改四字段 / 结论: ALIGNED
-A1/文档→脚本: P0-orchestrator.md 删除 pruning_tendency / task-files.md:25 删除 / dispatch-protocol.md:200 删除 / state-machine.md:76 删除 / 结论: ALIGNED
-A1/文档→脚本: dispatch-protocol.md:200 phase_hint 缩进从 4 空格改为 2 空格 / 但实际 YAML 缩进不一致（见 A3b 反向传播）
-A2/脚本→文档: check-gate.sh P3 exec 传 $TASK_DIR / P3-tdd.md:42 写 check-tdd-red.sh $TASK_DIR / 结论: ALIGNED
-A2/脚本→文档: check-tdd-red.sh 探测链 TEST_RUNNER→P3→pytest→exit3 / P3-tdd.md:50 文档化探测链 / state-machine.md:290 文档化 / 结论: ALIGNED
-
-A3a/连锁: P0 删除 pruning_tendency → 已传播到 P0-orchestrator/state-machine/dispatch-protocol/task-files/architect / 结论: ALIGNED
-A3a/连锁: gate_commands.P3 新增 → 已传播到 P2-design/architect/task-files/P3-tdd/check-tdd-red/state-machine/verifier / 结论: ALIGNED
-A3a/连锁: minimal_validation 强制声明 → 已传播到 P2-design/architect/task-files/dispatch-prompt/dispatch-protocol/plan-eng-review / 结论: ALIGNED
-A3a/连锁: office-hours 触发条件改 → 已传播到 P2-design/role-system/review-mapping/dispatch-protocol / 结论: ALIGNED
-
-A3b/反向传播: dispatch-protocol.md:200 phase_hint 缩进改为 2 空格但周围 YAML 块用 3 空格缩进 / 结论: NEEDS_HUMAN_REVIEW（YAML 缩进不一致，可能是 diff 引入的格式 bug）
-A3b/反向传播: WORKFLOW.md 阶段总览表 P0 门槛仍写"含 debug_env + known_risks" / 未提及四字段 / 结论: 已检查，WORKFLOW.md:216 写的是 debug_env+known_risks 不是字段计数，语义可接受但未同步四字段术语
-A3b/反向传播: orchestrator-template.md 未在 diff 列表中 / 检查是否有五字段/pruning_tendency 引用
-A3b/反向传播: LIMITATIONS.md 未在 diff 列表中 / 检查是否有 pruning_tendency 引用
-A3b/反向传播: analyst.md 未在 diff 列表中 / 检查是否有 pruning_tendency 引用
-A3b/反向传播: implementer.md 未在 diff 列表中 / 检查是否有 pruning_tendency 引用
-A3b/反向传播: test-designer.md 未在 diff 列表中 / 检查是否有 pruning_tendency 引用
-A3b/反向传播: rules/state-transitions.md 未在 diff 列表中 / 检查是否有 P2 不可裁剪+review 引用
-A3b/反向传播: CONTEXT.md 未在 diff 列表中 / 检查是否有四字段/pruning_tendency 引用
-
-A3b/反向传播: dispatch-protocol.md:200 phase_hint 缩进从 3 空格→4 空格（删除 pruning_tendency 时引入），与 env_constraints 的 3 空格不一致 / 但这是 Markdown 代码块内的示例，不被脚本解析 / 结论: NEEDS_HUMAN_REVIEW（cosmetic）
-A3b/反向传播: WORKFLOW.md:216 P0 门槛写"含 debug_env + known_risks"未改四字段 / 但语义仍正确（debug_env 是 env_constraints 的子字段，known_risks 是四字段之一）/ 结论: ALIGNED（语义可接受，术语未同步但无误导）
-A3b/反向传播: analyst.md/implementer.md/test-designer.md/orchestrator-template.md/LIMITATIONS.md/CONTEXT.md/rules/state-transitions.md 均无 pruning_tendency/五字段引用 / 结论: ALIGNED
-A3b/反向传播: rules/state-transitions.md P2 不可裁剪引用 / 检查是否有"P2 未被裁剪时"措辞
-A3b/反向传播: CHANGELOG.md 未在 diff 中 / 检查是否有 v0.25.0 条目
-
-A6/锚点表: CHECK 9 锚点表无 gate_commands.P3 专门锚点 / 现有锚点"TDD 红灯检查"只检查 check-tdd-red.sh 含"pytest"关键词 / gate_commands.P3 是新增功能，非协议规则硬约束 / 结论: ALIGNED（P3 键是可选功能，不需要专门锚点；check-tdd-red.sh 仍含"pytest"关键词，现有锚点仍通过）
-A6/锚点表: check-gate.sh P2 review 不存在→exit 1 / 无专门锚点 / 但"P2 agent=main 硬拦截"锚点仍覆盖 check-gate.sh P2 分支 / 结论: ALIGNED
-A6/锚点表: P0 四字段 / 无专门锚点（P0 gate 是 exit 2，不检查字段）/ 结论: ALIGNED
-
-A4/测试覆盖: check-gate.bats G2.13 改为 exit 1 + 新增 PG.P2REVIEW 测试 P2-review 不存在→exit 1 / 结论: ALIGNED
-A4/测试覆盖: check-tdd-red.bats 新增 TDD.G1-G5 覆盖 gate_commands.P3 自动读取 / 结论: ALIGNED
-A4/测试覆盖: fixtures.bash 新增 add_p2_review helper / 结论: ALIGNED
-A4/测试覆盖: pre-commit-hook.bats 新增 P2-review.md fixture / 结论: ALIGNED
-A4/测试覆盖: bats 全量实跑 476 tests passed 0 failed / 结论: ALIGNED
-
-A5/下游影响: P2 review 不存在→exit 1 是破坏性变更（原来 exit 2 跳过检查）/ 但 P2 评审本就不可裁剪，语义上 review 文件必须存在 / 结论: ALIGNED（行为变更但不违反协议语义）
-A5/下游影响: gate_commands.P3 可选键 / 新增功能，向后兼容 / 结论: ALIGNED
-A5/文档传播: CHANGELOG [Unreleased] 有 pruning_tendency 移除条目 / 但无 P2.49(gate_commands.P3) 和 P2.50(措辞加固) 条目 / 结论: NEEDS_HUMAN_REVIEW（CHANGELOG 遗漏新变更条目）
-
-A7/ADR-001(隔离性): P4 自查节改"P5 由主 Agent 派发 verifier subagent 执行"更符合隔离性 / 结论: ALIGNED
-A7/ADR-002(可判定性): P2 review 不存在→exit 1 是可判定门槛 / 结论: ALIGNED
-A7/ADR-003(最小约定/技术栈无关): gate_commands.P3 增强技术栈无关性 / 结论: ALIGNED
-A7/ADR-005(改动性质判断): pruning_tendency 移除消除与 risk_level 重复 / 结论: ALIGNED
-
-A1/最终: P4-implementation.md:50 "派发 verifier subagent 执行" vs dispatch-protocol.md:516 "派发 verifier subagent 从 P2-design.md 读取" vs dispatch-prompt.md:99-100 简化版无 verifier subagent 引用 / 三处语义一致但措辞不同 / 结论: ALIGNED（模板简化版是设计选择，完整版在阶段卡片和 dispatch-protocol）
-A2/最终: check-gate.sh:39 P0 提示"四字段" vs state-machine.md:76 "四字段" vs P0-orchestrator.md:11 "四字段" / 结论: ALIGNED
-A3a/最终: "亲自执行"定义统一: P4 自查节改 "派发 verifier subagent 执行" / P6 自查节改 "主 Agent 亲自跑 gate 脚本" / 两处区分了"派 subagent"和"主 Agent 跑 gate" / 结论: ALIGNED
+A1: state-machine.md:274 仍写"不自行解析 pytest 输出"但脚本已改为 formatter+JSON / 结论: MISALIGNED（残留 pytest 硬引用）
+A1: state-machine.md:274 仍写"脚本输出 assertion_failures=N, collection_errors=M 格式"但脚本实际输出 TDD_CHECK: 前缀文本 / 结论: MISALIGNED（输出格式描述过时）
+A1: dispatch-protocol.md:61 例"P5 subagent 说 failed=0 → 主 Agent 跑 pytest -q" / 结论: MISALIGNED（pytest 软绑定残留）
+A1: state-machine.md:188 "P5 的 pytest 全绿兜底" / 结论: MISALIGNED（pytest 软绑定残留）
+A1: dispatch-protocol.md:545 "Playwright / shell / pytest" / 结论: MISALIGNED（dispatch-prompt.md 已修但 dispatch-protocol.md 未同步）
+A2: 脚本 check-tdd-red.sh 通过 formatter+JSON 实现，state-machine.md 已更新 formatter 契约描述 / 结论: ALIGNED（核心逻辑对齐）
+A3a: dispatch-protocol.md:545 pytest 残留——dispatch-prompt.md 已改为"测试框架"但 dispatch-protocol.md 未同步 / 结论: MISALIGNED
+A3b: WORKFLOW.md 无残留 pytest 硬绑定（gate 表均用 gate_commands.P5） / 结论: ALIGNED
+A3b: orchestrator-template.md:17 permissions 示例含 "pytest*"——是示例值非硬编码 / 结论: NEEDS_HUMAN_REVIEW
+A3b: git-integration.md:51 "chore: 升级 pytest" 是 commit message 示例 / 结论: ALIGNED（示例性引用）
+A4: bats 全量 503 passed / check-tdd-red.bats 28用例 + formatter 12用例 / 结论: ALIGNED
+A5: CHANGELOG 未更新 / 结论: NEEDS_HUMAN_REVIEW
+A6: CHECK 9 锚点表已更新 check-tdd-red.sh keywords / 结论: ALIGNED
+A7: ADR-003 不绑定技术栈——本次改动正是落实 ADR-003 / 结论: ALIGNED

@@ -261,6 +261,23 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 - P5 实跑 e2e 已经是正确的防线，T076 也在 P5 发现并修复了
 - test-designer.md 已有指导，执行不到位是 subagent 质量问题
 
+### v0.26.0 — 测试输出标准化（Tech-Stack Neutral）
+
+**P2.51: check-tdd-red.sh + agate-capture-env-baseline.sh 技术栈无关化**
+
+**状态**：已实施
+**来源**：T079+T082+T083 复盘（check-tdd-red.sh 技术栈绑定问题）
+**改动**：
+- check-tdd-red.sh 重写：废弃 pytest pattern 默认值/-q flag，改为 formatter+JSON 标准格式
+- agate-capture-env-baseline.sh：fail-list 提取改用 formatter+JSON
+- 新增 6 个内置 formatter 模板（pytest/vitest/go-test/generic-tap/generic-junit-xml/generic-exit-only）
+- gate_commands 扩展：P3_formatter/P5_formatter/project_module 可选键
+- gate-result.sh 新增 resolve_formatter() / run_test_with_formatter() 公共函数
+- 多技术栈支持：P3 + P3_js 多键声明
+- check-p6-evidence.sh：截图格式从 PNG-only 放宽为任意图片格式
+- check-gate.sh：P7 DESIGN_GAP 正则放宽匹配 markdown blockquote（T083 修复）
+- 文档全面去 pytest 软绑定
+
 ---
 
 ## 6. 待论证的改进

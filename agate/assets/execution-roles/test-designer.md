@@ -40,6 +40,7 @@ agent: test-designer
 - **若 P2 声明 ui_affected：必须有对应 Playwright/E2E 用例，缺失则门槛不通过**
 - **截图质量标准**：操作类 BDD 的 Playwright 截图用例必须产出互不相同的截图（设计测试时避免重复截图），查询类 BDD 可不截图
 - **P6 BDD 二值规则**：设计的测试必须产出明确的 PASS/FAIL 结果，不支持"调整/跳过/覆盖"等中间态
+- **vitest mock hoisting 反模式**（T079 教训）：vitest 的 `vi.mock()` 调用会被 hoisting 到文件顶部，在模块导入前执行。如果 mock 回调中引用了外部变量或模块，会在 P3 阶段表现为 B 类红灯（被放行），到 P4 才暴露为 A 类错误。正确做法：`vi.mock()` 回调中只使用字符串字面量，不引用外部变量；如需动态 mock，用 `vi.doMock` 在 `beforeEach` 中设置。
 
 ## 返回给主 Agent
 文件路径 + 一句话：N 个测试用例，当前全部红灯

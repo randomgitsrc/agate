@@ -535,7 +535,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     {
         "desc": "TDD 红灯检查",
         "script": "agate/scripts/check-tdd-red.sh",
-        "keywords": ["pytest"],
+        "keywords": ["formatter", "pytest"],
     },
     {
         "desc": "P2 agent=main 硬拦截",
@@ -665,7 +665,7 @@ def check_script_alignment(root: Path, rep: Report) -> None:
 
 # 工具类脚本白名单——无 gate 逻辑，不需要锚点
 GATE_SCRIPT_EXEMPT = {
-    "agate/scripts/gate-result.sh",
+    "agate/scripts/gate-result.sh",  # 无 gate 逻辑 + formatter 公共函数（受调用方测试覆盖），不需要锚点
     "agate/scripts/install-hook.sh",
     "agate/scripts/agate-changes.sh",
     "agate/scripts/agate-summary.sh",

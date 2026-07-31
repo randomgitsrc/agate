@@ -9,6 +9,9 @@
 ## [Unreleased]
 
 ### 变更
+- **测试输出标准化（P2.51）**：check-tdd-red.sh 和 agate-capture-env-baseline.sh 重写为 formatter + 标准 JSON 格式，不再硬编码 pytest 输出解析。新增 6 个内置 formatter 模板（pytest/vitest/go-test/generic-tap/generic-junit-xml/generic-exit-only）。gate_commands 扩展 P3_formatter/P5_formatter/project_module 可选键。支持多技术栈声明（P3 + P3_js）。不提供 formatter 时退化为 exit-code-only。TEST_RUNNER 环境变量保留但退化为 exit-code-only（不再有 A/B 类检测）。废弃 TEST_RUNNER_FLAGS/TEST_FAIL_PATTERN/TEST_ERROR_PATTERN/TEST_IMPORT_PATTERN 环境变量
+- **P6 截图格式放宽**：check-p6-evidence.sh 从 PNG-only 改为接受任意图片格式（file 命令 + magic bytes fallback）
+- **P7 DESIGN_GAP 正则修复（T083）**：check-gate.sh 正则加 `>?` 匹配 markdown blockquote 格式
 - **P0-brief 四字段**：移除 `pruning_tendency` 字段（五字段→四字段：task/known_risks/executor_env/env_constraints）。理由：P0 阶段无足够信息判断裁剪倾向，与 P1 risk_level 重复，给 P1 analyst 施压。office-hours 触发条件简化为"大任务"（去掉 pruning_tendency 条件）
 - **阶段卡片措辞加固（P2.50）**：所有阶段卡片"推进条件"改为显式 AND checklist。消灭"可选"/"若有触发"/"若方案依赖"/"nudge"等模糊措辞。check-gate.sh P2 review 文件不存在时 exit 1（bug fix：原来文件不存在时跳过检查）。design_trivial/follows_existing_pattern 须附理由。minimal_validation 强制声明。P4"P5 由主 Agent 亲自执行"→"派发 verifier subagent 执行"。P5 签名校验"轻量验证"→"必须"。P8"手动确认"→"必须亲自执行"
 - **gate_commands.P3（P2.49）**：gate_commands 新增可选 P3 键（architect 在 P2 声明测试运行器命令）。check-tdd-red.sh 回退链扩展：`$TEST_RUNNER → gate_commands.P3 → which pytest → exit 3`。P3 键用 verbose 输出（区分 A/B 类错误），P5 键用紧凑输出，两者分离。非 pytest 项目不再需要每次手动设 TEST_RUNNER 环境变量

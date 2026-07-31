@@ -185,7 +185,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   可跳过的阶段及其跳过转移：
     跳过 P2（无设计阶段）→ P1--[P1 gate 通过]--> P3 或 P4（取决于 phases 列表）
     跳过 P3（无 TDD）→ P2--[P2 gate 通过]--> P4
-      （P3 跳过时 P4 gate 不要求红灯变绿，P5 的 pytest 全绿兜底）
+      （P3 跳过时 P4 gate 不要求红灯变绿，P5 的 gate_commands.P5 全绿兜底）
     跳过 P6（无验收）→ P5--[P5 gate 通过]--> P7
     跳过 P7（无一致性检查）→ P6--[P6 gate 通过]--> P8
     跳过 P8（无发布）→ P7--[P7 gate 通过]--> DONE（仅限不涉及发布的内部任务）
@@ -271,99 +271,23 @@ PAUSED 恢复协议：
 
 门槛接受**前两种**（assertion failure 或 B 类 import failure），拒绝第三种。
 
-**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析 pytest 输出。脚本输出 `assertion_failures=N, collection_errors=M` 格式，gate 判定为 exit 0（含经典红灯和 B 类红灯）。
+**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析测试输出。脚本通过 formatter 将测试输出标准化为 JSON，再判定 A/B 类（exit 0=红灯可推进 / exit 1=A类错误 / exit 2=绿灯违反TDD）。
 
 **`scripts/check-tdd-red.sh` 设计**：
 
-```bash
-#!/bin/bash
-# 检查 TDD 红灯：区分 A 类（测试代码有 bug）和 B 类（实现未写的 import 失败）
-# 退出 0 = 正确红灯（assertion failure > 0, collection error == 0）或 B 类红灯（import 未实现）
-# 退出 1 = A 类错误（测试代码自身有语法/import 错误）
-# 退出 2 = 测试全绿（说明实现先于测试写完，违反 TDD）
-# 退出 3 = 找不到测试运行器
-#
-# 本脚本是 pytest 的参考实现。agate 是通用协议，不绑定特定技术栈。
-# 非 Python 项目应提供自己的 TDD 红灯检查脚本，遵循 TEST_RUNNER 输出契约
-#（见 scripts/check-tdd-red.sh 完整注释）。
-#
-# 测试运行器探测链：$TEST_RUNNER → gate_commands.P3（P2-design.md 声明）→ which pytest → exit 3
-# 环境变量 TEST_RUNNER：最高优先级，手动覆盖。
-# 环境变量 TASK_DIR：任务目录路径，用于读取 P2-design.md 的 gate_commands.P3（可选键）。
-# 环境变量 PROJECT_MODULE：项目模块前缀（用于 B 类检测），未设置则退化为启发式。
+脚本通过 **formatter** 将测试输出标准化为 JSON，再判定 A/B 类错误。formatter 在 `gate_commands.P3_formatter` 中声明（可选键，见 P2-design.md）。不提供 formatter 时退化为 exit-code-only（所有红灯 = 可推进，精度降低但不会阻断）。
 
-if [ -n "$TEST_RUNNER" ]; then
-    RUNNER="$TEST_RUNNER"
-elif [ -n "${TASK_DIR:-}" ] && [ -f "$TASK_DIR/P2-design.md" ]; then
-    # 从 gate_commands.P3 读取（可选键，见 scripts/check-tdd-red.sh 完整实现）
-    P3_CMD=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 -c '
-import re, os, sys
-content = open(os.environ["GATE_FILE"]).read()
-m = re.search(r"^gate_commands:.*\n((?:  .*\n)*)", content, re.MULTILINE)
-if m:
-    for k, v in re.findall(r"^  (P3):\s*(.+)$", m.group(1), re.MULTILINE):
-        print(v.strip().strip("\""))
-' 2>/dev/null || true)
-    if [ -n "$P3_CMD" ]; then
-        RUNNER="$P3_CMD"
-    elif command -v pytest &>/dev/null; then
-        RUNNER="pytest"
-    else
-        echo "TDD_CHECK: no test runner found. Set TEST_RUNNER, declare gate_commands.P3, or install pytest." >&2
-        exit 3
-    fi
-elif command -v pytest &>/dev/null; then
-    RUNNER="pytest"
-else
-    echo "TDD_CHECK: no test runner found. Set TEST_RUNNER, declare gate_commands.P3, or install pytest." >&2
-    exit 3
-fi
+**formatter 契约**：formatter 脚本接收测试运行器的原始输出（stdin），输出标准化 JSON（含 `exit_code`、`failed`、`errors`、`import_errors`、`syntax_errors` 等字段）。check-tdd-red.sh 解析 JSON 判定：
+- assertion 失败 / 项目内 import 失败 → B 类红灯（exit 0，可推进）
+- SyntaxError / 第三方 import 失败 → A 类错误（exit 1，测试代码自身错误）
+- 全部通过 → exit 2（实现先于测试，违反 TDD）
+- 无可用测试运行器 → exit 3
 
-RESULT=$($RUNNER -q 2>&1)
-EXIT=$?
+**探测链**：`$TEST_RUNNER` 环境变量 → `gate_commands.P3`（P2-design.md 声明）→ `which pytest` → exit 3。`$TEST_RUNNER` 始终优先（退化为 exit-code-only，无 formatter）。
 
-FAILED=$(echo "$RESULT" | grep -oP '\d+ failed' | grep -oP '\d+')
-ERRORS=$(echo "$RESULT" | grep -oP '\d+ error' | grep -oP '\d+')
+**formatter 选择**：见 `assets/formatters/README.md` 速查表。常用：pytest → `pytest.sh`，vitest → `vitest.sh`，go test → `go-test.sh`，其他 → `generic-exit-only.sh`。
 
-echo "assertion_failures=${FAILED:-0}, collection_errors=${ERRORS:-0}"
-
-if [ "$EXIT" -eq 0 ]; then
-    echo "TDD_CHECK: tests pass, no red-light"
-    exit 2
-fi
-
-if [ "${ERRORS:-0}" -eq 0 ] && [ "${FAILED:-0}" -gt 0 ]; then
-    echo "TDD_CHECK: classic red-light (assertion failures only)"
-    exit 0
-fi
-
-if [ "${ERRORS:-0}" -gt 0 ]; then
-    IMPORT_ERRORS=$(echo "$RESULT" | grep -E '(ImportError|ModuleNotFoundError|Cannot find module|ClassNotFoundException|NoClassDefFoundError|unresolved import):' || true)
-    if [ -n "$IMPORT_ERRORS" ]; then
-        SYNTAX_ERRORS=$(echo "$RESULT" | grep -E '(SyntaxError|IndentationError|CompileError|ParseError)' || true)
-        if [ -z "$SYNTAX_ERRORS" ]; then
-            if [ -n "$PROJECT_MODULE" ]; then
-                INTERNAL_IMPORT=$(echo "$IMPORT_ERRORS" | grep -E "(from ${PROJECT_MODULE}|import ${PROJECT_MODULE}|${PROJECT_MODULE}\.)" || true)
-                if [ -n "$INTERNAL_IMPORT" ]; then
-                    echo "TDD_CHECK: B-class red-light (project module '${PROJECT_MODULE}')"
-                    exit 0
-                else
-                    echo "TDD_CHECK: A-class error (not from project module '${PROJECT_MODULE}')"
-                    exit 1
-                fi
-            else
-                echo "TDD_CHECK: B-class red-light (heuristic: no syntax errors)"
-                exit 0
-            fi
-        fi
-    fi
-    echo "TDD_CHECK: A-class error (test code has bugs)"
-    exit 1
-fi
-
-echo "TDD_CHECK: unexpected test result"
-exit 1
-```
+**project_module**（可选）：gate_commands 中声明，用于 B 类 import 错误检测——区分项目内部模块未实现（B 类，可推进）和第三方依赖缺失（A 类，测试代码错误）。
 
 **P8 与 READY 的说明**：
 

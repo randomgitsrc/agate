@@ -1339,6 +1339,18 @@ EOF
     [[ "$output" == *"DESIGN_GAP"* ]]
 }
 
+@test "G_DG_ANCHOR.3 P7 markdown blockquote 格式 > [DESIGN_GAP: xxx] 计入 GAP 计数" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P7-consistency.md" <<'EOF'
+# P7 一致性检查
+> [DESIGN_GAP: xxx] 未配对
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"DESIGN_GAP"* ]]
+}
+
 # ========== 回退抵达检测（OLD_PHASE 可选第 3 参数）==========
 
 @test "G_RETREAT.1 P1 无 OLD_PHASE（省略）→ 行为不变，P1-review.md 缺失仍 exit 1" {

@@ -76,8 +76,8 @@ if [ "$UI_AFFECTED" = "true" ]; then
         fi
         EMPTY_COUNT=0
         EMPTY_DETAILS=""
-        PNG_WARNING=0
-        PNG_DETAILS=""
+        SMALL_IMAGE_WARNING=0
+        SMALL_IMAGE_DETAILS=""
         VARIANCE_WARNING=0
         if [ "${AGATE_SKIP_IMAGE_CHECKS:-0}" = "1" ]; then
             echo "GATE P6-EVIDENCE WARNING: AGATE_SKIP_IMAGE_CHECKS=1，方差/相似度检测已主动跳过" >&2
@@ -85,12 +85,24 @@ if [ "$UI_AFFECTED" = "true" ]; then
         while IFS= read -r -d '' img; do
             SIZE=$(stat -c%s "$img" 2>/dev/null || stat -f%z "$img" 2>/dev/null || echo 0)
             if [ "$SIZE" -le 1024 ]; then
-                # PNG header check: 前 8 字节 = \x89PNG\r\n\x1a\n
-                HEADER=$(head -c 8 "$img" 2>/dev/null | od -A n -t x1 | tr -d ' ')
-                EXPECTED='89504e470d0a1a0a'
-                if [ "$HEADER" = "$EXPECTED" ]; then
-                    PNG_WARNING=$((PNG_WARNING + 1))
-                    PNG_DETAILS="${PNG_DETAILS}  - $(basename "$img")"$'\n'
+                IS_IMAGE=0
+                if command -v file >/dev/null 2>&1; then
+                    MIME=$(file -b --mime-type "$img" 2>/dev/null || echo "")
+                    case "$MIME" in
+                        image/*) IS_IMAGE=1 ;;
+                    esac
+                else
+                    MAGIC=$(head -c 12 "$img" 2>/dev/null | od -A n -t x1 | tr -d ' \n')
+                    case "$MAGIC" in
+                        89504e47*) IS_IMAGE=1 ;;
+                        ffd8*) IS_IMAGE=1 ;;
+                        47494638*) IS_IMAGE=1 ;;
+                        52494646????????57454250*) IS_IMAGE=1 ;;
+                    esac
+                fi
+                if [ "$IS_IMAGE" -eq 1 ]; then
+                    SMALL_IMAGE_WARNING=$((SMALL_IMAGE_WARNING + 1))
+                    SMALL_IMAGE_DETAILS="${SMALL_IMAGE_DETAILS}  - $(basename "$img")"$'\n'
                 else
                     EMPTY_COUNT=$((EMPTY_COUNT + 1))
                     EMPTY_DETAILS="${EMPTY_DETAILS}  - $(basename "$img")"$'\n'
@@ -126,13 +138,13 @@ except Exception:
         fi
         fi
         if [ "$EMPTY_COUNT" -gt 0 ]; then
-            echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个非 PNG 文件 ≤ 1KB（疑似充数）" >&2
+            echo "GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 ${EMPTY_COUNT} 个非图片文件 ≤ 1KB（疑似充数）" >&2
             printf '%s\n' "$EMPTY_DETAILS" >&2
             exit 1
         fi
-        if [ "$PNG_WARNING" -gt 0 ]; then
-            echo "GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 ${PNG_WARNING} 个合法 PNG ≤ 1KB（元素级小截图，不阻断但请确认非充数）" >&2
-            printf '%s\n' "$PNG_DETAILS" >&2
+        if [ "$SMALL_IMAGE_WARNING" -gt 0 ]; then
+            echo "GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 ${SMALL_IMAGE_WARNING} 个合法图片 ≤ 1KB（元素级小截图，不阻断但请确认非充数）" >&2
+            printf '%s\n' "$SMALL_IMAGE_DETAILS" >&2
             exit 2
         fi
         MD5_LIST=$(find "$SCREENSHOTS_DIR" -type f -not -name '.*' -exec md5sum {} \; 2>/dev/null | sort)

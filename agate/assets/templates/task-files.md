@@ -30,7 +30,7 @@ agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier|visio
 | P3 | {test_code_dir}/ | 测试代码目录（项目自定义，如 `backend/tests/`）|
 | P4 | P4-implementation.md | 声明 `implementation_dir: {实际路径}` |
 | P4 | {implementation_dir}/ | 代码目录（项目自定义，如 `src/` 或 `backend/app/`）|
-| P5 | P5-test-results/unit.md | 标注 `failed: N`（仅供参考，gate 以主 Agent 跑 pytest 为准）|
+| P5 | P5-test-results/unit.md | 标注 `failed: N`（仅供参考，gate 以主 Agent 跑 gate_commands.P5 为准）|
 | P5 | P5-test-results/e2e.md | UI 任务必须：Playwright 实跑结果 + 截图路径。须含 `status: passed` 字段（hook 检查） |
 | P6 | P6-acceptance.md | P1 每条 BDD 有实跑结果（**只允许 PASS 或 FAIL，不允许中间态**）；UI 条件含截图；无未决 `[NEED_CONFIRM]`（门槛）|
 | P7 | P7-consistency.md | 无 `[BLOCKER]` 标记（门槛）|
@@ -62,7 +62,7 @@ P3/P4 的代码路径由产出文件显式声明，不使用固定目录名：
 - P1 → 主 Agent 确认有 BDD 条件 + 无未决 `[NEED_CONFIRM]`
 - P2-review.md `status` → subagent 评审产出的结论
 - P3 → 主 Agent 跑 `scripts/check-tdd-red.sh` 验证（UI 任务查 Playwright 用例存在）
-- P5 → 主 Agent 跑 `pytest -q` 验证（UI 任务实跑 Playwright/E2E）
+- P5 → 主 Agent 跑 `gate_commands.P5` 验证（UI 任务实跑 Playwright/E2E）
 - P6 → 主 Agent 确认 P1 每条 BDD 有实跑结果 + 无未决 `[NEED_CONFIRM]`
 - P7 → 主 Agent grep `[BLOCKER]` 验证
 - P8 → 主 Agent 为每个 package 跑发布检查命令验证
@@ -209,9 +209,12 @@ ui_affected: false
 ## 3. gate 命令（在 P2 固化，后续不得修改）
 gate_commands:
   P3: "pytest"                     # 可选：测试运行器（verbose 输出，供 check-tdd-red.sh 自动读取）
+  P3_formatter: "pytest.sh"  # 可选：formatter 脚本（见 assets/formatters/README.md 速查表）
   P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
+  P5_formatter: "pytest.sh"        # 可选：formatter 脚本，将测试输出标准化为 JSON
   P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected: true 时必填
   P6: "pytest -q --tb=no tests/acceptance/"
+  project_module: "myapp"  # 可选：项目模块前缀，B 类检测用
 # P3 键（可选）：声明后 check-tdd-red.sh 自动读取，无需主 Agent 手动设 TEST_RUNNER。
 # P3 用 verbose 输出（区分 A/B 类错误），P5 用紧凑输出（只判过没过），两者分离。
 # 非 pytest 项目建议声明此键（如 P3: "npx vitest run"）。

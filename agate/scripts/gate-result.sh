@@ -68,3 +68,33 @@ has_staged_phase_output() {
     git diff --cached --name-only 2>/dev/null | grep -qE 'P[0-9]+-.*\.(md|yaml)$' || return 1
     return 0
 }
+
+resolve_formatter() {
+    local fmt="$1"
+    local task_dir="${2:-}"
+    local agate_root="${AGATE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+    [ "${fmt:0:1}" = "/" ] && { [ -f "$fmt" ] && { echo "$fmt"; return 0; } || return 1; }
+    if [ -n "$task_dir" ] && [ -f "$task_dir/.agate/formatters/$fmt" ]; then
+        echo "$task_dir/.agate/formatters/$fmt"
+    elif [ -f "$agate_root/assets/formatters/$fmt" ]; then
+        echo "$agate_root/assets/formatters/$fmt"
+    else
+        return 1
+    fi
+}
+
+run_test_with_formatter() {
+    local cmd="$1"
+    local fmt_path="$2"
+    local exit_code output
+    output=$(eval "$cmd" 2>&1) && exit_code=0 || exit_code=$?
+    if [ -z "$fmt_path" ]; then
+        echo "{\"exit_code\":$exit_code,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[]}"
+    else
+        local json_result
+        json_result=$(echo "$output" | bash "$fmt_path" "$exit_code" 2>/dev/null) || {
+            echo "{\"exit_code\":$exit_code,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[]}"
+        }
+        echo "$json_result"
+    fi
+}

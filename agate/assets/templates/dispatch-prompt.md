@@ -127,7 +127,7 @@ P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 
 示例：- PASS BDD-1: 用户可以创建分享链接（p6-bdd-1.png）
 hook 会检查引用路径是否真实存在。无引用的 PASS 行不算有证据。
 ## P6 verifier 脚本执行
-P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agent 执行。
+P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由主 Agent 执行。
 执行输出落盘到 P6-evidence/test-output.log。
 若主 Agent 需要自写脚本（如 verifier 脚本不兼容当前环境），自写脚本的执行输出也落盘到 P6-evidence/test-output.log。
 关键约束：P6-evidence/ 必须有执行产出，不接受空目录。
