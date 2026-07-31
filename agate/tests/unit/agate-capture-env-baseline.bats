@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/agate-capture-env-baseline.bats — EB.1-EB.12
+# tests/unit/agate-capture-env-baseline.bats — EB.1-EB.15
 
 load ../helpers/load.bash
 
@@ -87,7 +87,8 @@ FAILED tests/test_a.py::test_x
 FAILED tests/test_b.py::test_y
 FAILED tests/test_c.py::test_z" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
-  P5: $fake"
+  P5: $fake
+  P5_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
@@ -109,7 +110,8 @@ FAILED tests/test_c.py::test_z" 1)
 FAILED tests/test_a.py::test_x
 FAILED tests/test_b.py::test_y" 1 "$sentinel")
     setup_git_repo_with_p2 "$repo" "gate_commands:
-  P5: $fake"
+  P5: $fake
+  P5_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
     [ -f "$sentinel" ]
@@ -129,7 +131,8 @@ FAILED tests/test_b.py::test_y" 1 "$sentinel")
     fake=$(make_fake_runner "1 failed, 5 passed
 FAILED tests/test_a.py::test_x" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
-  P5: $fake"
+  P5: $fake
+  P5_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
     echo "new commit" > "$repo/newfile.txt"
@@ -151,11 +154,12 @@ FAILED tests/test_a.py::test_x" 1)
 FAILED tests/test_d.py::test_w
 FAILED tests/test_e.py::test_v" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
-  P5: $fake1"
+  P5: $fake1
+  P5_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
     mkdir -p "$repo/docs/tasks/T002"
-    printf 'gate_commands:\n  P5: %s' "$fake2" > "$repo/docs/tasks/T002/P2-design.md"
+    printf 'gate_commands:\n  P5: %s\n  P5_formatter: pytest.sh' "$fake2" > "$repo/docs/tasks/T002/P2-design.md"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T002"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
@@ -167,10 +171,11 @@ FAILED tests/test_e.py::test_v" 1)
     local fake
     fake=$(make_fake_runner "some error output" 127)
     setup_git_repo_with_p2 "$repo" "gate_commands:
-  P5: $fake"
+  P5: $fake
+  P5_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"未找到可识别的失败汇总行"* ]]
+    [[ "$output" == *"本身崩溃"* ]]
     [ ! -f "$repo/docs/tasks/T001/pre-task-baseline.md" ]
 }
 
@@ -180,7 +185,8 @@ FAILED tests/test_e.py::test_v" 1)
     fake=$(make_fake_runner "3 failed, 5 passed
 FAILED tests/test_a.py::test_x" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
-  P5: $fake"
+  P5: $fake
+  P5_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"不一致"* ]]
@@ -198,7 +204,9 @@ FAILED tests/test_b.py::test_y
 FAILED tests/test_c.py::test_z" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake1
-  P5_e2e: $fake2"
+  P5_formatter: pytest.sh
+  P5_e2e: $fake2
+  P5_e2e_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
@@ -218,6 +226,7 @@ FAILED tests/test_c.py::test_z" 1)
     cat > "$dir/P2-design.md" <<'EOF'
 gate_commands:
   P5: "pytest -q"
+  P5_formatter: "pytest.sh"
 EOF
     run env GIT_DIR=/nonexistent/.git bash "$AGATE_SCRIPTS/agate-capture-env-baseline.sh" "$dir"
     [ "$status" -eq 0 ]
@@ -231,7 +240,8 @@ EOF
     fake=$(make_fake_runner "1 failed, 5 passed
 FAILED tests/test_a.py::test_x" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
-  P5: $fake"
+  P5: $fake
+  P5_formatter: pytest.sh"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
     [ "$status" -eq 0 ]
     local cache_dir="$repo/docs/.agate-env-baseline-cache"
@@ -245,4 +255,52 @@ FAILED tests/test_a.py::test_x" 1)
     local baseline
     baseline=$(cat "$repo/docs/tasks/T001/pre-task-baseline.md")
     [[ "$baseline" == *"corrupted content"* ]]
+}
+
+@test "EB.13 P5 + P5_formatter: pytest.sh → fail-list 从 JSON 提取" {
+    local repo="$BATS_TEST_TMPDIR/eb13-repo"
+    local fake
+    fake=$(make_fake_runner "2 failed, 3 passed
+FAILED tests/test_alpha.py::test_one
+FAILED tests/test_beta.py::test_two" 1)
+    setup_git_repo_with_p2 "$repo" "gate_commands:
+  P5: $fake
+  P5_formatter: pytest.sh"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"已捕获"* ]]
+    [[ "$output" == *"失败数=2"* ]]
+    grep -q 'tests/test_alpha.py::test_one' "$repo/docs/tasks/T001/pre-task-baseline.md"
+    grep -q 'tests/test_beta.py::test_two' "$repo/docs/tasks/T001/pre-task-baseline.md"
+}
+
+@test "EB.14 P5 无 formatter → WARNING，不写文件" {
+    local repo="$BATS_TEST_TMPDIR/eb14-repo"
+    local fake
+    fake=$(make_fake_runner "2 failed, 5 passed
+FAILED tests/test_a.py::test_x
+FAILED tests/test_b.py::test_y" 1)
+    setup_git_repo_with_p2 "$repo" "gate_commands:
+  P5: $fake"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"无 formatter"* ]]
+    [ ! -f "$repo/docs/tasks/T001/pre-task-baseline.md" ]
+}
+
+@test "EB.15 vitest P5 + P5_formatter: vitest.sh → fail-list 提取" {
+    local repo="$BATS_TEST_TMPDIR/eb15-repo"
+    local fake
+    fake=$(make_fake_runner "Tests  2 failed | 4 passed
+FAIL tests/b.test.ts
+FAIL tests/c.test.ts" 1)
+    setup_git_repo_with_p2 "$repo" "gate_commands:
+  P5: $fake
+  P5_formatter: vitest.sh"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"已捕获"* ]]
+    [[ "$output" == *"失败数=2"* ]]
+    grep -q 'tests/b.test.ts' "$repo/docs/tasks/T001/pre-task-baseline.md"
+    grep -q 'tests/c.test.ts' "$repo/docs/tasks/T001/pre-task-baseline.md"
 }
