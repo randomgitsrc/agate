@@ -58,7 +58,7 @@ subagent 返回后，主 Agent 校验：
    5. 独立验证 subagent 的声明：
        主 Agent 必须亲自执行 gate 命令验证门槛，不能仅凭 subagent
        返回的摘要或产出文件中的声明判定通过。
-       例：P5 subagent 说 "failed=0" → 主 Agent 跑 pytest -q
+       例：P5 subagent 说 "failed=0" → 主 Agent 跑 gate_commands.P5
            确认 exit 0 且 failed 行确实为 0，才算通过。
    6. 修改类任务的文件内容校验（外部可观测）：
       subagent 返回"已修复/已实现"后，主 Agent 对声称修改的文件做最小验证：
@@ -542,7 +542,7 @@ P1 有 N 条 BDD → P6 必须有 ≥N 条验收结果（PASS 或 FAIL，允许 
 - traces/ — Playwright trace（仅 UI 任务，可选）
 无证据的 PASS 标记 = gate 不通过。
 ## P6 verifier 脚本执行
-P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agent 执行。
+P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由主 Agent 执行。
 执行输出落盘到 P6-evidence/test-output.log。
 若主 Agent 需要自写脚本（如 verifier 脚本不兼容当前环境），自写脚本的执行输出也落盘到 P6-evidence/test-output.log。
 关键约束：P6-evidence/ 必须有执行产出，不接受空目录。

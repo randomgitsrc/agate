@@ -185,7 +185,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   可跳过的阶段及其跳过转移：
     跳过 P2（无设计阶段）→ P1--[P1 gate 通过]--> P3 或 P4（取决于 phases 列表）
     跳过 P3（无 TDD）→ P2--[P2 gate 通过]--> P4
-      （P3 跳过时 P4 gate 不要求红灯变绿，P5 的 pytest 全绿兜底）
+      （P3 跳过时 P4 gate 不要求红灯变绿，P5 的 gate_commands.P5 全绿兜底）
     跳过 P6（无验收）→ P5--[P5 gate 通过]--> P7
     跳过 P7（无一致性检查）→ P6--[P6 gate 通过]--> P8
     跳过 P8（无发布）→ P7--[P7 gate 通过]--> DONE（仅限不涉及发布的内部任务）
@@ -271,7 +271,7 @@ PAUSED 恢复协议：
 
 门槛接受**前两种**（assertion failure 或 B 类 import failure），拒绝第三种。
 
-**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析 pytest 输出。脚本输出 `assertion_failures=N, collection_errors=M` 格式，gate 判定为 exit 0（含经典红灯和 B 类红灯）。
+**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析测试输出。脚本通过 formatter 将测试输出标准化为 JSON，再判定 A/B 类（exit 0=红灯可推进 / exit 1=A类错误 / exit 2=绿灯违反TDD）。
 
 **`scripts/check-tdd-red.sh` 设计**：
 
