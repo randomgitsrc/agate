@@ -246,8 +246,8 @@ print(count)
           exit 1
       fi
       # DESIGN_GAP 配对检查（v0.6：未配对 REVIEWED 标记的 DESIGN_GAP → 不通过）
-      DESIGN_GAP_COUNT=$(grep -cE '^\s*-?\s*\[DESIGN_GAP:' "$P7_FILE" 2>/dev/null || echo 0)
-      DESIGN_GAP_REVIEWED=$(grep -cE '^\s*-?\s*\[DESIGN_GAP_REVIEWED' "$P7_FILE" 2>/dev/null || echo 0)
+      DESIGN_GAP_COUNT=$(grep -cE '^\s*>?\s*-?\s*\[DESIGN_GAP:' "$P7_FILE" 2>/dev/null || echo 0)
+      DESIGN_GAP_REVIEWED=$(grep -cE '^\s*>?\s*-?\s*\[DESIGN_GAP_REVIEWED' "$P7_FILE" 2>/dev/null || echo 0)
       DESIGN_GAP_COUNT=$(echo "$DESIGN_GAP_COUNT" | tail -1)
       DESIGN_GAP_REVIEWED=$(echo "$DESIGN_GAP_REVIEWED" | tail -1)
       UNREVIEWED=$((DESIGN_GAP_COUNT - DESIGN_GAP_REVIEWED))
