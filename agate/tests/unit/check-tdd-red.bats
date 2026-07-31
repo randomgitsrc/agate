@@ -274,7 +274,24 @@ gate_commands:
 EOF
     run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"classic red-light"* ]]
+    [[ "$output" == *"B-class"* ]]
+}
+
+@test "TDD.F4: formatter detects A-class (SyntaxError) → exit 1 + A-class" {
+    local fake
+    fake=$(make_fake_pytest "1 error
+ERROR tests/test_x.py - SyntaxError: invalid syntax" 2)
+    local task_dir="$BATS_TEST_TMPDIR/task-f4"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P3_formatter: "pytest.sh"
+  P5: "pytest -q --tb=no"
+EOF
+    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"A-class"* ]]
 }
 
 @test "TDD.F11: absolute path formatter works" {
@@ -312,23 +329,6 @@ EOF
     run env -u TEST_RUNNER PROJECT_MODULE="requests" PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
-}
-
-@test "TDD.F4: formatter detects A-class (SyntaxError) → exit 1 + A-class" {
-    local fake
-    fake=$(make_fake_pytest "1 error
-ERROR tests/test_x.py - SyntaxError: invalid syntax" 2)
-    local task_dir="$BATS_TEST_TMPDIR/task-f4"
-    mkdir -p "$task_dir"
-    cat > "$task_dir/P2-design.md" <<EOF
-gate_commands:
-  P3: "$fake"
-  P3_formatter: "pytest.sh"
-  P5: "pytest -q --tb=no"
-EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"A-class"* ]]
 }
 
 @test "TDD.F5: formatter detects A-class (import NOT from project_module) → exit 1 + A-class" {
