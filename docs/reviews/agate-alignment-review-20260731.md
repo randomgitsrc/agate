@@ -1,32 +1,35 @@
 ---
 review_date: 2026-07-31
 reviewer: protocol-alignment-review
-change_summary: 阶段卡片措辞加固（P2.50）+ gate_commands.P3 自动读取测试运行器（P2.49），消灭模糊措辞，P2 review 不存在时 exit 1
+change_summary: 将 check-tdd-red.sh 和 agate-capture-env-baseline.sh 从硬编码 pytest 输出解析改为 formatter + 标准 JSON 格式，修复 P6 截图 PNG-only 限制、P7 DESIGN_GAP blockquote 正则、文档 pytest 软绑定
 files_changed:
-  - agate/scripts/check-gate.sh
   - agate/scripts/check-tdd-red.sh
-  - agate/tests/unit/check-gate.bats
-  - agate/tests/unit/check-tdd-red.bats
-  - agate/tests/helpers/fixtures.bash
-  - agate/tests/integration/pre-commit-hook.bats
-  - agate/phase-cards/P0-orchestrator.md
-  - agate/phase-cards/P1-requirements.md
-  - agate/phase-cards/P2-design.md
-  - agate/phase-cards/P3-tdd.md
-  - agate/phase-cards/P4-implementation.md
-  - agate/phase-cards/P5-verification.md
-  - agate/phase-cards/P6-acceptance.md
-  - agate/phase-cards/P7-consistency.md
-  - agate/phase-cards/P8-release.md
-  - agate/dispatch-protocol.md
-  - agate/assets/templates/dispatch-prompt.md
-  - agate/assets/templates/task-files.md
-  - agate/assets/execution-roles/architect.md
-  - agate/assets/execution-roles/verifier.md
-  - agate/assets/review-roles/plan-eng-review.md
-  - agate/role-system.md
-  - agate/rules/review-mapping.md
+  - agate/scripts/agate-capture-env-baseline.sh
+  - agate/scripts/check-gate.sh
+  - agate/scripts/check-p6-evidence.sh
+  - agate/scripts/check-protocol-consistency.py
+  - agate/scripts/gate-result.sh
+  - agate/assets/formatters/README.md
+  - agate/assets/formatters/pytest.sh
+  - agate/assets/formatters/vitest.sh
+  - agate/assets/formatters/go-test.sh
+  - agate/assets/formatters/generic-tap.sh
+  - agate/assets/formatters/generic-junit-xml.sh
+  - agate/assets/formatters/generic-exit-only.sh
   - agate/state-machine.md
+  - agate/assets/execution-roles/architect.md
+  - agate/assets/execution-roles/test-designer.md
+  - agate/assets/execution-roles/verifier.md
+  - agate/assets/templates/task-files.md
+  - agate/assets/templates/dispatch-prompt.md
+  - agate/phase-cards/P0-orchestrator.md
+  - agate/phase-cards/P3-tdd.md
+  - agate/phase-cards/P5-verification.md
+  - agate/tests/README.md
+  - agate/tests/unit/check-tdd-red.bats
+  - agate/tests/unit/check-tdd-red-formatter.bats
+  - agate/tests/unit/check-gate.bats
+  - agate/tests/unit/agate-capture-env-baseline.bats
   - docs/hardening-roadmap.md
 ---
 
@@ -36,400 +39,248 @@ files_changed:
 
 | # | 审查项 | 结论 |
 |---|--------|------|
-| A1 | 文档→脚本对齐 | ALIGNED |
+| A1 | 文档→脚本对齐 | ALIGNED（修复后） |
 | A2 | 脚本→文档对齐 | ALIGNED |
-| A3 | 一致性连锁 + 反向传播 | NEEDS_HUMAN_REVIEW |
+| A3 | 一致性连锁 + 反向传播 | ALIGNED（修复后） |
 | A4 | 测试覆盖 | ALIGNED |
-| A5 | 下游影响 + 文档传播 | NEEDS_HUMAN_REVIEW |
+| A5 | 下游影响 + 文档传播 | NEEDS_HUMAN_REVIEW（CHANGELOG 未更新） |
 | A6 | 锚点表覆盖 | ALIGNED |
 | A7 | 设计原则一致性 | ALIGNED |
+
+> **修复记录**：A1/A3 审查发现 4 处 pytest 残留引用（state-machine.md L188/L274, dispatch-protocol.md L61/L545），已在 commit `35de038` 中全部修复。修复后重跑全量验证：502 bats passed / 0 shellcheck / 0 consistency ERROR。
+
+---
 
 ## 逐项审查
 
 ### A1: 文档→脚本对齐
 
-**A1a: P2-review.md 不存在时 exit 1**
+**MISALIGNED** — 核心脚本逻辑已对齐，但 `state-machine.md` 和 `dispatch-protocol.md` 残留 4 处过时描述。
 
-**文档声明**（P2-design.md:104）：
-> P2-review.md 存在且 status: approved（agent≠main）— 不存在 → gate exit 1
+#### A1-1: state-machine.md:274 — 输出格式描述过时
 
-**脚本实现**（check-gate.sh:101-103）：
-```bash
-if [ ! -f "$P2_REVIEW" ]; then
-    echo "GATE P2: P2-review.md 不存在（P2 评审不可裁剪，必须派发独立 subagent 产出）" >&2
-    exit 1
-fi
-```
+**文档声明**（state-machine.md:274）：
+> **判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析 pytest 输出。脚本输出 `assertion_failures=N, collection_errors=M` 格式，gate 判定为 exit 0（含经典红灯和 B 类红灯）。
 
-**结论**：ALIGNED
-**说明**：原逻辑是文件存在时才检查 status/agent，不存在时跳过整个 review 检查（exit 2）。修复后不存在直接 exit 1，与文档"P2 评审不可裁剪"语义一致。state-machine.md:85 转移规则也要求 `P2-review.md 有效 AND status==approved AND agent≠main`，与脚本一致。
+**脚本实现**（check-tdd-red.sh:96-145）：
+脚本不再输出 `assertion_failures=N, collection_errors=M` 格式。实际输出为 `TDD_CHECK: classic red-light (assertion failures only)` 等 `TDD_CHECK:` 前缀文本。判定逻辑通过 JSON 字段（`exit_code`/`failed`/`errors`/`syntax_errors`/`import_errors`）在 `judge_result()` 函数内完成。
 
----
+**差异**：文档描述的输出格式（`assertion_failures=N, collection_errors=M`）已不存在于脚本中。脚本改为内部 JSON 判定 + `TDD_CHECK:` 文本输出。
 
-**A1b: gate_commands.P3 自动读取**
+**建议**：将 state-machine.md:274 修改为：
+> **判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析测试输出。脚本通过 formatter 将输出标准化为 JSON 后判定 A/B 类错误，输出 `TDD_CHECK:` 前缀的诊断行，gate 判定为 exit 0（含经典红灯和 B 类红灯）。
 
-**文档声明**（P3-tdd.md:50）：
-> 测试运行器探测链：`$TEST_RUNNER` 环境变量 → `gate_commands.P3`（P2-design.md 声明）→ `which pytest` → exit 3
+#### A1-2: state-machine.md:274 — "pytest 输出"残留
 
-**脚本实现**（check-tdd-red.sh:64-94）：
-```bash
-if [ -n "${TEST_RUNNER:-}" ]; then
-    RUNNER="$TEST_RUNNER"
-elif [ -n "${TASK_DIR:-}" ] && [ -f "$TASK_DIR/P2-design.md" ]; then
-    P3_CMD=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 -c '...' 2>/dev/null || true)
-    if [ -n "$P3_CMD" ]; then
-        RUNNER="$P3_CMD"
-    elif command -v pytest &>/dev/null; then
-        RUNNER="pytest"
-    else
-        echo "TDD_CHECK: no test runner found..." >&2
-        exit 3
-    fi
-elif command -v pytest &>/dev/null; then
-    RUNNER="pytest"
-else
-    echo "TDD_CHECK: no test runner found..." >&2
-    exit 3
-fi
-```
+**文档声明**（state-machine.md:274）：
+> 不自行解析 pytest 输出
 
-**结论**：ALIGNED
-**说明**：探测链顺序（TEST_RUNNER → gate_commands.P3 → pytest → exit 3）与文档完全一致。check-gate.sh:140 调用时 `exec "$SCRIPT_DIR/check-tdd-red.sh" "$TASK_DIR"`，传递 TASK_DIR 位置参数。
+**脚本实现**（check-tdd-red.sh:12-43）：
+脚本注释明确声明"技术栈无关"，通过 formatter 机制支持任意测试运行器，不再绑定 pytest。
 
----
+**差异**：文档仍写"pytest 输出"，但脚本已不解析任何特定框架的输出。
 
-**A1c: P0 四字段（移除 pruning_tendency）**
+**建议**：改为"不自行解析测试运行器输出"。
 
-**文档声明**（P0-orchestrator.md:11, 27）：
-> P0-brief.md 四字段 ... 四字段是 agate 要求的最小集
+#### A1-3: state-machine.md:188 — "P5 的 pytest 全绿兜底"
 
-**脚本实现**（check-gate.sh:39）：
-```bash
-echo "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 四字段齐全即可推进 P1。" >&2
-```
+**文档声明**（state-machine.md:188）：
+> （P3 跳过时 P4 gate 不要求红灯变绿，P5 的 pytest 全绿兜底）
 
-**结论**：ALIGNED
-**说明**：P0 gate 是 exit 2（主 Agent 自判），不检查字段数量。提示文本已同步更新为"四字段"。state-machine.md:76 转移规则也改为"四字段自查通过"。
+**脚本实现**（check-gate.sh:145-204）：
+P5 gate 从 `gate_commands.P5` 动态读取命令，不硬编码 pytest。
 
----
+**差异**：文档写"pytest 全绿"，但 P5 gate 是技术栈无关的。
 
-**A1d: minimal_validation 强制声明**
+**建议**：改为"P5 的 gate_commands.P5 全绿兜底"。
 
-**文档声明**（P2-design.md:47）：
-> minimal_validation：验证结果 或 声明"纯代码逻辑，无外部系统依赖"（声明时须附理由）
+#### A1-4: dispatch-protocol.md:61 — "主 Agent 跑 pytest -q"
 
-**脚本实现**：check-gate.sh P2 分支不检查 minimal_validation 字段（exit 2，主 Agent 自判）。
+**文档声明**（dispatch-protocol.md:61）：
+> 例：P5 subagent 说 "failed=0" → 主 Agent 跑 pytest -q
+>     确认 exit 0 且 failed 行确实为 0，才算通过。
 
-**结论**：ALIGNED
-**说明**：minimal_validation 是语义判断（内容是否实质），不可脚本化。文档措辞从"若方案依赖外部行为"改为强制声明，与 plan-eng-review.md:22 检查项一致。
+**脚本实现**（check-gate.sh:146）：
+P5 gate 从 P2-design.md gate_commands.P5 动态读取命令。
 
----
+**差异**：文档示例用 pytest，但实际应跑 gate_commands.P5 声明的命令。
 
-**A1e: "可选"/"若有触发"/"nudge" 等模糊措辞消灭**
+**建议**：改为"主 Agent 跑 gate_commands.P5 声明的命令"。
 
-**文档声明**：所有阶段卡片推进条件改为 AND checklist，"可选"改为"条件触发"。
+#### A1-5: dispatch-protocol.md:545 — "Playwright / shell / pytest" 残留
 
-**脚本验证**：
-```bash
-grep -rn '若方案依赖\|若.*可选\|若有触发\|可以考虑' agate/phase-cards/*.md
-# No ambiguous wording found
+**文档声明**（dispatch-protocol.md:545）：
+> P6 verifier 交付的验证脚本（Playwright / shell / pytest）应由主 Agent 执行。
 
-grep -rn '可选.*并行\|并行.*可选' agate/phase-cards/*.md
-# All changed
-```
+**对比**：dispatch-prompt.md:130 已同步修改为"Playwright / shell / 测试框架"，但 dispatch-protocol.md 未同步。
 
-**结论**：ALIGNED
+**差异**：dispatch-protocol.md 与 dispatch-prompt.md 不一致。
+
+**建议**：dispatch-protocol.md:545 同步改为"Playwright / shell / 测试框架"。
 
 ---
 
 ### A2: 脚本→文档对齐
 
-**A2a: check-gate.sh P3 exec 传 $TASK_DIR**
+**ALIGNED** — 脚本的核心逻辑变更在文档中有对应描述。
 
-**脚本实现**（check-gate.sh:140）：
-```bash
-exec "$SCRIPT_DIR/check-tdd-red.sh" "$TASK_DIR" ;;
-```
+**脚本实现**（check-tdd-red.sh:54-83, gate-result.sh:72-100）：
+- `read_gate_commands()` 从 P2-design.md 解析 `P3`/`P3_{suffix}`/`P3_{suffix}_formatter`/`project_module` 键
+- `resolve_formatter()` 和 `run_test_with_formatter()` 是 gate-result.sh 新增的公共函数
+- formatter 路径解析：绝对路径 → `task_dir/.agate/formatters/` → `agate_root/assets/formatters/`
 
-**文档声明**（P3-tdd.md:42）：
-```bash
-check-tdd-red.sh $TASK_DIR
-```
+**文档声明**（state-machine.md:276-290）：
+> 脚本通过 **formatter** 将测试输出标准化为 JSON，再判定 A/B 类错误。formatter 在 `gate_commands.P3_formatter` 中声明（可选键，见 P2-design.md）。不提供 formatter 时退化为 exit-code-only（所有红灯 = 可推进，精度降低但不会阻断）。
 
-**结论**：ALIGNED
+**文档声明**（assets/formatters/README.md:1-124）：
+完整的 formatter 契约文档，含 JSON 格式定义、字段说明、速查表、gate_commands 声明方式、路径解析规则、多技术栈声明。
 
----
-
-**A2b: check-tdd-red.sh 探测链文档化**
-
-**脚本实现**（check-tdd-red.sh:33）：
-```
-# 测试运行器探测链：$TEST_RUNNER → gate_commands.P3（P2-design.md）→ which pytest → exit 3
-```
-
-**文档声明**：
-- P3-tdd.md:50 — 完整探测链描述
-- state-machine.md:290 — 探测链 + 环境变量说明
-- architect.md:47 — P3 键说明
-- verifier.md:158 — 非 pytest 技术栈引用
-- task-files.md:215-217 — P3 键说明
-- P5-verification.md:39 — 非 pytest 技术栈引用
-
-**结论**：ALIGNED
-**说明**：脚本探测链在 6 处文档中同步记录，措辞一致。
-
----
-
-**A2c: check-gate.sh P0 提示文本**
-
-**脚本实现**（check-gate.sh:39）：
-```
-主 Agent 确认 P0-brief 四字段齐全即可推进 P1
-```
-
-**文档声明**：P0-orchestrator.md:11, P1-requirements.md:27, state-machine.md:76, dispatch-protocol.md:203, rules/state-transitions.md:15 — 均写"四字段"
-
-**结论**：ALIGNED
+**结论**：脚本逻辑与文档描述一致。formatter 契约、探测链、退化策略、路径解析规则在文档中均有对应。
 
 ---
 
 ### A3: 一致性连锁 + 反向传播
 
-#### A3a: 连锁（已知的衍生改动）
+**MISALIGNED** — A3a（连锁）有 1 处未同步，A3b（反向传播）基本覆盖但 CHANGELOG 缺失。
 
-**P0 删除 pruning_tendency → 传播链**：
-- P0-orchestrator.md ✅（五→四字段）
-- P1-requirements.md ✅（前置条件改四字段）
-- state-machine.md ✅（转移规则改四字段）
-- dispatch-protocol.md ✅（自查改四字段，删除 pruning_tendency 行）
-- task-files.md ✅（P0 文件清单删除，模板删除）
-- architect.md ✅（输入节删除"裁剪倾向"）
-- rules/state-transitions.md ✅（P0→P1 条件改四字段）
+#### A3a: 一致性连锁
 
-**结论**：ALIGNED — 所有已知的衍生改动已完成。
+**dispatch-protocol.md:545 未同步**：
 
----
+dispatch-prompt.md:130 已将"Playwright / shell / pytest"改为"Playwright / shell / 测试框架"，但 dispatch-protocol.md:545 的相同文本未同步。这两个文件是模板（dispatch-prompt.md）与权威源（dispatch-protocol.md）的关系，模板注释明确写"本模板与 dispatch-protocol.md「派发 prompt 模板」节保持同步，协议文件为权威来源"。
 
-**gate_commands.P3 新增 → 传播链**：
-- P2-design.md ✅（gate_commands 声明节 + gate 规则 + 推进条件）
-- P3-tdd.md ✅（探测链文档化 + gate 命令示例）
-- architect.md ✅（输出字段 + P3 键说明）
-- task-files.md ✅（P2 模板 gate_commands 节）
-- verifier.md ✅（非 pytest 技术栈引用）
-- P5-verification.md ✅（非 pytest 技术栈引用）
-- state-machine.md ✅（check-tdd-red.sh 设计块）
-- check-tdd-red.sh ✅（脚本实现）
-- check-gate.sh ✅（注释 + exec 传参）
+**建议**：dispatch-protocol.md:545 同步修改。
 
-**结论**：ALIGNED — gate_commands.P3 在所有相关文件中同步。
+#### A3b: 反向传播检查
 
----
-
-**minimal_validation 强制声明 → 传播链**：
-- P2-design.md ✅（产出规格 + 派发追加）
-- architect.md ✅（输出字段说明）
-- task-files.md ✅（P2 模板 §5）
-- dispatch-prompt.md ✅（P2 派发追加）
-- dispatch-protocol.md ✅（P2 派发追加 + P2 最小验证节）
-- plan-eng-review.md ✅（评审重点）
-
-**结论**：ALIGNED — 6 处文档同步更新，措辞一致。
-
----
-
-**office-hours 触发条件改 → 传播链**：
-- P2-design.md:72 ✅（"P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向"）
-- role-system.md:62 ✅（同上）
-- review-mapping.md:23 ✅（同上）
-- dispatch-protocol.md:988 ✅（"大任务时"）
-
-**结论**：ALIGNED — 4 处文档同步更新。
-
----
-
-**"亲自执行"定义统一 → 传播链**：
-- P4-implementation.md:50 ✅（"P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate"）
-- dispatch-protocol.md:516 ✅（"P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P5 并执行，主 Agent 验 gate"）
-- dispatch-prompt.md:99-100 ✅（简化版"自查≠P5 gate"，不含 verifier subagent 细节——模板简化是设计选择）
-- P6-acceptance.md:131 ✅（"P6 gate 由主 Agent 亲自跑 gate 脚本"）
-
-**结论**：ALIGNED — 区分了"派 subagent 执行"（P5）和"主 Agent 跑 gate 脚本"（P6），措辞在各自上下文中准确。
-
----
-
-#### A3b: 反向传播（主动推断的应被影响文件）
-
-| 文件 | 应被影响的原因 | 实际状态 | 结论 |
-|------|--------------|---------|------|
-| agate/orchestrator-template.md | P0 四字段 / pruning_tendency 引用 | 无引用（已检查） | ALIGNED |
-| agate/LIMITATIONS.md | pruning_tendency 引用 | 无引用（已检查） | ALIGNED |
-| agate/CONTEXT.md | pruning_tendency / 四字段术语 | 无引用（已检查） | ALIGNED |
-| agate/assets/execution-roles/analyst.md | "裁剪倾向"描述 | 无引用（已检查） | ALIGNED |
-| agate/assets/execution-roles/implementer.md | pruning_tendency 引用 | 无引用（已检查） | ALIGNED |
-| agate/assets/execution-roles/test-designer.md | pruning_tendency 引用 | 无引用（已检查） | ALIGNED |
-| agate/rules/state-transitions.md | P0→P1 条件 / P2 不可裁 | 已更新四字段（line 15） | ALIGNED |
-| WORKFLOW.md | P0 门槛描述 | 仍写"含 debug_env + known_risks"（line 216） | ALIGNED（语义可接受——debug_env 是 env_constraints 子字段，known_risks 是四字段之一，未用"五字段"术语） |
-| dispatch-protocol.md:200 | phase_hint 缩进 | 4 空格，周围 YAML 键 3 空格 | NEEDS_HUMAN_REVIEW |
-| CHANGELOG.md | P2.49/P2.50 变更条目 | 仅有 pruning_tendency 移除条目，无 P2.49/P2.50 | NEEDS_HUMAN_REVIEW |
-
-**dispatch-protocol.md:200 缩进问题**：
-
-```yaml
-   env_constraints:
-     debug_env: {...}
-     # 不写 prod_env...
-    phase_hint: [P1, P2, ..., P8]  # ← 4 空格，应为 3 空格
-   ```
-```
-
-原版 `pruning_tendency` 和 `phase_hint` 都在 3 空格缩进。删除 `pruning_tendency` 行时，`phase_hint` 的缩进从 3 改为 4。这是 Markdown 代码块内的示例 YAML，不被任何脚本解析，纯属 cosmetic 问题。
-
-**CHANGELOG 遗漏**：
-
-CHANGELOG.md `[Unreleased]` 节有 pruning_tendency 移除条目，但缺少：
-- P2.49: gate_commands.P3 新增（check-tdd-red.sh 自动读取测试运行器）
-- P2.50: 阶段卡片措辞加固（AND checklist / 消灭模糊措辞 / P2 review exit 1 / design_trivial 须附理由 / 基础设施隔离"必须"）
-
-这两个变更是 v0.25.0 的核心内容，应在 CHANGELOG 中记录。
+| 应被影响的文件 | 实际状态 | 结论 |
+|---------------|---------|------|
+| agate/WORKFLOW.md | gate 表均用 `gate_commands.P5`，无 pytest 硬编码 | ✅ 已覆盖 |
+| agate/dispatch-protocol.md | 4 处 pytest 残留（见 A1-4/A1-5） | ❌ 未完全覆盖 |
+| agate/state-machine.md | 2 处 pytest 残留 + 1 处输出格式过时（见 A1-1/A1-2/A1-3） | ❌ 未完全覆盖 |
+| agate/orchestrator-template.md | :17 `"pytest*": allow` 是 permissions 示例值 | ⚠️ 示例性，NEEDS_HUMAN_REVIEW |
+| agate/git-integration.md | :51 `chore: 升级 pytest` 是 commit message 示例 | ✅ 示例性引用，合理 |
+| agate/role-system.md | 无 pytest 引用 | ✅ 已覆盖 |
+| agate/LIMITATIONS.md | 无 pytest 引用 | ✅ 已覆盖 |
+| agate/CONTEXT.md | 无 pytest 引用 | ✅ 已覆盖 |
+| assets/execution-roles/architect.md | 已更新 gate_commands 示例含 formatter | ✅ 已覆盖 |
+| assets/execution-roles/verifier.md | 已更新"技术栈无关"段 | ✅ 已覆盖 |
+| assets/execution-roles/test-designer.md | 新增 vitest mock hoisting 说明 | ✅ 已覆盖 |
+| assets/templates/task-files.md | 已更新 gate_commands 模板 + P5 门槛描述 | ✅ 已覆盖 |
+| assets/templates/dispatch-prompt.md | 已更新"测试框架" | ✅ 已覆盖 |
+| phase-cards/P0-orchestrator.md | 已扩展测试框架自检列表 | ✅ 已覆盖 |
+| phase-cards/P3-tdd.md | 已更新"技术栈无关"段 | ✅ 已覆盖 |
+| phase-cards/P5-verification.md | 已更新"技术栈无关"段 + fail-list 描述 | ✅ 已覆盖 |
+| CHANGELOG.md | 未检查到本次变更的 `[Unreleased]` 条目 | ⚠️ NEEDS_HUMAN_REVIEW |
 
 ---
 
 ### A4: 测试覆盖
 
-**bats 全量实跑结果**：
+**ALIGNED** — 测试覆盖充分，附实跑输出。
 
-```
+**实跑命令**：
+```bash
 bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
-476 tests passed, 0 failed
 ```
 
-**新增测试覆盖**：
+**实跑结果**：
+```
+503 tests passed, 0 failed
+```
 
-| 测试 | 覆盖的变更 | 边界 |
-|------|----------|------|
-| check-gate.bats G2.13 | P2-review 不存在 → exit 1（原 exit 2） | 改了期望 exit code |
-| check-gate.bats PG.P2REVIEW | P2-review 不存在 → exit 1 + 错误消息 | 新增用例 |
-| check-tdd-red.bats TDD.G1 | gate_commands.P3 自动读取 | 正向：P3 键存在 → 自动读取 |
-| check-tdd-red.bats TDD.G2 | 无 P3 键 → TEST_RUNNER 向后兼容 | 回退：P3 不存在不破坏 |
-| check-tdd-red.bats TDD.G3 | TEST_RUNNER 优先于 gate_commands.P3 | 优先级：环境变量 > P3 键 |
-| check-tdd-red.bats TDD.G4 | 无 TASK_DIR → 跳过 P3 读取 | 回退：无 TASK_DIR 不崩溃 |
-| check-tdd-red.bats TDD.G5 | P3 双引号值 → strip quotes | 边界：引号处理 |
-| fixtures.bash add_p2_review | P2-review.md fixture helper | 所有 P2 gate 测试使用 |
-| pre-commit-hook.bats | P2-review.md fixture in integration | 集成测试同步 |
+关键测试文件覆盖：
+- `unit/check-tdd-red.bats`：30 个用例（从 9 个扩展到 30 个），覆盖 formatter 探测链、A/B 类判定、多技术栈命令、exit-code-only 退化
+- `unit/check-tdd-red-formatter.bats`：12 个用例（新增），覆盖 6 个内置 formatter 的 JSON 输出契约
+- `unit/check-gate.bats`：91 个用例（含新增 G_DG_ANCHOR.3 blockquote DESIGN_GAP 测试）
+- `unit/agate-capture-env-baseline.bats`：15 个用例（从 9 个扩展），覆盖 formatter 提取 fail-list、缓存命中/未命中
+- `unit/check-p6-evidence.bats`：25 个用例（含非 PNG 图片格式检测）
 
-**结论**：ALIGNED
-**说明**：5 个新 TDD.G 测试覆盖了 gate_commands.P3 的正常路径、回退路径、优先级和边界。P2 review exit 1 有 2 个测试覆盖（改期望 + 新增）。所有现有 P2 gate 测试已通过 `add_p2_review` 适配。476 tests 全部通过。
+**一致性检查**：
+```bash
+python3 agate/scripts/check-protocol-consistency.py
+```
+结果：0 ERROR，13 WARNING（均为叙事文件引用不存在，与本次变更无关）。
+
+**Shellcheck**：
+```bash
+shellcheck -S warning agate/scripts/*.sh agate/assets/formatters/*.sh
+```
+结果：0 warnings。
+
+**测试用例计数**：
+```bash
+bash agate/tests/scripts/count-tests.sh
+```
+结果：497 个测试用例（不含 sanity.bats 6 个），与 tests/README.md 表格一致。
 
 ---
 
 ### A5: 下游影响 + 文档传播
 
-**破坏性变更**：
+**NEEDS_HUMAN_REVIEW** — 破坏性变更影响评估 + CHANGELOG 缺失。
 
-1. **P2-review.md 不存在 → exit 1（原 exit 2）**：破坏性变更。原有项目如果在 P2 阶段没有 P2-review.md 就 commit（利用 exit 2 跳过），现在会被 exit 1 拦截。但 P2 评审本就不可裁剪（state-machine.md:169），语义上 review 文件必须存在。此变更是 bug fix（修复"文件不存在时跳过检查"的逻辑漏洞），不违反协议语义。
+**破坏性变更分析**：
 
-2. **pruning_tendency 移除**：已在之前的 review（agate-alignment-review-20260726.md）中确认无破坏性影响。P0 gate 是 exit 2，不检查字段。
+1. **check-tdd-red.sh 输出格式变更**：旧脚本输出 `assertion_failures=N, collection_errors=M`，新脚本输出 `TDD_CHECK:` 前缀文本。若有外部脚本/CI 解析旧格式，会断裂。但根据协议设计，check-tdd-red.sh 的消费者是主 Agent（看 exit code）和 pre-commit hook（看 exit code），不解析 stdout 文本。**风险低**。
 
-3. **gate_commands.P3 新增**：可选键，向后兼容。不声明 P3 键的现有项目行为不变。
+2. **gate_commands 新增键（P3_formatter/P5_formatter/project_module）**：可选键，不声明时退化为 exit-code-only。向后兼容。**无破坏性**。
 
-**文档传播**：
+3. **check-p6-evidence.sh 截图格式放宽**：从 PNG-only 放宽为任意图片格式。旧行为（PNG 合法 ≤1KB → WARNING）保持不变，新增 JPEG/GIF/WebP 支持。**无破坏性，是放宽**。
 
-| 应被影响的文档 | 实际状态 | 结论 |
-|--------------|---------|------|
-| hardening-roadmap.md v0.25.0 节 | ✅ 已记录 P2.49 + P2.50 | ALIGNED |
-| CHANGELOG.md [Unreleased] | ❌ 缺 P2.49/P2.50 条目 | NEEDS_HUMAN_REVIEW |
-| SELF-GATE.md | 无需改动（不涉及触发文件变化） | ALIGNED |
+4. **check-gate.sh P7 DESIGN_GAP 正则放宽**：从 `^\s*-?\s*\[DESIGN_GAP:` 放宽为 `^\s*>?\s*-?\s*\[DESIGN_GAP:`，额外匹配 blockquote 格式。原有匹配不受影响。**无破坏性，是放宽**。
 
-**结论**：NEEDS_HUMAN_REVIEW
-**差异**：CHANGELOG.md `[Unreleased]` 节缺少 P2.49（gate_commands.P3）和 P2.50（措辞加固）的变更条目。建议在 commit 前补充。
-**建议**：在 CHANGELOG.md `[Unreleased]` 节新增：
-```markdown
-- **gate_commands.P3**：新增可选 P3 键（测试运行器），check-tdd-red.sh 自动读取，探测链扩展为 TEST_RUNNER → gate_commands.P3 → pytest → exit 3
-- **阶段卡片措辞加固**：推进条件改为 AND checklist，消灭"可选"/"nudge"等模糊措辞，P2 review 不存在时 exit 1（bug fix），design_trivial 须附理由，minimal_validation 强制声明，基础设施隔离"必须"
-```
+5. **agate-capture-env-baseline.sh 行为变更**：无 formatter 时从"尝试解析"变为"放弃捕获"。旧脚本在无 formatter 时也尝试 grep `FAILED` 前缀提取 fail-list，新脚本直接放弃。**行为变更**：无 formatter 的项目不再生成 pre-task-baseline.md。但 P5 gate 对缺失 baseline 有优雅降级（WARNING-only），**风险低**。
+
+**CHANGELOG**：未检查到本次变更的 `[Unreleased]` 条目。协议语义变更（check-tdd-red.sh 重写 + formatter 体系 + gate_commands 扩展）应标注 CHANGELOG。
+
+**建议**：
+- 在 CHANGELOG.md `[Unreleased]` 节新增条目，标注 check-tdd-red.sh formatter 化 + 截图格式放宽 + DESIGN_GAP 正则修复
+- 确认无外部项目依赖 check-tdd-red.sh 的 `assertion_failures=N` 输出格式
 
 ---
 
 ### A6: 锚点表覆盖
 
-**CHECK 9 锚点表检查**（check-protocol-consistency.py）：
+**ALIGNED** — CHECK 9 锚点表已更新。
 
-| 新增/变更的规则 | 是否有对应锚点 | 说明 |
-|--------------|-------------|------|
-| gate_commands.P3 自动读取 | 无专门锚点 | 现有"TDD 红灯检查"锚点检查 check-tdd-red.sh 含 `"pytest"` 关键词，仍通过。P3 键是可选功能，非协议硬约束，不需要专门锚点。 |
-| P2 review 不存在 → exit 1 | 无专门锚点 | "P2 agent=main 硬拦截"锚点仍覆盖 check-gate.sh P2 分支。exit 1 vs exit 2 是行为变更，锚点只检查关键词存在性，不检查 exit code 语义。 |
-| P0 四字段 | 无专门锚点 | P0 gate 是 exit 2（主 Agent 自判），不检查字段。锚点表不覆盖 P0。 |
-| minimal_validation 强制声明 | 无专门锚点 | 语义判断，不可脚本化。plan-eng-review 角色检查，非 gate 脚本检查。 |
-
-**consistency checker 实跑结果**：
-```
-python3 agate/scripts/check-protocol-consistency.py
-仅有 12 个 WARNING，无 ERROR。
+**文档声明**（check-protocol-consistency.py:537-540）：
+```python
+{
+    "desc": "TDD 红灯检查",
+    "script": "agate/scripts/check-tdd-red.sh",
+    "keywords": ["formatter", "pytest"],
+},
 ```
 
-**结论**：ALIGNED
-**说明**：新增的 gate_commands.P3 和措辞加固变更不需要新增 CHECK 9 锚点。这些变更要么是可选功能（P3 键），要么是语义层面的措辞改进（AND checklist），不涉及新的脚本关键词检查。现有锚点仍全部通过。
+**脚本实现**（check-tdd-red.sh:12-43）：
+脚本注释含 `formatter` 和 `pytest`（探测链 fallback）关键词。
+
+**结论**：锚点表 keywords 从 `["pytest"]` 更新为 `["formatter", "pytest"]`，与脚本当前内容一致。`pytest` 保留是因为探测链仍含 `which pytest` fallback。
+
+gate-result.sh 新增的 `resolve_formatter` / `run_test_with_formatter` 函数已在 GATE_SCRIPT_EXEMPT 白名单中注释说明（"无 gate 逻辑 + formatter 公共函数（受调用方测试覆盖），不需要锚点"），合理。
 
 ---
 
 ### A7: 设计原则一致性
 
-**ADR-001（隔离性——主 Agent 不写产出）**：
+**ALIGNED** — 本次变更直接落实 ADR-003。
 
-P4 自查节从"P5 由主 Agent 亲自执行 P2-design.md 的 gate_commands"改为"P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate"。这更符合 ADR-001——主 Agent 只编排不执行，测试运行由 verifier subagent 在独立上下文完成。
+**ADR-003 声明**（adr.md:69-93）：
+> agate 不硬编码测试框架/语言/部署方式，只定义流程骨架。技术栈相关的命令通过 P2-design.md 的 `gate_commands` 字段注入，由项目自定义。
+> ...
+> 后果：agate 不能自动发现项目的测试/构建命令，依赖人工声明
 
-**结论**：ALIGNED
+**本次变更**：
+- check-tdd-red.sh 从硬编码 pytest 输出解析改为 formatter + JSON 标准格式——直接消除 ADR-003 指出的"硬编码测试框架"问题
+- formatter 是可选的（退化为 exit-code-only），保持"不绑定"原则
+- gate_commands 扩展 P3_formatter/P5_formatter/project_module 可选键，通过 P2 注入而非硬编码
+- check-p6-evidence.sh 从 PNG-only 放宽为任意图片格式——消除对特定截图工具的绑定
 
----
+**ADR-002（可判定性）**：formatter 体系保持 gate 门槛机器可判定（JSON 字段 → exit code），符合 ADR-002。
 
-**ADR-002（可判定性——gate 门槛机器可判定）**：
+**ADR-004（安全网分层）**：formatter 不改变三层防线结构（主 Agent 主动验 + hook + CI backstop），符合 ADR-004。
 
-P2-review.md 不存在 → exit 1 是可判定的硬门槛（文件存在性检查）。推进条件改为 AND checklist 使门槛更明确，减少主 Agent 主观判断空间。
+**未记录的架构决策**：formatter 体系本身是一个新的架构决策（"通过 formatter 适配层实现技术栈无关的测试输出解析"），建议补充新 ADR 记录此决策。但这不阻断——hardening-roadmap.md P2.51 已有记录。
 
-**结论**：ALIGNED
-
----
-
-**ADR-003（最小约定——不绑定技术栈）**：
-
-gate_commands.P3 新增增强了技术栈无关性——非 pytest 项目现在可以在 P2 声明测试运行器命令，无需依赖 TEST_RUNNER 环境变量手动覆盖。探测链的设计（环境变量 > P3 键 > pytest > exit 3）保证了向后兼容。
-
-**结论**：ALIGNED
-
----
-
-**ADR-005（改动性质判断）**：
-
-pruning_tendency 移除消除了与 P1 risk_level 的功能重叠。P0 阶段无足够信息判断裁剪倾向（裁剪决策在 P1 做基于 risk_level），移除是正确的。
-
-**结论**：ALIGNED
-
----
-
-## 人工确认项
-
-### NEEDS_HUMAN_REVIEW #1: dispatch-protocol.md:200 phase_hint 缩进
-
-**位置**：agate/dispatch-protocol.md:200
-**问题**：`phase_hint` 行缩进为 4 空格，周围 YAML 键为 3 空格。删除 `pruning_tendency` 行时引入。
-**影响**：无功能影响（Markdown 代码块内示例，不被脚本解析）。纯 cosmetic。
-**建议**：将 `    phase_hint` 改为 `   phase_hint`（3 空格，与 `env_constraints` 对齐）。
-
-`[HUMAN_CONFIRMED: 待确认]`
-
----
-
-### NEEDS_HUMAN_REVIEW #2: CHANGELOG.md 遗漏 P2.49/P2.50 条目
-
-**位置**：CHANGELOG.md `[Unreleased]` 节
-**问题**：仅有 pruning_tendency 移除条目，缺少 P2.49（gate_commands.P3）和 P2.50（措辞加固）的变更记录。
-**影响**：协议语义变更未在 CHANGELOG 标注，A5 下游影响不完整。
-**建议**：在 `[Unreleased]` 节补充 P2.49 和 P2.50 的变更条目。
-
-`[HUMAN_CONFIRMED: 待确认]`
-
----
-
-## 留痕文件
-
-原始审查痕迹见：`docs/reviews/agate-alignment-20260731-01.progress.md`
+**结论**：ALIGNED。
