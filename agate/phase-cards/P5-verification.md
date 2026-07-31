@@ -36,7 +36,7 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
 
 紧凑输出模式：用工具的汇总模式（pytest --tb=no / vitest --reporter=dot / go test | tail -30）。只保留通过/失败汇总+失败清单，不逐项 traceback。
 
-**非 pytest 技术栈**：若 P2 gate_commands 声明了 `P3` 键，check-tdd-red.sh 自动读取测试运行器命令。也可通过 `TEST_RUNNER` 环境变量手动覆盖（优先级最高）。这是 agate 协议保持技术栈无关的标准接入点。
+**技术栈无关**：gate_commands.P5_formatter 声明 formatter 脚本（可选），将测试输出标准化。见 `assets/formatters/README.md` 速查表。不提供 formatter 时退化为 exit-code-only。
 
 ## 判定规则
 
@@ -56,8 +56,7 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
 
 - P5-test-results/unit.md：标注 failed 数量（verifier subagent 产出）
 - P5-test-results/fail-list.txt：verifier subagent 产出，failed 测试 id 逐行列出（`FAILED ` 前缀同上，
-  pytest 参考实现），可为空文件（无失败时）。runner 格式无法提取 id 列表时可省略此文件——
-  P5 gate 检测到缺失时优雅降级为原有 WARNING-only 行为，不因此新增拦截。
+  pytest 参考实现），可为空文件（无失败时）。使用 gate_commands.P5_formatter 声明的 formatter 提取（与 baseline 捕获一致）。无 formatter 时可省略此文件——P5 gate 检测到缺失时优雅降级为 WARNING-only 行为，不因此新增拦截。
 - UI 任务：P5-test-results/e2e.md（Playwright 实跑结果 + 截图路径，verifier subagent 产出）
 
 ## 预存失败的处理

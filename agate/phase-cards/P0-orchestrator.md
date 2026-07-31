@@ -30,7 +30,7 @@ env_constraints:
 
 启动任务前必须确认环境可用（不确认不得推进 P1）：
 - debug 环境可访问（curl health check / 启动服务）
-- 测试框架可用（pytest/vitest --version）
+- 测试框架可用（项目使用的测试框架，如 pytest/vitest/go test/cargo test --version）
 - 浏览器自动化可用（playwright --version，UI 任务时）
 
 ## 任务粒度

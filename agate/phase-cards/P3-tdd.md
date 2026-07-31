@@ -47,7 +47,11 @@ check-tdd-red.sh $TASK_DIR
 - **exit 2**：绿了 — 实现先于测试，违反 TDD
 - **exit 3**：无可用测试运行器
 
-**测试运行器探测链**：`$TEST_RUNNER` 环境变量 → `gate_commands.P3`（P2-design.md 声明）→ `which pytest` → exit 3。非 pytest 项目在 P2 gate_commands 声明 `P3` 键后，check-tdd-red.sh 自动读取，无需手动设置环境变量。`$TEST_RUNNER` 环境变量始终优先（手动覆盖）。
+**技术栈无关**：check-tdd-red.sh 通过 formatter 将测试输出标准化为 JSON，不直接解析任何框架的输出格式。formatter 在 gate_commands.P3_formatter 中声明（可选）。不提供 formatter 时退化为 exit-code-only（所有红灯 = 可推进）。
+
+**探测链**：`$TEST_RUNNER` 环境变量 → `gate_commands.P3`（P2-design.md 声明）→ `which pytest` → exit 3。`$TEST_RUNNER` 始终优先（退化为 exit-code-only，无 formatter）。
+
+**formatter 选择**：见 `assets/formatters/README.md` 速查表。常用：pytest → `pytest.sh`，vitest → `vitest.sh`，go test → `go-test.sh`，其他 → `generic-exit-only.sh`。
 
 ## 按包拆分并行（条件触发，非强制）
 
