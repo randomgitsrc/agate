@@ -14,6 +14,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/gate-result.sh"
+set +e
 
 TASK_DIR="${1:?用法: agate-capture-env-baseline.sh TASK_DIR}"
 [ -f "$TASK_DIR/pre-task-baseline.md" ] && exit 0

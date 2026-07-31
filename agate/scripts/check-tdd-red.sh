@@ -60,7 +60,7 @@ if not content.endswith(chr(10)):
     content += chr(10)
 m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
 if not m:
-    print("[]")
+    print(json.dumps({"commands": [], "project_module": ""}))
     sys.exit(0)
 block = m.group(1)
 commands = []
@@ -160,7 +160,7 @@ collect_commands() {
         cmd_count=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d["commands"]))')
         if [ "$cmd_count" -gt 0 ]; then
             if [ -n "${PROJECT_MODULE:-}" ]; then
-                commands_json=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); d["project_module"]=os.environ["PROJECT_MODULE"]; print(json.dumps(d))' 2>/dev/null || echo "$commands_json")
+                commands_json=$(echo "$commands_json" | python3 -c 'import sys,json,os; d=json.load(sys.stdin); d["project_module"]=os.environ["PROJECT_MODULE"]; print(json.dumps(d))' 2>/dev/null || echo "$commands_json")
             fi
             echo "$commands_json"
             return 0

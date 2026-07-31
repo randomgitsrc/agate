@@ -277,7 +277,7 @@ PAUSED 恢复协议：
 
 脚本通过 **formatter** 将测试输出标准化为 JSON，再判定 A/B 类错误。formatter 在 `gate_commands.P3_formatter` 中声明（可选键，见 P2-design.md）。不提供 formatter 时退化为 exit-code-only（所有红灯 = 可推进，精度降低但不会阻断）。
 
-**formatter 契约**：formatter 脚本接收测试运行器的原始输出（stdin），输出标准化 JSON（含 `test_type`、`status`、`error_type` 等字段）。check-tdd-red.sh 解析 JSON 判定：
+**formatter 契约**：formatter 脚本接收测试运行器的原始输出（stdin），输出标准化 JSON（含 `exit_code`、`failed`、`errors`、`import_errors`、`syntax_errors` 等字段）。check-tdd-red.sh 解析 JSON 判定：
 - assertion 失败 / 项目内 import 失败 → B 类红灯（exit 0，可推进）
 - SyntaxError / 第三方 import 失败 → A 类错误（exit 1，测试代码自身错误）
 - 全部通过 → exit 2（实现先于测试，违反 TDD）

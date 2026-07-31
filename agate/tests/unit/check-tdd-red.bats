@@ -274,6 +274,43 @@ gate_commands:
 EOF
     run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}
+
+@test "TDD.F11: absolute path formatter works" {
+    local fake
+    fake=$(make_fake_pytest "1 error
+ERROR tests/test_x.py - SyntaxError: invalid syntax" 2)
+    local abs_formatter="$BATS_TEST_TMPDIR/abs-fmt.sh"
+    cp "$AGATE_ROOT/assets/formatters/pytest.sh" "$abs_formatter"
+    local task_dir="$BATS_TEST_TMPDIR/task-f11"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P3_formatter: "$abs_formatter"
+  P5: "pytest -q --tb=no"
+EOF
+    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"A-class"* ]]
+}
+
+@test "TDD.F12: PROJECT_MODULE env var overrides gate_commands project_module" {
+    local fake
+    fake=$(make_fake_pytest "1 error
+ERROR tests/test_x.py - ImportError: No module named 'requests'" 2)
+    local task_dir="$BATS_TEST_TMPDIR/task-f12"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P3_formatter: "pytest.sh"
+  project_module: "myapp"
+  P5: "pytest -q --tb=no"
+EOF
+    run env -u TEST_RUNNER PROJECT_MODULE="requests" PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
 

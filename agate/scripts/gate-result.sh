@@ -73,7 +73,7 @@ resolve_formatter() {
     local fmt="$1"
     local task_dir="${2:-}"
     local agate_root="${AGATE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-    [ "${fmt:0:1}" = "/" ] && { [ -f "$fmt" ] && echo "$fmt" || return 1; }
+    [ "${fmt:0:1}" = "/" ] && { [ -f "$fmt" ] && { echo "$fmt"; return 0; } || return 1; }
     if [ -n "$task_dir" ] && [ -f "$task_dir/.agate/formatters/$fmt" ]; then
         echo "$task_dir/.agate/formatters/$fmt"
     elif [ -f "$agate_root/assets/formatters/$fmt" ]; then
