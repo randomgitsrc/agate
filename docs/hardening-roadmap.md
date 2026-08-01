@@ -310,6 +310,16 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | P2.59 | SCOPE_RESOLVED 标记时机指导不够显式 | P2/P4 卡片追加"收到 SCOPE+ 后推进前必须标记 SCOPE_RESOLVED" | P-EXEC-3 | 0.4h |
 | P2.60 | P1-P3 合并 commit 绕过逐阶段 commit 检查 | 卡片推进条件强调"先 commit 本阶段产出再改 phase" | 上下文管理 | — |
 
+### T075 复盘驱动的改进（2026-08-01）
+
+> 来源：T075（53 BDD / 13.5h / 损耗 44%）— spec 缺陷是新的损耗类型
+
+| ID | 问题 | 措施 | 来源 | 预期节省 | 优先级 |
+|----|------|------|------|---------|--------|
+| P2.61 | architect 声明的 gate_commands 命令本身不可执行（如 `python` 不存在） | architect 角色文件增加 gate_commands 校验清单："命令中的可执行文件是否存在于当前环境？" | T075 AGATE-M1 | 0.5h | P1 |
+| P2.62 | test-designer 手写魔数断言（行数/列数/页数与测试数据矛盾） | test-designer 角色文件增加规则："量化断言必须从测试数据可推导，不允许手写魔数" | T075 EXEC-1 | 1.5h | P0 |
+| P2.63 | dispatch-context 多轮修复时重复写完整约束（20 个文件） | dispatch-context 修复轮改为增量差异模式（上次产出 + 本次修复目标） | T075 AGATE-M2 | 0.5h | P2 |
+
 ### 不修理由
 
 | 问题 | 理由 |
