@@ -262,6 +262,9 @@ import json, os, glob, re, sys
 evidence_dir = os.environ["EVIDENCE_DIR"]
 p6_file = os.environ["P6_FILE"]
 
+if not os.path.isfile(p6_file):
+    sys.exit(0)
+
 pass_bdds = set()
 with open(p6_file) as f:
     for line in f:
@@ -274,6 +277,8 @@ for json_path in glob.glob(os.path.join(evidence_dir, "**/*.json"), recursive=Tr
     try:
         with open(json_path) as f:
             data = json.load(f)
+        if not isinstance(data, dict):
+            continue
         results = data.get("bdd_results", data.get("results", []))
         if isinstance(results, list):
             for r in results:
@@ -282,7 +287,7 @@ for json_path in glob.glob(os.path.join(evidence_dir, "**/*.json"), recursive=Tr
                     status = r.get("status", "").lower()
                     if status == "fail" and bdd_id:
                         fail_in_evidence.add(bdd_id)
-    except (json.JSONDecodeError, KeyError):
+    except Exception:
         continue
 
 inconsistent = pass_bdds & fail_in_evidence
