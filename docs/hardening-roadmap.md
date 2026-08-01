@@ -280,6 +280,48 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 ---
 
+## 7. T084+T075 复盘驱动的改进（2026-08-01）
+
+> 来源：T084（1 行 CSS 改动耗时 9h）+ T075（P0-P2 耗时 2.5h）
+> 核心问题：30% 耗时是损耗（gate 拦截诊断 2.2h + review 迭代 2h + 回退修复 1.2h）
+> 信噪比：有效工作 ~4h / 总耗时 ~16h = 25%
+
+### P0 — 脚本 BUG（立即修）
+
+| ID | 问题 | 文件 | 来源 | 预期节省 |
+|----|------|------|------|---------|
+| P2.52 | check-pruning.sh `phases:` 只认内联格式，不认 YAML 列表格式 | check-pruning.sh:26 | P-AGATE-1 | 0.6h |
+| P2.53 | check-scope-resolved.sh + check-retrospective.sh [SCOPE+] 误匹配 progress 文件 | check-scope-resolved.sh:19, check-retrospective.sh:37 | P-AGATE-2 | 0.2h |
+
+### P1 — 设计缺陷（本版本修）
+
+| ID | 问题 | 措施 | 来源 | 预期节省 |
+|----|------|------|------|---------|
+| P2.54 | CHANGELOG 检查从 P1 就触发 WARNING，但 CHANGELOG 是 P8 产物 | 限制到 P7/P8 phase 才检查 | P-EXEC-4 | 0.8h |
+| P2.55 | 并行派发指导只有原则级"同时派发"，无操作级指令 | P2/P4 卡片追加操作级说明：单消息发多个 task 调用 | 并行派发问题 | 0.5h |
+| P2.56 | dispatch-prompt 模板未指示 subagent 评审后必须改 frontmatter status | 模板追加明确指令 | P-LLM-1 | 0.3h |
+| P2.57 | P6 evidence 与 acceptance 声明一致性无检查 | check-p6-provenance.sh 审计 5 扩展 | P-EXEC-1 时序倒置 | 0.5h |
+
+### P2 — 机制改进（后续立项）
+
+| ID | 问题 | 措施 | 来源 | 预期节省 |
+|----|------|------|------|---------|
+| P2.58 | 小任务（≤3 行改动）走完整 agate 流程信噪比过低 | fast-track 机制：P0+P1(简版自审)+P4+P5+P6(快速)+P8 | T084 1 行 CSS 9h | 3-4h |
+| P2.59 | SCOPE_RESOLVED 标记时机指导不够显式 | P2/P4 卡片追加"收到 SCOPE+ 后推进前必须标记 SCOPE_RESOLVED" | P-EXEC-3 | 0.4h |
+| P2.60 | P1-P3 合并 commit 绕过逐阶段 commit 检查 | 卡片推进条件强调"先 commit 本阶段产出再改 phase" | 上下文管理 | — |
+
+### 不修理由
+
+| 问题 | 理由 |
+|------|------|
+| P6 直接改代码（P-EXEC-1） | gate 正确拦截，执行纪律问题不需脚本改 |
+| 并行任务 commit 污染（P-EXEC-2） | 已改串行，`git add -A` → `git add <path>` 是通用纪律 |
+| CSS overflow 规范盲区（P-TECH-1） | 项目侧技术知识，不是 agate 问题 |
+| E2E 测试数据 bug（P-TECH-2） | 项目侧测试质量问题 |
+| BDD 精确断言绑定方案（P-TECH-3） | P1 analyst 职责，不是 agate 问题 |
+
+---
+
 ## 6. 待论证的改进
 
 | 改进 | 内容 | 状态 |
