@@ -301,3 +301,67 @@ EOF
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+# ============== P2.52: YAML 列表格式 phases ==============
+
+@test "P2.52: YAML list format phases: - P1\n - P2 → parsed correctly" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P8 --risk-level low)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: low
+phases:
+  - P1
+  - P2
+  - P4
+  - P5
+  - P6
+  - P8
+coupling_checklist: [api-schema: checked, data-model: checked]
+
+### 主流程
+
+#### BDD-1: test
+- Given test precondition
+- When test action
+- Then test result
+裁剪 P3: 纯配置改动无业务逻辑
+裁剪 P7: 小改动
+跳过风险: 无 TDD 需求
+EOF
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "P2.52b: YAML list format phases with P3 pruned (risk=low) → pass" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P8 --risk-level low)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: low
+phases:
+  - P1
+  - P2
+  - P4
+  - P5
+  - P6
+  - P8
+coupling_checklist: [api-schema: checked, data-model: checked]
+
+### 主流程
+
+#### BDD-1: test
+- Given test precondition
+- When test action
+- Then test result
+裁剪 P3: 纯配置改动无业务逻辑
+裁剪 P7: 小改动
+跳过风险: 无 TDD 需求
+EOF
+    run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
+    [ "$status" -eq 0 ]
+}

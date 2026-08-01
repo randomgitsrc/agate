@@ -27,6 +27,11 @@ m = re.search(r'phases:\s*\[([^\]]+)\]', text)
 if m:
     phases = [p.strip() for p in m.group(1).split(',')]
     print(' '.join(phases))
+else:
+    m = re.search(r'phases:\s*\n((?:[ \t]+-[ \t]+\S+[ \t]*\n)+)', text)
+    if m:
+        phases = re.findall(r'-\s+(\S+)', m.group(1))
+        print(' '.join(phases))
 " 2>/dev/null || echo "")
 
 # P2.9：裁剪声明与执行一致性检查
