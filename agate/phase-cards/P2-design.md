@@ -76,6 +76,9 @@ gate_commands:
 
 **并行派发**（多个评审角色时）：
 1. 同时派发所有触发的评审 subagent（每个一个 task 调用）
+   > **操作方式**：在一个 assistant 消息中连续发起多个 task 工具调用（每个评审角色一个）。
+   > 不要等前一个 task 返回再发下一个——那是串行，不是并行。
+   > 平台会并行执行多个 task，全部返回后再进入下一步（派发组长汇总）。
 2. 每个评审 subagent 各写一个 dispatch-context + 各自产出文件（示例非穷举，按 C8 映射表触发）：
    - plan-eng-review → P2-review-eng.md
    - plan-design-review → P2-review-design.md
