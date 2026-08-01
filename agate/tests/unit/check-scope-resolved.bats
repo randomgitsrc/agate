@@ -34,6 +34,18 @@ EOF
     [[ "$output" == *"无 P1-requirements.md"* ]]
 }
 
+# ========== P2.53: progress 文件排除 ==========
+
+@test "P2.53: progress file with [SCOPE+] text does not trigger SCOPE check" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P7 P8)
+    echo "## P2 progress
+- [SCOPE+] 检查: 无新增隐含需求" > "$dir/P2-progress.md"
+    echo "- [SCOPE_RESOLVED] test" >> "$dir/P1-requirements.md"
+    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
 @test "SC.DP1: dispatch-prompt file excluded from SCOPE+ scan" {
     local dir
     dir=$(create_task_dir)
@@ -123,7 +135,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
-- [SCOPE+] 新增功能
+[SCOPE+] 新增功能
 EOF
     run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
     [ "$status" -eq 1 ]

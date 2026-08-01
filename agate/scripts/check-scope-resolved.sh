@@ -16,7 +16,7 @@ SCOPE_FOUND=""
 for f in "$TASK_DIR"/*.md; do
     [ -f "$f" ] || continue
     # 跳过 dispatch-context 文件（编排指令，非阶段产出，不含实际 SCOPE+ 指令）
-    basename "$f" | grep -qE 'dispatch-context|dispatch-prompt' && continue
+    basename "$f" | grep -qE 'dispatch-context|dispatch-prompt|progress' && continue
     if sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$f" | grep -qE '^\s*-?\s*\[SCOPE\+\]'; then
         SCOPE_FOUND="${SCOPE_FOUND}$(basename "$f") "
     fi

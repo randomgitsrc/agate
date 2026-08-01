@@ -3,6 +3,13 @@
 > 主 Agent 调用 task 工具派发 subagent 时，prompt 用这个结构
 > 本模板与 dispatch-protocol.md「派发 prompt 模板」节保持同步，协议文件为权威来源
 
+## Review 角色特别指令
+
+如果你的角色是评审/验收角色（review / design-review / plan-eng-review / plan-design-review / plan-ceo-review / cso / qa / requirements-review / consistency-reviewer）：
+- 产出文件的 Header `status:` 字段初始为 `draft`
+- 评审/验收完成后，**必须将 `status:` 改为 `approved` / `rejected` / `needs-revision`**
+- gate 脚本读的是 Header 的 `status:` 字段，不是你的返回摘要——两者必须一致
+
 ```
 你是 {阶段 Pn} 阶段的 {角色名} 子 Agent。
 
