@@ -43,6 +43,18 @@ EOF
     [[ "$output" == *"SCOPE+"* ]]
 }
 
+# ========== P2.53: progress 文件排除 ==========
+
+@test "RT.SCOPE_PROGRESS: progress file with [SCOPE+] does not trigger retro warning" {
+    local dir
+    dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P7 P8)
+    echo "## P2 progress
+- [SCOPE+] 检查: 无新增隐含需求" > "$dir/P2-progress.md"
+    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" ".state.yaml"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"SCOPE+ 触发"* ]]
+}
+
 @test "RT.DP1: dispatch-prompt file excluded from SCOPE+ scan" {
     local dir
     dir=$(create_task_dir)
