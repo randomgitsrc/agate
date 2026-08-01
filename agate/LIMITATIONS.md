@@ -35,7 +35,7 @@ T026 事故：主 Agent 编造 11/16 条 BDD 验收结果（不跑验证脚本�
 **方向性错配**：agate 的防御机器（五步校验、gate 亲跑、上下文隔离）主要布置在 subagent 一侧——而 subagent 是廉价的、可无限重派的、失败即被打回的一方。主 Agent 一侧——握有全部最终裁量权（裁剪、gate 算不算过、SCOPE+ 范围）且被实证是主要事故源（T005/T006/T016/T019 根因全是主 Agent）——几乎没有任何外部约束。这个错配是"纯文档协议 + 单编排者"这条路线的结构性产物：只要主 Agent 是唯一最终裁判且它写的东西是唯一事实源，就不可能从内部约束它。承认这一点，比继续往 subagent 侧加检查更重要。
 
 **降级缓解（v2 客观行为审计，已实现）**：
-- P6 验收：`scripts/check-p6-provenance.sh` 五道客观审计
+- P6 验收：`scripts/check-p6-provenance.sh` 六道客观审计
   - 证据-结论对应：每条 PASS 的证据引用路径必须存在 + 每个证据文件必须被引用（空 png 充数拦截）；多条 PASS 可共享同一证据文件
   - dispatch-context 审计：P6-dispatch-context-{role}.md 不含验收结论预判（防误导 verifier）
   - BDD 总数对照：P6 结果数 = P1 `#### BDD-NN` 标题数（精确计数，不再依赖 Given 行数启发式）
