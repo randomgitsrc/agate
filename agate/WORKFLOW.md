@@ -240,9 +240,9 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 |---|---------|---------|-----------|------|
 | 0 | `check-state-yaml.sh` | `.state.yaml` 暂存变更时（不依赖 phase 变）| 文件级 | 校验格式合法（必填字段、phase 取值、retries 结构）|
 | 1 | `check-gate.sh` | `.state.yaml` phase 变更或阶段产出文件变更 | 阶段级 | P1.1 gate 校验 |
-| 1.6 | `check-changelog.sh` | gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6）|
+| 1.6 | `check-changelog.sh` | P8 phase 且 gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6；P2.54：仅 P8 检查，P1-P7 不触发）|
 | 1.7 | `check-p6-evidence.sh` | 阶段 ∈ {P6, P7} | 阶段级 | P6-evidence/ 非空 + BDD 行数 ≥ 1 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）|
-| 2.1 | `check-p6-provenance.sh` | gate 通过后 | 阶段级 | 五道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照 + UI vision YAML 审计 [R1b] + EXIT_CODE 一致性 [审计5]）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
+| 2.1 | `check-p6-provenance.sh` | gate 通过后 | 阶段级 | 六道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照 + UI vision YAML 审计 [R1b] + EXIT_CODE 一致性 [审计5] + evidence JSON 与 PASS/FAIL 声明一致性 [审计6/P2.57]）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
 | 2.3 | `check-state-transition.sh` | gate 通过后 | 阶段级 | 状态转移合法性 + 重试上限（P2.3-P2.5）|
 | 2.7 | `check-pruning.sh` | gate 通过后 | 阶段级 | 裁剪条件与实际执行一致性 + override 校验（P2.7-P2.9）|
 | 2.11 | `check-scope-resolved.sh` | gate 通过后 | 阶段级 | `[SCOPE+]` 必须有 `[SCOPE_RESOLVED:...]` 标记（P2.11）|
