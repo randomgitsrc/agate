@@ -1,0 +1,33 @@
+- [state-machine.md] 读完。CHANGELOG 在 P8 转移条件中检查（line 132）。P6 provenance 审计在 line 117。
+- [dispatch-protocol.md] 读完。Pre-commit 检查表 line 819: check-changelog.sh "gate 通过后"，未限定 P8。dispatch-prompt 模板 line 408。
+- [WORKFLOW.md] 读完。Pre-commit 检查总览 line 243: check-changelog.sh 触发条件 "gate 通过后"，未限定 P8。
+- [check-pruning.sh] 读完。新增 YAML 列表格式解析（else 分支 line 31-34）。
+- [check-p6-provenance.sh] 读完。新增审计 6（line 256-302）：evidence JSON 与 P6 PASS/FAIL 一致性。
+- [check-retrospective.sh] 读完。line 37: 排除 progress 文件。
+- [check-scope-resolved.sh] 读完。line 19: 排除 progress 文件。
+- [pre-commit-gate.sh] 读完。line 247-254: CHANGELOG 检查限制到 P8。
+- [dispatch-prompt.md] 读完。新增 Review 角色特别指令节（line 9-13）。
+- [P2-design.md] 读完。新增并行派发操作方式指引（line 79-81）。
+- [P4-implementation.md] 读完。新增并行派发操作方式指引（line 80-82）。
+- [P6-acceptance.md] 读完。新增验收报告记录事实原则（line 26）。
+- [task-files.md] 读完。P1 phases 格式示例用 inline 列表 `phases: [P1,P2,...]`（line 152）。
+- [check-protocol-consistency.py] 读完。CHECK 9 锚点表无新增审计6/CHANGELOG P8限制/progress排除锚点。
+- [check-changelog.sh] 读完。无 phase 条件参数，完全由调用方决定何时调用。
+- [adr.md] 读完。ADR-001 到 ADR-006。
+- [test files] 读完4个新增/修改的测试文件：check-p6-provenance.bats(PV.24-27), check-pruning.bats(P2.52), check-retrospective.bats(RT.SCOPE_PROGRESS), check-scope-resolved.bats(P2.53), pre-commit-hook.bats(IT_CHANGELOG_P54/P54b)
+- [bats 全量] 513 ok, 0 not ok。含新增的 PV.24-27/P2.52/P2.52b/RT.SCOPE_PROGRESS/P2.53/IT_CHANGELOG_P54/P54b。
+- [consistency] 0 ERROR, 12 WARNING（全为叙事文件旧引用，与本次变更无关）。
+- [count-tests] 507 用例（含新增 9 个测试）。
+- [shellcheck] 待跑
+- [shellcheck] 通过（无 warning）。
+- [CHANGELOG.md] diff 中未含 CHANGELOG.md 变更——A5 检查点。
+- [dispatch-protocol.md:819] check-changelog.sh 触发条件仍写 "gate 通过后"，未限定 P8。
+- [state-machine.md:221] check-changelog.sh 触发条件仍写 "gate 通过后"，未限定 P8。
+- [WORKFLOW.md:243] check-changelog.sh 触发条件仍写 "gate 通过后"，未限定 P8。
+- 脚本侧已改为 P8 case 才调用，但三个文档表格仍写 "gate 通过后" → 文档-脚本不一致。
+- [成果文件] 已写入 docs/reviews/agate-alignment-review-20260801-v2.md
+- 审查结论：A1=MISALIGNED, A2=MISALIGNED, A3=NEEDS_HUMAN_REVIEW, A4=ALIGNED, A5=MISALIGNED, A6=NEEDS_HUMAN_REVIEW, A7=ALIGNED
+- 关键 MISALIGNED 项：
+  1. CHANGELOG 检查时机：脚本改 P8 only，三个文档表格仍写"gate 通过后"
+  2. 审计 6 新增：脚本新增第六道审计，三个文档仍写"五道客观审计"
+  3. CHANGELOG.md 未记录本次协议语义变更

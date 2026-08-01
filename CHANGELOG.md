@@ -9,6 +9,12 @@
 ## [Unreleased]
 
 ### 变更
+- **check-pruning YAML 列表格式支持（P2.52）**：check-pruning.sh 的 phases 解析从只认内联格式 `phases: [P1,P2]` 扩展为同时支持 YAML 列表格式（每阶段一行）。消除 T084 中 3 次 gate 拦截
+- **SCOPE+ 排除 progress 文件（P2.53）**：check-scope-resolved.sh 和 check-retrospective.sh 的 [SCOPE+] 检测排除 progress 文件，防止 `[SCOPE+] 检查: 无` 等文本被误匹配
+- **CHANGELOG 检查限制到 P8（P2.54）**：pre-commit-gate.sh 的 CHANGELOG 检查从每次 commit 触发改为仅 P8 phase 触发。消除 P1-P7 阶段 4 次无意义 WARNING
+- **并行派发操作级指导（P2.55）**：P2/P4 卡片追加操作级指令——"在一个消息中连续发起多个 task 工具调用，不要等前一个返回再发下一个"
+- **review status 字段指导（P2.56）**：dispatch-prompt 模板追加明确指令——评审完成后必须将 Header status 从 draft 改为 approved/rejected/needs-revision
+- **P6 evidence-consistency 检查（P2.57）**：check-p6-provenance.sh 新增审计 6——检查 evidence JSON 中的 bdd_results 与 P6-acceptance.md 的 PASS/FAIL 声明一致性。防止 P6 commit 声称全 PASS 但 evidence 实际有 FAIL 的时序倒置
 - **测试输出标准化（P2.51）**：check-tdd-red.sh 和 agate-capture-env-baseline.sh 重写为 formatter + 标准 JSON 格式，不再硬编码 pytest 输出解析。新增 6 个内置 formatter 模板（pytest/vitest/go-test/generic-tap/generic-junit-xml/generic-exit-only）。gate_commands 扩展 P3_formatter/P5_formatter/project_module 可选键。支持多技术栈声明（P3 + P3_js）。不提供 formatter 时退化为 exit-code-only。TEST_RUNNER 环境变量保留但退化为 exit-code-only（不再有 A/B 类检测）。废弃 TEST_RUNNER_FLAGS/TEST_FAIL_PATTERN/TEST_ERROR_PATTERN/TEST_IMPORT_PATTERN 环境变量
 - **P6 截图格式放宽**：check-p6-evidence.sh 从 PNG-only 改为接受任意图片格式（file 命令 + magic bytes fallback）
 - **P7 DESIGN_GAP 正则修复（T083）**：check-gate.sh 正则加 `>?` 匹配 markdown blockquote 格式

@@ -812,11 +812,11 @@ setTimeout(() => {
 | 全局 P1.2 | — | `[PROD_TOUCHED]` 标记三步检测（正向→中止 / 不合规→中止 / 缺失→静默通过）|
 | 阶段级 P2.3-P2.5 | `scripts/check-state-transition.sh` | 状态转移合法性 + 重试上限 |
 | 阶段级 P1.1 | `scripts/check-gate.sh` | 各阶段门控规则 |
-| 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（证据-结论对应 + dispatch-context + BDD 总数）|
+| 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（六道：证据-结论对应 + dispatch-context + BDD 总数 + EXIT_CODE 一致性 + evidence JSON 一致性 [P2.57] + UI vision YAML）|
 | 阶段级 P2.7-P2.9 | `scripts/check-pruning.sh` | 裁剪条件 + override 校验（P2/P6 不可裁；design_trivial / follows_existing_pattern / no_behavior_change 可简化但不可省略） |
 | 阶段级 P2.11 | `scripts/check-scope-resolved.sh` | `[SCOPE+]` 标记追踪 |
 | 提醒级 P2.12 | `scripts/check-retrospective.sh` | 异常模式提醒（不拦截）|
-| 提醒级 P1.6 | `scripts/check-changelog.sh` | `[Unreleased]` 含 task_id |
+| 提醒级 P1.6 | `scripts/check-changelog.sh` | `[Unreleased]` 含 task_id（P2.54：仅 P8 phase 检查） |
 | 阶段级 P1.7 | `scripts/check-p6-evidence.sh` | P6/P7 阶段：证据目录非空 + BDD 行数 ≥ 1 |
 
 **多任务适配**：hook 扫描所有暂存的 `.state.yaml`（根 + `docs/tasks/{Txxx}/`），对每个变更的任务级 `.state.yaml` 独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。
