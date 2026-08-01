@@ -1052,3 +1052,55 @@ EOF2
     [[ "$output" != *"不合规的 PROD_TOUCHED"* ]]
     [[ "$output" != *"检测到生产环境接触"* ]]
 }
+
+# ========== P2.54: CHANGELOG 检查限制到 P8 ==========
+
+@test "IT_CHANGELOG_P54: P4 commit without CHANGELOG → no CHANGELOG WARNING" {
+    local repo
+    repo=$(git_init "$BATS_TEST_TMPDIR/repo-p54")
+    git -C "$repo" commit -q --allow-empty -m "init"
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P4
+status: active
+retries: {}
+EOF
+    cat > "$repo/CHANGELOG.md" <<'EOF'
+# Changelog
+
+## [Unreleased]
+
+### Fixed
+- T999: other task
+EOF
+    echo 'task: test' > "$repo/docs/tasks/T001/P0-brief.md"
+    git -C "$repo" add docs/tasks/T001/.state.yaml docs/tasks/T001/P0-brief.md
+    run bash -c "cd '$repo' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
+    [[ "$output" != *"CHANGELOG"* ]]
+}
+
+@test "IT_CHANGELOG_P54b: P8 commit without CHANGELOG → CHANGELOG WARNING" {
+    local repo
+    repo=$(git_init "$BATS_TEST_TMPDIR/repo-p54b")
+    git -C "$repo" commit -q --allow-empty -m "init"
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P8
+status: active
+retries: {}
+EOF
+    cat > "$repo/CHANGELOG.md" <<'EOF'
+# Changelog
+
+## [Unreleased]
+
+### Fixed
+- T999: other task
+EOF
+    echo 'task: test' > "$repo/docs/tasks/T001/P0-brief.md"
+    git -C "$repo" add docs/tasks/T001/.state.yaml docs/tasks/T001/P0-brief.md
+    run bash -c "cd '$repo' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
+    [[ "$output" == *"CHANGELOG"* ]]
+}

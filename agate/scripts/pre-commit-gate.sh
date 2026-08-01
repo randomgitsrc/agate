@@ -244,9 +244,14 @@ except Exception:
     # 2l. 复盘异常触发（P2.12）——只提醒不中止
     bash "$AGATE_ROOT/scripts/check-retrospective.sh" "$TASK_DIR" "$STATE_FILE" 2>/dev/null || true
 
-    # 2m. CHANGELOG 检查（P1.6）——警告不中止
-    bash "$AGATE_ROOT/scripts/check-changelog.sh" "$TASK_ID" 2>/dev/null || \
-        echo "GATE CHANGELOG: 警告 — [Unreleased] 未记录 ${TASK_ID}" >&2
+    # 2m. CHANGELOG 检查（P1.6）——仅 P8 phase 检查，其他阶段不触发
+    # CHANGELOG 是 P8 发布准备产物，P1-P7 不需要
+    case "$PHASE" in
+        P8)
+            bash "$AGATE_ROOT/scripts/check-changelog.sh" "$TASK_ID" 2>/dev/null || \
+                echo "GATE CHANGELOG: 警告 — [Unreleased] 未记录 ${TASK_ID}" >&2
+            ;;
+    esac
 
     # 2n. P6 证据格式检查（P1.7）
     if [ "$PHASE" = "P6" ] || [ "$PHASE" = "P7" ]; then
