@@ -603,3 +603,91 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" != *"dispatch-prompt"* ]]
 }
+
+# ========== 审计 6: evidence JSON 与 P6 PASS/FAIL 声明一致性 (P2.57) ==========
+
+@test "PV.24 审计6: evidence JSON shows FAIL but P6 says PASS → exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1 (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    cat > "$dir/P6-evidence/result.json" <<'EOF'
+{
+  "bdd_results": [
+    {"id": "BDD-1", "status": "fail"}
+  ]
+}
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"evidence JSON 与 P6-acceptance.md 声明不一致"* ]]
+}
+
+@test "PV.25 审计6: evidence JSON all pass + P6 all PASS → exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1 (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    cat > "$dir/P6-evidence/result.json" <<'EOF'
+{
+  "bdd_results": [
+    {"id": "BDD-1", "status": "pass"}
+  ]
+}
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PV.26 审计6: non-standard evidence JSON (no bdd_results) → silent skip, exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1 (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    cat > "$dir/P6-evidence/result.json" <<'EOF'
+{
+  "some_other_field": "value"
+}
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "PV.27 审计6: P6 says FAIL + evidence JSON says fail → consistent, exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    add_p1_bdd "$dir" "second scenario"
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+agent: test
+---
+- PASS BDD-1 (result.json)
+- FAIL BDD-2 (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    cat > "$dir/P6-evidence/result.json" <<'EOF'
+{
+  "bdd_results": [
+    {"id": "BDD-1", "status": "pass"},
+    {"id": "BDD-2", "status": "fail"}
+  ]
+}
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 0 ]
+}

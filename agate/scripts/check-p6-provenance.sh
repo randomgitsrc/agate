@@ -250,7 +250,50 @@ for f in "$TASK_DIR"/P[0-8]-*.md; do
         echo "GATE PROVENANCE: $localname 缺 agent 字段（协作规范，不阻塞）" >&2
         exit 2
     fi
-done
+    done
+fi
+
+# 审计 6: evidence JSON 与 P6 PASS/FAIL 声明一致性（P2.57）
+EVIDENCE_DIR="$TASK_DIR/P6-evidence"
+if [ -d "$EVIDENCE_DIR" ]; then
+    INCONSISTENCY=$(EVIDENCE_DIR="$EVIDENCE_DIR" P6_FILE="$TASK_DIR/P6-acceptance.md" python3 -c '
+import json, os, glob, re, sys
+
+evidence_dir = os.environ["EVIDENCE_DIR"]
+p6_file = os.environ["P6_FILE"]
+
+pass_bdds = set()
+with open(p6_file) as f:
+    for line in f:
+        m = re.match(r"^\s*-\s*PASS\s+(BDD-\d+)", line, re.IGNORECASE)
+        if m:
+            pass_bdds.add(m.group(1))
+
+fail_in_evidence = set()
+for json_path in glob.glob(os.path.join(evidence_dir, "**/*.json"), recursive=True):
+    try:
+        with open(json_path) as f:
+            data = json.load(f)
+        results = data.get("bdd_results", data.get("results", []))
+        if isinstance(results, list):
+            for r in results:
+                if isinstance(r, dict):
+                    bdd_id = r.get("id", r.get("bdd", ""))
+                    status = r.get("status", "").lower()
+                    if status == "fail" and bdd_id:
+                        fail_in_evidence.add(bdd_id)
+    except (json.JSONDecodeError, KeyError):
+        continue
+
+inconsistent = pass_bdds & fail_in_evidence
+for bdd in sorted(inconsistent):
+    print(f"{bdd}: P6 标 PASS 但 evidence JSON 显示 FAIL")
+' 2>/dev/null || echo "")
+    if [ -n "$INCONSISTENCY" ]; then
+        echo "GATE PROVENANCE: evidence JSON 与 P6-acceptance.md 声明不一致：" >&2
+        echo "$INCONSISTENCY" | sed 's/^/  - /' >&2
+        exit 1
+    fi
 fi
 
 exit 0
