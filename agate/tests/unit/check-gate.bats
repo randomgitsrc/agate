@@ -304,6 +304,62 @@ EOF
     [[ "$output" == *"P2-review.md 不存在"* ]]
 }
 
+@test "G_CMD_EXEC.1: P2 gate_commands 命令不可执行 → WARNING 不阻断 (exit 2)" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands:
+  P3: "definitely-nonexistent-cmd --flag"
+  P5: "echo hi"
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: test
+status: approved
+---
+通过。
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"definitely-nonexistent-cmd"* ]]
+}
+
+@test "G_CMD_EXEC.2: P2 gate_commands 命令均可执行 → 无 WARNING (exit 2)" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands:
+  P3: "true"
+  P5: "echo hi"
+EOF
+    cat > "$dir/P2-review.md" <<'EOF'
+---
+agent: test
+status: approved
+---
+通过。
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"不存在"* ]]
+}
+
 # ========== P3 check-tdd-red.sh 委托（7 个子用例） ==========
 # G3.1-G3.7 见 check-tdd-red.bats（独立文件覆盖）
 # 这里只验证 check-gate.sh P3 委托给了 check-tdd-red.sh
