@@ -9,6 +9,9 @@
 ## [Unreleased]
 
 ### 变更
+- **gate_commands 命令可执行性检查（P2.61）**：check-gate.sh P2 分支解析 gate_commands 每个命令的第一个 token，用 `command -v` 验证存在性，WARNING 不阻断。消除 T075 中 `python` 不存在导致 P3 gate exit 127 的损耗
+- **P3 自检注入 + 经典红灯提示（P2.62）**：dispatch-prompt.md 新增 P3 派发追加块（强制自检步骤，机械注入每次 P3 派发）+ agate-render-dispatch-prompt.sh 新增 P3 case 分支 + check-tdd-red.sh 经典红灯分支输出断言矛盾提示（WARNING）。帮助 P3 阶段发现"断言与测试数据矛盾"而非到 P5 才暴露
+- **修复轮 dispatch-context 增量模式（P2.63）**：dispatch-prompt.md 新增修复轮派发追加块（主 Agent 模板：引用上轮文件 + 只写增量），减少多轮修复的 dispatch-context 维护负担
 - **check-pruning YAML 列表格式支持（P2.52）**：check-pruning.sh 的 phases 解析从只认内联格式 `phases: [P1,P2]` 扩展为同时支持 YAML 列表格式（每阶段一行）。消除 T084 中 3 次 gate 拦截
 - **SCOPE+ 排除 progress 文件（P2.53）**：check-scope-resolved.sh 和 check-retrospective.sh 的 [SCOPE+] 检测排除 progress 文件，防止 `[SCOPE+] 检查: 无` 等文本被误匹配
 - **CHANGELOG 检查限制到 P8（P2.54）**：pre-commit-gate.sh 的 CHANGELOG 检查从每次 commit 触发改为仅 P8 phase 触发。消除 P1-P7 阶段 4 次无意义 WARNING
