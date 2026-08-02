@@ -157,7 +157,7 @@ for k, v in re.findall(r"^  (P[0-9]\w*):\s*(.+)$", block, re.MULTILINE):
         continue
     token = val.split()[0]
     token = token.lstrip("$(").rstrip(")")
-    if "/" in token:
+    if "/" in token or "=" in token:
         continue
     print(f"{k}:{token}")
 ' 2>/dev/null || echo "")

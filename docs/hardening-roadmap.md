@@ -314,12 +314,11 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 > 来源：T075（53 BDD / 13.5h / 损耗 44%）— spec 缺陷是新的损耗类型
 
-**P2.61: architect gate_commands 校验清单 → 升级为 gate 脚本检查**
+**P2.61: architect gate_commands 校验清单 → gate 脚本检查**
 
 **状态**：已实施
 **来源**：T075 复盘 AGATE-M1（gate_commands 声明不可执行命令）
 **改动**：
-- architect 角色文件增加 gate_commands 校验清单（规则层）
 - check-gate.sh P2 分支增加命令可执行性检查（机制层，WARNING 不阻断）
 
 **P2.62: test-designer 量化断言 → P3 自检注入 + 失败归类提示**
