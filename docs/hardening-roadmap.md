@@ -317,8 +317,8 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | ID | 问题 | 措施 | 来源 | 预期节省 | 优先级 |
 |----|------|------|------|---------|--------|
 | P2.61 | architect 声明的 gate_commands 命令本身不可执行（如 `python` 不存在） | architect 角色文件增加 gate_commands 校验清单："命令中的可执行文件是否存在于当前环境？" | T075 AGATE-M1 | 0.5h | P1 |
-| P2.62 | test-designer 手写魔数断言（行数/列数/页数与测试数据矛盾） | test-designer 角色文件增加规则："量化断言必须从测试数据可推导，不允许手写魔数" | T075 EXEC-1 | 1.5h | P0 |
-| P2.63 | dispatch-context 多轮修复时重复写完整约束（20 个文件） | dispatch-context 修复轮改为增量差异模式（上次产出 + 本次修复目标） | T075 AGATE-M2 | 0.5h | P2 |
+| P2.62 | test-designer 手写魔数断言（行数/列数/页数与测试数据矛盾） | 不修——LLM 推理错误不是协议规则能解决的，加规则增加角色文件噪音 | T075 EXEC-1 | — |
+| P2.63 | dispatch-context 多轮修复时重复写完整约束（20 个文件） | 不修——简化 dispatch-context 削弱 subagent 上下文，增加主 Agent 判断负担 | T075 AGATE-M2 | — |
 
 ### 不修理由
 
