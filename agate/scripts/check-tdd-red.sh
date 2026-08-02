@@ -133,6 +133,7 @@ print(count)
 
     if [ "$failed" -gt 0 ]; then
         echo "TDD_CHECK: classic red-light (assertion failures only)"
+        echo "TDD_CHECK 提示: 测试能运行但断言失败。若失败原因是断言与测试数据矛盾（如行数/列数/页数不符），这是测试代码 bug，应退回 P3 修正断言——不是 P4 实现问题。T075 教训：7 条魔数断言与数据矛盾到 P5 才暴露。" >&2
         return 0
     fi
 

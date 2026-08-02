@@ -432,3 +432,19 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
+
+@test "TD.FAIL_HINT: classic red-light outputs assertion-mismatch hint" {
+    local fake
+    fake=$(make_fake_pytest "2 failed, 5 passed
+FAILED tests/test_x.py::test_x" 1)
+    local task_dir="$BATS_TEST_TMPDIR/task-failhint"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P3_formatter: "pytest.sh"
+EOF
+    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"断言"*"数据"* ]]
+}
