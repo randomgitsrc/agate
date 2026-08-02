@@ -82,6 +82,9 @@ case "$PHASE" in
     P2)
         appendix="$(sed -n '/^### P2 派发追加$/,/^### /p' "$TEMPLATE" | sed '/^### /d' | extract_first_code_block)"
         ;;
+    P3)
+        appendix="$(sed -n '/^### P3 派发追加$/,/^### /p' "$TEMPLATE" | sed '/^### /d' | extract_first_code_block)"
+        ;;
     P4)
         if [ "$ROLLBACK" = "--rollback" ]; then
             appendix="$(sed -n '/^### P4 回退派发追加/,/^### /p' "$TEMPLATE" | sed '/^### /d' | extract_first_code_block)"

@@ -120,3 +120,9 @@ teardown() {
     [ "$status" -eq 0 ]
     [[ "$output" == *"assets/review-roles/design-review.md"* ]]
 }
+
+@test "RP.16: P3 renders P3 self-check appendix" {
+    local output
+    output=$(AGATE_ROOT="$AGATE_ROOT" bash "$AGATE_SCRIPTS/agate-render-dispatch-prompt.sh" P3 test-designer "$TEST_TASK_DIR")
+    [[ "$output" == *"P3 自检"* ]]
+}

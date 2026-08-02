@@ -314,11 +314,28 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 > 来源：T075（53 BDD / 13.5h / 损耗 44%）— spec 缺陷是新的损耗类型
 
-| ID | 问题 | 措施 | 来源 | 预期节省 | 优先级 |
-|----|------|------|------|---------|--------|
-| P2.61 | architect 声明的 gate_commands 命令本身不可执行（如 `python` 不存在） | architect 角色文件增加 gate_commands 校验清单："命令中的可执行文件是否存在于当前环境？" | T075 AGATE-M1 | 0.5h | P1 |
-| P2.62 | test-designer 手写魔数断言（行数/列数/页数与测试数据矛盾） | 不修——LLM 推理错误不是协议规则能解决的，加规则增加角色文件噪音 | T075 EXEC-1 | — |
-| P2.63 | dispatch-context 多轮修复时重复写完整约束（20 个文件） | 不修——简化 dispatch-context 削弱 subagent 上下文，增加主 Agent 判断负担 | T075 AGATE-M2 | — |
+**P2.61: architect gate_commands 校验清单 → gate 脚本检查**
+
+**状态**：已实施
+**来源**：T075 复盘 AGATE-M1（gate_commands 声明不可执行命令）
+**改动**：
+- check-gate.sh P2 分支增加命令可执行性检查（机制层，WARNING 不阻断）
+
+**P2.62: test-designer 量化断言 → P3 自检注入 + 失败归类提示**
+
+**状态**：已实施
+**来源**：T075 复盘 EXEC-1（手写魔数断言与测试数据矛盾）
+**改动**：
+- dispatch-prompt.md 新增 P3 派发追加块（强制自检步骤，机械注入每次 P3 派发）
+- agate-render-dispatch-prompt.sh 新增 P3 case 分支（接线）
+- check-tdd-red.sh 经典红灯分支输出断言矛盾提示（WARNING）
+
+**P2.63: dispatch-context 修复轮增量模式**
+
+**状态**：已实施
+**来源**：T075 复盘 AGATE-M2（dispatch-context 维护负担）
+**改动**：
+- dispatch-prompt.md 新增修复轮派发追加块（主 Agent 模板：引用上轮 + 只写增量）
 
 ### 不修理由
 

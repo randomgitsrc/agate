@@ -134,6 +134,43 @@ case "$PHASE" in
           echo "GATE P2: P2-design.md 不存在——P2 不可裁剪，方案设计是必经阶段" >&2
           exit 1
       fi
+      # P2.61: gate_commands 命令可执行性检查（WARNING 不阻断）
+      # T075 教训：architect 写 `python -m pytest` 但系统无 python 命令，P3 gate exit 127
+      # 解析 gate_commands 每个命令的第一个 token，验证存在性
+      # 第一个 token 含 / → 跳过（相对/绝对路径如 .venv/bin/python，P2 阶段 venv 可能未建，不误报）
+      # 否则 → command -v 验证
+      MISSING_CMDS=$(GATE_FILE="$P2_FILE" python3 -c '
+import re, os, sys
+with open(os.environ["GATE_FILE"]) as f:
+    content = f.read()
+if not content.endswith(chr(10)):
+    content += chr(10)
+m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
+if not m:
+    sys.exit(0)
+block = m.group(1)
+for k, v in re.findall(r"^  (P[0-9]\w*):\s*(.+)$", block, re.MULTILINE):
+    if k.endswith("_formatter") or k == "project_module":
+        continue
+    val = v.strip().strip("\"").strip(chr(39))
+    if not val:
+        continue
+    token = val.split()[0]
+    token = token.lstrip("$(").rstrip(")")
+    if "/" in token or "=" in token:
+        continue
+    print(f"{k}:{token}")
+' 2>/dev/null || echo "")
+      if [ -n "$MISSING_CMDS" ]; then
+          while IFS= read -r entry; do
+              [ -z "$entry" ] && continue
+              key=$(echo "$entry" | cut -d: -f1)
+              token=$(echo "$entry" | cut -d: -f2-)
+              if ! command -v "$token" &>/dev/null; then
+                  echo "GATE P2 WARNING: gate_commands.$key 命令 '$token' 不存在于当前环境——请确认使用完整路径（如 .venv/bin/pytest）或安装依赖。T075 教训：python 不存在导致 P3 gate exit 127" >&2
+              fi
+          done <<< "$MISSING_CMDS"
+      fi
       echo "GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P3)

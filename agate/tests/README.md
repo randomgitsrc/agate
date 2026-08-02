@@ -27,17 +27,18 @@ bash agate/tests/scripts/count-tests.sh
 
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
-| check-pruning.sh | unit/check-pruning.bats | 20 |
-| check-gate.sh | unit/check-gate.bats | 34 |
-| agate-next-card.sh | unit/agate-next-card.bats | 17 |
-| check-p6-evidence.sh | unit/check-p6-evidence.bats | 11 |
-| check-p6-provenance.sh | unit/check-p6-provenance.bats | 16 |
-| check-scope-resolved.sh | unit/check-scope-resolved.bats | 6 |
+| check-pruning.sh | unit/check-pruning.bats | 29 |
+| check-gate.sh | unit/check-gate.bats | 95 |
+| agate-next-card.sh | unit/agate-next-card.bats | 20 |
+| agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 16 |
+| check-p6-evidence.sh | unit/check-p6-evidence.bats | 25 |
+| check-p6-provenance.sh | unit/check-p6-provenance.bats | 37 |
+| check-scope-resolved.sh | unit/check-scope-resolved.bats | 11 |
 | check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
-| check-state-transition.sh | unit/check-state-transition.bats | 8 |
-| check-changelog.sh | unit/check-changelog.bats | 5 |
-| check-retrospective.sh | unit/check-retrospective.bats | 6 |
-| check-tdd-red.sh | unit/check-tdd-red.bats | 28 |
+| check-state-transition.sh | unit/check-state-transition.bats | 26 |
+| check-changelog.sh | unit/check-changelog.bats | 8 |
+| check-retrospective.sh | unit/check-retrospective.bats | 11 |
+| check-tdd-red.sh | unit/check-tdd-red.bats | 31 |
 | formatters | unit/check-tdd-red-formatter.bats | 12 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 5 |
