@@ -873,6 +873,14 @@ EOF
     grep -q '<objective_info>' "$AGATE_ROOT/assets/templates/dispatch-context.md"
 }
 
+@test "D-drift-5: dispatch-prompt.md 含'P3 自检'" {
+    grep -q 'P3 自检' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+}
+
+@test "D-drift-6: dispatch-prompt.md 含'修复轮派发追加'" {
+    grep -q '修复轮派发追加' "$AGATE_ROOT/assets/templates/dispatch-prompt.md"
+}
+
 @test "G-drift-1: dispatch-protocol.md 含'自查≠gate'关键词" {
     grep -q '自查≠gate' "$AGATE_ROOT/dispatch-protocol.md"
 }
