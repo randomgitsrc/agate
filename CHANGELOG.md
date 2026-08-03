@@ -6,10 +6,14 @@
 
 ---
 
-## [Unreleased]
+## [0.29.0] - 2026-08-03
 
 ### 变更
 - **审计 6 短路修复**：check-p6-provenance.sh agent 字段检查的 `exit 2` 会终止整个脚本，导致审计 6（evidence JSON 一致性，P2.57）被静默跳过。改为 `WARNING_FOUND` 变量记 WARNING 后继续执行审计 6，末尾统一判断 exit code。新增 PV.28 测试（agent 缺失 + evidence 矛盾 → exit 1）。删除伪"v2 向后兼容"注释
+- **phase 更新时机统一（P2.64）**：7 个阶段卡片统一为"先更新 .state.yaml → git add（含 state + 产出）→ git commit"（模式 B）。删除 check-state-transition.sh 检查 3（pre-phase-change commit gate，强制模式 A 两步 commit）——与模式 B 冲突，产出存在性由 check-gate.sh 检查。更新 ST.17/ST.18 测试语义反转
+- **P3 gate 分离（P2.64）**：check-gate.sh P3 从 `exec check-tdd-red.sh` 改为文件存在性检查（秒级），解决 hook 超时导致 --no-verify 绕过（T085 复盘 8/10 次 --no-verify）。ci-gate-backstop.py P3 时额外跑 check-tdd-red.sh 兜底，插入在 .gate-result.json 存在性判断之前（--no-verify 场景仍执行）。AGATE_TDD_RED_SCRIPT 环境变量支持 mock 测试。5 个新测试覆盖真红灯/绿灯/假红灯/无运行器/--no-verify 场景
+- **install-hook.sh .gitignore 检测（P2.64）**：安装时检测 .gitignore 中 .state.yaml 忽略并提醒用 git add -f
+- **P2 候选方案正则放宽（P2.64）**：`^###?` → `^#{2,4}` 支持 ####（h4）标题。G2.4 测试改用 #####（h5 边界），新增 G2.25 测试验证 h4 识别
 - **gate_commands 命令可执行性检查（P2.61）**：check-gate.sh P2 分支解析 gate_commands 每个命令的第一个 token，用 `command -v` 验证存在性，WARNING 不阻断。消除 T075 中 `python` 不存在导致 P3 gate exit 127 的损耗
 - **P3 自检注入 + 经典红灯提示（P2.62）**：dispatch-prompt.md 新增 P3 派发追加块（强制自检步骤，机械注入每次 P3 派发）+ agate-render-dispatch-prompt.sh 新增 P3 case 分支 + check-tdd-red.sh 经典红灯分支输出断言矛盾提示（WARNING）。帮助 P3 阶段发现"断言与测试数据矛盾"而非到 P5 才暴露
 - **修复轮 dispatch-context 增量模式（P2.63）**：dispatch-prompt.md 新增修复轮派发追加块（主 Agent 模板：引用上轮文件 + 只写增量），减少多轮修复的 dispatch-context 维护负担
