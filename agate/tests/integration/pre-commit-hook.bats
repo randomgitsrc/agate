@@ -580,6 +580,11 @@ phase: P3
 status: active
 retries: {}
 EOF
+    echo '## P3 test cases' > "$REPO/docs/tasks/T001/P3-test-cases.md"
+    _write_min_valid_dispatch_context "docs/tasks/T001" "P3" "test-designer"
+    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
+    # Now add P1/P2 as late commits
     cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
@@ -601,7 +606,7 @@ created: 2026-07-08
 ---
 ### 候选方案 A：方案一
 EOF
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add docs/tasks/T001/P1-requirements.md docs/tasks/T001/P2-design.md
     run git -C "$REPO" commit -m "T001 late commit P1/P2 outputs" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" != *"WARNING"*"P1"* ]]
@@ -635,8 +640,11 @@ phase: P3
 status: active
 retries: {}
 EOF
+    echo '## P3 test cases' > "$REPO/docs/tasks/T001/P3-test-cases.md"
+    git -C "$REPO" add docs/tasks/T001/.state.yaml docs/tasks/T001/P3-test-cases.md
+    git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
     echo "updated requirements" >> "$REPO/docs/tasks/T001/P1-requirements.md"
-    git -C "$REPO" add docs/tasks/T001/P1-requirements.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add docs/tasks/T001/P1-requirements.md
     run git -C "$REPO" commit -m "T001 modify P1 while phase=P3" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" == *"WARNING"*"P1"* ]]
@@ -747,9 +755,11 @@ phase: P3
 status: active
 retries: {}
 EOF
+    echo '## P3 test cases' > "$REPO/docs/tasks/T002/P3-test-cases.md"
+    git -C "$REPO" add docs/tasks/T002/.state.yaml docs/tasks/T002/P3-test-cases.md
+    git -C "$REPO" commit --no-verify -qm "T002 P3 setup"
     echo "updated" >> "$REPO/docs/tasks/T002/P1-requirements.md"
     # T003: phase=P3, 新增 P4 产出（提前产出）→ WARNING
-    # .state.yaml 已在上一 commit 提交，本次只暂存 P4 产出
     mkdir -p "$REPO/docs/tasks/T003"
     cat > "$REPO/docs/tasks/T003/.state.yaml" <<'EOF'
 task_id: T003
@@ -765,10 +775,11 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
+    echo '## P3 test cases' > "$REPO/docs/tasks/T003/P3-test-cases.md"
     git -C "$REPO" add docs/tasks/T003/
     git -C "$REPO" commit --no-verify -qm "T003 P3 setup"
     echo "implementation" > "$REPO/docs/tasks/T003/P4-implementation.md"
-    git -C "$REPO" add docs/tasks/T002/ docs/tasks/T003/P4-implementation.md
+    git -C "$REPO" add docs/tasks/T002/P1-requirements.md docs/tasks/T003/P4-implementation.md
     run git -C "$REPO" commit -m "multi-task phase-span" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" != *"WARNING"*"T001"*"P1"* ]]

@@ -8,6 +8,7 @@
 #
 # 可脚本化的 gate（exit 0/1）：P4 / P7
 # 需主 Agent 自判的 gate（exit 2）：P0 / P1 / P2 / P3 / P5 / P6 / P8
+# P3 红灯（check-tdd-red.sh）由主 Agent 手动确认 + CI backstop P3 兜底，不在此脚本内执行
 #
 # 本脚本的判定逻辑与 state-machine.md 步骤 5 保持同步。
 # 步骤 5 变更时必须同步更新本脚本。一致性检查脚本覆盖本文件。
