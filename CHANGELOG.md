@@ -9,6 +9,7 @@
 ## [Unreleased]
 
 ### 变更
+- **审计 6 短路修复**：check-p6-provenance.sh agent 字段检查的 `exit 2` 会终止整个脚本，导致审计 6（evidence JSON 一致性，P2.57）被静默跳过。改为 `WARNING_FOUND` 变量记 WARNING 后继续执行审计 6，末尾统一判断 exit code。新增 PV.28 测试（agent 缺失 + evidence 矛盾 → exit 1）。删除伪"v2 向后兼容"注释
 - **gate_commands 命令可执行性检查（P2.61）**：check-gate.sh P2 分支解析 gate_commands 每个命令的第一个 token，用 `command -v` 验证存在性，WARNING 不阻断。消除 T075 中 `python` 不存在导致 P3 gate exit 127 的损耗
 - **P3 自检注入 + 经典红灯提示（P2.62）**：dispatch-prompt.md 新增 P3 派发追加块（强制自检步骤，机械注入每次 P3 派发）+ agate-render-dispatch-prompt.sh 新增 P3 case 分支 + check-tdd-red.sh 经典红灯分支输出断言矛盾提示（WARNING）。帮助 P3 阶段发现"断言与测试数据矛盾"而非到 P5 才暴露
 - **修复轮 dispatch-context 增量模式（P2.63）**：dispatch-prompt.md 新增修复轮派发追加块（主 Agent 模板：引用上轮文件 + 只写增量），减少多轮修复的 dispatch-context 维护负担
