@@ -28,11 +28,11 @@ bash agate/tests/scripts/count-tests.sh
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
 | check-pruning.sh | unit/check-pruning.bats | 29 |
-| check-gate.sh | unit/check-gate.bats | 95 |
+| check-gate.sh | unit/check-gate.bats | 96 |
 | agate-next-card.sh | unit/agate-next-card.bats | 20 |
 | agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 16 |
 | check-p6-evidence.sh | unit/check-p6-evidence.bats | 25 |
-| check-p6-provenance.sh | unit/check-p6-provenance.bats | 37 |
+| check-p6-provenance.sh | unit/check-p6-provenance.bats | 38 |
 | check-scope-resolved.sh | unit/check-scope-resolved.bats | 11 |
 | check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
 | check-state-transition.sh | unit/check-state-transition.bats | 26 |
@@ -40,10 +40,12 @@ bash agate/tests/scripts/count-tests.sh
 | check-retrospective.sh | unit/check-retrospective.bats | 11 |
 | check-tdd-red.sh | unit/check-tdd-red.bats | 31 |
 | formatters | unit/check-tdd-red-formatter.bats | 12 |
+| ci-gate-backstop.py | unit/ci-gate-backstop.bats | 8 |
+| install-hook.sh | unit/install-hook.bats | 2 |
 | 回归 (R1-R5) | regression/ | 15 |
-| pre-commit-hook | integration/pre-commit-hook.bats | 5 |
-| 协议一致性 | integration/consistency.bats | 10 |
-| self-gate | integration/protocol-alignment-review.bats | 6 |
+| pre-commit-hook | integration/pre-commit-hook.bats | 38 |
+| 协议一致性 | integration/consistency.bats | 11 |
+| self-gate | integration/protocol-alignment-review.bats | 8 |
 | 框架自检 | sanity.bats | 6 |
 | **总计** | | **以 `count-tests.sh` 输出为准** |
 
