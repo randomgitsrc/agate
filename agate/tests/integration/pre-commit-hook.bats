@@ -210,7 +210,7 @@ phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
     git -C "$REPO" add docs/tasks/T001/
-    git -C "$REPO" commit -qm "T001 P3"
+    git -C "$REPO" commit --no-verify -qm "T001 P3"
     # 现在 commit P4 产出但忘改 phase
     echo "implementation" > "$REPO/docs/tasks/T001/P4-implementation.md"
     git -C "$REPO" add docs/tasks/T001/P4-implementation.md
