@@ -1104,3 +1104,54 @@ EOF
     run bash -c "cd '$repo' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
     [[ "$output" == *"CHANGELOG"* ]]
 }
+
+@test "IT_GATE_REAL.1: hook runs check-gate.sh and writes real .gate-result.json" {
+    local repo
+    repo=$(git_init "$BATS_TEST_TMPDIR/repo-gatereal1")
+    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
+    chmod +x "$repo/.git/hooks/pre-commit"
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P2
+status: active
+retries: {}
+EOF
+    cat > "$repo/docs/tasks/T001/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    cat > "$repo/docs/tasks/T001/P2-review.md" <<'EOF'
+---
+agent: test
+status: approved
+---
+通过。
+EOF
+    # embed real card content via agate-next-card.sh
+    local card_content
+    card_content=$(bash "$AGATE_ROOT/scripts/agate-next-card.sh" P2 2>/dev/null || true)
+    cat > "$repo/docs/tasks/T001/P2-dispatch-context-architect.md" <<EOF
+---
+agent: test
+---
+## 任务
+设计 P2
+
+<!-- AGATE_CARD_START -->
+$card_content
+<!-- AGATE_CARD_END -->
+EOF
+    git -C "$repo" add docs/tasks/T001/
+    run git -C "$repo" commit -m "P2"
+    [ "$status" -eq 0 ]
+    [ -f "$repo/.gate-result.json" ]
+    grep -q 'pre-commit-hook' "$repo/.gate-result.json"
+}

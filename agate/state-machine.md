@@ -88,6 +88,7 @@ P2 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 a
     （若 P2 设计涉及 UI：P2-design.md 必须声明 ui_affected: true，并列出需 E2E 覆盖的交互点）
 
 P3 --[scripts/check-tdd-red.sh exit 0 AND assertion_failures>0 AND collection_errors==0]--> P4
+    （check-gate.sh P3 只检查 P3-test-cases.md 存在，红灯由主 Agent 手动跑 check-tdd-red.sh + CI backstop P3 兜底确认）
     （TDD 红灯：测试正确但因实现未写而断言失败。collection/import error 视为测试本身错误）
     （若 P2 声明 ui_affected：P3 必须包含对应的 Playwright/E2E 用例，主 Agent 确认）
 P3 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
@@ -271,7 +272,7 @@ PAUSED 恢复协议：
 
 门槛接受**前两种**（assertion failure 或 B 类 import failure），拒绝第三种。
 
-**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析测试输出。脚本通过 formatter 将测试输出标准化为 JSON，再判定 A/B 类（exit 0=红灯可推进 / exit 1=A类错误 / exit 2=绿灯违反TDD）。
+**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析测试输出。check-gate.sh P3 只检查 P3-test-cases.md 存在。脚本通过 formatter 将测试输出标准化为 JSON，再判定 A/B 类（exit 0=红灯可推进 / exit 1=A类错误 / exit 2=绿灯违反TDD）。
 
 **`scripts/check-tdd-red.sh` 设计**：
 

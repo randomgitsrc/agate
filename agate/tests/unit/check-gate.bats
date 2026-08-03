@@ -362,22 +362,21 @@ EOF
 
 # ========== P3 check-tdd-red.sh 委托（7 个子用例） ==========
 # G3.1-G3.7 见 check-tdd-red.bats（独立文件覆盖）
-# 这里只验证 check-gate.sh P3 委托给了 check-tdd-red.sh
+# 这里只验证 check-gate.sh P3 检查文件存在性（不跑测试）
 
-@test "G3 check-gate.sh P3 委托 check-tdd-red.sh（不直接执行测试）" {
-    # 通过设置 TEST_RUNNER 验证委托关系
+@test "G3 check-gate.sh P3 检查 P3-test-cases.md 存在（不跑测试）" {
     local dir
     dir=$(create_task_dir)
-    local fake_pytest="$BATS_TEST_TMPDIR/fake-pytest"
-    cat > "$fake_pytest" <<'EOF'
-#!/bin/bash
-echo "5 passed"
-exit 0
-EOF
-    chmod +x "$fake_pytest"
-    TEST_RUNNER="$fake_pytest" run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
-    # check-tdd-red.sh 输出 "tests pass, no red-light" → exit 2
+    # 无 P3-test-cases.md → exit 1
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P3-test-cases.md 不存在"* ]]
+
+    # 有 P3-test-cases.md → exit 2
+    echo '## P3 test cases' > "$dir/P3-test-cases.md"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
     [ "$status" -eq 2 ]
+    [[ "$output" == *"check-tdd-red.sh"* ]]
 }
 
 # ========== P4 (4 用例) ==========

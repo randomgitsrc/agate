@@ -87,6 +87,38 @@ def main() -> int:
     task_dir = str(repo_root / tasks_base / task_id) if task_id else ""
     ci_exit, ci_output = run_gate(phase, task_dir)
 
+    if phase == "P3":
+        # P3 红灯检查独立跑（check-gate.sh P3 只检查文件存在）
+        # 必须在 .gate-result.json 存在性判断之前执行——
+        # --no-verify 场景（无 .gate-result.json）正是 P3 兜底要覆盖的核心场景
+        # check-tdd-red.sh exit 语义：
+        #   0 = 真红灯（符合 TDD）→ 通过
+        #   1 = 假红灯（测试代码自身 bug）→ FAIL
+        #   2 = 绿灯（实现先于测试，违反 TDD）→ FAIL
+        #   3 = 无测试运行器 → WARN（CI 环境可能未装测试框架，主 Agent 已手动确认过红灯）
+        tdd_script = Path(os.environ.get("AGATE_TDD_RED_SCRIPT", str(_AGATE_ROOT / "scripts/check-tdd-red.sh")))
+        if tdd_script.exists():
+            tdd_result = subprocess.run(
+                ["bash", str(tdd_script), task_dir],
+                capture_output=True, text=True
+            )
+            tdd_exit = tdd_result.returncode
+            tdd_output = tdd_result.stderr + tdd_result.stdout
+            if tdd_exit == 0:
+                print("OK: P3 check-tdd-red.sh exit=0（真红灯，符合 TDD）")
+            elif tdd_exit == 2:
+                print(f"FAIL: P3 check-tdd-red.sh exit=2（绿灯，实现先于测试，违反 TDD）")
+                print(tdd_output)
+                return 1
+            elif tdd_exit == 1:
+                print(f"FAIL: P3 check-tdd-red.sh exit=1（假红灯，测试代码自身有 bug）")
+                print(tdd_output)
+                return 1
+            else:
+                print(f"WARN: P3 check-tdd-red.sh exit={tdd_exit}（无测试运行器，CI 环境可能未装测试框架——主 Agent 已手动确认过红灯）")
+        else:
+            print("WARN: check-tdd-red.sh 不存在，P3 红灯检查跳过")
+
     if not gate_result.exists():
         if ci_exit == 1:
             print(f"FAIL: gate 未通过（无 .gate-result.json，CI 重跑 exit={ci_exit}）")

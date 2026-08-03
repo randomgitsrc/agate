@@ -37,7 +37,13 @@
 - 每条测试用例对应一条 P1 的 `#### BDD-NN` 验收条件（1:1 映射）
 - UI 任务（P2 ui_affected: true）：必须含 Playwright/E2E 用例
 
-## gate 规则（check-tdd-red.sh）
+## gate 规则
+
+**check-gate.sh P3**（hook + 主 Agent 预跑，秒级文件检查）：
+- exit 1：P3-test-cases.md 不存在
+- exit 2：P3-test-cases.md 存在（TDD 红灯由 check-tdd-red.sh 独立确认）
+
+**check-tdd-red.sh**（主 Agent 手动确认红灯 + CI backstop P3 兜底）：
 
 ```bash
 check-tdd-red.sh $TASK_DIR
