@@ -12,7 +12,9 @@
 4. **功能验证和 gate 格式都必须满足**（T046 教训：先做功能验证，不要只凑格式）
 5. **运行 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"`** 归一化 PASS/FAIL 大小写和行首空白（verifier 产出后、gate 前，① 自动格式化）
 6. 预跑 check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh
-7. git commit → 更新 .state.yaml phase=P6 → P7
+7. 更新 .state.yaml phase=P6 → P7
+8. git add docs/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+9. git commit -m "wf({Txxx}-P6): {摘要}"
 
 ## 如果是重试
 

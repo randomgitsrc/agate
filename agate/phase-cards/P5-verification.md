@@ -10,8 +10,9 @@
    1.1 写 P5-dispatch-context-verifier.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 逐条判定通过/失败
 3. 若失败：判定是真失败还是环境问题 → 真失败回 P4，环境问题修复环境
-4. git commit
-5. 更新 .state.yaml phase=P5 → P6
+4. 更新 .state.yaml phase=P5 → P6
+5. git add docs/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+6. git commit -m "wf({Txxx}-P5): {摘要}"
 
 ## 如果是重试
 

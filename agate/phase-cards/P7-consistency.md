@@ -11,7 +11,9 @@
 2. 对照 P1-P6 产出做跨文件一致性审查
 3. 产出 P7-consistency.md
 4. 预跑 check-gate.sh P7
-5. git commit → 更新 .state.yaml phase=P7 → P8
+5. 更新 .state.yaml phase=P7 → P8
+6. git add docs/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P7): {摘要}"
 
 ## 如果是重试
 

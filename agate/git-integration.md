@@ -28,7 +28,7 @@ subagent 在独立上下文里只负责产出文件，**不碰 git**。commit �
 
 不是每个 subagent 的中间操作都 commit（噪音太多），也不是整个任务才 commit 一次（中途崩溃丢进度）。
 
-**粒度：每个阶段门槛通过后，主 Agent commit 一次。** 一个 Pn 阶段的产出是一个原子的进度单位。**这个规则由 `check-state-transition.sh` 强制执行**——推进 phase 到 Pn+1 前，Pn 产出必须已 commit，否则拦截。
+**粒度：每个阶段门槛通过后，主 Agent commit 一次。** 一个 Pn 阶段的产出是一个原子的进度单位。**这个规则由 `check-gate.sh` 强制执行**——每个阶段的 gate 检查该阶段产出是否合格。产出和 .state.yaml phase 更新在同一个 commit 里。
 
 ```
 P2 门槛通过（status==approved）→ 主 Agent commit
@@ -106,11 +106,12 @@ function 执行一步(task_id):
     3. 派发 subagent
     4. 接收返回 + 校验
     5. 判定门槛
-    6. 更新 active-tasks.md
-    7. 【新增】git commit（规则 2：一阶段一 commit）
+    6. 更新 .state.yaml phase（先更新再 commit）
+    7. git commit（规则 2：一阶段一 commit）
        git add docs/tasks/{task_id}/ docs/tasks/active-tasks.md
+       （.state.yaml 在 docs/tasks/{task_id}/ 下。若项目 .gitignore 忽略 .state.yaml，需 git add -f）
        git commit -m "wf({task_id}-{phase}): {摘要}"
-    8. 【新增】按档位决定是否 push（规则 3）
+    8. 按档位决定是否 push（规则 3）
        if 该 push:
            git pull --rebase origin main
            git push（失败则 rebase 重试，最多 3 次）

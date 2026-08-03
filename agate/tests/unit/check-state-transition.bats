@@ -365,7 +365,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "ST.17 commit gate: P1→P2 推进，P1 产出在暂存区未 commit → exit 1" {
+@test "ST.17 commit gate: P1→P2 推进，P1 产出与 phase 推进在同一 commit → exit 0（模式 B）" {
     local repo
     repo=$(git_init)
     mkdir -p "$repo/docs/tasks/T001"
@@ -377,7 +377,7 @@ retries: {}
 EOF
     git -C "$repo" add docs/tasks/T001/.state.yaml
     git -C "$repo" commit -qm "T001 phase P1"
-    # P1 产出 + phase 改 P2 在同一个暂存区
+    # P1 产出 + phase 改 P2 在同一个暂存区（模式 B）
     echo "# P1 output" > "$repo/docs/tasks/T001/P1-requirements.md"
     cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
@@ -387,11 +387,10 @@ retries: {}
 EOF
     git -C "$repo" add docs/tasks/T001/
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"产出必须已 commit"* ]]
+    [ "$status" -eq 0 ]
 }
 
-@test "ST.18 commit gate: P1→P2 推进，P1 产出从未 commit → exit 1" {
+@test "ST.18 commit gate: P1→P2 推进，P1 产出不存在 → exit 0（产出存在性由 check-gate.sh 检查）" {
     local repo
     repo=$(git_init)
     mkdir -p "$repo/docs/tasks/T001"
@@ -412,8 +411,7 @@ retries: {}
 EOF
     git_stage "$repo" "docs/tasks/T001/.state.yaml"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"尚未 commit"* ]]
+    [ "$status" -eq 0 ]
 }
 
 @test "ST.19 commit gate: PAUSED→P3 恢复 → 跳过 commit gate" {

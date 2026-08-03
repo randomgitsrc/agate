@@ -10,8 +10,9 @@
 1. 派发 test-designer subagent → 产出 P3-test-cases.md + 测试代码目录
    1.1 写 P3-dispatch-context-test-designer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 主 Agent 跑 check-tdd-red.sh 确认红灯
-3. git commit
-4. 更新 .state.yaml phase=P3 → P4
+3. 更新 .state.yaml phase=P3 → P4
+4. git add docs/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+5. git commit -m "wf({Txxx}-P3): {摘要}"
 
 ## 如果是重试
 

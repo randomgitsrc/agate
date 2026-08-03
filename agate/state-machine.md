@@ -444,6 +444,8 @@ env_state:
 
 **commit 时机**：与 gate commit 同步——一次 commit 包含 stage output + `.state.yaml` 更新，避免文件与实际阶段不一致。
 
+**phase 更新时机**：先更新 .state.yaml phase → 再 git add（含 .state.yaml + 产出文件）→ 再 git commit。state 和产出在同一个 commit 里。不要"先 commit 产出再单独 commit state"——两个 commit 会导致 hook 在第一个 commit 时读不到 phase 变更，在第二个 commit 时找不到产出文件。
+
 **active-tasks.md 降级为汇总视图**：不再由 subagent 直接修改，由主 Agent 维护。更新规则：**owner agent 只重写自己任务那一行**（从该任务 .state.yaml 派生），不碰其他任务的行，不做全表覆写。这样多 Agent 并发时各写各的行，冲突面最小。定期（或怀疑不一致时）可从所有 `.state.yaml` 全表重建作为对账。（与 git-integration.md 策略2 一致，.state.yaml 是唯一真相源）
 
 ---
