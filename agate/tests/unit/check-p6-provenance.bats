@@ -691,3 +691,24 @@ EOF
     run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+@test "PV.28 审计6: agent 字段缺失 + evidence 矛盾 → 仍应 exit 1（不被 agent 检查短路）" {
+    local dir
+    dir=$(create_task_dir)
+    # P6-acceptance.md 缺 agent 字段（触发 WARNING 路径）
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (result.json)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    # evidence JSON 显示 FAIL，与 P6 的 PASS 矛盾（审计 6 应拦截）
+    cat > "$dir/P6-evidence/result.json" <<'EOF'
+{
+  "bdd_results": [
+    {"id": "BDD-1", "status": "fail"}
+  ]
+}
+EOF
+    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"evidence JSON 与 P6-acceptance.md 声明不一致"* ]]
+}

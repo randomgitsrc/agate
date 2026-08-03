@@ -15,6 +15,8 @@
     review 不通过 → analyst 修改 → 再 review → … → approved（⑩迭代循环）
 3. 预跑 check-gate.sh P1（exit 2，主 Agent 自判）
 4. 更新 .state.yaml phase=P1 → P2
+5. git add docs/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+6. git commit -m "wf({Txxx}-P1): {摘要}"
 
 ## 如果是重试
 

@@ -70,18 +70,37 @@ EOF
     [ "$status" -eq 2 ]
 }
 
-@test "G2.4 check-gate.sh P2 h4 候选方案不识别（regex 边界）" {
+@test "G2.4 check-gate.sh P2 h5 候选方案不识别（regex 边界）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+##### 候选方案 A：方案一
+##### 候选方案 B：方案二
+EOF
+    # h5 不被 ^#{2,4} 匹配
+    add_p2_review "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+}
+
+@test "G2.25 check-gate.sh P2 #### 候选方案识别（h4 支持）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 #### 候选方案 A：方案一
 #### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
 EOF
-    # h4 不被 ^###? 匹配
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 2 ]
 }
 
 @test "G2.5 check-gate.sh P2 无 P2 文件 期望 exit 1" {
@@ -362,22 +381,21 @@ EOF
 
 # ========== P3 check-tdd-red.sh 委托（7 个子用例） ==========
 # G3.1-G3.7 见 check-tdd-red.bats（独立文件覆盖）
-# 这里只验证 check-gate.sh P3 委托给了 check-tdd-red.sh
+# 这里只验证 check-gate.sh P3 检查文件存在性（不跑测试）
 
-@test "G3 check-gate.sh P3 委托 check-tdd-red.sh（不直接执行测试）" {
-    # 通过设置 TEST_RUNNER 验证委托关系
+@test "G3 check-gate.sh P3 检查 P3-test-cases.md 存在（不跑测试）" {
     local dir
     dir=$(create_task_dir)
-    local fake_pytest="$BATS_TEST_TMPDIR/fake-pytest"
-    cat > "$fake_pytest" <<'EOF'
-#!/bin/bash
-echo "5 passed"
-exit 0
-EOF
-    chmod +x "$fake_pytest"
-    TEST_RUNNER="$fake_pytest" run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
-    # check-tdd-red.sh 输出 "tests pass, no red-light" → exit 2
+    # 无 P3-test-cases.md → exit 1
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P3-test-cases.md 不存在"* ]]
+
+    # 有 P3-test-cases.md → exit 2
+    echo '## P3 test cases' > "$dir/P3-test-cases.md"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
     [ "$status" -eq 2 ]
+    [[ "$output" == *"check-tdd-red.sh"* ]]
 }
 
 # ========== P4 (4 用例) ==========

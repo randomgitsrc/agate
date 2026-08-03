@@ -225,30 +225,31 @@ fi
 # --- 协作规范：agent 字段 ---
 # 不做硬拦截（自报数据不可信），缺字段降级为 WARNING
 # 安全审计（1/2/3）用 ERROR，协作规范用 WARNING——符合「不把自报字段当安全边界」原则
+# WARNING 不立即 exit——记变量继续往下跑审计 6，最后统一判断 exit code
+
+WARNING_FOUND=0
 
 if [ -f "$P6_FILE" ]; then
     AGENT=$(get_agent "$P6_FILE")
     if [ -z "$AGENT" ]; then
         echo "GATE PROVENANCE: P6-acceptance.md 缺 agent 字段（协作规范，不阻塞）" >&2
-        exit 2
+        WARNING_FOUND=1
     fi
 fi
 
 # 所有阶段产出文件 agent 字段存在性（格式校验）
-# 向后兼容：v2 之前创建的文件无 agent 字段，降级为 WARNING 不阻塞
 if [ -f "$P6_FILE" ]; then
 for f in "$TASK_DIR"/P[0-8]-*.md; do
     [ -f "$f" ] || continue
     localname=$(basename "$f")
     [ "$localname" = "P0-brief.md" ] && continue
     case "$localname" in
-        # TODO: remove old format compatibility in v2.0
         *-dispatch-context.md|*-dispatch-context-*.md|*-dispatch-prompt-*.md|*-progress.md|*-paused-resolution.md) continue ;;
     esac
     AGENT=$(get_agent "$f")
     if [ -z "$AGENT" ]; then
         echo "GATE PROVENANCE: $localname 缺 agent 字段（协作规范，不阻塞）" >&2
-        exit 2
+        WARNING_FOUND=1
     fi
     done
 fi
@@ -301,4 +302,7 @@ for bdd in sorted(inconsistent):
     fi
 fi
 
+if [ "$WARNING_FOUND" -eq 1 ]; then
+    exit 2
+fi
 exit 0

@@ -73,3 +73,14 @@ exit 0
 HOOK_EOF
 chmod +x "$PRE_PUSH_HOOK"
 echo "pre-push hook 已安装: $PRE_PUSH_HOOK (协议文件大改动自动提示)"
+
+# .gitignore 检测：.state.yaml 被忽略时提醒用 git add -f
+GITIGNORE="$REPO_ROOT/.gitignore"
+if [ -f "$GITIGNORE" ]; then
+    if grep -qE '^\s*[*]*\.state\.yaml' "$GITIGNORE"; then
+        echo ""
+        echo "⚠️  .gitignore 中忽略了 .state.yaml"
+        echo "    agate 需要 git add -f 强制暂存 .state.yaml（否则 git add docs/tasks/ 不会暂存它）"
+        echo "    建议：从 .gitignore 移除 .state.yaml，或在每次 git add 时记得加 -f"
+    fi
+fi

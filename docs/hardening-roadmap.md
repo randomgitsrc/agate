@@ -337,6 +337,28 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 **改动**：
 - dispatch-prompt.md 新增修复轮派发追加块（主 Agent 模板：引用上轮 + 只写增量）
 
+**P2.64: phase 时机统一 + P3 gate 分离 + gitignore + P2 正则**
+
+**状态**：已实施
+**来源**：T085 复盘（--no-verify 8 次）
+**改动**：
+- 统一 phase 更新时机：state + 产出同一 commit（7 个卡片 + state-machine.md + git-integration.md）
+- 删除 check-state-transition.sh 检查 3（pre-phase-change commit gate）——与模式 B 冲突，产出存在性由 check-gate.sh 检查
+- check-gate.sh P3 从 exec check-tdd-red.sh 改为文件存在性检查（秒级，hook 不超时）
+- hook 永远自己跑 check-gate.sh（写真实 .gate-result.json，不可伪造）
+- CI backstop P3 时额外跑 check-tdd-red.sh 兜底红灯（插入在 .gate-result.json 检查之前，--no-verify 场景仍执行）
+- install-hook.sh 检测 .gitignore 中 .state.yaml 忽略并提醒
+- P2 候选方案正则支持 ####（2-4 个 #）
+
+**P2.65: 审计 6 短路修复**
+
+**状态**：已实施
+**来源**：v0.28.0 独立实施评审（review-20260803-1659.md）
+**改动**：
+- check-p6-provenance.sh agent 字段检查的 exit 2 改为 WARNING_FOUND 变量，不再短路审计 6
+- 删除伪"v2 向后兼容"注释
+- 新增 PV.28 测试（agent 缺失 + evidence 矛盾 → exit 1）
+
 ### 不修理由
 
 | 问题 | 理由 |

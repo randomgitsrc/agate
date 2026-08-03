@@ -6,15 +6,15 @@
 # 提供且数字上大于 PHASE 时，判定为"回退抵达"，跳过该阶段的完成度校验直接 exit 2
 # （回退抵达 ≠ 阶段已完成，不该被当"未完成"硬拦截；也不应假装"已通过"）。
 #
-# 可脚本化的 gate（exit 0/1）：P3（check-tdd-red.sh，自动读取 gate_commands.P3）/ P4 / P7
-# 需主 Agent 自判的 gate（exit 2）：P0 / P1 / P2 / P5 / P6 / P8
+# 可脚本化的 gate（exit 0/1）：P4 / P7
+# 需主 Agent 自判的 gate（exit 2）：P0 / P1 / P2 / P3 / P5 / P6 / P8
+# P3 红灯（check-tdd-red.sh）由主 Agent 手动确认 + CI backstop P3 兜底，不在此脚本内执行
 #
 # 本脚本的判定逻辑与 state-machine.md 步骤 5 保持同步。
 # 步骤 5 变更时必须同步更新本脚本。一致性检查脚本覆盖本文件。
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PHASE="${1:?用法: check-gate.sh PHASE TASK_DIR}"
 TASK_DIR="${2:?用法: check-gate.sh PHASE TASK_DIR}"
 OLD_PHASE="${3:-}"
@@ -84,7 +84,7 @@ case "$PHASE" in
       # P2 不可裁剪，不存在 P2-design.md 时直接报错
       P2_FILE="$TASK_DIR/P2-design.md"
       if [ -f "$P2_FILE" ]; then
-          CANDIDATE_COUNT=$(grep -cE '^###?\s*(候选方案|方案\s*[A-Za-z0-9一二三四五]|Alternative|Option)' "$P2_FILE" 2>/dev/null || echo 0)
+          CANDIDATE_COUNT=$(grep -cE '^#{2,4}\s*(候选方案|方案\s*[A-Za-z0-9一二三四五]|Alternative|Option)' "$P2_FILE" 2>/dev/null || echo 0)
           CANDIDATE_COUNT=$(echo "$CANDIDATE_COUNT" | tail -1)
           P1_FILE="$TASK_DIR/P1-requirements.md"
           MIN_CANDIDATES=2
@@ -174,7 +174,16 @@ for k, v in re.findall(r"^  (P[0-9]\w*):\s*(.+)$", block, re.MULTILINE):
       echo "GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定" >&2
       exit 2 ;;
   P3)
-      exec "$SCRIPT_DIR/check-tdd-red.sh" "$TASK_DIR" ;;
+      # P3 gate：文件存在性检查（秒级）
+      # T085 教训：exec check-tdd-red.sh 会真实跑测试命令 → hook 超时 → --no-verify 绕过全部检查
+      # check-tdd-red.sh 独立运行：主 Agent 手动确认红灯 + CI backstop P3 时额外跑兜底
+      P3_CASES="$TASK_DIR/P3-test-cases.md"
+      if [ ! -f "$P3_CASES" ]; then
+          echo "GATE P3: P3-test-cases.md 不存在——P3 产出文件缺失" >&2
+          exit 1
+      fi
+      echo "GATE P3: P3-test-cases.md 存在。TDD 红灯由主 Agent 手动跑 check-tdd-red.sh 确认 + CI backstop P3 兜底。" >&2
+      exit 2 ;;
   P4)
       # pre-commit 阶段：检查暂存区有代码文件（非纯文档/状态文件）
       # N1 修复：原来查 git log，但 pre-commit 时 commit 还没创建，第一条 P4 commit 永远无法通过

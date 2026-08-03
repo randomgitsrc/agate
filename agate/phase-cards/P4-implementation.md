@@ -12,9 +12,10 @@
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
-4. git add 代码文件 → git commit
-5. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-6. 更新 .state.yaml phase=P4 → P5
+4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
+5. 更新 .state.yaml phase=P4 → P5
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -135,7 +136,7 @@ check-gate.sh P4 $TASK_DIR
 1. **不读 files_to_read，在项目里乱翻**：implementer 拿到 P2 的 files_to_read 清单后应按清单阅读，不要在项目里全文搜索或整目录全读——上下文会爆炸
 2. **自行加范围外改动**：发现需要做但不在 P1 范围内的改动 → 标 [SCOPE+]（行首声明格式）而非直接做
 3. **只跑单元测试不验证集成**：单元测试全绿 ≠ 功能可用。P5 会跑 gate_commands 做技术验证，但要确保实现时路径依赖的端点行为已验证
-4. **写完代码不改 .state.yaml 就 commit**：commit 后更新 phase 标记为 P5
+4. **先更新 .state.yaml 再 commit**：state 和产出在同一 commit 里——不要先 commit 产出再单独 commit state
 5. **gate 不过 ≠ 你失败了**：红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
 ## 下游影响
