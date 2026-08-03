@@ -70,18 +70,37 @@ EOF
     [ "$status" -eq 2 ]
 }
 
-@test "G2.4 check-gate.sh P2 h4 候选方案不识别（regex 边界）" {
+@test "G2.4 check-gate.sh P2 h5 候选方案不识别（regex 边界）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+##### 候选方案 A：方案一
+##### 候选方案 B：方案二
+EOF
+    # h5 不被 ^#{2,4} 匹配
+    add_p2_review "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+}
+
+@test "G2.25 check-gate.sh P2 #### 候选方案识别（h4 支持）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 #### 候选方案 A：方案一
 #### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
 EOF
-    # h4 不被 ^###? 匹配
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 2 ]
 }
 
 @test "G2.5 check-gate.sh P2 无 P2 文件 期望 exit 1" {
