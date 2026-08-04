@@ -38,7 +38,7 @@ bash agate/tests/scripts/count-tests.sh
 | check-state-transition.sh | unit/check-state-transition.bats | 26 |
 | check-changelog.sh | unit/check-changelog.bats | 8 |
 | check-retrospective.sh | unit/check-retrospective.bats | 11 |
-| check-tdd-red.sh | unit/check-tdd-red.bats | 31 |
+| check-tdd-red.sh | unit/check-tdd-red.bats | 32 |
 | formatters | unit/check-tdd-red-formatter.bats | 12 |
 | ci-gate-backstop.py | unit/ci-gate-backstop.bats | 8 |
 | install-hook.sh | unit/install-hook.bats | 2 |
