@@ -49,6 +49,10 @@ env_constraints:
 
 若使用 `/loop` 自动编排：P0 完成后主 Agent 按顺序自动推进 P1→P8，遇 PAUSED 或异常时停下。
 
+## 任务类型提示
+
+**hardening / refactor 类任务**：P0-brief 建议包含代码审计结果（现有代码的问题清单），作为 P1 需求的输入。P0 卡片不强制要求审计（非门槛），但跳过审计可能导致 P1 需求不完整、P2 设计基于错误假设。
+
 ## 下游影响
 
 P0-brief 的 env_constraints / known_risks / executor_env 会在 P1-P8 每个阶段派发 subagent 时注入。写清楚能让每个 subagent 知道项目约束。
