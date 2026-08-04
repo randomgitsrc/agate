@@ -65,6 +65,16 @@ print(m.group(1) if m else '')
 fi
 
 if [ "$UI_AFFECTED" = "true" ]; then
+    # evidence 类型检查：ui_affected=true 时不能全是纯文本（.md/.txt）
+    # 防源码分析充数——运行时工具产出天然是 .json/.log/.png/.yaml 等结构化格式
+    NON_TEXT_COUNT=$(find "$EVIDENCE_DIR" -type f -not -name '.*' \
+        ! -name '*.md' ! -name '*.txt' 2>/dev/null | wc -l)
+    NON_TEXT_COUNT=$(echo "$NON_TEXT_COUNT" | tr -d ' ')
+    if [ "$NON_TEXT_COUNT" -eq 0 ]; then
+        echo "GATE P6-EVIDENCE: ui_affected=true 但 evidence 全是纯文本（.md/.txt），缺少运行时数据（.json/.log/.png/.yaml 等）。源码引用不算运行时证据。" >&2
+        exit 1
+    fi
+
     HAS_SCREENSHOT_REF=$(grep -cE '\(screenshots/' "$P6_FILE" 2>/dev/null || echo 0)
     HAS_SCREENSHOT_REF=$(echo "$HAS_SCREENSHOT_REF" | tail -1)
 

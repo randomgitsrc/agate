@@ -416,3 +416,62 @@ EOF
     [[ "$output" == *"  -"*"login page.png"* ]]
     [[ "$output" == *"  -"*"dashboard view.png"* ]]
 }
+
+@test "E.15 ui_affected=true + evidence 全是 .md/.txt → exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (analysis.md)
+- PASS BDD-2 (notes.txt)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "source code analysis" > "$dir/P6-evidence/analysis.md"
+    echo "manual notes" > "$dir/P6-evidence/notes.txt"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"全是纯文本"* ]]
+}
+
+@test "E.16 ui_affected=true + evidence 含 .json → exit 0" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: true
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (result.json)
+- PASS BDD-2 (notes.txt)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo '{"status":"pass"}' > "$dir/P6-evidence/result.json"
+    echo "supplementary notes" > "$dir/P6-evidence/notes.txt"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
+
+@test "E.17 ui_affected=false + evidence 全是 .md/.txt → exit 0（非 UI 不检查类型）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+ui_affected: false
+EOF
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (analysis.md)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "text analysis" > "$dir/P6-evidence/analysis.md"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    [ "$status" -eq 0 ]
+}
