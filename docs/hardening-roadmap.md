@@ -375,9 +375,18 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 | 改进 | 内容 | 状态 |
 |------|------|------|
-| evidence 类型检查 | `ui_affected: true` 时 evidence 不能全是 .md/.txt（防源码分析充数） | 待论证（`docs/archived/plans/agate-evidence-diagnosis-v2-2026-07-02.md`） |
-| office-hours 角色清理 | 触发条件"大任务"无定义、从未被触发、非门槛评审零约束力。选项：(1) 删除角色+全部引用 (2) 给"大任务"客观定义（如 packages>2 或 risk_level:high）并写入机械映射 | 待处理 |
-| 能力使用检查提醒 | P5/P6 派发 prompt 加能力对账（防忘了派 vision-analyst） | 待论证 |
-| 诊断优先提醒 | `retries >= 2` 时 hook 提醒"跑诊断命令" | 待论证 |
-| verifier 工具困难处理 | 角色文件补"遇到工具困难标 NEED_CONFIRM，不回退源码" | 待论证 |
+| P6 总结行格式规范 | P6 卡片/check-p6-format.sh 已显式化"行首 `- PASS`/`- FAIL` 只用于 BDD 条目"。check-p6-format.sh check+fix 模式都检测总结行并自动修正为 `**Summary**` 格式。F11/F12 测试 | 已实施（T078 复盘） |
+| check-tdd-red.sh 内部 timeout | gate-result.sh run_test_with_formatter 加 120s timeout（AGATE_TDD_TIMEOUT 可覆盖）。exit 124 → judge_result 视为红灯可推进（return 0）。macOS 兼容（command -v timeout 检测）。TDD.TIMEOUT 测试 | 已实施（T078 复盘） |
+| P0 卡片 hardening 审计提示 | P0-orchestrator.md 加"hardening/refactor 类任务建议含代码审计"提示（非门槛） | 已实施（T078 复盘） |
+| evidence 类型检查 | check-p6-evidence.sh: ui_affected=true 时 evidence 不能全是 .md/.txt（防源码分析充数）。E.15/E.16/E.17 测试 | 已实施 |
+| office-hours 角色清理 | 删除角色文件 + 清理 9 处引用 + 六问内化到 P0 卡片作为自检清单 | 已实施 |
 | Issue #002 | self-gate 递归触发缺乏终止机制 | 待设计 |
+| Task 派生机制 | P1/P2 声明 subtasks + agate-create-subtask.sh 自动生成 P0-brief 骨架 + active-tasks.md 依赖列真正使用。subtask 编号不预分配（subagent 声明时只写 name+reason+depends_on，主 Agent 创建时分配实际编号）。plan 需完善：BDD 提取范围、依赖列填充时机、subtask 间状态可见性 | 待论证（`docs/plans/agate-task-derivation-20260804.md`） |
+
+### 不修理由
+
+| 改进 | 理由 |
+|------|------|
+| 能力使用检查提醒（P5/P6 派发 prompt 加能力对账） | agate 不应绑定特定能力工具（vision-engine/playwright-cdp 等是环境侧专用能力）。P6 gate 检查客观证据已够。能力匹配是架构级设计，不属于小改进范围 |
+| 诊断优先提醒（retries≥2 时 hook 提醒跑诊断命令） | retries≥2 已触发 check-retrospective.sh 提醒。再加一层重复。agent 怎么诊断是角色文件职责，不是 hook 的 |
+| verifier 工具困难处理（角色文件补"遇到工具困难标 NEED_CONFIRM，不退源码"） | P6 卡片 L96 已明确"不退源码"纪律。角色文件再加是重复措辞 |

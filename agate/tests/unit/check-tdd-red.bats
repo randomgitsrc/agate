@@ -448,3 +448,19 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"断言"*"数据"* ]]
 }
+
+@test "TDD.TIMEOUT: 测试命令超时 → exit 0 + 超时提示" {
+    local task_dir
+    task_dir=$(create_task_dir)
+    # 用 sleep 模拟超时（AGATE_TDD_TIMEOUT=2，sleep 5 必超时）
+    cat > "$BATS_TEST_TMPDIR/fake-slow-runner" <<'EOF'
+#!/bin/bash
+sleep 5
+exit 1
+EOF
+    chmod +x "$BATS_TEST_TMPDIR/fake-slow-runner"
+    TEST_RUNNER="$BATS_TEST_TMPDIR/fake-slow-runner" AGATE_TDD_TIMEOUT=2 \
+        run bash "$AGATE_SCRIPTS/check-tdd-red.sh" "$task_dir"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"超时"* ]]
+}

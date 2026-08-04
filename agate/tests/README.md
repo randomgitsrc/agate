@@ -31,14 +31,14 @@ bash agate/tests/scripts/count-tests.sh
 | check-gate.sh | unit/check-gate.bats | 96 |
 | agate-next-card.sh | unit/agate-next-card.bats | 20 |
 | agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 16 |
-| check-p6-evidence.sh | unit/check-p6-evidence.bats | 25 |
+| check-p6-evidence.sh | unit/check-p6-evidence.bats | 28 |
 | check-p6-provenance.sh | unit/check-p6-provenance.bats | 38 |
 | check-scope-resolved.sh | unit/check-scope-resolved.bats | 11 |
 | check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
 | check-state-transition.sh | unit/check-state-transition.bats | 26 |
 | check-changelog.sh | unit/check-changelog.bats | 8 |
 | check-retrospective.sh | unit/check-retrospective.bats | 11 |
-| check-tdd-red.sh | unit/check-tdd-red.bats | 31 |
+| check-tdd-red.sh | unit/check-tdd-red.bats | 32 |
 | formatters | unit/check-tdd-red-formatter.bats | 12 |
 | ci-gate-backstop.py | unit/ci-gate-backstop.bats | 8 |
 | install-hook.sh | unit/install-hook.bats | 2 |

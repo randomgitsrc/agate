@@ -65,7 +65,6 @@ assets/review-roles/
 ├── cso.md                # 首席安全官评审
 ├── qa.md                 # 质量保障评审
 ├── investigate.md        # 事后排查
-├── office-hours.md       # 自由提问
 ├── protocol-alignment-review.md  # 协议-脚本对齐审查（self-gate）
 └── requirements-review.md  # P1 需求基线评审
 ```

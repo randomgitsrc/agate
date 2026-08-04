@@ -71,7 +71,7 @@ gate_commands:
 |--------|------------|------------|
 | frontend | 任意 | plan-design-review |
 | 任意 | high | plan-eng-review（硬规则，必须派独立 subagent） |
-| P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review / office-hours |
+| P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review |
 
 多个评审角色 `专家组并行` → 组长汇总 → P2-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。

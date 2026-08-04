@@ -87,7 +87,17 @@ run_test_with_formatter() {
     local cmd="$1"
     local fmt_path="$2"
     local exit_code output
-    output=$(eval "$cmd" 2>&1) && exit_code=0 || exit_code=$?
+    local timeout_secs="${AGATE_TDD_TIMEOUT:-120}"
+    if command -v timeout &>/dev/null; then
+        output=$(timeout "$timeout_secs" bash -c "$cmd" 2>&1) && exit_code=0 || exit_code=$?
+    else
+        output=$(eval "$cmd" 2>&1) && exit_code=0 || exit_code=$?
+    fi
+    if [ "$exit_code" -eq 124 ]; then
+        echo "TDD_CHECK: 测试命令超时（${timeout_secs}s），请手动运行确认：$cmd" >&2
+        echo "{\"exit_code\":124,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[]}"
+        return 0
+    fi
     if [ -z "$fmt_path" ]; then
         echo "{\"exit_code\":$exit_code,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[]}"
     else

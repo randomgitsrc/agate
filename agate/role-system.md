@@ -45,7 +45,6 @@ agate 的角色体系把角色分成两层：
 | 设计评审（计划阶段）| plan-design-review.md | P2（前端）| spec 交互完整性 |
 | QA 工程师 | qa.md | P5 | 功能跑通、找 bug |
 | 调试专家 | investigate.md | 任意（出 bug 时）| 根因 |
-| YC 合伙人 | office-hours.md | P1 后（按需）| 产品方向 |
 | 安全官 | cso.md | P4 后（涉敏感）| 安全审计 |
 
 ### 评审角色机械映射（C8 — 不靠主 Agent 临场判断）
@@ -59,7 +58,7 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 | mcp | 任意 | review + 关注 MCP 接口契约（T005 教训：MCP 改动需专项评审）|
 | security | 任意 | cso（P4 后）|
 | 任意 | **high** | **plan-eng-review 必须派发**（P2.1 硬规则，check-gate.sh 对 agent=main 硬拦截 exit 1）|
-| P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | office-hours / plan-ceo-review（P1 后 / P2）|
+| P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review（P1 后 / P2）|
 
 T005 漏 MCP 评审的根因：靠主 Agent 临场判断，它没有 MCP 评审意识。机械映射消除这个盲区。
 
@@ -111,7 +110,7 @@ subagent 读取角色文件，按角色定义的方式工作。
 
 例如 plan-ceo-review 的结论是"转向"，映射为 `status: rejected`；plan-eng-review 的"approved"直接就是 `status: approved`。无论用哪个评审角色做门槛，主 Agent 都只读 `status` 字段判定，不需要理解各角色的具体结论语义。
 
-**非门槛评审**（如纯参考的 office-hours 方向建议）不强制 status，但也不参与门槛判定。
+**非门槛评审**（如纯参考的方向建议）不强制 status，但也不参与门槛判定。
 
 ---
 

@@ -6,6 +6,17 @@
 
 ---
 
+## [0.30.0] - 2026-08-04
+
+### 变更
+- **evidence 类型检查**：check-p6-evidence.sh 在 `ui_affected: true` 时检查 evidence 目录不能全是 .md/.txt（防源码分析充数）。不绑定特定工具（vision-engine/playwright-cdc 等），只验证"有没有运行时数据文件"。E.15/E.16/E.17 测试
+- **office-hours 角色清理 + 六问内化**：删除从未触发的 office-hours 角色文件 + 清理 9 处引用。Startup Mode 六问内化到 P0 卡片作为 P0-brief 质量自检清单（非门槛，零派发开销）
+- **P6 总结行格式显式化**：check-p6-format.sh check+fix 模式都检测总结行（`- PASS：34` / `- FAIL：0`）并自动修正为 `**Summary**` 格式。防止 gate 误判总结行为 BDD 条目。F11/F12 测试
+- **check-tdd-red.sh 内部 timeout**：gate-result.sh run_test_with_formatter 加 120s timeout（AGATE_TDD_TIMEOUT 可覆盖）。exit 124 → judge_result 视为红灯可推进（return 0）。macOS 兼容（command -v timeout 检测）。TDD.TIMEOUT 测试
+- **P0 卡片 hardening 审计提示**：P0-orchestrator.md 加"hardening/refactor 类任务建议含代码审计"提示（非门槛）
+
+---
+
 ## [0.29.0] - 2026-08-03
 
 ### 变更

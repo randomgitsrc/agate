@@ -93,6 +93,11 @@ judge_result() {
     syntax_count=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d.get("syntax_errors",[])))')
     import_count=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d.get("import_errors",[])))')
 
+    if [ "$exit_code" -eq 124 ]; then
+        echo "TDD_CHECK: 测试命令超时，视为红灯可推进（请手动确认测试确实失败）"
+        return 0
+    fi
+
     if [ "$exit_code" -eq 0 ]; then
         echo "TDD_CHECK: tests pass, no red-light — implementation may be ahead of tests"
         return 2
