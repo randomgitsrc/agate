@@ -94,3 +94,28 @@ EOF
     [ "$status" -eq 0 ]
     grep -q 'failure mode' "$TASK_DIR/P6-acceptance.md"
 }
+
+@test "F11 check-p6-format.sh --check: summary line - PASS：34 → exit 1" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- PASS BDD-1: verified (evidence/log.json)
+- PASS：34
+- FAIL：0
+EOF
+    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --check "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 1 ]
+}
+
+@test "F12 check-p6-format.sh --fix: summary line - PASS：34 → **Summary**: PASS: 34" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- PASS BDD-1: verified (evidence/log.json)
+- PASS：34
+- FAIL：0
+EOF
+    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+    grep -q '^\*\*Summary\*\*: PASS: 34' "$TASK_DIR/P6-acceptance.md"
+    grep -q '^\*\*Summary\*\*: FAIL: 0' "$TASK_DIR/P6-acceptance.md"
+    ! grep -q '^- PASS：34' "$TASK_DIR/P6-acceptance.md"
+}

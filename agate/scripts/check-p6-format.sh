@@ -38,6 +38,13 @@ if [ "$FIXED" != "$CONTENT" ]; then
 fi
 CONTENT="$FIXED"
 
+# 总结行修正：行首 - PASS/- FAIL 后纯数字结尾（非 BDD 条目）→ 改为 Summary 格式
+FIXED=$(printf '%s' "$FIXED" | sed -E 's/^-\s+(PASS|FAIL)\s*[:：]\s*([0-9]+)\s*$/\*\*Summary\*\*: \1: \2/')
+if [ "$FIXED" != "$CONTENT" ]; then
+    CHANGES=1
+fi
+CONTENT="$FIXED"
+
 if [ "$MODE" = "fix" ]; then
     if [ "$CHANGES" -eq 1 ]; then
         printf '%s' "$FIXED" > "$FILE"
