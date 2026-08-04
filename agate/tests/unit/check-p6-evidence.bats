@@ -364,6 +364,7 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 100 /dev/urandom > "$dir/P6-evidence/screenshots/tiny.txt"
+    echo '{"ok":true}' > "$dir/P6-evidence/real.json"
     run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"  -"*"tiny.txt"* ]]

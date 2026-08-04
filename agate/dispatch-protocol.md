@@ -1002,7 +1002,6 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 产出：P1-review.md（agent≠main，含 BDD 编号引用 + 覆盖维度标注）
 
-可选追加：`office-hours`（大任务时）
 
 ### 不可逆操作保护协议（通用）
 
