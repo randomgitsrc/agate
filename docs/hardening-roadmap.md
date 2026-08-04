@@ -375,6 +375,9 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 
 | 改进 | 内容 | 状态 |
 |------|------|------|
+| P6 总结行格式规范 | P6 卡片/check-p6-format.sh 未显式化"行首 `- PASS`/`- FAIL` 只用于 BDD 条目，总结行不得复用此格式"。T078 中 verifier subagent 写了 `- PASS：34` 被 gate 误判为 BDD 条目，dispatch-context 中 `- PASS 有证据文件引用` 被 provenance 误判。隐式约定需显式化 + check-p6-format.sh 加总结行自动修正 | 待处理（T078 复盘） |
+| check-tdd-red.sh 内部 timeout | check-tdd-red.sh 缺内部 timeout，formatter 在某些环境下可能卡住。T078 中手动 pytest 5.66s 但脚本 120s 超时。v0.29.0 P3 gate 分离后主 Agent 可手动替代，但 CI backstop 仍跑 check-tdd-red.sh——缺 timeout 会导致 CI 卡住。应加内部 timeout（如 60s），超时输出提示而非无限等待 | 待处理（T078 复盘） |
+| P0 卡片 hardening 审计提示 | P0 卡片只要求"四字段齐全"，无 hardening 类任务的代码审计提示。T078 中 P0-brief 写了两次（7-28 肤浅版 → 8-3 审计后重写），浪费 ~30 min。应在 P0 卡片加"hardening/refactor 类任务建议含代码审计"提示 | 待处理（T078 复盘） |
 | evidence 类型检查 | `ui_affected: true` 时 evidence 不能全是 .md/.txt（防源码分析充数） | 待论证（`docs/archived/plans/agate-evidence-diagnosis-v2-2026-07-02.md`） |
 | office-hours 角色清理 | 触发条件"大任务"无定义、从未被触发、非门槛评审零约束力。选项：(1) 删除角色+全部引用 (2) 给"大任务"客观定义（如 packages>2 或 risk_level:high）并写入机械映射 | 待处理 |
 | 能力使用检查提醒 | P5/P6 派发 prompt 加能力对账（防忘了派 vision-analyst） | 待论证 |
