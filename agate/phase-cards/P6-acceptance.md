@@ -85,13 +85,12 @@
 
 ```bash
 check-p6-format.sh --fix $TASK_DIR/P6-acceptance.md  # ① 自动格式化（verifier 产出后、gate 前）
-check-gate.sh P6 $TASK_DIR      # FAIL=0 / NEED_CONFIRM=0 / 总数>0
+check-gate.sh P6 $TASK_DIR      # FAIL=0 / 总数>0
 check-p6-evidence.sh $TASK_DIR  # 证据目录非空 / UI截图>1KB / md5去重
 check-p6-provenance.sh $TASK_DIR # 证据-结论对应 / dispatch-context审计 / BDD对照
 ```
 
 - FAIL > 0 → gate exit 1 → 回 P4
-- NEED_CONFIRM > 0 → gate exit 1 → PAUSED（无行首 `[NEED_CONFIRM]` 时写 `[NO_NEED_CONFIRM]` 为合规负向声明）
 
 格式问题 → 运行 check-p6-format.sh --fix 归一化 → 再验 gate → … → 通过（⑩迭代循环，格式迭代和 gate 重试共享 retry 预算）
 
@@ -112,7 +111,6 @@ P6 采用**证据并行、验收文件不并行**模式：
 ## 推进条件（全部满足才写 phase: P7）
 
 - [ ] 所有 BDD PASS（FAIL=0）
-- [ ] 无行首 `[NEED_CONFIRM]`（`[NO_NEED_CONFIRM]` 为合规负向声明）
 - [ ] P6-evidence/ 目录非空 + 证据文件被引用
 - [ ] UI 任务：vision-helper blocker_count=0；blocker>0 时须在 P6-acceptance.md 写明追查命令 + 输出 + 根因结论（仅写"已追查"不合规）
 - [ ] provenance 审计通过

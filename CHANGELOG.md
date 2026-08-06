@@ -6,6 +6,16 @@
 
 ---
 
+## [0.30.3] - 2026-08-06
+
+### BREAKING
+- **P6 删除 NEED_CONFIRM 检测**：P6 是客观验收（PASS/FAIL 二值），"无法验证"标 FAIL 回 P4，不标 NEED_CONFIRM 等人确认。check-gate.sh P6 删除 NC 检测。verifier.md "无法验证标 FAIL"。state-machine.md/loop-orchestration.md 同步删除 P6 NEED_CONFIRM 引用。G6.10/G6.11 测试验证新行为
+- **P2 architect NEED_CONFIRM → SUGGEST**：architect.md "DEVIATION + NEED_CONFIRM（不硬阻塞）"改为"DEVIATION + SUGGEST"。语义一致：不阻塞的倾向项用 SUGGEST
+- **P4 review 不用 BLOCKER**：architect.md P4 review 的 BLOCKER 改为 DEVIATION（与同文件 DEVIATION 体系一致）。BLOCKER 专属于 P7
+- **标记声明规范表加适用范围列**：dispatch-protocol.md 标记表增加"适用环节"列，明确每个标记在哪些环节使用
+
+---
+
 ## [0.30.2] - 2026-08-06
 
 ### BREAKING

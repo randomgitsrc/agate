@@ -115,13 +115,12 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
 P5 --[有 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 P5 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND scripts/check-p6-provenance.sh exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻）]--> P7
+P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/证据非空）AND scripts/check-p6-provenance.sh exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻）]--> P7
      ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3 平台支持独立 git author）
      （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
      （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
 P6 --[任何 BDD 标 FAIL && retry<MAX]--> P4 (retry+1)（行为不符 → 回实现）
-P6 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。仅阻塞项，倾向项不触发 PAUSED）
 P6 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0 AND 同理 [DEVIATION-CRITICAL] → =0 AND (grep -cE '\[DESIGN_GAP:' P7-consistency.md) == (grep -cE '\[DESIGN_GAP_REVIEWED' P7-consistency.md)（v0.6：P4 implementer 自主决策偏差声明，主 Agent 审查后追加 REVIEWED 配对标记，未配对 → gate 不通过；声明行如 `[BLOCKER]: 0 条` 被排除）]--> P8
@@ -344,7 +343,7 @@ function 执行一步(task_id):
        - P5: 从 P2-design.md gate_commands.P5 读取命令执行 → exit 0 AND failed==0;
              grep -rlE '^\s*-?\s*\[PROD_TOUCHED\]' {task}/ → 无命中（行首锚点匹配正向声明，不匹配句中引用）;
              （UI 任务：从 gate_commands.P5 读取 E2E 命令执行 → exit 0）
-         - P6: scripts/check-gate.sh P6 → 脚本化部分通过（exit 2，FAIL=0/NC=0/证据非空已验，BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行）;
+         - P6: scripts/check-gate.sh P6 → 脚本化部分通过（exit 2，FAIL=0/证据非空已验，BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行）;
               grep -cE '^\s*- (PASS|FAIL)' {task}/P6-acceptance.md → =P1 BDD 总数（审计 3 自动执行，不符时 exit 1）;
               （UI 条件：vision-analyst YAML summary.blocker_count → =0）
        - P7: grep -E '^\s*-?\s*\[BLOCKER\]' {task}/P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0;

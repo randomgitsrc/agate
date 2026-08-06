@@ -1037,12 +1037,20 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 ## 标记声明规范
 
-状态标记采用二值声明——必须写正向或负向之一，不允许第三种写法：
+状态标记采用声明制——必须写正向或负向之一：
 
-| 标记 | 正向（触发了）| 倾向（求确认）| 负向（未触发）|
-|------|-------------|-------------|-------------|
-| PROD_TOUCHED | `[PROD_TOUCHED] {描述}` | — | `[PROD_NOT_TOUCHED]` |
-| NEED_CONFIRM | `[NEED_CONFIRM] {描述}`（可多条）| `[SUGGEST: 推荐 X，理由 Y]` | `[NO_NEED_CONFIRM]` |
+| 标记 | 正向（触发了）| 倾向（求确认）| 负向（未触发）| 适用环节 |
+|------|-------------|-------------|-------------|---------|
+| PROD_TOUCHED | `[PROD_TOUCHED] {描述}` | — | `[PROD_NOT_TOUCHED]` | P5/P8（全阶段检测） |
+| NEED_CONFIRM | `[NEED_CONFIRM] {描述}`（可多条）| `[SUGGEST: 推荐 X，理由 Y]` | `[NO_NEED_CONFIRM]` | P1（gate 检测）；P2（信息标记，无 gate）；任意阶段不可逆操作（硬中断，含 P5） |
+| BLOCKER | `[BLOCKER] {描述}` | — | `[BLOCKER]: 0 条` | P7（一致性检查） |
+| DESIGN_GAP | `[DESIGN_GAP: 描述]` | — | `[DESIGN_GAP_REVIEWED: 描述]` | P4（标记）→ P7（配对检查） |
+| SCOPE+ | `[SCOPE+] {描述}` | — | `[SCOPE_RESOLVED]` | P2/P4（声明）→ P1（增补）→ P7（检查） |
+
+注：
+- SUGGEST 仅在 P1 有 gate 检测（WARNING 不阻塞）。P2 architect 可用 SUGGEST 作为信息标记（无 gate）
+- NEED_CONFIRM 在 P6 不再使用（客观验收，PASS/FAIL 二值）
+- BLOCKER 专属于 P7，P4 review 用 DEVIATION-CRITICAL / DEVIATION / EXTENSION（见 architect.md DEVIATION 分类）
 
 **禁止**：在产出文件中引用标记文本做否定描述（如"无 [PROD_TOUCHED]"、"所有 [NEED_CONFIRM] 已解决"）。
 要表达"未触发"，写负向格式（`[PROD_NOT_TOUCHED]` / `[NO_NEED_CONFIRM]`）。
