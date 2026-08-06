@@ -46,6 +46,10 @@ P1-requirements.md 必须包含：
 - `capability_requirements:` 能力需求声明（available / supplementable / GAP 三态）
 - 无未决 `[NEED_CONFIRM]`（有则 PAUSED）；无待确认项时写 `[NO_NEED_CONFIRM]`
 
+**NEED_CONFIRM 分级**：
+- `[NEED_CONFIRM倾向: 推荐 X，理由 Y]` - 有倾向但求确认。主 Agent 可自行采纳倾向（除非涉及破坏性变更/业务方向），不必问用户
+- `[NEED_CONFIRM]` - 真无方向需人定夺。阻塞推进，主 Agent 问用户
+
 ## gate 规则
 
 check-gate.sh P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式为 `#### BDD-NN:`）；缺 P1-review.md / agent=main / 无锚点 → exit 1
@@ -78,3 +82,11 @@ P1 评审通用必有（所有任务都走 requirements-review），P2/P4 评审
 review 不通过 → analyst 修改需求 → 再 review（⑩迭代循环），直至 approved。
 
 > 完成 → 读 phase-cards/P2-design.md
+
+
+## P1 基线保护
+
+P1-requirements.md 是需求基线，后续阶段（P2-P8）不应直接修改。如需变更（如 P4 发现 BDD 矛盾需补充注释），必须：
+1. 主 Agent 显式批准
+2. 在变更处标注 `[BASELINE_CHANGE: 理由]`
+3. 不改 BDD 的 Given/When/Then 语义（只补充注释/优先级说明）

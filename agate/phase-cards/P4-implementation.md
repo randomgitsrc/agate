@@ -146,3 +146,5 @@ check-gate.sh P4 $TASK_DIR
 - 代码改动文件路径：P8 发布时确认版本文件变更需要知道你改动了哪些 package
 
 > 完成 → 读 phase-cards/P5-verification.md
+
+6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。

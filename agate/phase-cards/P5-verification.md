@@ -64,6 +64,8 @@ playwright test --reporter=line tests/e2e/  # E2E（ui_affected: true 时）
 
 若 verifier subagent 发现改动前就存在的失败（预存失败），按以下流程登记：
 
+> **known-failures.md 只登预存失败**（P5 之前就存在的、与当前任务无关的）。当前任务引入的失败用 P5-test-results/ 记录。
+
 1. 在 `docs/tasks/{Txxx}/known-failures.md`（从 `{agate_root}/assets/templates/known-failures-template.md` 拷贝模板）登记：
    - 测试文件、失败数、根因、是否与当前任务相关
 2. 在 P5-test-results/unit.md 标注"预存失败：X（与本次改动无关）"

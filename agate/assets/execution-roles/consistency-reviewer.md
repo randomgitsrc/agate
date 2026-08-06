@@ -66,3 +66,9 @@ P7-consistency.md 路径 + 一句话：BLOCKER=N, DESIGN_GAP 未配对=M
 
 ## 分阶段落盘（默认启用）
 每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。
+
+## P7 gate 格式契约
+
+- DESIGN_GAP 必须在行首：`[DESIGN_GAP: 描述]`（非句中引用）
+- DESIGN_GAP_REVIEWED 必须在行首：`[DESIGN_GAP_REVIEWED: 描述]`
+- gate 正则：`^\s*>?\s*-?\s*\[DESIGN_GAP:` / `^\s*>?\s*-?\s*\[DESIGN_GAP_REVIEWED`

@@ -16,6 +16,8 @@ role: {角色名，如 analyst / requirements-review / implementer}
 ### 约束
 {从 P0-brief env_constraints/known_risks + 上游产出 + 协议知识提取。写的是"必须满足什么/不能做什么"，不是"应该怎么做"——后者是 subagent 的自主决策空间}
 
+> **格式约束**：约束节避免行首 `- PASS`/`- FAIL`（被 provenance 预判检测匹配）。改用"通过/失败"或加引号。
+
 ### 上游关联
 {上一阶段 subagent 摘要中的关键信息}
 
