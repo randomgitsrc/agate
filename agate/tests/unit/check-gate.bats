@@ -1396,6 +1396,66 @@ EOF
     [ "$status" -eq 2 ]
 }
 
+@test "G_NC_TENDENCY.1 P1 含 [NEED_CONFIRM倾向: X] 无阻塞项 → exit 2（不阻塞）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NEED_CONFIRM倾向: 推荐方案 A，理由是更安全]
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"NEED_CONFIRM倾向"* ]]
+    [[ "$output" != *"未解决的 NEED_CONFIRM 项（阻塞）"* ]]
+}
+
+@test "G_NC_TENDENCY.2 P1 含 [NEED_CONFIRM倾向: X] + [NEED_CONFIRM] → exit 1（阻塞项仍在）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NEED_CONFIRM倾向: 推荐方案 A，理由是更安全]
+- [NEED_CONFIRM] 需用户决策的方向
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"阻塞"* ]]
+}
+
 # ========== 行首锚点：DESIGN_GAP ==========
 
 @test "G_DG_ANCHOR.1 P7 句中 [DESIGN_GAP: xxx]（非行首）不计入 GAP 计数" {

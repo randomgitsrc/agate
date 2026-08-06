@@ -382,6 +382,20 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | office-hours 角色清理 | 删除角色文件 + 清理 9 处引用 + 六问内化到 P0 卡片作为自检清单 | 已实施 |
 | Issue #002 | self-gate 递归触发缺乏终止机制 | 待设计 |
 | Task 派生机制 | P1/P2 声明 subtasks + agate-create-subtask.sh 自动生成 P0-brief 骨架 + active-tasks.md 依赖列真正使用。subtask 编号不预分配（subagent 声明时只写 name+reason+depends_on，主 Agent 创建时分配实际编号）。plan 需完善：BDD 提取范围、依赖列填充时机、subtask 间状态可见性 | 待论证（`docs/plans/agate-task-derivation-20260804.md`） |
+| **T080 复盘 — gate 格式契约透明化** | verifier/consistency-reviewer/dispatch-context 三个文件追加精确正则模板。verifier 知道 PASS/FAIL 行、vision YAML 结构、引用括号格式；consistency-reviewer 知道 DESIGN_GAP 行首格式；dispatch-context 约束节避免行首 PASS/FAIL | 已实施 |
+| **T080 复盘 — P7 DESIGN_GAP_REVIEWED 行首格式** | 含在 gate 格式契约透明化中（consistency-reviewer 角色文件） | 已实施 |
+| **T080 复盘 — vision YAML 结构模板缺失** | 含在 gate 格式契约透明化中（verifier 角色文件） | 已实施 |
+| **T080 复盘 — dispatch-context 约束节行首 PASS/FAIL 误匹配** | 含在 gate 格式契约透明化中（dispatch-context 模板） | 已实施 |
+| **T080 复盘 — known-failures.md 语义边界** | known-failures-template.md + P5 卡片追加"只登预存失败"说明 | 已实施 |
+| **T080 复盘 — P1 基线变更保护** | P1-requirements.md 末尾追加 P1 基线保护说明（[BASELINE_CHANGE: 理由] + 主 Agent 显式批准）。P4-implementation.md 常见错误节追加提醒 | 已实施 |
+| **T080 复盘 — P8 bump + CHANGELOG 绑定** | P8-release.md L12 改为"bump-version + CHANGELOG 更新 → 同一 commit + tag" | 已实施 |
+| **T080 复盘 — P2 选择器契约提示** | P2-design.md 追加 UI 测试选择器契约提示（稳定测试标识清单） | 已实施 |
+| **T080 复盘 — P1 review 跨条 BDD 一致性** | requirements-review.md 检查清单追加"BDD 跨条一致性"维度（Then 矛盾 + 保护优先级 + 环境约束） | 已实施 |
+| **T080 复盘 — P2 review UI 组件完整性** | plan-design-review.md 追加"组件完整性"评分维度（spec 每个 UI 组件有完整 input/output） | 已实施 |
+| **T080 复盘 — NEED_CONFIRM 分级** | P1-requirements.md 追加分级格式（倾向 vs 真无方向）。check-gate.sh P1 检测逻辑：阻塞 exit 1、倾向 WARNING 不阻塞。G_NC_TENDENCY.1/.2 测试 | 已实施 |
+| **T080 复盘 — P6 格式修正 gate 维护例外** | 铁律"主 Agent 不亲自产出"没定义格式修正边界。需声明 gate 维护例外 | 待论证 |
+| **T080 复盘 — P6 verifier 断点续做** | 单次 dispatch 承载过重，崩溃即丢失。需分阶段落盘或分批验收 | 待论证 |
+| **T080 复盘 — retry 预算分类** | 跨阶段问题（P1 BDD 矛盾）共用 P4 retry 预算不合理。需区分本阶段 vs 上游遗留 | 待论证 |
 
 ### 不修理由
 

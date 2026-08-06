@@ -180,3 +180,19 @@ P6-acceptance.md 路径 + 一句话：BDD 验收 X/Y 通过，Z 个 NEED_CONFIRM
 
 ## 分阶段落盘（默认启用）
 每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明，便于 subagent 在无 prompt 派发场景下也能遵循。
+
+## P6 gate 格式契约（精确正则）
+
+gate 脚本用以下正则匹配，产出必须严格符合：
+
+- PASS/FAIL 行：`^\s*- (PASS|FAIL)\b`（行首，`-` 后空格，PASS/FAIL 大写）
+- 总结行禁止用行首 `- PASS`/`- FAIL`（用 `**Summary**: PASS: 34` 格式，check-p6-format.sh 会自动修正）
+- vision 引用：独立括号 `(vision: path/to/yaml)`，不与截图引用合并在同一括号
+- vision YAML 结构：`vision_analysis.summary.blocker_count`（嵌套，非顶层）
+- 截图引用：`(screenshots/filename.png)`
+
+示例：
+```
+- PASS BDD-1: 描述 (screenshots/login.png) (vision: vision-reports/bdd-1.yaml)
+- FAIL BDD-2: 描述 (result.json)
+```

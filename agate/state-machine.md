@@ -74,9 +74,9 @@ status: approved        # ← 门槛判定字段
      （不能只看文件存在——subagent 可能写一半崩了，留下空/半截文件）
 
 P0 --[P0-brief.md 完成，四字段自查通过（task/known_risks/executor_env/env_constraints）]--> P1
-P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
+P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM（不含 `[NEED_CONFIRM倾向:]`，T080 演进）AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
 P1 --[P1-review.md status==rejected && retry<MAX]--> P1 (retry+1, analyst 修改需求后再 review)
-P1 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+P1 --[存在未决阻塞 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。倾向项 `[NEED_CONFIRM倾向:]` WARNING 不阻塞）
 P1 --[存在 status: GAP]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。supplementable 不阻塞，见 dispatch-protocol.md「supplementable 能力的传递规则」）
 
 任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）（`[PROD_TOUCHED]` 正向声明触发，`[PROD_NOT_TOUCHED]` 不触发）
@@ -121,7 +121,7 @@ P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/NC=0/证据非空）AND scripts/c
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
      （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
 P6 --[任何 BDD 标 FAIL && retry<MAX]--> P4 (retry+1)（行为不符 → 回实现）
-P6 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+P6 --[存在未决 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。仅阻塞项，倾向项不触发 PAUSED）
 P6 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
 P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0 AND 同理 [DEVIATION-CRITICAL] → =0 AND (grep -cE '\[DESIGN_GAP:' P7-consistency.md) == (grep -cE '\[DESIGN_GAP_REVIEWED' P7-consistency.md)（v0.6：P4 implementer 自主决策偏差声明，主 Agent 审查后追加 REVIEWED 配对标记，未配对 → gate 不通过；声明行如 `[BLOCKER]: 0 条` 被排除）]--> P8
@@ -333,7 +333,7 @@ function 执行一步(task_id):
         （subagent 的自我检查结果仅供参考，不作为 gate 判定依据——gate 以主 Agent 跑命令为准）
     5. 主 Agent 亲自跑 gate 命令验证门槛（A1 原则：跑命令不信文件）：
        - P1: P1-requirements.md 含 ≥1 条 BDD 条件（BDD 编号格式为 `#### BDD-NN:`）;
-             grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' {task}/P1-requirements.md → =0;
+             grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' {task}/P1-requirements.md → =0（仅计算阻塞项）;
              grep -cE 'status:.*GAP\b' {task}/P1-requirements.md → =0（仅匹配 status: GAP，不匹配 supplementable）
        - P2: grep 'status: approved' {task}/P2-review.md → 命中;
              grep -cE '^(packages|domains|ui_affected|gate_commands):' {task}/P2-design.md → ≥4;

@@ -15,7 +15,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 - P0-brief.md 完成，四字段自查通过（task / known_risks / executor_env / env_constraints）
 
 ### P1 → P2
-- P1-requirements.md 有效 + 含至少一条 BDD 验收条件 + 无未决行首 NEED_CONFIRM（无待确认项写 `[NO_NEED_CONFIRM]`）+ 无 status: GAP（supplementable 不阻）
+- P1-requirements.md 有效 + 含至少一条 BDD 验收条件 + 无未决行首 NEED_CONFIRM（倾向项 `[NEED_CONFIRM倾向:]` WARNING 不阻塞；无待确认项写 `[NO_NEED_CONFIRM]`）+ 无 status: GAP（supplementable 不阻）
 
 ### P2 → P3
 - P2-review.md 有效 + status: approved + P2-design.md 声明 packages/domains/ui_affected/gate_commands + 候选方案 ≥2 + 含权衡/选择理由/取舍/考量/trade-off

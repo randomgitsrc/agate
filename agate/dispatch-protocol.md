@@ -801,7 +801,7 @@ setTimeout(() => {
 
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
-| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式为 `#### BDD-NN:`）+ `grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' P1-requirements.md → =0` + `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点（check-gate.sh P1 检查）|
+| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式为 `#### BDD-NN:`）+ `grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' P1-requirements.md → =0`（仅计算阻塞项，倾向项 `[NEED_CONFIRM倾向:]` 不计）+ `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点（check-gate.sh P1 检查）|
 | P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由\|取舍\|考量\|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）+ 候选方案 ≥2（`scripts/check-gate.sh P2` 脚本化部分）|
 | P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
@@ -1013,9 +1013,12 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 - **数据 schema 迁移**：测试环境的迁移逻辑需人工确认后再执行
 - **不可逆的外部调用**：发送邮件/通知、扣费、第三方 API 写操作（应在测试环境用 mock）
 
-`[NEED_CONFIRM]` 采用二值声明（T005/T006 教训）：
-- `[NEED_CONFIRM] {描述}` = 有待确认项（正向，可多条）
+`[NEED_CONFIRM]` 采用三值声明（T005/T006 教训 + T080 演进）：
+- `[NEED_CONFIRM] {描述}` = 真无方向待人定夺（阻塞，可多条）
+- `[NEED_CONFIRM倾向: 推荐 X，理由 Y]` = 有倾向但求确认（WARNING 不阻塞，主 Agent 可自行采纳，除非涉及破坏性变更/业务方向）
 - `[NO_NEED_CONFIRM]` = 无待确认项（负向）
+
+倾向项使用场景：analyst 知道推荐方案但想留个底（"如果用户没异议就采纳"），主 Agent 读 P1 时直接采纳推荐，无需问用户。倾向项不等同于"待人确认"，仅作为审计痕迹。
 
 每条 `[NEED_CONFIRM]` 须包含：
 ```
@@ -1036,10 +1039,10 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 状态标记采用二值声明——必须写正向或负向之一，不允许第三种写法：
 
-| 标记 | 正向（触发了）| 负向（未触发）|
-|------|-------------|-------------|
-| PROD_TOUCHED | `[PROD_TOUCHED] {描述}` | `[PROD_NOT_TOUCHED]` |
-| NEED_CONFIRM | `[NEED_CONFIRM] {描述}`（可多条）| `[NO_NEED_CONFIRM]` |
+| 标记 | 正向（触发了）| 倾向（求确认）| 负向（未触发）|
+|------|-------------|-------------|-------------|
+| PROD_TOUCHED | `[PROD_TOUCHED] {描述}` | — | `[PROD_NOT_TOUCHED]` |
+| NEED_CONFIRM | `[NEED_CONFIRM] {描述}`（可多条）| `[NEED_CONFIRM倾向: 推荐 X，理由 Y]` | `[NO_NEED_CONFIRM]` |
 
 **禁止**：在产出文件中引用标记文本做否定描述（如"无 [PROD_TOUCHED]"、"所有 [NEED_CONFIRM] 已解决"）。
 要表达"未触发"，写负向格式（`[PROD_NOT_TOUCHED]` / `[NO_NEED_CONFIRM]`）。

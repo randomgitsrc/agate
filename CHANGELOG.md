@@ -6,6 +6,21 @@
 
 ---
 
+## [0.30.1] - 2026-08-06
+
+### 变更
+- **NEED_CONFIRM 三值分级（T080 retro）**：P1 NEED_CONFIRM 从二值升级到三值。`[NEED_CONFIRM倾向: 推荐 X，理由 Y]`（有倾向，WARNING 不阻塞，主 Agent 自行采纳）vs `[NEED_CONFIRM]`（真无方向，阻塞）。check-gate.sh P1 检测逻辑区分两者。analyst 角色说明何时用倾向项。G_NC_TENDENCY.1/.2 测试
+- **gate 格式契约透明化（T080 retro）**：verifier 角色文件追加精确正则模板（PASS/FAIL 行、vision YAML 结构、引用括号）。consistency-reviewer 角色追加 P7 DESIGN_GAP 行首格式。dispatch-context 模板追加约束节避免行首 PASS/FAIL 提示
+- **P1 基线保护（T080 retro）**：P1-requirements.md 加基线保护说明（`[BASELINE_CHANGE: 理由]` + 主 Agent 显式批准）。P4-implementation.md 常见错误节提醒不直接改 P1
+- **P8 bump + CHANGELOG 同一 commit（T080 retro）**：P8-release.md L12 明确 bump-version + CHANGELOG 更新 → 同一 commit + tag
+- **P2 选择器契约提示（T080 retro）**：P2-design.md 加 UI 测试选择器契约提示（稳定测试标识清单，如 data-testid）
+- **P1 review 跨条 BDD 一致性维度（T080 retro）**：requirements-review 角色加"BDD 跨条一致性"维度（Then 矛盾 + 保护优先级 + 环境约束）
+- **P2 review UI 组件完整性维度（T080 retro）**：plan-design-review 角色加"组件完整性"评分维度（每个 UI 组件有完整 input/output）
+- **known-failures.md 语义边界（T080 retro）**：known-failures 模板 + P5-verification.md 明确"只登预存失败，不登当前任务失败"
+- **反向传播同步**：dispatch-protocol.md / state-machine.md / state-transitions.md / WORKFLOW.md / analyst.md / CONTEXT.md / task-files.md 同步 NEED_CONFIRM 三值语义。CHECK 9 锚点 desc/keywords 更新
+
+---
+
 ## [0.30.0] - 2026-08-04
 
 ### 变更

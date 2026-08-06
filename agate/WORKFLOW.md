@@ -213,7 +213,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | 阶段 | 名称 | 执行角色 | 评审角色 | 门槛（进入下一阶段的条件）|
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks |
-| P1 | 需求基线 | analyst（需求质疑模式）| requirements-review（强制，不可裁，所有任务都走独立 review）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '^\s*-?\s*\[NEED_CONFIRM\]'` → =0；无 `status: GAP`（supplementable 不阻塞）；P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点 |
+| P1 | 需求基线 | analyst（需求质疑模式）| requirements-review（强制，不可裁，所有任务都走独立 review）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '^\s*-?\s*\[NEED_CONFIRM\]'` → =0（仅计算阻塞项；倾向项 `[NEED_CONFIRM倾向:]` WARNING 不阻塞）+ 无 `status: GAP`（supplementable 不阻塞）；P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点 |
 | P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.sh 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；不可裁（design_trivial / follows_existing_pattern 可简化，不可省略）；强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时可只写 1 个） |
 | P3 | 测试设计 | test-designer | gate 自检（文件存在）+ TDD 红灯独立确认 | check-gate.sh P3 exit 2（文件存在）+ scripts/check-tdd-red.sh exit 0（主 Agent 手动 + CI backstop 兜底）|
 | P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
