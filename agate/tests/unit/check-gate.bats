@@ -578,17 +578,6 @@ EOF
     [[ "$output" == *"FAIL="* ]]
 }
 
-@test "G6.2 check-gate.sh P6 含 NEED_CONFIRM 期望 exit 1" {
-    local dir
-    dir=$(create_task_dir)
-    cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS BDD-1
-- [NEED_CONFIRM] BDD-2
-EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
-    [ "$status" -eq 1 ]
-}
-
 @test "G6.3 check-gate.sh P6 全 PASS 但无 BDD 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
@@ -624,6 +613,32 @@ EOF
     echo "log" > "$dir/P6-evidence/result.log"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
     [ "$status" -eq 2 ]
+}
+
+@test "G6.10 check-gate.sh P6 含 [NEED_CONFIRM] 不再拦截（v0.30.3 语义修正）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1
+- [NEED_CONFIRM] some text
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G6.11 check-gate.sh P6 无 [NO_NEED_CONFIRM] 不再 WARNING（v0.30.3）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (result.log)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"NEED_CONFIRM"* ]]
 }
 
 @test "G6.7 check-gate.sh P6 小写 fail: 被计为 FAIL（大小写不敏感）" {
@@ -1133,18 +1148,6 @@ EOF
     [ "$status" -eq 2 ]
 }
 
-@test "G6.6 check-gate.sh P6 FAIL=0 但 NEED_CONFIRM>0 期望 exit 1" {
-    local dir
-    dir=$(create_task_dir)
-    cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS BDD-1
-- [NEED_CONFIRM] BDD-2
-EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"NEED_CONFIRM="* ]]
-}
-
 @test "G8.6 check-gate.sh P8 CHANGELOG_FILE 环境变量覆盖" {
     local dir
     dir=$(create_task_dir)
@@ -1325,19 +1328,6 @@ EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"不合规"* ]]
-}
-
-@test "G_NC_BINARY.4 P6 含 [NO_NEED_CONFIRM] + 最小有效 fixture 期望 exit 2" {
-    local dir
-    dir=$(create_task_dir)
-    cat > "$dir/P6-acceptance.md" <<'EOF'
-- PASS BDD-1
-- [NO_NEED_CONFIRM]
-EOF
-    mkdir -p "$dir/P6-evidence"
-    echo "log" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
-    [ "$status" -eq 2 ]
 }
 
 @test "G_NC_BINARY.5 P1 既无正向也无负向声明 期望 exit 2 + WARNING" {

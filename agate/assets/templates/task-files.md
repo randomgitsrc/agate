@@ -32,7 +32,7 @@ agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier|visio
 | P4 | {implementation_dir}/ | 代码目录（项目自定义，如 `src/` 或 `backend/app/`）|
 | P5 | P5-test-results/unit.md | 标注 `failed: N`（仅供参考，gate 以主 Agent 跑 gate_commands.P5 为准）|
 | P5 | P5-test-results/e2e.md | UI 任务必须：Playwright 实跑结果 + 截图路径。须含 `status: passed` 字段（hook 检查） |
-| P6 | P6-acceptance.md | P1 每条 BDD 有实跑结果（**只允许 PASS 或 FAIL，不允许中间态**）；UI 条件含截图；无未决 `[NEED_CONFIRM]`（门槛）|
+| P6 | P6-acceptance.md | P1 每条 BDD 有实跑结果（**只允许 PASS 或 FAIL，不允许中间态**）；UI 条件含截图 |
 | P7 | P7-consistency.md | 无 `[BLOCKER]` 标记（门槛）|
 | P8 | P8-release.md | 每个 package 的版本 bump + CHANGELOG + 临时资源清单 |
 
@@ -63,7 +63,7 @@ P3/P4 的代码路径由产出文件显式声明，不使用固定目录名：
 - P2-review.md `status` → subagent 评审产出的结论
 - P3 → 主 Agent 跑 `scripts/check-tdd-red.sh` 验证（UI 任务查 Playwright 用例存在）
 - P5 → 主 Agent 跑 `gate_commands.P5` 验证（UI 任务实跑 Playwright/E2E）
-- P6 → 主 Agent 确认 P1 每条 BDD 有实跑结果 + 无未决 `[NEED_CONFIRM]`
+- P6 → 主 Agent 确认 P1 每条 BDD 有实跑结果
 - P7 → 主 Agent grep `[BLOCKER]` 验证
 - P8 → 主 Agent 为每个 package 跑发布检查命令验证
 
@@ -271,7 +271,7 @@ env_constraints:
 - FAIL 实测结果与预期不符：... → 触发回 P4
 
 ## 验收小结
-BDD 通过 X/Y，UI 截图 N 张，NEED_CONFIRM M 个
+BDD 通过 X/Y，UI 截图 N 张
 ```
 
 **证据引用格式**：每条 PASS 结果必须在括号内引用对应证据文件路径（相对于 `P6-evidence/` 目录）。示例：`- PASS BDD-1: ... (p6-bdd-1.png)`。hook 会检查引用路径必须真实存在。无引用的 PASS 行不算有证据。

@@ -90,7 +90,7 @@ agent: architect
 - P2：方案覆盖 P1 列出的所有问题，影响域明确区分改/不改
 - P2：`packages` / `domains` / `ui_affected` 三个字段必须显式声明，不能省略（T005 漏 MCP 版本 bump 的根因就是 P2 没声明 packages）
 - P7：**双向**一致性检查：
-  - **方向 1（设计→实现）**：逐项对照 P2 设计，标注一致/偏差，偏差用 `[BLOCKER]` 或 `[OK]` 标记
+  - **方向 1（设计→实现）**：逐项对照 P2 设计，标注一致/偏差，偏差用 `[DEVIATION]` 或 `[OK]` 标记
   - **方向 2（实现→设计）**：对照代码变更，检查设计文档中是否有不再适用的要求
     - 为已否决方案写的 AC（僵尸需求）→ `[DEVIATION: BDD-6 关联方案已变更，建议删除]`
     - 已废弃的约束 → `[DEVIATION]`
@@ -101,13 +101,13 @@ agent: architect
 
 DEVIATION 标注必须注明"涉及 P2 哪个设计目标"：
 - DEVIATION 涉及 P2 核心设计目标且实现完全未落地 → 标 `[DEVIATION-CRITICAL]`（升级为 BLOCKER，gate 不通过）
-- DEVIATION 涉及 P2 核心设计目标但已部分落地 → 标 `[DEVIATION]` + `[NEED_CONFIRM]`（不硬阻塞，但需人工确认是否可接受）
+- DEVIATION 涉及 P2 核心设计目标但已部分落地 → 标 `[DEVIATION]` + `[SUGGEST: 理由]`（不阻塞，主 Agent 可采纳）
 - DEVIATION 涉及命名风格/行数预算等非核心 → 标 `[DEVIATION]`（保持，不阻塞）
 
 **v0.6 DESIGN_GAP 捕获**：若 implementer 在实现中因 P2 设计歧义/缺口而自主做了决策并标了 `[DESIGN_GAP: xxx]`，P7 必须逐条审查：
 - **对每条 [DESIGN_GAP: xxx]（在 P4-implementation.md 中），必须在 P7-consistency.md 中写入原始标记行 + 你的 REVIEWED 标记行**。check-gate.sh 只扫描 P7-consistency.md——不把原始 GAP 写入 P7-consistency.md 会导致 hook 静默放过
 - 决策是否合理（如果是 → 标 `[DESIGN_GAP_REVIEWED: 已确认]`）
-- 是否需要回 P2 补充设计（如果是 → 标 `[DESIGN_GAP_REVIEWED: 已打回 P2]` + `[BLOCKER]`）
+- 是否需要回 P2 补充设计（如果是 → 标 `[DESIGN_GAP_REVIEWED: 已打回 P2]`）
 
 判定"核心设计目标"的依据：P2-design.md 的改动方案节（§1）中明确列出的设计目标，被 P1 BDD 引用为验收条件的，为核心设计目标。
 

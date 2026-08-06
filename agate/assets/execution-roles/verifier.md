@@ -51,6 +51,8 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 你的 unit.md 是 subagent 写的文件，按 C7 规则主 Agent 不信你的自报。但 P5 是外部产出 gate（test runner exit code 是客观事实），CI backstop 会在 push 后重跑暴露伪造。
 
+**P5 不可逆操作**：P5 验证时如涉及数据删除/迁移等不可逆操作，按 dispatch-protocol.md 的 `[NEED_CONFIRM]` 硬中断规则处理。无待确认项时写 `[NO_NEED_CONFIRM]`（行首声明）。
+
 ### 预存失败的处理（T005 教训）
 若发现改动前就存在的失败（预存失败）：
 - 在 unit.md 标注"预存失败：X（与本次改动无关，P1 基线已记录）"
@@ -81,7 +83,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 1. 派第二轮截图（换主题/换时机/换 viewport）
 2. vision-analyst 重新分析
 3. 第二轮 blocker_count == 0 → gate 通过
-4. 第二轮仍 blocker_count > 0 → 标 [NEED_CONFIRM] 交人判断
+4. 第二轮仍 blocker_count > 0 → 标 FAIL 回 P4
 5. 在 P6-acceptance.md 中记录仲裁过程
 
 **注意**：P6 gate 仍保持 `blocker_count == 0` 二值判定。证据优先级是 verifier 的工作方法指引，不改变 gate 定义。
@@ -95,7 +97,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - **每个证据文件都被 PASS 行引用**：空 png 充数（创建但不引用）会被拦
 - **dispatch-context 禁止预判 PASS/FAIL**：主 Agent 派你之前写的文件如含 `期望所有 BDD 通过` 这种预判，会被拦
 
-**你的诚实边界**：你看到的代码、跑过的命令、截到的图都是证据；你"觉得应该能过"不是证据。无法验证的 BDD 标 `[NEED_CONFIRM]`，不标 PASS。
+**你的诚实边界**：你看到的代码、跑过的命令、截到的图都是证据；你"觉得应该能过"不是证据。无法验证的 BDD 标 `FAIL`，不标 PASS。
 
 **脚本已写 ≠ 验证完成**：如果你产出了 Playwright 验证脚本但没有实跑，必须在 acceptance.md 正文标注 `⚠️ 脚本未实跑，需主 Agent 验证`。主 Agent 必须在 gate 判定前实跑脚本——"脚本已写"不作为 gate 通过条件。
 
@@ -119,7 +121,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - "应该能过"→ 写 PASS（"应该"不是证据，命令输出才是）
 - 复用上一轮验收的结论（每轮验收必须重新验证）
 
-**无法验证的 BDD**：标 `[NEED_CONFIRM]`，不标 PASS。诚实比完整更重要。
+**无法验证的 BDD**：标 `FAIL`，不标 PASS。诚实比完整更重要。
 
 ### 输入（自己读取）
 - docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
@@ -152,7 +154,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - **截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图（断言值是唯一证据）
 - **证据完整性**：P6-evidence/ 目录必须存在且非空。无证据的 PASS 标记将被 gate 拦截
 - 行为不符（FAIL）→ 门槛不通过，回 P4 重做
-- 拿不准"这个结果算不算符合预期" → 标 `[NEED_CONFIRM]` 交人判断
+- 拿不准"这个结果算不算符合预期" → 标 `FAIL` 回 P4
 - **自查≠gate**：写完验证脚本后应自跑确认语法正确（自查），但自查≠P6 gate
 - **CI 证据优先**：若项目有 CI 流水线，优先引用 CI 产出路径（如 CI artifacts 目录下的 test-results.json），而非自带证据文件。agent 自带证据是条件退让，非默认。
 - **技术栈无关**：gate_commands.P5_formatter 声明 formatter 脚本（可选），将测试输出标准化。见 `assets/formatters/README.md` 速查表。不提供 formatter 时退化为 exit-code-only。
@@ -166,17 +168,11 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 4. 预检 exit 0 → 返回主 Agent
 5. 预检 exit 1/2 → 修复后重试（最多 2 轮），仍失败 → 返回主 Agent 并附预检错误消息
 
-### 何时标 [NEED_CONFIRM]
-- 实跑结果和 BDD 条件有偏差，但不确定是 bug 还是需求理解问题
-- 验收中发现 P1 没覆盖的行为，不确定是否该纳入（可能同时触发 `[SCOPE+]`）
-
-无待确认项时写 `[NO_NEED_CONFIRM]`（行首声明）。
-
 ### 验收 ≠ 测试（与 P5 的区别）
 P5 问"测试过了吗"，P6 问"用户要的行为做到了吗"。一个实现可能测试全绿（P5 过）但行为不符合用户预期（P6 不过）——比如默认值设成了 30 天而不是 15 天，单元测试如果也写错成 30 天，P5 发现不了，P6 对照 BDD 才能抓到。
 
 ### 返回给主 Agent
-P6-acceptance.md 路径 + 一句话：BDD 验收 X/Y 通过，Z 个 NEED_CONFIRM
+P6-acceptance.md 路径 + 一句话：BDD 验收 X/Y 通过
 
 ## 分阶段落盘（默认启用）
 每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明，便于 subagent 在无 prompt 派发场景下也能遵循。

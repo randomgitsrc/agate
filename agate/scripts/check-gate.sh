@@ -265,23 +265,11 @@ print(count)
       exit 2 ;;
   P6)
       # P6 PASS/FAIL regex: 大小写不敏感计数（formatter 归一化在前，此为最后防线）
+      # P6 是客观验收：PASS/FAIL 二值，不再检测 NEED_CONFIRM（v0.30.3 语义修正）
       TOTAL=$(grep -ciE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       TOTAL=$(echo "$TOTAL" | tail -1)
       FAIL=$(grep -ciE '^\s*- FAIL([[:space:]:：]|$)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
       FAIL=$(echo "$FAIL" | tail -1)
-      NC=$(grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
-      NC=$(echo "$NC" | tail -1)
-      if [ "$NC" -gt 0 ]; then
-          echo "GATE P6: FAIL=$FAIL, NEED_CONFIRM=$NC, TOTAL=$TOTAL" >&2
-          exit 1
-      fi
-      if grep -q '\[NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null; then
-          echo "GATE P6: 不合规的 NEED_CONFIRM 标记格式（须用行首 [NEED_CONFIRM] 或 [NO_NEED_CONFIRM] 声明）" >&2
-          exit 1
-      fi
-      if ! grep -qE '^\s*-?\s*\[NO_NEED_CONFIRM\]' "$TASK_DIR/P6-acceptance.md" 2>/dev/null; then
-          echo "GATE P6 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] 或 [NO_NEED_CONFIRM]）" >&2
-      fi
       if [ "$FAIL" -ne 0 ] || [ "$TOTAL" -eq 0 ]; then
           echo "GATE P6: FAIL=$FAIL, TOTAL=$TOTAL" >&2
           exit 1
