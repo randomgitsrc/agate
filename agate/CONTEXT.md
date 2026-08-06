@@ -13,7 +13,7 @@
 | 声明性改动 | 不改变程序运行时控制流的改动（改前改后控制流相同） | WORKFLOW.md §改动性质判断 |
 | 行为逻辑改动 | 改变程序运行时控制流的改动（条件分支、状态转换、数据处理） | WORKFLOW.md §改动性质判断 |
 | BDD | Behavior-Driven Development，`#### BDD-NN:` 标题编号 + 一条 Given/When/Then 的验收条件 | WORKFLOW.md §需求基线 |
-| NEED_CONFIRM | 需人工确认的标记（行首声明格式），subagent 拿不准方向时标注；无待确认项写 `[NO_NEED_CONFIRM]`。T080 演进：增加 `[NEED_CONFIRM倾向: 推荐 X，理由 Y]`（有倾向但求确认，主 Agent 自行采纳不阻塞）| WORKFLOW.md §[NEED_CONFIRM] |
+| NEED_CONFIRM | 需人工确认的标记（行首声明格式），subagent 拿不准方向时标注；无待确认项写 `[NO_NEED_CONFIRM]`。T080 演进：增加 `[SUGGEST: 推荐 X，理由 Y]`（有倾向但求确认，主 Agent 自行采纳不阻塞）| WORKFLOW.md §[NEED_CONFIRM] |
 | SCOPE+ | 新发现的隐含需求标记，任何阶段 subagent 可标注，主 Agent 增补 P1 基线 | WORKFLOW.md §[SCOPE+] |
 | SCOPE_GAP | 主 Agent 派发 prompt 漏了 P2 已声明的改动，subagent 标注 | dispatch-protocol.md |
 | C8 域 | role-system.md 定义的协作域，命中时触发 P2/P4 评审 | role-system.md |

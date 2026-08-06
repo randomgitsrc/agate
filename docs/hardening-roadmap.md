@@ -392,7 +392,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | **T080 复盘 — P2 选择器契约提示** | P2-design.md 追加 UI 测试选择器契约提示（稳定测试标识清单） | 已实施 |
 | **T080 复盘 — P1 review 跨条 BDD 一致性** | requirements-review.md 检查清单追加"BDD 跨条一致性"维度（Then 矛盾 + 保护优先级 + 环境约束） | 已实施 |
 | **T080 复盘 — P2 review UI 组件完整性** | plan-design-review.md 追加"组件完整性"评分维度（spec 每个 UI 组件有完整 input/output） | 已实施 |
-| **T080 复盘 — NEED_CONFIRM 分级** | P1-requirements.md 追加分级格式（倾向 vs 真无方向）。check-gate.sh P1 检测逻辑：阻塞 exit 1、倾向 WARNING 不阻塞。G_NC_TENDENCY.1/.2 测试 | 已实施 |
+| **T080 复盘 — NEED_CONFIRM 分级（v0.30.2 重命名为 [SUGGEST:]）** | P1-requirements.md 追加分级格式（[NEED_CONFIRM] 阻塞 vs [SUGGEST:] 不阻塞 vs [NO_NEED_CONFIRM] 负向）。check-gate.sh P1 检测逻辑：阻塞 exit 1、倾向 WARNING 不阻塞、旧标记残留 typo 兜底。G_SUGGEST.1-4 测试 | 已实施 |
 | **T080 复盘 — P6 格式修正 gate 维护例外** | 铁律"主 Agent 不亲自产出"没定义格式修正边界。需声明 gate 维护例外 | 待论证 |
 | **T080 复盘 — P6 verifier 断点续做** | 单次 dispatch 承载过重，崩溃即丢失。需分阶段落盘或分批验收 | 待论证 |
 | **T080 复盘 — retry 预算分类** | 跨阶段问题（P1 BDD 矛盾）共用 P4 retry 预算不合理。需区分本阶段 vs 上游遗留 | 待论证 |

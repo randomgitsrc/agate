@@ -74,9 +74,9 @@ status: approved        # ← 门槛判定字段
      （不能只看文件存在——subagent 可能写一半崩了，留下空/半截文件）
 
 P0 --[P0-brief.md 完成，四字段自查通过（task/known_risks/executor_env/env_constraints）]--> P1
-P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM（不含 `[NEED_CONFIRM倾向:]`，T080 演进）AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
+P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM（不含 `[SUGGEST:]`，T080 演进）AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
 P1 --[P1-review.md status==rejected && retry<MAX]--> P1 (retry+1, analyst 修改需求后再 review)
-P1 --[存在未决阻塞 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。倾向项 `[NEED_CONFIRM倾向:]` WARNING 不阻塞）
+P1 --[存在未决阻塞 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。倾向项 `[SUGGEST:]` WARNING 不阻塞）
 P1 --[存在 status: GAP]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。supplementable 不阻塞，见 dispatch-protocol.md「supplementable 能力的传递规则」）
 
 任意阶段 --[出现 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）（`[PROD_TOUCHED]` 正向声明触发，`[PROD_NOT_TOUCHED]` 不触发）

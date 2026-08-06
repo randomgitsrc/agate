@@ -47,7 +47,7 @@ P1-requirements.md 必须包含：
 - 无未决 `[NEED_CONFIRM]`（有则 PAUSED）；无待确认项时写 `[NO_NEED_CONFIRM]`
 
 **NEED_CONFIRM 分级**：
-- `[NEED_CONFIRM倾向: 推荐 X，理由 Y]` - 有倾向但求确认。主 Agent 可自行采纳倾向（除非涉及破坏性变更/业务方向），不必问用户
+- `[SUGGEST: 推荐 X，理由 Y]` - 有倾向但求确认。主 Agent 可自行采纳倾向（除非涉及破坏性变更/业务方向），不必问用户
 - `[NEED_CONFIRM]` - 真无方向需人定夺。阻塞推进，主 Agent 问用户
 
 ## gate 规则

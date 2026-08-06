@@ -6,6 +6,13 @@
 
 ---
 
+## [0.30.2] - 2026-08-06
+
+### BREAKING
+- **[NEED_CONFIRM倾向:] 重命名为 [SUGGEST:]**：v0.30.1 引入的 `[NEED_CONFIRM倾向:]` 与 `[NEED_CONFIRM]` 共享前缀导致视觉混淆和 typo 风险。v0.30.2 起重命名为 `[SUGGEST: 推荐 X，理由 Y]`——完全不共享前缀，视觉/grep/正则完全可区分。旧标记 `[NEED_CONFIRM倾向:]` 报格式不符并提示重命名。check-gate.sh 加 typo 兜底检测（旧标记残留 + `[SUGGEST` 漏冒号）。G_SUGGEST.1-4 测试
+
+---
+
 ## [0.30.1] - 2026-08-06
 
 ### 变更
