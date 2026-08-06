@@ -1396,7 +1396,7 @@ EOF
     [ "$status" -eq 2 ]
 }
 
-@test "G_NC_TENDENCY.1 P1 含 [NEED_CONFIRM倾向: X] 无阻塞项 → exit 2（不阻塞）" {
+@test "G_SUGGEST.1 P1 含 [SUGGEST: X] 无阻塞项 → exit 2（不阻塞）" {
     local dir
     dir=$(create_task_dir --no-state-yaml)
     cat > "$dir/P1-requirements.md" <<'EOF'
@@ -1408,7 +1408,7 @@ agent: analyst
 ---
 # Requirements
 - Given x When y Then z
-- [NEED_CONFIRM倾向: 推荐方案 A，理由是更安全]
+- [SUGGEST: 推荐方案 A，理由是更安全]
 EOF
     cat > "$dir/P1-review.md" <<'EOF'
 ---
@@ -1422,11 +1422,11 @@ agent: requirements-review
 EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 2 ]
-    [[ "$output" == *"NEED_CONFIRM倾向"* ]]
+    [[ "$output" == *"SUGGEST"* ]]
     [[ "$output" != *"未解决的 NEED_CONFIRM 项（阻塞）"* ]]
 }
 
-@test "G_NC_TENDENCY.2 P1 含 [NEED_CONFIRM倾向: X] + [NEED_CONFIRM] → exit 1（阻塞项仍在）" {
+@test "G_SUGGEST.2 P1 含 [SUGGEST: X] + [NEED_CONFIRM] → exit 1（阻塞项仍在）" {
     local dir
     dir=$(create_task_dir --no-state-yaml)
     cat > "$dir/P1-requirements.md" <<'EOF'
@@ -1438,7 +1438,7 @@ agent: analyst
 ---
 # Requirements
 - Given x When y Then z
-- [NEED_CONFIRM倾向: 推荐方案 A，理由是更安全]
+- [SUGGEST: 推荐方案 A，理由是更安全]
 - [NEED_CONFIRM] 需用户决策的方向
 EOF
     cat > "$dir/P1-review.md" <<'EOF'
@@ -1454,6 +1454,65 @@ EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"阻塞"* ]]
+}
+
+
+@test "G_SUGGEST.3 P1 含旧标记 [NEED_CONFIRM倾向: X] → exit 1（typo 兜底：旧标记重命名）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NEED_CONFIRM倾向: 推荐方案 A]
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"重命名为"* ]]
+}
+
+@test "G_SUGGEST.4 P1 含 [SUGGEST xxx]（漏冒号）→ exit 1（typo 兜底）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [SUGGEST xxx]
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"SUGGEST 格式不符"* ]]
 }
 
 # ========== 行首锚点：DESIGN_GAP ==========

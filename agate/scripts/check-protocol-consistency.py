@@ -490,7 +490,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     {
         "desc": "NEED_CONFIRM 三值声明",
         "script": "agate/scripts/check-gate.sh",
-        "keywords": ["NEED_CONFIRM", "NO_NEED_CONFIRM", "NEED_CONFIRM倾向"],
+        "keywords": ["NEED_CONFIRM", "NO_NEED_CONFIRM", "SUGGEST"],
     },
     {
         "desc": "SCOPE+ 追踪",

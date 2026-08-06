@@ -62,26 +62,35 @@ case "$PHASE" in
           echo "GATE P1: P1-review.md 不含 BDD 编号引用（裸 approved 极可能是假完成，review 结论须引用具体 BDD 编号）" >&2
           exit 1
       fi
-      # P1 NEED_CONFIRM 检查（倾向分级）——T080 复盘
-      # [NEED_CONFIRM] = 真无方向，阻塞；[NEED_CONFIRM倾向: X] = 有倾向求确认，WARNING 不阻塞
+      # P1 NEED_CONFIRM 检查（v0.30.2 三值分级：[NEED_CONFIRM] 阻塞 / [SUGGEST:] 不阻塞 / [NO_NEED_CONFIRM] 负向）
       P1_FILE="$TASK_DIR/P1-requirements.md"
       NC_BLOCKING=$(grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null || echo 0)
       NC_BLOCKING=$(echo "$NC_BLOCKING" | tail -1)
-      NC_TENDENCY=$(grep -cE '^\s*-?\s*\[NEED_CONFIRM倾向:' "$P1_FILE" 2>/dev/null || echo 0)
-      NC_TENDENCY=$(echo "$NC_TENDENCY" | tail -1)
+      NC_SUGGEST=$(grep -cE '^\s*-?\s*\[SUGGEST:' "$P1_FILE" 2>/dev/null || echo 0)
+      NC_SUGGEST=$(echo "$NC_SUGGEST" | tail -1)
       if [ "$NC_BLOCKING" -gt 0 ]; then
           echo "GATE P1: $NC_BLOCKING 个未解决的 NEED_CONFIRM 项（阻塞）" >&2
           exit 1
       fi
-      if [ "$NC_TENDENCY" -gt 0 ]; then
-          echo "GATE P1 WARNING: $NC_TENDENCY 个 NEED_CONFIRM倾向 项（主 Agent 可自行采纳，不阻塞）" >&2
+      if [ "$NC_SUGGEST" -gt 0 ]; then
+          echo "GATE P1 WARNING: $NC_SUGGEST 个 SUGGEST 项（主 Agent 可自行采纳，不阻塞）" >&2
       fi
-      if grep -qE '\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null && [ "$NC_BLOCKING" -eq 0 ]; then
-          echo "GATE P1: 不合规的 NEED_CONFIRM 标记格式（须用行首 [NEED_CONFIRM]、[NEED_CONFIRM倾向:] 或 [NO_NEED_CONFIRM] 声明）" >&2
+      # typo 兜底 1：检测旧标记 [NEED_CONFIRM倾向:] 残留
+      if grep -qE '\[NEED_CONFIRM倾向:' "$P1_FILE" 2>/dev/null; then
+          echo "GATE P1: 检测到旧标记 [NEED_CONFIRM倾向:]。v0.30.2 起已重命名为 [SUGGEST: ...]" >&2
           exit 1
       fi
-      if [ "$NC_BLOCKING" -eq 0 ] && [ "$NC_TENDENCY" -eq 0 ] && ! grep -qE '^\s*-?\s*\[NO_NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null; then
-          echo "GATE P1 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] / [NEED_CONFIRM倾向:] / [NO_NEED_CONFIRM]）" >&2
+      # typo 兜底 2：[SUGGEST 开头但不是 [SUGGEST:
+      if grep -q '\[SUGGEST' "$P1_FILE" 2>/dev/null && ! grep -q '\[SUGGEST:' "$P1_FILE" 2>/dev/null; then
+          echo "GATE P1: SUGGEST 格式不符。合法格式：[SUGGEST: 推荐 X，理由 Y]" >&2
+          exit 1
+      fi
+      if grep -qE '\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null && [ "$NC_BLOCKING" -eq 0 ]; then
+          echo "GATE P1: 不合规的 NEED_CONFIRM 标记格式（须用行首 [NEED_CONFIRM]、[SUGGEST: ...] 或 [NO_NEED_CONFIRM] 声明）" >&2
+          exit 1
+      fi
+      if [ "$NC_BLOCKING" -eq 0 ] && [ "$NC_SUGGEST" -eq 0 ] && ! grep -qE '^\s*-?\s*\[NO_NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null; then
+          echo "GATE P1 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] / [SUGGEST: ...] / [NO_NEED_CONFIRM]）" >&2
       fi
       echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式为 #### BDD-NN:" >&2
       exit 2 ;;

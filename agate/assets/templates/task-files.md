@@ -146,7 +146,7 @@ P0-brief 是把这些约束注入每次派发的桥梁——所有 subagent 的 
 
 ## 4. 待确认清单
 - [NEED_CONFIRM] 问题描述 + 几种可能的理解（真无方向 → 阻塞）
-- [NEED_CONFIRM倾向: 推荐方案 X，理由是 Y]（有倾向 → 主 Agent 自行采纳，WARNING 不阻塞）
+- [SUGGEST: 推荐方案 X，理由是 Y]（有倾向 → 主 Agent 自行采纳，WARNING 不阻塞）
 
 ## 5. 裁剪说明
 risk_level: low                      # low=纯UI/文案/配置 | medium=业务逻辑/API/数据 | high=安全/权限/数据迁移/生产环境

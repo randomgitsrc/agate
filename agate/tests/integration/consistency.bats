@@ -54,7 +54,7 @@ setup() {
     grep -q 'PROD_NOT_TOUCHED' agate/scripts/pre-commit-gate.sh
 }
 
-@test "CON.12 CHECK 9: NEED_CONFIRM 三值锚点存在" {
+@test "CON.12 CHECK 9: NEED_CONFIRM 三值锚点存在（v0.30.2 起 SUGGEST）" {
     grep -q 'NO_NEED_CONFIRM' agate/scripts/check-gate.sh
-    grep -q 'NEED_CONFIRM倾向' agate/scripts/check-gate.sh
+    grep -q 'SUGGEST' agate/scripts/check-gate.sh
 }
