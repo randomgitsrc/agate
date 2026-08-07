@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 TASK_DIR="${1:?用法: check-retrospective.sh TASK_DIR}"
 STATE_FILE="${2:-.state.yaml}"
 
@@ -13,19 +15,7 @@ WARNINGS=""
 
 # 1. gate 重试超限（按阶段差异化 MAX_RETRY，与 check-state-transition.sh 保持同步）
 if [ -f "$STATE_FILE" ]; then
-    RETRIES_OVER=$(STATE_FILE="$STATE_FILE" python3 -c "
-import yaml, os
-with open(os.environ['STATE_FILE']) as f:
-    data = yaml.safe_load(f)
-retries = data.get('retries', {})
-max_map = dict(p.split(':') for p in 'P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2'.split(','))
-if isinstance(retries, dict):
-    for phase, attempts in retries.items():
-        phase_max = int(max_map.get(phase, 3))
-        if isinstance(attempts, list) and len(attempts) >= phase_max:
-            print(f'{phase}={len(attempts)} (MAX={phase_max})')
-            break
-" 2>/dev/null || echo "")
+    RETRIES_OVER=$(STATE_FILE="$STATE_FILE" python3 "$SCRIPT_DIR/agate-state-get.py" retries_over 'P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2' 2>/dev/null || echo "")
     [ -n "$RETRIES_OVER" ] && WARNINGS="${WARNINGS}gate 重试超限（${RETRIES_OVER}）\n"
 fi
 

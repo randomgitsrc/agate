@@ -21,8 +21,11 @@ import sys
 
 
 def main():
-    data = json.load(sys.stdin)
     op = sys.argv[1]
+    if op == "escape":
+        print(json.dumps(sys.stdin.read()))
+        return
+    data = json.load(sys.stdin)
 
     if op == "get":
         key, default = sys.argv[2], sys.argv[3]

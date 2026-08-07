@@ -55,3 +55,10 @@ load ../helpers/load.bash
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
+
+@test "JGET.8 escape json.dumps stdin 原始文本" {
+    run bash -c "printf '%s' 'a\"b
+c' | python3 '$AGATE_SCRIPTS/agate-json-get.py' escape"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'a\"b'* ]]
+}

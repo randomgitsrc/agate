@@ -38,6 +38,8 @@ EOF
     cp "$AGATE_ROOT/scripts/check-retrospective.sh" "$AGATE_ROOT_FAKE/scripts/"
     cp "$AGATE_ROOT/scripts/check-p6-evidence.sh" "$AGATE_ROOT_FAKE/scripts/"
     cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$AGATE_ROOT_FAKE/scripts/"
+    cp "$AGATE_ROOT/scripts/agate-state-get.py" "$AGATE_ROOT_FAKE/scripts/"
+    cp "$AGATE_ROOT/scripts/agate-json-get.py" "$AGATE_ROOT_FAKE/scripts/"
     cp -r "$AGATE_ROOT/assets" "$AGATE_ROOT_FAKE/"
     # Do NOT copy agate-next-card.sh — simulates it being unavailable
 
