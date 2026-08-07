@@ -22,29 +22,7 @@ TASK_DIR="${1:?用法: agate-capture-env-baseline.sh TASK_DIR}"
 P2_FILE="$TASK_DIR/P2-design.md"
 [ -f "$P2_FILE" ] || { echo "ENV_BASELINE: P2-design.md 不存在，跳过基线捕获（P2 未完成前不应到达此步）" >&2; exit 0; }
 
-P5_DATA=$(P2_DESIGN="$P2_FILE" python3 -c '
-import re, sys, os, json
-content = open(os.environ["P2_DESIGN"]).read()
-if not content.endswith(chr(10)):
-    content += chr(10)
-m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
-if not m:
-    sys.exit(0)
-block = m.group(1)
-entries = []
-for line in re.findall(r"^  (P5\w*):\s*(.+)$", block, re.MULTILINE):
-    key = line[0]
-    val = line[1].strip().strip("\"").strip(chr(39))
-    if key.endswith("_formatter"):
-        continue
-    suffix = key[2:] if len(key) > 2 else ""
-    fmt_key = "P5" + suffix + "_formatter"
-    fmt_val = ""
-    for line2 in re.findall(r"^  (" + re.escape(fmt_key) + r"):\s*(.+)$", block, re.MULTILINE):
-        fmt_val = line2[1].strip().strip("\"").strip(chr(39))
-    entries.append({"cmd": val, "formatter": fmt_val, "suffix": suffix})
-print(json.dumps(entries))
-')
+P5_DATA=$(P2_DESIGN="$P2_FILE" python3 "$SCRIPT_DIR/agate-read-p5-commands.py")
 [ -z "$P5_DATA" ] && { echo "ENV_BASELINE: 未在 P2-design.md 找到 gate_commands.P5，跳过基线捕获" >&2; exit 0; }
 
 COMMIT=$(git rev-parse HEAD 2>/dev/null) || { echo "ENV_BASELINE: 非 git 仓库，跳过" >&2; exit 0; }
@@ -61,12 +39,12 @@ fi
 
 FAIL_LIST=""
 PARSE_OK=1
-ENTRY_COUNT=$(echo "$P5_DATA" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')
+ENTRY_COUNT=$(echo "$P5_DATA" | python3 "$SCRIPT_DIR/agate-json-get.py" len commands)
 
 idx=0
 while [ "$idx" -lt "$ENTRY_COUNT" ]; do
-    cmd=$(echo "$P5_DATA" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[$idx]['cmd'])")
-    fmt_val=$(echo "$P5_DATA" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[$idx]['formatter'])")
+    cmd=$(echo "$P5_DATA" | python3 "$SCRIPT_DIR/agate-json-get.py" index commands "$idx" cmd)
+    fmt_val=$(echo "$P5_DATA" | python3 "$SCRIPT_DIR/agate-json-get.py" index commands "$idx" formatter)
 
     fmt_path=""
     if [ -n "$fmt_val" ]; then
@@ -81,22 +59,17 @@ while [ "$idx" -lt "$ENTRY_COUNT" ]; do
 
     json_result=$(run_test_with_formatter "$cmd" "$fmt_path")
 
-    JSON_EXIT_CODE=$(echo "$json_result" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("exit_code",0))')
+    JSON_EXIT_CODE=$(echo "$json_result" | python3 "$SCRIPT_DIR/agate-json-get.py" get exit_code 0)
     if [ "$JSON_EXIT_CODE" -ge 120 ]; then
         echo "ENV_BASELINE: 命令 '$cmd' 本身崩溃（exit code $JSON_EXIT_CODE），放弃捕获，不写入任何文件" >&2
         PARSE_OK=0
         break
     fi
 
-    CMD_FAIL_LIST=$(echo "$json_result" | python3 -c '
-import sys, json
-d = json.load(sys.stdin)
-for t in d.get("failed_tests", []):
-    print(t)
-')
+    CMD_FAIL_LIST=$(echo "$json_result" | python3 "$SCRIPT_DIR/agate-json-get.py" list failed_tests)
     CMD_FAIL_COUNT=$(echo "$CMD_FAIL_LIST" | grep -c . | tail -1)
-    JSON_FAILED=$(echo "$json_result" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("failed",0))')
-    JSON_ERRORS=$(echo "$json_result" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("errors",0))')
+    JSON_FAILED=$(echo "$json_result" | python3 "$SCRIPT_DIR/agate-json-get.py" get failed 0)
+    JSON_ERRORS=$(echo "$json_result" | python3 "$SCRIPT_DIR/agate-json-get.py" get errors 0)
     SUMMARY_COUNT=$((JSON_FAILED + JSON_ERRORS))
 
     if [ "$SUMMARY_COUNT" -eq 0 ]; then

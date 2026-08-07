@@ -10,6 +10,7 @@
   index KEY IDX SUBKEY 打印 d[KEY][IDX][SUBKEY]
   set KEY ENVNAME      d[KEY]=os.environ[ENVNAME]；打印 json.dumps(d)
   count_prefix LIST SUBKEY ENVNAME  打印 LIST 中 SUBKEY 以 os.environ[ENVNAME] 开头的元素个数
+  list KEY              逐行打印 d.get(KEY, []) 每个元素（用于 failed_tests 迭代）
 
 未知子命令 → stderr 提示 + exit 2。
 """
@@ -40,6 +41,10 @@ def main():
         listkey, subkey, envname = sys.argv[2], sys.argv[3], sys.argv[4]
         prefix = os.environ[envname]
         print(sum(1 for e in data.get(listkey, []) if e.get(subkey, "").startswith(prefix)))
+    elif op == "list":
+        key = sys.argv[2]
+        for e in data.get(key, []):
+            print(e)
     else:
         sys.stderr.write("agate-json-get: unknown op {}\n".format(op))
         sys.exit(2)

@@ -45,3 +45,13 @@ load ../helpers/load.bash
     [ "$status" -eq 0 ]
     [[ "$output" == "2" ]]
 }
+@test "JGET.7 list 逐行打印数组每个元素" {
+    run bash -c "echo '{\"failed_tests\":[\"a\",\"b\",\"c\"]}' | python3 '$AGATE_SCRIPTS/agate-json-get.py' list failed_tests"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"a"* ]]
+    [[ "$output" == *"b"* ]]
+    [[ "$output" == *"c"* ]]
+    run bash -c "echo '{}' | python3 '$AGATE_SCRIPTS/agate-json-get.py' list missing"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
