@@ -44,6 +44,7 @@ bash agate/tests/scripts/count-tests.sh
 | install-hook.sh | unit/install-hook.bats | 2 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 39 |
+| pre-push-hook | integration/pre-push-hook.bats | 3 |
 | 协议一致性 | integration/consistency.bats | 11 |
 | self-gate | integration/protocol-alignment-review.bats | 8 |
 | 框架自检 | sanity.bats | 6 |

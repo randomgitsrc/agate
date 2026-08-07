@@ -62,7 +62,8 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         echo "ℹ️  新分支首次推送，跳过 agate/*.md 改动量检测（无远端基线可比较）"
         continue
     fi
-    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]' || echo 0)
+    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]')
+    CHANGED_LINES="${CHANGED_LINES:-0}"
     if [ "$CHANGED_LINES" -gt "$THRESHOLD" ]; then
         echo "⚠️  本次 push（${local_ref}）对 agate/*.md 的改动达 ${CHANGED_LINES} 行（阈值 ${THRESHOLD}）"
         echo "    建议先派发一次 protocol-alignment-review，确认改动未破坏协议文件间的语义一致性。"
