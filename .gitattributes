@@ -1,0 +1,13 @@
+# 强制 LF：bash 脚本 / python / bats 测试对 CRLF 敏感
+# Windows git 默认 autocrlf=true 会在 checkout 时转 CRLF -> .sh 报 \r 语法错
+# 本文件对 Linux/macOS 无影响（它们本来就用 LF）
+*.sh        text eol=lf
+*.py        text eol=lf
+*.bats      text eol=lf
+*.bash      text eol=lf
+*.md        text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.jsonl     text eol=lf
+*.gitattributes text eol=lf
+*.gitignore     text eol=lf

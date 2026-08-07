@@ -39,3 +39,28 @@ load ../helpers/load.bash
     [[ "$(readlink "$hook")" == "$AGATE_SCRIPTS/pre-push-gate.sh" ]]
     [[ -n "$(ls "$(dirname "$hook")"/pre-push.bak.* 2>/dev/null | head -1)" ]]
 }
+
+@test "install-hook: ln 退化为复制时打印升级提醒（Windows 兼容）" {
+    local repo
+    repo=$(git_init "$BATS_TEST_TMPDIR/repo-ln")
+    local agate_root
+    agate_root="$BATS_TEST_TMPDIR/agate-fake"
+    mkdir -p "$agate_root/scripts"
+    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$agate_root/scripts/"
+    cp "$AGATE_ROOT/scripts/commit-msg-self-gate.sh" "$agate_root/scripts/"
+    cp "$AGATE_ROOT/scripts/pre-push-gate.sh" "$agate_root/scripts/"
+
+    # mock ln：让它退化为 cp（模拟 Windows 无符号链接权限）
+    local fakebin
+    fakebin="$BATS_TEST_TMPDIR/fakebin"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/ln" <<'LNEOF'
+#!/usr/bin/env bash
+cp -f "$2" "$3"
+LNEOF
+    chmod +x "$fakebin/ln"
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' '$agate_root'" 2>&1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"复制"* || "$output" == *"需重跑"* ]]
+}

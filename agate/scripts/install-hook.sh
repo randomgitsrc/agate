@@ -31,7 +31,12 @@ fi
 ln -sf "$SOURCE" "$HOOK_FILE"
 chmod +x "$SOURCE"
 
-echo "pre-commit hook 已安装: $HOOK_FILE -> $SOURCE"
+if [ -L "$HOOK_FILE" ]; then
+    echo "pre-commit hook 已安装: $HOOK_FILE -> $SOURCE"
+else
+    echo "pre-commit hook 已安装（复制模式，Windows 无符号链接权限）: $HOOK_FILE"
+    echo "  ⚠️  升级 agate 后需重跑 install-hook.sh（复制不自动跟随源文件）"
+fi
 
 # 安装 commit-msg hook（self-gate 强制触发）
 COMMIT_MSG_HOOK="$HOOK_DIR/commit-msg"
@@ -44,7 +49,11 @@ if [ -f "$COMMIT_MSG_SOURCE" ]; then
     fi
     ln -sf "$COMMIT_MSG_SOURCE" "$COMMIT_MSG_HOOK"
     chmod +x "$COMMIT_MSG_SOURCE"
-    echo "commit-msg hook 已安装: $COMMIT_MSG_HOOK -> $COMMIT_MSG_SOURCE"
+    if [ -L "$COMMIT_MSG_HOOK" ]; then
+        echo "commit-msg hook 已安装: $COMMIT_MSG_HOOK -> $COMMIT_MSG_SOURCE"
+    else
+        echo "commit-msg hook 已安装（复制模式）: $COMMIT_MSG_HOOK"
+    fi
 else
     echo "提示: $COMMIT_MSG_SOURCE 不存在，跳过 commit-msg hook 安装"
 fi
@@ -63,7 +72,11 @@ fi
 [ ! -f "$PRE_PUSH_SOURCE" ] && { echo "错误: $PRE_PUSH_SOURCE 不存在（AGATE_ROOT=$AGATE_ROOT）" >&2; exit 1; }
 ln -sf "$PRE_PUSH_SOURCE" "$PRE_PUSH_HOOK"
 chmod +x "$PRE_PUSH_SOURCE"
-echo "pre-push hook 已安装: $PRE_PUSH_HOOK -> $PRE_PUSH_SOURCE (协议文件大改动自动提示)"
+if [ -L "$PRE_PUSH_HOOK" ]; then
+    echo "pre-push hook 已安装: $PRE_PUSH_HOOK -> $PRE_PUSH_SOURCE (协议文件大改动自动提示)"
+else
+    echo "pre-push hook 已安装（复制模式）: $PRE_PUSH_HOOK"
+fi
 
 # .gitignore 检测：.state.yaml 被忽略时提醒用 git add -f
 GITIGNORE="$REPO_ROOT/.gitignore"

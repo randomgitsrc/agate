@@ -2,6 +2,8 @@
 
 agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*.sh / .py` 是各检查脚本，`agate-summary.sh / agate-changes.sh` 是版本发现工具。
 
+> **Windows 用户**：agate 依赖 bash + GNU coreutils，Windows 原生无 bash。安装 **Git for Windows**（自带 MSYS2 bash + coreutils）即可在不用 WSL 的前提下运行。详见 `agate/platform-notes.md`「Windows 原生」章节。
+
 ## 脚本清单
 
 ### Gate 检查（pre-commit hook 触发）
