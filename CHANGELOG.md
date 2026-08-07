@@ -6,6 +6,13 @@
 
 ---
 
+## [0.32.0] - 2026-08-07
+
+### 内部重构
+- **pre-push hook 从写死复制改为软链统一**：新建 `pre-push-gate.sh` 独立脚本，`install-hook.sh` 以 `ln -sf` 安装（与 pre-commit/commit-msg 一致）。bug 修复自动分发，消除写死复制导致的升级滞后（T086 grep -c bug 教训）。补 pre-push 备份 guard + 源文件存在性检查。一致性锚点 `AGATE_ALIGNMENT_REVIEW_THRESHOLD` 同步指向新脚本。非 BREAKING
+
+---
+
 ## [0.31.0] - 2026-08-07
 
 ### BREAKING
