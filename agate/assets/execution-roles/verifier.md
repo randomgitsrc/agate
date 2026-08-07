@@ -140,6 +140,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
 
 **UI 条件的处理流程**：
+0. **截图前确认过渡完成**：对含 CSS 过渡/动画的页面（路由淡入淡出、hover 效果等），`waitForSelector(state:'visible')` 只保证元素非零尺寸且非 display:none，**不保证 opacity===1**。截图前用 `page.evaluate` 确认目标元素 `getComputedStyle().opacity === '1'`，或 `waitForTimeout(200)` 等待过渡结束，避免截到淡入中间帧。低对比度/有淡入动画的设计系统里此风险反复出现。
 1. Playwright 跑完，截图存入 evidences/（desktop_1280x800.png + mobile_390x844.png）
 2. 派发 vision-analyst，传入截图路径 + 需验证的 BDD 条件列表
 3. vision-analyst 产出结构化 YAML，含 bdd_results 和 anomalies
