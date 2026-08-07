@@ -19,7 +19,8 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         echo "SKIP: 新分支首次推送，跳过检测"
         continue
     fi
-    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]' || echo 0)
+    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]')
+    CHANGED_LINES="${CHANGED_LINES:-0}"
     if [ "$CHANGED_LINES" -gt "$THRESHOLD" ]; then
         echo "WARNING: 改动 ${CHANGED_LINES} 行，建议 alignment-review"
     fi
@@ -53,7 +54,8 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     if [ "$remote_sha" = "$ZERO_SHA" ]; then
         continue
     fi
-    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]' || echo 0)
+    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]')
+    CHANGED_LINES="${CHANGED_LINES:-0}"
     if [ "$CHANGED_LINES" -gt "$THRESHOLD" ]; then
         echo "WARNING: 改动 ${CHANGED_LINES} 行，建议 alignment-review"
     fi
@@ -92,4 +94,32 @@ EOF
     run bash -c "echo 'refs/heads/main $current_sha refs/heads/main $prev_sha' | bash '$repo/.git/hooks/pre-push' 2>&1 || true"
 
     [[ "$output" == *"WARNING"* ]]
+}
+
+@test "pre-push hook: 无 agate/*.md 改动时零匹配 → 不报整数表达式错误（T086 回归）" {
+    local repo
+    repo=$(git_init)
+
+    # 用 install-hook.sh 在测试仓库内安装真实模板生成的 pre-push hook
+    ( cd "$repo" && bash "$AGATE_ROOT/scripts/install-hook.sh" "$AGATE_ROOT" >/dev/null 2>&1 )
+
+    cd "$repo"
+    echo "test" > file.txt
+    git add file.txt
+    git commit -m "init" --no-gpg-sign --no-verify
+    local prev_sha
+    prev_sha=$(git rev-parse HEAD)
+
+    # 改动 file.txt（非 agate/*.md）→ git diff -- 'agate/*.md' 零匹配
+    echo "test2" > file.txt
+    git add file.txt
+    git commit -m "change" --no-gpg-sign --no-verify
+    local current_sha
+    current_sha=$(git rev-parse HEAD)
+
+    run bash -c "echo 'refs/heads/main $current_sha refs/heads/main $prev_sha' | bash '$repo/.git/hooks/pre-push' 2>&1 || true"
+
+    [[ "$output" != *"整数表达式"* ]]
+    [[ "$output" != *"integer expression"* ]]
+    [[ "$status" -eq 0 ]]
 }
