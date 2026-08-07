@@ -33,7 +33,24 @@ agent: analyst
 2. **隐含需求识别**：列出用户没说但技术上必须的依赖，每条说明"为什么必须"
 3. **BDD 验收条件**：用 Given/When/Then 写出每条可验证行为（这是 P6 验收的依据）。**BDD 条件必须设计为可二值判定（PASS 或 FAIL）**，P6 验收不允许"调整/跳过/覆盖"等中间态——写 BDD 时就要确保结果非此即彼
 4. **待确认清单**：把隐含需求中拿不准的、需要人定方向的，标 `[NEED_CONFIRM]` 列出
-5. **裁剪说明**：判定任务复杂度，声明走哪些阶段（如 `phases: [P1,P4,P5,P6,P8]`），**每个跳过的阶段写明理由**
+5. **裁剪说明**：判定任务复杂度，声明走哪些阶段，**每个跳过的阶段写明理由**。**必须用下方机器可解析的 YAML 格式**（gate 脚本按此正则解析，散文表述不会被识别）：
+
+```yaml
+risk_level: low            # low / medium / high
+phases: [P1, P4, P5, P6, P8]   # P1 必填，P2/P4/P5/P6 不可裁，仅 low 可裁 P3，P7/P8 有条件可裁
+跳过风险: 说明裁剪每个阶段的风险评估（裁剪声明必备）
+```
+
+仅在适用时声明以下**可选**字段（gate 按需解析）：
+```yaml
+design_trivial: true              # 若 P2 只需 1 个候选方案（简单/无争议）
+follows_existing_pattern: [src/foo.py]  # 若 P2 遵循既有模式
+implicit_coupling: true           # 若改动涉及隐式耦合（P7 裁剪时会拦截）
+coupling_checklist: [api-schema: checked, data-model: checked]  # 裁剪 P7 时必备
+internal_only: true               # 若裁剪 P8
+internal_only_reason: 说明        # 裁剪 P8 时必填
+override: 说明                    # 若裁剪声明与执行不一致时
+```
 6. **范围声明**：初步判断涉及的 `packages:`（各项目自定义包名）和 `domains:`（backend/frontend/api/cli/security 等），供后续阶段消费
 
 7. **能力需求声明**：识别任务需要的特殊能力，评估当前运行环境能否满足。若需求依赖浏览器行为/安全模型/外部系统行为，**在 capability_requirements 中标注 `requires_minimal_validation: true`**——P2 architect 据此产出 `minimal_validation:` 块（详见 architect.md）。这两字段通过值关联：`requires_minimal_validation: true` → P2 必须有 `minimal_validation` 块且 result 为 confirmed
