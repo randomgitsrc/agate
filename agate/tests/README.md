@@ -41,6 +41,7 @@ bash agate/tests/scripts/count-tests.sh
 | check-tdd-red.sh | unit/check-tdd-red.bats | 38 |
 | formatters | unit/check-tdd-red-formatter.bats | 12 |
 | ci-gate-backstop.py | unit/ci-gate-backstop.bats | 8 |
+| agate-json-get.py | unit/agate-json-get.bats | 6 |
 | install-hook.sh | unit/install-hook.bats | 4 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 40 |

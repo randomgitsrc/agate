@@ -63,11 +63,11 @@ judge_result() {
     local project_module="$2"
     local exit_code failed errors syntax_count import_count
 
-    exit_code=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("exit_code",1))')
-    failed=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("failed",0))')
-    errors=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("errors",0))')
-    syntax_count=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d.get("syntax_errors",[])))')
-    import_count=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d.get("import_errors",[])))')
+    exit_code=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get exit_code 1)
+    failed=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get failed 0)
+    errors=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get errors 0)
+    syntax_count=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" len syntax_errors)
+    import_count=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" len import_errors)
 
     if [ "$exit_code" -eq 124 ]; then
         echo "TDD_CHECK: 测试命令超时，视为红灯可推进（请手动确认测试确实失败）"
@@ -87,13 +87,7 @@ judge_result() {
     if [ "$import_count" -gt 0 ]; then
         if [ -n "$project_module" ]; then
             local matched
-            matched=$(echo "$json" | PROJECT_MODULE="$project_module" python3 -c '
-import sys, json, os
-d = json.load(sys.stdin)
-pm = os.environ["PROJECT_MODULE"]
-count = sum(1 for e in d.get("import_errors", []) if e.get("module","").startswith(pm))
-print(count)
-')
+            matched=$(echo "$json" | PROJECT_MODULE="$project_module" python3 "$SCRIPT_DIR/agate-json-get.py" count_prefix import_errors module PROJECT_MODULE)
             if [ "$matched" -gt 0 ]; then
                 echo "TDD_CHECK: B-class red-light (import errors from missing project module '${project_module}')"
                 return 0
@@ -139,10 +133,10 @@ collect_commands() {
     if [ -n "${TASK_DIR:-}" ] && [ -f "$TASK_DIR/P2-design.md" ]; then
         commands_json=$(read_gate_commands "$TASK_DIR/P2-design.md")
         local cmd_count
-        cmd_count=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d["commands"]))')
+        cmd_count=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" len commands)
         if [ "$cmd_count" -gt 0 ]; then
             if [ -n "${PROJECT_MODULE:-}" ]; then
-                commands_json=$(echo "$commands_json" | python3 -c 'import sys,json,os; d=json.load(sys.stdin); d["project_module"]=os.environ["PROJECT_MODULE"]; print(json.dumps(d))' 2>/dev/null || echo "$commands_json")
+                commands_json=$(echo "$commands_json" | PROJECT_MODULE="$PROJECT_MODULE" python3 "$SCRIPT_DIR/agate-json-get.py" set project_module PROJECT_MODULE 2>/dev/null || echo "$commands_json")
             fi
             echo "$commands_json"
             return 0
@@ -162,15 +156,15 @@ collect_commands() {
 main() {
     local commands_json project_module commands_count
     commands_json=$(collect_commands) || exit 3
-    project_module=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("project_module",""))')
-    commands_count=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d["commands"]))')
+    project_module=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" get project_module "")
+    commands_count=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" len commands)
 
     local worst_exit=0
     local i=0
     while [ "$i" -lt "$commands_count" ]; do
         local cmd fmt_val fmt_path json_result
-        cmd=$(echo "$commands_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commands'][$i]['cmd'])")
-        fmt_val=$(echo "$commands_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commands'][$i]['formatter'])")
+        cmd=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" index commands "$i" cmd)
+        fmt_val=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" index commands "$i" formatter)
 
         fmt_path=""
         if [ -n "$fmt_val" ]; then
