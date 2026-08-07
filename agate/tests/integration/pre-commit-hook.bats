@@ -298,6 +298,7 @@ created: 2026-07-08
 ### 候选方案 B：方案二
 ## 权衡
 A 简单 B 稳健
+candidate_count: 2
 packages: [pkg-a]
 domains: [backend]
 ui_affected: false
@@ -364,6 +365,7 @@ created: 2026-07-08
 ### 候选方案 B：方案二
 ## 权衡
 A 简单 B 稳健
+candidate_count: 2
 packages: [pkg-a]
 domains: [backend]
 ui_affected: false
@@ -1134,6 +1136,7 @@ EOF
 ### 候选方案 B：方案二
 ## 权衡
 A 更简单，B 更稳健。
+candidate_count: 2
 packages: [pkg-a]
 domains: [backend]
 ui_affected: false

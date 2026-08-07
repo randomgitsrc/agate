@@ -65,6 +65,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -98,9 +99,50 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
+}
+
+@test "G2.26 check-gate.sh P2 全角冒号标题 + candidate_count 字段 期望 exit 2（纯强制）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 方案：方案一
+### 方案：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    add_p2_candidate_count "$dir" 2
+    add_p2_review "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "G2.27 check-gate.sh P2 缺 candidate_count 字段 期望 exit 1（纯强制）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P2-design.md" <<'EOF'
+# P2 design
+### 候选方案 A：方案一
+### 候选方案 B：方案二
+## 权衡
+A 更简单，B 更稳健。
+packages: [pkg-a]
+domains: [backend]
+ui_affected: false
+gate_commands: {}
+EOF
+    add_p2_review "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"candidate_count"* ]]
 }
 
 @test "G2.5 check-gate.sh P2 无 P2 文件 期望 exit 1" {
@@ -124,6 +166,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
@@ -144,6 +187,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -163,6 +207,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 1
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -182,6 +227,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 1
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -201,6 +247,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: test
@@ -228,6 +275,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: test
@@ -256,6 +304,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: test
@@ -279,6 +328,7 @@ A 更简单，B 更稳健。
 packages: [pkg-a]
 domains: [backend]
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
@@ -299,6 +349,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-review.md"* ]]
@@ -318,6 +369,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-review.md 不存在"* ]]
@@ -339,6 +391,7 @@ gate_commands:
   P3: "definitely-nonexistent-cmd --flag"
   P5: "echo hi"
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: test
@@ -367,6 +420,7 @@ gate_commands:
   P3: "true"
   P5: "echo hi"
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: test
@@ -948,6 +1002,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -967,6 +1022,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -986,6 +1042,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -1005,6 +1062,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -1024,6 +1082,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: subagent
@@ -1049,6 +1108,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 agent: main
@@ -1075,6 +1135,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     cat > "$dir/P2-review.md" <<'EOF'
 ---
 status: approved
@@ -1124,6 +1185,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -1143,6 +1205,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -1180,6 +1243,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -1199,6 +1263,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -1218,6 +1283,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
@@ -1237,6 +1303,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
+    add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
     [ "$status" -eq 2 ]
