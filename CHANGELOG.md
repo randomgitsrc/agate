@@ -6,6 +6,18 @@
 
 ---
 
+## [0.31.0] - 2026-08-07
+
+### BREAKING
+- **P2-design.md 必填 `candidate_count:` 字段**：check-gate.sh P2 候选方案判定从"正则数标题"改为强制显式 `candidate_count:` 字段（替代 `^#{2,4}\s*(候选方案|方案\s*[A-Za-z0-9一二三四五]|Alternative|Option)` 脆弱匹配，`### 方案：` 全角冒号不再被误拦）。gate 只检查字段存在性（自声明 nudge），不做语义真实性校验。design_trivial/follows_existing_pattern 时 MIN=1 保留。architect.md 输出规格 + task-files.md P2-design 模板同步补该字段。G2.26/G2.27 测试验证
+
+### 改进
+- **A1 角色卡补 gate 解析字段 YAML 模板**：analyst.md 补 `risk_level`/`phases`/`跳过风险` + 可选字段（`design_trivial`/`follows_existing_pattern`/`implicit_coupling`/`coupling_checklist`/`internal_only`/`internal_only_reason`/`override`）的机器可解析模板，消除"语义对但格式错"返工（T086 复盘 A1）
+- **B1 architect.md minimal_validation 补删除/移动验证**：涉及删除/移动路由、接口、注册表项时，即使判定"纯代码逻辑"也必须验证"删除后请求流向哪个兜底分支"，不因标签豁免（T086 复盘 B1，唯一造成生产代码 bug 的根因）
+- **C1 verifier.md 截图补 settle-wait**：`waitForSelector(visible)` 不保证 `opacity===1`，截图前用 `getComputedStyle().opacity === '1'` 或 `waitForTimeout(200)` 确认 CSS 过渡完成（T086 复盘 C1）
+
+---
+
 ## [0.30.3] - 2026-08-06
 
 ### BREAKING
