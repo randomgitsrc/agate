@@ -50,30 +50,20 @@ else
 fi
 
 # 安装 pre-push hook（协议文件大改动自动提示 alignment-review）
+# v0.32.0：与 pre-commit/commit-msg 统一为软链，bug 修复自动分发，无需重装
 PRE_PUSH_HOOK="$HOOK_DIR/pre-push"
-cat > "$PRE_PUSH_HOOK" << 'HOOK_EOF'
-#!/usr/bin/env bash
-THRESHOLD="${AGATE_ALIGNMENT_REVIEW_THRESHOLD:-20}"
-ZERO_SHA="0000000000000000000000000000000000000000"
+PRE_PUSH_SOURCE="$AGATE_ROOT/scripts/pre-push-gate.sh"
 
-while read -r local_ref local_sha remote_ref remote_sha; do
-    [ -z "$local_sha" ] && continue
-    if [ "$remote_sha" = "$ZERO_SHA" ]; then
-        echo "ℹ️  新分支首次推送，跳过 agate/*.md 改动量检测（无远端基线可比较）"
-        continue
-    fi
-    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]')
-    CHANGED_LINES="${CHANGED_LINES:-0}"
-    if [ "$CHANGED_LINES" -gt "$THRESHOLD" ]; then
-        echo "⚠️  本次 push（${local_ref}）对 agate/*.md 的改动达 ${CHANGED_LINES} 行（阈值 ${THRESHOLD}）"
-        echo "    建议先派发一次 protocol-alignment-review，确认改动未破坏协议文件间的语义一致性。"
-        echo "    忽略本提示继续 push：git push --no-verify"
-    fi
-done
-exit 0
-HOOK_EOF
-chmod +x "$PRE_PUSH_HOOK"
-echo "pre-push hook 已安装: $PRE_PUSH_HOOK (协议文件大改动自动提示)"
+# 备份已有 pre-push hook（与 pre-commit/commit-msg 一致：仅备份非软链的既有 hook）
+if [ -f "$PRE_PUSH_HOOK" ] && [ ! -L "$PRE_PUSH_HOOK" ]; then
+    cp "$PRE_PUSH_HOOK" "$PRE_PUSH_HOOK.bak.$(date +%s)"
+    echo "已备份现有 pre-push hook"
+fi
+
+[ ! -f "$PRE_PUSH_SOURCE" ] && { echo "错误: $PRE_PUSH_SOURCE 不存在（AGATE_ROOT=$AGATE_ROOT）" >&2; exit 1; }
+ln -sf "$PRE_PUSH_SOURCE" "$PRE_PUSH_HOOK"
+chmod +x "$PRE_PUSH_SOURCE"
+echo "pre-push hook 已安装: $PRE_PUSH_HOOK -> $PRE_PUSH_SOURCE (协议文件大改动自动提示)"
 
 # .gitignore 检测：.state.yaml 被忽略时提醒用 git add -f
 GITIGNORE="$REPO_ROOT/.gitignore"
