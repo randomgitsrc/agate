@@ -191,6 +191,9 @@ capability_requirements:
 ## P2-design.md 结构（方案设计）
 
 ```markdown
+## 0. 候选方案数（必填，v0.31.0）
+candidate_count: 2   # 本方案候选方案数（≥2，design_trivial/follows_existing_pattern 时可 1）。gate 按此字段校验，不再解析标题。
+
 ## 1. 候选方案（v0.6：至少 2 个 + 权衡 + 选择理由）
 # design_trivial: true 或 follows_existing_pattern: [参照文件] 时可只写 1 个候选方案（P2 仍不可省略）
 # brainstorm 借鉴：强制 architect 至少走一遍"还有别的做法吗"的思考
