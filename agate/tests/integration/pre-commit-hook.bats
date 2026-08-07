@@ -1193,8 +1193,19 @@ agent: test
 ui_affected: true
 EOF2
     mkdir -p "$repo/docs/tasks/T086/P6-evidence/screenshots"
-    # 生成 100x100 极低方差图（大部分浅色 + 小块深色，模拟极简设计页面）
-    python3 /tmp/make_lowvar_png.py "$repo/docs/tasks/T086/P6-evidence/screenshots/test.png"
+    # 生成 100x100 极低方差图（全浅色，variance=0，触发 WARNING）
+    python3 -c "
+import struct, zlib
+w, h = 100, 100
+raw = b'\x00' + b'\xff\xff\xff' * w
+raw = raw * h
+ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+idat = zlib.compress(ihdr + raw if False else raw)
+def chunk(typ, data):
+    return struct.pack('>I', len(data)) + typ + data + struct.pack('>I', zlib.crc32(typ + data) & 0xffffffff)
+png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', idat) + chunk(b'IEND', b'')
+import sys; sys.stdout.buffer.write(png)
+" > "$repo/docs/tasks/T086/P6-evidence/screenshots/test.png"
     # 写 dispatch-context 模板 + 注入 P6 卡片（与现有 helper 一致）
     cat > "$repo/docs/tasks/T086/P6-dispatch-context-verifier.md" <<DCEND
 ---
