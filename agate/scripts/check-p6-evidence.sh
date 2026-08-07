@@ -3,7 +3,8 @@
 # 检查 P6-evidence/ 目录非空 + UI 截图实质检查（R1a）
 # 查询类 BDD 可不截图，但须有断言记录证据（response.json / assert.log 等）
 # 含像素方差检测（低方差/疑似占位图, WARNING）+ md5 去重（阻断）+ average hash 相似度（WARNING）
-# exit 0 = 通过; exit 1 = 证据缺失; exit 2 = 无 P6 文件
+# exit 0 = 通过; exit 1 = 真失败（证据目录为空 / 无 BDD / md5 重复——应阻断）
+# exit 2 = WARNING（低方差/小图/无 P6 文件——不阻断，提醒人工确认）
 
 set -euo pipefail
 
