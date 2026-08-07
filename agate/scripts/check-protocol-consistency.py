@@ -106,6 +106,8 @@ def iter_md_files(root: Path):
             continue
         if "archived" in p.parts:
             continue
+        if ".worktrees" in p.parts:
+            continue
         yield p
 
 
