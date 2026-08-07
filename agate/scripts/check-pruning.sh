@@ -5,34 +5,17 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 TASK_DIR="${1:?用法: check-pruning.sh TASK_DIR}"
 P1_FILE="$TASK_DIR/P1-requirements.md"
 
 [ ! -f "$P1_FILE" ] && exit 2
 
 # R1 修复：所有 Python 调用用环境变量传参，避免 shell 变量注入
-RISK_LEVEL=$(P1_FILE="$P1_FILE" python3 -c "
-import re, os
-with open(os.environ['P1_FILE']) as f:
-    text = f.read()
-m = re.search(r'risk_level:\s*(low|medium|high)', text)
-print(m.group(1) if m else '')
-" 2>/dev/null || echo "")
+RISK_LEVEL=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" risk_level 2>/dev/null || echo "")
 
-PHASES_DECLARED=$(P1_FILE="$P1_FILE" python3 -c "
-import re, os
-with open(os.environ['P1_FILE']) as f:
-    text = f.read()
-m = re.search(r'phases:\s*\[([^\]]+)\]', text)
-if m:
-    phases = [p.strip() for p in m.group(1).split(',')]
-    print(' '.join(phases))
-else:
-    m = re.search(r'phases:\s*\n((?:[ \t]+-[ \t]+\S+[ \t]*\n)+)', text)
-    if m:
-        phases = re.findall(r'-\s+(\S+)', m.group(1))
-        print(' '.join(phases))
-" 2>/dev/null || echo "")
+PHASES_DECLARED=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" phases 2>/dev/null || echo "")
 
 # P2.9：裁剪声明与执行一致性检查
 # 逻辑：P1 声明裁剪的阶段，如果文件系统里实际有该阶段的产出文件

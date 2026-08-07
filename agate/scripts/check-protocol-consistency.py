@@ -530,8 +530,13 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "keywords": ["CHANGELOG"],
     },
     {
-        "desc": "state.yaml 格式校验",
+        "desc": "state.yaml 格式校验（.sh 入口）",
         "script": "agate/scripts/check-state-yaml.sh",
+        "keywords": ["state.yaml"],
+    },
+    {
+        "desc": "state.yaml 格式校验（校验逻辑含 task_id）",
+        "script": "agate/scripts/agate-state-yaml-check.py",
         "keywords": ["task_id"],
     },
     {

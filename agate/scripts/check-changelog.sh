@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 TASK_ID="${1:?用法: check-changelog.sh TASK_ID}"
 
 # 提取 task_id 短前缀（T\d+）作为 CHANGELOG 搜索关键词
@@ -15,14 +17,7 @@ CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
 
 [ ! -f "$CHANGELOG_FILE" ] && exit 0
 
-UNRELEASED_CONTENT=$(CHANGELOG_FILE="$CHANGELOG_FILE" python3 -c "
-import re, os
-with open(os.environ['CHANGELOG_FILE']) as f:
-    text = f.read()
-m = re.search(r'##\s*\[Unreleased\](.*?)(?=##\s*\[|\Z)', text, re.S)
-if m:
-    print(m.group(1))
-" 2>/dev/null || echo "")
+UNRELEASED_CONTENT=$(CHANGELOG_FILE="$CHANGELOG_FILE" python3 "$SCRIPT_DIR/agate-changelog-unreleased.py" 2>/dev/null || echo "")
 
 if [ -z "$UNRELEASED_CONTENT" ]; then
     echo "GATE CHANGELOG: ${CHANGELOG_FILE} 无 [Unreleased] 区域" >&2

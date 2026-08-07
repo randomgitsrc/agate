@@ -45,6 +45,12 @@ bash agate/tests/scripts/count-tests.sh
 | agate-read-p5-commands.py | unit/agate-read-p5-commands.bats | 4 |
 | agate-state-get.py | unit/agate-state-get.bats | 6 |
 | agate-retreat-state.py | unit/agate-retreat-state.bats | 3 |
+| agate-md-field-get.py | unit/agate-md-field-get.bats | 6 |
+| agate-state-yaml-check.py | unit/agate-state-yaml-check.bats | 3 |
+| agate-changelog-unreleased.py | unit/agate-changelog-unreleased.bats | 2 |
+| agate-card-inject.py | unit/agate-card-inject.bats | 2 |
+| agate-vision-blocker.py | unit/agate-vision-blocker.bats | 2 |
+| agate-evidence-consistency.py | unit/agate-evidence-consistency.bats | 2 |
 | install-hook.sh | unit/install-hook.bats | 4 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 40 |
