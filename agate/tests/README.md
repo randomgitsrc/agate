@@ -43,7 +43,7 @@ bash agate/tests/scripts/count-tests.sh
 | ci-gate-backstop.py | unit/ci-gate-backstop.bats | 8 |
 | install-hook.sh | unit/install-hook.bats | 4 |
 | 回归 (R1-R5) | regression/ | 15 |
-| pre-commit-hook | integration/pre-commit-hook.bats | 39 |
+| pre-commit-hook | integration/pre-commit-hook.bats | 40 |
 | pre-push-hook | integration/pre-push-hook.bats | 3 |
 | 协议一致性 | integration/consistency.bats | 11 |
 | self-gate | integration/protocol-alignment-review.bats | 8 |

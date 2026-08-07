@@ -6,6 +6,15 @@
 
 ---
 
+## [0.33.0] - 2026-08-07
+
+### 改进
+- **pre-commit-gate.sh AGATE_ROOT 自定位**：从硬编码 `$HOME/.agate` 改为 `readlink -f` 自定位（与其他脚本一致），支持 git worktree 隔离--hook 软链到 worktree 时自动指向 worktree 本体，不再误指主 checkout。`install-hook.sh` 不变（安装脚本应默认全局）。非 BREAKING
+- **一致性检查跳过 `.worktrees/`**：worktree 隔离工作区不应被协议一致性扫描（含隔离实验内容，会污染主仓一致性报告）
+- **测试卫生**：pre-commit-hook.bats / dispatch-context-card.bats 的 hook 安装从 `cp` 改 `ln -sf`，与真实 install-hook.sh（软链）一致
+
+---
+
 ## [0.32.0] - 2026-08-07
 
 ### 内部重构
