@@ -91,3 +91,5 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 2. 更新 `README.md` version badge
 3. `git tag vN.N.0 && git push origin vN.N.0`
 4. CHECK 7（version badge vs git tag）自动通过
+
+**release PR 必须用普通 merge（`--no-ff`），禁止 squash merge**：`agate-summary.sh` 用 `git describe --tags --abbrev=0` 探测版本，要求 tag 是 HEAD 的祖先。tag 打在 feature 分支头时，普通 merge 会让该提交成为 main 的祖先（tag 保持有效），而 squash merge 会生成一个内容相同但 SHA 不同的新提交，导致 tag 与 main 分叉、`describe` 回退到旧版本（v0.31.0 事故）。若确实用了 squash，合并后必须把 tag 重新指到 squash 后的 main 提交：`git tag -f vN.N.0 <main-commit> && git push origin vN.N.0 --force`。
