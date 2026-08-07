@@ -99,8 +99,10 @@ case "$PHASE" in
       # P2 不可裁剪，不存在 P2-design.md 时直接报错
       P2_FILE="$TASK_DIR/P2-design.md"
       if [ -f "$P2_FILE" ]; then
-          CANDIDATE_COUNT=$(grep -cE '^#{2,4}\s*(候选方案|方案\s*[A-Za-z0-9一二三四五]|Alternative|Option)' "$P2_FILE" 2>/dev/null || echo 0)
-          CANDIDATE_COUNT=$(echo "$CANDIDATE_COUNT" | tail -1)
+          # v0.31.0：候选方案数改为显式 candidate_count 字段（纯强制），不再用正则数标题
+          # 消除脆弱标题匹配（如全角冒号 # 方案：），gate 只检查字段存在性（自声明 nudge）
+          CANDIDATE_COUNT=$(grep -E '^candidate_count:' "$P2_FILE" 2>/dev/null | grep -oE '[0-9]+' | head -1 || true)
+          CANDIDATE_COUNT=${CANDIDATE_COUNT:-0}
           P1_FILE="$TASK_DIR/P1-requirements.md"
           MIN_CANDIDATES=2
           if [ -f "$P1_FILE" ]; then
@@ -109,7 +111,7 @@ case "$PHASE" in
               fi
           fi
           if [ "$CANDIDATE_COUNT" -lt "$MIN_CANDIDATES" ]; then
-              echo "GATE P2: P2-design.md 需至少 ${MIN_CANDIDATES} 个候选方案 + 权衡 + 选择理由（design_trivial/follows_existing_pattern 时可只写 1 个）" >&2
+              echo "GATE P2: P2-design.md candidate_count=${CANDIDATE_COUNT}，需至少 ${MIN_CANDIDATES} 个候选方案（design_trivial/follows_existing_pattern 时可只写 1）。请显式声明 candidate_count 字段" >&2
               exit 1
           fi
           P2_REVIEW="$TASK_DIR/P2-review.md"

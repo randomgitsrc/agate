@@ -43,6 +43,7 @@
 
 P2-design.md 必须包含：
 - **候选方案 ≥2** + 权衡 + 选择理由（design_trivial / follows_existing_pattern 时可只写 1 个，见下方）
+- **`candidate_count: N` 必填**：本方案候选方案数（≥2，design_trivial/follows_existing_pattern 时可 1），gate 按此字段校验，不再解析标题。你写几个候选就填几个，与正文一致。
 - **四字段**：`packages:` `domains:` `ui_affected:` `gate_commands:`
 - **files_to_read**：实现时需要参考的文件清单（控制 P4 implementer 上下文）
 - **env_constraints**：确认/细化 P0-brief 的环境约束

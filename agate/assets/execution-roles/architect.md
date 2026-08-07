@@ -33,6 +33,7 @@ agent: architect
 
 ## 输出
 - P2：docs/tasks/{Txxx}/P2-design.md（影响域、设计、计划、风险），**必须含以下声明字段**：
+  - `candidate_count: N` — **必填**。本方案候选方案数（≥2，design_trivial/follows_existing_pattern 时可为 1）。gate 脚本按此字段校验，不再解析标题。你写几个候选就填几个，与正文一致。
   - `packages: [pkg-a, pkg-b]` — 本任务改动涉及哪些独立版本的包（供 P8 多包发布消费）
   - `domains: [backend, frontend, mcp, security]` — 涉及领域（供主 Agent 机械映射评审角色）
   - `ui_affected: true/false` — 是否有显示/交互变化。若 true，列出需 E2E 覆盖的交互点（供 P3/P5/P6 落实 UI 实测）
@@ -83,6 +84,7 @@ agent: architect
     ```
     **什么需要最小验证**：浏览器安全模型、外部库核心能力、跨系统交互。
     **纯代码逻辑**：须声明"纯代码逻辑，无外部系统依赖"（写明依赖了哪些内部函数/数据转换）。
+    **涉及删除/移动路由、接口、注册表项时（T086 B1 教训）**：即使判定为"纯代码逻辑"，也必须验证"删除后，原本依赖这条路由/接口的请求会流向哪个兜底分支"。这种"代码逻辑正确性假设"不因"纯代码逻辑"标签豁免——在 minimal_validation 里体现为 `method: "读代码验证路由匹配顺序"` 这类最小验证动作，或明确说明已验证落点。
 - P7：docs/tasks/{Txxx}/P7-consistency.md（实现 vs 设计的一致性检查）
 - 含 Header（parent 指向上一阶段文件）
 

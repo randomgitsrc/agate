@@ -286,3 +286,16 @@ add_p1_bdd() {
     n=$((n + 1))
     echo "#### BDD-${n}: ${desc}" >> "$p1"
 }
+
+# 用法：add_p2_candidate_count <task_dir> <count>
+# 在 P2-design.md 加 candidate_count 字段（替换或追加）
+add_p2_candidate_count() {
+    local dir="$1"
+    local count="$2"
+    local p2="$dir/P2-design.md"
+    if grep -q "^candidate_count:" "$p2" 2>/dev/null; then
+        sed -i "s|^candidate_count:.*|candidate_count: ${count}|" "$p2"
+    else
+        echo "candidate_count: ${count}" >> "$p2"
+    fi
+}
