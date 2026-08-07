@@ -51,6 +51,9 @@ bash agate/tests/scripts/count-tests.sh
 | agate-card-inject.py | unit/agate-card-inject.bats | 2 |
 | agate-vision-blocker.py | unit/agate-vision-blocker.bats | 2 |
 | agate-evidence-consistency.py | unit/agate-evidence-consistency.bats | 2 |
+| agate-image-check.py | unit/agate-image-check.bats | 4 |
+| agate-gate-missing-cmds.py | unit/agate-gate-missing-cmds.bats | 2 |
+| agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 2 |
 | install-hook.sh | unit/install-hook.bats | 4 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 40 |

@@ -8,6 +8,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 TASK_DIR="${1:?用法: check-p6-evidence.sh TASK_DIR}"
 P6_FILE="$TASK_DIR/P6-acceptance.md"
 
@@ -56,13 +58,7 @@ echo "GATE P6-EVIDENCE: ${BDD_COUNT} 条 BDD，证据目录非空" >&2
 P2_FILE="$TASK_DIR/P2-design.md"
 UI_AFFECTED=""
 if [ -f "$P2_FILE" ]; then
-    UI_AFFECTED=$(P2_FILE="$P2_FILE" python3 -c "
-import re, os
-with open(os.environ['P2_FILE']) as f:
-    text = f.read()
-m = re.search(r'ui_affected:\s*(true|false)', text)
-print(m.group(1) if m else '')
-" 2>/dev/null || echo "")
+    UI_AFFECTED=$(FILE="$P2_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" ui_affected 2>/dev/null || echo "")
 fi
 
 if [ "$UI_AFFECTED" = "true" ]; then
@@ -119,22 +115,7 @@ if [ "$UI_AFFECTED" = "true" ]; then
                     EMPTY_DETAILS="${EMPTY_DETAILS}  - $(basename "$img")"$'\n'
                 fi
             fi
-            VARIANCE=$(IMG_PATH="$img" python3 -c "
-import os
-try:
-    from PIL import Image
-except ImportError:
-    print('SKIP_NO_PILLOW')
-    exit()
-try:
-    img = Image.open(os.environ['IMG_PATH']).convert('L')
-    pixels = list(img.tobytes())
-    mean = sum(pixels) / len(pixels)
-    variance = sum((p - mean) ** 2 for p in pixels) / len(pixels)
-    print(int(variance))
-except Exception:
-    print(-1)
-" 2>/dev/null || echo -1)
+            VARIANCE=$(IMG_PATH="$img" python3 "$SCRIPT_DIR/agate-image-check.py" variance 2>/dev/null || echo -1)
             if [ "$VARIANCE" = "SKIP_NO_PILLOW" ]; then
                 echo "GATE P6-EVIDENCE WARNING: Pillow 未安装，方差/相似度检测已跳过" >&2
                 break
@@ -175,24 +156,7 @@ except Exception:
             exit 1
         fi
         if [ "${AGATE_SKIP_IMAGE_CHECKS:-0}" != "1" ]; then
-        AHASH_LIST=$(SCREENSHOTS_DIR="$SCREENSHOTS_DIR" python3 -c "
-import sys, os, glob
-try:
-    from PIL import Image
-except ImportError:
-    print('SKIP_NO_PILLOW', file=sys.stderr)
-    sys.exit(1)
-def ahash(path):
-    img = Image.open(path).convert('L').resize((8, 8))
-    pixels = list(img.tobytes())
-    avg = sum(pixels) / len(pixels)
-    return ''.join('1' if p >= avg else '0' for p in pixels)
-for f in sorted(glob.glob(os.environ['SCREENSHOTS_DIR'] + '/*')):
-    try:
-        print(ahash(f))
-    except Exception:
-        pass
-" 2>/dev/null || echo "")
+        AHASH_LIST=$(SCREENSHOTS_DIR="$SCREENSHOTS_DIR" python3 "$SCRIPT_DIR/agate-image-check.py" ahash 2>/dev/null || echo "")
         if echo "$AHASH_LIST" | grep -q "SKIP_NO_PILLOW"; then
             echo "GATE P6-EVIDENCE WARNING: Pillow 未安装，相似度检测已跳过" >&2
         else
