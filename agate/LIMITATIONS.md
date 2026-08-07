@@ -89,7 +89,7 @@ agate 的 gate 脚本和 pre-commit hook 依赖 bash、git、python3（+pyyaml+P
 具体影响：
 - **bash**：所有 gate 脚本（check-gate.sh、check-pruning.sh 等）和 pre-commit hook 用 bash 编写。无 bash 则无法运行 gate
 - **git**：状态落盘、pre-commit hook、P8 version 检测、P7 源文件计数均依赖 git。非 git 项目无法使用 agate
-- **python3 + pyyaml**：check-protocol-consistency.py 和 ci-gate-backstop.py 需要 python3 + pyyaml。此外 8 个 gate 脚本内联 python3 调用（见 AGENTS.md 依赖节完整列表），缺 python3 时这些脚本的 YAML 解析逻辑不可用
+- **python3 + pyyaml**：`check-protocol-consistency.py` 和 `ci-gate-backstop.py` 需要 python3 + pyyaml。此外状态/vision 类检查逻辑已抽离为独立 `.py` 工具（`agate/scripts/agate-*.py`，见 AGENTS.md 依赖节），缺 python3 时这些工具的 YAML/状态解析逻辑不可用
 - **Pillow（可选）**：check-p6-evidence.sh 的像素方差检测和 average hash 相似度检测需要 Pillow。Pillow 未安装时这两项检测跳过并输出 WARNING（不阻断 gate），可设 `AGATE_SKIP_IMAGE_CHECKS=1` 主动声明跳过。CI 环境建议安装 Pillow 以获得完整检测覆盖
 
 **现状**：这些依赖是 agate 作为"零基础设施文档协议"的代价——用通用工具替代专用服务。如果执行环境不满足，gate 检查和 pre-commit hook 不可用，但协议的文档部分（阶段卡片、角色文件、状态机规则）仍可参考。→ ADR-003（不绑定被管理项目技术栈，但 agate 自身有运行时依赖）

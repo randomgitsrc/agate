@@ -56,6 +56,27 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 
 **字节稳定性保证**：`agate/tests/unit/agate-next-card.bats` 的 9 个 sha256 测试断言 CLI 输出 body（去掉前 4 行固定头）的 sha256 等于 `cat ${PHASE}-*.md` 的 sha256。这是 step 3 hook 校验的前提。
 
+### 检查逻辑工具（从 .sh 内联 python 抽离的独立 .py）
+
+> 14 个 `.sh` 脚本里的内联 `python3 -c` 段（46 处）已抽离为以下独立 `.py` 工具，由 `.sh` 薄壳调用。行为等价，逻辑可独立测试复用。**复制单个 `.sh` 到项目时须连带复制其依赖的 `.py`（同目录）。**
+
+| 工具 | 用途 | 依赖 |
+|------|------|------|
+| `agate-json-get.py` | stdin JSON → get/len/index/set/count_prefix/list/escape 子命令 | 无 |
+| `agate-md-field-get.py` | P1/P2 提取 risk_level/ui_affected/phases | 无 |
+| `agate-state-get.py` | .state.yaml 读 phase/task_id/retries_over | pyyaml |
+| `agate-retreat-state.py` | 回退 check_retreat/write_retreat | pyyaml |
+| `agate-read-gate-commands.py` | 解析 gate_commands.P3 块 → JSON | 无 |
+| `agate-read-p5-commands.py` | 解析 gate_commands.P5 块 → JSON | 无 |
+| `agate-state-yaml-check.py` | .state.yaml 格式校验 | pyyaml |
+| `agate-changelog-unreleased.py` | 提取 [Unreleased] 区域 | 无 |
+| `agate-card-inject.py` | 注入卡片到 AGATE_CARD 占位符 | 无 |
+| `agate-vision-blocker.py` | 读 vision_analysis.blocker_count | pyyaml |
+| `agate-evidence-consistency.py` | evidence JSON 与 P6 一致性 | 无 |
+| `agate-image-check.py` | 截图方差 / average hash | Pillow（可选）|
+| `agate-gate-missing-cmds.py` | gate_commands 缺失命令检测 | 无 |
+| `agate-gate-p5-count.py` | 统计 P5 命令数 | 无 |
+
 ---
 
 ## 协议结构一致性检查（P3-1）
