@@ -12,7 +12,7 @@ setup() {
     cd "$REPO"
     # 安装 pre-commit hook
     HOOK_PATH="$REPO/.git/hooks/pre-commit"
-    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
+    ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
     chmod +x "$HOOK_PATH"
 }
 
@@ -1121,7 +1121,7 @@ EOF
 @test "IT_GATE_REAL.1: hook runs check-gate.sh and writes real .gate-result.json" {
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-gatereal1")
-    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
+    ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
     chmod +x "$repo/.git/hooks/pre-commit"
     mkdir -p "$repo/docs/tasks/T001"
     cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
@@ -1174,7 +1174,7 @@ EOF
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-evid-warn")
     HOOK_PATH="$repo/.git/hooks/pre-commit"
-    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
+    ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
     chmod +x "$HOOK_PATH"
     mkdir -p "$repo/docs/tasks/T086"
     cat > "$repo/docs/tasks/T086/.state.yaml" <<EOF2

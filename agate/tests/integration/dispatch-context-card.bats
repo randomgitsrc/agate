@@ -8,7 +8,7 @@ load ../helpers/git-helper.bash
 setup() {
     REPO=$(git_init)
     HOOK_PATH="$REPO/.git/hooks/pre-commit"
-    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
+    ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
     chmod +x "$HOOK_PATH"
     cd "$REPO"
 }
