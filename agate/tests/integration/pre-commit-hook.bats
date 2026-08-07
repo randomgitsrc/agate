@@ -12,7 +12,7 @@ setup() {
     cd "$REPO"
     # 安装 pre-commit hook
     HOOK_PATH="$REPO/.git/hooks/pre-commit"
-    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
+    ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
     chmod +x "$HOOK_PATH"
 }
 
@@ -1121,7 +1121,7 @@ EOF
 @test "IT_GATE_REAL.1: hook runs check-gate.sh and writes real .gate-result.json" {
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-gatereal1")
-    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
+    ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
     chmod +x "$repo/.git/hooks/pre-commit"
     mkdir -p "$repo/docs/tasks/T001"
     cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
@@ -1174,7 +1174,7 @@ EOF
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-evid-warn")
     HOOK_PATH="$repo/.git/hooks/pre-commit"
-    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
+    ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
     chmod +x "$HOOK_PATH"
     mkdir -p "$repo/docs/tasks/T086"
     cat > "$repo/docs/tasks/T086/.state.yaml" <<EOF2
@@ -1227,4 +1227,38 @@ DCEND
     run git -C "$repo" -c user.name=test -c user.email=test@test commit -m "T086 evidence warning test"
     [ "$status" -eq 0 ]
     [[ "$output" == *"WARNING"* ]]
+}
+
+@test "pre-commit hook: AGATE_ROOT 未设时自定位到脚本自身本体（worktree 支持，T086）" {
+    local repo workflow_root
+    repo=$(git_init)
+
+    # 模拟 worktree：隔离协议本体目录
+    workflow_root="$BATS_TEST_TMPDIR/workflow-root"
+    mkdir -p "$workflow_root/scripts"
+    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$workflow_root/scripts/"
+    chmod +x "$workflow_root/scripts/pre-commit-gate.sh"
+
+    # 隔离本体的 gate-result.sh：被 source 时打印标记（主 checkout 版不打印）
+    cat > "$workflow_root/scripts/gate-result.sh" <<'EOF'
+# 隔离本体专用 gate-result.sh -- 被 source 时打印 WORKTREE_SOURCED 标记
+echo "WORKTREE_SOURCED"
+EOF
+
+    # 构造最小可 gate 场景（P1 阶段，无 P1-review.md -> 会走 gate-result 加载路径）
+    mkdir -p "$repo/docs/tasks/TX/workflow-test"
+    cat > "$repo/docs/tasks/TX/workflow-test/.state.yaml" <<EOF
+task_id: TX
+phase: P1
+status: active
+retries: {}
+EOF
+
+    # 模拟真实 worktree hook 场景：hook 是软链 -> 隔离本体的 pre-commit-gate.sh
+    ln -sf "$workflow_root/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
+
+    # 不设 AGATE_ROOT，通过软链运行 -> 应自定位到隔离本体，source 到带标记的 gate-result.sh
+    run bash -c "unset AGATE_ROOT; cd '$repo' && bash '$repo/.git/hooks/pre-commit' 2>&1"
+
+    [[ "$output" == *"WORKTREE_SOURCED"* ]]
 }

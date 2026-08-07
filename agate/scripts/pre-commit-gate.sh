@@ -19,8 +19,11 @@ set -euo pipefail
 # REPO_ROOT = 当前 git 仓库根（项目仓库或 agate 仓库本身）
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
-# AGATE_ROOT = 协议本体路径（默认 ~/.agate 软链接 → 你克隆的 agate 仓库的 agate/ 子目录）
-AGATE_ROOT="${AGATE_ROOT:-$HOME/.agate}"
+# AGATE_ROOT = 协议本体路径
+# v0.33.0：AGATE_ROOT 自定位到脚本自身本体的上一级（支持 worktree 隔离）
+# hook 被软链到项目 .git/hooks/ 时，readlink -f 解析软链到真实脚本位置 -> 本体根
+# 顺序关键：先 readlink -f 解析软链，再 dirname 两次取本体根（不能先 dirname 再 /..，会解析到 .git）
+AGATE_ROOT="${AGATE_ROOT:-$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")}"
 AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
 
 # R1 修复：source 后验证函数已加载，防止静默放行
