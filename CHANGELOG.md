@@ -13,6 +13,8 @@
 - **一致性检查跳过 `.worktrees/`**：worktree 隔离工作区不应被协议一致性扫描（含隔离实验内容，会污染主仓一致性报告）
 - **测试卫生**：pre-commit-hook.bats / dispatch-context-card.bats 的 hook 安装从 `cp` 改 `ln -sf`，与真实 install-hook.sh（软链）一致
 
+> **worktree 手动装 hook 说明**：git linked worktree 共享主仓库的 `.git/hooks/`（`git rev-parse --git-path hooks` 指向主仓），`install-hook.sh` 在 worktree 内运行会把 hook 装到主仓库 hooks。worktree 场景请手动把 hook 软链到主仓库 hooks：`ln -sf <worktree>/agate/scripts/pre-commit-gate.sh <mainrepo>/.git/hooks/pre-commit`。
+
 ---
 
 ## [0.32.0] - 2026-08-07
