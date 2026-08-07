@@ -606,7 +606,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "pre-push alignment-review 阈值（决定 7：install-hook.sh 保留豁免，单独加锚点）",
-        "script": "agate/scripts/install-hook.sh",
+        "script": "agate/scripts/pre-push-gate.sh",
         "keywords": ["AGATE_ALIGNMENT_REVIEW_THRESHOLD"],
     },
     {
