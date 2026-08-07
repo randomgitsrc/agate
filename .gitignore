@@ -17,3 +17,4 @@ __pycache__/
 *.bak
 *~
 .DS_Store
+.worktrees/
