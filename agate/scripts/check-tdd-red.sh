@@ -53,33 +53,9 @@ fi
 
 read_gate_commands() {
     local p2_file="$1"
-    GATE_FILE="$p2_file" python3 -c '
-import re, os, sys, json
-content = open(os.environ["GATE_FILE"]).read()
-if not content.endswith(chr(10)):
-    content += chr(10)
-m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
-if not m:
-    print(json.dumps({"commands": [], "project_module": ""}))
-    sys.exit(0)
-block = m.group(1)
-commands = []
-project_module = ""
-for line in re.findall(r"^  (\w+):\s*(.+)$", block, re.MULTILINE):
-    key = line[0]
-    val = line[1].strip().strip("\"").strip(chr(39))
-    if key == "project_module":
-        project_module = val
-    elif key.startswith("P3") and not key.endswith("_formatter"):
-        suffix = key[2:] if len(key) > 2 else ""
-        fmt_key = "P3" + suffix + "_formatter"
-        fmt_val = ""
-        for line2 in re.findall(r"^  (" + re.escape(fmt_key) + r"):\s*(.+)$", block, re.MULTILINE):
-            fmt_val = line2[1].strip().strip("\"").strip(chr(39))
-        commands.append({"cmd": val, "formatter": fmt_val, "suffix": suffix})
-result = {"commands": commands, "project_module": project_module}
-print(json.dumps(result))
-' 2>/dev/null || echo '{"commands":[],"project_module":""}'
+    # 依赖同目录的 agate-read-gate-commands.py —— 项目复制脚本时须一并复制该 .py
+    GATE_FILE="$p2_file" python3 "$SCRIPT_DIR/agate-read-gate-commands.py" 2>/dev/null \
+        || echo '{"commands":[],"project_module":""}'
 }
 
 judge_result() {
