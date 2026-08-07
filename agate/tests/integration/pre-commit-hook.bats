@@ -1166,3 +1166,62 @@ EOF
     [ -f "$repo/.gate-result.json" ]
     grep -q 'pre-commit-hook' "$repo/.gate-result.json"
 }
+
+@test "HOOK_EVIDENCE_WARNING: P6 截图触发低方差 WARNING → commit 不应被拦截（T086 修复）" {
+    local repo
+    repo=$(git_init "$BATS_TEST_TMPDIR/repo-evid-warn")
+    HOOK_PATH="$repo/.git/hooks/pre-commit"
+    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
+    chmod +x "$HOOK_PATH"
+    mkdir -p "$repo/docs/tasks/T086"
+    cat > "$repo/docs/tasks/T086/.state.yaml" <<EOF2
+task_id: T086
+phase: P6
+status: active
+retries: {}
+EOF2
+    cat > "$repo/docs/tasks/T086/P6-acceptance.md" <<EOF2
+---
+agent: test
+---
+- PASS BDD-1 (screenshots/test.png)
+EOF2
+    cat > "$repo/docs/tasks/T086/P2-design.md" <<EOF2
+---
+agent: test
+---
+ui_affected: true
+EOF2
+    mkdir -p "$repo/docs/tasks/T086/P6-evidence/screenshots"
+    # 生成 100x100 极低方差图（全浅色，variance=0，触发 WARNING）
+    python3 -c "
+import struct, zlib
+w, h = 100, 100
+raw = b'\x00' + b'\xff\xff\xff' * w
+raw = raw * h
+ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+idat = zlib.compress(ihdr + raw if False else raw)
+def chunk(typ, data):
+    return struct.pack('>I', len(data)) + typ + data + struct.pack('>I', zlib.crc32(typ + data) & 0xffffffff)
+png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', idat) + chunk(b'IEND', b'')
+import sys; sys.stdout.buffer.write(png)
+" > "$repo/docs/tasks/T086/P6-evidence/screenshots/test.png"
+    # 写 dispatch-context 模板 + 注入 P6 卡片（与现有 helper 一致）
+    cat > "$repo/docs/tasks/T086/P6-dispatch-context-verifier.md" <<DCEND
+---
+phase: P6
+generated_by: agate-next-card.sh + 主 Agent
+task_id: T086
+role: verifier
+---
+
+<!-- AGATE_CARD_START -->
+<!-- AGATE_CARD_END -->
+DCEND
+    bash "$AGATE_ROOT/scripts/agate-inject-card.sh" P6 "$repo/docs/tasks/T086"
+    git -C "$repo" add docs/tasks/T086/
+    # 不绕过 hook — 期望 commit 成功（exit 0），不因 WARNING 拦截
+    run git -C "$repo" -c user.name=test -c user.email=test@test commit -m "T086 evidence warning test"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"* ]]
+}

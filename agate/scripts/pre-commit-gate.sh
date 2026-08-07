@@ -255,7 +255,15 @@ except Exception:
 
     # 2n. P6 证据格式检查（P1.7）
     if [ "$PHASE" = "P6" ] || [ "$PHASE" = "P7" ]; then
-        bash "$AGATE_ROOT/scripts/check-p6-evidence.sh" "$TASK_DIR" || exit 1
+        # 子 shell 捕获 exit code，避免 set -e 在命令替换处终止
+        EVIDENCE_RESULT=$(bash "$AGATE_ROOT/scripts/check-p6-evidence.sh" "$TASK_DIR" 2>&1; echo "EVIDENCE_MARKER_$?")
+        EVIDENCE_EXIT=$(printf '%s\n' "$EVIDENCE_RESULT" | grep -oE 'EVIDENCE_MARKER_[0-9]+$' | grep -oE '[0-9]+$' || echo 0)
+        EVIDENCE_OUTPUT=$(printf '%s\n' "$EVIDENCE_RESULT" | sed '/EVIDENCE_MARKER_[0-9]*$/d')
+        case "$EVIDENCE_EXIT" in
+            0) ;;
+            1) echo "$EVIDENCE_OUTPUT" >&2; exit 1 ;;
+            2) echo "$EVIDENCE_OUTPUT" >&2 ;;
+        esac
     fi
 
     # 2n.1 dispatch-context missing WARNING (B3)
