@@ -1,11 +1,11 @@
 # 强制 LF：bash 脚本 / python / bats 测试对 CRLF 敏感
 # Windows git 默认 autocrlf=true 会在 checkout 时转 CRLF -> .sh 报 \r 语法错
 # 本文件对 Linux/macOS 无影响（它们本来就用 LF）
+# 注意：不含 *.md——历史 review 文档为 CRLF 存储，强制 LF 会污染 PR（markdown 对 CRLF 免疫）
 *.sh        text eol=lf
 *.py        text eol=lf
 *.bats      text eol=lf
 *.bash      text eol=lf
-*.md        text eol=lf
 *.yaml      text eol=lf
 *.yml       text eol=lf
 *.jsonl     text eol=lf
