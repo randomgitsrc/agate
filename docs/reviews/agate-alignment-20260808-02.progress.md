@@ -1,0 +1,29 @@
+- [protocol-alignment-review.md] 角色定义：A1-A7 审查清单，A3/A5 必须含反向传播，A4 必须附 bats 实跑输出，A7 只有 ALIGNED/NEEDS_HUMAN_REVIEW
+- [SELF-GATE.md] 变更触发模式派发模板：意图分析→反向传播→实际审查范围→A1-A7→留痕/成果文件路径硬约束
+- [git show d675381] 新增 .gitattributes(13行) + platform-notes.md Windows章节(74行) + scripts/README.md补1条提示 + install-hook.sh 3处echo改if[ -L]分支 + install-hook.bats 新增1用例
+- [install-hook.sh 当前版] 3处echo被包进 if [ -L ] 真分支，原文本逐字保留；复制模式新增消息只在 else 分支
+- [install-hook.bats 当前版] 新增用例 mock ln为cp，断言输出含复制/需重跑
+- [A1/A2核心校验] 3个原echo文本在新旧版本各恰好出现1次，逐字保留在if [ -L]真分支：Linux/macOS行为不变 ✓
+- [LIMITATIONS.md] 局限6(85-95行) 运行时依赖 bash+git+python3+pyyaml+Pillow；局限6现状→ADR-003
+- [protocol-tests.yml] 4 job 全 ubuntu-latest，无 windows matrix
+- [CHANGELOG.md] Unreleased 节仅有内联python抽离条目，无 Windows 支持条目
+- [protocol-tests.yml] 4 job 全 ubuntu-latest，无 windows matrix；platform-notes 已标注 'CI 仅 ubuntu' 为已知限制
+- [CHANGELOG.md] Unreleased 节仅 1 条内联 python 抽离条目，无 Windows 支持条目
+- [adr.md] ADR-003 不绑定技术栈/平台；ADR-004 安全网分层（hook 兜底）；ADR-002 可判定性（gate exit code 机器可判定）
+- [platform-notes.md 全文] 新增 Windows 原生章节(83-153行)在『验证记录』之后，含前置条件/安装步骤/已知限制/不支持场景
+- [check-protocol-consistency.py:674-680] GATE_SCRIPT_EXEMPT 含 agate/scripts/install-hook.sh —— 确认豁免，无需锚点
+- [scripts/README.md:5] Windows 提示已补，指向 platform-notes.md
+- [A4 实跑] 全量 bats 598 项全过（592 用例 + 6 sanity），0 not ok；count-tests.sh 报 592 与 commit message 591->592 一致；consistency 0 ERROR；shellcheck install-hook.sh 0 warning
+- [orchestrator-template.md] 平台配置块仅 OpenCode/Claude Code；Fallback 列表引用 platform-notes.md——Windows 是 OS 环境非 Agent 平台，无需新增块
+- [根 AGENTS.md 依赖节] 列 Bats/Python3/pyyaml/Pillow/shellcheck，无 Windows 提示——开发向，platform-notes 已覆盖
+- [验证] agate/scripts/*.sh 恰 25 个，platform-notes.md:152 '25 个 .sh' 引用准确
+- [check-protocol-consistency.py] install-hook.sh 仅出现在 GATE_SCRIPT_EXEMPT（676行），不在锚点表——A6 确认无需锚点
+- A1: 文档(platform-notes 复制模式提示/需重跑) / 脚本(install-hook 3处if[ -L]分支含'复制模式'+需重跑) 语义一致 / ALIGNED
+- A1核心: 原3个echo逐字保留在[ -L]真分支(grep -Fc 新旧各=1)，Linux/macOS行为不变 / 验证通过
+- A2: install-hook 新else分支消息在 platform-notes 步骤6+已知限制表有文档化；scripts/README.md:5 补Windows指针 / ALIGNED
+- A3a连锁: diff与plan(agate-windows-support-20260808.md)文件清单完全一致，无遗漏 / ALIGNED
+- A3b反向传播: WORKFLOW/orchestrator无需同步(platform-notes是平台适配专文档且已更新)；LIMITATIONS局限6平台无关无矛盾(建议加交叉引用)；根AGENTS.md依赖节(建议补Windows)；agate/AGENTS.md:79预存过时(pre-push已软链,非本commit引入,建议后续修)；CI windows matrix在platform-notes:147显式标注未来工作,文档与CI文件一致 / ALIGNED+建议项
+- A4: 新用例真红(回退旧脚本test5 FAIL)真绿(新脚本5/5 PASS)；全量598过0失败；count=592与commit message一致；consistency 0 ERROR；shellcheck install-hook 0 warning / ALIGNED
+- A5: CHANGELOG Unreleased无Windows条目(平台enablement是否重要变更=judgment call)；.gitattributes对已clone仓库需git add --renormalize,doc仅提autocrlf false(部分缓解)；下游gate行为零变化 / NEEDS_HUMAN_REVIEW(CHANGELOG)
+- A6: install-hook.sh在GATE_SCRIPT_EXEMPT(676行)确认豁免，不在锚点表；无新gate脚本/规则，锚点表无需更新 / ALIGNED
+- A7: ADR-003不绑定技术栈/平台兼容；ADR-002[ -L]机器可判定；ADR-004安全网分层未削弱；无新架构决策需ADR / ALIGNED

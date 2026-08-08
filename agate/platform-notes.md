@@ -142,7 +142,7 @@ agate 的派发机制于 2026-06-12 在 OpenCode 上完成验证：
 | 限制 | 影响 | 规避 |
 |------|------|------|
 | `ln -sf` 退化为复制 | hook 不随 agate 升级自动更新 | 升级 agate 后重跑 `install-hook.sh`；或开 Windows「开发者模式」启用真符号链接 |
-| `core.autocrlf` CRLF 污染 | .sh 报 `\r` 语法错、.py hash 不匹配 | 仓库已含 `.gitattributes` 强制 LF；若 clone 旧版本无此文件，手动 `git config core.autocrlf false` |
+| `core.autocrlf` CRLF 污染 | .sh 报 `\r` 语法错、.py hash 不匹配 | 仓库已含 `.gitattributes` 强制 LF；若 clone 旧版本无此文件，手动 `git config core.autocrlf false`。已 clone 且已物化 CRLF 的工作区需 `git add --renormalize .` 重规范化 |
 | bats 安装麻烦 | 开发者无法跑 `bats` 测试 | 手动 clone bats-core；或用 WSL 跑测试（使用不受影响） |
 | CI 仅 ubuntu | Windows 本地行为无 CI 兜底 | 靠本地验证；protocol-tests.yml 未来可加 `runs-on: windows-latest` matrix |
 | 路径分隔符 | MSYS2 自动转换 `/c/Users/` <-> `C:\Users\`，但极少数硬编码路径可能出问题 | 遇到时用 `cygpath -w` 转换 |

@@ -11,6 +11,9 @@
 ### 内部重构
 - **内联 python 抽离为独立 `.py` 工具**：把 14 个 `.sh` 脚本里 46 处 `python3 -c '...'` 内联段（含 `chr()` 引号规避病征、重复的单行 JSON 提取）抽离为 14 个独立可测试的 `agate/scripts/agate-*.py` 工具，行为完全等价。消除 bash+python 混合架构债，检查逻辑可独立测试复用。非 BREAKING
 
+### 改进
+- **Windows 原生支持（Git for Windows bash，不用 WSL）**：新增 `.gitattributes` 强制 LF（防 `core.autocrlf` CRLF 污染 .sh/.py）；`install-hook.sh` 在 `ln -sf` 无符号链接权限退化为复制时打印升级提醒；`platform-notes.md` 新增「Windows 原生」章节（前置条件 + 安装步骤 + 已知限制）。对 Linux/macOS 零行为变化。非 BREAKING
+
 ---
 
 ## [0.33.0] - 2026-08-07
