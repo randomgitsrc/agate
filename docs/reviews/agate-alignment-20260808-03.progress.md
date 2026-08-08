@@ -1,0 +1,28 @@
+# 留痕 20260808-03
+- 读了 agate/assets/review-roles/protocol-alignment-review.md（角色定义，A1-A7 清单）
+- git status: M agate/AGENTS.md + ?? HANDOFF-PY-EXTRACTION.md（本次变更仅 agate/AGENTS.md）
+- 下一步: git diff agate/AGENTS.md; 读 install-hook.sh / platform-notes.md
+- git diff agate/AGENTS.md: 仅第 79 行「升级 agate」节 1 行变更（旧: pre-push 写死复制+建议重跑; 新: 三 hook 均 ln -sf 软链, 无需重装, Windows 复制模式见 platform-notes）
+- install-hook.sh 存在: agate/scripts/install-hook.sh (3618 bytes, 可执行)
+- 下一步: 读 install-hook.sh 全文, 确认 hook 安装方式
+- install-hook.sh 全文确认:
+  - pre-commit: L31 ln -sf "$SOURCE" "$HOOK_FILE"
+  - commit-msg: L50 ln -sf "$COMMIT_MSG_SOURCE" "$COMMIT_MSG_HOOK"
+  - pre-push:  L73 ln -sf "$PRE_PUSH_SOURCE" "$PRE_PUSH_HOOK"
+  - L62 注释: "v0.32.0：与 pre-commit/commit-msg 统一为软链，bug 修复自动分发，无需重装"
+  - Windows 复制模式提示: L37-38(pre-commit 需重跑), L55(commit-msg), L78(pre-push)
+  - 结论: AGENTS.md 修正后的陈述与 install-hook.sh 实际行为一致
+- 下一步: 读 platform-notes.md Windows 原生章节; 反向传播扫描 pre-push/写死复制/重装/软链
+- 反向传播扫描 agate/ + README.md + CHANGELOG + docs/:
+  - platform-notes.md:132/144 Windows 复制模式（与修正交叉一致）; L130/L132 重跑提示
+  - orchestrator-template.md:102 三 hook 描述一致
+  - dispatch-protocol.md:824 三 hook 描述一致
+  - scripts/README.md:35 三 hook 描述一致
+  - README.md:109 "无需重装 hook——软链接会自动指向最新代码" 与修正一致
+  - CHANGELOG [0.32.0]: "pre-push hook 从写死复制改为软链统一"——历史记录, 准确, 不冲突
+  - docs/reviews/ 旧 review 提到"写死"为历史审查记录, 非现行协议陈述
+  - 无残留过时陈述
+- consistency: 0 ERROR (全部 7 个 CHECK PASS)
+- bats 全量: 598 ok / 0 failed / EXIT=0 (sanity 6 + 592 @test); count-tests.sh: 592 总计 与附录一致
+- A7: ADR-004 仅 hook 兜底分层, 本变更为文档陈述修正不改机制, 一致
+- 结论: A1-A7 全部 ALIGNED, 无 MISALIGNED / NEEDS_HUMAN_REVIEW
