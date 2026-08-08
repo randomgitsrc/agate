@@ -54,7 +54,7 @@ bash agate/tests/scripts/count-tests.sh
 | agate-image-check.py | unit/agate-image-check.bats | 4 |
 | agate-gate-missing-cmds.py | unit/agate-gate-missing-cmds.bats | 2 |
 | agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 2 |
-| install-hook.sh | unit/install-hook.bats | 4 |
+| install-hook.sh | unit/install-hook.bats | 5 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 40 |
 | pre-push-hook | integration/pre-push-hook.bats | 3 |

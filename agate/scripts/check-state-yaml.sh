@@ -12,7 +12,7 @@ STATE_FILE="${1:?用法: check-state-yaml.sh STATE_FILE}"
 [ ! -f "$STATE_FILE" ] && exit 2
 
 # 用环境变量传参，避免 shell 变量注入 Python 代码（M2 修复）
-# 2>&1 保留 stderr，让 YAML 解析错误信息可见（M1 修复）
+# 2>/dev/null：解析错误信息由 agate-state-yaml-check.py 输出到 stdout（ERRORS 捕获）
 ERRORS=$(STATE_FILE="$STATE_FILE" python3 "$SCRIPT_DIR/agate-state-yaml-check.py" 2>/dev/null || true)
 
 if [ -n "$ERRORS" ]; then
