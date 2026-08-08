@@ -76,7 +76,7 @@ assets/review-roles/
 cd <你克隆 agate 的目录> && git pull
 ```
 
-下次 commit 自动用新版本协议。如果你之前安装了 hook，**建议重跑一次 `bash ~/.agate/scripts/install-hook.sh`**：pre-commit/commit-msg 是软链接会自动指向新代码，但 **pre-push hook 是安装时写死复制的模板内容**，不会自动跟随升级——重跑一次确保拿到最新版（例如 pre-push 的 bug 修复不会自动生效，必须重装）。
+下次 commit 自动用新版本协议。pre-commit/commit-msg/pre-push 三个 hook 均为 `install-hook.sh` 以 `ln -sf` 软链方式安装，自动指向最新代码、随协议升级自动跟随，**无需重装**。（Windows 无符号链接权限时以复制模式安装，升级后需重跑 `install-hook.sh`，见 `platform-notes.md`「Windows 原生」章节。）
 
 ## 卸载
 

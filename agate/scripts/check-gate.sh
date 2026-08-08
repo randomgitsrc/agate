@@ -15,6 +15,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 PHASE="${1:?用法: check-gate.sh PHASE TASK_DIR}"
 TASK_DIR="${2:?用法: check-gate.sh PHASE TASK_DIR}"
 OLD_PHASE="${3:-}"
@@ -156,28 +158,7 @@ case "$PHASE" in
       # 解析 gate_commands 每个命令的第一个 token，验证存在性
       # 第一个 token 含 / → 跳过（相对/绝对路径如 .venv/bin/python，P2 阶段 venv 可能未建，不误报）
       # 否则 → command -v 验证
-      MISSING_CMDS=$(GATE_FILE="$P2_FILE" python3 -c '
-import re, os, sys
-with open(os.environ["GATE_FILE"]) as f:
-    content = f.read()
-if not content.endswith(chr(10)):
-    content += chr(10)
-m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
-if not m:
-    sys.exit(0)
-block = m.group(1)
-for k, v in re.findall(r"^  (P[0-9]\w*):\s*(.+)$", block, re.MULTILINE):
-    if k.endswith("_formatter") or k == "project_module":
-        continue
-    val = v.strip().strip("\"").strip(chr(39))
-    if not val:
-        continue
-    token = val.split()[0]
-    token = token.lstrip("$(").rstrip(")")
-    if "/" in token or "=" in token:
-        continue
-    print(f"{k}:{token}")
-' 2>/dev/null || echo "")
+      MISSING_CMDS=$(GATE_FILE="$P2_FILE" python3 "$SCRIPT_DIR/agate-gate-missing-cmds.py" 2>/dev/null || echo "")
       if [ -n "$MISSING_CMDS" ]; then
           while IFS= read -r entry; do
               [ -z "$entry" ] && continue
@@ -210,20 +191,7 @@ for k, v in re.findall(r"^  (P[0-9]\w*):\s*(.+)$", block, re.MULTILINE):
       # WARNING: 如果 P2 声明了多个 gate_commands.P5 命令（单元+集成+E2E），
       # 提醒主 Agent 确认是否全部执行（T060 教训：只跑子集可能掩盖预存失败）
       if [ -f "$TASK_DIR/P2-design.md" ]; then
-          P5_CMD_COUNT=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 -c "
-import re, os
-with open(os.environ['GATE_FILE']) as f:
-    content = f.read()
-if not content.endswith(chr(10)):
-    content += chr(10)
-m = re.search(r'^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)', content, re.MULTILINE)
-if not m:
-    print(0)
-    exit()
-block = m.group(1)
-count = len(re.findall(r'^  (P5\w*):', block, re.MULTILINE))
-print(count)
-" 2>/dev/null || echo 0)
+          P5_CMD_COUNT=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 "$SCRIPT_DIR/agate-gate-p5-count.py" 2>/dev/null || echo 0)
           P5_CMD_COUNT=$(echo "$P5_CMD_COUNT" | tail -1)
           if [ "$P5_CMD_COUNT" -gt 1 ]; then
               echo "GATE P5 WARNING: P2 声明了 ${P5_CMD_COUNT} 个 gate_commands.P5 命令，请确认已全部执行（非子集）。" >&2

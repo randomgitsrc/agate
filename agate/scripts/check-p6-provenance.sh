@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 TASK_DIR="${1:?用法: check-p6-provenance.sh TASK_DIR}"
 P1_FILE="$TASK_DIR/P1-requirements.md"
 P6_FILE="$TASK_DIR/P6-acceptance.md"
@@ -20,13 +22,7 @@ get_agent() {
 
 get_risk_level() {
     [ ! -f "$P1_FILE" ] && echo "" && return
-    P1_F="$P1_FILE" python3 -c "
-import re, os
-with open(os.environ['P1_F']) as f:
-    text = f.read()
-m = re.search(r'risk_level:\s*(low|medium|high)', text)
-print(m.group(1) if m else '')
-" 2>/dev/null || echo ""
+    FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" risk_level 2>/dev/null || echo ""
 }
 
 # --- 审计 1：证据-结论对应 ---
@@ -153,13 +149,7 @@ if [ -f "$P6_FILE" ] && [ -f "$P1_FILE" ]; then
     P2_FILE="$TASK_DIR/P2-design.md"
     UI_AFFECTED=""
     if [ -f "$P2_FILE" ]; then
-        UI_AFFECTED=$(P2_FILE="$P2_FILE" python3 -c "
-import re, os
-with open(os.environ['P2_FILE']) as f:
-    text = f.read()
-m = re.search(r'ui_affected:\s*(true|false)', text)
-print(m.group(1) if m else '')
-" 2>/dev/null || echo "")
+        UI_AFFECTED=$(FILE="$P2_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" ui_affected 2>/dev/null || echo "")
     fi
 
     if [ "$UI_AFFECTED" = "true" ]; then
@@ -186,17 +176,7 @@ print(m.group(1) if m else '')
                 echo "GATE PROVENANCE: vision YAML 引用的文件不存在: $YAML_FILE" >&2
                 exit 1
             fi
-            BLOCKER_COUNT=$(YAML_PATH="$YAML_PATH" python3 -c "
-import yaml, os
-try:
-    with open(os.environ['YAML_PATH']) as f:
-        data = yaml.safe_load(f)
-    va = data.get('vision_analysis', {}) if data else {}
-    summary = va.get('summary', {})
-    print(summary.get('blocker_count', -1))
-except Exception:
-    print(-1)
-" 2>/dev/null || echo -1)
+            BLOCKER_COUNT=$(YAML_PATH="$YAML_PATH" python3 "$SCRIPT_DIR/agate-vision-blocker.py" 2>/dev/null || echo -1)
             if [ "$BLOCKER_COUNT" != "0" ]; then
                 echo "GATE PROVENANCE: vision YAML $YAML_FILE 的 blocker_count=$BLOCKER_COUNT（须为 0）" >&2
                 exit 1
@@ -257,44 +237,7 @@ fi
 # 审计 6: evidence JSON 与 P6 PASS/FAIL 声明一致性（P2.57）
 EVIDENCE_DIR="$TASK_DIR/P6-evidence"
 if [ -d "$EVIDENCE_DIR" ]; then
-    INCONSISTENCY=$(EVIDENCE_DIR="$EVIDENCE_DIR" P6_FILE="$TASK_DIR/P6-acceptance.md" python3 -c '
-import json, os, glob, re, sys
-
-evidence_dir = os.environ["EVIDENCE_DIR"]
-p6_file = os.environ["P6_FILE"]
-
-if not os.path.isfile(p6_file):
-    sys.exit(0)
-
-pass_bdds = set()
-with open(p6_file) as f:
-    for line in f:
-        m = re.match(r"^\s*-\s*PASS\s+(BDD-\d+)", line, re.IGNORECASE)
-        if m:
-            pass_bdds.add(m.group(1))
-
-fail_in_evidence = set()
-for json_path in glob.glob(os.path.join(evidence_dir, "**/*.json"), recursive=True):
-    try:
-        with open(json_path) as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            continue
-        results = data.get("bdd_results", data.get("results", []))
-        if isinstance(results, list):
-            for r in results:
-                if isinstance(r, dict):
-                    bdd_id = r.get("id", r.get("bdd", ""))
-                    status = r.get("status", "").lower()
-                    if status == "fail" and bdd_id:
-                        fail_in_evidence.add(bdd_id)
-    except Exception:
-        continue
-
-inconsistent = pass_bdds & fail_in_evidence
-for bdd in sorted(inconsistent):
-    print(f"{bdd}: P6 标 PASS 但 evidence JSON 显示 FAIL")
-' 2>/dev/null || echo "")
+    INCONSISTENCY=$(EVIDENCE_DIR="$EVIDENCE_DIR" P6_FILE="$TASK_DIR/P6-acceptance.md" python3 "$SCRIPT_DIR/agate-evidence-consistency.py" 2>/dev/null || echo "")
     if [ -n "$INCONSISTENCY" ]; then
         echo "GATE PROVENANCE: evidence JSON 与 P6-acceptance.md 声明不一致：" >&2
         echo "$INCONSISTENCY" | sed 's/^/  - /' >&2

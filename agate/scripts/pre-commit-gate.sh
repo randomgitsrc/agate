@@ -73,14 +73,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     # 2d.1 读取 HEAD（commit 前）版本的 phase，供 check-gate.sh 判断是否为回退抵达
     # （HEAD 里没有这个文件，或字段缺失，都当作"无法判断方向"，OLD_PHASE 留空，
     #  check-gate.sh 收到空的 OLD_PHASE 时行为与不传完全一致，不影响首次 commit 等场景）
-    OLD_PHASE=$(git show "HEAD:$STATE_REL" 2>/dev/null | python3 -c "
-import yaml, sys
-try:
-    data = yaml.safe_load(sys.stdin)
-    print(data.get('phase', '') if data else '')
-except Exception:
-    print('')
-" 2>/dev/null || echo "")
+    OLD_PHASE=$(git show "HEAD:$STATE_REL" 2>/dev/null | python3 "$AGATE_ROOT/scripts/agate-state-get.py" phase_stdin 2>/dev/null || echo "")
 
     # 2e. 反推 TASK_DIR
     STATE_DIR=$(dirname "$STATE_FILE")

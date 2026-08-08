@@ -464,3 +464,87 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"超时"* ]]
 }
+
+# ========== py 抽离试点：agate-read-gate-commands.py 直接测试 ==========
+# 覆盖：P2 含 gate_commands 多栈 / 无 gate_commands / project_module /
+#       双引号去除 / 单引号去除 / formatter 关联 / 末行无换行
+
+@test "PYX.1 agate-read-gate-commands.py P2 含 P3 + P3_html_formatter + project_module" {
+    local dir
+    dir=$(mktemp -d "$BATS_TEST_TMPDIR/py-XXXXXX")
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+gate_commands:
+  P3: "pytest -q --tb=short"
+  P3_html: "npx vitest run"
+  P3_html_formatter: "vitest.sh"
+  project_module: "myapp"
+EOF
+    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"cmd": "pytest -q --tb=short"'* ]]
+    [[ "$output" == *'"cmd": "npx vitest run"'* ]]
+    [[ "$output" == *'"formatter": "vitest.sh"'* ]]
+    [[ "$output" == *'"project_module": "myapp"'* ]]
+}
+
+@test "PYX.2 agate-read-gate-commands.py P2 无 gate_commands → 空 JSON" {
+    local dir
+    dir=$(mktemp -d "$BATS_TEST_TMPDIR/py-XXXXXX")
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+无 gate_commands 块
+EOF
+    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"commands": []'* ]]
+    [[ "$output" == *'"project_module": ""'* ]]
+}
+
+@test "PYX.3 agate-read-gate-commands.py P2 双引号值被去除" {
+    local dir
+    dir=$(mktemp -d "$BATS_TEST_TMPDIR/py-XXXXXX")
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+gate_commands:
+  P3: "pytest -q"
+EOF
+    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"cmd": "pytest -q"'* ]]
+}
+
+@test "PYX.4 agate-read-gate-commands.py P2 单引号值被去除" {
+    local dir
+    dir=$(mktemp -d "$BATS_TEST_TMPDIR/py-XXXXXX")
+    cat > "$dir/P2-design.md" <<'EOF'
+---
+agent: test
+---
+gate_commands:
+  P3: 'pytest -q'
+EOF
+    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"cmd": "pytest -q"'* ]]
+}
+
+@test "PYX.5 agate-read-gate-commands.py P2 末行无换行也能解析" {
+    local dir
+    dir=$(mktemp -d "$BATS_TEST_TMPDIR/py-XXXXXX")
+    printf 'gate_commands:\n  P3: "pytest -q"' > "$dir/P2-design.md"
+    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *'"cmd": "pytest -q"'* ]]
+}
+
+@test "PYX.6 agate-read-gate-commands.py GATE_FILE 不存在 → 非零退出" {
+    run bash -c "GATE_FILE='/nonexistent/P2.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    [ "$status" -ne 0 ]
+}

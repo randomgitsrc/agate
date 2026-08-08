@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # write_gate_result PHASE TASK_ID EXIT_CODE OUTPUT
 write_gate_result() {
     local phase="$1"
@@ -23,7 +25,7 @@ write_gate_result() {
   "task_id": "${task_id}",
   "exit_code": ${exit_code},
   "timestamp": "${ts}",
-  "output": $(printf '%s' "$output" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
+  "output": $(printf '%s' "$output" | python3 "$SCRIPT_DIR/agate-json-get.py" escape),
   "runner": "pre-commit-hook",
   "prev_commit_sha": "${prev_commit_sha}"
 }
@@ -36,23 +38,13 @@ EOF
 read_state_phase() {
     local state_file="$1"
     [ ! -f "$state_file" ] && { echo ""; return; }
-    STATE_FILE="$state_file" python3 -c "
-import yaml, os
-with open(os.environ['STATE_FILE']) as f:
-    data = yaml.safe_load(f)
-print(data.get('phase', '') if data else '')
-" 2>/dev/null || echo ""
+    STATE_FILE="$state_file" python3 "$SCRIPT_DIR/agate-state-get.py" phase 2>/dev/null || echo ""
 }
 
 read_state_task_id() {
     local state_file="$1"
     [ ! -f "$state_file" ] && { echo ""; return; }
-    STATE_FILE="$state_file" python3 -c "
-import yaml, os
-with open(os.environ['STATE_FILE']) as f:
-    data = yaml.safe_load(f)
-print(data.get('task_id', '') if data else '')
-" 2>/dev/null || echo ""
+    STATE_FILE="$state_file" python3 "$SCRIPT_DIR/agate-state-get.py" task_id 2>/dev/null || echo ""
 }
 
 has_staged_phase_change() {

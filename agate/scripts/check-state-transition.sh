@@ -8,10 +8,11 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 STATE_FILE="${1:-.state.yaml}"
 # 按阶段差异化 MAX_RETRY（P3/P5/P6/P7/P8=2, 其他=3）
 # 与 check-retrospective.sh 的 MAX_RETRY_MAP 字面值保持同步
-MAX_RETRY=3
 MAX_RETRY_MAP="${MAX_RETRY_MAP:-P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2}"
 export MAX_RETRY_MAP
 
@@ -27,24 +28,12 @@ get_old_phase() {
     if echo "$STATE_FILE" | grep -qE 'docs/tasks/[^/]+/'; then
         git_path="$STATE_FILE"
     fi
-    git show "HEAD:$git_path" 2>/dev/null | python3 -c "
-import yaml, sys
-try:
-    data = yaml.safe_load(sys.stdin)
-    print(data.get('phase', '') if data else '')
-except:
-    print('')
-" 2>/dev/null || echo ""
+    git show "HEAD:$git_path" 2>/dev/null | python3 "$SCRIPT_DIR/agate-state-get.py" phase_stdin 2>/dev/null || echo ""
 }
 
 get_new_phase() {
     [ -f "$STATE_FILE" ] || return
-    STATE_FILE="$STATE_FILE" python3 -c "
-import yaml, os
-with open(os.environ['STATE_FILE']) as f:
-    data = yaml.safe_load(f)
-print(data.get('phase', '') if data else '')
-" 2>/dev/null || echo ""
+    STATE_FILE="$STATE_FILE" python3 "$SCRIPT_DIR/agate-state-get.py" phase 2>/dev/null || echo ""
 }
 
 phase_num() {
@@ -81,21 +70,7 @@ fi
 # .state.yaml 的 retries[Pn] 是列表（每次重试一个对象），不是整数
 # 按 retries dict 的 key 逐阶段查 MAX_RETRY，不是按 new_phase
 if [ -f "$STATE_FILE" ]; then
-    retries_json=$(STATE_FILE="$STATE_FILE" MAX_RETRY="$MAX_RETRY" MAX_RETRY_MAP="$MAX_RETRY_MAP" python3 -c "
-import yaml, os
-with open(os.environ['STATE_FILE']) as f:
-    data = yaml.safe_load(f)
-retries = data.get('retries', {})
-max_retry = int(os.environ['MAX_RETRY'])
-max_map_str = os.environ['MAX_RETRY_MAP']
-max_map = dict(p.split(':') for p in max_map_str.split(','))
-if isinstance(retries, dict):
-    for phase, attempts in retries.items():
-        phase_max = int(max_map.get(phase, 3))
-        if isinstance(attempts, list) and len(attempts) >= phase_max:
-            print(f'{phase}={len(attempts)} (MAX={phase_max})')
-            break
-" 2>/dev/null || echo "")
+    retries_json=$(STATE_FILE="$STATE_FILE" python3 "$SCRIPT_DIR/agate-state-get.py" retries_over "$MAX_RETRY_MAP" 2>/dev/null || echo "")
 
     if [ -n "$retries_json" ] && [ "$new_phase" != "PAUSED" ]; then
         echo "GATE STATE: ${retries_json}，phase 应为 PAUSED" >&2

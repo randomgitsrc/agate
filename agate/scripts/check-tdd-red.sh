@@ -53,33 +53,9 @@ fi
 
 read_gate_commands() {
     local p2_file="$1"
-    GATE_FILE="$p2_file" python3 -c '
-import re, os, sys, json
-content = open(os.environ["GATE_FILE"]).read()
-if not content.endswith(chr(10)):
-    content += chr(10)
-m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
-if not m:
-    print(json.dumps({"commands": [], "project_module": ""}))
-    sys.exit(0)
-block = m.group(1)
-commands = []
-project_module = ""
-for line in re.findall(r"^  (\w+):\s*(.+)$", block, re.MULTILINE):
-    key = line[0]
-    val = line[1].strip().strip("\"").strip(chr(39))
-    if key == "project_module":
-        project_module = val
-    elif key.startswith("P3") and not key.endswith("_formatter"):
-        suffix = key[2:] if len(key) > 2 else ""
-        fmt_key = "P3" + suffix + "_formatter"
-        fmt_val = ""
-        for line2 in re.findall(r"^  (" + re.escape(fmt_key) + r"):\s*(.+)$", block, re.MULTILINE):
-            fmt_val = line2[1].strip().strip("\"").strip(chr(39))
-        commands.append({"cmd": val, "formatter": fmt_val, "suffix": suffix})
-result = {"commands": commands, "project_module": project_module}
-print(json.dumps(result))
-' 2>/dev/null || echo '{"commands":[],"project_module":""}'
+    # 依赖同目录的 agate-read-gate-commands.py —— 项目复制脚本时须一并复制该 .py
+    GATE_FILE="$p2_file" python3 "$SCRIPT_DIR/agate-read-gate-commands.py" 2>/dev/null \
+        || echo '{"commands":[],"project_module":""}'
 }
 
 judge_result() {
@@ -87,11 +63,11 @@ judge_result() {
     local project_module="$2"
     local exit_code failed errors syntax_count import_count
 
-    exit_code=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("exit_code",1))')
-    failed=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("failed",0))')
-    errors=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("errors",0))')
-    syntax_count=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d.get("syntax_errors",[])))')
-    import_count=$(echo "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d.get("import_errors",[])))')
+    exit_code=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get exit_code 1)
+    failed=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get failed 0)
+    errors=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get errors 0)
+    syntax_count=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" len syntax_errors)
+    import_count=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" len import_errors)
 
     if [ "$exit_code" -eq 124 ]; then
         echo "TDD_CHECK: 测试命令超时，视为红灯可推进（请手动确认测试确实失败）"
@@ -111,13 +87,7 @@ judge_result() {
     if [ "$import_count" -gt 0 ]; then
         if [ -n "$project_module" ]; then
             local matched
-            matched=$(echo "$json" | PROJECT_MODULE="$project_module" python3 -c '
-import sys, json, os
-d = json.load(sys.stdin)
-pm = os.environ["PROJECT_MODULE"]
-count = sum(1 for e in d.get("import_errors", []) if e.get("module","").startswith(pm))
-print(count)
-')
+            matched=$(echo "$json" | PROJECT_MODULE="$project_module" python3 "$SCRIPT_DIR/agate-json-get.py" count_prefix import_errors module PROJECT_MODULE)
             if [ "$matched" -gt 0 ]; then
                 echo "TDD_CHECK: B-class red-light (import errors from missing project module '${project_module}')"
                 return 0
@@ -163,10 +133,10 @@ collect_commands() {
     if [ -n "${TASK_DIR:-}" ] && [ -f "$TASK_DIR/P2-design.md" ]; then
         commands_json=$(read_gate_commands "$TASK_DIR/P2-design.md")
         local cmd_count
-        cmd_count=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d["commands"]))')
+        cmd_count=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" len commands)
         if [ "$cmd_count" -gt 0 ]; then
             if [ -n "${PROJECT_MODULE:-}" ]; then
-                commands_json=$(echo "$commands_json" | python3 -c 'import sys,json,os; d=json.load(sys.stdin); d["project_module"]=os.environ["PROJECT_MODULE"]; print(json.dumps(d))' 2>/dev/null || echo "$commands_json")
+                commands_json=$(echo "$commands_json" | PROJECT_MODULE="$PROJECT_MODULE" python3 "$SCRIPT_DIR/agate-json-get.py" set project_module PROJECT_MODULE 2>/dev/null || echo "$commands_json")
             fi
             echo "$commands_json"
             return 0
@@ -186,15 +156,15 @@ collect_commands() {
 main() {
     local commands_json project_module commands_count
     commands_json=$(collect_commands) || exit 3
-    project_module=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("project_module",""))')
-    commands_count=$(echo "$commands_json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d["commands"]))')
+    project_module=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" get project_module "")
+    commands_count=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" len commands)
 
     local worst_exit=0
     local i=0
     while [ "$i" -lt "$commands_count" ]; do
         local cmd fmt_val fmt_path json_result
-        cmd=$(echo "$commands_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commands'][$i]['cmd'])")
-        fmt_val=$(echo "$commands_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commands'][$i]['formatter'])")
+        cmd=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" index commands "$i" cmd)
+        fmt_val=$(echo "$commands_json" | python3 "$SCRIPT_DIR/agate-json-get.py" index commands "$i" formatter)
 
         fmt_path=""
         if [ -n "$fmt_val" ]; then

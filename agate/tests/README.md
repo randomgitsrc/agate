@@ -38,10 +38,23 @@ bash agate/tests/scripts/count-tests.sh
 | check-state-transition.sh | unit/check-state-transition.bats | 26 |
 | check-changelog.sh | unit/check-changelog.bats | 8 |
 | check-retrospective.sh | unit/check-retrospective.bats | 11 |
-| check-tdd-red.sh | unit/check-tdd-red.bats | 32 |
+| check-tdd-red.sh | unit/check-tdd-red.bats | 38 |
 | formatters | unit/check-tdd-red-formatter.bats | 12 |
 | ci-gate-backstop.py | unit/ci-gate-backstop.bats | 8 |
-| install-hook.sh | unit/install-hook.bats | 4 |
+| agate-json-get.py | unit/agate-json-get.bats | 8 |
+| agate-read-p5-commands.py | unit/agate-read-p5-commands.bats | 4 |
+| agate-state-get.py | unit/agate-state-get.bats | 6 |
+| agate-retreat-state.py | unit/agate-retreat-state.bats | 3 |
+| agate-md-field-get.py | unit/agate-md-field-get.bats | 6 |
+| agate-state-yaml-check.py | unit/agate-state-yaml-check.bats | 3 |
+| agate-changelog-unreleased.py | unit/agate-changelog-unreleased.bats | 2 |
+| agate-card-inject.py | unit/agate-card-inject.bats | 2 |
+| agate-vision-blocker.py | unit/agate-vision-blocker.bats | 2 |
+| agate-evidence-consistency.py | unit/agate-evidence-consistency.bats | 2 |
+| agate-image-check.py | unit/agate-image-check.bats | 4 |
+| agate-gate-missing-cmds.py | unit/agate-gate-missing-cmds.bats | 2 |
+| agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 2 |
+| install-hook.sh | unit/install-hook.bats | 5 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 40 |
 | pre-push-hook | integration/pre-push-hook.bats | 3 |
