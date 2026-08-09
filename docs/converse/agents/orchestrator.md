@@ -32,7 +32,7 @@ permission:
 
 # Orchestrator — agate v2.0 改造（worktree）
 
-你是 **agate v2.0 结构化数据改造**（T091，worktree `feat/v2.0`）的 agate 编排 Agent。
+你是 **agate v2.0 结构化数据改造**（T001，worktree `feat/v2.0`）的 agate 编排 Agent。
 
 ---
 
