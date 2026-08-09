@@ -12,10 +12,10 @@ agent: main
 # T001 — agate v2.0 结构化数据改造 P0-brief
 
 > 本文档是主 Agent（orchestrator）亲自填写的任务简报。输入：HANDOFF-V2.0.md（交接文档）+ 可行性评估全文（mpifxr）。
-> 2026-08-09 修订：**范围从"仅流 A"扩为"A+B+C 全做"**（决策：一个 task 完成全部三层结构化，v2.0.0 一次发布）。P1 曾撤回，本文件为重审后的权威立项。
+> 2026-08-09 修订：**范围从"仅流 A"扩为"A+B+C 全做"**（决策：一个 task 完成全部三层结构化，v0.40.0 一次发布）。P1 曾撤回，本文件为重审后的权威立项。
 
 ```yaml
-task: "把 agate 协议中所有机器读取字段从'正文内嵌 YAML/纯散文 + 正则提取'重构为'YAML frontmatter + pyyaml 解析 + schema 校验'，覆盖三层：流 A（P1/P2 候选数/裁剪字段入 frontmatter + 校验器）、流 B（P6/P7 结果结构化）、流 C（标记状态收尾），一次性发布 agate v2.0.0，消除 v0.30.2 → v0.35.0 连续 5 版的'正则摩擦补丁税'"
+task: "把 agate 协议中所有机器读取字段从'正文内嵌 YAML/纯散文 + 正则提取'重构为'YAML frontmatter + pyyaml 解析 + schema 校验'，覆盖三层：流 A（P1/P2 候选数/裁剪字段入 frontmatter + 校验器）、流 B（P6/P7 结果结构化）、流 C（标记状态收尾），一次性发布 agate v0.40.0，消除 v0.30.2 → v0.35.0 连续 5 版的'正则摩擦补丁税'"
 
 known_risks:
   - "涉及数据格式变更（P1/P2/P6/P7 产出物 frontmatter schema），需要双读兼容在途任务旧格式"
@@ -61,7 +61,7 @@ phase_hint: [P1, P2, P3, P4, P5, P6, P7, P8]
 
 ## 扩展：分阶段路线（一个 task，内部按流推进）
 
-> 决策（2026-08-09）：**A+B+C 全做，一个 task，v2.0.0 一次发布**。不做 3 个 task——每个 task 独立 P0-P8 的开销 3 倍、流 B/C 依赖流 A 校验器只能串行、且"一个 v2.0 发布"语义要求一次发布。
+> 决策（2026-08-09）：**A+B+C 全做，一个 task，v0.40.0 一次发布**。不做 3 个 task——每个 task 独立 P0-P8 的开销 3 倍、流 B/C 依赖流 A 校验器只能串行、且"一次发布"语义要求一次发布。
 
 - **流 A（P1/P2 格式迁移 + schema 校验器）**——最小爆炸半径，先做
   - P1 字段：`risk_level` / `phases` / `override` / `implicit_coupling` / `coupling_checklist` / `internal_only` / `internal_only_reason` / `跳过风险` / `design_trivial` / `follows_existing_pattern` / `domains` / `packages`
@@ -74,12 +74,12 @@ phase_hint: [P1, P2, P3, P4, P5, P6, P7, P8]
 - **流 C（标记状态收尾）**——最后
   - NEED_CONFIRM/SUGGEST/SCOPE_RESOLVED 状态结构化（只结构化"已解决/已确认"状态，**SCOPE+/PROD_TOUCHED/DESIGN_GAP 发现性标记本体保持散文**，评估 §5.5）
   - 全量文档/角色卡/模板统一 + 回归清理
-- **流 D（任务编号规则改造）**——协议约定收尾，随 v2.0 发布
-  - 背景（自举原则）：本 task 用 v0.35 旧协议改造，自身编号保持旧格式 `T001`；v2.0 发布后新任务用新格式
+- **流 D（任务编号规则改造）**——协议约定收尾，随本次发布
+  - 背景（自举原则）：本 task 用 v0.35 旧协议改造，自身编号保持旧格式 `T001`；改造完成后新任务用新格式
   - 新编号规则：`T{项目代号}{编号}`，如 `TAG0001`（AG=agate 改造）/ `TPV8019`（PV=peekview）。项目代号 2 个大写字母（对齐 Jira `[A-Z][A-Z]+` 规则），编号数字动态 `\d+`（3 位起步可扩到 6 位，不设固定上限）
   - 交付：`agate-state-yaml-check.py` 校验器 `^T\d+$` → `^T[A-Z]{2}\d+$`；`check-changelog.sh` 去掉短前缀提取摩擦（`grep -oE 'T[0-9]+'` → 直接匹配完整 task_id）；`active-tasks-template.md` 第 4 条规则明确"项目局部命名空间 + 项目代号 + 动态编号"；dispatch-protocol/state-machine 文档示例同步
-  - **迁移策略：硬切（已定）**——v2.0 校验器只认新格式 `^T[A-Z]{2}\d+$`，不兼容旧 `T\d+`；发布时存量旧格式任务已归档（含本 task T001），不再过 gate。不做双格式兼容（避免再造一个"双格式摩擦"——正是本 task 要消灭的东西）
-  - 本 task 自身编号不变（T001），全程用 v0.35 跑 gate，直到 v2.0 发布
+  - **迁移策略：硬切（已定）**——新校验器只认新格式 `^T[A-Z]{2}\d+$`，不兼容旧 `T\d+`；发布时存量旧格式任务已归档（含本 task T001），不再过 gate。不做双格式兼容（避免再造一个"双格式摩擦"——正是本 task 要消灭的东西）
+  - 本 task 自身编号不变（T001），全程用 v0.35 跑 gate，直到本次发布
 
 **推进纪律**：P4 实现严格按流 A→B→C→D 串行，每个流全绿 + gate 通过再动下一个；P3 测试设计按流分组；P6 验收逐条 BDD 全验。
 
@@ -90,7 +90,7 @@ phase_hint: [P1, P2, P3, P4, P5, P6, P7, P8]
 3. 角色卡必须贴可复制模板
 4. 在途任务：**双读**（frontmatter 优先 + 旧正则回退）
 5. CHECK 9 锚点表（37 条）全量过一遍
-6. v2.0 设计文档必须写明"结构化不解决语义真实性"（gate 强度不升不降）
+6. 设计文档必须写明"结构化不解决语义真实性"（gate 强度不升不降）
 7. `gate_commands` 暂留正文（4 个读取工具仍从正文正则读）
 8. 每个流先写 regression 测试（改坏格式要能抓住）
 9. 流 D 编号规则：新格式 `T{代号}{编号}`（如 `TAG0001`），校验器硬切 `^T[A-Z]{2}\d+$`；本 task 自身用旧格式 `T001` 跑 v0.35 gate
