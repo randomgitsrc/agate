@@ -41,6 +41,7 @@ agent: architect
     ```yaml
     gate_commands:
       P3: "pytest"
+      P3_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected 且新增测试主要落在 E2E 层时必填（T090 问题2）
       P3_formatter: "pytest.sh"
       P5: "pytest -q --tb=no"
       P5_formatter: "pytest.sh"

@@ -270,6 +270,12 @@ case "$PHASE" in
       DESIGN_GAP_COUNT=$(echo "$DESIGN_GAP_COUNT" | tail -1)
       DESIGN_GAP_REVIEWED=$(echo "$DESIGN_GAP_REVIEWED" | tail -1)
       UNREVIEWED=$((DESIGN_GAP_COUNT - DESIGN_GAP_REVIEWED))
+      # 问题4 (T090)：P4 含"设计偏差/gap"关键词但 DESIGN_GAP 计数为 0 → WARNING 提醒人工确认
+      if [ "$DESIGN_GAP_COUNT" -eq 0 ]; then
+          if grep -qiE '设计偏差|design gap|未列入|gap:' "$TASK_DIR/P4-implementation.md" 2>/dev/null; then
+              echo "GATE P7 WARNING: P4 检测到设计偏差相关关键词但 [DESIGN_GAP:] 计数为 0——请确认是否真的无偏差，或 P4 未按标准格式声明" >&2
+          fi
+      fi
       if [ "$UNREVIEWED" -gt 0 ]; then
           echo "GATE P7: 有 ${UNREVIEWED} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]——主 Agent 需审查 implementer 的自主决策" >&2
           exit 1

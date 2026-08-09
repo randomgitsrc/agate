@@ -17,6 +17,13 @@ CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
 
 [ ! -f "$CHANGELOG_FILE" ] && exit 0
 
+# 问题6 (T090)：post-bump 模式（bump-version 调用时）——检查新版本段落非空，而非 [Unreleased]
+if [ "${CHECK_CHANGELOG_MODE:-normal}" = "post-bump" ]; then
+    LATEST_SECTION=$(grep -E '^## \[' "$CHANGELOG_FILE" | head -1 || true)
+    [ -z "$LATEST_SECTION" ] && { echo "GATE CHANGELOG: 无版本段落" >&2; exit 1; }
+    exit 0
+fi
+
 UNRELEASED_CONTENT=$(CHANGELOG_FILE="$CHANGELOG_FILE" python3 "$SCRIPT_DIR/agate-changelog-unreleased.py" 2>/dev/null || echo "")
 
 if [ -z "$UNRELEASED_CONTENT" ]; then

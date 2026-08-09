@@ -131,7 +131,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
             echo "GATE: [PROD_TOUCHED] 检测到生产环境接触（${TASK_ID}），commit 中止" >&2
             exit 1
         fi
-        if echo "$DIFF_ADDED" | grep -q '\[PROD_TOUCHED\]'; then
+        if echo "$DIFF_ADDED" | grep -E '^\s*-?\s*\[PROD_TOUCHED\]\s*$' >/dev/null 2>&1; then
             echo "GATE: 不合规的 PROD_TOUCHED 标记格式（${TASK_ID}），须用行首 [PROD_TOUCHED] 或 [PROD_NOT_TOUCHED] 声明" >&2
             exit 1
         fi
@@ -284,7 +284,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     # 2n.2 non-phase code staging WARNING/BLOCK (E3, P6 self-authored gate 区分证据/源码)
     ALL_NONMD=$(git diff --cached --name-only 2>/dev/null | grep -vE '\.(md|yaml)$|^\.state' || true)
     # 证据文件例外：TASK_REL/P{n}-evidence/ 下的文件不算"代码"
-    NON_EVIDENCE_FILES=$(echo "$ALL_NONMD" | grep -vE "^${TASK_REL}/P[0-9]-evidence/" || true)
+    NON_EVIDENCE_FILES=$(echo "$ALL_NONMD" | grep -vE "^${TASK_REL}/(P[0-9]-evidence/|evidences/)" || true)
     if [ -n "$NON_EVIDENCE_FILES" ]; then
         case "$PHASE" in
             P4|P5) ;;  # 外部产出 gate：代码变更是预期行为

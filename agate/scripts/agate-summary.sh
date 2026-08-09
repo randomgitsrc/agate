@@ -55,6 +55,20 @@ if [ -x "$SCRIPT_DIR/ci-gate-backstop.py" ]; then
     GUARDS="$GUARDS  ✓ ci-gate-backstop.py（CI 兜底）\n"
 fi
 
+# 问题5 (T090)：检测项目 scripts/ 本地副本与权威版本漂移
+# 权威版本 = $SCRIPT_DIR（本脚本所在 agate/scripts/）；项目副本 = 当前目录的 scripts/
+_check_copy_drift() {
+    local script
+    for script in check-tdd-red.sh check-gate.sh check-pruning.sh; do
+        if [ -f "scripts/$script" ] && [ -f "$SCRIPT_DIR/$script" ]; then
+            if ! cmp -s "scripts/$script" "$SCRIPT_DIR/$script"; then
+                echo "⚠️  scripts/$script 与 agate 权威版本不一致——本地副本可能已过期，建议改用 {agate_root}/scripts/ 或转发脚本" >&2
+            fi
+        fi
+    done
+}
+_check_copy_drift
+
 cat <<EOF
 === agate 当前状态 ===
 

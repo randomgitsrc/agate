@@ -95,6 +95,8 @@ agent: {角色名}
 验证结果写入 P2-design.md 的 minimal_validation 字段。
 - 方案依赖浏览器行为/安全模型/外部系统行为 → 必须做最小验证
 - 纯代码逻辑 → 须在 minimal_validation 字段声明 `纯代码逻辑，无外部系统依赖`（须写明依赖了哪些内部函数/数据转换）
+## P2 gate_commands 补充
+若 ui_affected 且新增测试主要落在 E2E 层，P3 阶段需声明 `gate_commands.P3_e2e` 作为 TDD 红灯确认命令（避免只跑单元测试产生假绿）。
 ```
 
 ### P3 派发追加

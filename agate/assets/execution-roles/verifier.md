@@ -136,7 +136,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
   - test-output.log — 验证脚本执行日志（所有任务通用）
   - screenshots/ — Playwright 截图（仅 UI 任务）
   - traces/ — Playwright trace（仅 UI 任务，可选）
-- evidences/ — Playwright 截图（desktop + mobile，若 ui_affected）
+- evidences/ — Playwright 截图（desktop + mobile，若 ui_affected）——**本地工作文件**：pre-commit-gate 已放行该目录，但只有 `P6-evidence/` 里被 PASS/FAIL 行引用的文件才算验收证据，`evidences/` 可作为补充参考随任务提交
 - docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
 
 **UI 条件的处理流程**：

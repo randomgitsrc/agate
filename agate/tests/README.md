@@ -56,7 +56,7 @@ bash agate/tests/scripts/count-tests.sh
 | agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 2 |
 | install-hook.sh | unit/install-hook.bats | 5 |
 | 回归 (R1-R5) | regression/ | 15 |
-| pre-commit-hook | integration/pre-commit-hook.bats | 40 |
+| pre-commit-hook | integration/pre-commit-hook.bats | 42 |
 | pre-push-hook | integration/pre-push-hook.bats | 3 |
 | 协议一致性 | integration/consistency.bats | 11 |
 | self-gate | integration/protocol-alignment-review.bats | 8 |
