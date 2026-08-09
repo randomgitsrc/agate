@@ -99,11 +99,11 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "IT.3 pre-commit-hook [PROD_TOUCHED] 中止 commit" {
+@test "IT.3 pre-commit-hook 句中提及 [PROD_TOUCHED]（非行首声明）→ 不中止（T090 修复）" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    # 创建任务目录 + 含 [PROD_TOUCHED] 标记的产出文件
+    # 创建任务目录 + 句中提及 [PROD_TOUCHED] 的产出文件
     mkdir -p "$REPO/docs/tasks/T001"
     echo "do something to production [PROD_TOUCHED]" > "$REPO/docs/tasks/T001/P5-verification.md"
     # 同时改 .state.yaml phase，触发 gate
@@ -114,9 +114,8 @@ status: active
 retries: {}
 EOF
     git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
-    run git -C "$REPO" commit -m "should fail"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"PROD_TOUCHED"* ]]
+    run git -C "$REPO" commit -m "mention not declaration"
+    [ "$status" -eq 0 ]
 }
 
 @test "IT.4 pre-commit-hook .state.yaml phase 变更触发 state-yaml 校验" {
@@ -515,7 +514,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "IT_PT_BINARY.4 暂存 diff 含不合规格式（句中引用）→ 中止（步骤 2）" {
+@test "IT_PT_BINARY.4 暂存 diff 含句中引用 [PROD_TOUCHED]（非行首声明）→ 不中止（T090 修复）" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
@@ -528,12 +527,11 @@ status: active
 retries: {}
 EOF
     git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
-    run git -C "$REPO" commit -m "should fail"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"不合规"* ]]
+    run git -C "$REPO" commit -m "should pass"
+    [ "$status" -eq 0 ]
 }
 
-@test "IT_PT_BINARY.5 暂存 diff 含句中引用 [PROD_TOUCHED] → 中止（步骤 2）" {
+@test "IT_PT_BINARY.5 暂存 diff 含句中引用 [PROD_TOUCHED]（非行首声明）→ 不中止（T090 修复）" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
@@ -546,9 +544,8 @@ status: active
 retries: {}
 EOF
     git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
-    run git -C "$REPO" commit -m "should fail"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"不合规"* ]]
+    run git -C "$REPO" commit -m "should pass"
+    [ "$status" -eq 0 ]
 }
 
 @test "IT_PT_BINARY.6 暂存 diff 既无正向也无负向 → 不中止 + 无 WARNING（步骤 3 静默通过）" {
@@ -833,6 +830,23 @@ EOF
     [ "$status" -eq 0 ]
 }
 
+@test "IT_PT_MENTION.1 正文句中提及 [PROD_TOUCHED]（非行首声明）→ 不误报（T090 修复）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001"
+    echo "说明：本任务无生产接触，不需要写 [PROD_TOUCHED] 声明" > "$REPO/docs/tasks/T001/P5-verification.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P5
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    run git -C "$REPO" commit -m "mention not declaration"
+    [ "$status" -eq 0 ]
+}
+
 # ========== P6 self-authored gate 代码直改硬拦截 ==========
 
 @test "IT_P6_CODE.1 phase=P6，暂存 P6-evidence/ 下截图 → 不拦（证据文件例外）" {
@@ -976,11 +990,11 @@ EOF2
     git -C "$REPO" add docs/tasks/T001/
     git -C "$REPO" commit -qm "setup P6 state"
 
-    # 故意在工作区留一个句中引用 [PROD_TOUCHED] 的文件（不合规格式，phase 无关，
-    # 会被 pre-commit-gate.sh 的二值声明步骤 2 硬拦截）。agate-retreat-to.sh 的
+    # 故意在工作区留一个行首 [PROD_TOUCHED] 声明的文件（真声明，phase 无关，
+    # 会被 pre-commit-gate.sh 的一值声明步骤 1 硬拦截）。agate-retreat-to.sh 的
     # git add "$TASK_DIR" 会在第一步（P6->P5）把它一并带上，验证中途拒绝时脚本
     # 能正确报告"已停在 P6"且不会继续尝试后续步骤
-    echo "记录：曾经不小心碰到了 [PROD_TOUCHED] 生产环境" > "$REPO/docs/tasks/T001/note.md"
+    echo "[PROD_TOUCHED] 意外接触了生产环境" > "$REPO/docs/tasks/T001/note.md"
 
     run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' docs/tasks/T001 P4 '集成测试：中途拒绝'"
     [ "$status" -eq 1 ]
@@ -1012,7 +1026,7 @@ EOF2
     [[ "$output" != *"检测到生产环境接触"* ]]
 }
 
-@test "IT_PT_T6.2 任务产出文件含句中 [PROD_TOUCHED]（非 AGATE_CARD 块内）→ 仍拦截（不回归）" {
+@test "IT_PT_T6.2 任务产出文件含句中 [PROD_TOUCHED]（非 AGATE_CARD 块内）→ 不拦截（T090 修复）" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
@@ -1025,9 +1039,8 @@ status: active
 retries: {}
 EOF2
     git -C "$REPO" add docs/tasks/T001/
-    run git -C "$REPO" commit -m "should still be blocked"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"不合规的 PROD_TOUCHED"* ]]
+    run git -C "$REPO" commit -m "mention not declaration"
+    [ "$status" -eq 0 ]
 }
 
 @test "IT_PT_T6.3 任务产出文件含行首 [PROD_TOUCHED]（步骤1）→ 拦截（回归）" {

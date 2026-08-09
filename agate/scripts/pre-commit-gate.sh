@@ -131,7 +131,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
             echo "GATE: [PROD_TOUCHED] 检测到生产环境接触（${TASK_ID}），commit 中止" >&2
             exit 1
         fi
-        if echo "$DIFF_ADDED" | grep -q '\[PROD_TOUCHED\]'; then
+        if echo "$DIFF_ADDED" | grep -E '^\s*-?\s*\[PROD_TOUCHED\]\s*$' >/dev/null 2>&1; then
             echo "GATE: 不合规的 PROD_TOUCHED 标记格式（${TASK_ID}），须用行首 [PROD_TOUCHED] 或 [PROD_NOT_TOUCHED] 声明" >&2
             exit 1
         fi
