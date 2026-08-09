@@ -72,7 +72,7 @@ DCTPL
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
     cat > "$REPO/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P1
 status: active
 retries: {}
@@ -89,7 +89,7 @@ EOF
     cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
-task_id: T001
+task_id: TXX0001
 status: approved
 agent: requirements-review
 ---
@@ -112,7 +112,7 @@ EOF
     echo "do something to production [PROD_TOUCHED]" > "$REPO/docs/tasks/T001/P5-verification.md"
     # 同时改 .state.yaml phase，触发 gate
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -143,7 +143,7 @@ EOF
     git -C "$REPO" commit -qm "init"
     # 任意 .state.yaml 变更（不一定是 phase）→ 也触发格式校验
     cat > "$REPO/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P1
 status: active
 retries: {}
@@ -162,7 +162,7 @@ EOF
     git -C "$REPO" commit -qm "init"
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P1
 status: active
 retries: {}
@@ -178,7 +178,7 @@ EOF
     cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
-task_id: T001
+task_id: TXX0001
 status: approved
 agent: requirements-review
 ---
@@ -228,7 +228,7 @@ EOF
     git -C "$REPO" commit -qm "init"
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P1
 status: active
 retries: {}
@@ -244,7 +244,7 @@ EOF
     cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
-task_id: T001
+task_id: TXX0001
 status: approved
 agent: requirements-review
 ---
@@ -256,7 +256,7 @@ EOF
     git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
     git -C "$REPO" commit -qm "T001 P1"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P2
 status: active
 retries: {}
@@ -273,7 +273,7 @@ EOF
     git -C "$REPO" commit -qm "init"
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P2
 status: active
 retries: {}
@@ -290,7 +290,7 @@ EOF
 ---
 agent: test
 phase: P2
-task_id: T001
+task_id: TXX0001
 type: design
 parent: P1-requirements.md
 trace_id: T001-P2-20260708
@@ -319,7 +319,7 @@ EOF2
     git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context-architect.md"
     git -C "$REPO" commit -qm "T001 P2"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -340,7 +340,7 @@ EOF
     git -C "$REPO" commit -qm "init"
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P2
 status: active
 retries: {}
@@ -357,7 +357,7 @@ EOF
 ---
 agent: test
 phase: P2
-task_id: T001
+task_id: TXX0001
 type: design
 parent: P1-requirements.md
 trace_id: T001-P2-20260708
@@ -394,7 +394,7 @@ EOF2
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
     cat > "$REPO/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P1
 status: active
 retries: {}
@@ -411,7 +411,7 @@ EOF
     cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
-task_id: T001
+task_id: TXX0001
 status: approved
 agent: requirements-review
 ---
@@ -431,7 +431,7 @@ EOF
     git -C "$REPO" commit -qm "init"
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P2
 status: active
 retries: {}
@@ -448,7 +448,7 @@ EOF
     git -C "$REPO" commit --no-verify -qm "T001 P2 setup"
     echo "print('hello')" > "$REPO/hack.py"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P2
 status: active
 retries:
@@ -470,7 +470,7 @@ EOF
     mkdir -p "$REPO/docs/tasks/T001"
     echo "[PROD_TOUCHED] 接触了生产环境：修改了线上配置" > "$REPO/docs/tasks/T001/P5-verification.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -488,7 +488,7 @@ EOF
     mkdir -p "$REPO/docs/tasks/T001"
     echo "[PROD_NOT_TOUCHED]" > "$REPO/docs/tasks/T001/P5-verification.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -525,7 +525,7 @@ EOF
     mkdir -p "$REPO/docs/tasks/T001"
     echo "无 [PROD_TOUCHED] 需要报告" > "$REPO/docs/tasks/T001/P5-verification.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -542,7 +542,7 @@ EOF
     mkdir -p "$REPO/docs/tasks/T001"
     echo "检查了 [PROD_TOUCHED] 标记" > "$REPO/docs/tasks/T001/P5-verification.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -559,7 +559,7 @@ EOF
     mkdir -p "$REPO/docs/tasks/T001"
     echo "normal content without any marker" > "$REPO/docs/tasks/T001/P5-verification.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -796,7 +796,7 @@ EOF
     git -C "$REPO" commit -qm "init"
     mkdir -p "$REPO/docs/tasks/T001"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: PAUSED
 status: active
 retries: {}
@@ -824,7 +824,7 @@ EOF
     mkdir -p "$REPO/docs/tasks/T001"
     echo "[PROD_NOT_TOUCHED] 确认未接触" > "$REPO/docs/tasks/T001/P5-verification.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -841,7 +841,7 @@ EOF
     mkdir -p "$REPO/docs/tasks/T001"
     echo "说明：本任务无生产接触，不需要写 [PROD_TOUCHED] 声明" > "$REPO/docs/tasks/T001/P5-verification.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -902,7 +902,7 @@ EOF2
     echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
     echo "print('fix')" > "$REPO/src/app.py"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
-task_id: T001
+task_id: TXX0001
 phase: P6
 status: active
 retries: {}
@@ -955,7 +955,7 @@ EOF2
     mkdir -p "$REPO/docs/tasks/T001" "$REPO/src"
     echo "print('early')" > "$REPO/src/app.py"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
-task_id: T001
+task_id: TXX0001
 phase: P2
 status: active
 retries: {}
@@ -976,7 +976,7 @@ EOF2
     echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
     touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/x.png"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
-task_id: T001
+task_id: TXX0001
 phase: P6
 status: active
 retries: {}
@@ -1005,7 +1005,7 @@ EOF2
     echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
     touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/x.png"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
-task_id: T001
+task_id: TXX0001
 phase: P6
 status: active
 retries: {}
@@ -1057,7 +1057,7 @@ EOF2
     mkdir -p "$REPO/docs/tasks/T001"
     echo "记录：曾经不小心碰到了 [PROD_TOUCHED] 生产环境" > "$REPO/docs/tasks/T001/note.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -1074,7 +1074,7 @@ EOF2
     mkdir -p "$REPO/docs/tasks/T001"
     echo "[PROD_TOUCHED] 意外接触生产环境" > "$REPO/docs/tasks/T001/note.md"
     cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
-task_id: T001
+task_id: TXX0001
 phase: P5
 status: active
 retries: {}
@@ -1136,7 +1136,7 @@ EOF
     git -C "$repo" commit -q --allow-empty -m "init"
     mkdir -p "$repo/docs/tasks/T001"
     cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P8
 status: active
 retries: {}
@@ -1162,7 +1162,7 @@ EOF
     chmod +x "$repo/.git/hooks/pre-commit"
     mkdir -p "$repo/docs/tasks/T001"
     cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P2
 status: active
 retries: {}
@@ -1215,7 +1215,7 @@ EOF
     chmod +x "$HOOK_PATH"
     mkdir -p "$repo/docs/tasks/T086"
     cat > "$repo/docs/tasks/T086/.state.yaml" <<EOF2
-task_id: T086
+task_id: TXX0086
 phase: P6
 status: active
 retries: {}
@@ -1251,7 +1251,7 @@ import sys; sys.stdout.buffer.write(png)
 ---
 phase: P6
 generated_by: agate-next-card.sh + 主 Agent
-task_id: T086
+task_id: TXX0086
 role: verifier
 ---
 
