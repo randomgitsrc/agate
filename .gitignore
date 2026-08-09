@@ -7,6 +7,9 @@
 # agate 运行时状态（项目级，不是协议仓库内容）
 .state.yaml
 
+# OpenCode 项目级接入层（软链 → docs/converse/agents，本地环境配置不入库）
+.opencode/
+
 # Python
 __pycache__/
 *.pyc
