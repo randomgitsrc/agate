@@ -213,6 +213,7 @@ ui_affected: false
 ## 3. gate 命令（在 P2 固化，后续不得修改）
 gate_commands:
   P3: "pytest"                     # 可选：测试运行器（verbose 输出，供 check-tdd-red.sh 自动读取）
+  P3_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected 且新增测试在 E2E 层时必填（T090 问题2）
   P3_formatter: "pytest.sh"  # 可选：formatter 脚本（见 assets/formatters/README.md 速查表）
   P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
   P5_formatter: "pytest.sh"        # 可选：formatter 脚本，将测试输出标准化为 JSON
