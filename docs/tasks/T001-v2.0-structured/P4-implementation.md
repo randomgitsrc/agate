@@ -386,3 +386,105 @@ bats agate/tests/unit/check-gate.bats agate/tests/unit/check-scope-resolved.bats
   `_read_frontmatter` 同等方式剥离首尾 `---` 分隔符后解析）逐块验证可解析，无一失败。
 
 以上均为自查，不代表 P5 gate 已过。
+
+## 流 D
+
+### 目标
+
+任务编号规则硬切（BDD-25..27）：`agate-state-yaml-check.py` 的 task_id 正则从 `^T\d+$`
+硬切为 `^T[A-Z]{2}\d+$`（新格式如 `TAG0001`，不兼容旧格式 `T001`）；`check-changelog.sh`
+去短前缀提取，直接匹配完整 task_id；文档/模板 task_id 示例同步为新格式（P2-design.md §3.4
+全节）。
+
+### 改动文件清单
+
+1. **`agate/scripts/agate-state-yaml-check.py`**（约第 39 行）
+   - `re.match(r"^T\d+$", ...)` → `re.match(r"^T[A-Z]{2}\d+$", ...)`
+   - 报错信息同步为"应为 T + 2 个大写字母项目代号 + 数字，如 TAG0001"
+   - 硬切，未做双格式兼容（F19，P0-brief 已定）
+
+2. **`agate/scripts/check-changelog.sh`**（约第 11-15 行、33-40 行）
+   - `TASK_ID_SHORT=$(echo "$TASK_ID" | grep -oE 'T[0-9]+' | head -1)` + 空值回退 →
+     直接 `TASK_ID_SHORT="$TASK_ID"`（不再截取短前缀）
+   - **额外调整（超出 P2 §3.4.2 字面描述，见下方 DESIGN_GAP）**：移除了原有的
+     `grep -qF "$TASK_ID"` 固定字符串 fallback 分支。原因：`TASK_ID_SHORT` 现已恒等于
+     `TASK_ID`，若保留该 fallback，会对同一字符串做一次无单词边界保护的子串匹配——
+     导致 `TAG0001` 被 `TAG00012`（另一个更长编号任务的条目）误判为已匹配，直接违反
+     `CL.7`（BDD-27 明确要求的"不误匹配"用例）。移除后 `CL.6`/`CL.7`/`CL.8` 全部转绿，
+     `CL.1`-`CL.5` 回归用例未受影响（均由前面的单词边界正则或 `[Unreleased]` 抽取逻辑
+     覆盖，不依赖该 fallback）。
+
+3. **全库 grep 核对下游消费点**（约束 1 第 3 条）：确认全仓库范围内除
+   `check-changelog.sh` 外，无其他脚本使用 `grep -oE 'T[0-9]+'` 或等价正则"提取任务
+   短号"模式（已排查 `agate-summary.sh`、`active-tasks.md` 相关脚本及全部
+   `agate/scripts/*.sh`/`*.py`）。命中的唯一位置就是已处理的 `check-changelog.sh:14`，
+   无需额外同步改动。
+
+4. **`agate/assets/templates/active-tasks-template.md`**（第 4 条规则，仅改该条文字）
+   - "新任务编号 = 当前最大编号 + 1" → "新任务编号 = `T{项目代号}{编号}`（项目代号 2
+     个大写字母，对齐 Jira 风格 `[A-Z][A-Z]+`；编号为动态 `\d+`，3 位起步可扩至 6 位，
+     如 `TAG0001`）；项目局部命名空间内按项目代号 + 动态编号递增，不复用已取消任务的
+     编号"
+
+5. **`agate/state-machine.md` / `dispatch-protocol.md` / `role-system.md`**（仅改举例
+   文本中的 task_id 示例值，不改其他内容）
+   - `state-machine.md`：任务看板示例行、"创建第一个任务"举例、两处 `.state.yaml`/
+     frontmatter YAML 样例（`task_id`/`trace_id`）、恢复流程举例，共 5 处 `T001` →
+     `TAG0001`
+   - `dispatch-protocol.md`：`task_id: {完整 task_id，如 T002-fix-db-migration}` →
+     `TAG0002-fix-db-migration`；"完整派发示例（T001 P2 阶段）"整段举例（含小节标题）
+     6 处 `T001` → `TAG0001`；"任务完成小结"下方的 `[T001] DONE` 输出格式示例 → `[TAG0001] DONE`
+   - `role-system.md`：评审派发举例的 `docs/tasks/T002/P2-design.md`、
+     `docs/tasks/T002/P2-review.md` → `TAG0002`
+   - 未改动的 `T005`/`T006`/`T016`/`T019`/`T020`/`T027`/`T048`/`T075`/`T080`/`T090`/
+     `T004`（含"T001 教训：主 Agent 完成任务后未向 PM 汇报"一处）等——这些是三份文档
+     里大量存在的"历史教训引用"（引用项目实际发生过的具体历史任务编号作为经验来源），
+     不是"task_id 字段格式举例"，按约束"只改举例文本，不改其他内容"未触碰
+
+### DESIGN_GAP 声明
+
+[DESIGN_GAP: check-changelog.sh 移除了 P2-design.md §3.4.2 明确要求"保留"的 `grep -qF "$TASK_ID"` fallback 分支。P2 原文写"fallback `grep -qF "$TASK_ID"` 保留"，但 `TASK_ID_SHORT` 去短前缀提取后已恒等于 `TASK_ID`，保留该 fallback 会用无边界保护的固定字符串子串匹配对同一字符串再匹配一次，导致 `TAG0001` 被 `TAG00012` 误判为已匹配（CL.7 用例实测复现：`[ "$status" -eq 1 ]` 断言失败，因为 fallback 让 exit 0）。判断依据：P3-test-cases.md §5 明确把 CL.7 列为 BDD-27 的验收断言，测试断言与 P2 设计字面表述矛盾时按 implementer 决策树"不改测试、标记偏离"处理；由于同一字符串对自身做无边界子串匹配在语义上不可能提供比上面带边界的正则更严格的匹配（只会更宽松、只会引入误判），判断"移除 fallback"是唯一能同时满足 BDD-27 三个用例（CL.6/CL.7/CL.8）的实现方式，未发现移除后有回归（CL.1-CL.5 及全部既有 check-changelog 相关用例仍绿）。]
+
+[DESIGN_GAP: 硬切 `agate-state-yaml-check.py` 的 task_id 正则后，除 P3-test-cases.md §5 声明的 4 个预期红灯（SY.1/CL.6/CL.7/CL.8）外，额外触发了 33 个此前未被列入流 D 红灯清单、此前一直是绿灯的既有测试失败：单元测试 `agate/tests/unit/check-state-yaml.bats` 的 `SY.8`（1 个，`task_id: T001` 视为"全合规"场景现被新正则拒绝）；集成测试 `agate/tests/integration/pre-commit-hook.bats`（26 个，如 IT.2/IT.3/IT.5/IT.6/IT.8/IT.9/IT.10/IT.11/IT_PT_BINARY.1/2/4/5/6/7/IT_PHASE_SPAN.5/IT_PT_MENTION.1/IT_P6_CODE.2/5/IT_RETREAT.1/2/IT_PT_T6.2/3/IT_CHANGELOG_P54b/IT_GATE_REAL.1/HOOK_EVIDENCE_WARNING 等）与 `agate/tests/integration/dispatch-context-card.bats`（6 个，DC.2-DC.7）。根因相同：这些测试在真实 git 仓库里跑真实 pre-commit hook，fixture 里的 `.state.yaml` 用旧格式 task_id（`T001`/`T999` 等），hook 内部调用 `check-state-yaml.sh`→`agate-state-yaml-check.py` 校验，新正则把这些 fixture 判为格式错误直接拦截 commit（`git commit` 本身失败），导致测试要验证的真正行为（PROD_TOUCHED 扫描、phase span 校验、dispatch-context hash 等）根本没机会被断言到。已用 `git stash` 验证：stash 掉本流全部改动后重跑同一批文件，0 个 not ok（这些测试在流 C 交付时是全绿的，回归确系本流引入，非环境问题）。P2-design.md §3.4 及 P3-test-cases.md §5/§6 的"流 D 红灯只依赖两处局部改动，与流 A/B/C 完全独立"表述，只核对了 `agate-state-yaml-check.bats`/`check-changelog.bats` 两个专项文件，未核对代码库里其他"经由真实 pre-commit hook 间接调用 `agate-state-yaml-check.py`"的集成测试 fixture 是否也用了旧格式 task_id——这是 P1/P2/P3 三阶段均未覆盖到的连带影响面，不是本流"允许改动的文件"清单能修复的（`agate/tests/**` 明确禁止我改，这些 fixture 的 task_id 需要 P3 test-designer 或经批准后由 implementer 批量迁移为新格式）。未做任何自行降级处理（未放宽正则、未加兼容分支），原样保留硬切实现，仅如实呈报，交由主 Agent/P7 裁决：是否需要追加一轮定向派发把这 33 个 fixture 的 task_id 迁移为 `TAG` 格式。]
+
+### 未改动文件（确认，非遗漏）
+
+按约束仅改动上述文件；`agate/scripts/agate-md-field-get.py`、`agate/scripts/agate-frontmatter-check.py`、
+`check-frontmatter.sh`、`check-gate.sh`、`check-p6-*.sh`、`check-scope-resolved.sh`（流
+A/B/C 已完成，与流 D 无关）、`agate/tests/**`（含上方 DESIGN_GAP 提到的失败用例，均未
+改动测试文件本身）均未触碰，符合派发指引范围锁定。
+
+### 594 配平说明
+
+本流不涉及新增测试文件，`agate/tests/**` 未改动，594 配平口径无变化（`count-tests.sh`
+自查结果仍为 594，见下）。
+
+### 自查结果（非 P5 gate，仅确认未做错）
+
+指定自查命令（派发指引第 6 条）：
+```
+bats agate/tests/unit/agate-state-yaml-check.bats agate/tests/unit/check-changelog.bats
+```
+11/11 通过。目标红转绿：`SY.1`（BDD-25/26 双向：TAG0001 通过 + T001 硬切拒绝）、
+`CL.6`/`CL.7`/`CL.8`（BDD-27，含误匹配边界用例）全部转绿。
+
+补充自查（超出指定命令范围，用于确认无越界回归）：
+- `bats agate/tests/unit/ agate/tests/regression/`：516 个用例，**515 通过 / 1 失败**——
+  `SY.8`（`agate/tests/unit/check-state-yaml.bats`），失败原因见上方 DESIGN_GAP。这是
+  本流唯一一处**未能清零的红灯**，不满足派发指引第 6 条"完成后本地全量测试应该
+  594/594（516/516 该子集）全绿"的目标。
+- `bash agate/tests/scripts/count-tests.sh`：594（不漂移，BDD-11 保持达标）。
+- `python3 agate/scripts/check-protocol-consistency.py`：全部 CHECK 1-9 PASS（含 CHECK 9
+  锚点表对齐，`agate-state-yaml-check.py` 的 `task_id` 锚点、`check-changelog.sh` 的
+  `CHANGELOG` 锚点关键词均未因本流改动消失）。
+- `shellcheck -S warning agate/scripts/check-changelog.sh`：0 警告。
+- `bats agate/tests/integration/ agate/tests/sanity.bats`：**52 通过 / 32 失败**（详见上方
+  DESIGN_GAP 第二条）——`consistency.bats`/`commit-msg-self-gate.bats`/`pre-push-hook.bats`/
+  `protocol-alignment-review.bats`/`sanity.bats` 5 个文件全绿；`pre-commit-hook.bats`
+  （26 失败）与 `dispatch-context-card.bats`（6 失败）不绿，根因同上。这是派发指引
+  第 6 条自查命令范围之外的补充验证，超出范围但按"发现即报"原则一并呈报，不隐瞒。
+
+本流是唯一交付了**未清零红灯**的流：`SY.1`/`CL.6`/`CL.7`/`CL.8` 四个目标红灯已全部转绿，
+但连带触发了 33 个此前未被识别的既有用例失败（1 单元 + 32 集成）。以上均为自查，不代表
+P5 gate 已过，也不代表流 D "完成后全绿"的目标已达成——已如实呈报未达成的部分，交主
+Agent/P7 裁决后续处理方式。

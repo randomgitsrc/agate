@@ -455,7 +455,7 @@ trigger: gate_fail
 
 必须包含 Header（完整字段见 task-files.md「通用 Header」）：
   phase: {Pn}
-  task_id: {完整 task_id，如 T002-fix-db-migration}
+  task_id: {完整 task_id，如 TAG0002-fix-db-migration}
   type: {problems|design|review|test-cases|implementation|test-results|acceptance|consistency|release}
   parent: {上一阶段文件名}
   trace_id: {Txxx}-{Pn}-{日期}
@@ -1148,13 +1148,13 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
 
 ---
 
-## 完整派发示例（T001 P2 阶段）
+## 完整派发示例（TAG0001 P2 阶段）
 
 ```
 主 Agent：
 
-1. 读 active-tasks.md → T001 在 P2 阶段
-2. 确认 docs/tasks/T001/P1-requirements.md 存在 ✓
+1. 读 active-tasks.md → TAG0001 在 P2 阶段
+2. 确认 docs/tasks/TAG0001/P1-requirements.md 存在 ✓
 3. 选角色：architect（P2 执行角色）
 4. 调用 task 工具：
    subagent_type: architect（或 general + 注入角色文件）
@@ -1162,16 +1162,16 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
      你是 P2 阶段的 architect 子 Agent。
      角色定义：读取 {agate_root}/assets/execution-roles/architect.md
      项目约定（必读）：CLAUDE.md
-     P0-brief（必读）：docs/tasks/T001/P0-brief.md（环境约束和风险声明）
-     输入：读取 docs/tasks/T001/P1-requirements.md
+     P0-brief（必读）：docs/tasks/TAG0001/P0-brief.md（环境约束和风险声明）
+     输入：读取 docs/tasks/TAG0001/P1-requirements.md
      任务：为数据库迁移问题设计方案
-     输出：docs/tasks/T001/P2-design.md（含 Header）
+     输出：docs/tasks/TAG0001/P2-design.md（含 Header）
      门槛：方案覆盖 P1 列出的所有问题
      返回：只返回文件路径 + 一句话摘要
-5. subagent 返回："docs/tasks/T001/P2-design.md，采用 schema_version 表 + 顺序迁移脚本"
+5. subagent 返回："docs/tasks/TAG0001/P2-design.md，采用 schema_version 表 + 顺序迁移脚本"
 6. 派发评审 subagent（plan-eng-review 角色）→ 产出 P2-review.md
 7. 读 P2-review.md 的 Header status
-   - approved → 更新 active-tasks.md，T001 进入 P3
+   - approved → 更新 active-tasks.md，TAG0001 进入 P3
    - rejected → 重试 architect（retries[P2] 记录第 1 轮），通过文件路径回流评审意见（见下）
 ```
 
@@ -1212,7 +1212,7 @@ rejected 时，主 Agent 的重试派发 prompt 里加一行：
 
 示例：
 ```
-[T001] DONE — 数据库迁移机制修复 v0.1.53
+[TAG0001] DONE — 数据库迁移机制修复 v0.1.53
 
 改动：exceptions.py +18 / database.py +51 / cli.py +7 / main.py +2
 验证：14/14 migration tests + 486 regression tests

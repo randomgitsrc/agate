@@ -25,7 +25,7 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
 ```markdown
 | 序号 | 任务名 | 状态 | 阶段 | 重试 | 更新日期 |
 |------|--------|------|------|------|----------|
-| T001 | example-task | 🔄 进行中 | P4 | 0 | YYYY-MM-DD |
+| TAG0001 | example-task | 🔄 进行中 | P4 | 0 | YYYY-MM-DD |
 ```
 
 这是"宏观状态"——任务走到哪了。
@@ -40,7 +40,7 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
       1. mkdir -p docs/tasks/
       2. 从 {agate_root}/assets/templates/active-tasks-template.md
          复制结构到 docs/tasks/active-tasks.md（清空示例数据，保留表结构）
-      3. 视为"无进行中任务"，可以直接创建第一个任务（T001）
+      3. 视为"无进行中任务"，可以直接创建第一个任务（TAG0001）
 ```
 
 不要把"文件不存在"误判为错误或异常，更不要因为读不到文件就假设任务已完成或卡住——这是初始化场景，唯一正确动作是建表，然后继续往下走。
@@ -52,9 +52,9 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
 ```yaml
 ---
 phase: P2
-task_id: T001
+task_id: TAG0001
 parent: P1-requirements.md
-trace_id: T001-P2-YYYYMMDD
+trace_id: TAG0001-P2-YYYYMMDD
 status: approved        # ← 门槛判定字段
 ---
 ```
@@ -403,7 +403,7 @@ function 执行一步(task_id):
 位置：`docs/tasks/{Txxx}/.state.yaml`
 
 ```yaml
-task_id: T001
+task_id: TAG0001
 phase: P4
 status: in_progress
 
@@ -460,8 +460,8 @@ env_state:
       依次重读：orchestrator-template.md 的 mapping 表查当前阶段卡片，按卡片指引执行。
       卡片查不到的信息回退到 orchestrator-template.md「Fallback（按需查阅，不要求每轮必读）」节。
       不能假设压缩前读过的内容还在上下文里。
-  1. 主 Agent 重新读 active-tasks.md → "T001 在 P4，重试 0"
-  2. 读 docs/tasks/T001/ → P4-implementation/ 是否已有文件？
+  1. 主 Agent 重新读 active-tasks.md → "TAG0001 在 P4，重试 0"
+  2. 读 docs/tasks/TAG0001/ → P4-implementation/ 是否已有文件？
      - 有 → P4 已完成，直接判定门槛，进 P5
      - 没有 → P4 没做完，重新派发 P4 subagent
   3. 接着干

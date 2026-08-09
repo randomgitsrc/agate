@@ -8,11 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 TASK_ID="${1:?用法: check-changelog.sh TASK_ID}"
 
-# 提取 task_id 短前缀（T\d+）作为 CHANGELOG 搜索关键词
-# .state.yaml 的 task_id 可能是完整目录名（T060-archived-visibility-auth-refresh），
-# 但 CHANGELOG 条目通常只写短前缀（T060）
-TASK_ID_SHORT=$(echo "$TASK_ID" | grep -oE 'T[0-9]+' | head -1)
-[ -z "$TASK_ID_SHORT" ] && TASK_ID_SHORT="$TASK_ID"
+# v2.0 流 D（BDD-27，P2-design.md §3.4.2）：不再截取短前缀，直接用完整 task_id
+# 作为 CHANGELOG 搜索关键词。新格式 task_id（如 TAG0001）本身就是完整短标识，
+# 旧版 grep -oE 'T[0-9]+' 对 T 后紧跟字母的新格式会提取为空（F17）。
+TASK_ID_SHORT="$TASK_ID"
 CHANGELOG_FILE="${CHANGELOG_FILE:-CHANGELOG.md}"
 
 [ ! -f "$CHANGELOG_FILE" ] && exit 0
@@ -34,9 +33,8 @@ fi
 if echo "$UNRELEASED_CONTENT" | grep -qE "(^|[^0-9])${TASK_ID_SHORT}( |:|$|,|-)" 2>/dev/null; then
     exit 0
 fi
-# fallback: 尝试完整 task_id 固定字符串匹配（如 CHANGELOG 写了完整目录名）
-if echo "$UNRELEASED_CONTENT" | grep -qF "$TASK_ID" 2>/dev/null; then
-    exit 0
-fi
+# 无固定字符串 fallback：TASK_ID_SHORT 现已等于完整 TASK_ID，若再对 TASK_ID 做
+# grep -qF 固定字符串匹配会失去上面的单词边界保护，导致 TAG0001 被 TAG00012
+# 这类"更长编号任务"的条目误判为匹配（BDD-27 / CL.7 明确要求不误匹配）。
 echo "GATE CHANGELOG: [Unreleased] 区域未找到 ${TASK_ID_SHORT}（或 ${TASK_ID}）" >&2
 exit 1

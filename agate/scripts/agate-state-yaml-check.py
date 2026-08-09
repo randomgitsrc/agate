@@ -36,8 +36,8 @@ for field in ("task_id", "phase", "status"):
         errors.append("缺必填字段: {}".format(field))
 
 task_id = data.get("task_id", "")
-if task_id and not re.match(r"^T\d+$", str(task_id)):
-    errors.append("task_id 格式错误: {}（应为 T + 数字，如 T001）".format(task_id))
+if task_id and not re.match(r"^T[A-Z]{2}\d+$", str(task_id)):
+    errors.append("task_id 格式错误: {}（应为 T + 2 个大写字母项目代号 + 数字，如 TAG0001）".format(task_id))
 
 phase = str(data.get("phase", ""))
 if phase and phase not in valid_phases:
