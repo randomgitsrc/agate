@@ -295,6 +295,11 @@ agent: analyst
 - [SUGGEST: 角色卡 frontmatter 模板采用"可复制最小集 + 注释占位"格式，理由：v0.31.0 给 P1 加模板已验证有效（可行性 §5.1 ③），可复制模板是 LLM 写对格式的最可靠输入] → **已采纳（archived P1 主 Agent 2026-08-09）**：P2 角色卡/模板设计按此实现
 - [SUGGEST: 流 B 的 P6 逐条结果按评估 §3 折中增强处理（汇总入 frontmatter、枚举留正文但格式从严），理由：P6 常见 15-40 条逐条结果全塞 frontmatter 会让文件头膨胀、LLM 缩进错误率上升；折中增强兼顾结构校验与可读性] → **已采纳（P0-brief 分阶段路线已定此折中）**：P2 设计按此实现
 
+### SCOPE+ 登记（P2 阶段发现，2026-08-09）
+
+- [SCOPE_RESOLVED: CHECK 9 锚点表 37→38（新校验器 check-frontmatter.sh 触发反向覆盖检查）]
+  [BASELINE_CHANGE: P2 设计阶段发现——新增 check-frontmatter.sh 是 gate 脚本，check-protocol-consistency.py 的 check_anchor_coverage 反向检查会把新增脚本标记为未覆盖，锚点表须从 37 增至 38（BDD-13"37 条全量通过"表述加注"新增 1 条后 38 条"）。属新增脚本的必然结果，不改变任何 BDD Given/When/Then 语义]
+
 ## 6. 裁剪说明
 
 ```yaml
