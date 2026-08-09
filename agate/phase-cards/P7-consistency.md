@@ -49,6 +49,29 @@ gate 脚本校验说明：
 - P7-consistency.md：一致性审查结论
 - 逐条检查结果，无 [BLOCKER] 标记
 
+`blocker_count`/`deviation_count`/`deviation_critical_count`/`design_gap_count`/
+`design_gap_reviewed_count` 写在文件头 **frontmatter**（`---` 分隔块），不写正文；正文
+`[BLOCKER]`/`[DEVIATION-CRITICAL]`/`[DESIGN_GAP]`/`[DESIGN_GAP_REVIEWED]` 散文标记保留为
+人类痕迹（不迁移），gate 判定改读 frontmatter 结构化计数。**可直接复制的完整样例**：
+```yaml
+---
+phase: P7
+task_id: T001              # 替换为实际任务编号
+type: consistency
+parent: P2-design.md
+trace_id: T001-P7-20260101 # {task_id}-P7-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: consistency-reviewer
+# ── v2.0 机器计数 ──
+blocker_count: 0                  # int ≥0
+deviation_count: 0                # int ≥0
+deviation_critical_count: 0       # int ≥0
+design_gap_count: 0                # int ≥0
+design_gap_reviewed_count: 0       # int ≥0
+---
+```
+
 ## gate 规则
 
 ```bash

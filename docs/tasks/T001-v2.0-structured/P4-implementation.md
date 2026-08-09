@@ -230,3 +230,159 @@ bats agate/tests/unit/check-gate.bats agate/tests/unit/check-p6-format.bats \
   流程。
 
 以上均为自查，不代表 P5 gate 已过。
+
+## 流 C
+
+### 目标
+
+P1 标记"已解决/已确认"状态结构化（BDD-21/22）+ 发现性标记边界确认（BDD-23，不改）+
+角色卡/模板可复制 frontmatter 样例（BDD-24），P2-design.md §3.3 全节。在流 A 交付的
+`agate-md-field-get.py`（`_read_frontmatter`/`_get`/`_format_value`/`KNOWN_OPS`）基础上
+追加 3 个 op，不重新发明。
+
+### 改动文件清单
+
+1. **`agate/scripts/agate-md-field-get.py`（追加）**
+   - 新增 `NO_FALLBACK_LIST_FIELDS` 常量集合：`need_confirm_resolved`/`suggest_resolved`/
+     `scope_resolved` 共 3 个流 C 字段。与流 B 的 `NO_FALLBACK_INT_FIELDS` 同理——
+     v0.35 正文没有这些字段的单行声明形式，frontmatter 无该字段时直接输出空字符串，
+     不做正则回退（调用方自行执行旧格式判定/回退逻辑）。
+   - `_format_value` 对这 3 个字段用**换行连接**（而非其余 `LIST_FIELDS` 的空格连接）：
+     元素是含空格的散文描述（如"z 的边界条件需确认"），空格连接会让调用方无法区分元素
+     边界；换行连接使调用方可用 `grep -qF -- "$desc"` 逐条子串匹配（BDD-21 逐条匹配
+     要求）。
+   - `KNOWN_OPS` 同步纳入这 3 个字段。
+   - 对应：BDD-21（`RT_BDD21.1`）、BDD-22（`SC_BDD22.1`）的读取层基础设施。
+
+2. **`agate/scripts/check-gate.sh`（只改 P1 分支）**
+   - **NEED_CONFIRM 逐条匹配**（BDD-21）：新增 `NC_UNRESOLVED` 变量，默认等于原有的
+     `NC_BLOCKING`（整段行数计数，格式校验仍用这个原始值，见下）。frontmatter 含
+     `need_confirm_resolved:` 字段（用 `sed -n '/^---$/,/^---$/p' | grep -c` 检测该
+     key 是否出现在文件头 frontmatter 块内，presence 判定不依赖 op 的空字符串输出，
+     因为空列表和字段缺失都会让 op 输出空字符串，两者需要区分）→ 逐条提取正文每条
+     `[NEED_CONFIRM]` 的描述文本（`grep -E '^\s*-?\s*\[NEED_CONFIRM\]' | sed -E
+     's/^\s*-?\s*\[NEED_CONFIRM\][[:space:]]*//'`），对每条用 `grep -qF` 检查是否
+     出现在 `need_confirm_resolved` 列表（op 输出，换行连接）中，未匹配的计入
+     `NC_UNRESOLVED`。字段不存在（旧格式）→ `NC_UNRESOLVED` 保持等于整段行数（回退
+     v0.35 行为）。用 `NC_UNRESOLVED`（而非 `NC_BLOCKING`）判定是否阻塞——**逐条匹配，
+     不是数量相减**（F14 教训：避免 5 项对 5 项但内容对不上的 0-vs-0 歧义）。
+   - **格式校验保留用原始 `NC_BLOCKING`**：typo 兜底 2（"不合规的 NEED_CONFIRM 标记
+     格式"）的判定条件 `grep -qE '\[NEED_CONFIRM\]' && [ "$NC_BLOCKING" -eq 0 ]` 未改，
+     仍用未经"已解决"过滤的原始整段计数——否则一个格式合规但已全部解决的 NEED_CONFIRM
+     会被误判为"格式不合规"（`NC_UNRESOLVED` 降到 0 后触发该分支）。
+   - **SUGGEST WARNING 去重**（约束 4）：同构实现 `NC_SUGGEST_UNACKED`，frontmatter
+     含 `suggest_resolved:` 字段时逐条匹配正文 `[SUGGEST: ...]` 描述（提取时同时剥离
+     开头 `[SUGGEST: ` 和结尾 `]`），已采纳（匹配上）的项不计入 WARNING 数。此分支
+     P3 无独立可执行断言（P3-test-cases.md §4 流 C 表未列 SUGGEST 去重的红灯用例），
+     按派发指引约束 4 的文字要求直接实现，用 `G_SUGGEST.*` 系列既有绿灯用例（无
+     `suggest_resolved` 字段场景）验证未回归。
+   - 对应：BDD-21（`RT_BDD21.1` 转绿）+ 约束 4（SUGGEST 去重，无独立测试）。
+
+3. **`agate/scripts/check-scope-resolved.sh`（追加，新增 `SCRIPT_DIR` 变量）**
+   - 在原有"有 SCOPE+ 但 P1 无 [SCOPE_RESOLVED]"grep 判定**之前**插入新格式短路
+     判定：读 frontmatter `scope_resolved`（新 op，换行连接）→ 非空字符串（列表非空）
+     → 直接 `echo ... && exit 0`（已解决，不再扫描正文 `[SCOPE_RESOLVED]` 散文标记）。
+     op 输出为空（字段不存在 **或** 字段存在但为空列表，两种情况本工具不做区分，
+     见下方 DESIGN_GAP）→ 落入原有正文 grep 回退判定（`RESOLVED_COUNT` 逻辑，字节级
+     未改动）。
+   - 跨文件 `[SCOPE+]` 散文扫描逻辑（`for f in "$TASK_DIR"/*.md; do ...`）**未改动**
+     （BDD-23，发现性标记本体保持散文）。
+   - 对应：BDD-22（`SC_BDD22.1` 转绿）；SC.2/SC.3/SC.4/SC.6/SC.7 回归绿灯保持
+     （均为 `scope_resolved` op 输出空字符串 → 落入原有回退路径，行为与改造前一致）。
+
+4. **`agate/assets/templates/task-files.md`（BDD-24）**
+   - P1/P2/P6/P7 产出规格节各新增一段"**可直接复制的完整 frontmatter 样例**"
+     YAML 代码块，字段/格式照抄 P2-design.md §3.1.1（P1/P2）+ §3.2.1（P6，P7 字段
+     取自 §3.2.2）。P1 样例额外含流 C 的 `need_confirm_resolved`/`suggest_resolved`/
+     `scope_resolved` 三个可选字段（含注释说明用途）。
+   - 正文原先直接写 `risk_level:`/`phases:`/`packages:`/`domains:`/`candidate_count:`
+     等字段的示例段落（P1 结构"5. 裁剪说明"/"6. 范围声明"、P2 结构"0. 候选方案数"/
+     "2. 范围声明"）改为"↑ 已迁移至文件头 frontmatter"的指引文字，避免与上方
+     frontmatter 样例重复且互相矛盾（一份文档同时给出"写正文"和"写 frontmatter"
+     两种示例会误导 subagent）。
+   - P1 结构"4. 待确认清单"/"SCOPE+ 增补区"追加一句话说明：已解决/已采纳时不删除
+     散文标记，而是在 frontmatter 对应列表中追加描述。
+   - P6-acceptance.md 结构原有的正文示例（`- PASS 创建 entry 不填过期 → ...`，未带
+     `BDD-N:` 前缀）不符合流 B 已落地的从严格式（`^\s*-\s+(PASS|FAIL)\s+BDD-\d+`），
+     顺带订正为 `- PASS BDD-1: ...` 形式（本节本就要改，顺手修正明显过时的示例，
+     未扩大改动文件范围）。
+   - 新增"## P7-consistency.md 结构"小节（此前该文件不存在 P7 章节）：frontmatter
+     样例 + 简要正文结构（DESIGN_GAP 配对 / 跨文件一致性 / 结论）。
+   - 全部新增 YAML 样例已用 `yaml.safe_load`（剥离 frontmatter 分隔符后，模拟
+     `agate-md-field-get.py` 的 `_read_frontmatter` 实际解析方式）逐块验证可解析。
+
+5. **`agate/assets/execution-roles/analyst.md`（BDD-24）**
+   - "5. 裁剪说明"一节原先给的是**正文内嵌 YAML**示例（v0.35 遗留写法，流 A/B 均
+     未触碰此文件）。改为"机器字段写入文件头 frontmatter"的完整可复制样例（P1
+     全字段 + 流 C 三个可选字段），旧的"仅在适用时声明以下可选字段"body 段落并入
+     同一个 frontmatter 样例块。
+   - "6. 范围声明"改为指向上方样例（不再单独给 `packages:`/`domains:` 正文写法）。
+
+6. **`agate/assets/execution-roles/architect.md`（BDD-24）**
+   - P2 输出说明的 `candidate_count`/`packages`/`domains`/`ui_affected` 四条 bullet
+     之后追加一个整合的可复制 frontmatter 样例块（此前四个字段只有分散的行内
+     `key: value` 提示，没有一个可直接复制粘贴的完整块）。`gate_commands:`/
+     `files_to_read:`/`env_constraints:`/`minimal_validation:` 明确标注"留正文"。
+
+7. **`agate/assets/execution-roles/verifier.md`（BDD-24）**
+   - P6 模式"输出"一节追加 P6 frontmatter 可复制样例（`pass`/`fail`/`ui_affected`）+
+     一句从严行格式提醒（承接流 B 已落地的 `- PASS BDD-NN:` 格式要求，verifier.md
+     此前只在"质量门槛"段提过一次格式规范，未给出独立可复制的 frontmatter 块）。
+   - 未改动 P7（consistency-reviewer 角色卡不在派发指引允许改动清单内，P7 样例
+     只落在 task-files.md + phase-cards/P7-consistency.md）。
+
+8. **`agate/phase-cards/{P1-requirements,P2-design,P6-acceptance,P7-consistency}.md`
+   （BDD-24，产出规格节同步）**
+   - 各自"产出规格"节追加对应的可复制 frontmatter 样例块，与 task-files.md /
+     角色卡的同一份字段集保持一致（同一来源 P2-design.md §3.1.1/§3.2.1/§3.2.2，
+     未重新设计字段名或格式）。
+
+### DESIGN_GAP 声明
+
+[DESIGN_GAP: check-scope-resolved.sh 对 P1 frontmatter scope_resolved 字段"存在但为空列表"与"字段完全不存在"两种情况未做区分处理——两者都落入下方原有正文 [SCOPE_RESOLVED] grep 回退判定，而不是把"字段存在但空"直接判定为拦截。P2-design.md §3.3.1 原文表述为"非空列表即已解决 → 通过；有 SCOPE+ 无 resolved → 拦截；旧格式（frontmatter 无该字段）→ 回退现有正文 grep 判定"，字面上"有 SCOPE+ 无 resolved"（可解读为"字段存在但空"）应立即拦截，与"旧格式（无该字段）才回退"是两条不同的路径。选择合并处理的理由：① `agate-md-field-get.py` 的 `scope_resolved` op 对"字段不存在"和"字段存在但值为空列表"这两种情况都会输出空字符串（`NO_FALLBACK_LIST_FIELDS` 的既定格式化规则——空列表 `"\n".join([])` 结果就是空字符串），仅凭 op 输出无法区分两种情况，需要额外读 frontmatter 块做 presence 检测才能区分（如 P1 分支对 need_confirm_resolved 采用的 `sed -n '/^---$/,/^---$/p' | grep -c '^scope_resolved:'` 方案）；② P3-test-cases.md 给出的唯一流 C 测试用例 SC_BDD22.1 只覆盖"字段存在且非空"（通过）与既有 SC.2/3/4/6/7（字段完全不存在）两种场景，未覆盖"字段存在但显式声明为空列表"这一中间态，测试断言无法反推该场景的确切期望；③ 功能后果上二者等价——"字段存在但空列表"回退到正文 grep 后，只要正文没有遗留的 `[SCOPE_RESOLVED]` 散文标记（新格式任务通常不会再写散文标记），依然会被拦截，与"立即拦截"效果相同，唯一差异是拦截信息的措辞（"无 P1 frontmatter scope_resolved"vs"P1 无 [SCOPE_RESOLVED] 标记"）。风险：若某任务显式声明 `scope_resolved: []` 但正文恰好残留一条旧式 `[SCOPE_RESOLVED]` 散文标记（如从旧格式手动迁移时未清理），会被误判为已解决通过，而非因空列表被拦截——这是本简化相对于字面设计的唯一行为差异，且概率极低（结构化字段和散文标记同时存在但语义相反的场景）。]
+
+### 594 配平说明
+
+本流不涉及新增测试文件，`agate/tests/**` 未改动（测试已由 P3 test-designer 写好并
+commit），594 配平口径无变化。
+
+### 未改动文件（确认，非遗漏）
+
+按约束仅改动上述文件；`agate/scripts/check-changelog.sh`、`agate/scripts/agate-state-yaml-check.py`
+（流 D）、`agate/scripts/agate-frontmatter-check.py`（流 A 已把三个流 C 字段登记为
+P1 schema 可选迁移字段，无需再改）、`agate/scripts/check-gate.sh` 的 P2/P6/P7 分支
+（流 A/B 已完成）、`agate/assets/execution-roles/consistency-reviewer.md`（不在允许
+改动清单内，P7 样例落在 task-files.md + phase-cards）、`agate/tests/**` 均未触碰，
+符合派发指引范围锁定。
+
+### 自查结果（非 P5 gate，仅确认未做错）
+
+指定自查命令（派发指引第 10 条）：
+```
+bats agate/tests/unit/check-gate.bats agate/tests/unit/check-scope-resolved.bats \
+     agate/tests/unit/check-retrospective.bats agate/tests/unit/check-gate-p1-review.bats \
+     agate/tests/integration/pre-commit-hook.bats agate/tests/unit/check-frontmatter.bats \
+     agate/tests/unit/agate-md-field-get.bats
+```
+184/184 通过，0 失败。目标红转绿：`RT_BDD21.1`/`SC_BDD22.1` 全部转绿；回归绿灯保持：
+`check-gate-p1-review.bats` 的"P1: BDD-21 边界（未结构化解决时仍阻塞）"反面回归用例、
+`check-scope-resolved.bats` 的 SC.2/SC.3/SC.4/SC.6/SC.7、`integration/pre-commit-hook.bats`
+的 IT_PT_\*/IT_PT_T6.\* 系列、流 A 的 `CF.*`（10 条）/`MDF.*`（6 条）、流 B 的
+`G_BDD16.1`/`F_BDD18.1`/`PV_BDD19.1`/`PV_BDD20.1` 均未变红。
+
+补充自查（超出指定命令范围，用于确认无越界回归）：
+- `bats agate/tests/unit/ agate/tests/regression/`：516 用例，4 个失败——全部是流 D
+  预期红灯（`SY.1`/`CL.6`/`CL.7`/`CL.8`），相较流 B 交付时的 6 个预期红灯，本次流 C
+  覆盖的 2 个（`RT_BDD21.1`/`SC_BDD22.1`）已转绿，无新增失败、无意外崩溃。
+- `bash agate/tests/scripts/count-tests.sh`：594（不漂移，BDD-11 保持达标）。
+- `python3 agate/scripts/check-protocol-consistency.py`：全部 CHECK 1-9 PASS（含 CHECK 9
+  锚点表 38 条对齐，未因本流改动产生新漂移）。
+- `shellcheck -S warning agate/scripts/check-gate.sh agate/scripts/check-scope-resolved.sh`：
+  0 警告。
+- `bats agate/tests/integration/ agate/tests/sanity.bats`：全量 integration + sanity
+  套件全绿，无回归。
+- 全部新增/改动的 frontmatter YAML 样例块（task-files.md 4 处 + analyst.md/architect.md/
+  verifier.md 各 1 处 + 4 个 phase-cards 各 1 处）已用 `yaml.safe_load`（按
+  `_read_frontmatter` 同等方式剥离首尾 `---` 分隔符后解析）逐块验证可解析，无一失败。
+
+以上均为自查，不代表 P5 gate 已过。

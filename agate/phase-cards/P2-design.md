@@ -49,6 +49,27 @@ P2-design.md 必须包含：
 - **env_constraints**：确认/细化 P0-brief 的环境约束
 - **minimal_validation**：验证结果 或 声明"纯代码逻辑，无外部系统依赖"（声明时须附理由）
 
+`candidate_count`/`packages`/`domains`/`ui_affected` 写在文件头 **frontmatter**（`---` 分隔块），
+不写正文；`gate_commands:`/`files_to_read:`/`env_constraints:`/`minimal_validation:` 留正文。
+**可直接复制的完整样例**：
+```yaml
+---
+phase: P2
+task_id: T001              # 替换为实际任务编号
+type: design
+parent: P1-requirements.md
+trace_id: T001-P2-20260101 # {task_id}-P2-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: architect
+# ── v2.0 机器字段 ──
+candidate_count: 2                # int ≥1，必填
+packages: [pkg-a]                 # list，必填
+domains: [backend, cli]           # list，必填
+ui_affected: false                # bool，必填
+---
+```
+
 候选方案简化（须附理由，无理由视为无效声明，要求 ≥2 候选方案）：
 - `design_trivial: true` + 理由（为什么 trivial）→ 可只写 1 个候选方案（P2 仍不可省略）
 - `follows_existing_pattern: [src/foo.py]`（列出参照文件路径）→ 可只写 1 个候选方案，参照已有模式（P2 仍不可省略）

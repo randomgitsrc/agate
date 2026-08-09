@@ -23,6 +23,18 @@
   blocker_count / deviation_count /
   deviation_critical_count / design_gap_count /
   design_gap_reviewed_count                      P7 int 计数字段（frontmatter-only，无正文回退）
+  need_confirm_resolved / suggest_resolved /
+  scope_resolved                                 P1 流 C 标记状态字段（frontmatter-only，无正文回退，
+                                                  换行连接，供调用方逐条匹配）
+
+流 C 新增字段（P1 标记"已解决/已确认"状态，P2-design.md §3.3）的语义：
+  这 3 个字段是 v2.0 新增的结构化状态列表，v0.35 正文里没有对应的单行声明形式
+  （散文标记 [NEED_CONFIRM]/[SUGGEST:]/[SCOPE+] 本体仍保留在正文，不迁移，BDD-23）。
+  frontmatter 中不存在该字段时输出空字符串，不做正则回退——"字段是否存在"和"回退到
+  旧格式判定逻辑"的责任交给调用方（check-gate.sh / check-scope-resolved.sh）。
+  列表格式化为**换行连接**（而非其余 LIST_FIELDS 的空格连接）：因为这 3 个字段的元素
+  是含空格的散文描述（如"z 的边界条件需确认"），空格连接会让调用方无法区分元素边界，
+  换行连接使调用方可用 `grep -qF -- "$desc"` 逐条子串匹配（BDD-21 逐条匹配要求）。
 
 流 B 新增字段（P6/P7 结构化计数）的"无正文回退"语义（P2-design.md §3.2）：
   v0.35 正文里这些字段从来不是单行声明——旧格式靠 grep 计数 PASS/FAIL 行数、
@@ -66,6 +78,14 @@ NO_FALLBACK_INT_FIELDS = frozenset({
     "design_gap_count", "design_gap_reviewed_count",
 })
 
+# P1 流 C 标记"已解决/已确认"状态字段（P2-design.md §3.3.1）：list 字段，
+# 但 frontmatter 无该字段时**不做正则回退**（同 NO_FALLBACK_INT_FIELDS 的理由——
+# v0.35 正文里没有这些字段的单行声明形式）；格式化为换行连接（非空格连接，
+# 元素是含空格的散文描述，见模块 docstring）。
+NO_FALLBACK_LIST_FIELDS = frozenset({
+    "need_confirm_resolved", "suggest_resolved", "scope_resolved",
+})
+
 # presence 语义的纯字符串字段：key 存在且值非 null → 输出值原样，否则空。
 STRING_FIELDS = frozenset({"override", "internal_only_reason", "跳过风险", "risk_level"})
 
@@ -94,6 +114,10 @@ def _format_value(value, field):
     if field in LIST_FIELDS:
         if isinstance(value, list):
             return " ".join(str(v) for v in value)
+        return str(value)
+    if field in NO_FALLBACK_LIST_FIELDS:
+        if isinstance(value, list):
+            return "\n".join(str(v) for v in value)
         return str(value)
     if field in INT_FIELDS or field in NO_FALLBACK_INT_FIELDS:
         return str(value)
@@ -143,13 +167,14 @@ def _get(text, op):
     # 字段级 presence 检测：frontmatter 是 dict 且 key 存在且值非 null → 取 frontmatter
     if isinstance(fm, dict) and op in fm and fm[op] is not None:
         return _format_value(fm[op], op)
-    if op in NO_FALLBACK_INT_FIELDS:
-        return ""  # 流 B 字段：无正文回退语义，frontmatter 无该字段直接输出空字符串
+    if op in NO_FALLBACK_INT_FIELDS or op in NO_FALLBACK_LIST_FIELDS:
+        return ""  # 流 B/C 字段：无正文回退语义，frontmatter 无该字段直接输出空字符串
     return _regex_fallback(text, op)  # 字段不在 frontmatter → 正则回退
 
 
 KNOWN_OPS = (
-    BOOL_FIELDS | LIST_FIELDS | INT_FIELDS | STRING_FIELDS | NO_FALLBACK_INT_FIELDS
+    BOOL_FIELDS | LIST_FIELDS | INT_FIELDS | STRING_FIELDS
+    | NO_FALLBACK_INT_FIELDS | NO_FALLBACK_LIST_FIELDS
 )
 
 

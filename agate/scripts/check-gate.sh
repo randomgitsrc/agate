@@ -70,12 +70,47 @@ case "$PHASE" in
       NC_BLOCKING=$(echo "$NC_BLOCKING" | tail -1)
       NC_SUGGEST=$(grep -cE '^\s*-?\s*\[SUGGEST:' "$P1_FILE" 2>/dev/null || echo 0)
       NC_SUGGEST=$(echo "$NC_SUGGEST" | tail -1)
+      # v2.0 T001 流 C（BDD-21）：NEED_CONFIRM "已解决/已确认"状态结构化——
+      # frontmatter need_confirm_resolved 存在时，逐条匹配正文每条 NEED_CONFIRM 的
+      # 描述是否已在该列表中找到对应项，未匹配才计入阻塞数（不是数量相减，避免
+      # F14 教训的 0-vs-0 歧义）。frontmatter 无该字段（旧格式）→ 沿用整段计数阻塞。
+      NC_UNRESOLVED="$NC_BLOCKING"
       if [ "$NC_BLOCKING" -gt 0 ]; then
-          echo "GATE P1: $NC_BLOCKING 个未解决的 NEED_CONFIRM 项（阻塞）" >&2
+          NC_RESOLVED_PRESENT=$(sed -n '/^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^need_confirm_resolved:' || true)
+          NC_RESOLVED_PRESENT=$(echo "$NC_RESOLVED_PRESENT" | tail -1)
+          if [ "$NC_RESOLVED_PRESENT" -gt 0 ]; then
+              NC_RESOLVED_FM=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" need_confirm_resolved 2>/dev/null || echo "")
+              NC_UNRESOLVED=0
+              while IFS= read -r nc_desc; do
+                  [ -z "$nc_desc" ] && continue
+                  if ! printf '%s\n' "$NC_RESOLVED_FM" | grep -qF -- "$nc_desc"; then
+                      NC_UNRESOLVED=$((NC_UNRESOLVED + 1))
+                  fi
+              done < <(grep -E '^\s*-?\s*\[NEED_CONFIRM\]' "$P1_FILE" | sed -E 's/^\s*-?\s*\[NEED_CONFIRM\][[:space:]]*//')
+          fi
+      fi
+      if [ "$NC_UNRESOLVED" -gt 0 ]; then
+          echo "GATE P1: $NC_UNRESOLVED 个未解决的 NEED_CONFIRM 项（阻塞）" >&2
           exit 1
       fi
+      # v2.0 T001 流 C：SUGGEST WARNING 去重——suggest_resolved 已采纳项不重复 WARNING
+      NC_SUGGEST_UNACKED="$NC_SUGGEST"
       if [ "$NC_SUGGEST" -gt 0 ]; then
-          echo "GATE P1 WARNING: $NC_SUGGEST 个 SUGGEST 项（主 Agent 可自行采纳，不阻塞）" >&2
+          SG_RESOLVED_PRESENT=$(sed -n '/^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^suggest_resolved:' || true)
+          SG_RESOLVED_PRESENT=$(echo "$SG_RESOLVED_PRESENT" | tail -1)
+          if [ "$SG_RESOLVED_PRESENT" -gt 0 ]; then
+              SG_RESOLVED_FM=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" suggest_resolved 2>/dev/null || echo "")
+              NC_SUGGEST_UNACKED=0
+              while IFS= read -r sg_desc; do
+                  [ -z "$sg_desc" ] && continue
+                  if ! printf '%s\n' "$SG_RESOLVED_FM" | grep -qF -- "$sg_desc"; then
+                      NC_SUGGEST_UNACKED=$((NC_SUGGEST_UNACKED + 1))
+                  fi
+              done < <(grep -E '^\s*-?\s*\[SUGGEST:' "$P1_FILE" | sed -E 's/^\s*-?\s*\[SUGGEST:[[:space:]]*//; s/\]\s*$//')
+          fi
+      fi
+      if [ "$NC_SUGGEST_UNACKED" -gt 0 ]; then
+          echo "GATE P1 WARNING: $NC_SUGGEST_UNACKED 个 SUGGEST 项（主 Agent 可自行采纳，不阻塞）" >&2
       fi
       # typo 兜底 1：检测旧标记 [NEED_CONFIRM倾向:] 残留
       if grep -qE '\[NEED_CONFIRM倾向:' "$P1_FILE" 2>/dev/null; then

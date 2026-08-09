@@ -33,25 +33,47 @@ agent: analyst
 2. **隐含需求识别**：列出用户没说但技术上必须的依赖，每条说明"为什么必须"
 3. **BDD 验收条件**：用 Given/When/Then 写出每条可验证行为（这是 P6 验收的依据）。**BDD 条件必须设计为可二值判定（PASS 或 FAIL）**，P6 验收不允许"调整/跳过/覆盖"等中间态——写 BDD 时就要确保结果非此即彼
 4. **待确认清单**：把隐含需求中拿不准的、需要人定方向的，标 `[NEED_CONFIRM]` 列出
-5. **裁剪说明**：判定任务复杂度，声明走哪些阶段，**每个跳过的阶段写明理由**。**必须用下方机器可解析的 YAML 格式**（gate 脚本按此正则解析，散文表述不会被识别）：
+5. **裁剪说明**：判定任务复杂度，声明走哪些阶段，**每个跳过的阶段写明理由**。**机器字段写入文件头 frontmatter 块**（`---` 分隔，与 phase/task_id/agent 等 Header 同块；v2.0 起不再写在正文里，gate 脚本读 frontmatter，散文表述不会被识别）：
 
+**可直接复制的完整 frontmatter 样例**（P1-requirements.md 文件头）：
 ```yaml
-risk_level: low            # low / medium / high
+---
+phase: P1
+task_id: T001              # 替换为实际任务编号
+type: problems
+parent: P0-brief.md
+trace_id: T001-P1-20260101 # {task_id}-P1-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: analyst
+# ── v2.0 机器字段 ──
+risk_level: low             # low / medium / high，必填
 phases: [P1, P4, P5, P6, P8]   # P1 必填，P2/P4/P5/P6 不可裁，仅 low 可裁 P3，P7/P8 有条件可裁
-跳过风险: 说明裁剪每个阶段的风险评估（裁剪声明必备）
+packages: [pkg-a]           # list，必填
+domains: [backend, frontend]  # list，必填
+# 跳过风险: 说明裁剪每个阶段的风险评估（裁剪声明必备）
+# 可选字段：仅在适用时写（不适用即省略，不写 null——presence 语义）
+# design_trivial: true              # 若 P2 只需 1 个候选方案（简单/无争议）
+# follows_existing_pattern: [src/foo.py]  # 若 P2 遵循既有模式
+# implicit_coupling: true           # 若改动涉及隐式耦合（P7 裁剪时会拦截）
+# coupling_checklist: [api-schema: checked]  # 裁剪 P7 时必备
+# internal_only: true               # 若裁剪 P8
+# internal_only_reason: 说明        # 裁剪 P8 时必填
+# override: 说明                    # 若裁剪声明与执行不一致时
+# ── v2.0 标记"已解决/已确认"状态（可选，仅标记存在时写）──
+# need_confirm_resolved: []   # list[str]：已解决的 NEED_CONFIRM 项描述（逐条匹配正文，见下）
+# suggest_resolved: []        # list[str]：已采纳的 SUGGEST 项描述
+# scope_resolved: []          # list[str]：已解决的 SCOPE+ 项描述（后续阶段回写）
+---
 ```
+`risk_level`/`phases`/`packages`/`domains` 必填（`packages`/`domains` 即下方第 6 点的范围声明，
+一并写入 frontmatter，不单独在正文重复）；其余为可选字段，仅在适用时写，不写 `null`。
 
-仅在适用时声明以下**可选**字段（gate 按需解析）：
-```yaml
-design_trivial: true              # 若 P2 只需 1 个候选方案（简单/无争议）
-follows_existing_pattern: [src/foo.py]  # 若 P2 遵循既有模式
-implicit_coupling: true           # 若改动涉及隐式耦合（P7 裁剪时会拦截）
-coupling_checklist: [api-schema: checked, data-model: checked]  # 裁剪 P7 时必备
-internal_only: true               # 若裁剪 P8
-internal_only_reason: 说明        # 裁剪 P8 时必填
-override: 说明                    # 若裁剪声明与执行不一致时
-```
-6. **范围声明**：初步判断涉及的 `packages:`（各项目自定义包名）和 `domains:`（backend/frontend/api/cli/security 等），供后续阶段消费
+`need_confirm_resolved`/`suggest_resolved`/`scope_resolved` 是 P1 首次产出时通常留空（`[]`）的
+字段——后续阶段确认某条 `[NEED_CONFIRM]`/`[SUGGEST: ...]`/`[SCOPE+]` 已解决时，由主 Agent 或
+后续 subagent 把该项描述追加进对应列表（散文标记本体不删除，仍是人类痕迹）。
+6. **范围声明**：`packages:`（各项目自定义包名）和 `domains:`（backend/frontend/api/cli/security 等）
+   已在上方 frontmatter 样例中声明，不再单独在正文重复
 
 7. **能力需求声明**：识别任务需要的特殊能力，评估当前运行环境能否满足。若需求依赖浏览器行为/安全模型/外部系统行为，**在 capability_requirements 中标注 `requires_minimal_validation: true`**——P2 architect 据此产出 `minimal_validation:` 块（详见 architect.md）。这两字段通过值关联：`requires_minimal_validation: true` → P2 必须有 `minimal_validation` 块且 result 为 confirmed
 

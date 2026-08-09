@@ -139,6 +139,28 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - evidences/ — Playwright 截图（desktop + mobile，若 ui_affected）——**本地工作文件**：pre-commit-gate 已放行该目录，但只有 `P6-evidence/` 里被 PASS/FAIL 行引用的文件才算验收证据，`evidences/` 可作为补充参考随任务提交
 - docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
 
+P6-acceptance.md 的 pass/fail 汇总 + ui_affected 写入文件头 **frontmatter**（`---` 分隔块，与
+phase/task_id/agent 等 Header 同块，不写在正文里）。**可直接复制的完整样例**：
+```yaml
+---
+phase: P6
+task_id: T001              # 替换为实际任务编号
+type: acceptance
+parent: P5-verification.md
+trace_id: T001-P6-20260101 # {task_id}-P6-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: verifier
+# ── v2.0 机器汇总 ──
+pass: 28                          # int ≥0
+fail: 0                           # int ≥0
+ui_affected: false                # bool（与 P2 声明一致）
+---
+```
+逐条结果仍留正文，但**行格式从严**：行首必须 `- PASS BDD-NN: ...` 或 `- FAIL BDD-NN: ...`
+（PASS/FAIL 后紧跟一个空格再接 BDD 编号）——总结行（如 `**Summary**: 28/28 PASS`）不得写成
+`- PASS`/`- FAIL` 开头，否则会被计入逐条统计造成误判。
+
 **UI 条件的处理流程**：
 0. **截图前确认过渡完成**：对含 CSS 过渡/动画的页面（路由淡入淡出、hover 效果等），`waitForSelector(state:'visible')` 只保证元素非零尺寸且非 display:none，**不保证 opacity===1**。截图前用 `page.evaluate` 确认目标元素 `getComputedStyle().opacity === '1'`，或 `waitForTimeout(200)` 等待过渡结束，避免截到淡入中间帧。低对比度/有淡入动画的设计系统里此风险反复出现。
 1. Playwright 跑完，截图存入 evidences/（desktop_1280x800.png + mobile_390x844.png）
