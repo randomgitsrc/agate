@@ -197,37 +197,46 @@ def main():
     if schema is None:
         return  # 非目标 4 类文件，不校验
 
-    with open(file_path, encoding="utf-8") as f:
-        text = f.read()
-
-    block = _extract_frontmatter_block(text)
-    if block is None:
-        return  # 无 frontmatter 块 → 旧格式，BDD-9 兼容，不触发必填校验
-
+    # P4-review.md CRITICAL fix：兜底捕获 open()/yaml.safe_load()/_check()（含其内部
+    # _value_depth() 无保护递归）可能抛出的任意异常（尤其 RecursionError——深嵌套结构
+    # 解析会撞 Python 递归栈上限，是 RuntimeError 的子类而非 yaml.YAMLError 的子类；
+    # 以及 UnicodeDecodeError——非 UTF-8 文件内容），确保任何未预见异常都转成一行错误
+    # 输出打到 stdout，而不是让异常穿透到 check-frontmatter.sh 被 2>/dev/null || true
+    # 静默吞掉（那样会让"深到能让解析器自己崩溃"的坏格式被误判为放行）。
     try:
-        data = yaml.safe_load(block)
-    except yaml.YAMLError as e:
-        print(str(e))
-        return
+        with open(file_path, encoding="utf-8") as f:
+            text = f.read()
 
-    if data is None:
-        return  # frontmatter 块为空 → 视同旧格式
+        block = _extract_frontmatter_block(text)
+        if block is None:
+            return  # 无 frontmatter 块 → 旧格式，BDD-9 兼容，不触发必填校验
 
-    if not isinstance(data, dict):
-        # FIND-5：safe_load 结果非 dict（无 YAMLError，如单行全角冒号纯量）→ 硬拦截
-        print(
-            "{}: frontmatter 必须为 key: value 映射（当前解析为 {}）".format(
-                basename, type(data).__name__
+        try:
+            data = yaml.safe_load(block)
+        except yaml.YAMLError as e:
+            print(str(e))
+            return
+
+        if data is None:
+            return  # frontmatter 块为空 → 视同旧格式
+
+        if not isinstance(data, dict):
+            # FIND-5：safe_load 结果非 dict（无 YAMLError，如单行全角冒号纯量）→ 硬拦截
+            print(
+                "{}: frontmatter 必须为 key: value 映射（当前解析为 {}）".format(
+                    basename, type(data).__name__
+                )
             )
-        )
-        return
+            return
 
-    if not (schema["migrated_keys"] & set(data.keys())):
-        return  # 无该 schema 迁移字段 → 旧格式（字段在正文），不触发必填校验
+        if not (schema["migrated_keys"] & set(data.keys())):
+            return  # 无该 schema 迁移字段 → 旧格式（字段在正文），不触发必填校验
 
-    errors = _check(basename, schema, data)
-    if errors:
-        print("\n".join(errors))
+        errors = _check(basename, schema, data)
+        if errors:
+            print("\n".join(errors))
+    except Exception as e:
+        print("{}: frontmatter 处理异常（{}）".format(basename, e))
 
 
 if __name__ == "__main__":

@@ -110,7 +110,7 @@ def _read_frontmatter(text):
 
 def _format_value(value, field):
     if field in BOOL_FIELDS:
-        return str(value).lower() if isinstance(value, bool) else str(value).lower()
+        return str(value).lower()
     if field in LIST_FIELDS:
         if isinstance(value, list):
             return " ".join(str(v) for v in value)

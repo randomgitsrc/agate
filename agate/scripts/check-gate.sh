@@ -83,7 +83,7 @@ case "$PHASE" in
               NC_UNRESOLVED=0
               while IFS= read -r nc_desc; do
                   [ -z "$nc_desc" ] && continue
-                  if ! printf '%s\n' "$NC_RESOLVED_FM" | grep -qF -- "$nc_desc"; then
+                  if ! printf '%s\n' "$NC_RESOLVED_FM" | grep -qFx -- "$nc_desc"; then
                       NC_UNRESOLVED=$((NC_UNRESOLVED + 1))
                   fi
               done < <(grep -E '^\s*-?\s*\[NEED_CONFIRM\]' "$P1_FILE" | sed -E 's/^\s*-?\s*\[NEED_CONFIRM\][[:space:]]*//')
@@ -103,7 +103,7 @@ case "$PHASE" in
               NC_SUGGEST_UNACKED=0
               while IFS= read -r sg_desc; do
                   [ -z "$sg_desc" ] && continue
-                  if ! printf '%s\n' "$SG_RESOLVED_FM" | grep -qF -- "$sg_desc"; then
+                  if ! printf '%s\n' "$SG_RESOLVED_FM" | grep -qFx -- "$sg_desc"; then
                       NC_SUGGEST_UNACKED=$((NC_SUGGEST_UNACKED + 1))
                   fi
               done < <(grep -E '^\s*-?\s*\[SUGGEST:' "$P1_FILE" | sed -E 's/^\s*-?\s*\[SUGGEST:[[:space:]]*//; s/\]\s*$//')

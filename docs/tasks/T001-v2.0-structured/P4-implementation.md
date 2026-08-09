@@ -488,3 +488,78 @@ bats agate/tests/unit/agate-state-yaml-check.bats agate/tests/unit/check-changel
 但连带触发了 33 个此前未被识别的既有用例失败（1 单元 + 32 集成）。以上均为自查，不代表
 P5 gate 已过，也不代表流 D "完成后全绿"的目标已达成——已如实呈报未达成的部分，交主
 Agent/P7 裁决后续处理方式。
+
+## Review 修复
+
+针对 `P4-review.md`（status: rejected）Pass 1 的 1 个 CRITICAL + Pass 2 前两条低风险
+INFO 的定向修复（P4 review 修复轮，第 2 次派发——第 1 次因主 Agent 账号 API 花费上限
+失败未做任何改动，本次是干净重试）。范围锁定 4 个文件：
+`agate/scripts/agate-frontmatter-check.py`、`agate/scripts/check-frontmatter.sh`、
+`agate/scripts/agate-md-field-get.py`、`agate/scripts/check-gate.sh`。未碰
+`agate/tests/**`（含用于验证的 3 个 bats 文件，均未修改，仅用来跑）。
+
+### CRITICAL（P4-review.md Pass 1）：agate-frontmatter-check.py 异常处理不完整
+
+**问题**：`main()` 只捕获 `yaml.YAMLError`，深嵌套 `risk_level` 触发 `RecursionError`
+（`RuntimeError` 子类，非 `yaml.YAMLError` 子类）时未被捕获，Python 进程崩溃、traceback
+打到 stderr；调用方 `check-frontmatter.sh` 用 `python3 ... 2>/dev/null || true` 把
+stderr 和非零 exit code 一并吞掉，`ERRORS` 变量因崩溃发生在任何 `print()` 之前而为空
+字符串 → gate 误判"无错误" → exit 0 放行本应拦截的坏格式 frontmatter。
+
+**Fix A**（`agate-frontmatter-check.py`）：把 `main()` 里 `open()` 调用及其后全部逻辑
+（含 `yaml.safe_load()`、`_check()` 及其内部 `_value_depth()` 的无保护递归）包进一层
+`try: ... except Exception as e: print(...)`。`RecursionError`/`UnicodeDecodeError` 均是
+`Exception` 子类，单层兜底即可覆盖三处约束点（safe_load 递归、`_check`/`_value_depth`
+递归、非 UTF-8 文件读取），内层原有的 `except yaml.YAMLError` 分支保留（更具体的错误
+信息优先）。错误输出格式沿用现有 `print(str(e))` 风格，加文件名前缀：
+`"{}: frontmatter 处理异常（{}）".format(basename, e)`。
+
+**Fix B**（`check-frontmatter.sh`，纵深防御，review 建议"A+B 都做"，已按建议同时实施）：
+不再用 `python3 ... 2>/dev/null || true` 把 stderr 和非零 exit code 一起吞掉。改为
+`set +e` 捕获调用的 exit code（stdout 进 `ERRORS`，stderr 重定向到临时文件），区分两种
+情况：exit 0 且 stdout 为空 → 真的没错误，继续走原有 `ERRORS` 非空判断；exit 非 0 →
+校验器自己崩了，fail-closed，打印 stderr 内容后 `exit 1`，不再静默放行。
+
+**验证**：复现 P4-review.md 第 46-63 行给出的深嵌套场景（`risk_level` 用
+`"[" * 2000 + "1" + "]" * 2000` 构造），修复前 `bash check-frontmatter.sh` 返回 exit 0
+（放行），修复后返回 **exit 1**，错误输出为
+`P1-requirements.md: frontmatter 处理异常（maximum recursion depth exceeded while
+calling a Python object）`。额外验证了 Fix A 对 `UnicodeDecodeError`（非 UTF-8 文件内容）
+同样生效，以及 Fix B 的 fail-closed 分支（模拟 python 脚本以 exit 1 崩溃时，shell 层正确
+打印 stderr 并 `exit 1`，不再吞掉）。
+
+### INFO：agate-md-field-get.py `_format_value` bool 分支死代码清理
+
+`if isinstance(value, bool) else` 两个分支返回值完全相同，简化为
+`return str(value).lower()`。纯重构，不改变行为。`bats agate/tests/unit/
+agate-md-field-get.bats` 6/6 全绿（MDF.1-6，无回归）。
+
+### INFO：check-gate.sh NEED_CONFIRM/SUGGEST 已解决匹配收紧为整行精确匹配
+
+`grep -qF`（子串匹配）→ `grep -qFx`（整行精确匹配），`check-gate.sh` 两处（约 L86
+NEED_CONFIRM 分支、L106 SUGGEST 分支）均已改。已排查 `check-gate.bats` /
+`check-retrospective.bats` / `check-gate-p1-review.bats` 三份验证用测试文件，唯一使用
+`need_confirm_resolved` 字段的 fixture（`check-retrospective.bats` 的
+`RT_BDD21.1`）用的是精确匹配场景（`need_confirm_resolved: ["z 的边界条件需确认"]`
+对应正文 `[NEED_CONFIRM] z 的边界条件需确认`，二者字面完全相等），不存在依赖子串匹配
+语义的 fixture，无冲突，按 INFO 建议直接应用整行精确匹配，未触发 DESIGN_GAP。
+`bats agate/tests/unit/check-gate.bats agate/tests/unit/check-retrospective.bats
+agate/tests/unit/check-gate-p1-review.bats` 三文件合计全绿，无回归。
+
+### 未处理范围（按派发指引明确排除，不在本次范围）
+
+- `check-changelog.sh` 分隔符集合扩展——review 明确标注"不属于本次 CRITICAL，可与其他
+  INFO 一起排期"，未碰该文件。
+- 流 D 硬切上线迁移计划——review 明确标注"不是本角色评审范围"，是给主 Agent 在
+  P7/P8 阶段的提醒，非代码修复项，未处理。
+
+### 自查结果（非 P5 gate，仅确认未做错）
+
+验收标准命令（派发指引第 5 条）：
+```
+bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/ agate/tests/sanity.bats
+```
+结果：**600/600 全绿**，无新增失败、无回归。`bash agate/tests/scripts/count-tests.sh`
+仍为 594（不漂移）。CRITICAL 复现步骤（约束 1 末尾）手动验证：exit 0 → **exit 1**，
+符合预期。以上为自查，不代表最终 gate 已过，也不代表"review 已过"——重新评审由主
+Agent 另行派发。
