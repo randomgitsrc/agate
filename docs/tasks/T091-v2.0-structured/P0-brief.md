@@ -20,8 +20,8 @@ known_risks:
   - "涉及数据格式变更（P1/P2 产出物 frontmatter schema），需要双读兼容在途任务旧格式"
   - "gate 本身（check-gate.sh / check-pruning.sh 等）被修改——自我改造，需 self-gate 流程 + 全量 bats 无退化"
   - "count-tests.sh 数字不能漂移（当前基线 594 + sanity 6）——测试改造必须保持用例数不变"
-  - "gate_commands 暂留正文（3 个读取工具 agate-read-gate-commands.py / agate-gate-missing-cmds.py / agate-read-p5-commands.py 仍从正文正则读），移入 frontmatter 会失配"
-  - "CHECK 9 锚点表（check-protocol-consistency.py 33 条）需全量过一遍，防止一致性检查红"
+  - "gate_commands 暂留正文（4 个读取工具 agate-read-gate-commands.py / agate-gate-missing-cmds.py / agate-read-p5-commands.py / agate-gate-p5-count.py 仍从正文正则读），移入 frontmatter 会失配"
+  - "CHECK 9 锚点表（check-protocol-consistency.py 37 条）需全量过一遍，防止一致性检查红"
   - "P5_DATA 中间格式缓存键（agate-capture-env-baseline.sh 的 CACHE_KEY）若 gate_commands 相关改动可能再失效一次"
   - "frontmatter 禁止 >3 层嵌套；LLM 写嵌套 YAML 缩进错误率高——需 schema 校验器 + 角色卡可复制模板"
   - "语义真实性不升不降（BDD-8 单侧/双侧歧义、candidate_count 虚报在结构化后依旧）——设计文档必须写明，防止'做了结构化就以为 gate 变强'的错觉"
@@ -54,7 +54,7 @@ phase_hint: [P1, P2, P3, P4, P5, P6, P7, P8]
 2. frontmatter 禁止 >3 层嵌套
 3. 角色卡必须贴可复制模板
 4. 在途任务：**双读**（frontmatter 优先 + 旧正则回退）
-5. CHECK 9 锚点表（33 条）全量过一遍
+5. CHECK 9 锚点表（37 条）全量过一遍
 6. v2.0 设计文档必须写明"结构化不解决语义真实性"
 
 ## 环境自检（P0 卡片要求）
