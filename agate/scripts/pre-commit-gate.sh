@@ -284,7 +284,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     # 2n.2 non-phase code staging WARNING/BLOCK (E3, P6 self-authored gate 区分证据/源码)
     ALL_NONMD=$(git diff --cached --name-only 2>/dev/null | grep -vE '\.(md|yaml)$|^\.state' || true)
     # 证据文件例外：TASK_REL/P{n}-evidence/ 下的文件不算"代码"
-    NON_EVIDENCE_FILES=$(echo "$ALL_NONMD" | grep -vE "^${TASK_REL}/P[0-9]-evidence/" || true)
+    NON_EVIDENCE_FILES=$(echo "$ALL_NONMD" | grep -vE "^${TASK_REL}/(P[0-9]-evidence/|evidences/)" || true)
     if [ -n "$NON_EVIDENCE_FILES" ]; then
         case "$PHASE" in
             P4|P5) ;;  # 外部产出 gate：代码变更是预期行为
