@@ -869,6 +869,26 @@ EOF2
     [[ "$output" != *"不应直接改代码"* ]]
 }
 
+@test "IT_P6_CODE.1b phase=P6，暂存 evidences/ 下截图 → 不拦（T090 白名单修复）" {
+    echo "init" > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm "init"
+    mkdir -p "$REPO/docs/tasks/T001/evidences"
+    touch "$REPO/docs/tasks/T001/evidences/desktop.png"
+    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
+    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+task_id: T001
+phase: P6
+status: active
+retries: {}
+EOF2
+    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add docs/tasks/T001/
+    run git -C "$REPO" commit -m "evidences dir only"
+    [[ "$output" != *"暂存了项目源码"* ]]
+    [[ "$output" != *"不应直接改代码"* ]]
+}
+
 @test "IT_P6_CODE.2 phase=P6，暂存项目源码文件 → exit 1 硬拦截" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
