@@ -2,6 +2,11 @@
 # tests/unit/check-pruning.bats — 19 用例覆盖 check-pruning.sh
 # 计划：5.1 / 实际 19 行 / 与附录 A 一致
 # 参考：docs/plans/agate-test-plan-2026-07-01.md 5.1
+# T001 v2.0 流 A（BDD-1/9）：本文件裁剪相关字段（internal_only/coupling_checklist/
+# implicit_coupling/follows_existing_pattern/design_trivial 等）经 add_p1_field
+# helper 写入，已随 fixtures.bash 改造统一迁至 P1-requirements.md 的 frontmatter 块
+# （不再是 v0.35 的正文追加）；check-pruning.sh 的读取行为须与 v0.35 保持一致
+# （BDD-1"门禁基于 frontmatter 声明值完成判定"）。@test 数保持 29 不变，逐条见下。
 
 load ../helpers/load.bash
 
@@ -99,9 +104,9 @@ load ../helpers/load.bash
 
 # ============== 检查 6: P3 仅 low 可裁 ==============
 
-@test "P2.5 check-pruning.sh risk=high 裁剪 P3 期望 exit 1" {
+@test "P2.5 BDD-9: check-pruning.sh 旧格式（--legacy-fields，risk_level 在正文非 frontmatter）risk=high 裁剪 P3 期望 exit 1（回退路径行为与 v0.35 一致）" {
     local dir
-    dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P7 P8 --risk-level high)
+    dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P7 P8 --risk-level high --legacy-fields)
     run bash "$AGATE_SCRIPTS/check-pruning.sh" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P3 不可裁剪"*"仅 low"* ]]
@@ -154,7 +159,7 @@ load ../helpers/load.bash
     [ "$status" -eq 0 ]
 }
 
-@test "P2.6c check-pruning.sh 裁剪 P7 + implicit_coupling 字段 期望 exit 1" {
+@test "P2.6c BDD-1: check-pruning.sh 裁剪 P7 + frontmatter implicit_coupling 字段 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)  # P7 不在声明
     add_p1_field "$dir" "implicit_coupling" "[api-schema, data-model]"
@@ -192,7 +197,7 @@ load ../helpers/load.bash
     [[ "$output" == *"P8 不可裁"* || "$output" == *"internal_only"* ]]
 }
 
-@test "P2.7a check-pruning.sh 裁剪 P8 + internal_only: true + internal_only_reason 放行" {
+@test "P2.7a BDD-1: check-pruning.sh 裁剪 P8 + frontmatter internal_only: true + internal_only_reason 放行" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P7)
     add_p1_field "$dir" "internal_only" "true"

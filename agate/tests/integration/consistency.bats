@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
 # tests/integration/consistency.bats — 9 用例覆盖 check-protocol-consistency.py（CHECK 5 已删）
+# T001 v2.0（BDD-13）：CHECK 9 锚点表 37→38（新增 check-frontmatter.sh 锚点，
+# P2-design.md §3.1.4 [SCOPE+]）。本文件属 integration/，P3 gate 不跑它，由 P5/P6
+# 验证 0 ERROR（含新增锚点全过）。@test 数保持 11 不变。
 load ../helpers/load.bash
 
 setup() {
@@ -30,7 +33,7 @@ setup() {
     [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 7"* ]]
 }
 
-@test "CON.8 CHECK 9: 协议-脚本结构对齐" {
+@test "CON.8 BDD-13: CHECK 9 协议-脚本结构对齐（含新增 check-frontmatter.sh 锚点，37→38）" {
     # md5 去重的 WARN 是已知的（文档声称 hook 强制但脚本未实现）
     # 只要有 PASS 就说明锚点表在跑，不要求全 PASS
     [[ "$CONSISTENCY_OUTPUT" == *"PASS  CHECK 9"* || "$CONSISTENCY_OUTPUT" == *"WARN  CHECK 9"* ]]

@@ -66,9 +66,12 @@ EOF
     [ "$status" -eq 1 ]
 }
 
-# ========== T060 Bug 3 修复：短前缀提取 ==========
+# ========== T001 v2.0 流 D（BDD-27）：check-changelog 直接匹配完整 task_id ==========
+# 旧版 check-changelog.sh:14 用 grep -oE 'T[0-9]+' 提取短前缀（T060-xxx → T060），
+# 新格式 TAG0001（无数字紧邻 T）用该正则会提取为空，CHANGELOG 无法记录 —— F17。
+# 改造后直接匹配完整 task_id（去掉短前缀截断），CL.6/CL.7/CL.8 改测新格式行为。
 
-@test "CL.6 CHANGELOG 含短前缀 T060 但 task_id 为完整目录名时正确匹配" {
+@test "CL.6 BDD-27: CHANGELOG 含完整新格式 task_id TAG0001 → 直接匹配成功" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -76,13 +79,13 @@ EOF
 ## [Unreleased]
 
 ### Fixed
-- T060: 修复 archived 条目可见性
+- TAG0001: 完成 v2.0 结构化改造
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T060-archived-visibility-auth-refresh
+    run bash "$AGATE_SCRIPTS/check-changelog.sh" TAG0001
     [ "$status" -eq 0 ]
 }
 
-@test "CL.7 CHANGELOG 含 T0601 时短前缀 T060 不误匹配" {
+@test "CL.7 BDD-27: CHANGELOG 只含 TAG00012（另一任务的更长编号）时 TAG0001 不误匹配" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -90,14 +93,17 @@ EOF
 ## [Unreleased]
 
 ### Fixed
-- T0601: 其他条目
+- TAG00012: 其他任务条目
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T060-archived-visibility-auth-refresh
+    run bash "$AGATE_SCRIPTS/check-changelog.sh" TAG0001
     [ "$status" -eq 1 ]
     [[ "$output" == *"未找到"* ]]
 }
 
-@test "CL.8 CHANGELOG 含 T060-archived-visibility-auth-refresh: 时后缀 - 正确匹配" {
+@test "CL.8 BDD-27: 旧版短前缀提取（grep -oE 'T[0-9]+'）对新格式 TAG0001 提取为空——直接匹配已消除该摩擦" {
+    # F17 核心场景：旧实现 TASK_ID_SHORT=$(echo "$TASK_ID" | grep -oE 'T[0-9]+' | head -1)
+    # 对 "TAG0001"（T 后紧跟字母 AG，非数字）提取不到任何匹配 → TASK_ID_SHORT 为空 →
+    # 下游 grep 用空变量匹配必然失败，即使 CHANGELOG 已正确记录 TAG0001 也会误报未找到。
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -105,8 +111,8 @@ EOF
 ## [Unreleased]
 
 ### Fixed
-- T060-archived-visibility-auth-refresh: 条目
+- TAG0001: 消除 check-changelog 短前缀提取摩擦
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T060-archived-visibility-auth-refresh
+    run bash "$AGATE_SCRIPTS/check-changelog.sh" TAG0001
     [ "$status" -eq 0 ]
 }

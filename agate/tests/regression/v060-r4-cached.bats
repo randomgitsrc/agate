@@ -2,6 +2,9 @@
 # tests/regression/v060-r4-cached.bats — 回归测试：裁剪 P7 用 --cached 不是 HEAD~1
 # 触发：fabca40 "feat(hardening): check-pruning.sh 补 P7/P8 裁剪条件"
 # 教训：pre-commit 时本次变更还没进 HEAD，用 HEAD~1 会看不到
+# T001 v2.0 流 A（BDD-1）改写：coupling_checklist 现由 add_p1_field 写入
+# P1-requirements.md 的 frontmatter 块（详见 fixtures.bash），check-pruning.sh
+# 仍能正确读取。@test 数保持 2 不变。
 
 load ../helpers/load.bash
 
@@ -24,7 +27,7 @@ load ../helpers/load.bash
     [[ "$output" == *"裁剪 P7 需源码文件数"* ]]
 }
 
-@test "R3.2 裁剪 P7 + 暂存区 3 个源文件 + coupling_checklist → exit 0（≤ 5）" {
+@test "R3.2 BDD-1: 裁剪 P7 + 暂存区 3 个源文件 + frontmatter coupling_checklist → exit 0（≤ 5）" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P8)  # P7 不在
     add_p1_field "$dir" "coupling_checklist" "[api-schema: checked]"

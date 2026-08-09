@@ -1,6 +1,10 @@
 #!/usr/bin/env bats
 # tests/integration/pre-commit-hook.bats — 5 用例覆盖 pre-commit-gate.sh
 # 计划：7.1 / 实际 5 行 / 与附录 A 一致
+# T001 v2.0（BDD-8/23）：本文件属 integration/，P3 gate（unit+regression）不跑它，
+# 由 P5/P6 验证。BDD-8 的 check-frontmatter.sh pre-commit 挂载点验证及 BDD-23
+# 发现性标记（[SCOPE+]/[PROD_TOUCHED]/[DESIGN_GAP]）保持散文的回归覆盖见下方
+# IT_PT_* / IT_PT_T6.* 系列（未改动，继续验证 v0.35 行为一致）。@test 数保持 42 不变。
 
 load ../helpers/load.bash
 

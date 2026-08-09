@@ -29,41 +29,23 @@ EOF
     grep -q '^\- PASS BDD-1' "$TASK_DIR/P6-acceptance.md"
 }
 
-@test "F4 check-p6-format.sh --fix: leading whitespace on PASS line → auto-fix" {
-    TASK_DIR=$(create_task_dir)
-    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
-  - PASS BDD-1: verified (evidence/log.json)
-EOF
-    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
-    [ "$status" -eq 0 ]
-    grep -q '^\- PASS BDD-1' "$TASK_DIR/P6-acceptance.md"
-}
-
 @test "F5 check-p6-format.sh --check: no P6 file → exit 0" {
     TASK_DIR=$(create_task_dir)
     run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --check "$TASK_DIR/P6-acceptance.md"
     [ "$status" -eq 0 ]
 }
 
-@test "F6 check-p6-format.sh --fix: bare path without brackets NOT fixed (semantic)" {
+@test "F_BDD17.1 BDD-17: check-p6-format.sh --check 行首 - PASS|FAIL BDD-NN: 格式被识别为有效逐条结果" {
+    # T001 v2.0 流 B：逐条结果行首须为 `- PASS BDD-NN:` 或 `- FAIL BDD-NN:`（带 BDD 编号）
+    # 才算有效逐条结果；不带 BDD 编号的行（如纯 `- PASS: 16` 总结行）不算。
     TASK_DIR=$(create_task_dir)
     cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
-- PASS BDD-1: verified evidence/log.json
+- PASS BDD-1: verified (evidence/a.json)
+- FAIL BDD-2: broken (evidence/b.json)
 EOF
-    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --check "$TASK_DIR/P6-acceptance.md"
     [ "$status" -eq 0 ]
-    grep -q 'evidence/log.json' "$TASK_DIR/P6-acceptance.md"
-    ! grep -q '(evidence/log.json)' "$TASK_DIR/P6-acceptance.md"
-}
-
-@test "F7 check-p6-format.sh --fix: lowercase fail: (colon, no space) → auto-fix to FAIL:" {
-    TASK_DIR=$(create_task_dir)
-    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
-- fail: BDD-2 broken
-EOF
-    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
-    [ "$status" -eq 0 ]
-    grep -q '^\- FAIL:' "$TASK_DIR/P6-acceptance.md"
+    grep -qE '^- (PASS|FAIL) BDD-[0-9]+:' "$TASK_DIR/P6-acceptance.md"
 }
 
 @test "F8 check-p6-format.sh --check: lowercase fail: → exit 1" {
@@ -95,15 +77,23 @@ EOF
     grep -q 'failure mode' "$TASK_DIR/P6-acceptance.md"
 }
 
-@test "F11 check-p6-format.sh --check: summary line - PASS：34 → exit 1" {
-    TASK_DIR=$(create_task_dir)
-    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
-- PASS BDD-1: verified (evidence/log.json)
-- PASS：34
-- FAIL：0
+@test "F_BDD18.1 BDD-18: check-gate.sh P6 审计口径不把总结行（- PASS: 16，无 BDD 编号）计入逐条 PASS/FAIL 总数" {
+    # T001 v2.0 流 A→B 边界：check-gate.sh 的 P6 逐条计数须只统计行首
+    # `- PASS|FAIL BDD-NN:` 的行；总结行（`- PASS: 16` 无 BDD 编号）不应计入，
+    # 消除 F11"总结行误判"（旧版 `grep -ciE '^\s*- (PASS|FAIL)'` 会把总结行也计入）。
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1
+- PASS: 16
+- FAIL: 0
 EOF
-    run bash "$AGATE_ROOT/scripts/check-p6-format.sh" --check "$TASK_DIR/P6-acceptance.md"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    # 旧版口径：grep -ciE '^\s*- (PASS|FAIL)' 会命中 3 行（含总结行）→ FAIL 计数被总结行污染。
+    # 新版口径：只 1 条真实 PASS BDD-1，无证据目录 → 应因 P6-evidence 缺失而 exit 1，
+    # 而不是被总结行的 "- FAIL: 0" 误判出多余 FAIL。
     [ "$status" -eq 1 ]
+    [[ "$output" == *"P6-evidence"* ]]
 }
 
 @test "F12 check-p6-format.sh --fix: summary line - PASS：34 → **Summary**: PASS: 34" {

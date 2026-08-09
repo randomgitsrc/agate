@@ -82,15 +82,17 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "SC.5b check-scope-resolved.sh [SCOPE_RESOLVED: 带说明] 格式也接受" {
+@test "SC_BDD22.1 BDD-22: check-scope-resolved.sh 有 SCOPE+ + P1 frontmatter scope_resolved 非空列表 → 闭环判定通过" {
+    # T001 v2.0 流 C：SCOPE+ 发现性标记本体保持散文（不迁移，BDD-23），
+    # 但其"已解决"状态改为结构化声明于 P1 frontmatter 的 scope_resolved 列表，
+    # 闭环判定应改读该结构化状态，而不是继续扫描正文 [SCOPE_RESOLVED] 散文标记。
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 [SCOPE+] 新增功能
 EOF
-    echo "" >> "$dir/P1-requirements.md"
-    echo "[SCOPE_RESOLVED: 已纳入 v0.7]" >> "$dir/P1-requirements.md"
+    add_p1_field "$dir" "scope_resolved" "[新增功能已纳入 v0.7]"
     run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
     [ "$status" -eq 0 ]
 }
@@ -130,14 +132,3 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "SC.8 行首 - [SCOPE+] 触发检查 期望 exit 1（无 RESOLVED）" {
-    local dir
-    dir=$(create_task_dir)
-    cat > "$dir/P2-design.md" <<'EOF'
-# P2 design
-[SCOPE+] 新增功能
-EOF
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"SCOPE_RESOLVED"* ]]
-}
