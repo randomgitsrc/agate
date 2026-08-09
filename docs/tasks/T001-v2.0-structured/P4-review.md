@@ -4,148 +4,135 @@ task_id: T001
 type: review
 parent: P4-implementation.md
 agent: review
-status: rejected
+status: approved
 ---
 
-# T001 — P4 代码实现评审（review，偏执 Staff Engineer 视角）
+# T001 — P4 代码实现复审（review，偏执 Staff Engineer 视角，第 2 轮 / 复审）
 
-> 被评审对象：`git diff 293924f..HEAD -- agate/scripts/`（流 A+B+C+D+fixture修复累计 diff，11 个脚本文件，620 行新增/70 行删除）
-> 评审依据（优先级）：`P4-dispatch-context-review.md`（派发指引）> `agate/assets/review-roles/review.md`（角色定义）> `P2-design.md` §3.1-3.4（设计依据）> `P4-implementation.md`（实现记录 + 4 条 DESIGN_GAP）> `AGENTS.md`（脚本安全约定）
-> 评审方式：全量读 diff + 关键结论实测复现（不轻信 implementer 自述）；shellcheck -S warning 对本次改动文件重跑复核（0 警告，与自查一致）。
-> 结论：**1 个 CRITICAL（可复现）→ status: rejected**；另有 4 项非阻塞发现（INFORMATIONAL，供 implementer 下一轮一并处理）。
+> 被评审对象：`git diff 68e4173..e566303 -- agate/scripts/`（本次修复轮 diff，4 个文件，
+> 57 行新增 / 32 行删除：`agate-frontmatter-check.py`、`check-frontmatter.sh`、
+> `agate-md-field-get.py`、`check-gate.sh`）。**不是重新审查整个 P4**，上一轮已审过、
+> 本次未改动的代码不在本轮范围内。
+> 评审依据（优先级）：`P4-dispatch-context-review-rereview.md`（本轮派发指引）>
+> `agate/assets/review-roles/review.md`（角色定义）> 上一轮 `P4-review.md`（rejected 版本，
+> git 历史 `git show 68e4173`... 该 commit 未含此文件，实为工作区未 commit 的对照基线，
+> 全文已读，见下方逐条核对）> `P4-implementation.md`"## Review 修复"小节。
+> 评审方式：全量读本次 diff + 独立复现 CRITICAL 修复前后行为差异（不采信 implementer/主
+> Agent 自述）+ 独立重跑相关 bats 文件 + shellcheck 复核。
+> 结论：**CRITICAL 已妥善修复，2 个 INFO 修复质量合格，未发现新引入问题 → status: approved**。
 
 ---
 
-## Pass 1（CRITICAL）— 正确性与"数据未校验直接放行"风险
+## CRITICAL 复审：agate-frontmatter-check.py 异常处理
 
-### [CRITICAL] agate/scripts/agate-frontmatter-check.py（新建）
+### 修复内容核对
 
-**问题**：只捕获 `yaml.YAMLError`，未捕获 `yaml.safe_load` / 后续 `_check()` 可能抛出的其他异常
-（尤其 `RecursionError`——深度嵌套结构解析会撞 Python 递归栈上限，`RecursionError` 继承自
-`RuntimeError`，**不是** `yaml.YAMLError` 的子类，`except yaml.YAMLError` 捕不到）。而调用方
-`check-frontmatter.sh` 是这样处理 Python 侧异常的：
+读 `agate/scripts/agate-frontmatter-check.py` 修复后全文（L193-239 `main()`）：`try` 块从
+`open(file_path, ...)` 读文件开始，一路包到 `_check()` 调用和 `print("\n".join(errors))`，
+覆盖了上一轮指出的全部三个风险点：
+1. `open()` 的 `UnicodeDecodeError`（非 UTF-8 文件）
+2. `yaml.safe_load(block)` 的 `RecursionError`（内层仍保留更具体的 `except yaml.YAMLError`
+   优先分支，未被外层兜底吞掉具体错误信息，纵深合理）
+3. `_check()` 内 `_value_depth()` 无保护递归可能再次触发的 `RecursionError`
 
-```bash
-ERRORS=$(FILE="$FILE" python3 "$SCRIPT_DIR/agate-frontmatter-check.py" 2>/dev/null || true)
-if [ -n "$ERRORS" ]; then ... exit 1; fi
-exit 0
+外层 `except Exception as e: print(...)` 兜底，不再让异常穿透到 shell 层。`check-frontmatter.sh`
+同步做了 Fix B：`set +e` 捕获 python 进程 exit code，非 0（脚本自己崩溃，兜底也没接住的情形）
+fail-closed `exit 1` 并打印 stderr；ERRORS 非空（兜底捕获后 print 出来的一行）走原有判断路径,
+同样 `exit 1`。两层防御分工清楚：Fix A 处理"预期内的异常类型"（占多数场景，python exit 0 +
+stdout 有错误信息），Fix B 处理"任何未被 Fix A 接住的意外崩溃"（python 非 0 退出）。
+
+### 独立复现（不采信自述，本轮自己重新构造）
+
+用上一轮 review 报告给出的构造方式（`"[" * 2000 + "1" + "]" * 2000` 嵌套 `risk_level`）在
+scratchpad 重新生成 fixture `P1-requirements.md`：
+
 ```
-
-`agate-frontmatter-check.py` 一旦在 `main()` 内部（无论是 `yaml.safe_load(block)` 解析阶段，还是
-之后 `_check()` 内 `_value_depth()` 的递归深度校验阶段）抛出未捕获异常，Python 进程会非零退出并把
-traceback 打到 stderr——`2>/dev/null` 把它丢了，`|| true` 把非零 exit code 也吞了，`ERRORS` 变量因为
-崩溃发生在任何 `print()` 之前而是**空字符串** → `[ -n "$ERRORS" ]` 为假 → **exit 0（放行）**。
-
-也就是说：这个校验器存在的目的就是拦住格式错误/超深嵌套的 frontmatter（`MAX_DEPTH=3` 校验本来就是
-干这个的），但恰恰是"深到能让解析器自己崩溃"的输入，会绕过全部校验静默通过——这正是 Pass 1 要抓的
-"看似有校验、实则未校验直接放行"类问题，且是本次新增的核心 gate 机制（BDD-2/4/5/6/7/8/12 全部依赖
-这条链路）。
-
-**已实测复现**（非推测）：
-
-```bash
-$ python3 -c "
-import yaml
-print(issubclass(RecursionError, yaml.YAMLError))"
-False
-
-$ python3 -c "
-depth = 2000
-s = '[' * depth + '1' + ']' * depth
-import yaml
-yaml.safe_load(s)"
-# 抛 RecursionError，不是 yaml.YAMLError
-
-# 端到端复现（构造一个深嵌套 risk_level 字段的 P1-requirements.md）：
 $ bash agate/scripts/check-frontmatter.sh /tmp/.../P1-requirements.md
-$ echo $?
-0   # ← 应该报错（risk_level 既非法枚举值，又违反 MAX_DEPTH=3），实际"通过"
+GATE FRONTMATTER: .../P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md: frontmatter 处理异常（maximum recursion depth exceeded while calling a Python object）
+EXIT_CODE=1
 ```
 
-**Fix（任选其一，建议 A+B 都做，纵深防御）**：
+同一 fixture 用 `git show 68e4173:agate/scripts/{agate-frontmatter-check.py,check-frontmatter.sh}`
+还原出的修复前脚本重跑，确认 `EXIT_CODE=0`（放行）——**修复前后行为差异独立复现，exit 0 →
+exit 1，与 implementer/主 Agent 自述一致，非误报**。
 
-- **A（必须）**：`agate-frontmatter-check.py` 里把解析和校验的异常处理从"只认 `yaml.YAMLError`"
-  改为兜底捕获，例如：
-  ```python
-  try:
-      data = yaml.safe_load(block)
-  except yaml.YAMLError as e:
-      print(str(e))
-      return
-  except RecursionError as e:
-      print("{}: frontmatter 嵌套过深，解析器递归栈溢出（{}）".format(basename, e))
-      return
-  ```
-  同时把 `_check(basename, schema, data)` 的调用也纳入同一层兜底（`_value_depth` 本身也是无保护
-  递归，超深合法 dict/list——不触发 YAMLError 但能在校验阶段自己再炸一次），或者更简单地把
-  `main()` 里"读文件之后"的全部逻辑包一层 `try: ... except Exception as e: print(...); return`，
-  确保任何未预见异常都转成一行错误输出（从而让 `check-frontmatter.sh` 按预期 exit 1），而不是让
-  异常穿透到 shell 层被 `2>/dev/null || true` 悄悄吃掉。同样的 `open(file_path, encoding="utf-8")`
-  如果遇到非 UTF-8 内容会抛 `UnicodeDecodeError`，也在这个兜底范围内一并解决。
-- **B（建议，纵深防御）**：`check-frontmatter.sh` 侧也不要用 `python3 ... 2>/dev/null || true` 把
-  异常和错误信息一起吞掉——至少应该区分"python 正常退出但 stdout 为空（真的没错误）"和"python 非
-  零退出（脚本自己崩了）"两种情况，后者也应该 exit 1（fail-closed：校验器自己挂了，不能被解读成
-  "格式没问题"）。
+额外独立验证（派发指引未强制要求，本轮主动补做，用于确认兜底范围完整性）：
+- `UnicodeDecodeError`（非 UTF-8 字节的 `risk_level` 值，注意须用精确文件名
+  `P1-requirements.md` 才会进入 schema 判定分支，本轮排查中确认了这一点）：
+  `check-frontmatter.sh` 正确输出
+  `'utf-8' codec can't decode byte 0xff in position 16: invalid start byte`，`exit 1`。
+- Fix B 的 fail-closed 分支单独验证（用一个总是以 `sys.exit(1)` 崩溃、且崩溃点在
+  `main()` 假设的 try 保护范围之外的模拟脚本替换）：`check-frontmatter.sh` 正确输出
+  `frontmatter 校验器异常退出（exit 1），fail-closed 拦截` 并转发 stderr 内容，`exit 1`。
+  这也顺带验证了"若某未来改动在 Fix A 的 try 块之外引入新异常源（如 `os.environ["FILE"]`
+  的 `KeyError`，目前确实在 try 块外），Fix B 仍能兜底 fail-closed"——两层防御在结构上是
+  真正独立、而非表面上叠了两层实际只有一层生效。
+
+### 额外检查：宽泛捕获本身是否引入新问题
+
+- 未发现裸 `except:`（`grep -n "except:" agate-frontmatter-check.py check-frontmatter.sh`
+  无匹配），实际写法均为 `except ImportError` / `except yaml.YAMLError as e` /
+  `except Exception as e`，符合"不误捕 `BaseException` 子类（`KeyboardInterrupt`/
+  `SystemExit`）"的预期（`Exception` 基类本就不含这两者，本次未见规避该边界的写法）。
+- `except Exception` 捕获范围内的代码路径（读文件、YAML 解析、字段校验、递归深度计算）都是
+  纯计算/IO 读操作，无副作用、无需要"硬失败"的系统级操作（如写文件、网络请求），兜底捕获后
+  转成一行错误信息 + gate 侧 fail-closed exit 1，不存在"该让 pre-commit 硬失败的严重系统
+  错误被静默吞掉"的风险——反而是本次修复要解决的问题本身（相反方向的静默放行）。
+- 结论：兜底捕获范围合理，未引入新的吞错误风险。
+
+**CRITICAL 判定：已妥善修复，独立复现确认，无新引入问题。**
 
 ---
 
-## Pass 2（INFORMATIONAL）— 代码健康 / 边界稳健性
+## INFO 复审
 
-### [INFO] agate/scripts/check-gate.sh:23, :47（NEED_CONFIRM / SUGGEST 已解决匹配用子串而非整行匹配）
+### `agate-md-field-get.py` 死代码清理
 
-流 C 的"逐条匹配"实现（BDD-21）用 `grep -qF -- "$nc_desc"` / `grep -qF -- "$sg_desc"` 在
-`NC_RESOLVED_FM` / `SG_RESOLVED_FM`（frontmatter 换行连接的已解决列表）里查找，这是**子串匹配**
-不是整行匹配。如果某条"未解决"描述恰好是某条"已解决"描述文本的子串（例如描述写得比较短、或多条
-描述有共同前缀），会被误判为"已解决"（漏判阻塞）。这类文本匹配的松紧问题正是 F14 教训想解决的
-"内容对不上却被判定相同"的同类风险，只是这次不是数量维度而是子串维度。
+`_format_value` 的 bool 分支从 `str(value).lower() if isinstance(value, bool) else
+str(value).lower()` 简化为 `return str(value).lower()`——两个分支原本返回值完全相同，属于
+纯化简，无行为变化。独立重跑 `bats agate/tests/unit/agate-md-field-get.bats`：**6/6 全绿**
+（MDF.1-6），无回归。判定：合格。
 
-Fix：`grep -qF` 改 `grep -qFx`（要求整行精确相等）——两处（NEED_CONFIRM 一处、SUGGEST 一处）都改。
-如果确实需要"部分匹配"语义，建议在 P4-implementation.md 里补一句显式说明，而不是隐式行为。
+### `check-gate.sh` NEED_CONFIRM/SUGGEST 匹配收紧为整行精确匹配
 
-### [INFO] agate/scripts/agate-md-field-get.py:123-124（`_format_value` 的 bool 分支是死代码）
-
-```python
-if field in BOOL_FIELDS:
-    return str(value).lower() if isinstance(value, bool) else str(value).lower()
-```
-两个分支返回值完全一样，`if/else` 没有意义，读者会误以为这里对 bool 类型和非 bool 类型做了不同
-处理。不影响行为，但建议简化为 `return str(value).lower()`，减少误导。
-
-### [INFO] agate/scripts/check-changelog.sh（移除 fallback 后，主正则的分隔符集合未同步扩展）
-
-`TASK_ID_SHORT` 去短前缀后完全等同 `TASK_ID`，主正则 `(^|[^0-9])${TASK_ID_SHORT}( |:|$|,|-)`
-的合法结尾分隔符集合是 `空格/冒号/行尾/逗号/连字符`，不含句号、括号等常见 CHANGELOG 写法结尾符
-（如 `"修复 TAG0001。"` 或 `"(TAG0001)"`）。这条正则本身不是本次改动引入的（P4 未碰这一行），但
-本次移除的 `grep -qF "$TASK_ID"` 宽松 fallback 曾经能兜住这些正则覆盖不到的边界写法（副作用是引入
-了 CL.7 要拦的误匹配，所以两害相权移除是对的，DESIGN_GAP 已如实记录）。移除后网变窄了：以前能通过
-的一些"结尾标点不在分隔符集合里"的合法 CHANGELOG 写法，现在会被拦截（gate 变严，不是变松，方向上
-安全，但可能造成误伤合法 commit）。建议下一轮顺手把分隔符集合扩展为 `( |:|$|,|-|\.|\)|\]|;|、|。)`
-之类，弥补去掉 fallback 后收窄的覆盖面（不属于本次 CRITICAL，可与其他 INFO 一起排期）。
-
-### [INFO] 流 D 硬切（`agate-state-yaml-check.py` task_id 正则 `^T\d+$` → `^T[A-Z]{2}\d+$`）——上线前需要一份迁移/宽限计划，不属于代码缺陷但请主 Agent 注意
-
-代码本身对 BDD-25/26/P0-brief 的"硬切、不做双格式兼容（F19）"要求实现是对的，flow D 自报的 33 个
-既有 fixture 回归也已被第 5 个 commit（`68e4173`，仅改 `agate/tests/**` 字面 task_id 值，未碰
-`agate/scripts/`）修复干净，独立复核 `shellcheck -S warning` 对本次全部改动文件 0 警告，与自查一致。
-
-但要提醒：这个正则一旦从 worktree 的 `agate/` 变成真正生效的 `~/.agate`（双工作区约定，
-`AGENTS.md` "v2.0 改造期间执行约定"一节），**任何仍用旧格式 task_id 的在途任务目录（包括本任务
-T001 自己——`docs/tasks/T001-v2.0-structured/.state.yaml` 的 `task_id: T001` 在新正则下会被判
-"格式错误"）**会在下一次 commit 时被 `check-state-yaml.sh` 硬拦截，且当前代码没有任何迁移脚本或
-宽限期开关。这不是本次 diff 的代码缺陷（硬切是 P0-brief 已定的设计决策，不是本角色评审范围），
-但建议主 Agent 在 P7/P8 推进"把 v2.0 提升为 ~/.agate 正式版本"之前，先确认 T001 自身及其他任何
-仍在用的旧格式任务目录有明确的迁移路径（例如批量改名 .state.yaml 的 task_id 字段），避免协议升级
-当天所有在途任务集体被硬拦截却无人预料。
+`grep -qF` → `grep -qFx`，两处（L86 NEED_CONFIRM 分支、L106 SUGGEST 分支，均在本次 diff 内）。
+独立重跑 `bats agate/tests/unit/check-gate.bats agate/tests/unit/check-retrospective.bats
+agate/tests/unit/check-gate-p1-review.bats`：**122/122 全绿**，无 `not ok`。另外核查了全仓库
+对 `need_confirm_resolved`/`suggest_resolved` 字段的引用（`grep -rn`），确认唯一使用该字段的
+测试 fixture 是 `check-retrospective.bats` 的 `RT_BDD21.1`（`need_confirm_resolved: ["z 的
+边界条件需确认"]` 对应正文 `[NEED_CONFIRM] z 的边界条件需确认`，字面完全相等），且
+`P2-design.md` §3.3.1 设计原文本就要求"**逐条匹配**：正文每条 NEED_CONFIRM 的描述须在
+`need_confirm_resolved` 列表中找到对应项"——这个表述语义上就是精确匹配单条描述，`grep -qFx`
+比之前的子串匹配 `grep -qF` 更贴合设计意图，不是收紧后产生新分歧。implementer"未发现回归、
+无需 DESIGN_GAP"的结论可信。判定：合格。
 
 ---
+
+## 未处理范围（确认与上一轮一致，非本轮判定依据）
+
+- `check-changelog.sh` 分隔符集合扩展、流 D 硬切上线迁移计划——两项均在派发指引第 4 条明确
+  排除在本轮复审范围外，本轮不作为 approve/reject 依据，维持"待后续排期"状态。
+
+## 回归基线复核（独立重跑，与主 Agent 结论一致）
+
+- `bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
+  agate/tests/sanity.bats`：**600/600**，无 `not ok`。
+- `bash agate/tests/scripts/count-tests.sh`：**594**，与文档一致。
+- `shellcheck -S warning agate/scripts/check-frontmatter.sh agate/scripts/check-gate.sh`：
+  **0 警告**。
+- `git diff 68e4173..e566303 --stat -- agate/scripts/`：改动范围严格限于派发指引允许的
+  4 个文件，无越界改动。
 
 ## 处理规则确认
 
-以上所有修复均只描述"怎么改"，未直接改代码；CRITICAL 一处 → 按角色定义"处理规则"映射为
-`status: rejected`；INFORMATIONAL 四处不阻塞，供 implementer 下一轮修复 CRITICAL 时顺手一并处理。
+本轮复审未发现需要"只说怎么改"的新增修复项——CRITICAL 与 2 个 INFO 均已妥善处理，独立复现/
+重跑均通过，未引入新的 CRITICAL 或回归。按角色定义"通过 / 无 BLOCKER" → `status: approved`。
 
 ## 返回主 Agent
 
 File: `docs/tasks/T001-v2.0-structured/P4-review.md`
-Status: rejected
-一句话结论：`agate-frontmatter-check.py` 对非 `yaml.YAMLError` 异常（已实测用 `RecursionError` 复现）没有兜底，会导致格式校验器崩溃后被 shell 层 `2>/dev/null || true` 吞掉，端到端表现为"应报错的坏格式 frontmatter 被静默放行（exit 0）"，需 implementer 补兜底异常处理后重新评审。
+Status: approved
+一句话结论：CRITICAL（frontmatter 校验器异常处理不完整导致坏格式静默放行）已用双层防御（应用层
+兜底捕获 + shell 层 fail-closed）妥善修复，独立复现确认 exit 0 → exit 1，2 个 INFO 修复均为
+安全的纯化简/精确匹配收紧，无回归，approve。
