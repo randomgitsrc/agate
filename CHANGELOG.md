@@ -6,6 +6,18 @@
 
 ---
 
+## [0.35.0] - 2026-08-09
+
+### 修复（T090 复盘）
+- **PROD_TOUCHED 标记检测收紧**：pre-commit-gate.sh 宽松分支从 `grep -q` 改为行尾锚定，正文"句中提及"标记词不再误报为不合规声明；行首独立声明仍拦截。IT_PT_BINARY.4/.5 预期反转，新增 IT_PT_MENTION.1
+- **P6 证据白名单补 `evidences/`**：与 verifier.md 对齐，消除协议内文档与脚本对"合法输出路径"定义的分叉
+- **gate_commands 补 `P3_e2e`**：UI 任务新增测试在 E2E 层时 TDD 红灯确认不再假绿（P5 有 P5_e2e，P3 缺对应字段）
+- **DESIGN_GAP 格式强制**：implementer 卡加产出后自检 `grep -c`；check-gate P7 加启发式 WARNING（有关键词但计数 0 时提醒人工确认），防"0 vs 0 假一致"
+- **agate-summary 检测本地脚本副本漂移**：对比 scripts/ 同名副本与权威版本 checksum，不一致 WARNING
+- **check-changelog post-bump 模式**：`CHECK_CHANGELOG_MODE=post-bump` 时检查新版本段落非空而非 [Unreleased]，消除 bump-version 结构误报
+
+---
+
 ## [0.34.0] - 2026-08-07
 
 ### 内部重构
