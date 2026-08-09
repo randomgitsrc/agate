@@ -85,6 +85,16 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 - **consistency**：`python3 agate/scripts/check-protocol-consistency.py`
 - **gate-backstop**：`python3 agate/scripts/ci-gate-backstop.py`（push 后重跑 gate + P6 git blame 单 author WARNING）
 
+## v2.0 改造期间执行约定（T001，2026-08-09 起）
+
+> 本任务（agate v2.0 结构化改造，T001）期间的跨会话约定，避免重复踩坑。
+
+- **双工作区**：改造对象 = worktree 的 `agate/`（分支 feat/v2.0）；开发工具 = `~/.agate`（v0.35.0 稳定版，指向主 checkout，**勿动**）。跑 gate/读卡片用 `~/.agate`，改代码/跑测试在 worktree。主 checkout（`/home/kity/oclab/agate`）是协议本体，禁止改动。
+- **任务编号空间**：本任务 `T001` 使用 agate 改造项目**独立编号**（从 T001 起），**不沿用**主 checkout git 历史里的 peekview 项目编号（T016-T090 系列）。校验器 `agate-state-yaml-check.py` 要求 `^T\d+$`。
+- **工具纪律**：bash 命令默认设 timeout（如 `timeout 90`）并单步串行，不并行 bash；长命令（全量 bats）分片跑并设大 timeout。原因：并行/无 timeout 的 bash 曾多次被 abort。
+- **核心上下文**：任务目标/范围/已踩坑见 `HANDOFF-V2.0.md`（worktree 根目录）；阶段产出在 `docs/tasks/T001-v2.0-structured/`。
+- **编号规则将随 v2.0 改造**：流 D 会把编号改为 Jira 式 `TAG0001`（项目代号+动态数字），硬切不兼容旧 `T\d+`（见 P0-brief 流 D）。
+
 ## 版本发布
 
 1. 确认 bats 全过 + 0 consistency ERROR + 0 shellcheck error（用例数以 `count-tests.sh` 为准）
