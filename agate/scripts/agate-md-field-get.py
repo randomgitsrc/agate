@@ -19,6 +19,17 @@
   override / internal_only_reason / 跳过风险   presence 语义字符串字段
   internal_only / design_trivial               presence 语义 bool 字段
   coupling_checklist / follows_existing_pattern  presence 语义 list 字段
+  pass / fail                                    P6 int 汇总字段（frontmatter-only，无正文回退）
+  blocker_count / deviation_count /
+  deviation_critical_count / design_gap_count /
+  design_gap_reviewed_count                      P7 int 计数字段（frontmatter-only，无正文回退）
+
+流 B 新增字段（P6/P7 结构化计数）的"无正文回退"语义（P2-design.md §3.2）：
+  v0.35 正文里这些字段从来不是单行声明——旧格式靠 grep 计数 PASS/FAIL 行数、
+  BLOCKER 关键词数，不是读一个字段。因此这些字段在 frontmatter 中不存在时，
+  本工具直接输出空字符串，不在内部模拟"正则计数回退"。"回退到旧格式计数逻辑"
+  是调用方（check-gate.sh / check-p6-provenance.sh）的责任：op 返回非空 → 用
+  frontmatter 声明值；op 返回空 → 调用方自行执行原有的正文 grep 计数逻辑。
 """
 
 import os
@@ -45,6 +56,15 @@ LIST_FIELDS = frozenset({
 
 # int 字段：格式化为 str(int)。
 INT_FIELDS = frozenset({"candidate_count"})
+
+# P6/P7 结构化计数字段（流 B，P2-design.md §3.2）：int 格式化同 INT_FIELDS，
+# 但 frontmatter 无该字段时**不做正则回退**——直接输出空字符串（见模块 docstring
+# "无正文回退语义"）。调用方据此判断走 frontmatter 汇总还是旧格式正文 grep 计数。
+NO_FALLBACK_INT_FIELDS = frozenset({
+    "pass", "fail",
+    "blocker_count", "deviation_count", "deviation_critical_count",
+    "design_gap_count", "design_gap_reviewed_count",
+})
 
 # presence 语义的纯字符串字段：key 存在且值非 null → 输出值原样，否则空。
 STRING_FIELDS = frozenset({"override", "internal_only_reason", "跳过风险", "risk_level"})
@@ -75,7 +95,7 @@ def _format_value(value, field):
         if isinstance(value, list):
             return " ".join(str(v) for v in value)
         return str(value)
-    if field in INT_FIELDS:
+    if field in INT_FIELDS or field in NO_FALLBACK_INT_FIELDS:
         return str(value)
     return str(value)
 
@@ -123,11 +143,13 @@ def _get(text, op):
     # 字段级 presence 检测：frontmatter 是 dict 且 key 存在且值非 null → 取 frontmatter
     if isinstance(fm, dict) and op in fm and fm[op] is not None:
         return _format_value(fm[op], op)
+    if op in NO_FALLBACK_INT_FIELDS:
+        return ""  # 流 B 字段：无正文回退语义，frontmatter 无该字段直接输出空字符串
     return _regex_fallback(text, op)  # 字段不在 frontmatter → 正则回退
 
 
 KNOWN_OPS = (
-    BOOL_FIELDS | LIST_FIELDS | INT_FIELDS | STRING_FIELDS
+    BOOL_FIELDS | LIST_FIELDS | INT_FIELDS | STRING_FIELDS | NO_FALLBACK_INT_FIELDS
 )
 
 

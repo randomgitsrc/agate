@@ -112,7 +112,11 @@ DISPATCH_CTXS=("$TASK_DIR/P6-dispatch-context-"*.md)
 shopt -u nullglob
 for DISPATCH_CTX in "${DISPATCH_CTXS[@]}"; do
     # Exclude AGATE_CARD embedded block (card template text like "- FAIL > 0" is not a prejudice)
-    PREJUDICE=$(sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$DISPATCH_CTX" | grep -cE '^\s*- (PASS|FAIL)\b' 2>/dev/null || echo 0)
+    # T001 v2.0 流 B（P2-design.md §3.2.3，P1 隐含需求 #11）：P6 结果入 frontmatter 后，
+    # dispatch-context 顶部的 "---" frontmatter 样例块也须排除，避免其中的字段示例
+    # （如未来模板贴出 `pass: N` 附近若含 "- PASS ..." 说明文字）被误判为验收结论预判。
+    # 排除范围：先删 AGATE_CARD 块，再删文件顶部第一对 "---" 定界的 frontmatter 块。
+    PREJUDICE=$(sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d' "$DISPATCH_CTX" | sed '/^---$/,/^---$/d' | grep -cE '^\s*- (PASS|FAIL)\b' 2>/dev/null || echo 0)
     PREJUDICE=$(echo "$PREJUDICE" | tail -1)
     if [ "$PREJUDICE" -gt 0 ]; then
         echo "GATE PROVENANCE: $(basename "$DISPATCH_CTX") 含 ${PREJUDICE} 处验收结论预判" >&2
@@ -122,13 +126,32 @@ done
 
 # --- 审计 3：BDD 总数自动化对照 ---
 # P6 的 PASS+FAIL 数 ≥ P1 的 BDD 标题数（挑验拦截）
+# T001 v2.0 流 B（BDD-17/18，P2-design.md §3.2.1）：计数口径改从严格式
+# `grep -cE '^\s*- (PASS|FAIL) BDD-[0-9]'`（总结行如 "- PASS: 16" 不带 BDD 编号不再
+# 误计入，F11 消除）；新格式（frontmatter 声明 pass+fail）优先用该结构化汇总为总数，
+# 无 frontmatter 汇总（旧格式）→ 回退从严正文 grep。
+# FIND-6（P2-design.md §3.2.1/§13，决定"加"）：新格式下增加交叉校验 WARNING——
+# frontmatter pass+fail 总数与正文从严行数不一致（如声明 pass:28 但正文仅 20 条
+# PASS 行）→ 输出 WARNING 提示复核；exit 仍 0，非阻断，属防呆 nudge，不提升 gate
+# 强度（语义真实性边界不变，§10：机器只提示"计数对不上"，不判定"内容造假"）。
 
 if [ -f "$P6_FILE" ] && [ -f "$P1_FILE" ]; then
     P1_BDD=$(grep -cE '^#### BDD-[0-9]' "$P1_FILE" 2>/dev/null || echo 0)
     P1_BDD=$(echo "$P1_BDD" | tail -1)
 
-    P6_TOTAL=$(grep -cE '^\s*- (PASS|FAIL)\b' "$P6_FILE" 2>/dev/null || echo 0)
-    P6_TOTAL=$(echo "$P6_TOTAL" | tail -1)
+    P6_BODY_STRICT=$(grep -cE '^\s*- (PASS|FAIL) BDD-[0-9]' "$P6_FILE" 2>/dev/null || echo 0)
+    P6_BODY_STRICT=$(echo "$P6_BODY_STRICT" | tail -1)
+
+    PASS_FM=$(FILE="$P6_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" pass 2>/dev/null || echo "")
+    FAIL_FM=$(FILE="$P6_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" fail 2>/dev/null || echo "")
+    if [ -n "$PASS_FM" ] && [ -n "$FAIL_FM" ]; then
+        P6_TOTAL=$((PASS_FM + FAIL_FM))
+        if [ "$P6_TOTAL" -ne "$P6_BODY_STRICT" ]; then
+            echo "GATE PROVENANCE WARNING: P6-acceptance.md frontmatter 声明 pass+fail=${P6_TOTAL}，正文逐条 '- PASS|FAIL BDD-N' 行数=${P6_BODY_STRICT}，两者不一致，请复核" >&2
+        fi
+    else
+        P6_TOTAL=$P6_BODY_STRICT
+    fi
 
     if [ "$P1_BDD" -eq 0 ]; then
         echo "GATE PROVENANCE: P1-requirements.md 未使用标准 #### BDD-NN: 格式（或没有 BDD），标准化后必须使用该格式" >&2
