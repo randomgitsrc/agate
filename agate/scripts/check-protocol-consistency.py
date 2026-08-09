@@ -631,6 +631,12 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-gate.sh",
         "keywords": ["BDD-[0-9]"],
     },
+    {
+        "desc": "frontmatter schema 校验",
+        "script": "agate/scripts/check-frontmatter.sh",
+        "keywords": ["frontmatter"],
+        "callers": ["agate/scripts/pre-commit-gate.sh"],
+    },
 ]
 
 
