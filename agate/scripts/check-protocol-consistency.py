@@ -53,6 +53,7 @@ PROTOCOL_FILES = {
     "agate/LIMITATIONS.md",
     "README.md",
     "agate/orchestrator-template.md",
+    "agate/SETUP.md",
 }
 PROTOCOL_DIRS = ("agate/assets/",)  # 角色定义与模板也算协议文件
 

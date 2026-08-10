@@ -65,22 +65,13 @@ agate 是「项目开发协议」——它本身有开发资料（设计文档�
 
 软链接的**唯一约定**是必须指向 `<仓库根>/agate/` 协议本体子目录，仓库根路径随意。
 
-**2. 在你的项目里创建 orchestrator**
+**2. 把 orchestrator 注册成 OpenCode / Claude Code 能调用的 agent**
 
-```bash
-cp ~/.agate/orchestrator-template.md \
-   your-project/docs/agents/orchestrator.md
-```
+`orchestrator-template.md` 对所有项目内容完全一致，不需要拷贝改字段——**符号链接到你项目的 agent 目录即可**，agate 升级模板会自动跟着生效。项目特定信息（如果有）另放一个可选的 `project.md`，不动 orchestrator 本体。
 
-**3. 填写项目信息**
+完整步骤（含 Claude Code / OpenCode 具体命令、Windows 无符号链接权限的退化方案、要不要设默认 agent）见 **`agate/SETUP.md`**——这一步是平台相关、最容易卡住的一步，单独写了篇指南，不在这里展开。
 
-打开 `orchestrator.md`，`agate_root` 已预填为 `~/.agate`（软链接指向协议本体 `agate/` 子目录），只需填写 `project_root` 和项目特定约束。
-
-**4. 把 orchestrator.md 配置给你的 Agent**
-
-在 OpenCode/Claude Code 里将 `orchestrator.md` 设为角色提示词，开始第一个任务。
-
-**5. 第一次用，`docs/tasks/` 是空的，这是正常的**
+**3. 第一次用，`docs/tasks/` 是空的，这是正常的**
 
 不需要手动创建 `docs/tasks/active-tasks.md`——Agent 启动后会自己检查这个文件是否存在，不存在就从 `assets/templates/active-tasks-template.md` 复制结构、建好目录，再开始第一个任务（T001）。这个初始化逻辑写在 `orchestrator-template.md` 和 `state-machine.md` 里，不需要人工介入。
 
@@ -89,7 +80,7 @@ cp ~/.agate/orchestrator-template.md \
 ## 常见误区
 
 1. **「我以为要 `cd` 到 agate 仓库根才开始」** —— **不要**。agate 仓库是协议的开发目录，**你只用到 `~/.agate` 这个软链接**。所有工作都在你自己的项目仓库里做。
-2. **「我要按文件结构图把所有文件复制过来」** —— **不要**。只用 `orchestrator-template.md` 这一个文件就够了。复制后改 `project_root:` 等几行字段，其余逻辑从 `~/.agate/` 实时读。
+2. **「我要按文件结构图把所有文件复制过来」** —— **不要**。只需要把 `orchestrator-template.md` 符号链接进平台的 agent 目录（见 `agate/SETUP.md`），不需要拷贝、不需要改任何字段，其余逻辑从 `~/.agate/` 实时读。
 3. **「我需要 Python/数据库/部署服务」** —— 不需要。agate 是**纯文档协议**，没有任何运行时服务。所有 gate 检查都是 git pre-commit 钩子 + bash/Python 脚本。
 4. **「装了就要放 `~/oclab/agate`」** —— 不是。仓库克隆路径随便，**只有 `~/.agate` 软链接是约定**。
 
@@ -115,7 +106,7 @@ rm ~/.agate                          # 删软链接
 rm -rf <你克隆 agate 的目录>          # 删仓库
 ```
 
-你的项目里的 `docs/agents/orchestrator.md` 等文件**不会**被删（它们独立于 agate）。
+你的项目里 `.claude/agents/orchestrator.md`、`.opencode/agents/orchestrator.md`（符号链接）与 `docs/agents/project.md`（如果创建了）等文件**不会**被删（它们独立于 agate）。
 
 ---
 
@@ -138,12 +129,13 @@ agate-repo/                      # GitHub 仓库
 │   ├── git-integration.md       # git 提交规范
 │   ├── role-system.md           # 角色体系说明
 │   ├── platform-notes.md        # 各平台适配说明（OpenCode/Claude Code 等）
-│   ├── orchestrator-template.md # 新项目接入模板 ← 从这里开始
+│   ├── SETUP.md                 # 首次接入指南（怎么注册成可调用的 agent）← 新项目从这里开始
+│   ├── orchestrator-template.md # 主 Agent 提示词，对所有项目内容一致，符号链接接入
 │   ├── LIMITATIONS.md           # 已知局限（使用前建议先读）
 │   ├── assets/
 │   │   ├── execution-roles/     # analyst/architect/implementer/verifier 等
 │   │   ├── review-roles/        # review/cso/design-review/qa 等评审角色
-│   │   └── templates/           # P0-brief、active-tasks、dispatch-prompt 等模板
+│   │   └── templates/           # P0-brief、active-tasks、dispatch-prompt、project.md 等模板
 │   └── scripts/                 # gate 检查脚本（pre-commit hook 安装源）
 └── install.sh                   # 自动化安装脚本
 

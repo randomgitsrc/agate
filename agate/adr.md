@@ -219,3 +219,36 @@ agate 协议里散落在正文的机器读取字段（P1/P2/P6/P7 共约 40+ 个
 - 单一工具承担全部读取逻辑，读取路径统一，无跨文件同步风险；既有调用点接口不变，5 个调用点零改动
 - `agate-md-field-get.py` 会随每次新增机器字段持续增长（每个字段一个 op），长期需要关注该文件是否变得过于臃肿
 - 若未来 op 数量过多，可以考虑按 P1/P2/P6/P7 拆分成多个读取函数，但仍应留在同一工具/同一文件内而不是拆成独立文件——保留"单文件写入、单工具读取"的核心优势，不因规模增长退回到被否决的独立文件路径
+
+---
+
+## ADR-008: orchestrator-template.md 符号链接接入，项目特定信息分离到可选 project.md
+
+### 状态
+
+已接受
+
+### 语境
+
+`orchestrator-template.md` 此前的接入方式是逐项目拷贝到 `docs/agents/orchestrator.md` 后手改 `agate_root`/`project_root` 两个 frontmatter 字段和一段内联的"项目特定约束"正文。这带来两个问题：(1) agate 升级模板（比如给"你不能做的事"清单加一条新规则）后，已部署项目的拷贝不会自动跟上，需要人工发现并手动同步，实际上从未真正发生过；(2) 协议文档从未讲清楚"怎么把这份文件注册成 OpenCode/Claude Code 真正能调用的 agent"这一步——只有一句"设为角色提示词"，平台相关的符号链接/默认 agent 设置细节完全缺失，新用户只能自己摸索。
+
+### 决策
+
+`orchestrator-template.md` 改为对所有项目内容完全一致，不含任何需要逐项目编辑的字段；`agate_root`/`project_root` 改为会话开始时运行时解析（环境变量兜底默认值），不再是静态 frontmatter 字段。标准接入方式是**文件级符号链接**直接指向 `orchestrator-template.md`（`.claude/agents/orchestrator.md` / `.opencode/agents/orchestrator.md`），不是拷贝。项目特定信息（工作区规则、gate 命令、测试基线等）迁移到一个新的、可选的 `{project_root}/docs/agents/project.md` 文件，由项目侧维护，orchestrator 固定读取。新增 `agate/SETUP.md` 记录完整接入步骤（含 Windows 无符号链接权限的复制模式退化）。
+
+### 理由
+
+核心论点：orchestrator.md 一旦对所有项目内容一致，就可以用符号链接代替拷贝，agate 升级模板即时对所有已接入项目生效，和 `~/.agate` 软链接让 gate 脚本自动跟随升级是同一套机制，不再是两套不一致的行为。项目特定信息独立成 project.md 而不是合并进已有的 AGENTS.md/CLAUDE.md，是因为受众不同——AGENTS.md 面向任何贡献者/Agent，project.md 只面向 orchestrator 这一个角色，塞进同一份文件会让通用开发指引膨胀、边界不清。
+
+文件级链接而非目录级链接（链接单个 `orchestrator.md` 文件到平台 agent 目录，而不是把整个目录链过去），是为了避免把项目自己的其他文档意外暴露给平台的 agent 发现机制，也避免项目以后想在同一目录下注册别的自定义 agent 时被迫和 agate 管理的文件耦合。
+
+### 权衡
+
+- Windows 无符号链接权限（无开发者模式/非管理员）时退化为复制，牺牲自动同步能力——`agate/SETUP.md` 已文档化此权衡和退化步骤，目前没有自动漂移检测（`agate-summary.sh` 现有的漂移检测只覆盖 `scripts/` 目录副本，不覆盖这个文件），是已知的手动步骤缺口
+- `permission`/`mode`/`color` 等 OpenCode 专属字段和 Claude Code 需要的 `name` 字段共存于同一份 frontmatter——经实测确认 Claude Code 会静默忽略不认识的字段（不报错），OpenCode 会把不认识的字段归入通用 `options` 桶保留（不报错），两边互不冲突；但 Claude Code 缺少必填的 `name` 字段会导致整个文件被静默跳过（无警告日志），是本次改造过程中发现的一个容易复发的坑，`orchestrator-template.md`/`agate/SETUP.md` 均已加提醒
+
+### 后果
+
+- 新接入项目的操作从"拷贝+改字段"简化为"建两条符号链接命令"，`agate/SETUP.md` 是唯一权威步骤来源
+- 已部署项目（拷贝方式）升级到本版本需要手动迁移：删除旧拷贝，重新按 SETUP.md 建立符号链接，项目特定内容搬进新建的 project.md——这是一次性、破坏性变更，已在 CHANGELOG.md 标注迁移路径
+- `check-protocol-consistency.py` 的 `PROTOCOL_FILES` 加入 `agate/SETUP.md`，纳入 CHECK 2/3 结构性检查覆盖范围

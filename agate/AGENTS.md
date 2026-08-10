@@ -14,7 +14,8 @@
 
 | 你要做什么 | 看这里 |
 |------|------|
-| 第一次接入 agate 到我的项目 | `orchestrator-template.md`（拷贝到你的项目里的入口） |
+| 第一次接入 agate 到我的项目（把 orchestrator 注册成可调用的 agent）| `SETUP.md`（平台相关的具体步骤，从这里开始）|
+| 理解 orchestrator-template.md 本身该怎么用 | `orchestrator-template.md`（对所有项目内容完全一致，符号链接，不拷贝——项目特定信息写 `assets/templates/project.md`）|
 | 理解 P0-P8 阶段流程 | `WORKFLOW.md`（主流程，主入口） |
 | 派发 subagent 的细节 | `dispatch-protocol.md` |
 | 状态机/转移规则/重试上限 | `state-machine.md` |
@@ -38,7 +39,7 @@
 
 如果你是主 Agent（编排者）：
 
-1. 从 `orchestrator-template.md`（项目侧拷贝）进入
+1. 从 `orchestrator-template.md`（符号链接进你的平台 agent 目录，接入步骤见 `SETUP.md`）进入
 2. **按 mapping 表加载当前阶段卡片**（`phase-cards/P{N}-*.md`）——不必全读 8 个协议文件
 3. 阶段卡片自包含（前置条件 / 派发 / 产出 / gate / 推进 / 常见错误 / 下游影响）
 4. 跨阶段规则（retry / 转移 / 评审映射）在 `rules/` 下按需查阅

@@ -8,6 +8,11 @@
 
 ## [0.40.0] - 2026-08-10
 
+### 变更（orchestrator 接入方式，破坏性）
+- **`orchestrator-template.md` 改为对所有项目内容完全一致**：不再要求逐项目拷贝后手改 `agate_root`/`project_root`/项目特定约束——`agate_root`/`project_root` 改为会话开始时运行时解析（环境变量 `$AGATE_ROOT` 兜底默认 `~/.agate`；`project_root` 向上找最近 `.git` 目录），项目特定信息迁移到新的可选文件 `{project_root}/docs/agents/project.md`（模板见 `assets/templates/project.md`）。frontmatter 补充 Claude Code 必需的 `name: orchestrator` 字段（此前缺失会导致 Claude Code 静默跳过整个文件、agent 完全不可用）
+- **标准接入方式改为符号链接**（不是拷贝）：`.claude/agents/orchestrator.md` / `.opencode/agents/orchestrator.md` 文件级链接直接指向 `orchestrator-template.md`，agate 升级模板后自动生效，不需要手动同步。完整步骤（含 Windows 无符号链接权限的复制模式退化、要不要设默认 agent）新增 `agate/SETUP.md`
+- **⚠️ 迁移路径（已部署项目升级到本版本需要手动做）**：删除旧的拷贝文件 `docs/agents/orchestrator.md`（如果存在），按 `agate/SETUP.md` 重新建立符号链接；原来内联在 orchestrator.md 里的项目特定约束，迁移到新建的 `docs/agents/project.md`
+
 ### 新增（T001 v0.40.0 结构化数据改造）
 - **`agate-frontmatter-check.py` + `check-frontmatter.sh`**：新增 frontmatter schema 校验器，覆盖 `P1-requirements.md`/`P2-design.md`/`P6-acceptance.md`/`P7-consistency.md` 四类产出文件——按文件名匹配 schema，做必填字段/枚举/类型/嵌套深度（>3 报错）校验；`yaml.safe_load` 解析异常（含 `YAMLError`/`RecursionError`/`UnicodeDecodeError`）统一捕获并 fail-closed（不再静默放行坏格式）；无 frontmatter 块视为旧格式豁免（向后兼容）。挂载到 `pre-commit-gate.sh`（新增步骤 "2g.2"），P1/P2/P6/P7 产出提交前强制过检
 - **P6/P7 结果结构化**：P6-acceptance.md frontmatter 新增 `pass`/`fail`/`ui_affected` 汇总字段，P7-consistency.md frontmatter 新增 `blocker_count`/`deviation_count`/`deviation_critical_count`/`design_gap_count`/`design_gap_reviewed_count` 计数字段；`check-gate.sh` P6/P7 分支优先读取 frontmatter 汇总判定，两字段皆非空才走新格式（AND 语义），否则回退既有正文 grep（向后兼容）；新增 FIND-6 交叉校验 WARNING（frontmatter 汇总与正文逐条行数不一致时提示复核，不阻断）
