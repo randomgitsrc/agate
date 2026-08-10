@@ -10,6 +10,9 @@
 # OpenCode 项目级接入层（软链 → docs/converse/agents，本地环境配置不入库）
 .opencode/
 
+# Claude Code 项目级接入层（软链 → docs/converse/agents，本地环境配置不入库）
+.claude/
+
 # Python
 __pycache__/
 *.pyc

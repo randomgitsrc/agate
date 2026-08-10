@@ -128,7 +128,7 @@ permission:
 
 - `AGENTS.md`（本仓库开发指引，含 SELF-GATE.md 引用）
 - `SELF-GATE.md`（改协议/脚本的自审流程）
-- `HANDOFF-V2.0.md`（交接文档，任务核心上下文）
+- `docs/archived/plans/T001-HANDOFF-V2.0.md`（交接文档，任务核心上下文，任务 READY 后归档）
 - `docs/tasks/active-tasks.md`（任务看板）
 
 ## 项目特定约束
@@ -143,5 +143,7 @@ permission:
   python3 agate/scripts/check-protocol-consistency.py
   bash agate/tests/scripts/count-tests.sh
 测试基线：count-tests.sh = 594（sanity 6 另算）——不能漂移
-发布：v2.0.0 + 普通 merge（--no-ff），禁止 squash
+发布：v0.40.0（语义版本号，非 worktree/分支名 "v2.0"）+ 普通 merge（--no-ff），禁止 squash
 ```
+
+> 命名提醒："v2.0" 只是本次改造的世代代号（worktree 目录名 `.worktrees/v2.0`、分支名 `feat/v2.0`、任务标题里的"v2.0 结构化改造"），**不是** semver。实际要 bump 的版本号、CHANGELOG 段落、README badge、git tag 一律用 `v0.40.0`（agate 走 v0.x 语义版本线，见 P0-brief.md / P1-requirements.md 权威口径）。
