@@ -6,6 +6,32 @@
 
 ---
 
+## [0.40.0] - 2026-08-10
+
+### 新增（T001 v0.40.0 结构化数据改造）
+- **`agate-frontmatter-check.py` + `check-frontmatter.sh`**：新增 frontmatter schema 校验器，覆盖 `P1-requirements.md`/`P2-design.md`/`P6-acceptance.md`/`P7-consistency.md` 四类产出文件——按文件名匹配 schema，做必填字段/枚举/类型/嵌套深度（>3 报错）校验；`yaml.safe_load` 解析异常（含 `YAMLError`/`RecursionError`/`UnicodeDecodeError`）统一捕获并 fail-closed（不再静默放行坏格式）；无 frontmatter 块视为旧格式豁免（向后兼容）。挂载到 `pre-commit-gate.sh`（新增步骤 "2g.2"），P1/P2/P6/P7 产出提交前强制过检
+- **P6/P7 结果结构化**：P6-acceptance.md frontmatter 新增 `pass`/`fail`/`ui_affected` 汇总字段，P7-consistency.md frontmatter 新增 `blocker_count`/`deviation_count`/`deviation_critical_count`/`design_gap_count`/`design_gap_reviewed_count` 计数字段；`check-gate.sh` P6/P7 分支优先读取 frontmatter 汇总判定，两字段皆非空才走新格式（AND 语义），否则回退既有正文 grep（向后兼容）；新增 FIND-6 交叉校验 WARNING（frontmatter 汇总与正文逐条行数不一致时提示复核，不阻断）
+- **`check-p6-format.sh` `--check`/`--fix` 双模式重写**：`--check` 独立实现严格行格式校验（`^\s*-\s+(PASS|FAIL)\s+BDD-[0-9]+`），不再依赖"和 --fix 输出 diff"判定
+- **P1 标记状态结构化**：P1-requirements.md frontmatter 新增可选字段 `need_confirm_resolved`/`suggest_resolved`/`scope_resolved`（换行连接的列表），`check-gate.sh`/`check-scope-resolved.sh` 改为逐条精确匹配已解决/已采纳的 `[NEED_CONFIRM]`/`[SUGGEST:]`/`[SCOPE+]` 描述文本（而非数量相减，消除"N vs N 但内容对不上"的假一致歧义）
+- **角色卡/模板可复制 frontmatter 样例**：`task-files.md`（P1/P2/P6/P7 四节）、`analyst.md`、`architect.md`、`verifier.md`、4 个 `phase-cards/{P1,P2,P6,P7}-*.md` 补充可直接复制的完整 frontmatter YAML 代码块，替换原先"正文写字段"的过时示例
+- **ADR-007**：`agate/adr.md` 新增"机器字段并入 frontmatter——单工具双读，不拆分独立事实文件"决策记录
+
+### 变更（T001 v0.40.0 结构化数据改造）
+- **机器字段迁移：正文内嵌 YAML/正则提取 → frontmatter + pyyaml + schema 校验**：`agate-md-field-get.py` 双读改造——`_read_frontmatter`/`_get` 实现"frontmatter 优先，字段不存在时正则回退"的判别契约；`_format_value` 统一 bool 字段输出 `true`/`false`、list 字段空格或换行连接（视字段语义）；新增 17 个 op（`candidate_count`/`packages`/`domains`/`coupling_checklist`/`follows_existing_pattern`/`override`/`internal_only_reason`/`internal_only`/`design_trivial`/`pass`/`fail`/`blocker_count`/`deviation_count`/`deviation_critical_count`/`design_gap_count`/`design_gap_reviewed_count`/`need_confirm_resolved`/`suggest_resolved`/`scope_resolved`），既有 3 个 op（`risk_level`/`ui_affected`/`phases`）正文回退逻辑字节级不变
+- **任务编号规则硬切为 `T[A-Z]{2}\d+`**：`agate-state-yaml-check.py` 的 `task_id` 正则从 `^T\d+$` 硬切为 `^T[A-Z]{2}\d+$`（如 `TAG0001`），不兼容旧格式 `T001`；`check-changelog.sh` 去短前缀提取逻辑，直接用完整 `task_id` 做带单词边界的匹配（同时移除无边界保护的固定字符串 fallback，避免 `TAG0001` 被 `TAG00012` 误匹配）；`active-tasks-template.md`/`state-machine.md`/`dispatch-protocol.md`/`role-system.md` 示例同步为新格式
+- **`check-protocol-consistency.py` CHECK 9 锚点表**：`SCRIPT_ALIGNMENT_ANCHORS` 新增 `check-frontmatter.sh` 条目，锚点总数 37→38
+
+### 修复（T001 v0.40.0 结构化数据改造）
+- **`check-p6-format.sh` `--fix` 分支破坏 frontmatter**：`--fix` 归一化 sed 此前作用于整个文件，会把 P6-acceptance.md frontmatter 中合法的 `pass:`/`fail:` 字段误改写为 `**Summary**: PASS: ...`，导致 frontmatter 变成非法 YAML。修复为先切分 frontmatter/正文，sed 只作用于正文部分，frontmatter 原样保留
+- **`agate-frontmatter-check.py` 异常处理不完整**：深嵌套字段（如 2000 层嵌套 `risk_level`）触发 `RecursionError` 未被原有 `except yaml.YAMLError` 捕获，进程崩溃导致 `check-frontmatter.sh` 误判"无错误"放行坏格式；补齐 `Exception` 兜底 + `check-frontmatter.sh` 侧改为 fail-closed（脚本非零退出时不再静默放行）
+
+### 已知偏离（T001，均经 P7 独立核实，7/7 REVIEWED-ACCEPTED，非 BLOCKER）
+- `check-gate.sh`/`check-pruning.sh` 部分字段读取点未迁移到双读工具（现有 grep 对顶格 frontmatter 天然兼容，schema 校验器已承担格式拦截责任，无实际解析可靠性缺口）
+- `check-gate.sh` P6 分支旧格式回退正则较 P2 设计文字表述更宽松（为兼容既有历史正文写法）
+- `check-scope-resolved.sh` 对 `scope_resolved` 字段"存在但空列表"与"字段不存在"两种情况未做区分（概率低的边界场景，功能后果等价）
+
+---
+
 ## [0.35.0] - 2026-08-09
 
 ### 修复（T090 复盘）
