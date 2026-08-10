@@ -604,3 +604,16 @@ MISALIGNED 文档滞后项（均为纯文档编辑，不涉及脚本逻辑改动
 **自查**（非最终 gate）：`python3 agate/scripts/check-protocol-consistency.py` 重跑，
 CHECK 1-9 全部 PASS，0 ERROR（含 CHECK 1 对新增文本中 YAML 片段的可解析性校验、
 CHECK 2 对文件引用存在性的校验）。
+
+## ADR-007 补充
+
+依据 `docs/reviews/agate-alignment-review-2026-08-10.md` A7 节的 self-gate 发现：P2 设计阶段
+（`P2-design.md` §1）对比方案 A（frontmatter 强化 + 单工具双读扩展，选定）与方案 B（拆分独立
+facts 工具 + 独立 `.yaml` 元数据文件）的完整权衡矩阵与选择理由，未沉淀进 `agate/adr.md`。
+
+在 `agate/adr.md` 末尾（`ADR-006` 之后）新增 **ADR-007："机器字段并入 frontmatter——单工具
+双读，不拆分独立事实文件"**，格式仿照现有 6 条（状态/语境/决策/理由/后果），内容从
+`P2-design.md` §1 的候选方案对比、权衡矩阵、选择理由提炼而成（非照抄，正文指引读者查阅
+`P2-design.md` §1 获取完整矩阵）。未改动 ADR-001 至 ADR-006 任何已有内容，纯追加。
+
+**自查**：`python3 agate/scripts/check-protocol-consistency.py` 重跑，0 ERROR。
