@@ -1,0 +1,20 @@
+- [role file] 读取 protocol-alignment-review.md，含 A1-A7 + 原则6 DESIGN_GAP + 反向传播表新行
+- [diff全文] git diff -- dispatch-protocol.md state-machine.md WORKFLOW.md 共109行，已逐行读取
+- [WORKFLOW.md新增行1.2] PROD_TOUCHED三步检测行已加入表格，此前缺失
+- [WORKFLOW.md新增段落] 多任务适配/三类WARNING/Pre-push hook 三段已从dispatch-protocol.md原样合并进WORKFLOW.md
+- [dispatch-protocol.md表格删除] 原10行表格+6段说明全部删除,替换为一句指向WORKFLOW.md的话(行823)
+- [state-machine.md表格删除] 原9行表格+2段说明全部删除,替换为一句指向WORKFLOW.md的话
+- [信息核对-P2.7裁剪行] dispatch-protocol旧表row6含design_trivial/follows_existing_pattern/no_behavior_change枚举细节,WORKFLOW新表2.7行只写"裁剪条件与实际执行一致性"未含此枚举;但核实WORKFLOW.md 147-157行/state-machine.md 169-173行已独立记录该细节,非本次改动引入的信息丢失,判定不算MISALIGNED
+- [信息核对-CI backstop单author目标] dispatch-protocol旧段落明确写"P6-acceptance.md 单author WARNING",WORKFLOW.md现有段落(未被本次diff触碰,行255)只写泛化的"git blame 单author WARNING"未点名P6-acceptance.md;核实ci-gate-backstop.py:168确认blame目标就是P6-acceptance.md;此细节现在整个pre-commit相关文档合并后不再有任何一处点名具体文件,构成信息精度损失
+- [信息核对-pre-commit-gate.sh脚本名] state-machine旧段落明确点名"pre-commit-gate.sh 扫描暂存区",WORKFLOW.md合并段落只写泛化"hook 扫描"未点名脚本文件名;核实scripts/README.md仍有此脚本名说明,判定为极轻微冗余精简,不算实质信息丢失
+- [悬空引用检查] grep 全agate/**/*.md 未发现任何文件引用被删表格的具体行文字或锚点链接(dispatch-protocol.md#/state-machine.md#)
+- [CHECK9锚点表核查] 读取check-protocol-consistency.py SCRIPT_ALIGNMENT_ANCHORS全量(约30条),逐条确认无一条依赖"pre-commit表必须在dispatch-protocol.md或state-machine.md内"这一假设;涉及.md的锚点只检测关键词是否在文件内出现,与表格是否存在无关
+- [测试] count-tests.sh 输出总计597个测试用例,符合预期基线597(不含sanity 6个)
+- [测试] shellcheck -S warning agate/scripts/*.sh 输出为空,exit 0,符合预期(本次未改.sh)
+- [测试] check-protocol-consistency.py 全部CHECK 1-9 PASS,exit 0,0 ERROR
+- [测试] bats全量: sanity+unit+regression+integration 共603个测试,603 ok/0 not ok,含ARCH.4本次未flaky,直接ok 10通过
+- [A6结论] CHECK9 SCRIPT_ALIGNMENT_ANCHORS(约30条)逐条读完,全部锚点检测的是脚本/md文件内关键词存在性,无一条断言pre-commit表格必须以表格形式出现在dispatch-protocol.md或state-machine.md;A6=ALIGNED
+- [A3b反向传播核查] 检查protocol-alignment-review.md自身的反向传播表新增行(第40行,关于pre-commit dedup收敛规则)措辞与本次实际改动一致;该表新行本身就是本次改动的一部分,已确认改动前后逻辑自洽
+- [A7] 未发现adr.md相关ADR被违反,该改动属于文档去重整理,不涉及架构决策变更,判ALIGNED
+- [最终结论] 未发现MISALIGNED级别问题;发现2处轻微信息精度损失(CI backstop单author目标文件名未点名/pre-commit-gate.sh脚本名未点名)但均可从agate/其他文件or脚本本身查证,不构成实质性信息丢失,不判MISALIGNED,作为NEEDS_HUMAN_REVIEW或建议项记录
+- [成果文件已写出] docs/reviews/agate-alignment-precommit-dedup-2026-08-10.md 完成,A1-A7全ALIGNED,无MISALIGNED,记录2处建议修复项(P6-acceptance.md具名/pre-commit-gate.sh具名)

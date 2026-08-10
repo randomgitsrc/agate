@@ -37,6 +37,7 @@ agent: review
 | `agate/` 内 BDD 编号格式（`#### BDD-NN:` heading / `###` 功能分组）| `check-p6-provenance.sh`（BDD 计数正则）、`check-gate.sh`（P1 BDD 锚点）、`check-protocol-consistency.py`（CHECK 9 锚点）、`task-files.md`（P1 模板）、`dispatch-prompt.md`（verifier BDD 格式指令）、`analyst.md`/`test-designer.md`/`verifier.md`/`requirements-review.md`/`consistency-reviewer.md`/`architect.md`（角色 BDD 指令）、`P1-requirements.md`/`P3-tdd.md`/`P6-acceptance.md`/`P7-consistency.md`（阶段卡片 BDD 引用）、`state-machine.md`（转移条件 BDD 引用）、`dispatch-protocol.md`（P6 结果格式 + gate 表）、`WORKFLOW.md`（gate 表 BDD 引用）、`CONTEXT.md`（BDD 定义）、`LIMITATIONS.md`（BDD 计数描述） |
 | `CHANGELOG.md` 未更新 | 协议语义变更 + 未标注 = A5 下游影响不完整 |
 | `SELF-GATE.md` 或 `protocol-alignment-review.md` | self-gate 机制自身的递归适用 |
+| 新增/修改某个 `agate/scripts/check-*.sh` 的 pre-commit 触发行为 | 只需同步 `WORKFLOW.md`「Pre-commit 检查总览」一处（唯一权威）+ CHECK 9 锚点表；`dispatch-protocol.md`/`state-machine.md` 已改为指向该节，不应再各自维护副本表格——若发现某处又长出了独立的检查清单表，视为回归 |
 | `agate-frontmatter-check.py` 的 `SCHEMAS`（migrated_keys/required/enums/types）或 `agate-md-field-get.py` 的 `BOOL_FIELDS`/`LIST_FIELDS`/`NO_FALLBACK_*_FIELDS`（frontmatter 迁移字段集/op 清单）| `agate/assets/templates/task-files.md`（对应阶段的可复制 frontmatter 样例块）、`agate/assets/execution-roles/{analyst,architect,verifier}.md`（角色卡样例块）、`agate/phase-cards/{P1,P2,P6,P7}-*.md`（产出规格节样例块）、消费该字段的 `check-gate.sh`/`check-pruning.sh`/`check-scope-resolved.sh` 判定分支、`agate/scripts/README.md`（工具清单表的 op 描述）、`tests/helpers/fixtures.bash`（`add_frontmatter_field` 系列 helper）、对应的 `.bats` fixture |
 
 ## 审查原则

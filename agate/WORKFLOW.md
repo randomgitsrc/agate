@@ -239,6 +239,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 |---|---------|---------|-----------|------|
 | 0 | `check-state-yaml.sh` | `.state.yaml` 暂存变更时（不依赖 phase 变）| 文件级 | 校验格式合法（必填字段、phase 取值、retries 结构）|
 | 1 | `check-gate.sh` | `.state.yaml` phase 变更或阶段产出文件变更 | 阶段级 | P1.1 gate 校验 |
+| 1.2 | — | 全局，任意阶段 | 全局级 | `[PROD_TOUCHED]` 标记三步检测（正向声明→中止 / 声明格式不合规→中止 / 缺失声明→静默通过）|
 | 1.6 | `check-changelog.sh` | P8 phase 且 gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6；P2.54：仅 P8 检查，P1-P7 不触发）|
 | 1.7 | `check-p6-evidence.sh` | 阶段 ∈ {P6, P7} | 阶段级 | P6-evidence/ 非空 + BDD 行数 ≥ 1 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）|
 | 2.1 | `check-p6-provenance.sh` | gate 通过后 | 阶段级 | 六道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照 + UI vision YAML 审计 [R1b] + EXIT_CODE 一致性 [审计5] + evidence JSON 与 PASS/FAIL 声明一致性 [审计6/P2.57]）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
@@ -251,8 +252,17 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 - **0→1→1.6→1.7→2.* 顺序**：每个阶段有"关卡"——0 是格式关、1 是行为关、2.* 是合规/审计关。任何关卡失败 → 中止 commit。
 - **agent 字段协作规范（P2.1/P2.10 v2 协作层）**：所有阶段产出文件 Header 含 `agent: <角色>`，缺字段 WARNING 不阻塞（向后兼容），`agent=main`（自审）被 check-gate.sh 硬拦截 exit 1。
-- **CI backstop（P1.3）**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的恶意提交；provenance 审计重跑（check-p6-provenance.sh）+ git blame 单 author WARNING 作为兜底审计。
+- **CI backstop（P1.3）**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的恶意提交；provenance 审计重跑（check-p6-provenance.sh）+ `P6-acceptance.md` 的 git blame 单 author WARNING 作为兜底审计。
 - **降级方案**（Phase 3 平台接口未实现前的最优方案）：证据-结论对应是**客观行为审计**——造假 N 个证据文件的成本远高于填写一行 `agent: verifier` 自报字段。详见 `LIMITATIONS.md` 局限 3。
+
+**多任务适配**：`pre-commit-gate.sh` 扫描暂存区中所有变更的 `.state.yaml`（根目录 + `docs/tasks/{Txxx}/`），对每个文件独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。
+
+**三类 WARNING（均不阻断 commit）**：
+- **phase-产出一致性**：暂存了 `P{n}-*.md` 产出但 `.state.yaml` 的 phase 不匹配 → WARNING。覆盖"产出了但忘改 phase"场景，下次 agent 接手时由「状态标记绑定规则」（见 state-machine.md）兜底。
+- **dispatch-context 缺失**：暂存了阶段产出但 `P{N}-dispatch-context-*.md` 不存在 → WARNING。覆盖"产出已写但忘记先写 dispatch-context"场景。
+- **非实现阶段代码暂存**：非 P4/P5/P6 阶段暂存了代码文件（非 .md/.yaml）→ WARNING。覆盖"主 Agent 在非实现阶段直接改代码"场景。
+
+**Pre-push hook**：`git push` 时自动检测 `agate/*.md` 改动量，超过阈值（默认 20 行，可通过 `AGATE_ALIGNMENT_REVIEW_THRESHOLD` 环境变量配置）时提示建议先派发 protocol-alignment-review。不阻断 push（exit 0）。
 
 ---
 
