@@ -75,8 +75,8 @@ agate 建立在两条主线上：
 
 任务目录名是 **`Txxx-描述`** 格式，不是纯编号。实际例子：
 ```
-docs/tasks/T001-mcp-namespace-map/
-docs/tasks/T002-fix-db-migration/
+docs/tasks/TAG0001-mcp-namespace-map/
+docs/tasks/TAG0002-fix-db-migration/
 ```
 
 本文档及模板中的 `{Txxx}` / `{task_id}` 是占位简写，**实际拼路径时必须用完整目录名**（含描述后缀）。主 Agent 派发时，要先确认实际目录名（`ls docs/tasks/`），不要假设是纯 `T002`——按 `docs/tasks/T002/` 拼路径会找不到文件。

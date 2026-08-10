@@ -563,3 +563,44 @@ bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/ agate/te
 仍为 594（不漂移）。CRITICAL 复现步骤（约束 1 末尾）手动验证：exit 0 → **exit 1**，
 符合预期。以上为自查，不代表最终 gate 已过，也不代表"review 已过"——重新评审由主
 Agent 另行派发。
+
+## Self-gate 文档修复
+
+依据 `docs/reviews/agate-alignment-review-2026-08-10.md`"待闭环事项清单"表，定向修复 4 个
+MISALIGNED 文档滞后项（均为纯文档编辑，不涉及脚本逻辑改动）：
+
+1. **`agate/scripts/README.md:68`**（对应 A2）：`agate-md-field-get.py` 工具清单行原文只写
+   "P1/P2 提取 risk_level/ui_affected/phases"，未反映流 A/B/C 新增的 17 个 op 及双读语义。
+   已改为概述"frontmatter 优先 + 正则回退的双读字段提取，覆盖 P1/P2/P6/P7 共 20 个 op"，
+   列出原有 3 个 + 新增的 candidate_count/packages/domains/override/internal_only/
+   internal_only_reason/design_trivial/follows_existing_pattern/pass/fail/blocker_count/
+   deviation_count/deviation_critical_count/design_gap_count/design_gap_reviewed_count/
+   need_confirm_resolved/suggest_resolved/scope_resolved，并注明"详见脚本内 docstring"，
+   依赖列由"无"改为"pyyaml"（与脚本实际 import 一致）。
+
+2. **`agate/WORKFLOW.md:78-79`**（对应 A3b 第 1 项）：任务目录命名约定的两个示例
+   `docs/tasks/T001-mcp-namespace-map/` / `docs/tasks/T002-fix-db-migration/` 用的是流 D
+   硬切前的旧格式（`T\d{3}`，无 2 字母项目代号），在 `agate-state-yaml-check.py:39`
+   的新正则 `^T[A-Z]{2}\d+$` 下会被拒绝。已改为 `docs/tasks/TAG0001-mcp-namespace-map/` /
+   `docs/tasks/TAG0002-fix-db-migration/`，与 `state-machine.md`/`dispatch-protocol.md`/
+   `role-system.md`/`active-tasks-template.md` 已同步的新格式示例保持一致。
+
+3. **`agate/dispatch-protocol.md:537-553`**（对应 A3b 第 2 项）："P5/P6 派发时追加"模板块
+   全文件此前零处提及 "frontmatter"，遗漏了 BDD-16 要求的 `pass:`/`fail:`/`ui_affected:`
+   frontmatter 汇总字段要求。已在"P6 BDD 结果格式"小节（行首 `- PASS`/`- FAIL` 那段）
+   后追加一句：P6-acceptance.md 除正文逐条结果外，还必须在文件头 frontmatter 声明
+   `pass:`/`fail:`/`ui_affected:` 三个机器汇总字段（int/int/bool），gate 优先读取该汇总、
+   正文格式仅作旧格式回退，并指向 `agate/assets/execution-roles/verifier.md` 的可复制样例。
+
+4. **`agate/tests/README.md:28-64`**（对应 A5 新增细节 1）：覆盖度表缺少新增校验器
+   `check-frontmatter.sh` 一行（对应 `unit/check-frontmatter.bats`，11 个 `@test`）。
+   已在 `check-scope-resolved.sh` 行后补一行：
+   `| check-frontmatter.sh | unit/check-frontmatter.bats | 11 |`。
+
+**范围确认**：本次未改动 `agate/CONTEXT.md`、`agate/LIMITATIONS.md`（self-gate 报告明确
+标注"建议非阻断"，不在派发范围）；未改动任何 `agate/scripts/*.sh`/`*.py` 或
+`agate/tests/**` 实际测试代码，仅编辑上述 4 个文档文件本身。
+
+**自查**（非最终 gate）：`python3 agate/scripts/check-protocol-consistency.py` 重跑，
+CHECK 1-9 全部 PASS，0 ERROR（含 CHECK 1 对新增文本中 YAML 片段的可解析性校验、
+CHECK 2 对文件引用存在性的校验）。

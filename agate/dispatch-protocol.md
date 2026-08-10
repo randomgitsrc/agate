@@ -545,6 +545,7 @@ P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P
 每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。
 不要用表格格式（`| BDD-1 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
 **大小写敏感**：必须大写 PASS/FAIL。主 Agent 在 verifier 返回后、跑 gate 前运行 `check-p6-format.sh --fix` 自动归一化（①）。
+除正文逐条结果外，P6-acceptance.md **还必须**在文件头 frontmatter 声明 `pass:`/`fail:`/`ui_affected:` 三个机器汇总字段（int/int/bool），gate 优先读取该汇总、正文格式仅作旧格式回退——样例见 `agate/assets/execution-roles/verifier.md`。
 示例：
 - PASS BDD-1: 用户可以创建分享链接
 - FAIL BDD-2: 过期链接返回 410
