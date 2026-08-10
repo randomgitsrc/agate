@@ -187,6 +187,16 @@ agent: analyst
 - When 运行 count-tests.sh
 - Then 输出 594 个测试用例（sanity.bats 6 另计），与改造前基线一致
 
+[BASELINE_CHANGE: 594 → 597。P6 第一轮验收（27 PASS/1 FAIL）发现 check-p6-format.sh --fix 破坏
+frontmatter 的真实 bug（BDD-17），已退回 P4 定向修复并新增 3 条回归测试
+（F_P6FMFIX.1/2/3，agate/tests/unit/check-p6-format.bats），修复后 count-tests.sh 实测 597。
+这是"发现新 bug 后新增测试覆盖"，不是删减式漂移或范围膨胀——3 条新增用例均已被 P6 verifier
+独立核实真实覆盖该 bug 场景（非摆设），且 P4 修复本身已过独立 self-gate 语义审查（ALIGNED，
+docs/reviews/agate-alignment-review-2026-08-10.md 增量审查节）。本条 BDD 原文"594"是 P1 基线
+制定时的现状快照，未预见到验收过程本身会暴露并修复一个此前从未被测试覆盖的真实缺陷；
+"不漂移"的精神实质（测试数不应无理由减少/膨胀）在 597 下依然成立。
+主 Agent 批准：2026-08-10，判定依据见上。后续 BDD-11 验收按新基线 597 判定。]
+
 #### BDD-12: [流 A] frontmatter 无超过 3 层的嵌套结构
 - Given v2.0 的模板与角色卡定义的 frontmatter schema
 - When 检查 schema 定义

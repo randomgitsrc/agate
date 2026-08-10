@@ -1,0 +1,27 @@
+=== agate/assets/templates/task-files.md: 6 yaml blocks ===
+  block 0: FAIL: while parsing a block mapping
+  in "<unicode string>", line 1, column 1:
+    phase: {P1-P8}
+    ^
+expected <block end>, but found '<scalar>'
+  in "<unicode string>", line 5, column 17:
+    trace_id: {Txxx}-{Pn}-{YYYYMMDD}
+                    ^  (first line: ---)
+  block 1: OK  (first line: ## P0-brief.md)
+  block 2: OK  (first line: ---)
+  block 3: OK  (first line: ---)
+  block 4: OK  (first line: ---)
+  block 5: OK  (first line: ---)
+=== agate/assets/execution-roles/analyst.md: 2 yaml blocks ===
+  block 0: OK  (first line: ---)
+  block 1: OK  (first line: capability_requirements:)
+=== agate/assets/execution-roles/architect.md: 5 yaml blocks ===
+  block 0: OK  (first line: ---)
+  block 1: OK  (first line: gate_commands:)
+  block 2: OK  (first line: env_constraints:)
+  block 3: OK  (first line: files_to_read:)
+  block 4: OK  (first line: minimal_validation:)
+=== agate/assets/execution-roles/verifier.md: 1 yaml blocks ===
+  block 0: OK  (first line: ---)
+
+TOTAL=14 OK=13 FAIL=1
