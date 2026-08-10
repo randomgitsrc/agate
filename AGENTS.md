@@ -126,7 +126,7 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
   - **先看全输出再分析**：不用 `tail` 截断关键输出（count-tests 教训：数字被 tail 吞掉导致误判）。
   - **commit 前检查 hook 会跑什么**：pre-commit 会按 .state.yaml phase 跑 check-gate。commit 时 phase 应与"本次产出所在阶段"一致（P1 产出 → phase=P1 再 commit，commit 后再推进），否则 hook 会因"下一阶段产出不存在"拦截（P2-design 未产出时 phase=P2 → GATE P2 未通过）。
   - **hook 机制在共享 git 目录**：worktree 的 `.git/hooks` 为空，hook 实际在共同 git 目录 `/home/kity/oclab/agate/.git/hooks/`（pre-commit/pre-push 软链已装；commit-msg 已补装）。改 hook 装那里。
-- **核心上下文**：任务目标/范围/已踩坑见 `docs/archived/plans/T001-HANDOFF-V2.0.md`（任务 READY 后归档，原在 worktree 根目录）；阶段产出在 `docs/tasks/T001-v2.0-structured/`。
+- **核心上下文**：任务目标/范围/已踩坑见 `docs/archived/plans/T001-HANDOFF-V2.0.md`（任务 READY 后归档，原在 worktree 根目录）；阶段产出已归档在 `docs/archived/tasks/T001-v2.0-structured/`（原 `docs/tasks/T001-v2.0-structured/`，PR #111 审查发现该目录混入协议变更导致 CI consistency 检查误报，归档后脱离扫描范围）。
 - **编号规则将随 v2.0 改造**：流 D 会把编号改为 Jira 式 `TAG0001`（项目代号+动态数字），硬切不兼容旧 `T\d+`（见 P0-brief 流 D）。
 
 ## 版本发布
