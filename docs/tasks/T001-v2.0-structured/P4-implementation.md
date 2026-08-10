@@ -617,3 +617,61 @@ facts 工具 + 独立 `.yaml` 元数据文件）的完整权衡矩阵与选择�
 `P2-design.md` §1 获取完整矩阵）。未改动 ADR-001 至 ADR-006 任何已有内容，纯追加。
 
 **自查**：`python3 agate/scripts/check-protocol-consistency.py` 重跑，0 ERROR。
+
+## P6 回退修复：check-p6-format.sh frontmatter 破坏 bug
+
+**问题**（详见 `P6-gate-diagnosis.md`）：`check-p6-format.sh` 的 `--fix` 分支此前对整个
+文件内容跑 5 条归一化 sed，没有排除 frontmatter 块。BDD-16 要求的 `P6-acceptance.md`
+frontmatter 里合法的 `pass: 28` / `fail: 0` 字段，会被这几条 sed 误判为"待归一化的正文
+散文 pass/fail 行"，改写成 `**Summary**: PASS: 28` / `**Summary**: FAIL: 0`，导致
+frontmatter 从合法 YAML 变成非法 YAML（`yaml.safe_load` 报错）。这是 v0.35 时代就存在、
+此前从未被触发的潜伏缺陷——旧版 `P6-acceptance.md` 不会在文件头出现裸 `pass:`/`fail:`
+字段，直到本任务流 B 引入 frontmatter 汇总字段才与这段老代码产生冲突，且 P3/P4/P5 的
+既有测试用例均未构造过这个组合场景。
+
+**修复方式**：在 `--fix` 分支写入文件前，先按 `agate-frontmatter-check.py` 里
+`_extract_frontmatter_block` 的同款边界判定语义，把文件切成 frontmatter 部分（含首尾
+`---` 分隔符）+ 正文部分：
+- 判定语义对齐：文件须以恰好一行 `---` 开头（`FIRST_LINE == "---"`），再找其后第一条
+  以 `---` 起始的行作为闭合边界（`awk 'NR>1 && index($0,"---")==1'`，对应 Python 版
+  `text.find("\n---", 4)` 的语义——只要求行以 `---` 为前缀，不要求整行恰好是 `---`）；
+  找不到闭合边界 → 视为无 frontmatter 块，全文本按正文处理（BDD-9 旧格式兼容，行为
+  与修复前完全一致）。
+- 5 条归一化 sed（小写 pass/fail 归一化、缩进修正、总结行改写）改为只作用于切分出的
+  正文部分（`BODY_PART`），frontmatter 部分（`FM_PART`）原样保留，不经过任何 sed。
+- 写文件前把 `FM_PART` + `\n` + 处理后的 `BODY_PART` 拼回一个完整内容再写入
+  （无 frontmatter 场景下 `FM_PART` 为空，等价于原有全文本处理逻辑，未改变行为）。
+
+**未重新发明逻辑**：未在 bash 里独立造一套边界判定规则，而是逐条对照
+`agate-frontmatter-check.py::_extract_frontmatter_block` 的判定条件（起始行硬性要求
+`"---\n"` 前缀、`find(..., 4)` 的搜索起点）用等价的 `head`/`awk`/`sed` 复刻，避免与该
+校验器出现"同一文件两种边界判定"的新不一致。
+
+**新增回归测试**（`agate/tests/unit/check-p6-format.bats`，新增 3 条）：
+- `F_P6FMFIX.1`：本次 bug 的直接复现场景——frontmatter 含 `pass: 28`/`fail: 0`，正文含
+  一行小写 `- pass BDD-2`。`--fix` 后用 `python3 -c "import yaml; yaml.safe_load(...)"`
+  验证 frontmatter 依然是合法 YAML 且数值不变，同时确认正文的 `- pass BDD-2` 仍按既有
+  行为被归一化为 `- PASS BDD-2`（新修复没有连带破坏旧功能）。
+- `F_P6FMFIX.2`：frontmatter 存在的前提下，正文总结行（`- PASS：2` 全角冒号）仍被正确
+  归一化为 `**Summary**: PASS: 2` 格式，且 frontmatter 不受影响。
+- `F_P6FMFIX.3`：畸形边界场景——首行是 `---` 但全文找不到第二条以 `---` 起始的行（未
+  闭合），验证此时不误判为"已切分出 frontmatter"，而是整份文件按正文处理，既有的
+  `--fix` 归一化行为在这种输入下仍对全文生效（覆盖"找不到闭合边界"分支）。
+
+**自查结果**（非最终 gate）：
+- 手动复现验证：构造与 `P6-gate-diagnosis.md` 独立复现步骤完全一致的 fixture
+  （frontmatter 含 `pass: 28`/`fail: 0` + 正文一行 `- pass BDD-2`），跑
+  `bash agate/scripts/check-p6-format.sh --fix` 后，`python3 -c "import yaml;
+  yaml.safe_load(...)"` 确认 frontmatter 解析成功、`pass`/`fail` 数值原样保留；正文的
+  `- pass BDD-2` 确认被归一化为 `- PASS BDD-2`。
+- 自动化测试：`bats agate/tests/unit/check-p6-format.bats` 单文件 13/13 全绿（10 条既有
+  + 3 条新增）；`bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
+  agate/tests/sanity.bats` 全量 603/603 全绿（600 基线 + 3 条本次新增回归用例，无回归）；
+  `shellcheck -S warning agate/scripts/check-p6-format.sh` 无输出（exit 0）。
+- 以上为自查，不代表最终 gate 已过，最终验证由主 Agent 独立重跑并亲自复现原始 bug
+  场景确认。
+
+**范围确认**：本次仅改动 `agate/scripts/check-p6-format.sh`（`--fix` 分支）与
+`agate/tests/unit/check-p6-format.bats`（新增 3 条用例），未触碰 `--check` 分支逻辑
+（该分支本身不受此 bug 影响——`--check` 的正则要求行首有 `-`，frontmatter 的
+`pass: 28` 无行首 `-` 前缀，从未被误判），未触碰其他任何脚本或协议文档。

@@ -46,30 +46,57 @@ if [ "$MODE" = "check" ]; then
 fi
 
 CONTENT=$(cat "$FILE")
-FIXED="$CONTENT"
+
+# frontmatter/正文切分（P6 回退修复：--fix 的归一化 sed 此前对整文件生效，会误伤
+# frontmatter 里合法的 pass:/fail: 字段，见 P6-gate-diagnosis.md）。
+# 边界判定语义与 agate-frontmatter-check.py::_extract_frontmatter_block 对齐：
+# 文件须以恰好一行 "---" 开头，其后第一条以 "---" 起始的行视为闭合边界；
+# 找不到闭合边界 → 视为无 frontmatter 块（BDD-9 旧格式兼容，全文本按正文处理，行为不变）。
+FM_PART=""
+BODY_PART="$CONTENT"
+FIRST_LINE=$(printf '%s\n' "$CONTENT" | head -n 1)
+if [ "$FIRST_LINE" = "---" ]; then
+    CLOSE_LINE=$(printf '%s\n' "$CONTENT" | awk 'NR>1 && index($0,"---")==1 {print NR; exit}')
+    if [ -n "$CLOSE_LINE" ]; then
+        FM_PART=$(printf '%s\n' "$CONTENT" | sed -n "1,${CLOSE_LINE}p")
+        BODY_PART=$(printf '%s\n' "$CONTENT" | sed -n "$((CLOSE_LINE + 1)),\$p")
+    fi
+fi
+
+FIXED="$BODY_PART"
 CHANGES=0
 
 FIXED=$(printf '%s' "$FIXED" | sed -E 's/^([[:space:]]*)-\s+(pass)([[:space:]:：]|$)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)-\s+(fail)([[:space:]:：]|$)/\1- FAIL\3/' | sed -E 's/^([[:space:]]*)(pass)([[:space:]:：]|$)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)(fail)([[:space:]:：]|$)/\1- FAIL\3/')
-if [ "$FIXED" != "$CONTENT" ]; then
+if [ "$FIXED" != "$BODY_PART" ]; then
     CHANGES=1
 fi
-CONTENT="$FIXED"
+BODY_PART="$FIXED"
 
 FIXED=$(printf '%s' "$FIXED" | sed -E 's/^[[:space:]]+(- (PASS|FAIL) )/\1/')
-if [ "$FIXED" != "$CONTENT" ]; then
+if [ "$FIXED" != "$BODY_PART" ]; then
     CHANGES=1
 fi
-CONTENT="$FIXED"
+BODY_PART="$FIXED"
 
 # 总结行修正：行首 - PASS/- FAIL 后纯数字结尾（非 BDD 条目）→ 改为 Summary 格式
 FIXED=$(printf '%s' "$FIXED" | sed -E 's/^-\s+(PASS|FAIL)\s*[:：]\s*([0-9]+)\s*$/\*\*Summary\*\*: \1: \2/')
-if [ "$FIXED" != "$CONTENT" ]; then
+if [ "$FIXED" != "$BODY_PART" ]; then
     CHANGES=1
 fi
-CONTENT="$FIXED"
+BODY_PART="$FIXED"
+
+if [ -n "$FM_PART" ]; then
+    if [ -n "$BODY_PART" ]; then
+        FULL_FIXED="$FM_PART"$'\n'"$BODY_PART"
+    else
+        FULL_FIXED="$FM_PART"
+    fi
+else
+    FULL_FIXED="$BODY_PART"
+fi
 
 # 到这里 MODE 必为 "fix"（"check" 已在上方独立分支处理并 exit）。
 if [ "$CHANGES" -eq 1 ]; then
-    printf '%s' "$FIXED" > "$FILE"
+    printf '%s' "$FULL_FIXED" > "$FILE"
 fi
 exit 0
