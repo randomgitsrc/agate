@@ -1,4 +1,8 @@
 task_id: T001
 phase: P5
 status: active
-retries: {}
+retries:
+  P5:
+  - attempt: 1
+    reason: 'BDD-17: check-p6-format.sh --fix 破坏 frontmatter pass/fail 字段，需修复（用户已批准
+      2026-08-10）'
