@@ -144,7 +144,7 @@ phase/task_id/agent 等 Header 同块，不写在正文里）。**可直接复�
 ```yaml
 ---
 phase: P6
-task_id: T001              # 替换为实际任务编号
+task_id: TAG0001           # 替换为实际任务编号
 type: acceptance
 parent: P5-verification.md
 trace_id: T001-P6-20260101 # {task_id}-P6-{YYYYMMDD}

@@ -34,7 +34,7 @@ bash agate/tests/scripts/count-tests.sh
 | check-p6-evidence.sh | unit/check-p6-evidence.bats | 28 |
 | check-p6-provenance.sh | unit/check-p6-provenance.bats | 38 |
 | check-scope-resolved.sh | unit/check-scope-resolved.bats | 11 |
-| check-frontmatter.sh | unit/check-frontmatter.bats | 11 |
+| check-frontmatter.sh | unit/check-frontmatter.bats | 10 |
 | check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
 | check-state-transition.sh | unit/check-state-transition.bats | 26 |
 | check-changelog.sh | unit/check-changelog.bats | 8 |

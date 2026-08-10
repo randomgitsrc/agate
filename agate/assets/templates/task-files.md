@@ -126,7 +126,7 @@ P0-brief 是把这些约束注入每次派发的桥梁——所有 subagent 的 
 ```yaml
 ---
 phase: P1
-task_id: T001              # 替换为实际任务编号
+task_id: TAG0001           # 替换为实际任务编号
 type: problems
 parent: P0-brief.md
 trace_id: T001-P1-20260101 # {task_id}-P1-{YYYYMMDD}
@@ -230,7 +230,7 @@ capability_requirements:
 ```yaml
 ---
 phase: P2
-task_id: T001              # 替换为实际任务编号
+task_id: TAG0001           # 替换为实际任务编号
 type: design
 parent: P1-requirements.md
 trace_id: T001-P2-20260101 # {task_id}-P2-{YYYYMMDD}
@@ -313,7 +313,7 @@ env_constraints:
 ```yaml
 ---
 phase: P6
-task_id: T001              # 替换为实际任务编号
+task_id: TAG0001           # 替换为实际任务编号
 type: acceptance
 parent: P5-verification.md
 trace_id: T001-P6-20260101 # {task_id}-P6-{YYYYMMDD}
@@ -366,7 +366,7 @@ ui_affected: false                # bool（与 P2 声明一致）
 ```yaml
 ---
 phase: P7
-task_id: T001              # 替换为实际任务编号
+task_id: TAG0001           # 替换为实际任务编号
 type: consistency
 parent: P2-design.md
 trace_id: T001-P7-20260101 # {task_id}-P7-{YYYYMMDD}

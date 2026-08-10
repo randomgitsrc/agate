@@ -43,7 +43,7 @@ agent: architect
   ```yaml
   ---
   phase: P2
-  task_id: T001              # 替换为实际任务编号
+  task_id: TAG0001           # 替换为实际任务编号
   type: design
   parent: P1-requirements.md
   trace_id: T001-P2-20260101 # {task_id}-P2-{YYYYMMDD}

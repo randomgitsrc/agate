@@ -39,7 +39,7 @@ agent: analyst
 ```yaml
 ---
 phase: P1
-task_id: T001              # 替换为实际任务编号
+task_id: TAG0001           # 替换为实际任务编号
 type: problems
 parent: P0-brief.md
 trace_id: T001-P1-20260101 # {task_id}-P1-{YYYYMMDD}

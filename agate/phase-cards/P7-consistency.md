@@ -56,7 +56,7 @@ gate 脚本校验说明：
 ```yaml
 ---
 phase: P7
-task_id: T001              # 替换为实际任务编号
+task_id: TAG0001           # 替换为实际任务编号
 type: consistency
 parent: P2-design.md
 trace_id: T001-P7-20260101 # {task_id}-P7-{YYYYMMDD}
