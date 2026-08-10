@@ -51,7 +51,7 @@ python3 agate/scripts/check-protocol-consistency.py
 | 类型 | 文件名 | 用途 | 内容 | 生命周期 |
 |------|--------|------|------|---------|
 | 留痕文件 | `docs/reviews/agate-alignment-{date}-{NN}.progress.md` | 空返回诊断 | 原始执行痕迹，逐条追加，不整理不格式化 | subagent 返回后主 Agent 检查；成功可删，失败保留待查 |
-| 成果文件 | `docs/reviews/agate-alignment-review-{date}.md` | 最终交付物 | 结构化审查报告（A1-A6）| 保留，闭环依据 |
+| 成果文件 | `docs/reviews/agate-alignment-review-{date}.md` | 最终交付物 | 结构化审查报告（A1-A7）| 保留，闭环依据 |
 
 **关键规则**：
 - 留痕文件和成果文件是**两个不同的文件**
@@ -118,6 +118,10 @@ python3 agate/scripts/check-protocol-consistency.py
 - A6 锚点表覆盖
 - A7 设计原则一致性：变更是否符合已记录的 ADR（agate/adr.md）？逐条检查相关 ADR。如发现未记录的架构决策，建议补充新 ADR
 
+若发现 A1/A2/A3 疑似不一致，先按角色文件"DESIGN_GAP 优先核查"原则查
+`docs/tasks/{Txxx}/P4-implementation.md`/`P7-consistency.md` 是否已有
+`REVIEWED-ACCEPTED` 记录，避免把已知偏离误判为新 MISALIGNED。
+
 每项输出：
 - 审查项编号
 - 文档说了什么（引用原文 + 行号）
@@ -138,7 +142,7 @@ python3 agate/scripts/check-protocol-consistency.py
 ## 产出（成果文件，最终交付物）
 docs/reviews/agate-alignment-review-{date}.md
 审查完所有文件后，把结构化报告写入成果文件（覆盖写，不是追加）。
-成果文件含 frontmatter + A1-A6 结论汇总表（含反向传播检查）+ 逐项审查详情。
+成果文件含 frontmatter + A1-A7 结论汇总表（含反向传播检查）+ 逐项审查详情。
 ⚠️ 路径是硬约束：必须用 Write 工具写入此路径，不得将产出文件写入 /tmp、工作区根目录或其他路径。
 ```
 
@@ -165,11 +169,15 @@ docs/reviews/agate-alignment-review-{date}.md
 {本次批次要审查的文件列表}
 
 ## 审查清单
-逐项检查 A1-A6（见角色文件）。对每个审查项：
+逐项检查 A1-A7（见角色文件）。对每个审查项：
 - 文档说了什么（引用原文 + 行号）
 - 脚本实现了什么（引用代码 + 行号）
 - 结论：ALIGNED / MISALIGNED / NEEDS_HUMAN_REVIEW
 - 若 MISALIGNED：具体差异描述 + 建议修复方向 + **反向传播：列出该偏差应该影响的其他文件**
+
+若发现 A1/A2/A3 疑似不一致，先按角色文件"DESIGN_GAP 优先核查"原则查
+`docs/tasks/{Txxx}/P4-implementation.md`/`P7-consistency.md` 是否已有
+`REVIEWED-ACCEPTED` 记录，避免把已知偏离误判为新 MISALIGNED。
 
 ## 分阶段落盘（留痕文件，防空返回）
 留痕文件：docs/reviews/agate-alignment-{date}-{NN}.progress.md
@@ -210,5 +218,5 @@ docs/reviews/agate-alignment-review-{date}.md
 
 如果 self-gate 尚未实现（如还在 plan 阶段），实施者至少手动执行等价检查：
 1. 跑现有 check-protocol-consistency.py
-2. 人工逐项核对"文档描述的规则 vs 脚本实现"是否一致（对照 A1-A6）
+2. 人工逐项核对"文档描述的规则 vs 脚本实现"是否一致（对照 A1-A7）
 3. 跑全量 bats

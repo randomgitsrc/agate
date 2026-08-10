@@ -95,7 +95,7 @@ files_changed: [{文件列表}]
 **建议**：{修复方向}
 ```
 
-三态结论（ALIGNED/MISALIGNED/NEEDS_HUMAN_REVIEW）不变，但 MISALIGNED 项如果对应一条已被 P7 接受的 DESIGN_GAP，应在该项下追加 `[KNOWN_DEVIATION: 来源 {task} P7-consistency.md，REVIEWED-ACCEPTED，理由摘要]` 标注（类比现有 `[HUMAN_CONFIRMED: ...]` 标注模式），与"必须修复"的普通 MISALIGNED 区分开。
+三态结论（ALIGNED/MISALIGNED/NEEDS_HUMAN_REVIEW）不变。若某一审查项本应判为 MISALIGNED，但差异点完全对应一条已被 P7 接受的 DESIGN_GAP，则按原则 6 结论记为 ALIGNED，并在该项下追加 `[KNOWN_DEVIATION: 来源 {task} P7-consistency.md，REVIEWED-ACCEPTED，理由摘要]` 标注，以便读者知晓这里曾存在过字面偏离、已被正式核实接受（而非"从未出现过差异"），与"必须修复"的普通 MISALIGNED 区分开。
 
 ## 闭环规则
 
