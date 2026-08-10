@@ -252,3 +252,145 @@ count: 38
 | NEEDS_HUMAN_REVIEW | `agate/adr.md` | 是否需新增 ADR 记录 frontmatter vs 独立 facts 文件选型 | 人工确认，若确认需要则补 ADR-007，并附 `[HUMAN_CONFIRMED: ...]` |
 
 以上 4 项 MISALIGNED 均为**文档滞后性问题**（不改变任何已实测的 gate 行为，600/600 测试全绿不受影响），修复成本低（均为纯文档编辑），可由主 Agent 直接处理或另派 implementer 定向修复，无需回退代码。
+
+---
+
+## 增量审查：check-p6-format.sh frontmatter 修复（commit afe758a）
+
+**审查范围**：`git diff f476834..afe758a -- agate/scripts/check-p6-format.sh agate/tests/unit/check-p6-format.bats`（仅此一个修复 commit 的 diff，不重审已审过的 293924f..f476834 部分）。
+
+**变更摘要**：`check-p6-format.sh` 的 `--fix` 分支此前对整份文件内容跑 5 条归一化 sed，未排除 frontmatter 块，导致 BDD-16 要求的 frontmatter `pass:`/`fail:` 字段被误判为正文散文行改写为 `**Summary**: PASS: N`，frontmatter 变成非法 YAML（见 `P6-gate-diagnosis.md`）。本次修复在写文件前先按 `agate-frontmatter-check.py::_extract_frontmatter_block` 同款边界语义把文件切成 `FM_PART`/`BODY_PART`，5 条归一化 sed 只作用于 `BODY_PART`，`FM_PART` 原样保留后拼回。新增 3 条 bats 回归用例（`F_P6FMFIX.1/.2/.3`）。
+
+### 结论汇总
+
+| # | 审查项 | 结论 |
+|---|--------|------|
+| A1 | 文档→脚本对齐 | ALIGNED |
+| A2 | 脚本→文档对齐 | ALIGNED |
+| A3 | 一致性连锁 + 反向传播 | ALIGNED |
+| A4 | 测试覆盖 | ALIGNED |
+| A5 | 下游影响 + 文档传播 | ALIGNED |
+| A6 | 锚点表覆盖 | ALIGNED |
+| A7 | 设计原则一致性 | ALIGNED |
+
+### A1: 文档→脚本对齐（修复方向 vs 诊断文档）
+
+**诊断文档要求**（`P6-gate-diagnosis.md:88`）：
+> `check-p6-format.sh` 的 `--fix` 分支需要：先用类似 `agate-frontmatter-check.py`/`agate-md-field-get.py` 里已有的 `_extract_frontmatter_block`/`_read_frontmatter` 同款逻辑，把文件切成 frontmatter 块 + 正文两部分，5 条归一化 sed 只应用到正文部分，frontmatter 部分原样保留，最后拼回。
+
+**脚本实现**（`check-p6-format.sh:50-96`，diff 后新代码）：
+```bash
+FM_PART=""
+BODY_PART="$CONTENT"
+FIRST_LINE=$(printf '%s\n' "$CONTENT" | head -n 1)
+if [ "$FIRST_LINE" = "---" ]; then
+    CLOSE_LINE=$(printf '%s\n' "$CONTENT" | awk 'NR>1 && index($0,"---")==1 {print NR; exit}')
+    if [ -n "$CLOSE_LINE" ]; then
+        FM_PART=$(printf '%s\n' "$CONTENT" | sed -n "1,${CLOSE_LINE}p")
+        BODY_PART=$(printf '%s\n' "$CONTENT" | sed -n "$((CLOSE_LINE + 1)),\$p")
+    fi
+fi
+```
+5 条归一化 sed（69/75/82 行）改为读写 `BODY_PART` 而非 `CONTENT`；88-96 行把 `FM_PART` + `BODY_PART` 拼回 `FULL_FIXED` 再写入。边界判定逐条对照 `agate-frontmatter-check.py:121-127`：Python `text.startswith("---\n")` ↔ bash `FIRST_LINE = "---"`（`head -n1` 等价于取首行去尾换行）；Python `text.find("\n---", 4)`（语义="首行之后第一条以 `---` 为前缀的行"，不要求整行恰好是 `---`）↔ bash `awk 'NR>1 && index($0,"---")==1'`（同一"前缀匹配"语义，非"整行相等"）。两者判定条件逐字对应，未走样。
+
+**独立验证**（非采信 implementer 自报）：手工构造与 `P6-gate-diagnosis.md:25-35` 独立复现步骤完全一致的 fixture（frontmatter 含 `pass: 28`/`fail: 0`，正文一行 `- pass BDD-2`），跑修复后的 `--fix`：
+```
+$ python3 -c "import yaml; ...yaml.safe_load(text[4:end])..."
+{'phase': 'P6', 'task_id': 'T001', 'pass': 28, 'fail': 0, 'ui_affected': False}
+```
+frontmatter 保持合法 YAML，`pass`/`fail` 数值未变；正文 `- pass BDD-2` 被正确归一化为 `- PASS BDD-2`（既有行为未被连带破坏）。原始 bug 场景确认修复。
+
+**回归验证（无 frontmatter 场景，BDD-9 兼容）**：分别用修复前（`f476834`）和修复后版本对同一份无 frontmatter 的 `P6-acceptance.md` 跑 `--fix`，两次输出逐字节相同（`diff` 无输出），确认这次切分逻辑对"找不到闭合边界 → 视为无 frontmatter"分支完全透明，未改变旧格式文件的既有行为。
+
+**A1 结论：ALIGNED**——修复实现与诊断文档建议的方向、判定语义逐条一致，且独立复现确认解决了原始 bug，未引入回归。
+
+### A2: 脚本→文档对齐
+
+本次修复不改变 `check-p6-format.sh --fix` 对外承诺的行为契约——既有文档（`phase-cards/P6-acceptance.md:13`「归一化 PASS/FAIL 大小写和行首空白」、`dispatch-protocol.md:547`「大小写敏感…自动归一化」、`verifier.md:188/208`）从未承诺或反向承诺"frontmatter 内容会被如何处理"，这次修复是让实现符合"不应破坏 frontmatter"这一隐含前提（bug 修复），不是新增或变更协议规则，因此无需新增文档描述。`check-p6-format.sh:50-54` 内联注释已如实记录本次改动的动机与语义来源（引用 `P6-gate-diagnosis.md`），代码自文档化到位。
+
+**A2 结论：ALIGNED**（无需同步的协议文档，代码内注释已充分说明变更依据）。
+
+### A3: 一致性连锁 + 反向传播
+
+**A3a（已知连锁）**：本次修复只改动 `check-p6-format.sh` 的 `--fix` 分支内部实现细节，`--check` 分支（diff 确认零改动，`P4-implementation.md:674-677` 已声明"未触碰 --check 分支逻辑"）、参数解析（`--fix`/`--check`/文件名）、`P6-acceptance.md` 文件名过滤逻辑均未变，CLI 外部契约不变，无已知连锁需要处理。
+
+**A3b（反向传播，主动推断）**：核对角色定义 A3 反向传播路径表（`protocol-alignment-review.md:35`）中"`agate/scripts/check-*.sh`（脚本行为）→ `agate/scripts/README.md`、`agate/tests/README.md`、对应角色文件"这一路径——`scripts/README.md`/`tests/README.md` 对 `check-p6-format.sh` 的描述（如有）是关于其"存在及用途"的概括性条目，不涉及"--fix 是否处理 frontmatter"这一实现细节层级，本次修复不改变脚本对外行为契约（同 A2），故这条路径下的文件无需同步。未发现应受影响但未列入 diff 的文件。
+
+**A3 结论：ALIGNED**（无已知连锁遗漏，反向传播核查无发现）。
+
+### A4: 测试覆盖
+
+**独立重跑**（非仅采信派发指引 objective_info 数字）：
+
+```
+$ bats agate/tests/unit/check-p6-format.bats
+1..13
+...
+ok 11 F_P6FMFIX.1 check-p6-format.sh --fix: frontmatter 的 pass:/fail: 字段不被正文归一化 sed 误伤，仍为合法 YAML
+ok 12 F_P6FMFIX.2 check-p6-format.sh --fix: frontmatter 存在时正文总结行仍被归一化为 **Summary** 格式
+ok 13 F_P6FMFIX.3 check-p6-format.sh --fix: 无 frontmatter 闭合边界的畸形文件回退按正文整体处理（不误判为已切分）
+```
+13/13 全绿（10 条既有 + 3 条新增）。
+
+```
+$ bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/ agate/tests/sanity.bats
+ok count: 603 / not ok count: 0
+```
+603/603 全绿，独立复现派发指引 objective_info 声明的数字（600 基线 + 3 新增）。
+
+```
+$ bash agate/tests/scripts/count-tests.sh
+总计：597 个测试用例
+```
+与派发指引点 3 声明的新基线（594+3=597）一致，非漂移。
+
+```
+$ python3 agate/scripts/check-protocol-consistency.py   # 🎉 全部检查通过，含 CHECK 9
+$ shellcheck -S warning agate/scripts/check-p6-format.sh # 空输出，exit 0
+```
+
+**场景覆盖真实性核查（非摆设，逐条验证测试是否真的触及 bug 路径）**：
+- `F_P6FMFIX.1`：直接复现 `P6-gate-diagnosis.md` 的原始 bug 场景（frontmatter `pass: 28`/`fail: 0` + 正文小写 `- pass BDD-2`），断言涵盖三层——frontmatter 原样保留（`grep -q '^pass: 28$'`）、`yaml.safe_load` 可解析且数值正确、正文归一化行为未被连带破坏（`- pass` → `- PASS`）。三层断言缺一都会让这条测试失去意义，实测三层均落地，非摆设。
+- `F_P6FMFIX.2`：验证 frontmatter 存在时正文总结行（全角冒号 `- PASS：2`）仍被归一化为 `**Summary**: PASS: 2`——覆盖"frontmatter 切分逻辑不会误伤正文侧本该生效的归一化"这一容易被修复引入的反向回归（若切分逻辑写反，会导致正文该改的没改）。
+- `F_P6FMFIX.3`：覆盖"首行是 `---` 但找不到第二条 `---` 前缀行"的畸形边界——这是 `_extract_frontmatter_block` 语义里 `end < 0` 分支的直接对应，若无此用例，`CLOSE_LINE` 为空但代码仍继续切分的潜在 bug（例如误把空 `FM_PART` 当有效切分）不会被捕获。已确认实现中该分支正确回退到"全文本按正文处理"（`check-p6-format.sh:58-64`，`if [ -n "$CLOSE_LINE" ]` 判空）。
+
+**A4 结论：ALIGNED**（数字独立复现，三条新增测试逐一核实确实覆盖 bug 复现场景 + 反向回归防护 + 边界分支，非摆设式断言）。
+
+### A5: 下游影响
+
+**接口不变性核查**：`grep -rn "check-p6-format.sh"` 全项目引用点——`phase-cards/P6-acceptance.md:13,106`、`dispatch-protocol.md:547`、`verifier.md:188,208`、`pre-commit-gate.sh:154`、`check-protocol-consistency.py:592-597`（CHECK 9 锚点条目）——全部仍以 `check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"` 同一 CLI 签名调用。本次 diff 确认参数解析段落（`check-p6-format.sh:4-23`）零改动，调用方无需任何同步修改。
+
+**pre-commit-gate.sh 调用链**：`pre-commit-gate.sh:154` 的 `bash check-p6-format.sh --fix ... || true` 调用点本身不在本次 diff 范围内（未改动），修复后该行为的实际效果从"可能悄悄写坏 frontmatter"变为"frontmatter 不再被写坏"——这是本次修复要解决的下游影响本身（`P6-gate-diagnosis.md:54-62` 所述"无下游校验拦截"问题），属于本次改动的正向下游修复，不构成新的破坏性变更。
+
+**CHANGELOG.md**：本次是 P4 阶段内的定向修复 commit，`check-changelog.sh` 仅在 P8 触发（此前全量审查 A5 已核实），T001 当前在 P4-P5 之间，无需本次 commit 中出现 CHANGELOG 条目，非遗漏。
+
+**A5 结论：ALIGNED**（调用接口未变，下游校验链未受破坏，CHANGELOG 触发时机符合协议）。
+
+### A6: 锚点表覆盖
+
+`check-protocol-consistency.py:592-597` 中 `check-p6-format.sh` 的既有锚点条目：
+```python
+{
+    "desc": "P6 格式自动修复",
+    "script": "agate/scripts/check-p6-format.sh",
+    "keywords": ["--fix", "--check"],
+    "callers": ["agate/phase-cards/P6-acceptance.md", "agate/dispatch-protocol.md", "agate/scripts/pre-commit-gate.sh"],
+},
+```
+`keywords`（`--fix`/`--check`）在修复后代码中依然存在（参数解析段落未改动）；`callers` 三处引用经 grep 核实仍然准确（见 A5）。CHECK 9 独立重跑 0 ERROR。本次修复不涉及新脚本、不新增协议规则，符合派发指引点 2 第三条的预判——锚点表无需变动，现有条目继续匹配。
+
+**A6 结论：ALIGNED**。
+
+### A7: 设计原则一致性
+
+- **ADR-002（可判定性）**：修复本身是让"gate 通过后 frontmatter 依然合法可机读"这一既有判定性承诺变得真实成立，方向上是该 ADR 精神的巩固，无冲突。
+- **实现方式一致性**：`P4-implementation.md:645-648` 声明"未重新发明逻辑，逐条对照 `agate-frontmatter-check.py::_extract_frontmatter_block` 复刻边界判定"——本次 A1 审查已逐条核实该对齐属实（见上），符合 agate 自身"同一概念只应有一套判定逻辑"的隐含设计取向，未引入"同一文件两种边界判定"的新不一致。
+- 无新增架构决策，无需新 ADR。
+
+**A7 结论：ALIGNED**（无 NEEDS_HUMAN_REVIEW 项）。
+
+---
+
+## 增量审查小结
+
+七项全部 ALIGNED，无 MISALIGNED、无待人工确认项。核心结论：修复实现与诊断文档建议的方向和判定语义逐条对齐；独立复现确认原始 bug 场景已解决；3 条新增回归测试（`F_P6FMFIX.1/.2/.3`）均命中真实场景（原始 bug 直接复现、正文归一化防反向回归、畸形边界分支），非摆设；调用接口、锚点表、下游校验链均未受影响；无需新增或修改任何协议文档。可 commit，无遗留待办事项。
