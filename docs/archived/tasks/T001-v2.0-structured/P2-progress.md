@@ -1,0 +1,33 @@
+# P2 progress (architect, A+B+C+D four-stream design)
+
+- [x] 读角色定义 architect.md：P2 产出 = 方案设计 + 实现导航（files_to_read），非步骤脚本；四字段必填；候选方案 ≥2 + 真实对比；语义真实性边界必须写
+- [x] 读 P2-dispatch-context-architect.md：四流全做不可收窄；约束 6 条（自举/gate_commands 暂留正文/语义边界/硬约束/候选 ≥2/全流程不裁）；客观数字 594/37/4/355
+- [x] 读 P1-requirements.md：28 条 BDD（A 15/B 5/C 4/D 4）+ F1-F19 摩擦清单 + 语义真实性边界 §9 + 判别契约（隐含需求 #1）
+- [x] 读 P0-brief.md：A+B+C+D 范围、9 条硬约束、流 D 硬切决策、自举原则
+- [x] 读 P1-review.md：approved；关键数字独立核实一致（594/37 锚点/4 工具/355/15 文件）
+- [x] 读 HANDOFF-V2.0.md：scope 决策 §5.3（gate_commands 暂留正文）、硬约束 §5.4、双工作区铁律
+- [x] 读 /tmp/opencode/feasibility.md：三层结构、Option A vs B 对比、折中增强（汇总入 frontmatter、枚举留正文格式从严）、SCOPE+ 保持散文 §5.5
+- [x] 读现状代码：
+  - agate-md-field-get.py（3 个 op 纯正则，核心改造点）
+  - agate-state-yaml-check.py（pyyaml + schema + 行号报错范式）
+  - check-gate.sh（P1 L69-96 / P2 L100-173 / P6 L236-254 / P7 L255-298 读取点）
+  - check-pruning.sh（P1 字段 grep 读取点）
+  - check-p6-provenance.sh / check-p6-evidence.sh（ui_affected 读取点）
+  - check-changelog.sh:14（短前缀提取摩擦）
+  - check-protocol-consistency.py（CHECK 9 锚点表 SCRIPT_ALIGNMENT_ANCHORS）
+  - task-files.md 模板（frontmatter 并入点）
+  - fixtures.bash create_task_dir（旧格式 fixture 重写点）
+- [x] 客观查证：count-tests.sh=594（实跑）；CHECK 9 锚点=37（AST 解析 SCRIPT_ALIGNMENT_ANCHORS）；gate_commands 读取工具=4；受影响 15 文件 @test 求和=355
+- [x] 最小验证（pyyaml frontmatter 解析假设）：
+  - 标准 frontmatter（含中文 key 跳过风险）→ OK
+  - 全角冒号 risk_level：high → YAMLError（不静默，BDD-2 成立）
+  - risk_level:high 无空格 → YAMLError
+  - phases 块式列表 → 解析为 list
+  - frontmatter 优先于正文同名（risk_level low vs high）→ 取 frontmatter（BDD-10 成立）
+  - 可选字段写 null vs 省略：presence 语义需区分（null 视作未声明）
+  - 嵌套深度检测逻辑验证（>3 → 拦截）
+- [x] 设计要点：单工具双读扩展（agate-md-field-get.py pyyaml 优先 + 正则回退）+ agate-frontmatter-check.py 校验器（仿 agate-state-yaml-check.py）+ 双读判别契约
+- [x] 发现 [SCOPE+]：新校验器 check-frontmatter.sh 是 gate 脚本 → CHECK 9 反向覆盖检查（check_anchor_coverage）要求锚点表新增条目 → 锚点表 37 → 38（BDD-13"37 条全量通过"需加注新增 1 条）
+- [x] 写 P2-design.md（candidate_count: 2 / 候选方案 A+B 真实对比 / 四流落点 / 28 条 BDD 覆盖映射 / 语义真实性边界 §10 / 实现完成标志 §11 / [SCOPE+] ×2）
+- [x] v0.35 兼容自检：check-gate.sh P2 实跑 = exit 1（仅因 P2-review.md 缺失，属主 Agent 评审派发职责；candidate_count=2≥2、四字段=10≥4、权衡/选择理由关键词命中、gate_commands 4 个 P5 命令解析正常、missing-cmds 全部 command -v 命中）
+- [x] 客观数字复核：594（count-tests.sh 实跑）/ 37 锚点（AST 解析）/ 4 工具（grep 确认）/ 355 = 15 文件 @test 求和

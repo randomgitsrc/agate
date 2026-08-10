@@ -70,12 +70,47 @@ case "$PHASE" in
       NC_BLOCKING=$(echo "$NC_BLOCKING" | tail -1)
       NC_SUGGEST=$(grep -cE '^\s*-?\s*\[SUGGEST:' "$P1_FILE" 2>/dev/null || echo 0)
       NC_SUGGEST=$(echo "$NC_SUGGEST" | tail -1)
+      # v2.0 T001 流 C（BDD-21）：NEED_CONFIRM "已解决/已确认"状态结构化——
+      # frontmatter need_confirm_resolved 存在时，逐条匹配正文每条 NEED_CONFIRM 的
+      # 描述是否已在该列表中找到对应项，未匹配才计入阻塞数（不是数量相减，避免
+      # F14 教训的 0-vs-0 歧义）。frontmatter 无该字段（旧格式）→ 沿用整段计数阻塞。
+      NC_UNRESOLVED="$NC_BLOCKING"
       if [ "$NC_BLOCKING" -gt 0 ]; then
-          echo "GATE P1: $NC_BLOCKING 个未解决的 NEED_CONFIRM 项（阻塞）" >&2
+          NC_RESOLVED_PRESENT=$(sed -n '/^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^need_confirm_resolved:' || true)
+          NC_RESOLVED_PRESENT=$(echo "$NC_RESOLVED_PRESENT" | tail -1)
+          if [ "$NC_RESOLVED_PRESENT" -gt 0 ]; then
+              NC_RESOLVED_FM=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" need_confirm_resolved 2>/dev/null || echo "")
+              NC_UNRESOLVED=0
+              while IFS= read -r nc_desc; do
+                  [ -z "$nc_desc" ] && continue
+                  if ! printf '%s\n' "$NC_RESOLVED_FM" | grep -qFx -- "$nc_desc"; then
+                      NC_UNRESOLVED=$((NC_UNRESOLVED + 1))
+                  fi
+              done < <(grep -E '^\s*-?\s*\[NEED_CONFIRM\]' "$P1_FILE" | sed -E 's/^\s*-?\s*\[NEED_CONFIRM\][[:space:]]*//')
+          fi
+      fi
+      if [ "$NC_UNRESOLVED" -gt 0 ]; then
+          echo "GATE P1: $NC_UNRESOLVED 个未解决的 NEED_CONFIRM 项（阻塞）" >&2
           exit 1
       fi
+      # v2.0 T001 流 C：SUGGEST WARNING 去重——suggest_resolved 已采纳项不重复 WARNING
+      NC_SUGGEST_UNACKED="$NC_SUGGEST"
       if [ "$NC_SUGGEST" -gt 0 ]; then
-          echo "GATE P1 WARNING: $NC_SUGGEST 个 SUGGEST 项（主 Agent 可自行采纳，不阻塞）" >&2
+          SG_RESOLVED_PRESENT=$(sed -n '/^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^suggest_resolved:' || true)
+          SG_RESOLVED_PRESENT=$(echo "$SG_RESOLVED_PRESENT" | tail -1)
+          if [ "$SG_RESOLVED_PRESENT" -gt 0 ]; then
+              SG_RESOLVED_FM=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" suggest_resolved 2>/dev/null || echo "")
+              NC_SUGGEST_UNACKED=0
+              while IFS= read -r sg_desc; do
+                  [ -z "$sg_desc" ] && continue
+                  if ! printf '%s\n' "$SG_RESOLVED_FM" | grep -qFx -- "$sg_desc"; then
+                      NC_SUGGEST_UNACKED=$((NC_SUGGEST_UNACKED + 1))
+                  fi
+              done < <(grep -E '^\s*-?\s*\[SUGGEST:' "$P1_FILE" | sed -E 's/^\s*-?\s*\[SUGGEST:[[:space:]]*//; s/\]\s*$//')
+          fi
+      fi
+      if [ "$NC_SUGGEST_UNACKED" -gt 0 ]; then
+          echo "GATE P1 WARNING: $NC_SUGGEST_UNACKED 个 SUGGEST 项（主 Agent 可自行采纳，不阻塞）" >&2
       fi
       # typo 兜底 1：检测旧标记 [NEED_CONFIRM倾向:] 残留
       if grep -qE '\[NEED_CONFIRM倾向:' "$P1_FILE" 2>/dev/null; then
@@ -234,12 +269,24 @@ case "$PHASE" in
       fi
       exit 2 ;;
   P6)
-      # P6 PASS/FAIL regex: 大小写不敏感计数（formatter 归一化在前，此为最后防线）
-      # P6 是客观验收：PASS/FAIL 二值，不再检测 NEED_CONFIRM（v0.30.3 语义修正）
-      TOTAL=$(grep -ciE '^\s*- (PASS|FAIL)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
-      TOTAL=$(echo "$TOTAL" | tail -1)
-      FAIL=$(grep -ciE '^\s*- FAIL([[:space:]:：]|$)' "$TASK_DIR/P6-acceptance.md" 2>/dev/null || echo 0)
-      FAIL=$(echo "$FAIL" | tail -1)
+      # T001 v2.0 流 B（BDD-16/18，P2-design.md §3.2.1）：
+      # frontmatter 声明 pass/fail 汇总（新格式）→ 门禁基于该汇总判定，不再 grep 正文计数；
+      # frontmatter 无该汇总（旧格式）→ 回退正文 grep 计数，但计数口径改严格——只认行首
+      # `- PASS|FAIL ... BDD-N` 带 BDD 编号的行，消除总结行（如 `- PASS: 16`）误判（F11）。
+      P6_FILE="$TASK_DIR/P6-acceptance.md"
+      PASS_FM=$(FILE="$P6_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" pass 2>/dev/null || echo "")
+      FAIL_FM=$(FILE="$P6_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" fail 2>/dev/null || echo "")
+      if [ -n "$PASS_FM" ] && [ -n "$FAIL_FM" ]; then
+          # 新格式：frontmatter 汇总判定（BDD-16）
+          TOTAL=$((PASS_FM + FAIL_FM))
+          FAIL=$FAIL_FM
+      else
+          # 旧格式回退：正文 grep 计数（BDD-18，行首须含 BDD 编号才计入，大小写不敏感）
+          TOTAL=$(grep -ciE '^\s*- (PASS|FAIL)\b.*BDD-[0-9]' "$P6_FILE" 2>/dev/null || echo 0)
+          TOTAL=$(echo "$TOTAL" | tail -1)
+          FAIL=$(grep -ciE '^\s*- FAIL\b.*BDD-[0-9]' "$P6_FILE" 2>/dev/null || echo 0)
+          FAIL=$(echo "$FAIL" | tail -1)
+      fi
       if [ "$FAIL" -ne 0 ] || [ "$TOTAL" -eq 0 ]; then
           echo "GATE P6: FAIL=$FAIL, TOTAL=$TOTAL" >&2
           exit 1
@@ -255,32 +302,64 @@ case "$PHASE" in
   P7)
       # v0.6：用显式 if/elif/else 替代链式写法——每加一个检查都要在链路里加新项，if 更易读易扩展
       # grep -c 无匹配时返回 exit 1，|| echo 0 处理此情况
+      #
+      # T001 v2.0 流 B（BDD-19/20，P2-design.md §3.2.2）：
+      # frontmatter 声明 blocker_count/deviation_critical_count（新格式）→ 门禁基于该结构化
+      # 计数判定，不再用 grep 排除"非计数声明行"的正则；design_gap_count/
+      # design_gap_reviewed_count 同理改读 frontmatter，不再用数量相减的 0-vs-0 歧义判定（F14）。
+      # frontmatter 无这些字段（旧格式）→ 回退现有正文 grep 逻辑。
       P7_FILE="$TASK_DIR/P7-consistency.md"
-      BLOCKERS=$(grep -E '^\s*-?\s*\[BLOCKER\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[BLOCKER\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
-      DEVCRIT=$(grep -E '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[DEVIATION-CRITICAL\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
-      BLOCKERS=$(echo "$BLOCKERS" | tail -1)
-      DEVCRIT=$(echo "$DEVCRIT" | tail -1)
+
+      BLOCKER_FM=$(FILE="$P7_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" blocker_count 2>/dev/null || echo "")
+      DEVCRIT_FM=$(FILE="$P7_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" deviation_critical_count 2>/dev/null || echo "")
+      if [ -n "$BLOCKER_FM" ] && [ -n "$DEVCRIT_FM" ]; then
+          # 新格式：frontmatter 结构化计数判定（BDD-19）
+          BLOCKERS=$BLOCKER_FM
+          DEVCRIT=$DEVCRIT_FM
+      else
+          # 旧格式回退：正文 grep + 非计数行排除正则（既有逻辑）
+          BLOCKERS=$(grep -E '^\s*-?\s*\[BLOCKER\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[BLOCKER\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
+          DEVCRIT=$(grep -E '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[DEVIATION-CRITICAL\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
+          BLOCKERS=$(echo "$BLOCKERS" | tail -1)
+          DEVCRIT=$(echo "$DEVCRIT" | tail -1)
+      fi
       if [ "$BLOCKERS" -gt 0 ] || [ "$DEVCRIT" -gt 0 ]; then
           echo "GATE P7: BLOCKER=$BLOCKERS, DEVIATION-CRITICAL=$DEVCRIT" >&2
           exit 1
       fi
+
       # DESIGN_GAP 配对检查（v0.6：未配对 REVIEWED 标记的 DESIGN_GAP → 不通过）
-      DESIGN_GAP_COUNT=$(grep -cE '^\s*>?\s*-?\s*\[DESIGN_GAP:' "$P7_FILE" 2>/dev/null || echo 0)
-      DESIGN_GAP_REVIEWED=$(grep -cE '^\s*>?\s*-?\s*\[DESIGN_GAP_REVIEWED' "$P7_FILE" 2>/dev/null || echo 0)
-      DESIGN_GAP_COUNT=$(echo "$DESIGN_GAP_COUNT" | tail -1)
-      DESIGN_GAP_REVIEWED=$(echo "$DESIGN_GAP_REVIEWED" | tail -1)
-      UNREVIEWED=$((DESIGN_GAP_COUNT - DESIGN_GAP_REVIEWED))
+      DESIGN_GAP_COUNT_FM=$(FILE="$P7_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" design_gap_count 2>/dev/null || echo "")
+      DESIGN_GAP_REVIEWED_FM=$(FILE="$P7_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" design_gap_reviewed_count 2>/dev/null || echo "")
+      if [ -n "$DESIGN_GAP_COUNT_FM" ] && [ -n "$DESIGN_GAP_REVIEWED_FM" ]; then
+          # 新格式：reviewed_count >= count 通过，否则拦截（BDD-20，F14 消除数量相减歧义）
+          DESIGN_GAP_COUNT=$DESIGN_GAP_COUNT_FM
+          DESIGN_GAP_REVIEWED=$DESIGN_GAP_REVIEWED_FM
+          if [ "$DESIGN_GAP_REVIEWED" -lt "$DESIGN_GAP_COUNT" ]; then
+              echo "GATE P7: 有 $((DESIGN_GAP_COUNT - DESIGN_GAP_REVIEWED)) 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]（frontmatter: design_gap_count=${DESIGN_GAP_COUNT}, design_gap_reviewed_count=${DESIGN_GAP_REVIEWED}）——主 Agent 需审查 implementer 的自主决策" >&2
+              exit 1
+          fi
+      else
+          # 旧格式回退：正文 grep 数量相减判定（既有逻辑）
+          DESIGN_GAP_COUNT=$(grep -cE '^\s*>?\s*-?\s*\[DESIGN_GAP:' "$P7_FILE" 2>/dev/null || echo 0)
+          DESIGN_GAP_REVIEWED=$(grep -cE '^\s*>?\s*-?\s*\[DESIGN_GAP_REVIEWED' "$P7_FILE" 2>/dev/null || echo 0)
+          DESIGN_GAP_COUNT=$(echo "$DESIGN_GAP_COUNT" | tail -1)
+          DESIGN_GAP_REVIEWED=$(echo "$DESIGN_GAP_REVIEWED" | tail -1)
+          UNREVIEWED=$((DESIGN_GAP_COUNT - DESIGN_GAP_REVIEWED))
+          if [ "$UNREVIEWED" -gt 0 ]; then
+              echo "GATE P7: 有 ${UNREVIEWED} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]——主 Agent 需审查 implementer 的自主决策" >&2
+              exit 1
+          fi
+      fi
       # 问题4 (T090)：P4 含"设计偏差/gap"关键词但 DESIGN_GAP 计数为 0 → WARNING 提醒人工确认
       if [ "$DESIGN_GAP_COUNT" -eq 0 ]; then
           if grep -qiE '设计偏差|design gap|未列入|gap:' "$TASK_DIR/P4-implementation.md" 2>/dev/null; then
               echo "GATE P7 WARNING: P4 检测到设计偏差相关关键词但 [DESIGN_GAP:] 计数为 0——请确认是否真的无偏差，或 P4 未按标准格式声明" >&2
           fi
       fi
-      if [ "$UNREVIEWED" -gt 0 ]; then
-          echo "GATE P7: 有 ${UNREVIEWED} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]——主 Agent 需审查 implementer 的自主决策" >&2
-          exit 1
-      fi
       # R2.3 修复：P4/P7 DESIGN_GAP 数量交叉核对
+      # P4 侧的 [DESIGN_GAP:] 转抄核对（R2.3 既有机制）不迁移——P4-implementation.md 的
+      # [DESIGN_GAP:] 仍从正文 grep（发现性标记保持散文，流 C BDD-23 范畴）。
       # architect 忘记把 P4 的 DESIGN_GAP 转抄到 P7 → 之前静默放过
       P4_DESIGN_GAP_COUNT=$(grep -rh '\[DESIGN_GAP:' "$TASK_DIR"/P4-implementation.md "$TASK_DIR"/P4-implementation/ 2>/dev/null | grep -cE '^\s*-?\s*\[DESIGN_GAP:' 2>/dev/null || true)
       P4_DESIGN_GAP_COUNT=$(echo "$P4_DESIGN_GAP_COUNT" | tail -1)

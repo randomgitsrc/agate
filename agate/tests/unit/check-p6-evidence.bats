@@ -1,6 +1,9 @@
 #!/usr/bin/env bats
 # tests/unit/check-p6-evidence.bats — 11 用例覆盖 check-p6-evidence.sh
 # 计划：5.3 / 实际 11 行 / 与附录 A 一致
+# T001 v2.0 流 A（BDD-1/9，FIND-4）：ui_affected 读取经双读工具 op，输出统一
+# str(v).lower() 恰好 "true"/"false"（消费端 check-p6-evidence.sh:64 精确匹配 "true"）。
+# @test 数保持 28 不变。
 
 load ../helpers/load.bash
 
@@ -85,7 +88,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "E.8 check-p6-evidence.sh UI 任务 + 截图目录空 期望 exit 1" {
+@test "E.8 BDD-1/FIND-4: check-p6-evidence.sh ui_affected: true（frontmatter/正文均可）+ 截图目录空 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'

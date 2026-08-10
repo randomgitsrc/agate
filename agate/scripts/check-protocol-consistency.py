@@ -53,6 +53,7 @@ PROTOCOL_FILES = {
     "agate/LIMITATIONS.md",
     "README.md",
     "agate/orchestrator-template.md",
+    "agate/SETUP.md",
 }
 PROTOCOL_DIRS = ("agate/assets/",)  # 角色定义与模板也算协议文件
 
@@ -104,7 +105,7 @@ def iter_md_files(root: Path):
     for p in sorted(root.rglob("*.md")):
         if ".git" in p.parts:
             continue
-        if "archived" in p.parts:
+        if "archived" in p.parts or ".archived" in p.parts:
             continue
         if ".worktrees" in p.parts:
             continue
@@ -630,6 +631,12 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "desc": "P1 BDD 编号格式检查（标准 #### BDD-NN: 格式）",
         "script": "agate/scripts/check-gate.sh",
         "keywords": ["BDD-[0-9]"],
+    },
+    {
+        "desc": "frontmatter schema 校验",
+        "script": "agate/scripts/check-frontmatter.sh",
+        "keywords": ["frontmatter"],
+        "callers": ["agate/scripts/pre-commit-gate.sh"],
     },
 ]
 

@@ -35,11 +35,47 @@ add_given_line() {
     fi
 }
 
+# add_frontmatter_field <file> <field> <value>
+# v2.0（T001 流 A）：在文件的 frontmatter 块（--- ... ---）内插入/更新一个顶层 key。
+# 无 frontmatter 块时新建一个（只含该字段）；已有块则在块内替换同名 key 或追加到块尾。
+# 供 add_p1_field / add_p2_candidate_count 等 helper 复用，是 fixture 从"正文字段"
+# 迁移到"frontmatter 字段"的唯一写入路径（P2-design.md §3.1.5）。
+add_frontmatter_field() {
+    local file="$1"
+    local field="$2"
+    local value="$3"
+
+    if [ ! -f "$file" ]; then
+        printf -- '---\n%s: %s\n---\n' "$field" "$value" > "$file"
+        return
+    fi
+
+    if [ "$(sed -n '1p' "$file")" = "---" ]; then
+        local end_line
+        end_line=$(awk 'NR>1 && /^---$/{print NR; exit}' "$file")
+        if [ -n "$end_line" ] && [ "$end_line" -gt 1 ]; then
+            if sed -n "2,$((end_line - 1))p" "$file" | grep -q "^${field}:"; then
+                sed -i "2,$((end_line - 1))s|^${field}:.*|${field}: ${value}|" "$file"
+            else
+                sed -i "${end_line}i ${field}: ${value}" "$file"
+            fi
+            return
+        fi
+    fi
+
+    # 无合法 frontmatter 块（或块未闭合）→ 在文件头新建一个
+    local tmp
+    tmp=$(mktemp)
+    { printf -- '---\n%s: %s\n---\n' "$field" "$value"; cat "$file"; } > "$tmp"
+    mv "$tmp" "$file"
+}
+
 create_task_dir() {
     local phases="${@:-P0 P1 P2 P3 P4 P5 P6 P7 P8}"
     local risk_level="medium"
     local with_evidence=0
     local with_state=1
+    local legacy_fields=0
 
     # 解析选项
     local args=()
@@ -55,6 +91,11 @@ create_task_dir() {
                 ;;
             --no-state-yaml)
                 with_state=0
+                shift
+                ;;
+            --legacy-fields)
+                # v0.35 旧格式（BDD-9 回退测试用）：risk_level/phases 写在正文而非 frontmatter
+                legacy_fields=1
                 shift
                 ;;
             --*)
@@ -102,9 +143,12 @@ env_constraints:
 EOF
 
     # 写 P1-requirements.md（带 risk_level + phases + agent frontmatter + Given 默认行）
+    # v2.0（T001 流 A，BDD-1）默认把 risk_level/phases 并入 frontmatter 块；
+    # --legacy-fields 保留 v0.35 正文写法（BDD-9 双读回退测试专用）
     local phases_csv
     phases_csv=$(echo "$phases" | tr ' ' ',')
-    cat > "$dir/P1-requirements.md" <<EOF
+    if [ "$legacy_fields" -eq 1 ]; then
+        cat > "$dir/P1-requirements.md" <<EOF
 ---
 agent: test
 ---
@@ -118,6 +162,22 @@ phases: [$phases_csv]
 - When test action
 - Then test result
 EOF
+    else
+        cat > "$dir/P1-requirements.md" <<EOF
+---
+agent: test
+risk_level: $risk_level
+phases: [$phases_csv]
+---
+
+### 主流程
+
+#### BDD-1: test
+- Given test precondition
+- When test action
+- Then test result
+EOF
+    fi
 
     # 写其他阶段文件（空文件，足以让脚本"不报缺文件"）
     for p in $phases; do
@@ -177,19 +237,13 @@ EOF
 }
 
 # 用法：add_p1_field <task_dir> <field> <value>
-# 在 P1-requirements.md 加 YAML 顶层字段
+# 在 P1-requirements.md 的 frontmatter 块加/改 YAML 顶层字段（v2.0 T001 流 A，BDD-1）。
+# v0.35 时代本 helper 写正文；改造后写 frontmatter（P2-design.md §3.1.5 明确要求）。
 add_p1_field() {
     local dir="$1"
     local field="$2"
     local value="$3"
-    local p1="$dir/P1-requirements.md"
-
-    # 替换或追加
-    if grep -q "^${field}:" "$p1" 2>/dev/null; then
-        sed -i "s|^${field}:.*|${field}: ${value}|" "$p1"
-    else
-        echo "${field}: ${value}" >> "$p1"
-    fi
+    add_frontmatter_field "$dir/P1-requirements.md" "$field" "$value"
 }
 
 # 用法：add_p2_review <task_dir> [status] [agent]
@@ -288,14 +342,11 @@ add_p1_bdd() {
 }
 
 # 用法：add_p2_candidate_count <task_dir> <count>
-# 在 P2-design.md 加 candidate_count 字段（替换或追加）
+# 在 P2-design.md 的 frontmatter 块加/改 candidate_count 字段（v2.0 T001 流 A，BDD-1）。
+# 调用方多用 `cat > P2-design.md <<EOF ... EOF` 先整体覆写正文（无 frontmatter），
+# 此时 add_frontmatter_field 会在文件头新建一个只含 candidate_count 的 frontmatter 块。
 add_p2_candidate_count() {
     local dir="$1"
     local count="$2"
-    local p2="$dir/P2-design.md"
-    if grep -q "^candidate_count:" "$p2" 2>/dev/null; then
-        sed -i "s|^candidate_count:.*|candidate_count: ${count}|" "$p2"
-    else
-        echo "candidate_count: ${count}" >> "$p2"
-    fi
+    add_frontmatter_field "$dir/P2-design.md" "candidate_count" "$count"
 }

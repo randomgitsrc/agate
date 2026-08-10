@@ -22,7 +22,7 @@ agent: review
 | A3 | 一致性连锁 + 反向传播 | 变更是否需要同步改其他协议文件？**反向传播**：列出"应该被这次改动影响但未列在 diff 中的文件"，逐一验证影响到了没。A3 拆为 A3a（连锁：已知的衍生改动）和 A3b（反向传播：主动推断的应被影响文档） |
 | A4 | 测试覆盖 | 变更是否有对应 bats 测试？测试是否覆盖了新逻辑的边界？**必须附最近一次 bats 全量实跑输出（含 passed/failed 计数）**，无实跑输出的 ✓ 视为无效（T026/G2.5 事故教训：A4 看不跑导致假绿灯进 main） |
 | A5 | 下游影响 + 文档传播 | 变更是否影响已有项目的 gate 行为？是否有破坏性变更？CHANGELOG 是否标注？**文档传播**：除了代码改动，应该被影响的文档（orchestrator-template.md / WORKFLOW.md / dispatch-protocol.md / role-system.md / 角色文件 / 模板文件 / LIMITATIONS.md 等）是否需要同步？ |
-| A6 | 锚点表覆盖 | CHECK 9 的锚点表是否需要更新？新增的协议规则是否需要加入锚点表？ |
+| A6 | 锚点表覆盖 | CHECK 9 的锚点表是否需要更新？新增的协议规则是否需要加入锚点表？注：CHECK 9 部分锚点（如 `check-frontmatter.sh`）验证的是"校验脚本存在且被正确挂载调用"，不是"schema 定义内容与协议文档声明的字段集语义一致"——后者不属于关键词匹配可判定范围，仍需 A1 逐条人工核对。 |
 | A7 | 设计原则一致性 | 变更是否符合已记录的 ADR（agate/adr.md）？逐条检查相关 ADR。如发现未记录的架构决策，建议补充新 ADR。结论只有 ALIGNED 或 NEEDS_HUMAN_REVIEW（设计原则是指导性的，不是可机器判定的硬规则，不存在 MISALIGNED） |
 
 ### 反向传播的常见路径（subagent 推理起点）
@@ -37,6 +37,8 @@ agent: review
 | `agate/` 内 BDD 编号格式（`#### BDD-NN:` heading / `###` 功能分组）| `check-p6-provenance.sh`（BDD 计数正则）、`check-gate.sh`（P1 BDD 锚点）、`check-protocol-consistency.py`（CHECK 9 锚点）、`task-files.md`（P1 模板）、`dispatch-prompt.md`（verifier BDD 格式指令）、`analyst.md`/`test-designer.md`/`verifier.md`/`requirements-review.md`/`consistency-reviewer.md`/`architect.md`（角色 BDD 指令）、`P1-requirements.md`/`P3-tdd.md`/`P6-acceptance.md`/`P7-consistency.md`（阶段卡片 BDD 引用）、`state-machine.md`（转移条件 BDD 引用）、`dispatch-protocol.md`（P6 结果格式 + gate 表）、`WORKFLOW.md`（gate 表 BDD 引用）、`CONTEXT.md`（BDD 定义）、`LIMITATIONS.md`（BDD 计数描述） |
 | `CHANGELOG.md` 未更新 | 协议语义变更 + 未标注 = A5 下游影响不完整 |
 | `SELF-GATE.md` 或 `protocol-alignment-review.md` | self-gate 机制自身的递归适用 |
+| 新增/修改某个 `agate/scripts/check-*.sh` 的 pre-commit 触发行为 | 只需同步 `WORKFLOW.md`「Pre-commit 检查总览」一处（唯一权威）+ CHECK 9 锚点表；`dispatch-protocol.md`/`state-machine.md` 已改为指向该节，不应再各自维护副本表格——若发现某处又长出了独立的检查清单表，视为回归 |
+| `agate-frontmatter-check.py` 的 `SCHEMAS`（migrated_keys/required/enums/types）或 `agate-md-field-get.py` 的 `BOOL_FIELDS`/`LIST_FIELDS`/`NO_FALLBACK_*_FIELDS`（frontmatter 迁移字段集/op 清单）| `agate/assets/templates/task-files.md`（对应阶段的可复制 frontmatter 样例块）、`agate/assets/execution-roles/{analyst,architect,verifier}.md`（角色卡样例块）、`agate/phase-cards/{P1,P2,P6,P7}-*.md`（产出规格节样例块）、消费该字段的 `check-gate.sh`/`check-pruning.sh`/`check-scope-resolved.sh` 判定分支、`agate/scripts/README.md`（工具清单表的 op 描述）、`tests/helpers/fixtures.bash`（`add_frontmatter_field` 系列 helper）、对应的 `.bats` fixture |
 
 ## 审查原则
 
@@ -45,6 +47,7 @@ agent: review
 3. **不改代码**：审查角色只写报告，修复由主 Agent 派 implementer 落地
 4. **NEEDS_HUMAN_REVIEW 用于真模糊**：如果无法确定是对是错（如设计决策的取舍），标 NEEDS_HUMAN_REVIEW，不要猜
 5. **分阶段落盘**：留痕文件和成果文件是两个不同的文件。留痕文件只写原始痕迹（"读了 X，发现 Y"），不做内容整理、不格式化——那是成果文件的事。每读完一个输入文件或完成一个对比判断，立即用 bash `echo >>` 追加到留痕文件。成果文件审查完所有文件后一次性写出。每个 subagent 调用有独立的留痕文件，开始前先删除（`rm -f`）确保从空文件开始
+6. **DESIGN_GAP 优先核查**：发现文档-脚本不一致时，若审查对象关联某个具体任务（`docs/tasks/{Txxx}/`），先检查该任务的 `P4-implementation.md`/`P7-consistency.md` 是否已有对应的 `[DESIGN_GAP:]`/`[DESIGN_GAP_REVIEWED:]` 记录——若已被 P7 consistency-reviewer 独立核实且判定 `REVIEWED-ACCEPTED`，不判 MISALIGNED，而是在报告中注明"已知偏离，来源：{task} P7 REVIEWED-ACCEPTED（引用原文）"，仍计入报告但不计入需修复项；若该任务尚无 P7 记录（比如任务仍在 P4/P5 阶段）或核实后认为 P7 的裁决理由站不住，仍按正常 MISALIGNED 处理。
 
 ## 配套文件提示
 
@@ -92,6 +95,8 @@ files_changed: [{文件列表}]
 **差异**（若 MISALIGNED）：{具体差异描述}
 **建议**：{修复方向}
 ```
+
+三态结论（ALIGNED/MISALIGNED/NEEDS_HUMAN_REVIEW）不变。若某一审查项本应判为 MISALIGNED，但差异点完全对应一条已被 P7 接受的 DESIGN_GAP，则按原则 6 结论记为 ALIGNED，并在该项下追加 `[KNOWN_DEVIATION: 来源 {task} P7-consistency.md，REVIEWED-ACCEPTED，理由摘要]` 标注，以便读者知晓这里曾存在过字面偏离、已被正式核实接受（而非"从未出现过差异"），与"必须修复"的普通 MISALIGNED 区分开。
 
 ## 闭环规则
 

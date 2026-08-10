@@ -46,6 +46,32 @@ P1-requirements.md 必须包含：
 - `capability_requirements:` 能力需求声明（available / supplementable / GAP 三态）
 - 无未决 `[NEED_CONFIRM]`（有则 PAUSED）；无待确认项时写 `[NO_NEED_CONFIRM]`
 
+`risk_level`/`phases`/`packages`/`domains` 写在文件头 **frontmatter**（`---` 分隔块），不写正文。
+**可直接复制的完整样例**：
+```yaml
+---
+phase: P1
+task_id: TAG0001           # 替换为实际任务编号
+type: problems
+parent: P0-brief.md
+trace_id: T001-P1-20260101 # {task_id}-P1-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: analyst
+# ── v2.0 机器字段 ──
+risk_level: low             # low / medium / high，必填
+phases: [P1, P4, P5, P6, P8]   # list of P\d+，必填
+packages: [pkg-a]           # list，必填
+domains: [backend, frontend]  # list，必填
+# 可选字段：override / implicit_coupling / coupling_checklist / internal_only /
+# internal_only_reason / 跳过风险 / design_trivial / follows_existing_pattern
+# ── v2.0 标记"已解决/已确认"状态（可选，仅标记存在时写）──
+# need_confirm_resolved: []   # list[str]：已解决的 NEED_CONFIRM 项描述（逐条匹配正文）
+# suggest_resolved: []        # list[str]：已采纳的 SUGGEST 项描述
+# scope_resolved: []          # list[str]：已解决的 SCOPE+ 项描述
+---
+```
+
 **NEED_CONFIRM 分级**：
 - `[SUGGEST: 推荐 X，理由 Y]` - 有倾向但求确认。主 Agent 可自行采纳倾向（除非涉及破坏性变更/业务方向），不必问用户
 - `[NEED_CONFIRM]` - 真无方向需人定夺。阻塞推进，主 Agent 问用户

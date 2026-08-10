@@ -1,45 +1,50 @@
 #!/usr/bin/env bats
 # tests/unit/agate-md-field-get.bats — MD 字段提取共享工具单元测试
+# T001 v2.0 流 A（P2-design.md §3.1.2）：双读改造——frontmatter 优先 + 无 key 正则回退。
+# 6 个既有用例改写为 BDD-1/3/9/10 覆盖（详见 P3-test-cases.md）；@test 数保持 6 不变。
 load ../helpers/load.bash
 
-@test "MDF.1 risk_level 提取 low/medium/high" {
+@test "MDF.1 BDD-1: risk_level 从 frontmatter 块读取（字段级 presence 优先）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
-    echo "risk_level: high" > "$dir/P1.md"
+    printf -- '---\nagent: test\nrisk_level: high\n---\nbody\n' > "$dir/P1.md"
     run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
     [ "$status" -eq 0 ]; [[ "$output" == "high" ]]
 }
 
-@test "MDF.2 risk_level 无匹配 → 空" {
+@test "MDF.2 BDD-9: 旧格式（frontmatter 无 risk_level，只在正文）仍通过正则回退正确读取" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
-    echo "no risk" > "$dir/P1.md"
+    printf -- '---\nagent: test\n---\nrisk_level: medium\n' > "$dir/P1.md"
     run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
-    [ "$status" -eq 0 ]; [ -z "$output" ]
+    [ "$status" -eq 0 ]; [[ "$output" == "medium" ]]
 }
 
-@test "MDF.3 ui_affected 提取 true/false" {
+@test "MDF.3 BDD-10: frontmatter 带引号字符串值优先于正文同名字段（证明非文本首现巧合、而是 dict 优先）" {
+    # 正文（body）声明 risk_level: low（现有正则 risk_level:\s*(low|medium|high) 可直接匹配）；
+    # frontmatter 声明 risk_level: "high"（带引号）——旧版纯正则对带引号值不匹配，
+    # 若仍走正则会误取正文的 low；新逻辑须经 yaml.safe_load 解析 frontmatter dict 取得 "high"。
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
-    echo "ui_affected: true" > "$dir/P2.md"
-    run bash -c "FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' ui_affected"
-    [ "$status" -eq 0 ]; [[ "$output" == "true" ]]
+    printf -- '---\nagent: test\nrisk_level: "high"\n---\nrisk_level: low\n' > "$dir/P1.md"
+    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    [ "$status" -eq 0 ]; [[ "$output" == "high" ]]
 }
 
-@test "MDF.4 ui_affected 无匹配 → 空" {
+@test "MDF.4 BDD-3: phases 在 frontmatter 内以块式列表（每行 - Pn）声明 → 解析为空格连接列表" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
-    echo "no ui" > "$dir/P2.md"
-    run bash -c "FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' ui_affected"
-    [ "$status" -eq 0 ]; [ -z "$output" ]
-}
-
-@test "MDF.5 phases 行内列表 [a, b, c] → 空格连接" {
-    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
-    echo "phases: [P0, P1, P2]" > "$dir/P1.md"
+    printf -- '---\nagent: test\nphases:\n  - P1\n  - P2\n---\nbody\n' > "$dir/P1.md"
     run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' phases"
-    [ "$status" -eq 0 ]; [[ "$output" == "P0 P1 P2" ]]
+    [ "$status" -eq 0 ]; [[ "$output" == "P1 P2" ]]
 }
 
-@test "MDF.6 phases 块式列表 → 空格连接" {
+@test "MDF.5 BDD-1: 新增 op candidate_count 从 P2 frontmatter 读取（int → str）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
-    printf 'phases:\n  - P0\n  - P1\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' phases"
-    [ "$status" -eq 0 ]; [[ "$output" == "P0 P1" ]]
+    printf -- '---\nagent: test\ncandidate_count: 2\n---\nbody\n' > "$dir/P2.md"
+    run bash -c "FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' candidate_count"
+    [ "$status" -eq 0 ]; [[ "$output" == "2" ]]
+}
+
+@test "MDF.6 BDD-1: 新增 op packages 从 frontmatter 列表读取（空格连接）" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\npackages: [agate, other-pkg]\n---\nbody\n' > "$dir/P2.md"
+    run bash -c "FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' packages"
+    [ "$status" -eq 0 ]; [[ "$output" == "agate other-pkg" ]]
 }

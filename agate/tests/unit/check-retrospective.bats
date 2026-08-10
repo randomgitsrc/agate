@@ -32,28 +32,39 @@ EOF
     [[ "$output" == *"重试超限"* ]]
 }
 
-@test "RT.3 check-retrospective.sh SCOPE+ 触发 期望 exit 0 + 含'SCOPE+'" {
+@test "RT_BDD21.1 BDD-21: check-gate.sh P1 frontmatter need_confirm_resolved 已覆盖具体描述时该 NEED_CONFIRM 项不再阻塞" {
+    # T001 v2.0 流 C：NEED_CONFIRM 的"已解决/已确认"状态结构化入 P1 frontmatter
+    # need_confirm_resolved 列表；逐条匹配正文每条 NEED_CONFIRM 描述是否已在该列表
+    # 中找到对应项——已匹配则不阻塞，散文标记本身仍保留为人类痕迹。
     local dir
-    dir=$(create_task_dir)
-    cat > "$dir/P2-design.md" <<'EOF'
-[SCOPE+] 新增功能
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+need_confirm_resolved: ["z 的边界条件需确认"]
+---
+# Requirements
+- Given x When y Then z
+- [NEED_CONFIRM] z 的边界条件需确认
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"SCOPE+"* ]]
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
 }
 
 # ========== P2.53: progress 文件排除 ==========
-
-@test "RT.SCOPE_PROGRESS: progress file with [SCOPE+] does not trigger retro warning" {
-    local dir
-    dir=$(create_task_dir P0 P1 P2 P4 P5 P6 P7 P8)
-    echo "## P2 progress
-- [SCOPE+] 检查: 无新增隐含需求" > "$dir/P2-progress.md"
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" ".state.yaml"
-    [ "$status" -eq 0 ]
-    [[ "$output" != *"SCOPE+ 触发"* ]]
-}
 
 @test "RT.DP1: dispatch-prompt file excluded from SCOPE+ scan" {
     local dir

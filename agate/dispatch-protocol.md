@@ -455,7 +455,7 @@ trigger: gate_fail
 
 必须包含 Header（完整字段见 task-files.md「通用 Header」）：
   phase: {Pn}
-  task_id: {完整 task_id，如 T002-fix-db-migration}
+  task_id: {完整 task_id，如 TAG0002-fix-db-migration}
   type: {problems|design|review|test-cases|implementation|test-results|acceptance|consistency|release}
   parent: {上一阶段文件名}
   trace_id: {Txxx}-{Pn}-{日期}
@@ -545,6 +545,7 @@ P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P
 每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。
 不要用表格格式（`| BDD-1 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
 **大小写敏感**：必须大写 PASS/FAIL。主 Agent 在 verifier 返回后、跑 gate 前运行 `check-p6-format.sh --fix` 自动归一化（①）。
+除正文逐条结果外，P6-acceptance.md **还必须**在文件头 frontmatter 声明 `pass:`/`fail:`/`ui_affected:` 三个机器汇总字段（int/int/bool），gate 优先读取该汇总、正文格式仅作旧格式回退——样例见 `agate/assets/execution-roles/verifier.md`。
 示例：
 - PASS BDD-1: 用户可以创建分享链接
 - FAIL BDD-2: 过期链接返回 410
@@ -819,34 +820,7 @@ setTimeout(() => {
 
 **A1 原则**：gate 判定是主 Agent 运行命令得到的客观事实，不是 subagent 文件里的声明。
 
-**Pre-commit 检查全景（hook + CI 兜底）**：
-
-每次 `git commit` 触发 `.git/hooks/pre-commit`（由 `~/.agate/scripts/install-hook.sh` 安装 pre-commit + commit-msg + pre-push hook），按顺序执行：
-
-| 阶段/机制 | 检查脚本 | 用途 |
-|------|------|------|
-| 文件级 P2.15 | `scripts/check-state-yaml.sh` | `.state.yaml` 格式合法（必填字段、phase 取值、retries 结构）|
-| 全局 P1.2 | — | `[PROD_TOUCHED]` 标记三步检测（正向→中止 / 不合规→中止 / 缺失→静默通过）|
-| 阶段级 P2.3-P2.5 | `scripts/check-state-transition.sh` | 状态转移合法性 + 重试上限 |
-| 阶段级 P1.1 | `scripts/check-gate.sh` | 各阶段门控规则 |
-| 阶段级 P2.1/P2.10 | `scripts/check-p6-provenance.sh` | P6 客观行为审计（六道：证据-结论对应 + dispatch-context + BDD 总数 + EXIT_CODE 一致性 + evidence JSON 一致性 [P2.57] + UI vision YAML）|
-| 阶段级 P2.7-P2.9 | `scripts/check-pruning.sh` | 裁剪条件 + override 校验（P2/P6 不可裁；design_trivial / follows_existing_pattern / no_behavior_change 可简化但不可省略） |
-| 阶段级 P2.11 | `scripts/check-scope-resolved.sh` | `[SCOPE+]` 标记追踪 |
-| 提醒级 P2.12 | `scripts/check-retrospective.sh` | 异常模式提醒（不拦截）|
-| 提醒级 P1.6 | `scripts/check-changelog.sh` | `[Unreleased]` 含 task_id（P2.54：仅 P8 phase 检查） |
-| 阶段级 P1.7 | `scripts/check-p6-evidence.sh` | P6/P7 阶段：证据目录非空 + BDD 行数 ≥ 1 |
-
-**多任务适配**：hook 扫描所有暂存的 `.state.yaml`（根 + `docs/tasks/{Txxx}/`），对每个变更的任务级 `.state.yaml` 独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。
-
-**phase-产出一致性 WARNING**：暂存了 `P{n}-*.md` 产出但 `.state.yaml` 的 phase 不匹配时，发 WARNING（不拦截）。覆盖"产出了但忘改 phase"场景，下次 agent 接手时由状态标记绑定检查兜底。
-
-**dispatch-context 缺失 WARNING**：暂存了阶段产出但 `P{N}-dispatch-context-*.md` 不存在时，发 WARNING（不拦截）。覆盖"产出已写但忘记先写 dispatch-context"场景。
-
-**非实现阶段代码暂存 WARNING**：非 P4/P5/P6 阶段暂存了代码文件（非 .md/.yaml）时，发 WARNING（不拦截）。覆盖"主 Agent 在非实现阶段直接改代码"场景。
-
-**Pre-push hook**：`git push` 时自动检测 `agate/*.md` 改动量，超过阈值（默认 20 行，可通过 `AGATE_ALIGNMENT_REVIEW_THRESHOLD` 环境变量配置）时提示建议先派发 protocol-alignment-review。不阻断 push（exit 0）。
-
-**CI backstop（P1.3）**：`push` 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py` + `check-p6-provenance.sh`，捕获 `--no-verify` 绕过 hook 的 commit；provenance 审计重跑 + `P6-acceptance.md` 单 author WARNING 作为兜底审计。
+**Pre-commit 检查全景（hook + CI 兜底）**：完整清单（触发条件、拦截行为、多任务扫描、三类 WARNING、pre-push 阈值提示、CI backstop）见 `WORKFLOW.md`「Pre-commit 检查总览」——权威唯一来源，本文件不重复维护。
 
 **Gate 分类**：
 
@@ -1148,13 +1122,13 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
 
 ---
 
-## 完整派发示例（T001 P2 阶段）
+## 完整派发示例（TAG0001 P2 阶段）
 
 ```
 主 Agent：
 
-1. 读 active-tasks.md → T001 在 P2 阶段
-2. 确认 docs/tasks/T001/P1-requirements.md 存在 ✓
+1. 读 active-tasks.md → TAG0001 在 P2 阶段
+2. 确认 docs/tasks/TAG0001/P1-requirements.md 存在 ✓
 3. 选角色：architect（P2 执行角色）
 4. 调用 task 工具：
    subagent_type: architect（或 general + 注入角色文件）
@@ -1162,16 +1136,16 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
      你是 P2 阶段的 architect 子 Agent。
      角色定义：读取 {agate_root}/assets/execution-roles/architect.md
      项目约定（必读）：CLAUDE.md
-     P0-brief（必读）：docs/tasks/T001/P0-brief.md（环境约束和风险声明）
-     输入：读取 docs/tasks/T001/P1-requirements.md
+     P0-brief（必读）：docs/tasks/TAG0001/P0-brief.md（环境约束和风险声明）
+     输入：读取 docs/tasks/TAG0001/P1-requirements.md
      任务：为数据库迁移问题设计方案
-     输出：docs/tasks/T001/P2-design.md（含 Header）
+     输出：docs/tasks/TAG0001/P2-design.md（含 Header）
      门槛：方案覆盖 P1 列出的所有问题
      返回：只返回文件路径 + 一句话摘要
-5. subagent 返回："docs/tasks/T001/P2-design.md，采用 schema_version 表 + 顺序迁移脚本"
+5. subagent 返回："docs/tasks/TAG0001/P2-design.md，采用 schema_version 表 + 顺序迁移脚本"
 6. 派发评审 subagent（plan-eng-review 角色）→ 产出 P2-review.md
 7. 读 P2-review.md 的 Header status
-   - approved → 更新 active-tasks.md，T001 进入 P3
+   - approved → 更新 active-tasks.md，TAG0001 进入 P3
    - rejected → 重试 architect（retries[P2] 记录第 1 轮），通过文件路径回流评审意见（见下）
 ```
 
@@ -1212,11 +1186,11 @@ rejected 时，主 Agent 的重试派发 prompt 里加一行：
 
 示例：
 ```
-[T001] DONE — 数据库迁移机制修复 v0.1.53
+[TAG0001] DONE — 数据库迁移机制修复 v0.1.53
 
 改动：exceptions.py +18 / database.py +51 / cli.py +7 / main.py +2
 验证：14/14 migration tests + 486 regression tests
-说明：Server 独���迁移，CLI schema 兼容检查
+说明：Server 独立迁移，CLI schema 兼容检查
 ```
 
 ---

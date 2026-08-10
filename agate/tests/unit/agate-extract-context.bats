@@ -1,4 +1,8 @@
 #!/usr/bin/env bats
+# T001 v2.0 流 A（P2-design.md §2 FIND-2 决策）：agate-extract-context.sh 是上下文
+# 摘要工具（非 gate 判定点），保持 grep 不改路由——frontmatter 顶层 key 顶格仍能被
+# 现有 grep 匹配，兼容新旧格式。EC.5/EC.6/EC.10 已用 frontmatter 块声明 domains/
+# risk_level/packages/ui_affected，验证该边界决策的回归安全。@test 数保持 15 不变。
 
 load ../helpers/load.bash
 
@@ -37,7 +41,7 @@ EOF
     [[ "$output" == *"task: fix login timeout"* ]]
 }
 
-@test "EC.5: P2 extracts P1 domains and BDD count" {
+@test "EC.5: BDD-1 边界（FIND-2 grep 不改路由）：P2 extracts P1 domains（frontmatter 声明）and BDD count" {
     cat > "$TEST_TASK_DIR/P1-requirements.md" <<'EOF'
 ---
 domains: [backend]

@@ -48,6 +48,25 @@
 - UI 任务：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图但须有断言记录文件
 - UI 任务：每条 UI 类 PASS 含 vision 引用：`(vision: vision-reports/bxx.yaml)`
 
+`pass:`/`fail:`/`ui_affected:` 汇总写在文件头 **frontmatter**（`---` 分隔块），不写正文。
+**可直接复制的完整样例**：
+```yaml
+---
+phase: P6
+task_id: TAG0001           # 替换为实际任务编号
+type: acceptance
+parent: P5-verification.md
+trace_id: T001-P6-20260101 # {task_id}-P6-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: verifier
+# ── v2.0 机器汇总 ──
+pass: 28                          # int ≥0
+fail: 0                           # int ≥0
+ui_affected: false                # bool（与 P2 声明一致）
+---
+```
+
 **PASS 行最小格式规范**：
 
 ```

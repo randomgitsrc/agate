@@ -19,7 +19,7 @@ _create_dispatch_context() {
 ---
 phase: PHASE_PLACEHOLDER
 generated_by: agate-next-card.sh + 主 Agent
-task_id: T999
+task_id: TXX0999
 role: ROLE_PLACEHOLDER
 ---
 
@@ -36,8 +36,8 @@ role: ROLE_PLACEHOLDER
 上游摘要信息
 
 ### 输入文件
-- docs/tasks/T999/P0-brief.md
-- docs/tasks/T999/前阶段产出.md
+- docs/tasks/TXX0999/P0-brief.md
+- docs/tasks/TXX0999/前阶段产出.md
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->
@@ -60,7 +60,7 @@ _setup_task_with_state() {
     mkdir -p "$dir"
     echo "test" > "$dir/test.py"
     cat > "$dir/.state.yaml" << 'SYS'
-task_id: T999
+task_id: TXX0999
 phase: PHASE_PLACEHOLDER
 status: in_progress
 retries: {}
@@ -95,7 +95,7 @@ SYS
 ---
 phase: P3
 generated_by: agate-next-card.sh + 主 Agent
-task_id: T999
+task_id: TXX0999
 role: test-designer
 ---
 
@@ -110,7 +110,7 @@ role: test-designer
 无
 
 ### 输入文件
-- docs/tasks/T999/P0-brief.md
+- docs/tasks/TXX0999/P0-brief.md
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->

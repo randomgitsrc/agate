@@ -1,6 +1,10 @@
 #!/usr/bin/env bats
 # tests/unit/check-tdd-red.bats — TDD red-light check tests
 # Covers: TEST_RUNNER path, gate_commands.P3 path, formatter path, multi-stack
+# T001 v2.0 流 A（BDD-15）：gate_commands 明确不迁移 frontmatter（暂留正文），
+# 本文件的 gate_commands.P3 读取路径（agate-read-gate-commands.py 等 4 工具）须
+# 无回归——即便 P2-design.md 其余字段（candidate_count/packages/domains/ui_affected）
+# 迁入 frontmatter，gate_commands 仍在正文按旧正则读取。@test 数保持 38 不变。
 
 load ../helpers/load.bash
 
@@ -146,7 +150,7 @@ Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1)
     [ "$status" -eq 0 ]
 }
 
-@test "TDD.G1: gate_commands.P3 in P2-design.md → auto-read, red-light exit 0" {
+@test "TDD.G1: BDD-15 回归：gate_commands.P3 保持正文（不迁移 frontmatter）→ auto-read, red-light exit 0" {
     local fake
     fake=$(make_fake_pytest "2 failed, 5 passed" 1)
     local task_dir="$BATS_TEST_TMPDIR/task-g1"

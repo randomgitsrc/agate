@@ -82,20 +82,26 @@ EOF
     [ "$status" -eq 1 ]
 }
 
-@test "PV.5 check-p6-provenance.sh 3 PASS 引用 1 共享证据文件 期望 exit 0" {
+@test "PV_BDD19.1 BDD-19: check-gate.sh P7 frontmatter blocker_count/deviation_count 均 0 时判定通过（不再用非计数行排除正则）" {
+    # T001 v2.0 流 B：正文保留一条行首 [BLOCKER] 历史记录（人类痕迹，已在评审中确认
+    # 不构成阻塞），旧版正则会把它计为真实 BLOCKER（BLOCKERS=1 → exit 1）；但
+    # frontmatter 结构化声明 blocker_count: 0 时，门禁应改基于该结构化计数判定通过。
     local dir
     dir=$(create_task_dir)
-    cat > "$dir/P6-acceptance.md" <<'EOF'
+    cat > "$dir/P7-consistency.md" <<'EOF'
 ---
-agent: test
+phase: P7
+task_id: T001
+agent: consistency-reviewer
+blocker_count: 0
+deviation_count: 0
+deviation_critical_count: 0
+design_gap_count: 0
+design_gap_reviewed_count: 0
 ---
-- PASS BDD-1 (shared.json)
-- PASS BDD-2 (shared.json)
-- PASS BDD-3 (shared.json)
+- [BLOCKER] 历史记录：早期草案曾有架构缺陷，已在本轮修订中解决，frontmatter blocker_count 已归零
 EOF
-    mkdir -p "$dir/P6-evidence"
-    echo "log" > "$dir/P6-evidence/shared.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -349,24 +355,6 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "PV.16 check-p6-provenance.sh P2-review agent=subagent + status:approved → exit 0" {
-    local dir
-    dir=$(create_task_dir --risk-level high)
-    cat > "$dir/P2-review.md" <<'EOF'
----
-agent: subagent
----
-status: approved
-EOF
-    cat >> "$dir/P6-acceptance.md" <<'EOF'
-- PASS BDD-1 (result.json)
-EOF
-    mkdir -p "$dir/P6-evidence"
-    echo "log" > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
-    [ "$status" -eq 0 ]
-}
-
 @test "PV.17 dispatch-context 含任务上下文节 → 审计 2 放行" {
     local dir
     dir=$(create_task_dir --risk-level high)
@@ -547,34 +535,28 @@ EOF
     [[ "$output" == *"screenshots/file2.png"* ]]
 }
 
-@test "PROV_MULTI.3 PASS 行含 nth(1) 嵌套括号 + 行末单一证据路径 → exit 0" {
+@test "PV_BDD20.1 BDD-20: check-gate.sh P7 frontmatter design_gap_reviewed_count < design_gap_count 时拦截（不再用数量相减的 0-vs-0 歧义判定）" {
+    # T001 v2.0 流 B：正文只有 1 条 [DESIGN_GAP_REVIEWED]（旧版数量相减会算出
+    # 1-1=0 → 误判为已全部配对），但 frontmatter 结构化声明 design_gap_count: 2 /
+    # design_gap_reviewed_count: 1（reviewed < count）→ 应判定为未配对而拦截。
     local dir
     dir=$(create_task_dir)
-    cat > "$dir/P6-acceptance.md" <<'EOF'
+    cat > "$dir/P7-consistency.md" <<'EOF'
 ---
-agent: test
+phase: P7
+task_id: T001
+agent: consistency-reviewer
+blocker_count: 0
+deviation_count: 0
+deviation_critical_count: 0
+design_gap_count: 2
+design_gap_reviewed_count: 1
 ---
-- PASS BDD-1: works (screenshots/b07.png — element: .katex nth(1))
+- [DESIGN_GAP_REVIEWED: 其中一项已确认]
 EOF
-    mkdir -p "$dir/P6-evidence/screenshots"
-    head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
-    [ "$status" -eq 0 ]
-}
-
-@test "PROV_MULTI.4 PASS 行引用单一证据文件（原有场景回归）→ exit 0" {
-    local dir
-    dir=$(create_task_dir)
-    cat > "$dir/P6-acceptance.md" <<'EOF'
----
-agent: test
----
-- PASS BDD-1: works (result.json)
-EOF
-    mkdir -p "$dir/P6-evidence"
-    echo "log" > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
-    [ "$status" -eq 0 ]
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"DESIGN_GAP"* ]]
 }
 
 @test "PV.DP1: dispatch-prompt file excluded from agent field check" {

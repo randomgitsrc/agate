@@ -87,7 +87,7 @@ EOF
     local f
     f=$(mktemp "$BATS_TEST_TMPDIR/state-XXXXXX.yaml")
     cat > "$f" <<'EOF'
-task_id: T001
+task_id: TXX0001
 phase: P1
 status: active
 retries:

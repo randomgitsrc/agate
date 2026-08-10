@@ -25,7 +25,7 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
 ```markdown
 | 序号 | 任务名 | 状态 | 阶段 | 重试 | 更新日期 |
 |------|--------|------|------|------|----------|
-| T001 | example-task | 🔄 进行中 | P4 | 0 | YYYY-MM-DD |
+| TAG0001 | example-task | 🔄 进行中 | P4 | 0 | YYYY-MM-DD |
 ```
 
 这是"宏观状态"——任务走到哪了。
@@ -40,7 +40,7 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
       1. mkdir -p docs/tasks/
       2. 从 {agate_root}/assets/templates/active-tasks-template.md
          复制结构到 docs/tasks/active-tasks.md（清空示例数据，保留表结构）
-      3. 视为"无进行中任务"，可以直接创建第一个任务（T001）
+      3. 视为"无进行中任务"，可以直接创建第一个任务（TAG0001）
 ```
 
 不要把"文件不存在"误判为错误或异常，更不要因为读不到文件就假设任务已完成或卡住——这是初始化场景，唯一正确动作是建表，然后继续往下走。
@@ -52,9 +52,9 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
 ```yaml
 ---
 phase: P2
-task_id: T001
+task_id: TAG0001
 parent: P1-requirements.md
-trace_id: T001-P2-YYYYMMDD
+trace_id: TAG0001-P2-YYYYMMDD
 status: approved        # ← 门槛判定字段
 ---
 ```
@@ -211,25 +211,9 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   **[SCOPE_RESOLVED] 标记（P2.11）**：主 Agent 增补 P1 基线时，必须标记 [SCOPE_RESOLVED: from {来源文件}]。
   未标记的 [SCOPE+] → gate 拦截（scripts/check-scope-resolved.sh）。
 
-## Pre-commit 检查全景（hardening-roadmap Phase 1-2 已落地）
+## Pre-commit 检查全景
 
-每次 `git commit` 触发 pre-commit hook，按以下顺序自动运行；详细机制见 WORKFLOW.md「Pre-commit 检查总览」：
-
-| 检查（编号 = hardening-roadmap 机制编号）| 触发条件 | 拦截行为 |
-|------|--------|------|
-| **P1.1** gate (scripts/check-gate.sh) | phase 变更或阶段产出变更 | exit 1 拦截 |
-| **P1.6** CHANGELOG (scripts/check-changelog.sh) | P8 phase 且 gate 通过后 | 缺 `[Unreleased]` → 警告不拦截（P2.54：仅 P8 检查） |
-| **P1.7** P6 证据 (scripts/check-p6-evidence.sh) | phase ∈ {P6,P7} | 缺证据目录/BDD → 拦截；md5 重复 → 拦截；方差/相似度 → WARNING |
-| **P2.1/P2.10** provenance (scripts/check-p6-provenance.sh) | gate 通过后 | 六道客观审计失败 → exit 1 拦截；agent 字段/BDD 非标 → exit 2 警告 |
-| **P2.3-P2.5** 状态转移 (scripts/check-state-transition.sh) | gate 通过后 | 非法转移 → exit 1 拦截 |
-| **P2.7-P2.9** 裁剪 (scripts/check-pruning.sh) | gate 通过后 | 裁剪条件不满足 → exit 1 拦截 |
-| **P2.11** SCOPE_RESOLVED (scripts/check-scope-resolved.sh) | gate 通过后 | 缺标记 → exit 1 拦截 |
-| **P2.12** 复盘提醒 (scripts/check-retrospective.sh) | gate 任何结果 | 检测异常模式 → 提醒写复盘（exit 0 不拦截）|
-| **P2.15** 格式校验 (scripts/check-state-yaml.sh) | `.state.yaml` 暂存变更 | 格式错误 → exit 1 拦截 |
-
-**多任务 hook 扫描**：pre-commit-gate.sh 扫描暂存区中所有变更的 `.state.yaml`（根目录 + `docs/tasks/{Txxx}/`），对每个文件独立跑格式校验 + 状态转移 + gate。phase-产出不一致（暂存了 P{n}-*.md 但 phase 不匹配）只发 WARNING 不拦截。
-
-**CI 兜底（P1.3）**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py` + `check-p6-provenance.sh`，捕获 `--no-verify` 绕过 hook 的 commit。
+每次 `git commit` 触发 pre-commit hook，自动运行一整套阶段/文件级检查。完整清单（触发条件、拦截行为、多任务扫描、三类 WARNING、CI 兜底）见 `WORKFLOW.md`「Pre-commit 检查总览」——权威唯一来源，本文件不重复维护。
 
 特殊转移：
 READY --[人手动触发 make publish]--> DONE
@@ -403,7 +387,7 @@ function 执行一步(task_id):
 位置：`docs/tasks/{Txxx}/.state.yaml`
 
 ```yaml
-task_id: T001
+task_id: TAG0001
 phase: P4
 status: in_progress
 
@@ -460,8 +444,8 @@ env_state:
       依次重读：orchestrator-template.md 的 mapping 表查当前阶段卡片，按卡片指引执行。
       卡片查不到的信息回退到 orchestrator-template.md「Fallback（按需查阅，不要求每轮必读）」节。
       不能假设压缩前读过的内容还在上下文里。
-  1. 主 Agent 重新读 active-tasks.md → "T001 在 P4，重试 0"
-  2. 读 docs/tasks/T001/ → P4-implementation/ 是否已有文件？
+  1. 主 Agent 重新读 active-tasks.md → "TAG0001 在 P4，重试 0"
+  2. 读 docs/tasks/TAG0001/ → P4-implementation/ 是否已有文件？
      - 有 → P4 已完成，直接判定门槛，进 P5
      - 没有 → P4 没做完，重新派发 P4 subagent
   3. 接着干

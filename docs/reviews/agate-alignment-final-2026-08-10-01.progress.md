@@ -1,0 +1,29 @@
+=== 开始终审 2026年 08月 10日 星期一 11:35:44 CST ===
+- [role] 读 agate/assets/review-roles/protocol-alignment-review.md，A1-A7 清单 + 输出格式 + 闭环规则确认
+- [dispatch] 读 final-dispatch-context-protocol-alignment-review.md，两项任务 + 输入文件清单确认
+- [diff] git diff main..feat/v2.0 -- agate/ SELF-GATE.md，共 49 文件改动（M 47 / A 2），3588 行 diff，全文读完（分 8 段 Read）
+- [diff] SELF-GATE.md 未出现在 diff 中——main..feat/v2.0 期间该文件零改动
+- [test] bash agate/tests/scripts/count-tests.sh 实测 = 597（与 P1 BASELINE_CHANGE 594→597 一致）
+- [test] shellcheck -S warning agate/scripts/*.sh 无输出，exit 0
+- [test] python3 agate/scripts/check-protocol-consistency.py：CHECK 1-9 全部 PASS，0 ERROR（含 CHECK 7 badge=v0.40.0 与 git tag 一致）
+- [test] bats agate/tests/sanity.bats unit/ regression/ integration/：603/603 全绿，0 failed
+- [doc] 读 SELF-GATE.md 全文（214 行）：触发清单 5 类 / Layer0 CHECK9 / Layer1 LLM 审查 / 派发模板 / 闭环规则 / 递归终止
+- [doc] 读 docs/tasks/T001-v2.0-structured/P7-consistency.md 全文：7/7 DESIGN_GAP 已 REVIEWED-ACCEPTED，SCOPE+ 闭环，跨文件一致性核对，approved
+- [doc] 读 docs/tasks/T001-v2.0-structured/P2-design.md 全文（649 行）：候选方案 A/B 权衡、§3.1-3.4 四流落点、§9 BDD 映射、§13 评审 FIND-1..8 回应
+- [check] agate/tests/README.md:37 声称 check-frontmatter.bats = 11 个 @test，实测 grep -c '^@test' = 10 → 发现真实漂移
+- [check] grep -rn "task_id: T001" 全部 agate/**/*.md 新增 frontmatter 样例块（analyst.md/architect.md/verifier.md/task-files.md/phase-cards ×4）均用 T001 占位，未同步为 flow D 新格式 TAG0001，而 WORKFLOW.md/dispatch-protocol.md/state-machine.md/role-system.md/active-tasks-template.md 已同步 → 发现内部风格不一致
+- [check] git log --oneline main..feat/v2.0 -- docs/archived/plans/agate-test-plan-2026-07-01.md 为空 → P2-design.md §13 FIND-8 声称"已补入"该文件的 354 数字同步实际未发生
+- [check] agate/scripts/agate-extract-context.sh 确认未改动（FIND-2 决策：保持 grep 不改路由），与文档声明一致
+- [check] agate/scripts/check-pruning.sh 读取：仅 risk_level/phases 走双读工具，其余 8 字段仍裸 grep，与 P7-consistency.md 记录的 DESIGN_GAP #1/#2 REVIEWED-ACCEPTED 一致，非隐藏偏离
+- [check] check-protocol-consistency.py SCRIPT_ALIGNMENT_ANCHORS 计数 = 38（grep '"script":' 计数），check-frontmatter.sh 锚点 callers 指向 pre-commit-gate.sh，代码确认 pre-commit-gate.sh 2g.2 步骤确实调用
+- [check] CHANGELOG.md [0.40.0] 节：新增/变更/修复/已知偏离 四段完整记录，已知偏离 3 条与 P7 的 7 条 DESIGN_GAP 中的代表性条目对应
+- [check] agate/adr.md ADR-007 全文核对，与 P2-design.md §1 候选方案 A/B 权衡矩阵内容一致，无冲突
+- [check] grep "T\[0-9\]\+" agate/scripts/*.sh *.py：仅 check-changelog.sh 注释里提及旧正则（已移除，非活跃代码），确认 flow D 全库核对无遗漏
+- [结论] A1 ALIGNED（含已被 P7 DESIGN_GAP 程序核实接受的非隐藏性偏离，不算新发现的 MISALIGNED）
+- [结论] A2 MISALIGNED（轻微）：tests/README.md 测试计数表 11 vs 实际 10
+- [结论] A3a MISALIGNED（轻微）：新增 frontmatter 样例块 task_id 占位符新旧格式风格不统一
+- [结论] A3b MISALIGNED（轻微）：P2-design.md FIND-8 声称已同步的 test-plan 附录 A 实际未同步
+- [结论] A4 ALIGNED：597/603/0/0 四项实测数字均达标
+- [结论] A5 ALIGNED：CHANGELOG 完整，已知偏离如实记录
+- [结论] A6 ALIGNED：38 锚点确认，check-frontmatter.sh 锚点条目正确
+- [结论] A7 ALIGNED：ADR-007 记录完整，与既有 ADR 无冲突

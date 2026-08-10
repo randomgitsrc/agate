@@ -122,6 +122,43 @@ P0-brief 是把这些约束注入每次派发的桥梁——所有 subagent 的 
 
 ## P1-requirements.md 结构（需求基线）
 
+**frontmatter（v2.0 机器字段，直接复制到文件头 `---` 块）**：
+```yaml
+---
+phase: P1
+task_id: TAG0001           # 替换为实际任务编号
+type: problems
+parent: P0-brief.md
+trace_id: T001-P1-20260101 # {task_id}-P1-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: analyst
+# ── v2.0 机器字段 ──
+risk_level: high                  # enum: low/medium/high，必填
+phases: [P1, P2, P3, P4, P5, P6, P7, P8]   # list of P\d+，必填
+packages: [pkg-a]                 # list，必填
+domains: [backend, cli]           # list，必填
+# 可选字段：仅在适用时写（不适用即省略，不写 null——presence 语义）
+# override: "P2 retained"         # 裁剪声明与执行不一致时
+# implicit_coupling: false        # bool；P7 裁剪时声明
+# coupling_checklist: [api-schema: checked]  # list；P7 裁剪时必填
+# internal_only: true             # bool；P8 裁剪时
+# internal_only_reason: "内部工具" # string；P8 裁剪时必填
+# 跳过风险: "..."                 # string；裁剪时必填
+# design_trivial: true            # bool；P2 候选方案可减为 1 时
+# follows_existing_pattern: [agate/scripts/check-state-yaml.sh]  # list
+# ── v2.0 标记"已解决/已确认"状态（可选，仅标记存在时写，BDD-21/22）──
+# need_confirm_resolved: []       # list[str]：已解决的 NEED_CONFIRM 项描述（逐条匹配正文）
+# suggest_resolved: []            # list[str]：已采纳的 SUGGEST 项描述
+# scope_resolved: []              # list[str]：已解决的 SCOPE+ 项描述
+---
+```
+`risk_level`/`phases`/`packages`/`domains` 必填；其余为可选字段，仅在适用时写。
+上述字段全部写在文件头 frontmatter 块内，**不再写在下方正文的"5. 裁剪说明"/"6. 范围声明"里**——
+正文只保留裁剪理由的散文说明（如"跳过 P3 理由：..."一句话解释，机器判定字段已迁到 frontmatter）。
+`need_confirm_resolved`/`suggest_resolved`/`scope_resolved` 是"已解决状态"的结构化声明，
+正文的 `[NEED_CONFIRM]`/`[SUGGEST: ...]`/`[SCOPE+]` 散文标记本体仍保留（人类痕迹，不迁移，BDD-23）。
+
 ```markdown
 ## 1. 需求复述
 （用结构化语言重写原始需求）
@@ -147,21 +184,18 @@ P0-brief 是把这些约束注入每次派发的桥梁——所有 subagent 的 
 ## 4. 待确认清单
 - [NEED_CONFIRM] 问题描述 + 几种可能的理解（真无方向 → 阻塞）
 - [SUGGEST: 推荐方案 X，理由是 Y]（有倾向 → 主 Agent 自行采纳，WARNING 不阻塞）
+（已解决/已采纳时不删除本条，而是在文件头 frontmatter 的 `need_confirm_resolved`/
+`suggest_resolved` 列表中追加对应描述——标记本体保留为人类痕迹，机器判定读 frontmatter）
 
 ## 5. 裁剪说明
-risk_level: low                      # low=纯UI/文案/配置 | medium=业务逻辑/API/数据 | high=安全/权限/数据迁移/生产环境
-phases: [P1,P2,P4,P5,P6,P8]
-# internal_only: true               # P8 裁剪时必填
-# internal_only_reason: 内部工具，无外部用户  # P8 裁剪时必填
+risk_level / phases / internal_only / internal_only_reason / coupling_checklist /
+override / 跳过风险 / design_trivial / follows_existing_pattern
+↑ 已迁移至文件头 frontmatter（见上方"frontmatter"示例块），此处只保留裁剪理由的散文说明：
 - 跳过 P3 理由：...
- - 跳过 P7 理由：...
-# coupling_checklist: [api-schema: checked, data-model: checked]  # P7 裁剪时必填（列出检查过的耦合点）
-# override（裁剪声明与实际执行不一致时回写，见 dispatch-protocol.md P2.9）
-# override: P2 retained (reason: 主 Agent 判断需要方案设计)
+- 跳过 P7 理由：...
 
 ## 6. 范围声明
-packages: [pkg-a]
-domains: [backend, frontend]
+packages / domains ↑ 已迁移至文件头 frontmatter（见上方示例块）
 
 ## 7. 能力需求声明
 capability_requirements:
@@ -179,6 +213,8 @@ capability_requirements:
 
 ## SCOPE+ 增补区（后续阶段回写）
 - [SCOPE+ from P2] 新需求 + 对应 BDD
+（已纳入基线后不删除本条，而是在文件头 frontmatter 的 `scope_resolved` 列表中追加对应
+描述——`check-scope-resolved.sh` 闭环判定改读该结构化列表，BDD-22）
 ```
 
 **能力三态说明**：
@@ -190,10 +226,27 @@ capability_requirements:
 
 ## P2-design.md 结构（方案设计）
 
-```markdown
-## 0. 候选方案数（必填，v0.31.0）
-candidate_count: 2   # 本方案候选方案数（≥2，design_trivial/follows_existing_pattern 时可 1）。gate 按此字段校验，不再解析标题。
+**frontmatter（v2.0 机器字段，直接复制到文件头 `---` 块）**：
+```yaml
+---
+phase: P2
+task_id: TAG0001           # 替换为实际任务编号
+type: design
+parent: P1-requirements.md
+trace_id: T001-P2-20260101 # {task_id}-P2-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: architect
+# ── v2.0 机器字段 ──
+candidate_count: 2                # int ≥1，必填
+packages: [pkg-a]                 # list，必填
+domains: [backend, cli]           # list，必填
+ui_affected: false                # bool，必填
+---
+```
+`gate_commands:` / `files_to_read:` / `env_constraints:` / `minimal_validation:` **留正文**（不迁移 frontmatter）。
 
+```markdown
 ## 1. 候选方案（v0.6：至少 2 个 + 权衡 + 选择理由）
 # design_trivial: true 或 follows_existing_pattern: [参照文件] 时可只写 1 个候选方案（P2 仍不可省略）
 # brainstorm 借鉴：强制 architect 至少走一遍"还有别的做法吗"的思考
@@ -204,11 +257,6 @@ candidate_count: 2   # 本方案候选方案数（≥2，design_trivial/follows_
 （同上）
 ### 选择理由
 （为什么选 A 不选 B——必须具体到方案的隐含假设差异，不能是"A 更简单"这种空话）
-
-## 2. 范围声明（必填）
-packages: [pkg-a, pkg-b]
-domains: [backend, frontend]
-ui_affected: false
 
 ## 3. gate 命令（在 P2 固化，后续不得修改）
 gate_commands:
@@ -261,6 +309,26 @@ env_constraints:
 
 ## P6-acceptance.md 结构（验收报告）
 
+**frontmatter（v2.0 机器字段，直接复制到文件头 `---` 块）**：
+```yaml
+---
+phase: P6
+task_id: TAG0001           # 替换为实际任务编号
+type: acceptance
+parent: P5-verification.md
+trace_id: T001-P6-20260101 # {task_id}-P6-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: verifier
+# ── v2.0 机器汇总 ──
+pass: 28                          # int ≥0
+fail: 0                           # int ≥0
+ui_affected: false                # bool（与 P2 声明一致）
+---
+```
+逐条结果仍留正文，但**行格式从严**（BDD-17/18）：行首必须 `- PASS BDD-NN: ...` 或
+`- FAIL BDD-NN: ...`（PASS/FAIL 后紧跟一个空格再接 BDD 编号），消除"总结行误判"（F11）。
+
 ```markdown
 ## 验收结果（逐条对照 P1 的 BDD）
 
@@ -268,14 +336,14 @@ env_constraints:
 **截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重），查询类 BDD 可不截图（断言值是唯一证据）。
 
 #### BDD-1: entry 不指定过期时间默认 15 天
-- PASS 创建 entry 不填过期 → 实测 15 天后过期（p6-bdd-1.png）
-- PASS MCP publish_files 不传 expires → 实测同样生效
+- PASS BDD-1: 创建 entry 不填过期 → 实测 15 天后过期（p6-bdd-1.png）
+- PASS BDD-1: MCP publish_files 不传 expires → 实测同样生效
 
 #### BDD-2: ...
-- FAIL 实测结果与预期不符：... → 触发回 P4
+- FAIL BDD-2: 实测结果与预期不符：... → 触发回 P4
 
-## 验收小结
-BDD 通过 X/Y，UI 截图 N 张
+## 验收小结（总结行，不计入逐条 PASS/FAIL 统计）
+**Summary**: 28/28 PASS, 0 FAIL，UI 截图 N 张
 ```
 
 **证据引用格式**：每条 PASS 结果必须在括号内引用对应证据文件路径（相对于 `P6-evidence/` 目录）。示例：`- PASS BDD-1: ... (p6-bdd-1.png)`。hook 会检查引用路径必须真实存在。无引用的 PASS 行不算有证据。
@@ -291,6 +359,44 @@ BDD 通过 X/Y，UI 截图 N 张
 - 断言记录形式：API 响应 JSON（`response.json`）、测试输出日志（`assert.log`）、数据库查询结果（`query-result.txt`）等
 - 引用格式：`- PASS BDD-1: 返回 3 条记录 (response.json)`——括号内路径相对 P6-evidence/，文件必须存在
 - **所有 PASS 都必须有文件引用**（hook 强制）——无文件引用的纯断言 PASS 不被接受。文件形式不限（截图/日志/JSON/文本），不绑定技术栈
+
+## P7-consistency.md 结构（一致性检查）
+
+**frontmatter（v2.0 机器字段，直接复制到文件头 `---` 块）**：
+```yaml
+---
+phase: P7
+task_id: TAG0001           # 替换为实际任务编号
+type: consistency
+parent: P2-design.md
+trace_id: T001-P7-20260101 # {task_id}-P7-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: consistency-reviewer
+# ── v2.0 机器计数 ──
+blocker_count: 0                  # int ≥0（BDD-19）
+deviation_count: 0                # int ≥0（BDD-19）
+deviation_critical_count: 0       # int ≥0（DEVIATION-CRITICAL）
+design_gap_count: 0               # int ≥0（BDD-20）
+design_gap_reviewed_count: 0      # int ≥0（BDD-20）
+---
+```
+正文 `[BLOCKER]` / `[DEVIATION-CRITICAL]` / `[DESIGN_GAP]` / `[DESIGN_GAP_REVIEWED]` 散文标记
+**保留为人类痕迹**（不迁移，BDD-23），但 gate 判定改读上述 frontmatter 结构化计数（F13 消除）。
+
+```markdown
+## 一致性审查结论
+
+### DESIGN_GAP 配对
+[DESIGN_GAP_REVIEWED: 转抄 P4-implementation.md 的 DESIGN_GAP 声明 + 裁决结论]
+
+### 跨文件一致性
+- P2§packages 与 P8 release bump 范围一致
+- P1 的 BDD 数与 P6 的验收结果数量匹配
+
+## 结论
+无 [BLOCKER] / [DEVIATION-CRITICAL]，全部 DESIGN_GAP 已 REVIEWED
+```
 
 ## READY 收尾检查（P8 gate 通过后、标记 READY 前）
 

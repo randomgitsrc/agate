@@ -137,6 +137,18 @@ for STATE_FILE in $STAGED_STATE_FILES; do
         fi
     fi
 
+    # 2g.2 frontmatter schema 校验（P2-design.md §3.1.3，BDD-8 挂载点）
+    # 与 2a .state.yaml 格式校验同机制：扫描本任务暂存的 P1/P2/P6/P7 产出文件，
+    # 逐个跑 check-frontmatter.sh，非空校验输出 → exit 1 拦截（坏格式 gate 直接拦，不靠主 Agent 判断）
+    # -x 存在性守卫：与 2p 的 agate-next-card.sh 同惯例，兼容旧 AGATE_ROOT（脚本尚未部署时不硬拦）
+    if [ -x "$AGATE_ROOT/scripts/check-frontmatter.sh" ]; then
+        for FM_NAME in P1-requirements.md P2-design.md P6-acceptance.md P7-consistency.md; do
+            if git diff --cached --name-only 2>/dev/null | grep -qxF "${TASK_REL}/${FM_NAME}"; then
+                bash "$AGATE_ROOT/scripts/check-frontmatter.sh" "$TASK_DIR/$FM_NAME" || exit 1
+            fi
+        done
+    fi
+
     # 2h. P6 格式自动归一化（①）——verifier 产出后、gate 前
     if [ "$PHASE" = "P6" ] && [ -f "$TASK_DIR/P6-acceptance.md" ]; then
         bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md" || true

@@ -1,4 +1,8 @@
 load ../helpers/load.bash
+# T001 v2.0 流 C（BDD-21）：P1-requirements.md 的 NEED_CONFIRM "已解决" 状态
+# 结构化入 frontmatter need_confirm_resolved 列表；本文件覆盖 P1-review.md 的
+# 独立评审流程（BDD-8 同机制挂载相邻但不同校验对象），与 NEED_CONFIRM 阻塞判定
+# 互补。@test 数保持 9 不变。
 
 @test "P1: 缺 P1-review.md 期望 exit 1" {
     TASK_DIR=$(create_task_dir --no-state-yaml)
@@ -177,7 +181,7 @@ EOF
     [[ "$output" == *"非 approved"* ]]
 }
 
-@test "P1: P1-requirements.md 含 NEED_CONFIRM 期望 exit 1" {
+@test "P1: BDD-21 边界（未结构化解决时仍阻塞）：P1-requirements.md 含 NEED_CONFIRM 期望 exit 1" {
     TASK_DIR=$(create_task_dir --no-state-yaml)
     cat > "$TASK_DIR/P1-requirements.md" <<'EOF'
 ---

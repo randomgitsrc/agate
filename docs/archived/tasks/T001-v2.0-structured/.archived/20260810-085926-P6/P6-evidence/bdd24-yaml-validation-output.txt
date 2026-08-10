@@ -1,0 +1,16 @@
+agate/assets/templates/task-files.md ERROR while parsing a block mapping
+  in "<unicode string>", line 1, column 1:
+    phase: {P1-P8}
+    ^
+expected <block end>, but found '<scalar>'
+  in "<unicode string>", line 5, column 17:
+    trace_id: {Txxx}-{Pn}-{YYYYMMDD}
+                    ^
+agate/assets/templates/task-files.md : 5 frontmatter 样例块, 4 解析为 dict 成功
+agate/assets/execution-roles/analyst.md : 1 frontmatter 样例块, 1 解析为 dict 成功
+agate/assets/execution-roles/verifier.md : 1 frontmatter 样例块, 1 解析为 dict 成功
+agate/phase-cards/P1-requirements.md : 1 frontmatter 样例块, 1 解析为 dict 成功
+agate/phase-cards/P2-design.md : 1 frontmatter 样例块, 1 解析为 dict 成功
+agate/phase-cards/P6-acceptance.md : 1 frontmatter 样例块, 1 解析为 dict 成功
+agate/phase-cards/P7-consistency.md : 1 frontmatter 样例块, 1 解析为 dict 成功
+agate/assets/execution-roles/architect.md : 1 frontmatter 样例块（缩进在 bullet 下）, 1 解析为 dict 成功

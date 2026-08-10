@@ -37,6 +37,28 @@ agent: architect
   - `packages: [pkg-a, pkg-b]` — 本任务改动涉及哪些独立版本的包（供 P8 多包发布消费）
   - `domains: [backend, frontend, mcp, security]` — 涉及领域（供主 Agent 机械映射评审角色）
   - `ui_affected: true/false` — 是否有显示/交互变化。若 true，列出需 E2E 覆盖的交互点（供 P3/P5/P6 落实 UI 实测）
+
+  以上 4 个字段写入文件头 **frontmatter**（`---` 分隔块，与 phase/task_id/agent 等 Header 同块，
+  不写在正文里）。**可直接复制的完整样例**（P2-design.md 文件头）：
+  ```yaml
+  ---
+  phase: P2
+  task_id: TAG0001           # 替换为实际任务编号
+  type: design
+  parent: P1-requirements.md
+  trace_id: T001-P2-20260101 # {task_id}-P2-{YYYYMMDD}
+  status: draft
+  created: 2026-01-01
+  agent: architect
+  # ── v2.0 机器字段 ──
+  candidate_count: 2                # int ≥1，必填
+  packages: [pkg-a, pkg-b]          # list，必填
+  domains: [backend, frontend]      # list，必填
+  ui_affected: false                # bool，必填
+  ---
+  ```
+  `gate_commands:` / `files_to_read:` / `env_constraints:` / `minimal_validation:` **留正文**（不迁移 frontmatter）。
+
   - `gate_commands:` — **P3/P5/P6 的 gate 命令集，在 P2 固化，后续阶段不得修改**：
     ```yaml
     gate_commands:
