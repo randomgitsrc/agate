@@ -28,7 +28,7 @@ bash agate/tests/scripts/count-tests.sh
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
 | check-pruning.sh | unit/check-pruning.bats | 29 |
-| check-gate.sh | unit/check-gate.bats | 101 |
+| check-gate.sh | unit/check-gate.bats | 100 |
 | agate-next-card.sh | unit/agate-next-card.bats | 20 |
 | agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 16 |
 | check-p6-evidence.sh | unit/check-p6-evidence.bats | 28 |

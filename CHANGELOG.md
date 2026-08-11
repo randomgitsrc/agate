@@ -6,6 +6,14 @@
 
 ---
 
+## [0.40.2] - 2026-08-11
+
+### 修复
+- **P4 gate 补 P4-review 门禁**：与 P2 gate 对称——`P4-review.md` 必须存在 + `status: approved` + `agent≠main`。此前 P4 gate 只查暂存区代码文件，未强制 P4-review（P4-implementation.md 声称"agent 必须非 main 与 P2 同规则"但脚本未实现）。堵住"主 Agent 跳过 P4 独立评审或自批实现"漏洞
+- **修 C8 表 risk=high 逃生口**：C8 映射表（review-mapping.md + P4 card 内联表 + 推进条件）原将 risk=high 的 P4 实现评审省略（"plan-eng-review 在 P2 已派"）——但 P2 plan-eng-review 审方案设计，P4 review 审实现代码（SQL 注入/竞态/TOCTOU），高风险实现恰恰最需要 P4 评审。三处同步修正，P4 对所有任务要求实现评审
+
+---
+
 ## [0.40.1] - 2026-08-11
 
 ### 修复（T091 复盘）
