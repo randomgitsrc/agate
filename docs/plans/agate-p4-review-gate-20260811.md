@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让 P4 gate 与 P2 gate 对称——要求 `P4-review.md` 存在 + `status: approved` + `agent≠main`，堵住"主 Agent 可跳过 P4 独立评审或自批实现"的漏洞。
+**Goal:** 让 P4 gate 与 P2 gate 对称——要求 `P4-review.md` 存在 + `status: approved` + `agent≠main`，堵住"主 Agent 可跳过 P4 独立评审或自批实现"的漏洞。**同时修正 C8 表的 risk=high 逃生口**（P2 方案评审 ≠ P4 实现评审，高风险实现代码必须独立评审）。
 
 **Architecture:** 复制 P2 gate 的 review 检查模式（存在性 → status → agent≠main）到 P4 gate 分支。P4 gate 检查顺序：先 review 门禁，再查暂存区代码文件。现有 G4.2/3/4 测试需补 P4-review.md。
 
@@ -13,13 +13,17 @@
 - `check-gate.sh:220-224` 的 P4 分支只查"暂存区有代码文件"，不看 P4-review.md
 - P2 gate（L155-171）有完整 review 检查：存在性（不存在 exit 1）→ status approved → agent≠main
 - roadmap"不修清单"记录此 gap（"P4 gate 不验证 P4-review.md agent≠main，留待 v0.23.0+ 补充"）
-- **决策**：完整对称 P2（用户确认）——要求 P4-review.md 存在 + approved + agent≠main
+- **决策**：完整对称 P2（用户确认）——要求 P4-review.md 存在 + approved + agent≠main。
+
+**评审新增发现（risk=high 逃生口是设计缺陷）**：C8 表（review-mapping.md）risk=high 行写"—（plan-eng-review 在 P2 已派）"，但这混淆了两个层面——P2 plan-eng-review 审**方案设计**（P2-design.md），P4 review 审**实现代码**（SQL 注入/竞态/TOCTOU/资源泄漏）。高风险任务恰恰最需要 P4 实现评审（安全/权限/数据迁移最容易在生产炸）。P2 审方案 ≠ 实现安全。T001（risk=high）实际也产了 P4-review.md，印证真实执行需要它。**修正：删 C8 表 risk=high 逃生口，P4 对所有任务要求实现评审。**
 
 ---
 
 ## File Structure
 
-- **Modify** `agate/scripts/check-gate.sh:220-224` — P4 分支加 review 门禁
+- **Modify** `agate/scripts/check-gate.sh:220-224` — P4 分支加 review 门禁（存在+approved+agent≠main）
+- **Modify** `agate/rules/review-mapping.md` — C8 表 risk=high 行删逃生口（P2 方案评审 ≠ P4 实现评审）
+- **Modify** `agate/phase-cards/P4-implementation.md:130` — 删"无触发评审角色时此项自动满足"逃生口
 - **Test** `agate/tests/unit/check-gate.bats` — G4.2/3/4 补 P4-review.md；新增 G4.5/4.6/4.7（缺文件/非 approved/agent=main）
 - **Modify** `agate/tests/README.md` — 用例数
 - **Modify** `README.md`, `CHANGELOG.md` — v0.40.2 bump
@@ -107,6 +111,68 @@ EOF
 bats agate/tests/unit/check-gate.bats --filter 'G4\.5\|G4\.6\|G4\.7'
 ```
 预期：3 个 FAIL（红）——当前 P4 gate 不看 P4-review.md，会 exit 0。
+
+---
+
+### Task 1.5: 修 C8 表 risk=high 逃生口 + P4 card
+
+**Files:**
+- Modify: `agate/rules/review-mapping.md`
+- Modify: `agate/phase-cards/P4-implementation.md:130`
+
+**背景（评审发现）**：C8 表 risk=high 行"—（plan-eng-review 在 P2 已派）"错误地把"P2 审了方案"当成"P4 无需审实现"。P2 plan-eng-review 审 P2-design.md（方案设计），P4 review 审实现代码（SQL 注入/竞态/TOCTOU）——高风险任务恰恰最需要 P4 实现评审。删逃生口，P4 对所有任务要求实现评审。
+
+- [ ] **Step 1: review-mapping.md 修 risk=high 行**
+
+把 `agate/rules/review-mapping.md` 的 C8 映射表 risk=high 行：
+
+```
+| 任意 | **high** | plan-eng-review（硬规则，必须派独立 subagent） | P2 |
+```
+
+改为：
+
+```
+| 任意 | **high** | plan-eng-review（P2 方案评审，硬规则） + P4 实现评审（按 domains 派 review/design-review/cso） | P2 + P4 |
+```
+
+并在表下方补一条说明：
+
+```
+> **risk=high 的 P4 实现评审不可省**：P2 plan-eng-review 审的是方案设计（P2-design.md），
+> P4 review 审的是实现代码（SQL 注入/竞态/TOCTOU/资源泄漏）。高风险任务（安全/权限/数据
+> 迁移/生产环境）恰恰最需要 P4 实现评审——P2 审方案 ≠ 实现安全。T001 实证：risk=high 任务
+> 仍应产 P4-review.md。
+```
+
+- [ ] **Step 2: P4-implementation.md 删逃生口**
+
+把 `agate/phase-cards/P4-implementation.md:130` 的推进条件：
+
+```
+- [ ] 按 C8 映射表触发的评审全部完成：P4-review.md status: approved（无触发评审角色时此项自动满足）
+```
+
+改为：
+
+```
+- [ ] 按 C8 映射表触发的评审全部完成：P4-review.md status: approved（所有任务都要求——risk=high 的 P2 plan-eng-review 审方案，P4 实现评审按 domains 另行派发，不可省）
+```
+
+- [ ] **Step 3: 验证 + Commit**
+
+```bash
+python3 agate/scripts/check-protocol-consistency.py   # 0 ERROR
+git add agate/rules/review-mapping.md agate/phase-cards/P4-implementation.md
+git commit -m "docs: 修 C8 表 risk=high 逃生口，P4 实现评审不可省 (v0.40.2)
+
+P2 plan-eng-review 审方案设计，P4 review 审实现代码。risk=high 任务
+恰恰最需要 P4 实现评审（安全/权限/数据迁移最易在生产炸），原 C8 表
+'plan-eng-review 在 P2 已派'混淆了两个层面。删逃生口，P4 对所有任务
+要求实现评审。
+
+self-gate-review: agate/rules/review-mapping.md agate/phase-cards/P4-implementation.md"
+```
 
 ---
 
@@ -238,6 +304,11 @@ README badge `v0.40.1` → `v0.40.2`。CHANGELOG 加 `[v0.40.2]`（P4 review 门
 **2. Placeholder scan：** 无 TBD；每步含完整代码。
 
 **3. Type consistency：** `P4_REVIEW`/`P4_REVIEW_STATUS`/`P4_REVIEW_AGENT` 与 P2 的 `P2_REVIEW`/`P2_REVIEW_STATUS`/`P2_REVIEW_AGENT` 命名模式一致。P4-review.md frontmatter 格式与 P2-review.md 一致（status/agent）。
+
+**评审记录（独立评审 1 轮）：**
+- ✓ P2 gate 模板、P4 分支语法、测试红绿、consistency 均验证正确
+- ✗ **发现 C8 表 risk=high 逃生口是设计缺陷**（P2 方案评审 ≠ P4 实现评审，高风险实现必须独立评审）→ 新增 Task 1.5 修 review-mapping.md + P4 card
+- ✗ **P3→P4 边界 commit 会被新 gate 拦**（T001 `293924f` 模式：staged phase=P4 + P3 产出，无 P4-review）——这是行为变更，符合 git-integration 规则 2"phase=本 commit 产出阶段"收紧，需文档化。已验证无活动任务在 phase=P4（active-tasks 空，T001 归档）
 
 **已识别风险：**
 - **G4.2/3/4 补 P4-review.md 是必需 churn**：新增 review 门禁后这些测试不补会红。已列入 Task 2 Step 2。
