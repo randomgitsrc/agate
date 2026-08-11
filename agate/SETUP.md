@@ -130,6 +130,8 @@ mkdir -p docs/tasks/
 
 ## 升级 agate 之后
 
+**已有 agate 项目（跑过旧版任务）升级，先读 `UPGRADING.md`**——它讲清楚旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，避免升级后踩到破坏性变更。
+
 - 符号链接方式：什么都不用做，orchestrator 提示词自动跟着新版本。
 - 复制模式（Windows 无权限场景）：重跑步骤 2 的 `cp` 命令。
 - 两种方式都建议顺手跑一次 `bash ~/.agate/scripts/agate-summary.sh`，它会检测协议版本和本地脚本副本漂移（但目前不覆盖 orchestrator.md 复制模式的漂移，见上文已知限制）。

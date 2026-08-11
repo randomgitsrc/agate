@@ -4,6 +4,8 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+> **已有 agate 项目升级前，先读 `agate/UPGRADING.md`**——旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，以及各版本的破坏性变更。
+
 ---
 
 ## [0.40.2] - 2026-08-11
