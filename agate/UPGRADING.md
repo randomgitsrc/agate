@@ -58,7 +58,8 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 ```bash
 # 修改进行中任务的 .state.yaml 的 task_id
 # T001 → TAG0001（选你项目的 2 字母代号 + 数字）
-sed -i 's/^task_id: T001$/task_id: TAG0001/' docs/tasks/T001-*/ .state.yaml
+# Linux：sed -i 's/^task_id: T001$/task_id: TAG0001/' docs/tasks/T001-*/.state.yaml
+# macOS（BSD sed 的 -i 需空后缀）：sed -i '' 's/^task_id: T001$/task_id: TAG0001/' docs/tasks/T001-*/.state.yaml
 ```
 
 **已完成的旧任务**：编号保留 `T001`，不进新格式（历史记录，不被扫描）。
@@ -76,11 +77,10 @@ sed -i 's/^task_id: T001$/task_id: TAG0001/' docs/tasks/T001-*/ .state.yaml
 - 旧目录 `docs/tasks/T001-xxx/` 保留不动 = 无检测触发
 - 新任务用新目录 `docs/tasks/TAG0001-xxx/`
 
-### 2.4 项目侧文件（TASK-PROMPT.md 等）
+### 2.4 项目侧文件（docs/agents/project.md 等）
 
-- 不在 agate 协议内的文件（如项目自己的 TASK-PROMPT.md）**不会自动升级**
-- 若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
-- agate 不负责这些文件，升级后检查一次即可
+- `docs/agents/project.md`（项目特定信息）**不在 agate 协议内，不会自动升级**——若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
+- 其他项目自有文件同理：升级后检查一次即可，agate 不负责这些
 
 ---
 
@@ -88,16 +88,24 @@ sed -i 's/^task_id: T001$/task_id: TAG0001/' docs/tasks/T001-*/ .state.yaml
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
-### v0.40.0 — 任务编号硬切（影响：进行中任务）
+### v0.40.0 — 任务编号硬切 + orchestrator 符号链接接入（影响：进行中任务 + 已部署项目）
+
+**① 任务编号硬切**：
 - `task_id` 从 `T\d+` 硬切为 `T[A-Z]{2}\d+`（如 `TAG0001`），**不兼容旧格式**
 - 影响：进行中任务的 `.state.yaml` 必须改编号；已完成任务不受影响
 - 迁移见上文 2.2
+
+**② orchestrator 从拷贝改为符号链接接入**（对已部署项目影响最大）：
+- 旧方式：把 `orchestrator-template.md` 拷贝到项目并手改字段
+- 新方式：**删除旧拷贝文件 `docs/agents/orchestrator.md`（若存在）**，按 `SETUP.md` 重新建立符号链接（`.claude/agents/orchestrator.md` / `.opencode/agents/orchestrator.md` 直接指向 `~/.agate/orchestrator-template.md`）
+- 原来内联在 orchestrator.md 里的项目特定约束，迁移到新建的 `docs/agents/project.md`（模板见 `assets/templates/project.md`）
+- 影响：不迁移则 orchestrator 仍是旧拷贝，不跟随新版本
 
 ### v0.31.0 — P2 必填 candidate_count 字段（影响：P2 设计阶段）
 - `P2-design.md` 必须显式声明 `candidate_count: N`（替代正则数标题）
 - 影响：新任务的 P2 产出需含该字段；旧任务若重新走到 P2 需补
 
-### v0.30.x — 标记格式收紧（影响：产出文件标记写法）
+### v0.17.0 — 标记格式收紧（影响：产出文件标记写法）
 - `[PROD_TOUCHED]`/`[NEED_CONFIRM]` 必须行首声明，句中引用会被拦截
 - `无 [PROD_TOUCHED]` 等否定写法不再接受，须用 `[PROD_NOT_TOUCHED]`
 - 影响：写 dispatch-context/产出文件时标记要行首
