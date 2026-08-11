@@ -218,6 +218,27 @@ case "$PHASE" in
       echo "GATE P3: P3-test-cases.md 存在。TDD 红灯由主 Agent 手动跑 check-tdd-red.sh 确认 + CI backstop P3 兜底。" >&2
       exit 2 ;;
   P4)
+      # P4 review 门禁（与 P2 对称，roadmap 补 gap）
+      # P4-implementation.md 要求 agent≠main（与 P2 同规则），此前 gate 未强制
+      P4_REVIEW="$TASK_DIR/P4-review.md"
+      if [ ! -f "$P4_REVIEW" ]; then
+          echo "GATE P4: P4-review.md 不存在（P4 评审不可裁剪，必须派发独立 subagent 产出，见 phase-cards/P4-implementation.md C8 机械映射）" >&2
+          exit 1
+      fi
+      P4_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P4_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+      if [ "$P4_REVIEW_STATUS" != "approved" ]; then
+          echo "GATE P4: P4-review.md frontmatter status 非 approved（当前: ${P4_REVIEW_STATUS:-缺失}）" >&2
+          exit 1
+      fi
+      P4_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P4_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+      if [ -z "$P4_REVIEW_AGENT" ]; then
+          echo "GATE P4: P4-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）" >&2
+          exit 2
+      fi
+      if [ "$P4_REVIEW_AGENT" = "main" ]; then
+          echo "GATE P4: P4-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）" >&2
+          exit 1
+      fi
       # pre-commit 阶段：检查暂存区有代码文件（非纯文档/状态文件）
       # N1 修复：原来查 git log，但 pre-commit 时 commit 还没创建，第一条 P4 commit 永远无法通过
       git diff --cached --name-only | grep -qvE '(^|/)P[0-8]-.*\.md$|(^|/)\.state\.yaml$' && exit 0 || exit 1 ;;

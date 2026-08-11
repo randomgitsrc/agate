@@ -460,7 +460,7 @@ EOF
     [[ "$output" == *"check-tdd-red.sh"* ]]
 }
 
-# ========== P4 (4 用例) ==========
+# ========== P4 (7 用例) ==========
 
 @test "G4.1 check-gate.sh P4 暂存区仅 .md 期望 exit 1" {
     local dir
@@ -482,8 +482,15 @@ EOF
     repo=$(git_init)
     echo "init" > "$repo/README.md" && git_commit "$repo" "init"
     cp -r "$dir" "$repo/task"
+    cat > "$repo/task/P4-review.md" <<'EOF'
+---
+status: approved
+agent: reviewer-subagent
+---
+reviewed, approved.
+EOF
     echo "def hello(): pass" > "$repo/src.py"
-    git -C "$repo" add "src.py"
+    git -C "$repo" add "src.py" "task/P4-review.md"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
     [ "$status" -eq 0 ]
 }
@@ -495,6 +502,13 @@ EOF
     repo=$(git_init)
     echo "init" > "$repo/README.md" && git_commit "$repo" "init"
     cp -r "$dir" "$repo/task"
+    cat > "$repo/task/P4-review.md" <<'EOF'
+---
+status: approved
+agent: reviewer-subagent
+---
+reviewed, approved.
+EOF
     echo "doc" > "$repo/task/P4-implementation.md"
     echo "code" > "$repo/src.py"
     echo "yaml: 1" > "$repo/config.yaml"
@@ -510,11 +524,74 @@ EOF
     repo=$(git_init)
     echo "init" > "$repo/README.md" && git_commit "$repo" "init"
     cp -r "$dir" "$repo/task"
+    cat > "$repo/task/P4-review.md" <<'EOF'
+---
+status: approved
+agent: reviewer-subagent
+---
+reviewed, approved.
+EOF
     # .py 不在排除列表
+    echo "code" > "$repo/src.py"
+    git -C "$repo" add "src.py" "task/P4-review.md"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    [ "$status" -eq 0 ]
+}
+
+@test "G4.5 check-gate.sh P4 无 P4-review.md → exit 1（评审不可跳过）" {
+    local dir
+    dir=$(create_task_dir)
+    local repo
+    repo=$(git_init)
+    echo "init" > "$repo/README.md" && git_commit "$repo" "init"
+    cp -r "$dir" "$repo/task"
     echo "code" > "$repo/src.py"
     git -C "$repo" add "src.py"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"P4-review.md"* ]]
+}
+
+@test "G4.6 check-gate.sh P4 P4-review.md status 非 approved → exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    local repo
+    repo=$(git_init)
+    echo "init" > "$repo/README.md" && git_commit "$repo" "init"
+    cp -r "$dir" "$repo/task"
+    cat > "$repo/task/P4-review.md" <<'EOF'
+---
+status: rejected
+agent: reviewer-subagent
+---
+reviewed, found issues.
+EOF
+    echo "code" > "$repo/src.py"
+    git -C "$repo" add "src.py" "task/P4-review.md"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"非 approved"* ]]
+}
+
+@test "G4.7 check-gate.sh P4 P4-review.md agent=main → exit 1（不可自批）" {
+    local dir
+    dir=$(create_task_dir)
+    local repo
+    repo=$(git_init)
+    echo "init" > "$repo/README.md" && git_commit "$repo" "init"
+    cp -r "$dir" "$repo/task"
+    cat > "$repo/task/P4-review.md" <<'EOF'
+---
+status: approved
+agent: main
+---
+self-approved.
+EOF
+    echo "code" > "$repo/src.py"
+    git -C "$repo" add "src.py" "task/P4-review.md"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"agent=main"* ]]
 }
 
 # ========== P5 (固定 exit 2) ==========
