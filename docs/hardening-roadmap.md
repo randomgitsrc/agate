@@ -196,6 +196,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | ID | 内容 | 依赖 |
 |----|------|------|
 | P2.66 | 并行执行环境隔离规范：多 subagent 并行时 debug server 生命周期归属（共享 or 端口分配）、`debug_env`/`isolation_check` 字段落地语义。协议已有"按包拆分并行"（dispatch-protocol.md L623）和"专家组并行评审"（P2 card），缺的是并行时的环境隔离规范。来源 T091 摩擦点4 + C 讨论扩大。 | 独立设计讨论 |
+| P2.67 | TaskFlow before/after 案例研究：TaskFlow（randomgitsrc/taskflow，2026-03）是"用 Claude Code 但没用 agate 流程"的项目——5000 行功能但零测试、CLI/API 双轨 schema 失控、单 commit 半途而废。对比 agate 自身 T001（v0.40.0 结构化改造，602 测试全绿）。评估：① 作为 agate 商业化案例素材（"同样 AI，有无质量流程产出天差地别"）；② 是否吸收其教训进 LIMITATIONS/案例库；③ 是否用 agate 重做其核心。来源 2026-08-11 商业分析会话。 | 独立设计讨论 |
 
 ### 不修清单（设计选择/低价值/arms race）
 
