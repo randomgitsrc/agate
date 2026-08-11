@@ -198,6 +198,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | P2.66 | 并行执行环境隔离规范：多 subagent 并行时 debug server 生命周期归属（共享 or 端口分配）、`debug_env`/`isolation_check` 字段落地语义。协议已有"按包拆分并行"（dispatch-protocol.md L623）和"专家组并行评审"（P2 card），缺的是并行时的环境隔离规范。来源 T091 摩擦点4 + C 讨论扩大。 | 独立设计讨论 |
 | P2.67 | TaskFlow before/after 案例研究：TaskFlow（randomgitsrc/taskflow，2026-03）是"用 Claude Code 但没用 agate 流程"的项目——5000 行功能但零测试、CLI/API 双轨 schema 失控、单 commit 半途而废。对比 agate 自身 T001（v0.40.0 结构化改造，602 测试全绿）。评估：① 作为 agate 商业化案例素材（"同样 AI，有无质量流程产出天差地别"）；② 是否吸收其教训进 LIMITATIONS/案例库；③ 是否用 agate 重做其核心。来源 2026-08-11 商业分析会话。 | 独立设计讨论 |
 | P2.68 | agate 自进化复盘闭环（任务级遥测）：把"对 agate 自身的复盘"从零散的 peekview 会话文档（T086/T090/T091 均人工写于 peeklink）变成 agate 协议内固定环节 + 结构化回传通道。核心：① P8/READY 收尾加可选产出 `agate-review.md`（正常任务可跳过，避免形式主义）；② 模板固定三块：技术原因/管理原因/agate 角色分析；③ 只回传"agate 的问题"（区分 agent 问题/项目问题）；④ 回传经 docs/issues/ 或 peeklink 进入 agate 迭代。与 check-retrospective.sh（异常提醒）互补。分级：A 模板+固定环节 / B agate-feedback.sh 自动化收集 / C 平台化。注意避免 T090 orchestrator-log 8% 合规率的教训（纯自律零强制规则无价值）。来源 2026-08-11 商业分析会话。 | 独立设计讨论 |
+| P2.69 | 协议本体防篡改/完整性检测：项目 agent 用 agate 时能否阻止它改 `~/.agate` 协议本体。分析结论：**不能可靠阻止**——agent 有 bash 全权限（可 chmod 后改内容再还原权限），只读权限/密钥方案均不可行（同"密钥方案不可行"逻辑）。**可行方向是 git 篡改检测**：协议本体是 git 仓库，orchestrator 启动时 `git -C ~/.agate status --porcelain` 非空 → WARNING"协议本体被改动"（区分：agate 开发任务合法改动 vs 项目 agent 篡改）。待讨论：① 检测放 agate-summary.sh（现有副本漂移检测的自然扩展）；② 是否需区分"开发态 vs 使用态"；③ CI 独立 checkout 校验的可行性。来源 2026-08-11 会话。 | 独立设计讨论 |
 
 ### 不修清单（设计选择/低价值/arms race）
 
