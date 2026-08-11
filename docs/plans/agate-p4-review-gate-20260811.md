@@ -145,9 +145,9 @@ bats agate/tests/unit/check-gate.bats --filter 'G4\.5\|G4\.6\|G4\.7'
 > 仍应产 P4-review.md。
 ```
 
-- [ ] **Step 2: P4-implementation.md 删逃生口**
+- [ ] **Step 2: P4-implementation.md 删逃生口（含内联 C8 表）**
 
-把 `agate/phase-cards/P4-implementation.md:130` 的推进条件：
+**Step 2a: 修推进条件**。把 `agate/phase-cards/P4-implementation.md:130`：
 
 ```
 - [ ] 按 C8 映射表触发的评审全部完成：P4-review.md status: approved（无触发评审角色时此项自动满足）
@@ -159,6 +159,20 @@ bats agate/tests/unit/check-gate.bats --filter 'G4\.5\|G4\.6\|G4\.7'
 - [ ] 按 C8 映射表触发的评审全部完成：P4-review.md status: approved（所有任务都要求——risk=high 的 P2 plan-eng-review 审方案，P4 实现评审按 domains 另行派发，不可省）
 ```
 
+**Step 2b: 修卡片内联 C8 表（评审第 2 轮发现）**。`P4-implementation.md:74` 的**卡片内联 C8 表**仍含 risk=high 逃生行：
+
+```
+| risk=high | —（plan-eng-review 在 P2 已派）| — |
+```
+
+改为：
+
+```
+| risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
+```
+
+> 关键：P4 card 有两处需同步——推进条件（L130）+ 内联 C8 表（L74）。漏改任一处都会造成卡片内部矛盾（L74 说 risk=high 无 P4 评审 vs L130 说所有任务都要求）。
+
 - [ ] **Step 3: 验证 + Commit**
 
 ```bash
@@ -168,8 +182,8 @@ git commit -m "docs: 修 C8 表 risk=high 逃生口，P4 实现评审不可省 (
 
 P2 plan-eng-review 审方案设计，P4 review 审实现代码。risk=high 任务
 恰恰最需要 P4 实现评审（安全/权限/数据迁移最易在生产炸），原 C8 表
-'plan-eng-review 在 P2 已派'混淆了两个层面。删逃生口，P4 对所有任务
-要求实现评审。
+'plan-eng-review 在 P2 已派'混淆了两个层面。删逃生口（review-mapping.md
+C8 表 + P4 card 内联表 + 推进条件三处同步），P4 对所有任务要求实现评审。
 
 self-gate-review: agate/rules/review-mapping.md agate/phase-cards/P4-implementation.md"
 ```
@@ -308,6 +322,7 @@ README badge `v0.40.1` → `v0.40.2`。CHANGELOG 加 `[v0.40.2]`（P4 review 门
 **评审记录（独立评审 1 轮）：**
 - ✓ P2 gate 模板、P4 分支语法、测试红绿、consistency 均验证正确
 - ✗ **发现 C8 表 risk=high 逃生口是设计缺陷**（P2 方案评审 ≠ P4 实现评审，高风险实现必须独立评审）→ 新增 Task 1.5 修 review-mapping.md + P4 card
+- ✗ **第 2 轮：Task 1.5 漏改 P4 card 内联 C8 表（L74）**→ 补 Step 2b 三处同步（review-mapping.md + P4 card 内联表 + 推进条件）
 - ✗ **P3→P4 边界 commit 会被新 gate 拦**（T001 `293924f` 模式：staged phase=P4 + P3 产出，无 P4-review）——这是行为变更，符合 git-integration 规则 2"phase=本 commit 产出阶段"收紧，需文档化。已验证无活动任务在 phase=P4（active-tasks 空，T001 归档）
 
 **已识别风险：**
