@@ -56,6 +56,8 @@ ln -sf ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 
 同样是文件级链接，理由同上。
 
+> ⚠️ **副作用**：创建 `.opencode/` 目录后，OpenCode 会把它当作插件目录，自动初始化 `@opencode-ai/plugin` 依赖（生成 `package.json`/`package-lock.json`/`node_modules`）。这是 OpenCode 平台行为，无害，但 `.opencode/node_modules` 里的 `.md` 文件可能被 agate 的一致性检查（`check-protocol-consistency.py`）误扫——已从扫描范围排除 `.opencode`/`.claude`/`node_modules`，无需处理。
+
 验证：
 ```bash
 opencode debug agent orchestrator
