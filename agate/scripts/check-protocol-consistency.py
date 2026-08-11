@@ -109,6 +109,10 @@ def iter_md_files(root: Path):
             continue
         if ".worktrees" in p.parts:
             continue
+        if ".opencode" in p.parts or ".claude" in p.parts:
+            continue
+        if "node_modules" in p.parts:
+            continue
         yield p
 
 
