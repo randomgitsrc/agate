@@ -71,7 +71,7 @@ P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验
 | frontend | design-review | P4-review.md |
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
-| risk=high | —（plan-eng-review 在 P2 已派）| — |
+| risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -127,7 +127,7 @@ check-gate.sh P4 $TASK_DIR
 ## 推进条件（全部满足才写 phase: P5）
 
 - [ ] 暂存区含代码文件（非 .md/.yaml）
-- [ ] 按 C8 映射表触发的评审全部完成：P4-review.md status: approved（无触发评审角色时此项自动满足）
+- [ ] 按 C8 映射表触发的评审全部完成：P4-review.md status: approved（所有任务都要求——risk=high 的 P2 plan-eng-review 审方案，P4 实现评审按 domains 另行派发，不可省）
 - [ ] SCOPE+ 已处理（若本阶段产生）：P1-requirements.md 有 [SCOPE_RESOLVED]（行首声明格式）
 - [ ] git commit 完成
 

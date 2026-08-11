@@ -19,8 +19,13 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 | frontend | 任意 | design-review | P4 后 |
 | mcp | 任意 | review + 关注 MCP 接口契约 | P4 后 |
 | security | 任意 | cso | P4 后 |
-| 任意 | **high** | plan-eng-review（硬规则，必须派独立 subagent） | P2 |
+| 任意 | **high** | plan-eng-review（P2 方案评审，硬规则） + P4 实现评审（按 domains 派 review/design-review/cso） | P2 + P4 |
 | P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review | P1 后 / P2 |
+
+> **risk=high 的 P4 实现评审不可省**：P2 plan-eng-review 审的是方案设计（P2-design.md），
+> P4 review 审的是实现代码（SQL 注入/竞态/TOCTOU/资源泄漏）。高风险任务（安全/权限/数据
+> 迁移/生产环境）恰恰最需要 P4 实现评审——P2 审方案 ≠ 实现安全。T001 实证：risk=high 任务
+> 仍应产 P4-review.md。
 
 ## 评审产出规范
 
