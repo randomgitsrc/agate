@@ -4,7 +4,7 @@ description: agate 编排 Agent，负责 P0-P8 全流程管理，派发 subagent
 mode: primary
 color: warning
 permission:
-  edit: ask
+  edit: allow
   bash:
     "*": allow
 ---
