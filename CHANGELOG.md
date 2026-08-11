@@ -6,6 +6,15 @@
 
 ---
 
+## [0.40.1] - 2026-08-11
+
+### 修复（T091 复盘）
+- **phase 字段语义澄清**：`git-integration.md` 规则 2 明确 `.state.yaml` 的 `phase` = 本 commit 提交的产出阶段，不得提前写下一阶段；P5 phase card 修正推进指令（phase=P5 提交产出，P6 推进随 P6 产出同 commit）。消除 P5 合法产出（fail-list.txt）在 P5→P6 硬拦边界被误伤的问题
+- **subagent 外部中断恢复清单**：`dispatch-protocol.md` 补"外部中断（额度/超时/崩溃）恢复"——先查已落盘完整度（≥80% 补充复用 / <80% 重派），复用仍须亲自跑 gate。明确优先于返回校验 step 4
+- **roadmap 记入并行环境隔离规范**（P2.66，P4 设计讨论项）
+
+---
+
 ## [0.40.0] - 2026-08-10
 
 ### 变更（orchestrator 接入方式，破坏性）
