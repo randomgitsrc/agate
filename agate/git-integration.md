@@ -30,6 +30,10 @@ subagent 在独立上下文里只负责产出文件，**不碰 git**。commit �
 
 **粒度：每个阶段门槛通过后，主 Agent commit 一次。** 一个 Pn 阶段的产出是一个原子的进度单位。**这个规则由 `check-gate.sh` 强制执行**——每个阶段的 gate 检查该阶段产出是否合格。产出和 .state.yaml phase 更新在同一个 commit 里。
 
+**phase 字段语义（消除"提前写"歧义）**：`.state.yaml` 的 `phase` 字段 = **本 commit 提交的产出阶段**，不是"当前进展到哪"。commit 时 phase 写该阶段（如提交 P5 产出 → phase=P5），**不得提前写下一阶段**。否则 P5 的合法产出（如 `P5-test-results/fail-list.txt`）会在 phase=P6 的 commit 里被 P6 的 self-authored gate 硬拦截（P6 拦截"非证据文件"以防验收阶段改代码）。
+
+**特例**：唯一例外是**同一 commit 里同时提交上一阶段产出 + 下一阶段已就绪的产出**（如 P1 产出 + P2 产出都完成时一次 commit，phase 写 P2）——此时 phase 反映"commit 里最晚的产出阶段"，且必须所有产出都过了各自 gate。**该特例不适用于 P5→P6 边界**（P6 self-authored gate 硬拦截非证据文件，P5 产出必须留在 phase=P5 的 commit）。
+
 ```
 P2 门槛通过（status==approved）→ 主 Agent commit
   message: "wf(T002-P2): 方案设计通过 — schema_version 表 + 顺序迁移脚本"

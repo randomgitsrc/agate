@@ -191,6 +191,12 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | P2.35 | 重试预算模型（功能/格式分离） | 独立设计讨论 | #61 |
 | P2.36 | Monorepo 多目录 AGATE_TASKS_DIR | 独立设计讨论 | #62 |
 
+### v0.40.0+ — 并行执行环境隔离（P4，按需启动）
+
+| ID | 内容 | 依赖 |
+|----|------|------|
+| P2.66 | 并行执行环境隔离规范：多 subagent 并行时 debug server 生命周期归属（共享 or 端口分配）、`debug_env`/`isolation_check` 字段落地语义。协议已有"按包拆分并行"（dispatch-protocol.md L623）和"专家组并行评审"（P2 card），缺的是并行时的环境隔离规范。来源 T091 摩擦点4 + C 讨论扩大。 | 独立设计讨论 |
+
 ### 不修清单（设计选择/低价值/arms race）
 
 | ID | 内容 | 理由 | Issue |
