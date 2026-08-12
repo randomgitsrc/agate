@@ -12,6 +12,11 @@ risk_level: high             # 破坏性变更（docs/tasks 强制迁移）+ orc
 phases: [P1, P2, P3, P4, P5, P6, P7, P8]
 packages: [agate]            # 协议本体单一包（改的是 worktree 的 agate/）
 domains: [backend, cli]      # backend=gate 脚本/迁移工具/配置解析；cli=orchestrator 读取层。无 frontend、无 security
+# ── SCOPE+ 已解决（P2 回补，2026-08-12）──
+scope_resolved:
+  - "check-state-transition.sh 任务级 .state.yaml 检测硬编码（L28 grep docs/tasks/）需去硬编码——已纳入 P2 方案 §1.1/§3.6，BDD-13 覆盖，不需新增 BDD"
+  - "check-pruning.sh P7 源码文件数过滤硬编码（L66 grep docs/tasks/）需跟随工作区路径——已纳入 P2 方案 §1.1，BDD-6/13 覆盖，不需新增 BDD"
+  - "worktree 自身 live docs/tasks 不应被此任务物理迁移——迁移工具验证走 fixture 仓库，worktree 迁移留待 P8 后用户侧升级，BDD-6 验收用 fixture 判定"
 ---
 
 # TAG0003 — agate 工作区架构：P1 需求基线
