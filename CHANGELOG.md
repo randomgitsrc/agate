@@ -8,6 +8,43 @@
 
 ---
 
+## [0.41.0] - 2026-08-12
+
+### 破坏性变更（TAG0003 工作区架构）
+- **编排状态迁移到工作区（agate-workspace/）**：agate 的全部编排状态（任务/看板/归档/评审/决策/计划/日志/roadmap/agent 知识）从项目 `docs/tasks/`、`docs/agents/`、`docs/archived/` 迁移到**工作区**（默认项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 配置位置）。orchestrator 从工作区读取 `agents/project.md` 与 `tasks/active-tasks.md`，不再读 `docs/` 下旧路径——**影响所有已部署项目**。⚠️ 存量项目升级前必读 `agate/UPGRADING.md` §3「v0.41.0」迁移节（迁移工具步骤见下）
+- **新增迁移工具 `agate-migrate-workspace.sh`**：目录级 `git mv` 强制迁移 `docs/tasks/` → `{workspace}/tasks/`、`docs/archived/` → `{workspace}/archived/`，保留 git 历史；空源 no-op、重复运行幂等、外部工作区 fallback 普通 mv（WARNING 标注历史不可在新路径追溯）。在项目根运行 `bash {agate_root}/scripts/agate-migrate-workspace.sh`
+- **未迁移时的行为**：orchestrator 启动检测到旧布局（`docs/tasks/active-tasks.md` 存在而工作区 tasks 无 active-tasks）→ 输出迁移指引并停止自动推进，不静默使用旧路径
+
+### 新增（TAG0003 工作区架构）
+- **`agate-workspace-resolve.sh`**：工作区路径单点解析器——解析优先级 `.agate.env`（`AGATE_WORKSPACE=`）> 环境变量 `AGATE_TASKS_DIR`（向后兼容既有 CI 设置）> 默认 `agate-workspace/`；输出 `AGATE_WORKSPACE` + `AGATE_TASKS_DIR`，bash（source 复用）与 python（ci-gate-backstop subprocess）共用，结构性保证本地 hook 与 CI 解析同路径。支持相对/绝对/含空格/项目外路径
+- **roadmap 项目级任务管理循环**：新增 `assets/templates/roadmap-template.md` 单文件模板（对齐 active-tasks-template 模式），条目结构 `| id | 标题 | 状态 | 来源 | 关联任务 | 创建 | 更新 |`，状态标识 backlog/scheduled/in_progress/done/cancelled；循环规范（新需求→backlog、拆任务→scheduled、任务完成→回写 done）写入 WORKFLOW.md 正式规则
+- **内容边界判据正式规则**（WORKFLOW.md）：文件是否由 agate 编排流程生成/消费 → 归工作区；描述产品/项目本身 → 留项目 docs/。二值判定、对偶自洽（验收记录→工作区 / 项目 README→项目 docs/）
+- **`agate/UPGRADING.md`**：存量项目迁移指引（迁移工具步骤 + 旧布局说明 + 外部工作区限制）
+
+### 变更（TAG0003 工作区架构）
+- **orchestrator-template.md**：project.md 路径 `{project_root}/docs/agents/project.md` → `{AGATE_WORKSPACE}/agents/project.md`；active-tasks 路径 → `{AGATE_WORKSPACE}/tasks/active-tasks.md`；接入 mkdir 建 8 子目录（roadmap/tasks/agents/archived/reviews/decisions/plans/logs）；启动时旧布局检测 + 迁移指引
+- **6 个既有脚本路径换血 + 2 处隐藏硬编码去硬编码**：
+  - `pre-commit-gate.sh`：tasks_base 改调工作区解析器（AGATE_TASKS_DIR 默认值 + 根级 .state.yaml 的 TASK_DIR 推导跟随解析结果）
+  - `ci-gate-backstop.py`：tasks_base 改调解析器，本地 hook 与 CI 同路径
+  - `check-state-transition.sh`：任务级 .state.yaml 检测从 `grep 'docs/tasks/[^/]+/'` 改为 `dirname != REPO_ROOT` 语义（隐藏硬编码，改法已验证）
+  - `check-pruning.sh`：P7 源码文件数过滤排除模式跟随工作区路径（隐藏硬编码）
+  - `check-protocol-consistency.py`：`PATH_IGNORE_SUBSTRINGS` 白名单 `docs/tasks/` → 工作区运行时目录
+  - `install-hook.sh`：gitignore 提示文字路径跟随工作区
+  - 另 `agate-render-dispatch-prompt.sh` 路径同步
+- **16 文档 + 8 测试文件全量路径换血**：dispatch-protocol.md（28 处）/ state-machine.md / git-integration.md / role-system.md / WORKFLOW.md / SETUP.md / phase-cards / assets/templates / assets/execution-roles / loop-orchestration.md / rules/state-transitions.md 等；测试 fixture 中 `docs/tasks` 硬编码路径改为工作区路径（既有用例 603 条换血不改数）
+- **新增测试**：`unit/agate-workspace-resolve.bats`（解析优先级/空格/外部路径）+ `unit/agate-migrate-workspace.bats`（迁移/幂等/空源/归档）；用例基线 625
+
+### 修复（本版本范围 [v0.40.2..HEAD] 内既有修复，随本版本一并发布）
+- **check-p6-format.sh --fix POSIX locale 下全角冒号总结行静默失效**（8cc7cd3）
+- **orchestrator permission 全 allow + consistency 排除平台目录**（40c5713）
+- **.gitignore 移除 .state.yaml 忽略规则**（f773e30/8aa94fb）——迁移工具目录级 git mv 依赖文件物理移动而非跟踪状态
+- **README 升级段链 UPGRADING.md + 新增 UPGRADING.md 升级指引**（892f266/cf2ddce）
+
+### 文档（非协议变更，随版本发布）
+- 项目侧：知识索引试点 / 主动架构演进机制设计 / 生命周期演进框架讨论稿 / agate 商业分析 / 质量评估 / roadmap P2.67-P2.71 讨论记录 / 独立评审（本项目开发资料，与协议本体变更分离）
+
+---
+
 ## [0.40.2] - 2026-08-11
 
 ### 修复

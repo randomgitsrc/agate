@@ -129,7 +129,7 @@ fi
 #  ② 全量 index commit 风险：裸 commit 会把迁移前已暂存的无关改动一并提交。故 pathspec 限定只提交
 #     迁移目录（旧路径 docs/tasks|docs/archived 与对应新路径成对——rename 必须 delete+add 同 commit 才能表达，
 #     只给新路径会产生 partial commit，旧路径残留在 HEAD）。其余已暂存改动保留不动。
-#     迁移前仍建议先 commit 或 unstage 无关暂存改动（见 UPGRADING.md v2.0.0 节）。
+#     迁移前仍建议先 commit 或 unstage 无关暂存改动（见 UPGRADING.md v0.41.0 节）。
 #  ③ 不再吞 commit 失败：失败时输出显式错误 + exit 1，而非打印"迁移完成"误导用户。
 COMMIT_PATHS=()
 if [ "$TASKS_MIGRATED" -eq 1 ]; then

@@ -75,7 +75,7 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 ### 2.3 旧任务目录
 
 - v2.0 起任务目录位于工作区 `{AGATE_WORKSPACE}/tasks/` 下
-- 旧目录 `docs/tasks/T001-xxx/` 保留不动 = 无检测触发（迁移工具会将其迁入工作区 `tasks/`，见 v2.0.0 变更节）
+- 旧目录 `docs/tasks/T001-xxx/` 保留不动 = 无检测触发（迁移工具会将其迁入工作区 `tasks/`，见 v0.41.0 变更节）
 - 新任务用新目录 `{AGATE_WORKSPACE}/tasks/TAG0001-xxx/`
 
 ### 2.4 项目侧文件（project.md 等）
@@ -89,7 +89,7 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
-### v2.0.0 — 工作区架构（docs/tasks → agate-workspace/）（影响：所有已部署项目 + 进行中任务）
+### v0.41.0 — 工作区架构（docs/tasks → agate-workspace/）（影响：所有已部署项目 + 进行中任务）
 
 **背景**：agate 的全部编排状态（任务/看板/归档/评审/决策/计划/日志/roadmap/agent 知识）从项目 `docs/tasks/`、`docs/agents/`、`docs/archived/` 迁移到**工作区**（默认项目根 `agate-workspace/`，可用 `.agate.env` 配置位置）。orchestrator 从工作区读取 project.md 与 active-tasks，不再读 `docs/` 下旧路径。
 
