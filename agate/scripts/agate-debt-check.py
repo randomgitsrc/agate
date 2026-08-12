@@ -62,7 +62,11 @@ def extract_yaml_blocks(text):
 
 
 def serialize_evidence(evidence):
-    """把 evidence 列表序列化为纯文本（拼接所有 path/note/ref 值）。"""
+    """把 evidence 列表序列化为纯文本（拼接所有 path/note/ref 值）。
+
+    YAML int 边界：全数字标量（如 7 位 hex 哈希 7008516）被 safe_load 解析为 int，
+    需归一为 str 保持字符串语义，否则 round-trip 丢弃该哈希。
+    """
     parts = []
     if isinstance(evidence, list):
         for item in evidence:
@@ -71,8 +75,12 @@ def serialize_evidence(evidence):
                     v = item.get(k)
                     if isinstance(v, str):
                         parts.append(v)
+                    elif isinstance(v, int) and not isinstance(v, bool):
+                        parts.append(str(v))
             elif isinstance(item, str):
                 parts.append(item)
+            elif isinstance(item, int) and not isinstance(item, bool):
+                parts.append(str(item))
     return " ".join(parts)
 
 

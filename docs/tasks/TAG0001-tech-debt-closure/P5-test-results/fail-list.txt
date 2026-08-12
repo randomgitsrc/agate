@@ -1,0 +1,1 @@
+FAILED agate/tests/unit/agate-debt-check.bats::test_bdd_15_real_retreat_records_fixture_reproducible (flaky, 1/4 全量运行; 根因 = agate-debt-check.py serialize_evidence 丢弃全数字 int 哈希)
