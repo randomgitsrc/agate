@@ -12,6 +12,9 @@ risk_level: medium             # 触及 gate 脚本行为 + 协议文档横切 +
 phases: [P1, P2, P3, P4, P5, P6, P7, P8]   # 全流程，无裁剪（理由见 §5 裁剪说明）
 packages: [agate]              # 协议本体单一包（改的是 worktree 的 agate/）
 domains: [backend, cli]        # backend=check-gate.sh P6 分支/一致性检查/bats 测试；cli=orchestrator 读取层（P1 卡片样例、P6 卡片口径、verifier 派发）。无 frontend、无 security
+# ── SCOPE+ 已解决（P2 回补，2026-08-12）──
+scope_resolved:
+  - "ci-gate-backstop.py P3 分支需 refactor 感知——已纳入 P2 方案 §7/§1.1，P3 分支 change_type=refactor 时跳过 check-tdd-red，不需新增 BDD（BDD-7/BDD-8 覆盖）"
 ---
 
 # TAG0002 — 重构一等任务（Phase A）：P1 需求基线
