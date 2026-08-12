@@ -1,0 +1,4 @@
+=== BDD-7 CI backstop 实跑：refactor 任务 P3 分支（mock check-tdd-red exit 2 绿灯）===
+CI platform: github
+SKIP: refactor 任务，TDD 红灯不适用（回归口径由 P5/P6 全量回归兜底）
+EXIT_CODE: 0

@@ -1,0 +1,10 @@
+=== BDD-7/8 CI backstop P3 refactor 感知 bats（7 用例，含 refactor SKIP + 正文提及不 SKIP）===
+1..7
+ok 1 backstop P3: 真红灯（exit 0）→ PASS
+ok 2 backstop P3: 绿灯（exit 2）→ FAIL
+ok 3 backstop P3: 假红灯（exit 1）→ FAIL
+ok 4 backstop P3: 无运行器（exit 3）→ WARN 不 FAIL
+ok 5 backstop P3: 无 .gate-result.json（--no-verify）时仍执行 check-tdd-red.sh
+ok 6 backstop P3: change_type=refactor 任务跳过 check-tdd-red（SKIP 而非 FAIL，即使 mock exit 2 绿灯）
+ok 7 backstop P3: 功能任务正文提及 change_type 关键字仍走 TDD 兜底（不 SKIP，BDD-2）
+EXIT_CODE: 0
