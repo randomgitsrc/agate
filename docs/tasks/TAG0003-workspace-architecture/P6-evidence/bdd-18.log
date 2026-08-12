@@ -1,0 +1,25 @@
+# BDD-18 存量归档迁入工作区 archived/ 且幂等（fixture 实跑）
+
+fixture: /tmp/opencode/p6fix/migrate/repo
+迁移前 docs/archived/ 含: tasks/T000-old/report.md（相对结构两级）
+
+## 迁移动作（bdd-06.log 输出节选）
+迁移：docs/archived → 工作区 archived（.../docs/archived → .../agate-workspace/archived，1 个文件，git mv 保留历史）
+
+## 断言：相对目录结构对应保留
+[ -f agate-workspace/archived/tasks/T000-old/report.md ] → 存在
+archived relative structure tasks/T000-old/report.md PRESERVED at workspace archived/ - OK
+
+## 断言：无文件丢失（迁移前 docs 4 文件 = 迁移后工作区 4 文件，见 bdd-07-assert.txt）
+archived 文件数：1（find agate-workspace/archived -type f）
+
+## 断言：docs/archived 不再存在
+[ -d docs/archived ] → 不存在（docs/archived gone - OK）
+
+## 断言：幂等（重复运行不产生重复归档）
+再次运行迁移工具（bdd-09.log）：docs/tasks 与 docs/archived 均不存在或为空，无需迁移（no-op）→ EXIT_CODE: 0
+归档未重复迁移、未产生重复目录。
+
+## 结论
+存量归档整体迁入工作区 archived/、相对结构保留、无文件丢失、重复运行 no-op —— 满足 BDD-18。
+EXIT_CODE: 0

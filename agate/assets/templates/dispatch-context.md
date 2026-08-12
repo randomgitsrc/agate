@@ -22,8 +22,8 @@ role: {角色名，如 analyst / requirements-review / implementer}
 {上一阶段 subagent 摘要中的关键信息}
 
 ### 输入文件
-- docs/tasks/{Txxx}/P0-brief.md（主 Agent 的任务简报和风险声明）
-- docs/tasks/{Txxx}/{上一阶段产出文件}
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（主 Agent 的任务简报和风险声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/{上一阶段产出文件}
 - {project_conventions_file}（项目约定）
 {按角色定义补充其他需要读的文件}
 </dispatch_guide>

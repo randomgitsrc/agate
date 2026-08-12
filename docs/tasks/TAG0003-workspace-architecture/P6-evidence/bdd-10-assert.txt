@@ -1,0 +1,18 @@
+# BDD-10 未迁移的旧布局项目在编排时获得明确迁移指引
+
+grep 目标: agate/orchestrator-template.md（启动时旧布局检测 + 迁移指引）
+
+## orchestrator-template.md:71（旧布局检测逻辑）
+3. **旧布局检测**（BDD-10）：若 `{project_root}/docs/tasks/active-tasks.md` 存在而 `{AGATE_WORKSPACE}/tasks/active-tasks.md` 不存在 → 项目仍在使用旧版 `docs/tasks/` 布局。此时**输出迁移指引**并停止自动推进：
+
+## orchestrator-template.md:73-75（迁移指引文本）
+检测到旧版任务目录 docs/tasks/（agate v2.0 工作区架构之前布局）。
+请先在项目根运行迁移工具：bash {agate_root}/scripts/agate-migrate-workspace.sh
+迁移完成后重新开始本会话。不要继续在 docs/tasks/ 旧路径上编排任务。
+
+## orchestrator-template.md:77（不静默继续 / 不静默失败）
+不静默使用旧路径、也不静默失败——旧布局必须先迁移，否则新协议的读取路径（工作区内）与既有任务数据（docs/tasks/）不一致，状态会漂移。
+
+## 结论
+检测条件（旧布局存在 + 工作区无看板）+ 明确迁移指引（给出迁移工具命令 + 停止自动推进）均存在。
+不静默继续使用旧路径、也不静默失败 —— 满足 BDD-10。

@@ -1,0 +1,24 @@
+# BDD-1 新项目初始化创建完整规范工作区（实跑 + 文档锚点）
+
+## 实跑：初始化命令建出 8 子目录
+=== BDD-1: 8 subdirs created by init command ===
+  OK roadmap
+  OK tasks
+  OK agents
+  OK archived
+  OK reviews
+  OK decisions
+  OK plans
+  OK logs
+subdir count: 8 (expect 8)
+
+## 文档锚点：orchestrator-template.md:102 接入节 mkdir 命令
+2. `mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs}` — 创建工作区 8 个子目录（roadmap/tasks/agents/archived/reviews/decisions/plans/logs）
+
+## 文档锚点：SETUP.md:114 初始化步骤
+mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs}
+
+## 文档锚点：SETUP.md:22-23 project.md 复制到工作区 agents/
+mkdir -p {AGATE_WORKSPACE}/agents
+cp {agate_root}/assets/templates/project.md {AGATE_WORKSPACE}/agents/project.md
+EXIT_CODE: 0

@@ -1,6 +1,6 @@
 # 各阶段产出文件模板
 
-> 每个任务目录 docs/tasks/{Txxx}/ 下的标准文件
+> 每个任务目录 {AGATE_WORKSPACE}/tasks/{Txxx}/ 下的标准文件
 
 ## 通用 Header（所有文件必须有）
 ```yaml

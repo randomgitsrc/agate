@@ -10,7 +10,7 @@
 
 - **只需要注册 orchestrator 这一个 agent**。P1-P8 的执行角色/评审角色不需要在平台层预注册——派发时是"派一个通用 subagent，把角色文件路径写进 prompt 让它自己读"，见 `role-system.md`「方法 B」。
 - `orchestrator-template.md` 对所有项目内容完全一致，**标准接入方式是符号链接直接指向它，不要拷贝**。这样 agate 升级模板，你项目里的 orchestrator 提示词自动跟着升级，不需要手动同步。
-- 项目特定信息（工作区规则、gate 命令、测试基线……）**只写进** `{project_root}/docs/agents/project.md`（可选文件，模板见 `assets/templates/project.md`），不要碰 orchestrator.md 本身。
+- 项目特定信息（工作区规则、gate 命令、测试基线……）**只写进** `{AGATE_WORKSPACE}/agents/project.md`（可选文件，模板见 `assets/templates/project.md`），不要碰 orchestrator.md 本身。工作区默认在项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 指向其他位置（含项目外绝对路径），解析见 `scripts/agate-workspace-resolve.sh`。
 
 ---
 
@@ -19,8 +19,8 @@
 如果你的项目有 orchestrator 专属的操作细节（不适合塞进通用的 AGENTS.md/CLAUDE.md），复制模板：
 
 ```bash
-mkdir -p docs/agents
-cp {agate_root}/assets/templates/project.md docs/agents/project.md
+mkdir -p {AGATE_WORKSPACE}/agents
+cp {agate_root}/assets/templates/project.md {AGATE_WORKSPACE}/agents/project.md
 # 按模板里的说明填写，删掉不需要的小节
 ```
 
@@ -110,11 +110,24 @@ bash ~/.agate/scripts/install-hook.sh
 
 ```bash
 bash ~/.agate/scripts/agate-summary.sh   # 确认协议版本、hook 已装
-mkdir -p docs/tasks/
-# 若 docs/tasks/active-tasks.md 不存在，orchestrator 首次运行会自动从模板建，不需要手动建
+bash ~/.agate/scripts/agate-workspace-resolve.sh  # 确认工作区解析（输出 AGATE_WORKSPACE）
+mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs,debt}
+# 若 {AGATE_WORKSPACE}/tasks/active-tasks.md 不存在，orchestrator 首次运行会自动从模板建，不需要手动建
 ```
 
-然后真开一个会话，指定/选择 orchestrator agent，让它执行「开始」那几步（读 `agate-summary.sh` 输出、读 `active-tasks.md`），确认它能正常找到 `{agate_root}`（`~/.agate` 或你设置的路径）并读到阶段卡片。
+然后真开一个会话，指定/选择 orchestrator agent，让它执行「开始」那几步（读 `agate-summary.sh` 输出、读 `active-tasks.md`），确认它能正常找到 `{agate_root}`（`~/.agate` 或你设置的路径）、解析出 `{AGATE_WORKSPACE}` 并读到阶段卡片。
+
+## .agate.env 配置（可选）
+
+工作区位置默认 = 项目根下 `agate-workspace/`。需要指向别处时，在**项目根**创建 `.agate.env`：
+
+```bash
+# .agate.env（项目根）
+AGATE_WORKSPACE=agate-workspace            # 相对路径 → 相对项目根解析
+AGATE_WORKSPACE=/srv/agate-ws/My Project   # 绝对路径（可含空格）→ 指向项目外
+```
+
+优先级：`.agate.env` 显式配置 > 环境变量 `AGATE_TASKS_DIR` > 默认 `agate-workspace/`。缺失 `.agate.env` 不报错，走默认（BDD-4）。解析逻辑见 `scripts/agate-workspace-resolve.sh`。
 
 ## .gitignore 建议
 
@@ -124,7 +137,7 @@ mkdir -p docs/tasks/
 .opencode/agents/
 ```
 
-`docs/agents/project.md`（如果创建了）**要提交**——它是项目团队共享的真实内容，不是本地注册产物。`.claude/settings.json` 提不提交按上面步骤 3 的团队取舍决定。
+`{AGATE_WORKSPACE}/agents/project.md`（如果创建了）**要提交**——它是项目团队共享的真实内容，不是本地注册产物。`.claude/settings.json` 提不提交按上面步骤 3 的团队取舍决定。`.agate.env` 建议提交（团队共享工作区位置约定）；含本机路径的 `.agate.env` 可 gitignore，但提交一份默认样例更利于团队一致。
 
 ---
 

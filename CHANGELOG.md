@@ -8,6 +8,78 @@
 
 ---
 
+## [0.43.0] - 2026-08-12
+
+### 新增（TAG0001 技术债登记闭环，Phase 1-3）
+- **DEBT 条目模板 `assets/templates/tech-debt-template.md`**：标准技术债登记格式——用法/判据三分法（技术/管理/协议）+「都不影响→不登记」出口 + 三态（open/in_progress/closed）+ 字段表 + 可解析示例条目；落点 `{AGATE_WORKSPACE}/debt/tech-debt.md`（单文件多条目，每条 fenced yaml 机器块 + 可选正文）
+- **`agate-debt-check.py` + `check-debt.sh`**：技术债 schema 校验器（fail-closed 薄壳 + 独立 .py）——必填字段 / 枚举（category/status/priority/source）/ 类型 / closed 准入（须 task_id + evidence 引用 P5/P6 证据）/ 同文件 id 唯一性；无任何 yaml 块 → no-op（向后兼容）
+- **`check-debt.sh --retreat-coverage` 回退覆盖比对**：`git log --all --grep='^retreat:'` 提取回退提交，与 `source: retreat` DEBT 条目 evidence 引用比对，未登记 → WARNING（恒 exit 0，只读提醒不挂 gate）
+- **P8 `debt_check` 必填字段**：P8-release.md 产出规格新增（`none` = 本次无关注项 / `reviewed` = 已核对并附条目清单）；check-gate.sh P8 分支缺失即 exit 1 硬拦截、内容任意放行不阻断发布；`debt_check: none` 可跨发布 grep 计数（防无脑打勾可观测）
+
+### 变更（TAG0001 debt/ 归类修正 + 回退强制）
+- **工作区子目录集 8→9**：新增 `debt/` 技术债登记目录（WORKFLOW.md 目录图 + orchestrator-template/SETUP/state-machine 三处 mkdir 同步同一 9 集字面量）；tech-debt 不再归入 `agents/`（该目录只放 agent 输入知识 project.md/memory）
+- **回退落地后必须建 DEBT 条目**：`rules/state-transitions.md` 回退规则 + P6/P4 卡片 + `agate-retreat-to.sh` 回退完成提醒 四处同步「`source: retreat` 条目，evidence 引用回退提交哈希」强制
+- **review 可发现性**：`plan-eng-review.md` 追加「提债须用标准 DEBT 条目格式」
+
+### 文档
+- **UPGRADING.md v0.43.0 节**：子目录 8→9（可选启用）/ tech-debt 路径 / P8 debt_check / 回退强制四项升级指引
+- **TAG0003 BDD-1 口径修订注**（P1/P6 各一行）：8 子目录 → 9 子目录口径更新
+
+---
+
+## [0.42.0] - 2026-08-12
+
+### 新增（TAG0002 重构一等任务机制，Phase A）
+- **`change_type: refactor` 任务类型声明**（P1 frontmatter 可选机器字段，枚举 `{refactor}`，缺省 = 功能任务）：重构任务可在 P1 声明类型，gate/CI 按类型分流——`agate-md-field-get.py` 新增 `change_type`/`regression_pass` 读取 op；`agate-frontmatter-check.py` P1 schema 增枚举校验
+- **P6 重构验收口径（回归口径，非功能 BDD 口径）**：change_type=refactor 的任务，P6 验收改为三段式——行为不变声明 + 全量回归全绿（frontmatter `regression_pass: true` + `P6-evidence/regression.log` 尾行 `EXIT_CODE: 0` 双证）+ 关键路径行为不变 BDD 逐条 PASS/FAIL；`check-gate.sh` P6 分支按 change_type 分流硬校验（缺回归双证 → gate 不通过）
+- **P3 重构回归测试口径**：refactor 任务 P3 走回归测试设计（既有用例覆盖映射，不新增功能行为断言），跳过 TDD 红灯步骤（红灯语义不适用）；`ci-gate-backstop.py` P3 分支对 change_type=refactor 任务跳过 check-tdd-red 兜底（避免全量即绿被误判 FAIL）
+
+### 变更（TAG0002 重构一等任务机制，Phase A）
+- **重构验收口径对 no_behavior_change 独立**：refactor 判定只看 change_type，不读 no_behavior_change——即使重构任务声明 no_behavior_change，回归双证仍强制（换口径 ≠ 裁 P6，P6 仍不可裁剪）；WORKFLOW.md/state-machine.md/dispatch-protocol.md 同步"P6 不可裁剪"表述
+- **可发现性**：P1/P6/P3 卡片 + verifier/test-designer 角色 + P5/P6/P3 派发指引补充 refactor 口径说明；明文禁止"为凑验收数量新增功能性质 BDD"
+
+### 文档（TAG0002 重构一等任务机制，Phase A）
+- P6-acceptance.md / P1-requirements.md / P3-tdd.md 卡片 refactor 分支说明；verifier.md / test-designer.md 角色口径
+
+---
+
+## [0.41.0] - 2026-08-12
+
+### 破坏性变更（TAG0003 工作区架构）
+- **编排状态迁移到工作区（agate-workspace/）**：agate 的全部编排状态（任务/看板/归档/评审/决策/计划/日志/roadmap/agent 知识）从项目 `docs/tasks/`、`docs/agents/`、`docs/archived/` 迁移到**工作区**（默认项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 配置位置）。orchestrator 从工作区读取 `agents/project.md` 与 `tasks/active-tasks.md`，不再读 `docs/` 下旧路径——**影响所有已部署项目**。⚠️ 存量项目升级前必读 `agate/UPGRADING.md` §3「v0.41.0」迁移节（迁移工具步骤见下）
+- **新增迁移工具 `agate-migrate-workspace.sh`**：目录级 `git mv` 强制迁移 `docs/tasks/` → `{workspace}/tasks/`、`docs/archived/` → `{workspace}/archived/`，保留 git 历史；空源 no-op、重复运行幂等、外部工作区 fallback 普通 mv（WARNING 标注历史不可在新路径追溯）。在项目根运行 `bash {agate_root}/scripts/agate-migrate-workspace.sh`
+- **未迁移时的行为**：orchestrator 启动检测到旧布局（`docs/tasks/active-tasks.md` 存在而工作区 tasks 无 active-tasks）→ 输出迁移指引并停止自动推进，不静默使用旧路径
+
+### 新增（TAG0003 工作区架构）
+- **`agate-workspace-resolve.sh`**：工作区路径单点解析器——解析优先级 `.agate.env`（`AGATE_WORKSPACE=`）> 环境变量 `AGATE_TASKS_DIR`（向后兼容既有 CI 设置）> 默认 `agate-workspace/`；输出 `AGATE_WORKSPACE` + `AGATE_TASKS_DIR`，bash（source 复用）与 python（ci-gate-backstop subprocess）共用，结构性保证本地 hook 与 CI 解析同路径。支持相对/绝对/含空格/项目外路径
+- **roadmap 项目级任务管理循环**：新增 `assets/templates/roadmap-template.md` 单文件模板（对齐 active-tasks-template 模式），条目结构 `| id | 标题 | 状态 | 来源 | 关联任务 | 创建 | 更新 |`，状态标识 backlog/scheduled/in_progress/done/cancelled；循环规范（新需求→backlog、拆任务→scheduled、任务完成→回写 done）写入 WORKFLOW.md 正式规则
+- **内容边界判据正式规则**（WORKFLOW.md）：文件是否由 agate 编排流程生成/消费 → 归工作区；描述产品/项目本身 → 留项目 docs/。二值判定、对偶自洽（验收记录→工作区 / 项目 README→项目 docs/）
+- **`agate/UPGRADING.md`**：存量项目迁移指引（迁移工具步骤 + 旧布局说明 + 外部工作区限制）
+
+### 变更（TAG0003 工作区架构）
+- **orchestrator-template.md**：project.md 路径 `{project_root}/docs/agents/project.md` → `{AGATE_WORKSPACE}/agents/project.md`；active-tasks 路径 → `{AGATE_WORKSPACE}/tasks/active-tasks.md`；接入 mkdir 建 8 子目录（roadmap/tasks/agents/archived/reviews/decisions/plans/logs）；启动时旧布局检测 + 迁移指引
+- **6 个既有脚本路径换血 + 2 处隐藏硬编码去硬编码**：
+  - `pre-commit-gate.sh`：tasks_base 改调工作区解析器（AGATE_TASKS_DIR 默认值 + 根级 .state.yaml 的 TASK_DIR 推导跟随解析结果）
+  - `ci-gate-backstop.py`：tasks_base 改调解析器，本地 hook 与 CI 同路径
+  - `check-state-transition.sh`：任务级 .state.yaml 检测从 `grep 'docs/tasks/[^/]+/'` 改为 `dirname != REPO_ROOT` 语义（隐藏硬编码，改法已验证）
+  - `check-pruning.sh`：P7 源码文件数过滤排除模式跟随工作区路径（隐藏硬编码）
+  - `check-protocol-consistency.py`：`PATH_IGNORE_SUBSTRINGS` 白名单 `docs/tasks/` → 工作区运行时目录
+  - `install-hook.sh`：gitignore 提示文字路径跟随工作区
+  - 另 `agate-render-dispatch-prompt.sh` 路径同步
+- **16 文档 + 8 测试文件全量路径换血**：dispatch-protocol.md（28 处）/ state-machine.md / git-integration.md / role-system.md / WORKFLOW.md / SETUP.md / phase-cards / assets/templates / assets/execution-roles / loop-orchestration.md / rules/state-transitions.md 等；测试 fixture 中 `docs/tasks` 硬编码路径改为工作区路径（既有用例 603 条换血不改数）
+- **新增测试**：`unit/agate-workspace-resolve.bats`（解析优先级/空格/外部路径）+ `unit/agate-migrate-workspace.bats`（迁移/幂等/空源/归档）；用例基线 625
+
+### 修复（本版本范围 [v0.40.2..HEAD] 内既有修复，随本版本一并发布）
+- **check-p6-format.sh --fix POSIX locale 下全角冒号总结行静默失效**（8cc7cd3）
+- **orchestrator permission 全 allow + consistency 排除平台目录**（40c5713）
+- **.gitignore 移除 .state.yaml 忽略规则**（f773e30/8aa94fb）——迁移工具目录级 git mv 依赖文件物理移动而非跟踪状态
+- **README 升级段链 UPGRADING.md + 新增 UPGRADING.md 升级指引**（892f266/cf2ddce）
+
+### 文档（非协议变更，随版本发布）
+- 项目侧：知识索引试点 / 主动架构演进机制设计 / 生命周期演进框架讨论稿 / agate 商业分析 / 质量评估 / roadmap P2.67-P2.71 讨论记录 / 独立评审（本项目开发资料，与协议本体变更分离）
+
+---
+
 ## [0.40.2] - 2026-08-11
 
 ### 修复

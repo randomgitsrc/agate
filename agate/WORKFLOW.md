@@ -43,6 +43,8 @@ agate 建立在两条主线上：
 ├── git-integration.md           # git 持久化（多 agent 协作）
 ├── platform-notes.md            # 各平台适配说明
 ├── orchestrator-template.md     # 新项目接入模板
+├── SETUP.md                     # 首次接入步骤
+├── UPGRADING.md                 # 存量项目升级/迁移指引
 ├── LIMITATIONS.md               # 已知局限（使用前建议先读）
 └── assets/
     ├── review-roles/            # 评审角色库（从 gstack 提取）
@@ -66,8 +68,51 @@ agate 建立在两条主线上：
         ├── active-tasks-template.md # active-tasks.md 看板模板
         ├── custom-role.md       # 自定义角色模板
         ├── dispatch-prompt.md   # 派发 prompt 模板
+        ├── roadmap-template.md  # roadmap 条目模板（新增，v2.0）
         └── task-files.md        # 各阶段产出文件模板
 ```
+
+---
+
+## 工作区目录规范（v2.0 起）
+
+agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPACE}` = 项目根下 `agate-workspace/`，可用 `.agate.env` 配置指向其他位置，解析见 `agate-workspace-resolve.sh`），不再散布在项目 `docs/` 下。工作区根下固定 9 个子目录：
+
+```
+{AGATE_WORKSPACE}/                # 工作区根（默认 agate-workspace/）
+├── roadmap/                      # 项目级任务规划看板（roadmap.md）
+├── tasks/                        # 任务目录（active-tasks.md + 各 {Txxx}/ 任务）
+├── agents/                       # agent 输入知识（project.md / memory）
+├── debt/                         # 技术债登记（tech-debt.md，模板见 assets/templates/tech-debt-template.md）
+├── archived/                     # 归档（已归档任务/阶段产出）
+├── reviews/                      # 评审记录
+├── decisions/                    # 决策记录
+├── plans/                        # 计划
+└── logs/                         # 运行日志（orchestrator-log 等）
+```
+
+### 内容边界判据（正式规则，v2.0）
+
+**问题**：什么文件应该进工作区，什么文件应该留在项目 `docs/`？
+
+**判据**：某文件是否**由 agate 编排流程生成或消费**（任务产出、评审、决策、计划、日志、状态、看板、roadmap、agent 知识、归档）？
+- **是** → 归入工作区 `{AGATE_WORKSPACE}/`。
+- 该文件是否**描述产品/项目本身而非任务编排**（README、产品文档）？
+- **是** → 留在项目 `docs/`。
+
+**二值判定**：一个文件必须且只能归入一侧；两侧同时不适用 = 属项目文档。
+
+**对偶自洽性**：同一判据对两类文件必须给出相反结论——任务验收记录（编排流程生成）→ 工作区；项目 README（描述产品本身）→ 项目 docs/。若发现某文件既像编排状态又像产品文档，优先问"这是谁生成、谁消费的"——由编排流程生成/消费 → 工作区。
+
+### roadmap 循环（v2.0 新增机制）
+
+roadmap 是项目级任务规划层（单文件 `{AGATE_WORKSPACE}/roadmap/roadmap.md`，模板 `assets/templates/roadmap-template.md`），管理"新需求 → 任务 → 实施 → 回写"的闭环：
+
+1. **新需求/讨论进入 roadmap**（BDD-14）：新需求或讨论 → 在 roadmap.md 追加一条 backlog 条目（含来源与日期）。
+2. **条目拆分为任务**（BDD-15）：拆任务时在 `{AGATE_WORKSPACE}/tasks/` 建任务目录 + active-tasks.md「待开始」区写入任务行（任务行记录 `roadmap: <条目id>` 关联），条目状态 → `scheduled`。
+3. **任务完成回写**（BDD-16）：任务完成（P8 gate + READY）→ 回写条目状态 `done`（或 `cancelled`），闭环可追溯。
+
+条目状态：`backlog`（待规划）/ `scheduled`（已拆任务）/ `in_progress`（实施中）/ `done`（已完成）/ `cancelled`（取消）。状态机定义见 `assets/templates/roadmap-template.md`。
 
 ---
 
@@ -75,11 +120,11 @@ agate 建立在两条主线上：
 
 任务目录名是 **`Txxx-描述`** 格式，不是纯编号。实际例子：
 ```
-docs/tasks/TAG0001-mcp-namespace-map/
-docs/tasks/TAG0002-fix-db-migration/
+{AGATE_WORKSPACE}/tasks/TAG0001-mcp-namespace-map/
+{AGATE_WORKSPACE}/tasks/TAG0002-fix-db-migration/
 ```
 
-本文档及模板中的 `{Txxx}` / `{task_id}` 是占位简写，**实际拼路径时必须用完整目录名**（含描述后缀）。主 Agent 派发时，要先确认实际目录名（`ls docs/tasks/`），不要假设是纯 `T002`——按 `docs/tasks/T002/` 拼路径会找不到文件。
+本文档及模板中的 `{Txxx}` / `{task_id}` 是占位简写，**实际拼路径时必须用完整目录名**（含描述后缀）。主 Agent 派发时，要先确认实际目录名（`ls {AGATE_WORKSPACE}/tasks/`），不要假设是纯 `T002`——按 `{AGATE_WORKSPACE}/tasks/T002/` 拼路径会找不到文件。
 
 ## 运行环境前提
 
@@ -154,7 +199,7 @@ agate 的派发机制有固定开销——每次派发约需写 25 行派发 pro
   **单 Agent 模式**（`has_task_tool: false`）：P3 和 P4 由同一 Agent 执行，独立视角消失。
   此时 P3 的价值从「独立验证」变为「提前定义行为契约」——先写测试让自己明确"完成标准"，
   而不是边实现边定义。须在 P1 裁剪说明里声明 `single_agent_mode: true`。
-- **P6 不可裁剪**：验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略。仅微任务（直接做不走 agate）可免于 P6
+- **P6 不可裁剪**：验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略。仅微任务（直接做不走 agate）可免于 P6。`change_type: refactor` 的任务 P6 换用回归口径（行为不变 + 全量回归全绿 + 关键路径验收）——换口径 ≠ 裁 P6，P6 仍不可裁剪
 - P8 发布准备：涉及发布的任务必做
 - **裁剪必须附理由**：P1 分析师判定复杂度后，在 `P1-requirements.md` 的「裁剪说明」节写明每个跳过阶段的理由；主 Agent 按声明推进，不强制全 8 阶段
 - **裁剪不等于跳过需求质疑**：无论任务大小，P1 的需求基线（哪怕一句话）都要建立，因为隐含需求的识别不依赖任务规模
@@ -255,7 +300,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 - **CI backstop（P1.3）**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的恶意提交；provenance 审计重跑（check-p6-provenance.sh）+ `P6-acceptance.md` 的 git blame 单 author WARNING 作为兜底审计。
 - **降级方案**（Phase 3 平台接口未实现前的最优方案）：证据-结论对应是**客观行为审计**——造假 N 个证据文件的成本远高于填写一行 `agent: verifier` 自报字段。详见 `LIMITATIONS.md` 局限 3。
 
-**多任务适配**：`pre-commit-gate.sh` 扫描暂存区中所有变更的 `.state.yaml`（根目录 + `docs/tasks/{Txxx}/`），对每个文件独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。
+**多任务适配**：`pre-commit-gate.sh` 扫描暂存区中所有变更的 `.state.yaml`（根目录 + `{AGATE_WORKSPACE}/tasks/{Txxx}/`），对每个文件独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。
 
 **三类 WARNING（均不阻断 commit）**：
 - **phase-产出一致性**：暂存了 `P{n}-*.md` 产出但 `.state.yaml` 的 phase 不匹配 → WARNING。覆盖"产出了但忘改 phase"场景，下次 agent 接手时由「状态标记绑定规则」（见 state-machine.md）兜底。
@@ -271,7 +316,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 ### 原则 1：主 Agent 只编排，不执行
 
 主 Agent 的职责严格限定为四件事：
-1. 读状态（active-tasks.md + 当前阶段文件）
+1. 读状态（`{AGATE_WORKSPACE}/tasks/active-tasks.md` + 当前阶段文件）
 2. 派发 subagent（用 task 工具，见 dispatch-protocol.md）
 3. 检查门槛（可判定条件）
 4. 更新状态
@@ -294,7 +339,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 ### 原则 3：状态在文件里，不在记忆里
 
-任务的当前状态（在哪个阶段、哪些门槛过了）落盘到 `docs/tasks/Txxx/` 和 active-tasks.md。即使会话被压缩、中断、重启，主 Agent 重新读文件就能接着干。
+任务的当前状态（在哪个阶段、哪些门槛过了）落盘到 `{AGATE_WORKSPACE}/tasks/{Txxx}/` 和 `{AGATE_WORKSPACE}/tasks/active-tasks.md`。即使会话被压缩、中断、重启，主 Agent 重新读文件就能接着干。
 
 **状态落盘必须配合 git 持久化**（见 git-integration.md）：每阶段门槛通过后主 Agent commit 一次，让状态真正持久、可恢复、可多 agent 共享。只写本地文件不 commit，崩溃就丢。
 

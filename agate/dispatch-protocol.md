@@ -25,7 +25,7 @@ agate 的派发协议把每次阶段推进翻译成**明确的工具调用 + 精
 
 ```
 ❌ 错：把 P1-requirements.md 的全文复制进 subagent 的 prompt
-✅ 对：prompt 写"读取 docs/tasks/T001/P1-requirements.md"
+✅ 对：prompt 写"读取 {AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md"
 ```
 
 subagent 在自己独立的上下文里读文件。主 Agent 的上下文永远不碰这些文件的全文。**这是上下文隔离的核心。**
@@ -34,7 +34,7 @@ subagent 在自己独立的上下文里读文件。主 Agent 的上下文永远�
 
 ```
 ❌ 错：subagent 把 P2-design.md 全文返回给主 Agent
-✅ 对：subagent 返回 "已产出 docs/tasks/T001/P2-design.md，方案采用 schema version 表 + 迁移脚本目录，3 个迁移步骤"
+✅ 对：subagent 返回 "已产出 {AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md，方案采用 schema version 表 + 迁移脚本目录，3 个迁移步骤"
 ```
 
 主 Agent 只拿摘要做门槛判断，需要细节时让下一个 subagent 自己去读文件。
@@ -142,7 +142,7 @@ subagent 可能因**外部原因**（API 额度上限、平台超时、进程崩
 
 ```
 subagent 收到 failed/中断信号后，主 Agent 按序检查：
-  1. 检查 docs/tasks/{Txxx}/ 下已落盘产出（Edit 工具即时写入，不因中断丢失）
+  1. 检查 {AGATE_WORKSPACE}/tasks/{Txxx}/ 下已落盘产出（Edit 工具即时写入，不因中断丢失）
   2. 评估产出完整度：
      - 文件存在 + Header 完整 + 内容非空非半截 + 能过该阶段 gate → 直接复用
      - 文件存在但内容明显半截（写一半断）→ 补充少量工作后复用，不重派
@@ -247,8 +247,8 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    - **补全**：P0 没覆盖的隐含需求、待确认清单、能力需求，由 P1 独立产出
 
 1. 读状态
-   读 docs/tasks/active-tasks.md → 确认当前任务和阶段
-   读 docs/tasks/Txxx/ → 确认上一阶段产出文件存在
+   读 {AGATE_WORKSPACE}/tasks/active-tasks.md → 确认当前任务和阶段
+   读 {AGATE_WORKSPACE}/tasks/{Txxx}/ → 确认上一阶段产出文件存在
 
 2. 选角色
    按阶段从 assets/execution-roles/ 选执行角色
@@ -257,7 +257,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 3. 派发 subagent（task 工具）
     传入：
       - 角色定义文件路径（assets/execution-roles/xxx.md）
-      - dispatch-context 文件路径（docs/tasks/{Txxx}/P{N}-dispatch-context-{role}.md）
+      - dispatch-context 文件路径（{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md）
       - 输入文件路径（上一阶段产出，不传内容）
       - 输出要求（产出哪个文件 + Header 规范 + 门槛）
       - 返回要求（只返回路径 + 摘要）
@@ -305,7 +305,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 
 **为什么这是铁律 2 的补全**：铁律 2"只传路径不传内容"当前只覆盖了阶段产出文件（P1-requirements.md 等），没覆盖主 Agent 自己查证的客观信息。这个缺口从 T016 就存在，T020 第一次被显式提出——主 Agent 把环境状态、URL、选择器全写进 prompt（约 50 行），违反铁律 2 精神且不可复用。
 
-**文件名**：`docs/tasks/{Txxx}/P{N}-dispatch-context-{role}.md`（每个 subagent 一个，只含该角色的导航信息）
+**文件名**：`{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md`（每个 subagent 一个，只含该角色的导航信息）
 
 **所有 P1-P8 阶段统一强制 dispatch-context 存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。
 
@@ -332,8 +332,8 @@ role: {角色名，如 analyst / requirements-review / implementer}
 {上一阶段 subagent 摘要中的关键信息}
 
 ### 输入文件
-- docs/tasks/{Txxx}/P0-brief.md（主 Agent 的任务简报和风险声明）
-- docs/tasks/{Txxx}/{上一阶段产出文件}
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（主 Agent 的任务简报和风险声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/{上一阶段产出文件}
 - {project_conventions_file}（项目约定）
 {按角色定义补充其他需要读的文件}
 </dispatch_guide>
@@ -436,7 +436,7 @@ trigger: gate_fail
 
 ## 项目约定（必读）
 - {project_conventions_file}（项目约定、命名规范、目录结构）
-- docs/tasks/{Txxx}/P0-brief.md（本任务的环境约束和风险声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（本任务的环境约束和风险声明）
 
 ## 环境隔离（强制，所有阶段适用）
 本任务的环境约束见 P0-brief.md 的 env_constraints 字段。
@@ -444,7 +444,7 @@ trigger: gate_fail
 - 开发全程不应接触生产环境；若意外接触，立即停止并标注 [PROD_TOUCHED] 报告主 Agent
 
 ## dispatch-context（核心输入）
-读取并严格遵循：docs/tasks/{Txxx}/P{N}-dispatch-context-{role}.md
+读取并严格遵循：{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md
 > dispatch-context 中的派发指引是本次任务的强制指令，不是参考信息。
 
 ## 执行顺序
@@ -457,16 +457,16 @@ trigger: gate_fail
 7. 返回路径 + 一句话摘要
 
 ## 分阶段落盘（留痕文件，防空返回）
-留痕文件：docs/tasks/{Txxx}/P{N}-progress.md
-开始前先删除留痕文件（如已存在）：rm -f docs/tasks/{Txxx}/P{N}-progress.md
+留痕文件：{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md
+开始前先删除留痕文件（如已存在）：rm -f {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md
 每读完一个输入文件或完成一个关键步骤，立即用 bash 追加一行（不要整理、不格式化）：
-  echo "- [文件名] 关键发现摘要" >> docs/tasks/{Txxx}/P{N}-progress.md
+  echo "- [文件名] 关键发现摘要" >> {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md
 不要在留痕文件里做内容整理、不格式化——那是产出文件的事。
 读一个写一个，不要等全部读完再一次性写。
 留痕文件仅供空返回诊断用，主 Agent 检查产出文件后可删。
 
 ## 输出（路径约束）
-产出文件：docs/tasks/{Txxx}/{本阶段产出文件}
+产出文件：{AGATE_WORKSPACE}/tasks/{Txxx}/{本阶段产出文件}
 
 ⚠️ 路径是硬约束，不是建议：
 - 必须用 Write 工具写入上述路径
@@ -533,6 +533,9 @@ trigger: gate_fail
 产出测试代码后，必须自跑测试，确认每个红灯的失败原因都是"被测模块未实现"（import 失败 / 模块不存在 / 组件未导出）。
 如果某个红灯的失败原因是"断言与测试数据矛盾"（如断言行数/列数/页数与 fixture 不符）——这是测试代码 bug，先修正断言再交付，不要交付给 P5。
 手写魔数断言（`expect(x).toBe(100)` 但数据实际 50 行）与数据矛盾是 T075 的教训，P3 阶段就要发现。
+## refactor 任务（P1 change_type: refactor）：回归测试口径
+按回归测试口径设计——复用/保留既有测试用例，标注每条回归用例覆盖的路径，**不新增功能行为断言**；
+跳过 check-tdd-red 红灯（重构无新行为可断言，红灯语义不适用，回归质量由 P5 全量回归 + P6 regression.log 兜底）。
 ```
 
 **修复轮派发时追加**（P2.63，给主 Agent 的模板）：
@@ -574,7 +577,7 @@ P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P
 P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
 P1 有 N 条 BDD → P6 必须有 ≥N 条验收结果（PASS 或 FAIL，允许 SCOPE+ 增补）。挑验 < N = gate 不通过。
 ## P6 证据要求
-每条 BDD 验收结果必须有对应证据文件，存入 docs/tasks/{Txxx}/P6-evidence/。
+每条 BDD 验收结果必须有对应证据文件，存入 {AGATE_WORKSPACE}/tasks/{Txxx}/P6-evidence/。
 证据类型：
 - test-output.log — 验证脚本执行日志（所有任务通用）
 - screenshots/ — Playwright 截图（仅 UI 任务）
@@ -589,6 +592,12 @@ P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由�
 写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
 P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
 不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
+## refactor 任务（P1 change_type: refactor）：P6 回归验收口径
+P6 验收换用回归口径（换口径 ≠ 裁 P6，P6 仍不可裁剪）——三段式：① 行为不变声明（禁止伪造功能 BDD）；
+② 全量回归全绿（以一条关键路径 BDD 的 PASS 行呈现，引用 P6-evidence/regression.log，尾行 EXIT_CODE: 0）；
+③ 关键路径行为不变断言 BDD 逐条 PASS/FAIL。frontmatter 额外声明 `regression_pass: true`；
+回归双证（regression_pass + regression.log）是 check-gate.sh P6 硬校验，任一缺失 → gate exit 1；
+regression.log 必须被 PASS 行引用；禁止新增非 BDD 编号 PASS 行；no_behavior_change 不豁免回归双证。
 ```
 
 **P8 派发时追加**：
@@ -1063,7 +1072,7 @@ gate 命令因**环境限制**无法执行（如无 npm、无 Playwright、网�
 **正确处理方式（三选一，按优先级）：**
 
 1. **补充能力**：安装缺失依赖、切换有本地环境的 Agent 执行
-2. **写 HANDOVER.md 交接**：在 `docs/tasks/{Txxx}/HANDOVER.md` 里写明：
+2. **写 HANDOVER.md 交接**：在 `{AGATE_WORKSPACE}/tasks/{Txxx}/HANDOVER.md` 里写明：
    - 当前完成的阶段
    - 待执行的 gate 命令（逐条列出）
    - 接手 Agent 需要的环境（从 P0-brief `executor_env` 读取）
@@ -1149,7 +1158,7 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
 主 Agent：
 
 1. 读 active-tasks.md → TAG0001 在 P2 阶段
-2. 确认 docs/tasks/TAG0001/P1-requirements.md 存在 ✓
+2. 确认 {AGATE_WORKSPACE}/tasks/TAG0001/P1-requirements.md 存在 ✓
 3. 选角色：architect（P2 执行角色）
 4. 调用 task 工具：
    subagent_type: architect（或 general + 注入角色文件）
@@ -1157,13 +1166,13 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
      你是 P2 阶段的 architect 子 Agent。
      角色定义：读取 {agate_root}/assets/execution-roles/architect.md
      项目约定（必读）：CLAUDE.md
-     P0-brief（必读）：docs/tasks/TAG0001/P0-brief.md（环境约束和风险声明）
-     输入：读取 docs/tasks/TAG0001/P1-requirements.md
+     P0-brief（必读）：{AGATE_WORKSPACE}/tasks/TAG0001/P0-brief.md（环境约束和风险声明）
+     输入：读取 {AGATE_WORKSPACE}/tasks/TAG0001/P1-requirements.md
      任务：为数据库迁移问题设计方案
-     输出：docs/tasks/TAG0001/P2-design.md（含 Header）
+     输出：{AGATE_WORKSPACE}/tasks/TAG0001/P2-design.md（含 Header）
      门槛：方案覆盖 P1 列出的所有问题
      返回：只返回文件路径 + 一句话摘要
-5. subagent 返回："docs/tasks/TAG0001/P2-design.md，采用 schema_version 表 + 顺序迁移脚本"
+5. subagent 返回："{AGATE_WORKSPACE}/tasks/TAG0001/P2-design.md，采用 schema_version 表 + 顺序迁移脚本"
 6. 派发评审 subagent（plan-eng-review 角色）→ 产出 P2-review.md
 7. 读 P2-review.md 的 Header status
    - approved → 更新 active-tasks.md，TAG0001 进入 P3
@@ -1178,7 +1187,7 @@ rejected 重试时，architect 必须知道"上次为什么被打回"，否则�
 
 ```
 rejected 时，主 Agent 的重试派发 prompt 里加一行：
-  "上一轮方案被评审打回。评审意见见 docs/tasks/Txxx/P2-review.md，
+  "上一轮方案被评审打回。评审意见见 {AGATE_WORKSPACE}/tasks/{Txxx}/P2-review.md，
    请先读取该文件了解被打回的具体原因，再修正方案。"
 ```
 

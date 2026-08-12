@@ -1,0 +1,6 @@
+=== bdd-04b ===
+fixture dir: /tmp/opencode/tag0002-p6-fixture.rpSpRf/bdd4b.BvsIU6
+GATE P6: change_type=refactor 但缺全量回归证据（须 P6-acceptance.md frontmatter regression_pass: true 且 P6-evidence/regression.log 存在）
+GATE_EXIT_CODE: 1
+断言: P6 gate exit 1（refactor 缺 regression_pass: true 拦截）（实测 gate exit=1）——验证执行完成，断言通过
+EXIT_CODE: 0

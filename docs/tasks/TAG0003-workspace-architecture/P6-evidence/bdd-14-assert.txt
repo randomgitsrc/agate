@@ -1,0 +1,17 @@
+# BDD-14 新需求/讨论进入工作区 roadmap（文档规范 + 模拟执行闭环记录）
+
+## 文档规范锚点：WORKFLOW.md「roadmap 循环」节
+:110 1. **新需求/讨论进入 roadmap**（BDD-14）：新需求或讨论 → 在 roadmap.md 追加一条 backlog 条目（含来源与日期）。
+:114 条目状态：`backlog`（待规划）/ `scheduled`（已拆任务）/ `in_progress`（实施中）/ `done`（已完成）/ `cancelled`（取消）。
+
+## 模板锚点：assets/templates/roadmap-template.md（存在，2648 字节）
+  :12 条目示例含状态标识（backlog）
+  :18 | `backlog` | 待规划 | 新需求/讨论进入 roadmap 时（含来源与日期）|
+
+## 模拟执行（按文档规范在 fixture 完整走一遍）
+fixture: /tmp/opencode/p6fix/roadmap-sim/agate-workspace/roadmap/roadmap.md（自模板复制）
+模拟：新需求「审计日志导出」→ 追加 RM-AG0003 条目，状态 backlog，来源=需求讨论，创建/更新=日期
+产出：roadmap-simulate.md 含完整闭环记录（BDD-14/15/16 共享）
+
+## 结论
+roadmap 单文件模板存在 + WORKFLOW 循环规范就位 + 模拟执行真实追加了含状态标识的 backlog 条目 —— 满足 BDD-14。

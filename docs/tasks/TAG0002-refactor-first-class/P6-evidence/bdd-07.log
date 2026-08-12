@@ -1,0 +1,9 @@
+=== bdd-07 P1 gate (backfill) ===
+GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式为 #### BDD-NN:
+P1_EXIT_CODE: 2
+GATE P3: P3-test-cases.md 存在。TDD 红灯由主 Agent 手动跑 check-tdd-red.sh 确认 + CI backstop P3 兜底。
+P3_EXIT_CODE: 2
+GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL=2。BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行。
+P6_EXIT_CODE: 2
+断言: 真实重构回填 fixture 走 P1→P3→P6，三处 gate 均通过（exit 2），全程无功能 BDD 要求
+EXIT_CODE: 0

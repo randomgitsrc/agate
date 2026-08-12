@@ -1,0 +1,14 @@
+# BDD-9 迁移幂等——重复运行不产生重复或破坏（fixture 实跑）
+
+fixture: /tmp/opencode/p6fix/migrate/repo（已完成迁移）
+
+## 第二次运行 agate-migrate-workspace.sh 输出
+迁移：docs/tasks 与 docs/archived 均不存在或为空，无需迁移（no-op）
+EXIT_CODE: 0
+
+## 断言
+- exit 0（无新增迁移动作）
+- 工作区目录无重复：ls agate-workspace → archived / tasks（无第二份 tasks、无重复归档）
+- tasks 文件数仍为 3（find agate-workspace/tasks -type f，与首次迁移后一致，无重复/丢失）
+- 未产生任何破坏性副作用
+EXIT_CODE: 0

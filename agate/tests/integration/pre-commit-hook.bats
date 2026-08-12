@@ -41,7 +41,7 @@ role: ROLE_PLACEHOLDER
 无
 
 ### 输入文件
-- docs/tasks/T001/P0-brief.md
+- agate-workspace/tasks/T001/P0-brief.md
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->
@@ -77,8 +77,8 @@ phase: P1
 status: active
 retries: {}
 EOF
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -86,7 +86,7 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
 task_id: TXX0001
@@ -96,9 +96,9 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS + 覆盖维度：数据✓
 EOF
-    git -C "$REPO" add .state.yaml docs/tasks/T001/
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
+    git -C "$REPO" add .state.yaml agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P1-dispatch-context-analyst.md"
     run git -C "$REPO" commit -m "phase change to P1"
     [ "$status" -eq 0 ]
 }
@@ -108,16 +108,16 @@ EOF
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
     # 创建任务目录 + 句中提及 [PROD_TOUCHED] 的产出文件
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "do something to production [PROD_TOUCHED]" > "$REPO/docs/tasks/T001/P5-verification.md"
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "do something to production [PROD_TOUCHED]" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
     # 同时改 .state.yaml phase，触发 gate
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "mention not declaration"
     [ "$status" -eq 0 ]
 }
@@ -160,14 +160,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P1
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -175,7 +175,7 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
 task_id: TXX0001
@@ -185,9 +185,9 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS + 覆盖维度：数据✓
 EOF
-    git -C "$REPO" add docs/tasks/T001/
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P1-dispatch-context-analyst.md"
     run git -C "$REPO" commit -m "T001 P1"
     [ "$status" -eq 0 ]
 }
@@ -197,14 +197,14 @@ EOF
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
     # 先 commit 一个 P3 状态
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -212,11 +212,11 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit --no-verify -qm "T001 P3"
     # 现在 commit P4 产出但忘改 phase
-    echo "implementation" > "$REPO/docs/tasks/T001/P4-implementation.md"
-    git -C "$REPO" add docs/tasks/T001/P4-implementation.md
+    echo "implementation" > "$REPO/agate-workspace/tasks/T001/P4-implementation.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/P4-implementation.md
     run git -C "$REPO" commit -m "T001 P4 output only" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" == *"WARNING"* || "$output" == *"phase"* ]]
@@ -226,14 +226,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P1
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -241,7 +241,7 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
 task_id: TXX0001
@@ -251,17 +251,17 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS + 覆盖维度：数据✓
 EOF
-    git -C "$REPO" add docs/tasks/T001/
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P1-dispatch-context-analyst.md"
     git -C "$REPO" commit -qm "T001 P1"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P2
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "T001 phase P2" 2>&1
     [ "$status" -ne 0 ]
     [[ "$output" == *"P2-design.md 不存在"* || "$output" == *"P2 不可裁剪"* ]]
@@ -271,14 +271,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P2
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -286,7 +286,7 @@ risk_level: low
 phases: [P0, P1, P2, P4, P5, P6, P7, P8]
 跳过风险: 低
 EOF
-    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P2-design.md" <<'EOF'
 ---
 agent: test
 phase: P2
@@ -307,29 +307,29 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P2-review.md" <<'EOF2'
+    cat > "$REPO/agate-workspace/tasks/T001/P2-review.md" <<'EOF2'
 ---
 status: approved
 agent: reviewer-subagent
 ---
 P2 review approved.
 EOF2
-    git -C "$REPO" add docs/tasks/T001/
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P2" "architect"
-    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context-architect.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P2" "architect"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P2-dispatch-context-architect.md"
     git -C "$REPO" commit -qm "T001 P2"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P5-verification.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P5-verification.md" <<'EOF'
 ---
 agent: test
 ---
 EOF
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "T001 skip to P5"
     [ "$status" -eq 0 ]
 }
@@ -338,14 +338,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P2
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -353,7 +353,7 @@ risk_level: medium
 phases: [P0, P1, P2, P4, P5, P6, P7, P8]
 跳过风险: 低
 EOF
-    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P2-design.md" <<'EOF'
 ---
 agent: test
 phase: P2
@@ -374,16 +374,16 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P2-review.md" <<'EOF2'
+    cat > "$REPO/agate-workspace/tasks/T001/P2-review.md" <<'EOF2'
 ---
 status: approved
 agent: reviewer-subagent
 ---
 P2 review approved.
 EOF2
-    git -C "$REPO" add docs/tasks/T001/
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P2" "architect"
-    git -C "$REPO" add "docs/tasks/T001/P2-dispatch-context-architect.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P2" "architect"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P2-dispatch-context-architect.md"
     run git -C "$REPO" commit -m "T001 P2 medium skip P3"
     [ "$status" -ne 0 ]
     [[ "$output" == *"P3 不可裁剪"*"仅 low"* ]]
@@ -399,8 +399,8 @@ phase: P1
 status: active
 retries: {}
 EOF
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -408,7 +408,7 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
 task_id: TXX0001
@@ -418,9 +418,9 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS + 覆盖维度：数据✓
 EOF
-    git -C "$REPO" add .state.yaml docs/tasks/T001/
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P1" "analyst"
-    git -C "$REPO" add "docs/tasks/T001/P1-dispatch-context-analyst.md"
+    git -C "$REPO" add .state.yaml agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P1-dispatch-context-analyst.md"
     run git -C "$REPO" commit -m "root state P1"
     [ "$status" -eq 0 ]
 }
@@ -429,14 +429,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P2
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -444,10 +444,10 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit --no-verify -qm "T001 P2 setup"
     echo "print('hello')" > "$REPO/hack.py"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P2
 status: active
@@ -456,7 +456,7 @@ retries:
     - round: 1
       failure_mode: test
 EOF
-    git -C "$REPO" add hack.py docs/tasks/T001/.state.yaml
+    git -C "$REPO" add hack.py agate-workspace/tasks/T001/.state.yaml
     run bash -c "cd '$REPO' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
     [[ "$output" == *"代码文件"* ]]
 }
@@ -467,15 +467,15 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "[PROD_TOUCHED] 接触了生产环境：修改了线上配置" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "[PROD_TOUCHED] 接触了生产环境：修改了线上配置" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "should fail"
     [ "$status" -ne 0 ]
     [[ "$output" == *"PROD_TOUCHED"* ]]
@@ -485,15 +485,15 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "[PROD_NOT_TOUCHED]" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "[PROD_NOT_TOUCHED]" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "should pass"
     [ "$status" -eq 0 ]
 }
@@ -502,18 +502,18 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "[PROD_TOUCHED] 旧内容" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "[PROD_TOUCHED] 旧内容" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     git -C "$REPO" commit --no-verify -qm "setup with PROD_TOUCHED"
-    echo "clean content" > "$REPO/docs/tasks/T001/P5-verification.md"
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md
+    echo "clean content" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md
     run git -C "$REPO" commit -m "remove PROD_TOUCHED"
     [ "$status" -eq 0 ]
 }
@@ -522,15 +522,15 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "无 [PROD_TOUCHED] 需要报告" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "无 [PROD_TOUCHED] 需要报告" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "should pass"
     [ "$status" -eq 0 ]
 }
@@ -539,15 +539,15 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "检查了 [PROD_TOUCHED] 标记" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "检查了 [PROD_TOUCHED] 标记" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "should pass"
     [ "$status" -eq 0 ]
 }
@@ -556,15 +556,15 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "normal content without any marker" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "normal content without any marker" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "should pass"
     [ "$status" -eq 0 ]
     [[ "$output" != *"WARNING"* ]]
@@ -576,19 +576,19 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
 status: active
 retries: {}
 EOF
-    echo '## P3 test cases' > "$REPO/docs/tasks/T001/P3-test-cases.md"
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P3" "test-designer"
-    git -C "$REPO" add docs/tasks/T001/
+    echo '## P3 test cases' > "$REPO/agate-workspace/tasks/T001/P3-test-cases.md"
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P3" "test-designer"
+    git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
     # Now add P1/P2 as late commits
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -596,7 +596,7 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P2-design.md" <<'EOF'
 ---
 agent: test
 phase: P2
@@ -609,7 +609,7 @@ created: 2026-07-08
 ---
 ### 候选方案 A：方案一
 EOF
-    git -C "$REPO" add docs/tasks/T001/P1-requirements.md docs/tasks/T001/P2-design.md
+    git -C "$REPO" add agate-workspace/tasks/T001/P1-requirements.md agate-workspace/tasks/T001/P2-design.md
     run git -C "$REPO" commit -m "T001 late commit P1/P2 outputs" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" != *"WARNING"*"P1"* ]]
@@ -620,14 +620,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -635,19 +635,19 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit --no-verify -qm "T001 P1 setup"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
 status: active
 retries: {}
 EOF
-    echo '## P3 test cases' > "$REPO/docs/tasks/T001/P3-test-cases.md"
-    git -C "$REPO" add docs/tasks/T001/.state.yaml docs/tasks/T001/P3-test-cases.md
+    echo '## P3 test cases' > "$REPO/agate-workspace/tasks/T001/P3-test-cases.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/.state.yaml agate-workspace/tasks/T001/P3-test-cases.md
     git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
-    echo "updated requirements" >> "$REPO/docs/tasks/T001/P1-requirements.md"
-    git -C "$REPO" add docs/tasks/T001/P1-requirements.md
+    echo "updated requirements" >> "$REPO/agate-workspace/tasks/T001/P1-requirements.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/P1-requirements.md
     run git -C "$REPO" commit -m "T001 modify P1 while phase=P3" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" == *"WARNING"*"P1"* ]]
@@ -657,14 +657,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -672,10 +672,10 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
-    echo "implementation" > "$REPO/docs/tasks/T001/P4-implementation.md"
-    git -C "$REPO" add docs/tasks/T001/P4-implementation.md
+    echo "implementation" > "$REPO/agate-workspace/tasks/T001/P4-implementation.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/P4-implementation.md
     run git -C "$REPO" commit -m "T001 P4 output while phase=P3" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" == *"WARNING"*"P4"* ]]
@@ -686,14 +686,14 @@ EOF
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
     # T001: phase=P3, 新增 P1 产出（历史产出晚提交）→ 不 WARNING
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -701,7 +701,7 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    cat > "$REPO/docs/tasks/T001/P2-design.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P2-design.md" <<'EOF'
 ---
 agent: test
 phase: P2
@@ -714,13 +714,13 @@ created: 2026-07-08
 ---
 ### 候选方案 A：方案一
 EOF
-    cat > "$REPO/docs/tasks/T001/P3-test-cases.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P3-test-cases.md" <<'EOF'
 ---
 agent: test
 ---
 test cases
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-review.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-review.md" <<'EOF'
 ---
 phase: P1
 task_id: T001
@@ -730,19 +730,19 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS + 覆盖维度：数据✓
 EOF
-    git -C "$REPO" add docs/tasks/T001/
-    _write_min_valid_dispatch_context "docs/tasks/T001" "P3" "test-designer"
-    git -C "$REPO" add "docs/tasks/T001/P3-dispatch-context-test-designer.md"
+    git -C "$REPO" add agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P3" "test-designer"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P3-dispatch-context-test-designer.md"
     git -C "$REPO" commit --no-verify -qm "T001 P3 setup"
     # T002: phase=P3, 已存在 P1 产出被修改 → WARNING
-    mkdir -p "$REPO/docs/tasks/T002"
-    cat > "$REPO/docs/tasks/T002/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T002"
+    cat > "$REPO/agate-workspace/tasks/T002/.state.yaml" <<'EOF'
 task_id: T002
 phase: P1
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T002/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T002/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -750,27 +750,27 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    git -C "$REPO" add docs/tasks/T002/
+    git -C "$REPO" add agate-workspace/tasks/T002/
     git -C "$REPO" commit --no-verify -qm "T002 P1 setup"
-    cat > "$REPO/docs/tasks/T002/.state.yaml" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T002/.state.yaml" <<'EOF'
 task_id: T002
 phase: P3
 status: active
 retries: {}
 EOF
-    echo '## P3 test cases' > "$REPO/docs/tasks/T002/P3-test-cases.md"
-    git -C "$REPO" add docs/tasks/T002/.state.yaml docs/tasks/T002/P3-test-cases.md
+    echo '## P3 test cases' > "$REPO/agate-workspace/tasks/T002/P3-test-cases.md"
+    git -C "$REPO" add agate-workspace/tasks/T002/.state.yaml agate-workspace/tasks/T002/P3-test-cases.md
     git -C "$REPO" commit --no-verify -qm "T002 P3 setup"
-    echo "updated" >> "$REPO/docs/tasks/T002/P1-requirements.md"
+    echo "updated" >> "$REPO/agate-workspace/tasks/T002/P1-requirements.md"
     # T003: phase=P3, 新增 P4 产出（提前产出）→ WARNING
-    mkdir -p "$REPO/docs/tasks/T003"
-    cat > "$REPO/docs/tasks/T003/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T003"
+    cat > "$REPO/agate-workspace/tasks/T003/.state.yaml" <<'EOF'
 task_id: T003
 phase: P3
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T003/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T003/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -778,11 +778,11 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    echo '## P3 test cases' > "$REPO/docs/tasks/T003/P3-test-cases.md"
-    git -C "$REPO" add docs/tasks/T003/
+    echo '## P3 test cases' > "$REPO/agate-workspace/tasks/T003/P3-test-cases.md"
+    git -C "$REPO" add agate-workspace/tasks/T003/
     git -C "$REPO" commit --no-verify -qm "T003 P3 setup"
-    echo "implementation" > "$REPO/docs/tasks/T003/P4-implementation.md"
-    git -C "$REPO" add docs/tasks/T002/P1-requirements.md docs/tasks/T003/P4-implementation.md
+    echo "implementation" > "$REPO/agate-workspace/tasks/T003/P4-implementation.md"
+    git -C "$REPO" add agate-workspace/tasks/T002/P1-requirements.md agate-workspace/tasks/T003/P4-implementation.md
     run git -C "$REPO" commit -m "multi-task phase-span" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" != *"WARNING"*"T001"*"P1"* ]]
@@ -794,14 +794,14 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: PAUSED
 status: active
 retries: {}
 EOF
-    cat > "$REPO/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 ---
 agent: test
 ---
@@ -809,7 +809,7 @@ risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test precondition
 EOF
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "T001 PAUSED with P1 output" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" != *"integer expression expected"* ]]
@@ -821,15 +821,15 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "[PROD_NOT_TOUCHED] 确认未接触" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "[PROD_NOT_TOUCHED] 确认未接触" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "should pass"
     [ "$status" -eq 0 ]
 }
@@ -838,15 +838,15 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "说明：本任务无生产接触，不需要写 [PROD_TOUCHED] 声明" > "$REPO/docs/tasks/T001/P5-verification.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "说明：本任务无生产接触，不需要写 [PROD_TOUCHED] 声明" > "$REPO/agate-workspace/tasks/T001/P5-verification.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF
-    git -C "$REPO" add docs/tasks/T001/P5-verification.md docs/tasks/T001/.state.yaml
+    git -C "$REPO" add agate-workspace/tasks/T001/P5-verification.md agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "mention not declaration"
     [ "$status" -eq 0 ]
 }
@@ -857,17 +857,17 @@ EOF
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots"
-    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/a.png"
-    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots"
+    touch "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots/a.png"
+    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/agate-workspace/tasks/T001/P6-acceptance.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P6
 status: active
 retries: {}
 EOF2
-    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
-    git -C "$REPO" add docs/tasks/T001/
+    _write_min_valid_dispatch_context "$REPO/agate-workspace/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "p6 evidence only"
     [[ "$output" != *"暂存了项目源码"* ]]
     [[ "$output" != *"不应直接改代码"* ]]
@@ -877,17 +877,17 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001/evidences"
-    touch "$REPO/docs/tasks/T001/evidences/desktop.png"
-    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001/evidences"
+    touch "$REPO/agate-workspace/tasks/T001/evidences/desktop.png"
+    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/agate-workspace/tasks/T001/P6-acceptance.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P6
 status: active
 retries: {}
 EOF2
-    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
-    git -C "$REPO" add docs/tasks/T001/
+    _write_min_valid_dispatch_context "$REPO/agate-workspace/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "evidences dir only"
     [[ "$output" != *"暂存了项目源码"* ]]
     [[ "$output" != *"不应直接改代码"* ]]
@@ -897,18 +897,18 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots" "$REPO/src"
-    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/a.png"
-    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
+    mkdir -p "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots" "$REPO/src"
+    touch "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots/a.png"
+    echo "- PASS BDD-1: ok (screenshots/a.png)" > "$REPO/agate-workspace/tasks/T001/P6-acceptance.md"
     echo "print('fix')" > "$REPO/src/app.py"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: TXX0001
 phase: P6
 status: active
 retries: {}
 EOF2
-    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
-    git -C "$REPO" add src/app.py docs/tasks/T001/
+    _write_min_valid_dispatch_context "$REPO/agate-workspace/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add src/app.py agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "should be blocked"
     [ "$status" -ne 0 ]
     [[ "$output" == *"不应直接改代码"* ]]
@@ -918,15 +918,15 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001" "$REPO/src"
+    mkdir -p "$REPO/agate-workspace/tasks/T001" "$REPO/src"
     echo "print('impl')" > "$REPO/src/app.py"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P4
 status: active
 retries: {}
 EOF2
-    git -C "$REPO" add src/app.py docs/tasks/T001/.state.yaml
+    git -C "$REPO" add src/app.py agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "p4 impl"
     [[ "$output" != *"不应直接改代码"* ]]
 }
@@ -935,15 +935,15 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001" "$REPO/src"
+    mkdir -p "$REPO/agate-workspace/tasks/T001" "$REPO/src"
     echo "print('fix')" > "$REPO/src/app.py"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P5
 status: active
 retries: {}
 EOF2
-    git -C "$REPO" add src/app.py docs/tasks/T001/.state.yaml
+    git -C "$REPO" add src/app.py agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "p5 fix"
     [[ "$output" != *"不应直接改代码"* ]]
 }
@@ -952,15 +952,15 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001" "$REPO/src"
+    mkdir -p "$REPO/agate-workspace/tasks/T001" "$REPO/src"
     echo "print('early')" > "$REPO/src/app.py"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: TXX0001
 phase: P2
 status: active
 retries: {}
 EOF2
-    git -C "$REPO" add src/app.py docs/tasks/T001/.state.yaml
+    git -C "$REPO" add src/app.py agate-workspace/tasks/T001/.state.yaml
     run git -C "$REPO" commit -m "p2 early code"
     [[ "$output" == *"是否在非实现阶段直接改代码"* ]]
     [[ "$output" != *"不应直接改代码"* ]]
@@ -972,20 +972,20 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots"
-    echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
-    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/x.png"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots"
+    echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/agate-workspace/tasks/T001/P6-acceptance.md"
+    touch "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots/x.png"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: TXX0001
 phase: P6
 status: active
 retries: {}
 EOF2
-    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
-    git -C "$REPO" add docs/tasks/T001/
+    _write_min_valid_dispatch_context "$REPO/agate-workspace/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit -qm "setup P6 state"
 
-    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' docs/tasks/T001 P4 '集成测试诊断'"
+    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' agate-workspace/tasks/T001 P4 '集成测试诊断'"
     [ "$status" -eq 0 ]
     [[ "$output" == *"共 2 步"* ]]
 
@@ -1001,26 +1001,26 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001/P6-evidence/screenshots"
-    echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/docs/tasks/T001/P6-acceptance.md"
-    touch "$REPO/docs/tasks/T001/P6-evidence/screenshots/x.png"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots"
+    echo "- PASS BDD-1: ok (screenshots/x.png)" > "$REPO/agate-workspace/tasks/T001/P6-acceptance.md"
+    touch "$REPO/agate-workspace/tasks/T001/P6-evidence/screenshots/x.png"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: TXX0001
 phase: P6
 status: active
 retries: {}
 EOF2
-    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P6" "verifier"
-    git -C "$REPO" add docs/tasks/T001/
+    _write_min_valid_dispatch_context "$REPO/agate-workspace/tasks/T001" "P6" "verifier"
+    git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit -qm "setup P6 state"
 
     # 故意在工作区留一个行首 [PROD_TOUCHED] 声明的文件（真声明，phase 无关，
     # 会被 pre-commit-gate.sh 的一值声明步骤 1 硬拦截）。agate-retreat-to.sh 的
     # git add "$TASK_DIR" 会在第一步（P6->P5）把它一并带上，验证中途拒绝时脚本
     # 能正确报告"已停在 P6"且不会继续尝试后续步骤
-    echo "[PROD_TOUCHED] 意外接触了生产环境" > "$REPO/docs/tasks/T001/note.md"
+    echo "[PROD_TOUCHED] 意外接触了生产环境" > "$REPO/agate-workspace/tasks/T001/note.md"
 
-    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' docs/tasks/T001 P4 '集成测试：中途拒绝'"
+    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' agate-workspace/tasks/T001 P4 '集成测试：中途拒绝'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"未通过 pre-commit hook 校验"* ]]
     [[ "$output" == *"已停在 P6"* ]]
@@ -1036,15 +1036,15 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    _write_min_valid_dispatch_context "$REPO/docs/tasks/T001" "P8" "releaser"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    _write_min_valid_dispatch_context "$REPO/agate-workspace/tasks/T001" "P8" "releaser"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P8
 status: active
 retries: {}
 EOF2
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "p8 dispatch-context with AGATE_CARD"
     [[ "$output" != *"不合规的 PROD_TOUCHED"* ]]
     [[ "$output" != *"检测到生产环境接触"* ]]
@@ -1054,15 +1054,15 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "记录：曾经不小心碰到了 [PROD_TOUCHED] 生产环境" > "$REPO/docs/tasks/T001/note.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "记录：曾经不小心碰到了 [PROD_TOUCHED] 生产环境" > "$REPO/agate-workspace/tasks/T001/note.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF2
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "mention not declaration"
     [ "$status" -eq 0 ]
 }
@@ -1071,15 +1071,15 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "[PROD_TOUCHED] 意外接触生产环境" > "$REPO/docs/tasks/T001/note.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "[PROD_TOUCHED] 意外接触生产环境" > "$REPO/agate-workspace/tasks/T001/note.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: TXX0001
 phase: P5
 status: active
 retries: {}
 EOF2
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "should be blocked"
     [ "$status" -ne 0 ]
     [[ "$output" == *"检测到生产环境接触"* ]]
@@ -1089,15 +1089,15 @@ EOF2
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
-    mkdir -p "$REPO/docs/tasks/T001"
-    echo "[PROD_NOT_TOUCHED] 未接触生产环境" > "$REPO/docs/tasks/T001/note.md"
-    cat > "$REPO/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    echo "[PROD_NOT_TOUCHED] 未接触生产环境" > "$REPO/agate-workspace/tasks/T001/note.md"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P5
 status: active
 retries: {}
 EOF2
-    git -C "$REPO" add docs/tasks/T001/
+    git -C "$REPO" add agate-workspace/tasks/T001/
     run git -C "$REPO" commit -m "should not be blocked by PROD_TOUCHED check"
     [[ "$output" != *"不合规的 PROD_TOUCHED"* ]]
     [[ "$output" != *"检测到生产环境接触"* ]]
@@ -1109,8 +1109,8 @@ EOF2
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-p54")
     git -C "$repo" commit -q --allow-empty -m "init"
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P4
 status: active
@@ -1124,8 +1124,8 @@ EOF
 ### Fixed
 - T999: other task
 EOF
-    echo 'task: test' > "$repo/docs/tasks/T001/P0-brief.md"
-    git -C "$repo" add docs/tasks/T001/.state.yaml docs/tasks/T001/P0-brief.md
+    echo 'task: test' > "$repo/agate-workspace/tasks/T001/P0-brief.md"
+    git -C "$repo" add agate-workspace/tasks/T001/.state.yaml agate-workspace/tasks/T001/P0-brief.md
     run bash -c "cd '$repo' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
     [[ "$output" != *"CHANGELOG"* ]]
 }
@@ -1134,8 +1134,8 @@ EOF
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-p54b")
     git -C "$repo" commit -q --allow-empty -m "init"
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P8
 status: active
@@ -1149,8 +1149,8 @@ EOF
 ### Fixed
 - T999: other task
 EOF
-    echo 'task: test' > "$repo/docs/tasks/T001/P0-brief.md"
-    git -C "$repo" add docs/tasks/T001/.state.yaml docs/tasks/T001/P0-brief.md
+    echo 'task: test' > "$repo/agate-workspace/tasks/T001/P0-brief.md"
+    git -C "$repo" add agate-workspace/tasks/T001/.state.yaml agate-workspace/tasks/T001/P0-brief.md
     run bash -c "cd '$repo' && bash '$AGATE_ROOT/scripts/pre-commit-gate.sh'" 2>&1 || true
     [[ "$output" == *"CHANGELOG"* ]]
 }
@@ -1160,14 +1160,14 @@ EOF
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-gatereal1")
     ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
     chmod +x "$repo/.git/hooks/pre-commit"
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: TXX0001
 phase: P2
 status: active
 retries: {}
 EOF
-    cat > "$repo/docs/tasks/T001/P2-design.md" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/P2-design.md" <<'EOF'
 # P2 design
 ### 候选方案 A：方案一
 ### 候选方案 B：方案二
@@ -1179,7 +1179,7 @@ domains: [backend]
 ui_affected: false
 gate_commands: {}
 EOF
-    cat > "$repo/docs/tasks/T001/P2-review.md" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/P2-review.md" <<'EOF'
 ---
 agent: test
 status: approved
@@ -1189,7 +1189,7 @@ EOF
     # embed real card content via agate-next-card.sh
     local card_content
     card_content=$(bash "$AGATE_ROOT/scripts/agate-next-card.sh" P2 2>/dev/null || true)
-    cat > "$repo/docs/tasks/T001/P2-dispatch-context-architect.md" <<EOF
+    cat > "$repo/agate-workspace/tasks/T001/P2-dispatch-context-architect.md" <<EOF
 ---
 agent: test
 ---
@@ -1200,7 +1200,7 @@ agent: test
 $card_content
 <!-- AGATE_CARD_END -->
 EOF
-    git -C "$repo" add docs/tasks/T001/
+    git -C "$repo" add agate-workspace/tasks/T001/
     run git -C "$repo" commit -m "P2"
     [ "$status" -eq 0 ]
     [ -f "$repo/.gate-result.json" ]
@@ -1213,26 +1213,26 @@ EOF
     HOOK_PATH="$repo/.git/hooks/pre-commit"
     ln -sf "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$HOOK_PATH"
     chmod +x "$HOOK_PATH"
-    mkdir -p "$repo/docs/tasks/T086"
-    cat > "$repo/docs/tasks/T086/.state.yaml" <<EOF2
+    mkdir -p "$repo/agate-workspace/tasks/T086"
+    cat > "$repo/agate-workspace/tasks/T086/.state.yaml" <<EOF2
 task_id: TXX0086
 phase: P6
 status: active
 retries: {}
 EOF2
-    cat > "$repo/docs/tasks/T086/P6-acceptance.md" <<EOF2
+    cat > "$repo/agate-workspace/tasks/T086/P6-acceptance.md" <<EOF2
 ---
 agent: test
 ---
 - PASS BDD-1 (screenshots/test.png)
 EOF2
-    cat > "$repo/docs/tasks/T086/P2-design.md" <<EOF2
+    cat > "$repo/agate-workspace/tasks/T086/P2-design.md" <<EOF2
 ---
 agent: test
 ---
 ui_affected: true
 EOF2
-    mkdir -p "$repo/docs/tasks/T086/P6-evidence/screenshots"
+    mkdir -p "$repo/agate-workspace/tasks/T086/P6-evidence/screenshots"
     # 生成 100x100 极低方差图（全浅色，variance=0，触发 WARNING）
     python3 -c "
 import struct, zlib
@@ -1245,9 +1245,9 @@ def chunk(typ, data):
     return struct.pack('>I', len(data)) + typ + data + struct.pack('>I', zlib.crc32(typ + data) & 0xffffffff)
 png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', idat) + chunk(b'IEND', b'')
 import sys; sys.stdout.buffer.write(png)
-" > "$repo/docs/tasks/T086/P6-evidence/screenshots/test.png"
+" > "$repo/agate-workspace/tasks/T086/P6-evidence/screenshots/test.png"
     # 写 dispatch-context 模板 + 注入 P6 卡片（与现有 helper 一致）
-    cat > "$repo/docs/tasks/T086/P6-dispatch-context-verifier.md" <<DCEND
+    cat > "$repo/agate-workspace/tasks/T086/P6-dispatch-context-verifier.md" <<DCEND
 ---
 phase: P6
 generated_by: agate-next-card.sh + 主 Agent
@@ -1258,8 +1258,8 @@ role: verifier
 <!-- AGATE_CARD_START -->
 <!-- AGATE_CARD_END -->
 DCEND
-    bash "$AGATE_ROOT/scripts/agate-inject-card.sh" P6 "$repo/docs/tasks/T086"
-    git -C "$repo" add docs/tasks/T086/
+    bash "$AGATE_ROOT/scripts/agate-inject-card.sh" P6 "$repo/agate-workspace/tasks/T086"
+    git -C "$repo" add agate-workspace/tasks/T086/
     # 不绕过 hook — 期望 commit 成功（exit 0），不因 WARNING 拦截
     run git -C "$repo" -c user.name=test -c user.email=test@test commit -m "T086 evidence warning test"
     [ "$status" -eq 0 ]
@@ -1283,8 +1283,8 @@ echo "WORKTREE_SOURCED"
 EOF
 
     # 构造最小可 gate 场景（P1 阶段，无 P1-review.md -> 会走 gate-result 加载路径）
-    mkdir -p "$repo/docs/tasks/TX/workflow-test"
-    cat > "$repo/docs/tasks/TX/workflow-test/.state.yaml" <<EOF
+    mkdir -p "$repo/agate-workspace/tasks/TX/workflow-test"
+    cat > "$repo/agate-workspace/tasks/TX/workflow-test/.state.yaml" <<EOF
 task_id: TX
 phase: P1
 status: active

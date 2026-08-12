@@ -1,0 +1,6 @@
+=== BDD-14: 已建 source: retreat 条目且 evidence 引用提交 → 无缺失提示 ===
+--- retreat 提交: 667845c ---
+check-debt exit=0
+--- WARNING 检查 ---
+NO WARNING (good)
+EXIT_CODE: 0

@@ -47,7 +47,7 @@ agent: review
 3. **不改代码**：审查角色只写报告，修复由主 Agent 派 implementer 落地
 4. **NEEDS_HUMAN_REVIEW 用于真模糊**：如果无法确定是对是错（如设计决策的取舍），标 NEEDS_HUMAN_REVIEW，不要猜
 5. **分阶段落盘**：留痕文件和成果文件是两个不同的文件。留痕文件只写原始痕迹（"读了 X，发现 Y"），不做内容整理、不格式化——那是成果文件的事。每读完一个输入文件或完成一个对比判断，立即用 bash `echo >>` 追加到留痕文件。成果文件审查完所有文件后一次性写出。每个 subagent 调用有独立的留痕文件，开始前先删除（`rm -f`）确保从空文件开始
-6. **DESIGN_GAP 优先核查**：发现文档-脚本不一致时，若审查对象关联某个具体任务（`docs/tasks/{Txxx}/`），先检查该任务的 `P4-implementation.md`/`P7-consistency.md` 是否已有对应的 `[DESIGN_GAP:]`/`[DESIGN_GAP_REVIEWED:]` 记录——若已被 P7 consistency-reviewer 独立核实且判定 `REVIEWED-ACCEPTED`，不判 MISALIGNED，而是在报告中注明"已知偏离，来源：{task} P7 REVIEWED-ACCEPTED（引用原文）"，仍计入报告但不计入需修复项；若该任务尚无 P7 记录（比如任务仍在 P4/P5 阶段）或核实后认为 P7 的裁决理由站不住，仍按正常 MISALIGNED 处理。
+6. **DESIGN_GAP 优先核查**：发现文档-脚本不一致时，若审查对象关联某个具体任务（`{AGATE_WORKSPACE}/tasks/{Txxx}/`），先检查该任务的 `P4-implementation.md`/`P7-consistency.md` 是否已有对应的 `[DESIGN_GAP:]`/`[DESIGN_GAP_REVIEWED:]` 记录——若已被 P7 consistency-reviewer 独立核实且判定 `REVIEWED-ACCEPTED`，不判 MISALIGNED，而是在报告中注明"已知偏离，来源：{task} P7 REVIEWED-ACCEPTED（引用原文）"，仍计入报告但不计入需修复项；若该任务尚无 P7 记录（比如任务仍在 P4/P5 阶段）或核实后认为 P7 的裁决理由站不住，仍按正常 MISALIGNED 处理。
 
 ## 配套文件提示
 

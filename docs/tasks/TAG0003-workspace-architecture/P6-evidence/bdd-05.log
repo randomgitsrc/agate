@@ -1,0 +1,14 @@
+# BDD-5 工作区路径含空格：实跑 agate-workspace-resolve.sh
+
+fixture: /tmp/opencode/p6fix/resolve-spaces（项目根含 .agate.env）
+.agate.env 内容: AGATE_WORKSPACE=My Project/agate-workspace（相对路径含空格）
+
+## 解析器输出（执行模式）
+AGATE_WORKSPACE=/tmp/opencode/p6fix/resolve-spaces/My Project/agate-workspace
+AGATE_TASKS_DIR=/tmp/opencode/p6fix/resolve-spaces/My Project/agate-workspace/tasks
+
+## 断言：含空格路径文件读写正常
+mkdir -p "$AGATE_WORKSPACE/tasks" && 写 test.txt → 成功
+/tmp/opencode/p6fix/resolve-spaces/My Project/agate-workspace/tasks/test.txt exists = yes
+路径解析无错误，空格被正确保留（未分裂为两个参数）
+EXIT_CODE: 0

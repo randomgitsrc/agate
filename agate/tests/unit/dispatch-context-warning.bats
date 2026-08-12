@@ -15,15 +15,15 @@ load ../helpers/load.bash
     git -C "$repo" add README.md
     git -C "$repo" commit -m "init" > /dev/null 2>&1
 
-    mkdir -p "$repo/docs/tasks/T001"
-    echo "content" > "$repo/docs/tasks/T001/P2-design.md"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    echo "content" > "$repo/agate-workspace/tasks/T001/P2-design.md"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P2
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/
+    git -C "$repo" add agate-workspace/tasks/T001/
 
     AGATE_ROOT_FAKE=$(mktemp -d "$BATS_TEST_TMPDIR/agate-fake-XXXXXX")
     mkdir -p "$AGATE_ROOT_FAKE/scripts"

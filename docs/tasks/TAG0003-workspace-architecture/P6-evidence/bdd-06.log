@@ -1,0 +1,8 @@
+迁移：docs/tasks → 工作区 tasks（/tmp/opencode/p6fix/migrate/repo/docs/tasks → /tmp/opencode/p6fix/migrate/repo/agate-workspace/tasks，3 个文件，git mv 保留历史）
+迁移：docs/archived → 工作区 archived（/tmp/opencode/p6fix/migrate/repo/docs/archived → /tmp/opencode/p6fix/migrate/repo/agate-workspace/archived，1 个文件，git mv 保留历史）
+迁移：已自动 commit rename（跳过项目自身 pre-commit hook，git 历史可追溯 BDD-8）
+迁移完成。
+  工作区根：/tmp/opencode/p6fix/migrate/repo/agate-workspace
+  tasks 文件数：3
+  archived 文件数：1
+EXIT_CODE: 0

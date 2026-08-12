@@ -1,0 +1,16 @@
+# BDD-3 `.agate.env` 指向项目外绝对路径：实跑 agate-workspace-resolve.sh
+
+fixture: /tmp/opencode/p6fix/resolve-external（项目根含 .agate.env）
+.agate.env 内容: AGATE_WORKSPACE=/tmp/opencode/p6fix/external-ws
+
+## 解析器输出（执行模式，bash agate-workspace-resolve.sh "$PWD"）
+AGATE_WORKSPACE=/tmp/opencode/p6fix/external-ws
+AGATE_TASKS_DIR=/tmp/opencode/p6fix/external-ws/tasks
+
+## 断言：项目根下不新建默认 agate-workspace/
+检查: [ -d agate-workspace ] → 不存在
+结果: project root has NO default agate-workspace/ - OK
+
+## 断言：外部工作区路径可用（mkdir + 写文件）
+mkdir -p /tmp/opencode/p6fix/external-ws/tasks → 成功，外部路径正常作为工作区使用
+EXIT_CODE: 0

@@ -1,0 +1,10 @@
+=== BDD-12: 协议文档明确回退落地必须建 DEBT 条目 ===
+--- rules/state-transitions.md ---
+84:**回退落地后必须建 DEBT 条目（TAG0001 强制）**：任何正式回退（`retreat:` 提交，含多步回退）完成后，必须建立 `source: retreat` 的 DEBT 条目，`evidence` 引用该 retreat 提交的哈希——模板见 `assets/templates/tech-debt-template.md`，条目登记于 `{AGATE_WORKSPACE}/debt/tech-debt.md`。回退是协议定义的事实事件，登记不依赖任何人的判断（BDD-12）；事后 `check-debt.sh --retreat-coverage` 会把未登记的 retreat 提交比对出来并报 WARNING（只读提醒，不阻断 commit/发布）。
+--- phase-cards/P6-acceptance.md ---
+144:**⚠️ FAIL > 0 时，主 Agent 不能直接改项目源码让它变绿**：P6 是 self-authored gate（判定对象是 verifier 自己写的 P6-acceptance.md），验收阶段本身不应该有代码变更——`pre-commit-gate.sh` 会硬拦截 phase=P6 时暂存的非证据文件（不在 `P6-evidence/` 下的文件）。正确流程：诊断问题出在哪个上游阶段 → 退回该阶段（`agate/rules/state-transitions.md` 回退规则，退回前须先跑 `agate-archive-stale-outputs.sh` 归档当前 P6 产出，或用 `agate-retreat-to.sh` 自动化多步回退）→ 重新派发对应角色 subagent 修复 → 重新走到 P6 时，旧的 P6-acceptance.md/P6-evidence/ 已被归档清空，verifier 必须重新产出真实证据，不存在"挑几条改改、其余沿用旧结论"的空间。**回退落地后必须建 DEBT 条目**（`source: retreat`，`evidence` 引用 retreat 提交哈希，模板 `assets/templates/tech-debt-template.md`——TAG0001 强制，见 `agate/rules/state-transitions.md` 回退规则节）。
+--- phase-cards/P4-implementation.md ---
+27:**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。**回退落地后必须建 DEBT 条目**（`source: retreat`，`evidence` 引用 retreat 提交哈希，模板 `assets/templates/tech-debt-template.md`——TAG0001 强制，见 `agate/rules/state-transitions.md` 回退规则节）。
+--- scripts/agate-retreat-to.sh ---
+73:echo "GATE RETREAT: 回退已完成——请为本次回退建立 source: retreat 的 DEBT 条目（{AGATE_WORKSPACE}/debt/tech-debt.md，模板见 assets/templates/tech-debt-template.md）"
+EXIT_CODE: 0

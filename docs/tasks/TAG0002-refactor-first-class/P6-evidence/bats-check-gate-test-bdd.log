@@ -1,0 +1,14 @@
+=== BDD-1..8 相关 bats 回归（check-gate.bats test_bdd_* 11 用例）===
+1..11
+ok 1 test_bdd_1_p1_gate_accepts_change_type_refactor
+ok 2 test_bdd_2_p6_gate_default_no_change_type_unchanged
+ok 3 test_bdd_2b_p6_gate_default_body_mentions_change_type_still_functional
+ok 4 test_bdd_3_p6_gate_refactor_with_regression_evidence
+ok 5 test_bdd_4_p6_gate_refactor_missing_regression_log
+ok 6 test_bdd_4b_p6_gate_refactor_missing_regression_pass
+ok 7 test_bdd_6_p6_gate_refactor_no_behavior_change_not_waived
+ok 8 test_bdd_6b_p6_gate_refactor_no_behavior_change_with_evidence
+ok 9 test_bdd_7_refactor_backfill_walk_p1_p3_p6
+ok 10 test_bdd_5_p6_card_docs_forbid_fake_functional_bdd
+ok 11 test_bdd_8_p3_card_docs_regression_test_port
+EXIT_CODE: 0

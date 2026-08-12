@@ -19,7 +19,7 @@ agent: analyst
 
 ## 输入（自己读取）
 
-- docs/tasks/{Txxx}/P0-brief.md（主 Agent 任务简报：环境约束、已知风险——**P1 的主要输入**）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（主 Agent 任务简报：环境约束、已知风险——**P1 的主要输入**）
 - 原始需求 / Bug 报告（主 Agent 在 prompt 里给路径或描述，或从 P0-brief 的 task 字段理解）
 - {agate_root}/WORKFLOW.md（尤其"需求与验收机制"一节）
 - 相关现有代码/文档（理解现状，判断隐含依赖）
@@ -27,7 +27,7 @@ agent: analyst
 
 ## 输出
 
-**docs/tasks/{Txxx}/P1-requirements.md** — 需求基线，含以下节：
+**{AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md** — 需求基线，含以下节：
 
 1. **需求复述**：把原始需求用结构化语言重写，确认理解一致
 2. **隐含需求识别**：列出用户没说但技术上必须的依赖，每条说明"为什么必须"
@@ -156,7 +156,7 @@ P1-requirements.md 不是一次写死。后续阶段若发现新隐含需求（�
 P1-requirements.md 路径 + 一句话：建立基线，N 条 BDD 条件，M 个待确认项
 
 ## 分阶段落盘（默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。
 
 ## 方法论
 

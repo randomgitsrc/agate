@@ -1,6 +1,6 @@
 # project.md 模板
 
-> 复制此文件到 `{project_root}/docs/agents/project.md`，按需填写后删掉本说明块。
+> 复制此文件到 `{AGATE_WORKSPACE}/agents/project.md`，按需填写后删掉本说明块。
 > **这个文件是可选的**——orchestrator 默认只读 `AGENTS.md`/`CLAUDE.md`；如果你的项目没有"只有编排任务时才用得上、放进通用开发指引会显得突兀"的操作细节，不需要创建这个文件，跳过即可。
 > 反过来，如果有（比如多工作区隔离规则、专属 gate 命令、测试基线数字这类），才建这个文件——它是 orchestrator 专属的操作性事实来源，和面向所有贡献者的 AGENTS.md 分开，避免互相污染。
 > `orchestrator-template.md` 本身对所有项目内容完全一致（通常是符号链接，不是拷贝），**这个文件才是你唯一应该编辑的地方**。

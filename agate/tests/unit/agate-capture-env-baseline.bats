@@ -39,9 +39,9 @@ setup_git_repo_with_p2() {
     local repo="$1"
     local p2_content="$2"
     git_init "$repo"
-    mkdir -p "$repo/docs/tasks/T001"
-    printf '%s' "$p2_content" > "$repo/docs/tasks/T001/P2-design.md"
-    git_commit "$repo" "init" "docs/tasks/T001/P2-design.md"
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    printf '%s' "$p2_content" > "$repo/agate-workspace/tasks/T001/P2-design.md"
+    git_commit "$repo" "init" "agate-workspace/tasks/T001/P2-design.md"
 }
 
 @test "EB.1 任务级已有 pre-task-baseline.md → no-op，exit 0" {
@@ -89,17 +89,17 @@ FAILED tests/test_c.py::test_z" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
-    [ -f "$repo/docs/tasks/T001/pre-task-baseline.md" ]
+    [ -f "$repo/agate-workspace/tasks/T001/pre-task-baseline.md" ]
     local cache_dir="$repo/docs/.agate-env-baseline-cache"
     [ -d "$cache_dir" ]
     local cache_count
     cache_count=$(ls "$cache_dir"/*.md 2>/dev/null | wc -l | tr -d ' ')
     [ "$cache_count" -eq 1 ]
-    grep -q 'captured_at_commit:' "$repo/docs/tasks/T001/pre-task-baseline.md"
-    grep -q 'tests/test_a.py::test_x' "$repo/docs/tasks/T001/pre-task-baseline.md"
+    grep -q 'captured_at_commit:' "$repo/agate-workspace/tasks/T001/pre-task-baseline.md"
+    grep -q 'tests/test_a.py::test_x' "$repo/agate-workspace/tasks/T001/pre-task-baseline.md"
 }
 
 @test "EB.5 缓存命中（同 commit + 同命令集合）→ 不重跑测试命令，直接复制缓存" {
@@ -112,17 +112,17 @@ FAILED tests/test_b.py::test_y" 1 "$sentinel")
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [ -f "$sentinel" ]
     rm -f "$sentinel"
-    mkdir -p "$repo/docs/tasks/T002"
-    cp "$repo/docs/tasks/T001/P2-design.md" "$repo/docs/tasks/T002/P2-design.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T002"
+    mkdir -p "$repo/agate-workspace/tasks/T002"
+    cp "$repo/agate-workspace/tasks/T001/P2-design.md" "$repo/agate-workspace/tasks/T002/P2-design.md"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T002"
     [ "$status" -eq 0 ]
     [[ "$output" == *"复用缓存"* ]]
     [ ! -f "$sentinel" ]
-    [ -f "$repo/docs/tasks/T002/pre-task-baseline.md" ]
+    [ -f "$repo/agate-workspace/tasks/T002/pre-task-baseline.md" ]
 }
 
 @test "EB.6 缓存未命中（commit 变了）→ 重新真实跑测试命令" {
@@ -133,16 +133,16 @@ FAILED tests/test_a.py::test_x" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     echo "new commit" > "$repo/newfile.txt"
     git_commit "$repo" "second commit" "newfile.txt"
-    mkdir -p "$repo/docs/tasks/T002"
-    cp "$repo/docs/tasks/T001/P2-design.md" "$repo/docs/tasks/T002/P2-design.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T002"
+    mkdir -p "$repo/agate-workspace/tasks/T002"
+    cp "$repo/agate-workspace/tasks/T001/P2-design.md" "$repo/agate-workspace/tasks/T002/P2-design.md"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T002"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
-    [ -f "$repo/docs/tasks/T002/pre-task-baseline.md" ]
+    [ -f "$repo/agate-workspace/tasks/T002/pre-task-baseline.md" ]
 }
 
 @test "EB.7 同一 commit 但 gate_commands.P5 命令集合不同 → 视为未命中" {
@@ -156,14 +156,14 @@ FAILED tests/test_e.py::test_v" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake1
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
-    mkdir -p "$repo/docs/tasks/T002"
-    printf 'gate_commands:\n  P5: %s\n  P5_formatter: pytest.sh' "$fake2" > "$repo/docs/tasks/T002/P2-design.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T002"
+    mkdir -p "$repo/agate-workspace/tasks/T002"
+    printf 'gate_commands:\n  P5: %s\n  P5_formatter: pytest.sh' "$fake2" > "$repo/agate-workspace/tasks/T002/P2-design.md"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T002"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
-    grep -q 'test_d.py::test_w' "$repo/docs/tasks/T002/pre-task-baseline.md"
+    grep -q 'test_d.py::test_w' "$repo/agate-workspace/tasks/T002/pre-task-baseline.md"
 }
 
 @test "EB.8 声明命令本身崩溃 → 不写任何文件，stderr 有 WARNING，exit 0" {
@@ -173,10 +173,10 @@ FAILED tests/test_e.py::test_v" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"本身崩溃"* ]]
-    [ ! -f "$repo/docs/tasks/T001/pre-task-baseline.md" ]
+    [ ! -f "$repo/agate-workspace/tasks/T001/pre-task-baseline.md" ]
 }
 
 @test "EB.9 汇总计数与明细提取数不一致 → 不写任何文件，exit 0" {
@@ -187,10 +187,10 @@ FAILED tests/test_a.py::test_x" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"不一致"* ]]
-    [ ! -f "$repo/docs/tasks/T001/pre-task-baseline.md" ]
+    [ ! -f "$repo/agate-workspace/tasks/T001/pre-task-baseline.md" ]
 }
 
 @test "EB.10 gate_commands.P5 声明 2 条命令，各自有失败 → 合并去重" {
@@ -207,11 +207,11 @@ FAILED tests/test_c.py::test_z" 1)
   P5_formatter: pytest.sh
   P5_e2e: $fake2
   P5_e2e_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
     local baseline
-    baseline=$(cat "$repo/docs/tasks/T001/pre-task-baseline.md")
+    baseline=$(cat "$repo/agate-workspace/tasks/T001/pre-task-baseline.md")
     [[ "$baseline" == *"test_a.py::test_x"* ]]
     [[ "$baseline" == *"test_b.py::test_y"* ]]
     [[ "$baseline" == *"test_c.py::test_z"* ]]
@@ -242,18 +242,18 @@ FAILED tests/test_a.py::test_x" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     local cache_dir="$repo/docs/.agate-env-baseline-cache"
     local cache_file
     cache_file=$(ls "$cache_dir"/*.md | head -1)
     echo "corrupted content without frontmatter" > "$cache_file"
-    rm -f "$repo/docs/tasks/T001/pre-task-baseline.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    rm -f "$repo/agate-workspace/tasks/T001/pre-task-baseline.md"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"复用缓存"* ]]
     local baseline
-    baseline=$(cat "$repo/docs/tasks/T001/pre-task-baseline.md")
+    baseline=$(cat "$repo/agate-workspace/tasks/T001/pre-task-baseline.md")
     [[ "$baseline" == *"corrupted content"* ]]
 }
 
@@ -266,12 +266,12 @@ FAILED tests/test_beta.py::test_two" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: pytest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
     [[ "$output" == *"失败数=2"* ]]
-    grep -q 'tests/test_alpha.py::test_one' "$repo/docs/tasks/T001/pre-task-baseline.md"
-    grep -q 'tests/test_beta.py::test_two' "$repo/docs/tasks/T001/pre-task-baseline.md"
+    grep -q 'tests/test_alpha.py::test_one' "$repo/agate-workspace/tasks/T001/pre-task-baseline.md"
+    grep -q 'tests/test_beta.py::test_two' "$repo/agate-workspace/tasks/T001/pre-task-baseline.md"
 }
 
 @test "EB.14 P5 无 formatter → WARNING，不写文件" {
@@ -282,10 +282,10 @@ FAILED tests/test_a.py::test_x
 FAILED tests/test_b.py::test_y" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"无 formatter"* ]]
-    [ ! -f "$repo/docs/tasks/T001/pre-task-baseline.md" ]
+    [ ! -f "$repo/agate-workspace/tasks/T001/pre-task-baseline.md" ]
 }
 
 @test "EB.15 vitest P5 + P5_formatter: vitest.sh → fail-list 提取" {
@@ -297,10 +297,10 @@ FAIL tests/c.test.ts" 1)
     setup_git_repo_with_p2 "$repo" "gate_commands:
   P5: $fake
   P5_formatter: vitest.sh"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' docs/tasks/T001"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-capture-env-baseline.sh' agate-workspace/tasks/T001"
     [ "$status" -eq 0 ]
     [[ "$output" == *"已捕获"* ]]
     [[ "$output" == *"失败数=2"* ]]
-    grep -q 'tests/b.test.ts' "$repo/docs/tasks/T001/pre-task-baseline.md"
-    grep -q 'tests/c.test.ts' "$repo/docs/tasks/T001/pre-task-baseline.md"
+    grep -q 'tests/b.test.ts' "$repo/agate-workspace/tasks/T001/pre-task-baseline.md"
+    grep -q 'tests/c.test.ts' "$repo/agate-workspace/tasks/T001/pre-task-baseline.md"
 }

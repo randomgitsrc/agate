@@ -1,0 +1,5 @@
+=== BDD-6: evidence 缺失 → 拦截 ===
+GATE DEBT: /tmp/opencode/bdd06-CUbMaz/tech-debt.md tech-debt 条目格式错误：
+  - tech-debt.md:DEBT0001: 缺必填字段 evidence
+check-debt exit=1
+EXIT_CODE: 0

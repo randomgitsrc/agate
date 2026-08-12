@@ -18,19 +18,19 @@ agent: test-designer
 - **UI 任务**：若 P2 声明 ui_affected，必须为每个交互点写 Playwright/E2E 用例，不能只写后端单测
 
 ## 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
-- docs/tasks/{Txxx}/P1-requirements.md（BDD 验收条件 — 测试的主要来源）
-- docs/tasks/{Txxx}/P2-design.md（批准的方案，含 ui_affected 声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md（BDD 验收条件 — 测试的主要来源）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md（批准的方案，含 ui_affected 声明）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ## 输出
-- docs/tasks/{Txxx}/P3-test-cases.md — 测试用例清单（编号、对应的 BDD 条件、预期）
-- docs/tasks/{Txxx}/P3-test-code/ — 实际测试代码
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P3-test-cases.md — 测试用例清单（编号、对应的 BDD 条件、预期）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P3-test-code/ — 实际测试代码
 - 若 ui_affected：P3-test-code/ 须含 Playwright/E2E 用例覆盖每个交互点
 - **Playwright viewport 配置（B3 规范）**：UI 任务必须配置多 viewport，截图文件名固定：
   - `desktop_1280x800.png`（1280×800，标准桌面）
   - `mobile_390x844.png`（390×844，iPhone 14 尺寸）
-  - 截图存入 `docs/tasks/{Txxx}/evidences/`，供 vision-analyst 消费
+  - 截图存入 `{AGATE_WORKSPACE}/tasks/{Txxx}/evidences/`，供 vision-analyst 消费
   - playwright.config.ts 中声明两个 project：`{ name: "desktop", viewport: {width:1280,height:800} }` 和 `{ name: "mobile", viewport: {width:390,height:844} }`
 
 ## 质量门槛
@@ -42,8 +42,17 @@ agent: test-designer
 - **P6 BDD 二值规则**：设计的测试必须产出明确的 PASS/FAIL 结果，不支持"调整/跳过/覆盖"等中间态
 - **vitest mock hoisting 反模式**（T079 教训）：vitest 的 `vi.mock()` 调用会被 hoisting 到文件顶部，在模块导入前执行。如果 mock 回调中引用了外部变量或模块，会在 P3 阶段表现为 B 类红灯（被放行），到 P4 才暴露为 A 类错误。正确做法：`vi.mock()` 回调中只使用字符串字面量，不引用外部变量；如需动态 mock，用 `vi.doMock` 在 `beforeEach` 中设置。
 
+## refactor 任务：回归测试设计（P3 模式，P1 change_type: refactor）
+
+> 功能任务（缺省）走上方既有 TDD 口径。refactor 任务 P3 换用**回归测试口径**：
+> 重构无新增功能行为可断言，测试设计验证"重构后的行为与重构前一致"。
+
+- **回归测试口径**：复用/保留既有测试用例，标注每条回归用例覆盖了重构涉及的哪些文件/路径；**不新增功能行为断言**（无新行为可断言）。
+- **不跑 TDD 红灯**：refactor 任务跳过 check-tdd-red 红灯步骤（测试套件本就全绿，红灯语义不适用；回归质量由 P5 全量回归 + P6 的 regression.log 兜底）。P3 产出仍为 P3-test-cases.md（回归口径声明 + 既有用例覆盖映射），文件存在即满足 P3 gate。
+- **BDD 性质**：refactor 任务 P1 的 BDD 是"关键路径行为不变断言"（Given 重构后状态 / When 跑关键路径 / Then 行为与重构前一致），测试映射这些断言，不新增功能性质 BDD。
+
 ## 返回给主 Agent
 文件路径 + 一句话：N 个测试用例，当前全部红灯
 
 ## 分阶段落盘（默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。P3 是空返回问题高发阶段（T016 教训：连续 3 次空返回），分阶段落盘是有效缓解措施。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。P3 是空返回问题高发阶段（T016 教训：连续 3 次空返回），分阶段落盘是有效缓解措施。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。

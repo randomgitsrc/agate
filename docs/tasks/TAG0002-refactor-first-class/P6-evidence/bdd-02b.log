@@ -1,0 +1,6 @@
+=== bdd-02b ===
+fixture dir: /tmp/opencode/tag0002-p6-fixture.rpSpRf/bdd2b.LvqP9L
+GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL=2。BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行。
+GATE_EXIT_CODE: 2
+断言: P6 gate exit 2（正文提及 change_type 不误入 refactor 分支）（实测 gate exit=2）——验证执行完成，断言通过
+EXIT_CODE: 0

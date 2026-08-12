@@ -10,6 +10,7 @@ load ../helpers/load.bash
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
@@ -28,6 +29,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
@@ -47,6 +49,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)

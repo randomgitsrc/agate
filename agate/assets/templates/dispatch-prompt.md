@@ -17,12 +17,12 @@
 {agate_root}/assets/{execution-roles|review-roles}/{role}.md
 
 ## dispatch-context（核心输入）
-读取并严格遵循：docs/tasks/{Txxx}/P{N}-dispatch-context-{role}.md
+读取并严格遵循：{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md
 > dispatch-context 中的派发指引是本次任务的强制指令，不是参考信息。
 
 ## 项目约定（必读）
 - {project_conventions_file}（项目约定、命名规范、目录结构）
-- docs/tasks/{Txxx}/P0-brief.md（本任务的环境约束和风险声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（本任务的环境约束和风险声明）
 
 ## 环境隔离（强制，所有阶段适用）
 本任务的环境约束见 P0-brief.md 的 env_constraints 字段。
@@ -40,10 +40,10 @@
 7. 返回路径 + 一句话摘要
 
 ## 分阶段落盘（重要，默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。这样即使你最终无法产出完整报告，progress 文件也能让主 Agent 知道你做了什么。不要等所有文件读完再一次性写——逐条写。
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。这样即使你最终无法产出完整报告，progress 文件也能让主 Agent 知道你做了什么。不要等所有文件读完再一次性写——逐条写。
 
 ## 输出（路径约束）
-产出文件：docs/tasks/{Txxx}/{本阶段产出文件}
+产出文件：{AGATE_WORKSPACE}/tasks/{Txxx}/{本阶段产出文件}
 （Txxx 是完整目录名，如 T002-fix-db-migration；不是纯 T002 编号。所有派发文件路径统一用 {Txxx} 占位符。）
 
 ⚠️ 路径是硬约束，不是建议：
@@ -132,7 +132,7 @@ agent: {角色名}
 P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
 P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
 ## P6 证据要求
-每条 BDD 验收结果必须有对应证据文件，存入 docs/tasks/{Txxx}/P6-evidence/。
+每条 BDD 验收结果必须有对应证据文件，存入 {AGATE_WORKSPACE}/tasks/{Txxx}/P6-evidence/。
 证据类型：
 - test-output.log — 验证脚本执行日志（所有任务通用）
 - screenshots/ — Playwright 截图（仅 UI 任务）

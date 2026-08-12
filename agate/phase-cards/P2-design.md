@@ -11,7 +11,7 @@
 3. 评审通过 → P2-review.md status: approved
 4. 预跑 check-gate.sh P2（脚本化检查）
 5. 更新 .state.yaml phase=P2 → P3
-6. git add docs/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P2): {摘要}"
 
 ## 如果是重试

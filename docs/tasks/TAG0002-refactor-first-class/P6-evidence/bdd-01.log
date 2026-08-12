@@ -1,0 +1,6 @@
+=== bdd-01 ===
+fixture dir: /tmp/opencode/tag0002-p6-fixture.rpSpRf/bdd1.F6lTPp
+GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式为 #### BDD-NN:
+GATE_EXIT_CODE: 2
+断言: P1 gate exit 2（PASS，frontmatter 声明 change_type 不报错、不拦截）（实测 gate exit=2）——验证执行完成，断言通过
+EXIT_CODE: 0

@@ -1,0 +1,13 @@
+# BDD-4 无 .agate.env 时不报错、走默认位置（实跑解析器）
+
+fixture: /tmp/opencode/p6fix/resolve-bdd4（项目根无 .agate.env）
+
+## 解析器输出（执行模式，bash agate-workspace-resolve.sh "$PWD"）
+AGATE_WORKSPACE=/tmp/opencode/p6fix/resolve-bdd4/agate-workspace
+AGATE_TASKS_DIR=/tmp/opencode/p6fix/resolve-bdd4/agate-workspace/tasks
+
+## 断言
+- exit code = 0（正常运行，不产生配置错误）
+- 工作区使用默认位置 {project_root}/agate-workspace
+- 解析器不依赖 .agate.env，缺失时静默走默认分支
+EXIT_CODE: 0

@@ -41,7 +41,7 @@ env_constraints:
 
 - [ ] P0-brief.md 四字段齐全（无空占位符）
 - [ ] 环境自检已执行（debug 环境 / 测试框架 / UI 任务的浏览器自动化）
-- [ ] active-tasks.md 已写入新任务行
+- [ ] {AGATE_WORKSPACE}/tasks/active-tasks.md 已写入新任务行
 
 推进后 → 读 P1 卡片
 

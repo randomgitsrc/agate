@@ -1,0 +1,4 @@
+=== serialize_evidence YAML int 边界回归（P5 修复验证：全数字哈希不再被丢弃） ===
+--- covered-hashes（应含 7008516，int→str 归一） ---
+7008516
+EXIT_CODE: 0

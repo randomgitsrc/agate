@@ -1,0 +1,9 @@
+=== BDD-17: check-gate.sh P8 debt_check 存在性检查（修正 exit code 捕获） ===
+--- 场景1：缺 debt_check → 应 exit 1 ---
+gate exit=1
+GATE P8: P8-release.md 缺 debt_check 字段（须确认债务清单并留痕，可为 none）
+--- 场景2：debt_check: none → 应 exit 2（脚本化检查通过） ---
+gate exit=2
+GATE P8 WARNING: 暂存区和最近 5 个 commit 均无 version 文件变更
+GATE P8 WARNING: 暂存区和最近 5 个 commit 均无 CHANGELOG.md 变更
+EXIT_CODE: 0

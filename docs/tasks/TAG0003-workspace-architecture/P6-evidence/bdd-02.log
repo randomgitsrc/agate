@@ -1,0 +1,13 @@
+# BDD-2 默认工作区位置为项目内 agate-workspace/（实跑解析器，无 .agate.env）
+
+fixture: /tmp/opencode/p6fix/resolve-default（项目根无 .agate.env）
+
+## 解析器输出（执行模式，bash agate-workspace-resolve.sh "$PWD"）
+AGATE_WORKSPACE=/tmp/opencode/p6fix/resolve-default/agate-workspace
+AGATE_TASKS_DIR=/tmp/opencode/p6fix/resolve-default/agate-workspace/tasks
+
+## 断言
+- AGATE_WORKSPACE = {project_root}/agate-workspace（默认值生效，位于项目根下）
+- AGATE_TASKS_DIR = 工作区根/tasks（派生正确）
+- exit 0，无配置错误
+EXIT_CODE: 0

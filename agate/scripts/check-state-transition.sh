@@ -24,9 +24,14 @@ get_old_phase() {
     # HEAD: 版本是 commit 前的旧版本（pre-commit hook 运行时 commit 还没创建）
     # :<path> 是暂存区版本（新的），HEAD:<path> 是旧版本
     local git_path="$STATE_BASENAME"
-    # 任务级 .state.yaml：保留完整路径（如 docs/tasks/T001/.state.yaml）
-    if echo "$STATE_FILE" | grep -qE 'docs/tasks/[^/]+/'; then
-        git_path="$STATE_FILE"
+    # 任务级 .state.yaml：保留完整路径（TAG0003 v2.0 去硬编码）
+    # 检测语义从「路径含 docs/tasks/[^/]+/」改为「dirname(STATE_FILE) != REPO_ROOT」，
+    # 与 pre-commit-gate.sh 的 TASK_DIR 分支同构，覆盖 docs/tasks / agate-workspace/tasks / 自定义路径
+    local state_dir repo_root
+    state_dir=$(realpath -m "$(dirname "$STATE_FILE")")
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+    if [ -n "$repo_root" ] && [ "$state_dir" != "$repo_root" ]; then
+        git_path=$(realpath --relative-to="$repo_root" "$STATE_FILE" 2>/dev/null || echo "$STATE_BASENAME")
     fi
     git show "HEAD:$git_path" 2>/dev/null | python3 "$SCRIPT_DIR/agate-state-get.py" phase_stdin 2>/dev/null || echo ""
 }
