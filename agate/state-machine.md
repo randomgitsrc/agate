@@ -37,8 +37,8 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
   {AGATE_WORKSPACE}/tasks/active-tasks.md 是否存在？
     存在 → 正常读取，按下面的状态机推进
     不存在 → 这是项目第一次接入 agate：
-      1. mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs}
-         （创建 8 个子目录：roadmap/tasks/agents/archived/reviews/decisions/plans/logs）
+      1. mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs,debt}
+         （创建 9 个子目录：roadmap/tasks/agents/archived/reviews/decisions/plans/logs/debt）
       2. 从 {agate_root}/assets/templates/active-tasks-template.md
          复制结构到 {AGATE_WORKSPACE}/tasks/active-tasks.md（清空示例数据，保留表结构）
       3. 视为"无进行中任务"，可以直接创建第一个任务（TAG0001）

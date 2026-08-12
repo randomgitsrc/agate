@@ -20,6 +20,7 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 | `check-pruning.sh` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
 | `check-scope-resolved.sh` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
 | `check-retrospective.sh` (P2.12) | 异常模式提醒（不阻塞）| 0=总是通过 |
+| `check-debt.sh` | 技术债登记校验：默认 FILE 模式=DEBT 条目 schema 校验（fail-closed）；`--retreat-coverage`=回退覆盖比对（git log `retreat:` 提交 vs `source: retreat` 条目，缺失 WARNING，恒 exit 0）| FILE 模式 0=通过, 1=校验失败；回退模式恒 0 |
 | `gate-result.sh` | gate 结果工具函数库 | （被 source）|
 
 ### CI 兜底
@@ -78,6 +79,7 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 | `agate-image-check.py` | 截图方差 / average hash | Pillow（可选）|
 | `agate-gate-missing-cmds.py` | gate_commands 缺失命令检测 | 无 |
 | `agate-gate-p5-count.py` | 统计 P5 命令数 | 无 |
+| `agate-debt-check.py` | DEBT 条目多块 schema 校验（` ```yaml ` fenced 块解析：必填/枚举/evidence 非空/closed 准入/id 唯一；`--covered-hashes`=回退覆盖哈希提取）| pyyaml |
 
 ---
 

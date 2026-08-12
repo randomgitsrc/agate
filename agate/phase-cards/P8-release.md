@@ -24,7 +24,8 @@ releaser subagent（implementer P8 模式）执行以下发布准备步骤：
 1. 读取 P2-design.md packages 声明，确定需 bump 的包
 2. 为每个 package 执行发布检查命令
 3. 更新 CHANGELOG [Unreleased] → 版本号
-4. 产出 P8-release.md（含 bump_type、版本号变更确认、CHANGELOG 更新确认、临时资源清单）
+4. 确认债务清单：读 `{AGATE_WORKSPACE}/debt/tech-debt.md`（若存在），在 P8-release.md 写入 `debt_check:` 字段（TAG0001 Phase 3）
+5. 产出 P8-release.md（含 bump_type、版本号变更确认、CHANGELOG 更新确认、debt_check 字段、临时资源清单）
 
 > **注意**：releaser subagent 不执行 bump-version / git commit / git tag，这些由主 Agent 在 gate 验证通过后亲自执行。
 
@@ -44,6 +45,7 @@ P8-release.md 中的**临时资源清单**是 releaser→主 Agent 的交接文�
 
 P8-release.md 必须包含：
 - `bump_type: major / minor / patch`
+- `debt_check: none / reviewed`——债务清单确认留痕（TAG0001 Phase 3）：`none` = 本次无关注项（合法选项，不视为失败）；`reviewed` = 已核对，建议正文附条目 id 清单。只查留痕存在，不查内容达标、不阻断发布
 - 版本号变更确认（version 文件已修改）
 - CHANGELOG [Unreleased] → 新版本号
 - 临时资源清单：本任务启动的临时服务/进程/数据/开发安装
@@ -55,6 +57,7 @@ check-gate.sh P8 $TASK_DIR
 ```
 
 - bump_type 字段存在
+- `debt_check` 字段存在（缺失 → exit 1；内容任意，含 `none` / 未关闭债务 → 不阻断，BDD-17）
 - 暂存区有 version 文件变更
 - 暂存区 CHANGELOG 有变更
 

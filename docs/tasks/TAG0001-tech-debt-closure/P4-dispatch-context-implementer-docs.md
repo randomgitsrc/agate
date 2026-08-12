@@ -1,3 +1,54 @@
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0001
+role: implementer-docs
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+实现 TAG0001 技术债闭环的**协议文档/卡片/规则同步 + 归类修正同步面**：P8 卡片确认债务清单一步 + 回退规则 DEBT 强制 + review 角色卡可发现性 + 工作区 mkdir 8→9 子目录 + UPGRADING 变更节 + consistency 锚点（SCOPE+ #2）+ TAG0003 产出修订注。
+
+### 约束
+- 本任务是 **agate 协议自身改造**（dogfooding）：只改 worktree 的 `agate/`，**禁止改动 `~/.agate`**（稳定版 v0.40.2 开发工具）。测试用 worktree 本体。
+- **只改本角色文件集**（文档/卡片/规则/同步面），不改核心脚本/模板（那是并行 implementer-core 的活）：
+  - `agate/phase-cards/P8-release.md`：执行方式增加"确认债务清单"一步（结果写入 P8-release.md）；产出规格增加 `debt_check:` 字段说明（`none` 是合法选项，只查留痕不查内容达标）
+  - `agate/rules/state-transitions.md`（回退规则节 L61-82）：明确"回退落地后必须建 `source: retreat` DEBT 条目"
+  - `agate/phase-cards/P6-acceptance.md`（L144）+ `agate/phase-cards/P4-implementation.md`（L27）：回退流程补 DEBT 强制提示
+  - `agate/assets/review-roles/plan-eng-review.md`（L19）：追加"提债须用标准 DEBT 条目格式"（可发现性）
+  - `agate/WORKFLOW.md`（L79 + L81-91 目录图 + L85）："固定 8 个子目录"→"9 个（含 debt/）"；目录图加 `debt/`；agents/ 注释去 tech-debt（归类修正）
+  - `agate/orchestrator-template.md`（L102）/ `agate/SETUP.md`（L114）/ `agate/state-machine.md`（L40-41）：mkdir 8→9 子目录 + 文字表述同步（三处同一 9 集：roadmap/tasks/agents/archived/reviews/decisions/plans/logs/**debt**）
+  - `agate/UPGRADING.md`：新增 v0.43.0 变更节（debt/ 子目录、tech-debt 路径、P8 debt_check 字段、回退强制）
+  - `agate/scripts/check-protocol-consistency.py`：CHECK 9 锚点表加 `check-debt.sh` 锚点（SCOPE+ #2）+ `agate/scripts/README.md` 脚本清单补录 check-debt.sh/agate-debt-check.py（SCOPE+ #2）
+  - `docs/tasks/TAG0003-workspace-architecture/P1-requirements.md`（BDD-1）+ `P6-acceptance.md`（BDD-1）：追加 2026-08-12 修订注——口径 8→9（含 debt/），TAG0003 的 BDD-1 验收口径随本次变更重验
+- 实现严格按 P2-design.md 方案（§2.5 归类修正同步面 + §2.6 + §2.7）。
+- **不碰**：core 组的新增脚本/模板（tech-debt-template.md / agate-debt-check.py / check-debt.sh）、check-gate.sh P8 分支、agate-retreat-to.sh（那些是 implementer-core 的活）。
+- 注意：check-protocol-consistency.py 归 docs 组处理（它跨脚本/文档锚点，P2 §0.1 表 #13）——它与 core 组文件不重叠。
+- **自查≠gate**：改完自跑 `python3 agate/scripts/check-protocol-consistency.py` 确认 0 ERROR（自查），但自查通过 ≠ P5 gate 通过。
+- 实现中发现 P2 设计歧义/缺口 → 标 `[DESIGN_GAP: 描述]`；发现新隐含需求 → 标 `[SCOPE+]`；发现 prompt 漏了 P2 已声明的事 → 标 `[SCOPE_GAP]`。
+- 遵守 AGENTS.md 脚本约定。禁止行首 `- PASS` / `- FAIL` 格式（provenance 审计拦截）。
+
+### 上游关联
+- P2 已批准（plan-eng-review approved）：D1-D4 定案 + 归类修正同步面（§2.5）+ 2 项 SCOPE+。
+- 2 项 SCOPE+ 已回补 P1 scope_resolved（G8 fixture 同步 + consistency 锚点）。
+- TAG0003 已验收：工作区 8 子目录（roadmap/tasks/agents/archived/reviews/decisions/plans/logs）——本次加 debt/ 变 9。
+
+### 输入文件
+- docs/tasks/TAG0001-tech-debt-closure/P2-design.md（方案设计 §2.5-2.7 + 0.1 改动面表——**必读**）
+- docs/tasks/TAG0001-tech-debt-closure/P1-requirements.md（20 条 BDD——必读，尤其 BDD-1/2/3/4 归类修正相关）
+- docs/tasks/TAG0001-tech-debt-closure/P0-brief.md（环境约束——必读）
+- AGENTS.md（项目约定——必读）
+- 待改文档/脚本本身（按上文文件集逐一读取并同步）
+- agate/WORKFLOW.md + orchestrator-template.md + SETUP.md + state-machine.md（归类修正同步对象——必读）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -14,7 +65,7 @@
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 5. 更新 .state.yaml phase=P4 → P5
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
@@ -24,7 +75,7 @@
 → 修复后重跑全量测试（T027 教训：修复可能引入回归）
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P4 MAX=3）
 
-**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。**回退落地后必须建 DEBT 条目**（`source: retreat`，`evidence` 引用 retreat 提交哈希，模板 `assets/templates/tech-debt-template.md`——TAG0001 强制，见 `agate/rules/state-transitions.md` 回退规则节）。
+**若这次是从 P6（或其他更后的阶段）退回来的**：`docs/tasks/Txxx/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `docs/tasks/Txxx/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
 
 ## 前置条件
 
@@ -148,3 +199,13 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree 是改造对象（分支 dev/workspace，HEAD=TAG0001-P3 commit，已含 TAG0003 工作区架构 + TAG0002 refactor 机制）；`~/.agate` → 主 checkout 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 已核实查证：TAG0003 工作区规范 agents/ 含 tech-debt（WORKFLOW.md L85）；orchestrator-template.md L102 mkdir 8 子目录（roadmap/tasks/agents/archived/reviews/decisions/plans/logs）；UPGRADING.md 最新变更节为 v0.42.0（TAG0002）；check-protocol-consistency.py 有 SCRIPT_ALIGNMENT_ANCHORS 锚点表。
+- 测试基线：全量 bats 654 用例（P3 新增 22 后应增长）；consistency 0 ERROR（当前）。
+- 协议目录结构：agate/ 含 WORKFLOW.md / dispatch-protocol.md / state-machine.md / role-system.md / git-integration.md / platform-notes.md / LIMITATIONS.md / orchestrator-template.md / phase-cards/ / assets/（execution-roles + review-roles + templates）/ scripts/ / tests/ / AGENTS.md / adr.md / CONTEXT.md / SETUP.md / UPGRADING.md / rules/。
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

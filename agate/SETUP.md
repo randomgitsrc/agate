@@ -111,7 +111,7 @@ bash ~/.agate/scripts/install-hook.sh
 ```bash
 bash ~/.agate/scripts/agate-summary.sh   # 确认协议版本、hook 已装
 bash ~/.agate/scripts/agate-workspace-resolve.sh  # 确认工作区解析（输出 AGATE_WORKSPACE）
-mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs}
+mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs,debt}
 # 若 {AGATE_WORKSPACE}/tasks/active-tasks.md 不存在，orchestrator 首次运行会自动从模板建，不需要手动建
 ```
 

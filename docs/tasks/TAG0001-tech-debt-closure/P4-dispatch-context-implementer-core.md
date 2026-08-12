@@ -1,3 +1,54 @@
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0001
+role: implementer-core
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+实现 TAG0001 技术债闭环的**核心脚本/模板**：新增 `assets/templates/tech-debt-template.md` + `scripts/agate-debt-check.py`（多条目 schema 校验器）+ `scripts/check-debt.sh`（fail-closed 薄壳，双命令：schema 校验 + 回退比对），改造 `scripts/check-gate.sh` P8 分支（debt_check 留痕检查）+ `scripts/agate-retreat-to.sh`（回退后提醒建 DEBT）。让 P3 的红灯测试（agate-debt-check.bats / check-gate.bats G8.9/10）变绿。
+
+### 约束
+- 本任务是 **agate 协议自身改造**（dogfooding）：只改 worktree 的 `agate/`，**禁止改动 `~/.agate`**（稳定版 v0.40.2 开发工具）。测试用 worktree 本体（load.bash 反推 AGATE_ROOT）。
+- **只改本角色文件集**（核心脚本/模板），不改文档/卡片/规则（那是并行 implementer-docs 的活）：
+  - 新增：`agate/assets/templates/tech-debt-template.md`、`agate/scripts/agate-debt-check.py`、`agate/scripts/check-debt.sh`
+  - 改造：`agate/scripts/check-gate.sh`（P8 分支加 debt_check 留痕检查：缺失 exit 1；内容不检）、`agate/scripts/agate-retreat-to.sh`（回退完成后打印"须建 DEBT 条目"提醒）
+  - 注：check-protocol-consistency.py CHECK 9 锚点 + scripts/README.md 补录（SCOPE+ #2）归 docs 组处理（它俩跨脚本/文档，按 P2 §0.1 表 #13 处理——与 docs 组协调或自行处理，文件不重叠即可）
+- 实现严格按 P2-design.md 方案（D1-D4 定案）：
+  - **D1**：DEBT 条目用 fenced yaml 块（```yaml 块内 `id:` 开头）——详见 §2.1 解析契约
+  - **D2**：独立校验器 agate-debt-check.py（不复用 agate-frontmatter-check.py——tech-debt 是多条目文件，单块 frontmatter 解析不适用）
+  - **D3**：check-debt.sh 薄壳双命令——`FILE` 模式=schema 校验；`--retreat-coverage` 模式=回退比对 WARNING
+  - **D4**：P8 debt_check 硬留痕——check-gate.sh P8 分支：P8-release.md 缺 `debt_check:` 行 → exit 1；内容任意（none 也是合法）→ exit 2
+- **schema 校验规则（§2.2）**：必填（id/category/status/priority/evidence/impact/title）、枚举（category=technical|management|protocol、status=open|in_progress|closed、priority=high|medium|low、source=retreat|review|retrospective）、evidence 非空、closed 准入（必须有 task_id + 证据引用）、id 唯一。
+- **回退比对（§2.4）**：从 git log 提取 `retreat:` 提交，与 tech-debt.md 中 `source: retreat` 条目比对，缺失 WARNING（不 exit 1——触发器非阻断）。tech-debt.md 路径用 agate-workspace-resolve.sh 解析（`{AGATE_WORKSPACE}/debt/tech-debt.md`）；文件不存在 → retreat 存在则 WARNING。
+- **模板（§2.8）**：tech-debt-template.md 含用法/判据（"不修它，当前任务的验收声明会不会变成假的？"）/字段表/三态/示例条目/回退强制说明；示例条目必须可被 yaml.safe_load（占位符用 `{...}` 会被 sanitize）。
+- **自查≠gate**：写完代码自跑 P3 目标测试（agate-debt-check.bats + check-gate.bats）确认转绿（自查），但自查通过 ≠ P5 gate 通过。
+- 实现中发现 P2 设计歧义/缺口 → 标 `[DESIGN_GAP: 描述]`（单行 tag）；发现新隐含需求 → 标 `[SCOPE+]`；发现 prompt 漏了 P2 已声明的事 → 标 `[SCOPE_GAP]`。
+- 遵守 AGENTS.md 脚本约定（set -euo pipefail、紧凑输出等）。
+- 禁止行首 `- PASS` / `- FAIL` 格式（provenance 审计拦截）。
+
+### 上游关联
+- P3 红灯测试（本次要变绿的）：`agate/tests/unit/agate-debt-check.bats`（22 用例：20 校验 + 2 P8）+ `agate/tests/unit/check-gate.bats`（G8.9/10 新增 + G8.2/3/4/6/7/8 fixture 已同步补 debt_check）。
+- P2 已批准（plan-eng-review approved）：D1-D4 定案 + 2 项 SCOPE+。
+- 2 项 SCOPE+ 已回补 P1 scope_resolved（G8 fixture 同步 + consistency 锚点）。
+
+### 输入文件
+- docs/tasks/TAG0001-tech-debt-closure/P2-design.md（方案设计 §2.1-2.4/2.8 + files_to_read——**必读**）
+- docs/tasks/TAG0001-tech-debt-closure/P3-test-cases.md（测试契约——必读，实现目标）
+- agate/tests/unit/agate-debt-check.bats + agate/tests/unit/check-gate.bats（测试代码——必读，理解预期行为）
+- docs/tasks/TAG0001-tech-debt-closure/P0-brief.md（环境约束——必读）
+- AGENTS.md（脚本约定/测试约定——必读）
+- 按 P2-design.md files_to_read 读取现有文件（check-gate.sh P8 分支 / agate-retreat-to.sh / agate-workspace-resolve.sh / 既有模板风格）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -14,7 +65,7 @@
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 5. 更新 .state.yaml phase=P4 → P5
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
@@ -24,7 +75,7 @@
 → 修复后重跑全量测试（T027 教训：修复可能引入回归）
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P4 MAX=3）
 
-**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。**回退落地后必须建 DEBT 条目**（`source: retreat`，`evidence` 引用 retreat 提交哈希，模板 `assets/templates/tech-debt-template.md`——TAG0001 强制，见 `agate/rules/state-transitions.md` 回退规则节）。
+**若这次是从 P6（或其他更后的阶段）退回来的**：`docs/tasks/Txxx/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `docs/tasks/Txxx/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
 
 ## 前置条件
 
@@ -148,3 +199,13 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree 是改造对象（分支 dev/workspace，HEAD=TAG0001-P3 commit，已含 TAG0003 工作区架构 + TAG0002 refactor 机制）；`~/.agate` → 主 checkout 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 版本隔离三条铁律：改协议只改 worktree 的 `agate/`；跑 gate/读卡片用 `~/.agate`（原版规则）；跑测试用 worktree 本体（load.bash 反推 AGATE_ROOT 到 worktree）。
+- 已核实查证：check-gate.sh P8 分支（L413-471）现查 bump_type + version/CHANGELOG（无 debt_check）；agate-retreat-to.sh 回退完成后无 DEBT 提醒；agate-debt-check.py / check-debt.sh / tech-debt-template.md 尚不存在；agate-workspace-resolve.sh 可解析 `{AGATE_WORKSPACE}`。
+- 测试基线：全量 bats 654 用例（P3 新增 22 后应增长）；count-tests.sh 基线。
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

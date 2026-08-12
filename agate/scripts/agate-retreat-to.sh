@@ -68,3 +68,6 @@ while [ "$n" -gt "$tgt_num" ]; do
     n="$next"; STEPS=$((STEPS + 1))
 done
 echo "GATE RETREAT: 已退到 ${TARGET_PHASE}，共 ${STEPS} 步，均已独立 commit + 归档"
+# 回退落地后必须建 DEBT 条目（TAG0001 Phase 2 唯一硬强制，BDD-12）
+# 事后兜底由 check-debt.sh --retreat-coverage 只读比对（不阻断）
+echo "GATE RETREAT: 回退已完成——请为本次回退建立 source: retreat 的 DEBT 条目（{AGATE_WORKSPACE}/debt/tech-debt.md，模板见 assets/templates/tech-debt-template.md）"

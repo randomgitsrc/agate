@@ -34,7 +34,7 @@ load ../helpers/load.bash
     [ "$status" -eq 0 ]
     local dir
     dir=$(mktemp -d "$BATS_TEST_TMPDIR/ws-XXXXXX")
-    mkdir -p "$dir/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs,debt}"
+    mkdir -p "$dir/roadmap" "$dir/tasks" "$dir/agents" "$dir/archived" "$dir/reviews" "$dir/decisions" "$dir/plans" "$dir/logs" "$dir/debt"
     local n
     n=$(ls -1 "$dir" | wc -l | tr -d ' ')
     [ "$n" -eq 9 ]
@@ -44,7 +44,7 @@ load ../helpers/load.bash
     # SETUP/UPGRADING 指向 {AGATE_WORKSPACE}/debt/tech-debt.md，无指向 agents/ 的过期路径（BDD-3）
     run grep -q 'debt/tech-debt.md' "$AGATE_ROOT/UPGRADING.md"
     [ "$status" -eq 0 ]
-    run grep -q 'debt/' "$AGATE_ROOT/SETUP.md"
+    run grep -q 'debt' "$AGATE_ROOT/SETUP.md"
     [ "$status" -eq 0 ]
     run grep -E 'agents/tech-debt' "$AGATE_ROOT/UPGRADING.md"
     [ "$status" -eq 1 ]

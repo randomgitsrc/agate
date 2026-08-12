@@ -23,6 +23,7 @@ ui_affected: false
 ## 工作区初始化与目录规范
 
 - PASS BDD-1: 新项目初始化创建完整规范工作区——fixture 实跑初始化命令建出 roadmap/tasks/agents/archived/reviews/decisions/plans/logs 全部 8 子目录，且 orchestrator-template.md:102 + SETUP.md:114 均含同一 mkdir 命令(bdd-01-init.log)
+> 【2026-08-12 修订注】口径由 TAG0001 更新为 **9 子目录**（含 `debt/`）——WORKFLOW.md 目录规范已改，本记录保留原 8 子目录证据；BDD-4 重验判据 = 修订注存在 + 三处 mkdir 与目录图一致为 9。
 - PASS BDD-2: 默认工作区位置为项目内 agate-workspace/——无 .agate.env 时解析器输出 AGATE_WORKSPACE={project_root}/agate-workspace、tasks_base=工作区根/tasks(bdd-02.log)
 - PASS BDD-3: `.agate.env` 可将工作区指向项目外路径——.agate.env 声明外部绝对路径时解析器输出外部路径，且项目根不新建默认 agate-workspace/(bdd-03.log)
 - PASS BDD-4: 无 `.agate.env` 时不报错、走默认位置——解析器 exit 0 且工作区用默认位置，无配置错误(bdd-04.log)

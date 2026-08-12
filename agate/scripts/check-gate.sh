@@ -422,6 +422,12 @@ case "$PHASE" in
            echo "GATE P8: P8-release.md 缺 bump_type 字段" >&2
            exit 1
        fi
+       # 债务清单确认留痕检查（TAG0001 Phase 3）：只查留痕存在，不查内容达标、不阻断发布
+       # debt_check 缺失 → exit 1（4A 硬留痕）；字段存在（值任意，含 none / 未关闭债务）→ 放行
+       if ! grep -q 'debt_check:' "$TASK_DIR/P8-release.md" 2>/dev/null; then
+           echo "GATE P8: P8-release.md 缺 debt_check 字段（须确认债务清单并留痕，可为 none）" >&2
+           exit 1
+       fi
        # 检查 version 文件变更（路径 A: 暂存区 + 路径 B: 最近 commit）
        VERSION_PATTERN="${AGATE_VERSION_FILES:-version|__version__|package.json|Cargo.toml|pyproject.toml|go.mod|pom.xml|gemspec|csproj}"
        CACHED_VERSION=no

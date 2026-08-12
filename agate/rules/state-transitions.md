@@ -81,6 +81,8 @@ bash agate/scripts/agate-retreat-to.sh {TASK_DIR} {目标阶段} "{诊断原因}
 
 这个脚本会依次产生多个独立的、diff=1 的真实 commit（每一步都归档 + 过 gate 校验），不会绕过或放宽 `check-state-transition.sh` 对大跳回退的 PAUSED 限制——它只是自动化了合法的单步回退序列，不是让大跳直接放行。调用前需确保暂存区没有与本次回退无关的文件（脚本会检查并拒绝）。
 
+**回退落地后必须建 DEBT 条目（TAG0001 强制）**：任何正式回退（`retreat:` 提交，含多步回退）完成后，必须建立 `source: retreat` 的 DEBT 条目，`evidence` 引用该 retreat 提交的哈希——模板见 `assets/templates/tech-debt-template.md`，条目登记于 `{AGATE_WORKSPACE}/debt/tech-debt.md`。回退是协议定义的事实事件，登记不依赖任何人的判断（BDD-12）；事后 `check-debt.sh --retreat-coverage` 会把未登记的 retreat 提交比对出来并报 WARNING（只读提醒，不阻断 commit/发布）。
+
 ## PAUSED 恢复
 
 - 人工确认/决策后恢复到 PAUSED 前的阶段

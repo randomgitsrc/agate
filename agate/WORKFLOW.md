@@ -76,13 +76,14 @@ agate 建立在两条主线上：
 
 ## 工作区目录规范（v2.0 起）
 
-agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPACE}` = 项目根下 `agate-workspace/`，可用 `.agate.env` 配置指向其他位置，解析见 `agate-workspace-resolve.sh`），不再散布在项目 `docs/` 下。工作区根下固定 8 个子目录：
+agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPACE}` = 项目根下 `agate-workspace/`，可用 `.agate.env` 配置指向其他位置，解析见 `agate-workspace-resolve.sh`），不再散布在项目 `docs/` 下。工作区根下固定 9 个子目录：
 
 ```
 {AGATE_WORKSPACE}/                # 工作区根（默认 agate-workspace/）
 ├── roadmap/                      # 项目级任务规划看板（roadmap.md）
 ├── tasks/                        # 任务目录（active-tasks.md + 各 {Txxx}/ 任务）
-├── agents/                       # agent 知识（project.md / memory / tech-debt）
+├── agents/                       # agent 输入知识（project.md / memory）
+├── debt/                         # 技术债登记（tech-debt.md，模板见 assets/templates/tech-debt-template.md）
 ├── archived/                     # 归档（已归档任务/阶段产出）
 ├── reviews/                      # 评审记录
 ├── decisions/                    # 决策记录

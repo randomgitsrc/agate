@@ -642,6 +642,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "keywords": ["frontmatter"],
         "callers": ["agate/scripts/pre-commit-gate.sh"],
     },
+    {
+        "desc": "tech-debt schema 校验 + 回退覆盖比对（DEBT 条目）",
+        "script": "agate/scripts/check-debt.sh",
+        "keywords": ["debt", "retreat"],
+    },
 ]
 
 

@@ -85,6 +85,7 @@ scope_resolved:
 - Given 一个首次接入 agate 的新项目，项目内无既有工作区目录
 - When 完成初始化（安装/启动编排）
 - Then 项目内出现工作区目录，且包含 roadmap/、tasks/、agents/、archived/、reviews/、decisions/、plans/、logs/ 全部子目录
+> 【2026-08-12 修订注】口径由 TAG0001 更新为 **9 子目录**（含 `debt/`）——WORKFLOW.md 目录规范已改，本记录保留原 8 子目录证据；BDD-4 重验判据 = 修订注存在 + 三处 mkdir 与目录图一致为 9。
 
 #### BDD-2: 默认工作区位置为项目内 agate-workspace/
 - Given 项目未配置 `.agate.env` 中的工作区位置
