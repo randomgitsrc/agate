@@ -1,0 +1,15 @@
+# BDD-11 orchestrator 从工作区内路径读取 project.md（不再从项目 docs 目录）
+
+grep 目标: agate/orchestrator-template.md
+
+## 工作区内路径引用（3 处）
+:21  如果 `{AGATE_WORKSPACE}/agents/project.md` 里显式声明了 `project_root:`，以声明值为准。
+:26  ⚠️ ... 项目特定信息全部只从 `{AGATE_WORKSPACE}/agents/project.md`（可选）+ ...
+:122 - `{AGATE_WORKSPACE}/agents/project.md`（**若存在**——项目侧按需创建，模板见 `{agate_root}/assets/templates/project.md`；不存在则跳过这条，只读下面两条）
+
+## 旧路径已移除（不再从 docs 目录读取）
+grep -n 'docs/agents' orchestrator-template.md → 无输出（no docs/agents reference - OK）
+
+## 结论
+project.md 从 `{AGATE_WORKSPACE}/agents/project.md` 读取，旧的 `docs/agents/project.md` 路径已从
+orchestrator-template 移除 —— 满足 BDD-11。

@@ -1,0 +1,13 @@
+# BDD-12 orchestrator 从工作区内路径读取任务看板（不再从项目 docs 目录）
+
+grep 目标: agate/orchestrator-template.md
+
+## 工作区内看板路径引用（4 处）
+:71  旧布局检测：若 `{project_root}/docs/tasks/active-tasks.md` 存在而 `{AGATE_WORKSPACE}/tasks/active-tasks.md` 不存在 → ...
+:78  4. 读 `{AGATE_WORKSPACE}/tasks/active-tasks.md`：
+:103 3. 若 `{AGATE_WORKSPACE}/tasks/active-tasks.md` 不存在，从 `{agate_root}/assets/templates/active-tasks-template.md` 复制
+:124 - `{AGATE_WORKSPACE}/tasks/active-tasks.md` — 任务看板
+
+## 结论
+任务看板读取路径为 `{AGATE_WORKSPACE}/tasks/active-tasks.md`。orchestrator-template 中 docs/tasks/active-tasks.md
+仅出现在「旧布局检测」上下文中（作为检测条件，BDD-10），不再作为读取路径 —— 满足 BDD-12。

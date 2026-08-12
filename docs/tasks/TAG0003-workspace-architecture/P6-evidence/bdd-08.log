@@ -1,0 +1,21 @@
+# BDD-8 迁移保留 git 历史（git mv 文件移动语义，非删除重建）
+
+fixture: /tmp/opencode/p6fix/migrate/repo（git 仓库，docs/tasks 已 commit 后整体迁移）
+
+## git log --oneline（迁移后）
+022a7a0 chore(workspace): migrate legacy docs/tasks layout to workspace
+af6e0b3 init: legacy docs/tasks layout
+
+## git status（迁移后，无 docs/tasks 残留；仅验证日志文件未跟踪）
+?? bdd-06-migrate.out
+
+## git log --follow 在新路径追溯（BDD-8 核心断言）
+命令: git log --follow --oneline -- agate-workspace/tasks/T001-fake/P1-requirements.md
+输出:
+022a7a0 chore(workspace): migrate legacy docs/tasks layout to workspace
+af6e0b3 init: legacy docs/tasks layout
+
+## 结论
+git log --follow 在新路径可同时追溯「init」（原 docs/tasks/T001-fake/P1-requirements.md 内容）与「migrate」
+两个 commit —— 迁移是文件移动语义（rename），git 记录为 R rename，历史完整保留。
+EXIT_CODE: 0

@@ -1,0 +1,26 @@
+# BDD-7 迁移不丢失任务状态与阶段产出（fixture 文件清单对照）
+
+fixture: /tmp/opencode/p6fix/migrate/repo
+docs/tasks 含: active-tasks.md + T001-fake/.state.yaml（被 **/.state.yaml gitignore、未跟踪）+ T001-fake/P1-requirements.md
+
+## 迁移前 docs/ 下文件清单（find docs -type f，4 个文件）
+  docs/archived/tasks/T000-old/report.md
+  docs/tasks/active-tasks.md
+  docs/tasks/T001-fake/P1-requirements.md
+  docs/tasks/T001-fake/.state.yaml
+
+## 迁移后工作区文件清单（find agate-workspace -type f，4 个文件）
+  agate-workspace/archived/tasks/T000-old/report.md
+  agate-workspace/tasks/active-tasks.md
+  agate-workspace/tasks/T001-fake/P1-requirements.md
+  agate-workspace/tasks/T001-fake/.state.yaml
+
+## 迁移后 docs/ 已空（find docs -type f → 无输出）
+
+## 逐文件断言
+  OK agate-workspace/tasks/active-tasks.md
+  OK agate-workspace/tasks/T001-fake/P1-requirements.md
+  OK agate-workspace/tasks/T001-fake/.state.yaml   ← 被 gitignore 的 .state.yaml 随目录级 git mv 物理迁移，未漏
+
+## 结论
+任务看板 + 任务目录 + .state.yaml + 阶段产出文件全部随迁，无文件丢失（迁移前 4 = 迁移后 4）。

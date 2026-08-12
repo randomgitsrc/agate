@@ -1,0 +1,62 @@
+=== 测试用例覆盖度自检 ===
+  unit/agate-archive-stale-outputs.bats                7 个 @test
+  unit/agate-capture-env-baseline.bats                15 个 @test
+  unit/agate-card-inject.bats                          2 个 @test
+  unit/agate-changelog-unreleased.bats                 2 个 @test
+  unit/agate-evidence-consistency.bats                 2 个 @test
+  unit/agate-extract-context.bats                     15 个 @test
+  unit/agate-gate-missing-cmds.bats                    2 个 @test
+  unit/agate-gate-p5-count.bats                        2 个 @test
+  unit/agate-image-check.bats                          4 个 @test
+  unit/agate-inject-card.bats                         11 个 @test
+  unit/agate-json-get.bats                             8 个 @test
+  unit/agate-md-field-get.bats                         6 个 @test
+  unit/agate-migrate-workspace.bats                    9 个 @test
+  unit/agate-next-card.bats                           20 个 @test
+  unit/agate-read-p5-commands.bats                     4 个 @test
+  unit/agate-render-dispatch-prompt.bats              16 个 @test
+  unit/agate-retreat-state.bats                        3 个 @test
+  unit/agate-retreat-to.bats                           5 个 @test
+  unit/agate-state-get.bats                            6 个 @test
+  unit/agate-state-yaml-check.bats                     3 个 @test
+  unit/agate-vision-blocker.bats                       2 个 @test
+  unit/agate-workspace-resolve.bats                    9 个 @test
+  unit/check-changelog.bats                            8 个 @test
+  unit/check-frontmatter.bats                         10 个 @test
+  unit/check-gate.bats                               100 个 @test
+  unit/check-gate-p1-review.bats                       9 个 @test
+  unit/check-gate-p5-diff.bats                        13 个 @test
+  unit/check-p6-evidence.bats                         28 个 @test
+  unit/check-p6-format.bats                           14 个 @test
+  unit/check-p6-provenance.bats                       36 个 @test
+  unit/check-protocol-consistency.bats                 3 个 @test
+  unit/check-pruning.bats                             29 个 @test
+  unit/check-retrospective.bats                       10 个 @test
+  unit/check-scope-resolved.bats                      10 个 @test
+  unit/check-state-transition.bats                    30 个 @test
+  unit/check-state-yaml.bats                           9 个 @test
+  unit/check-tdd-red.bats                             38 个 @test
+  unit/check-tdd-red-formatter.bats                   12 个 @test
+  unit/ci-gate-backstop.bats                           8 个 @test
+  unit/commit-msg-self-gate.bats                       4 个 @test
+  unit/dispatch-context-warning.bats                   1 个 @test
+  unit/install-hook.bats                               5 个 @test
+  regression/v040-dotarchived-exclusion.bats           2 个 @test
+  regression/v060-design-gap.bats                      4 个 @test
+  regression/v060-p8-cached.bats                       3 个 @test
+  regression/v060-p8-internal-only.bats                3 个 @test
+  regression/v060-r4-cached.bats                       2 个 @test
+  regression/v060-yaml-indent.bats                     3 个 @test
+  integration/commit-msg-self-gate.bats                6 个 @test
+  integration/consistency.bats                        11 个 @test
+  integration/dispatch-context-card.bats               8 个 @test
+  integration/pre-commit-hook.bats                    42 个 @test
+  integration/pre-push-hook.bats                       3 个 @test
+  integration/protocol-alignment-review.bats           8 个 @test
+===
+总计：625 个测试用例
+
+如果此数字与 docs/plans/agate-test-plan-2026-07-01.md 附录 A 不一致
+→ 文档漂移，需要更新。
+如果文档改了但 .bats 文件没动 → 测试计划空头支票。
+EXIT_CODE: 0

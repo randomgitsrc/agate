@@ -1,0 +1,18 @@
+# BDD-15 roadmap 条目拆分为任务进入待开始看板（文档规范 + 模拟执行）
+
+## 文档规范锚点：WORKFLOW.md
+:111 2. **条目拆分为任务**（BDD-15）：拆任务时在 `{AGATE_WORKSPACE}/tasks/` 建任务目录 + active-tasks.md「待开始」区写入任务行（任务行记录 `roadmap: <条目id>` 关联），条目状态 → `scheduled`。
+
+## 模板锚点：roadmap-template.md
+:19 | `scheduled` | 已拆任务 | 拆任务 → 工作区 tasks/ 建任务目录 + active-tasks.md「待开始」写入任务行（任务行 `roadmap: <条目id>` 关联）|
+:32 2. **条目 → 任务**：... 同时把条目状态改为 `scheduled`。
+
+## 模拟执行断言（fixture: /tmp/opencode/p6fix/roadmap-sim/）
+RM-AG0003 → 任务 TAG0004-audit-export：
+  [OK] 工作区 tasks/TAG0004-audit-export/ 任务目录已创建
+  [OK] active-tasks.md「待开始」区写入任务行并记录 roadmap 关联：
+       tasks/active-tasks.md:86  - [ ] TAG0004-audit-export (roadmap: RM-AG0003)
+  [OK] roadmap 条目状态 backlog → scheduled（roadmap-simulate.md 记录）
+
+## 结论
+任务写入工作区 tasks 看板「待开始」区 + 与 roadmap 条目关联（roadmap: 字段）+ 条目状态切 scheduled —— 满足 BDD-15。

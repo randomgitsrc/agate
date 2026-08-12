@@ -1,0 +1,16 @@
+# BDD-19 项目从未有过 docs/tasks/ 时迁移工具正常运行（fixture 实跑）
+
+fixture: /tmp/opencode/p6fix/empty/repo（git 仓库仅 README.md，无 docs/tasks、无 docs/archived）
+
+## 前置断言
+- docs/tasks ABSENT（无迁移源，期望状态确认）
+
+## agate-migrate-workspace.sh 输出
+迁移：docs/tasks 与 docs/archived 均不存在或为空，无需迁移（no-op）
+EXIT_CODE: 0
+
+## 断言
+- exit 0（正常运行不报错、不产生错误动作）
+- 空源被当作合法状态（no-op，不创建错误目录）
+- 迁移后工作区 tasks/ 仍可正常初始化：mkdir -p agate-workspace/tasks 成功
+EXIT_CODE: 0

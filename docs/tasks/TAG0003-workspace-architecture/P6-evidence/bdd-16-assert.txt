@@ -1,0 +1,16 @@
+# BDD-16 任务完成回写 roadmap（闭环）（文档规范 + 模拟执行）
+
+## 文档规范锚点：WORKFLOW.md
+:112 3. **任务完成回写**（BDD-16）：任务完成（P8 gate + READY）→ 回写条目状态 `done`（或 `cancelled`），闭环可追溯。
+
+## 模板锚点：roadmap-template.md
+:21 | `done` | 已完成 | 任务 P8 gate + READY 完成 → 回写 |
+:33 3. **任务完成 → 回写**：任务完成（P8 gate + READY）→ 条目状态改为 `done`（或 `cancelled`），更新列记日期。闭环：任务→条目（任务行 roadmap 字段）、条目→任务（条目关联任务列）双向可见。
+
+## 模拟执行断言（fixture: /tmp/opencode/p6fix/roadmap-sim/）
+任务 TAG0004-audit-export 完成（模拟 P8 gate + READY）→ 回写：
+  [OK] roadmap.md 中 RM-AG0003 条目状态改为 done：`| RM-AG0003 | 审计日志导出 | done | ... | TAG0004-audit-export | ...`（grep -c 命中 = 1）
+  [OK] 闭环双向可见：任务行 `roadmap: RM-AG0003`（任务→条目）+ 条目关联任务列 TAG0004-audit-export（条目→任务）
+
+## 结论
+任务完成回写 roadmap 条目状态 done、闭环双向可追溯 —— 满足 BDD-16。
