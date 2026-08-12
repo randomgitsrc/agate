@@ -69,7 +69,7 @@ status: closed
 priority: medium
 task_id: TAG0003
 evidence:
-  - path: docs/tasks/TAG0003-workspace-architecture/P6-acceptance.md
+  - path: agate-workspace/tasks/TAG0003-workspace-architecture/P6-acceptance.md
 impact: 影响后续验收
 recommendation: 补登记
 closure_criteria:

@@ -48,7 +48,7 @@
 ### 破坏性变更（TAG0003 工作区架构）
 - **编排状态迁移到工作区（agate-workspace/）**：agate 的全部编排状态（任务/看板/归档/评审/决策/计划/日志/roadmap/agent 知识）从项目 `docs/tasks/`、`docs/agents/`、`docs/archived/` 迁移到**工作区**（默认项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 配置位置）。orchestrator 从工作区读取 `agents/project.md` 与 `tasks/active-tasks.md`，不再读 `docs/` 下旧路径——**影响所有已部署项目**。⚠️ 存量项目升级前必读 `agate/UPGRADING.md` §3「v0.41.0」迁移节（迁移工具步骤见下）
 - **新增迁移工具 `agate-migrate-workspace.sh`**：目录级 `git mv` 强制迁移 `docs/tasks/` → `{workspace}/tasks/`、`docs/archived/` → `{workspace}/archived/`，保留 git 历史；空源 no-op、重复运行幂等、外部工作区 fallback 普通 mv（WARNING 标注历史不可在新路径追溯）。在项目根运行 `bash {agate_root}/scripts/agate-migrate-workspace.sh`
-- **未迁移时的行为**：orchestrator 启动检测到旧布局（`docs/tasks/active-tasks.md` 存在而工作区 tasks 无 active-tasks）→ 输出迁移指引并停止自动推进，不静默使用旧路径
+- **未迁移时的行为**：orchestrator 启动检测到旧布局（项目 `docs/` 下存在旧版 `tasks/active-tasks.md` 而工作区 tasks 无 active-tasks）→ 输出迁移指引并停止自动推进，不静默使用旧路径
 
 ### 新增（TAG0003 工作区架构）
 - **`agate-workspace-resolve.sh`**：工作区路径单点解析器——解析优先级 `.agate.env`（`AGATE_WORKSPACE=`）> 环境变量 `AGATE_TASKS_DIR`（向后兼容既有 CI 设置）> 默认 `agate-workspace/`；输出 `AGATE_WORKSPACE` + `AGATE_TASKS_DIR`，bash（source 复用）与 python（ci-gate-backstop subprocess）共用，结构性保证本地 hook 与 CI 解析同路径。支持相对/绝对/含空格/项目外路径

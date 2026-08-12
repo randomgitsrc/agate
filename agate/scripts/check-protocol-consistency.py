@@ -59,11 +59,12 @@ PROTOCOL_DIRS = ("agate/assets/",)  # 角色定义与模板也算协议文件
 
 # 「叙事文件」= 历史评审 / 计划 / 决策记录。它们经常**引述**别处的旧问题
 # （含已修复的行号引用），不应被当作活引用严格检查。仅做 YAML 解析等无害检查。
-# docs/tasks/ = agate 编排过程的任务产出目录（P0-P8 阶段文档，含示例引用/归档路径/已修复
-# 缺陷的叙事引用），是编排状态而非协议本体——与 docs/plans|reviews 同待遇，宽松检查。
-# v0.43.0（TAG0001）：工作区迁移后 PATH_IGNORE_SUBSTRINGS 不再忽略 docs/tasks/，
+# 任务产出目录（v2.0 起在工作区 tasks/，即 agate-workspace/tasks/；旧布局 docs/tasks/ 已迁移，
+# 保留旧值仅兼容尚未迁移的存量项目）P0-P8 阶段文档含示例引用/归档路径/已修复缺陷的叙事引用，
+# 是编排状态而非协议本体——与 docs/plans|reviews 同待遇，宽松检查。
+# v0.43.0（TAG0001）：工作区迁移后任务产物位于 {AGATE_WORKSPACE}/tasks/，
 # 若此处不豁免，CI（干净 checkout，路径不含 .worktrees）会误扫任务产出触发 CHECK 1/2 误报。
-NARRATIVE_DIRS = ("docs/plans/", "docs/reviews/", "docs/design-notes/", "docs/tasks/", "archived/")
+NARRATIVE_DIRS = ("docs/plans/", "docs/reviews/", "docs/design-notes/", "docs/tasks/", "archived/", "agate-workspace/tasks/")
 
 # 引用扫描中要忽略的占位 / 示例 / 运行时生成路径（非仓库实文件）。
 PATH_IGNORE_SUBSTRINGS = (
