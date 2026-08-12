@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/check-gate.bats — 41 用例覆盖 check-gate.sh
+# tests/unit/check-gate.bats — 覆盖 check-gate.sh（@test 数以 count-tests.sh 为准）
 
 load ../helpers/load.bash
 
@@ -827,6 +827,212 @@ EOF
     run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"FAIL=0"* ]]
+}
+
+# ========== P6 refactor 一等任务分流（TAG0002，BDD-1/2/3/4/6/7 + BDD-5/8 文档锚点） ==========
+
+@test "test_bdd_1_p1_gate_accepts_change_type_refactor" {
+    # BDD-1: P1 frontmatter 声明 change_type: refactor 不因该字段报错，gate exit 2（任务可推进 P2）
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" change_type refactor
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"change_type"* ]]
+}
+
+@test "test_bdd_2_p6_gate_default_no_change_type_unchanged" {
+    # BDD-2: 未声明 change_type（缺省）→ P6 走既有功能口径（功能 BDD 计数 + 证据目录），行为与改造前一致
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1
+- PASS BDD-2
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "test_bdd_3_p6_gate_refactor_with_regression_evidence" {
+    # BDD-3: change_type=refactor + regression_pass:true + P6-evidence/regression.log + 关键路径 PASS → gate 通过
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" change_type refactor
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: TAG0002
+agent: verifier
+pass: 1
+fail: 0
+ui_affected: false
+regression_pass: true
+---
+- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "test_bdd_4_p6_gate_refactor_missing_regression_log" {
+    # BDD-4: refactor 任务回归失败 → gate 不通过——regression.log 缺失即拦截（关键路径 PASS 不能豁免）
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" change_type refactor
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: TAG0002
+agent: verifier
+pass: 1
+fail: 0
+ui_affected: false
+regression_pass: true
+---
+- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "other" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"regression.log"* ]]
+}
+
+@test "test_bdd_4b_p6_gate_refactor_missing_regression_pass" {
+    # BDD-4: refactor 任务回归失败 → gate 不通过——regression_pass 未声明 true 即拦截
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" change_type refactor
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: TAG0002
+agent: verifier
+pass: 1
+fail: 0
+ui_affected: false
+---
+- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"regression_pass"* ]]
+}
+
+@test "test_bdd_6_p6_gate_refactor_no_behavior_change_not_waived" {
+    # BDD-6: refactor 独立于 no_behavior_change——声明 no_behavior_change 不豁免回归双证，缺 regression.log 仍 exit 1
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" change_type refactor
+    printf '\nno_behavior_change: 预期无行为变更\n' >> "$dir/P1-requirements.md"
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: TAG0002
+agent: verifier
+pass: 1
+fail: 0
+ui_affected: false
+regression_pass: true
+---
+- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "other" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 1 ]
+}
+
+@test "test_bdd_6b_p6_gate_refactor_no_behavior_change_with_evidence" {
+    # BDD-6 正向: refactor + no_behavior_change + 回归双证齐备 → gate 通过（口径仍为回归口径）
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" change_type refactor
+    printf '\nno_behavior_change: 预期无行为变更\n' >> "$dir/P1-requirements.md"
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: TAG0002
+agent: verifier
+pass: 1
+fail: 0
+ui_affected: false
+regression_pass: true
+---
+- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "test_bdd_7_refactor_backfill_walk_p1_p3_p6" {
+    # BDD-7: 真实重构回填（fixture 建模 c182dc3 产物形状）走 P1→P3→P6，各阶段 gate 通过且不要求功能 BDD
+    local dir
+    dir=$(create_task_dir)
+    add_p1_field "$dir" change_type refactor
+    cat >> "$dir/P1-requirements.md" <<'EOF'
+#### BDD-2: 关键路径行为不变
+- Given 重构后的协议状态
+- When 执行关键路径
+- Then 行为与重构前一致
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+- BDD-2: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
+    echo '## P3 test cases（回归测试口径，不新增功能行为断言）' > "$dir/P3-test-cases.md"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
+    [ "$status" -eq 2 ]
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: TAG0002
+agent: verifier
+pass: 2
+fail: 0
+ui_affected: false
+regression_pass: true
+---
+- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)
+- PASS BDD-2: 关键路径行为不变（重构前后关键路径结果一致）(P6-evidence/regression.log)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+}
+
+@test "test_bdd_5_p6_card_docs_forbid_fake_functional_bdd" {
+    # BDD-5: P6 验收口径文档明确禁止为凑验收数量新增功能性质 BDD（文档锚点测试）
+    grep -q '禁止.*伪造' "$AGATE_ROOT/phase-cards/P6-acceptance.md"
+}
+
+@test "test_bdd_8_p3_card_docs_regression_test_port" {
+    # BDD-8: P3 卡片含 refactor 回归测试口径说明（复用既有用例、不新增功能行为断言）——文档锚点测试
+    grep -q '回归测试口径' "$AGATE_ROOT/phase-cards/P3-tdd.md"
 }
 
 # ========== P7 (5 用例) ==========

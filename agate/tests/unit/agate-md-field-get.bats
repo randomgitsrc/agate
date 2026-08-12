@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 # tests/unit/agate-md-field-get.bats — MD 字段提取共享工具单元测试
 # T001 v2.0 流 A（P2-design.md §3.1.2）：双读改造——frontmatter 优先 + 无 key 正则回退。
-# 6 个既有用例改写为 BDD-1/3/9/10 覆盖（详见 P3-test-cases.md）；@test 数保持 6 不变。
+# 6 个既有用例改写为 BDD-1/3/9/10 覆盖（详见 P3-test-cases.md）。
+# +4（TAG0002）：MDF.7-10 覆盖 change_type（BDD-1）与 regression_pass（BDD-4）新 op。
 load ../helpers/load.bash
 
 @test "MDF.1 BDD-1: risk_level 从 frontmatter 块读取（字段级 presence 优先）" {
@@ -47,4 +48,35 @@ load ../helpers/load.bash
     printf -- '---\nagent: test\npackages: [agate, other-pkg]\n---\nbody\n' > "$dir/P2.md"
     run bash -c "FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' packages"
     [ "$status" -eq 0 ]; [[ "$output" == "agate other-pkg" ]]
+}
+
+# ========== TAG0002 refactor 一等任务：change_type / regression_pass 新 op（BDD-1/BDD-4） ==========
+
+@test "MDF.7 test_bdd_1_change_type_frontmatter: P1 frontmatter 声明 change_type 读取为字符串" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\nrisk_level: high\nchange_type: refactor\n---\nbody\n' > "$dir/P1.md"
+    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    [ "$status" -eq 0 ]; [[ "$output" == "refactor" ]]
+}
+
+@test "MDF.8 test_bdd_1_change_type_body_fallback: frontmatter 无 change_type 时正文正则回退（与 risk_level 同模式）" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\n---\nchange_type: refactor\n' > "$dir/P1.md"
+    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    [ "$status" -eq 0 ]; [[ "$output" == "refactor" ]]
+}
+
+@test "MDF.9 test_bdd_4_regression_pass_frontmatter: P6 frontmatter 声明 regression_pass: true 读取为 true" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\npass: 1\nfail: 0\nui_affected: false\nregression_pass: true\n---\nbody\n' > "$dir/P6.md"
+    run bash -c "FILE='$dir/P6.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' regression_pass"
+    [ "$status" -eq 0 ]; [[ "$output" == "true" ]]
+}
+
+@test "MDF.10 test_bdd_4_regression_pass_no_fallback: P6 frontmatter 无 regression_pass 时输出空（不做正文回退，防正文伪造陷阱）" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    # 正文写 regression_pass: false 陷阱行——若错误回退会读到 false；正确行为是空串（无回退语义，调用方判定）
+    printf -- '---\nagent: test\npass: 1\nfail: 0\nui_affected: false\n---\nregression_pass: false\n' > "$dir/P6.md"
+    run bash -c "FILE='$dir/P6.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' regression_pass"
+    [ "$status" -eq 0 ]; [[ "$output" == "" ]]
 }

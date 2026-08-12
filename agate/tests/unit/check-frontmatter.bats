@@ -235,3 +235,90 @@ EOF
     run bash "$AGATE_SCRIPTS/check-frontmatter.sh" "$dir/P2-design.md"
     [ "$status" -eq 0 ]
 }
+
+# ========== TAG0002 refactor 一等任务：change_type / regression_pass schema 校验（BDD-1/BDD-4） ==========
+
+@test "CF.11 test_bdd_1_change_type_enum_valid: P1 frontmatter change_type: refactor（合法枚举）→ 校验通过" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/cf-XXXXXX")
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+agent: analyst
+risk_level: medium
+phases: [P1, P2, P3, P4, P5, P6, P7, P8]
+packages: [agate]
+domains: [backend]
+change_type: refactor
+---
+#### BDD-1: test
+- Given x
+- When y
+- Then z
+EOF
+    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "CF.12 test_bdd_1_change_type_enum_invalid: P1 frontmatter change_type 枚举外值 → 校验失败且提示合法值 refactor" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/cf-XXXXXX")
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001
+agent: analyst
+risk_level: medium
+phases: [P1, P2]
+packages: [agate]
+domains: [backend]
+change_type: feature
+---
+#### BDD-1: test
+- Given x
+- When y
+- Then z
+EOF
+    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    [ -n "$output" ]
+    [[ "$output" == *"change_type"* ]]
+    [[ "$output" == *"refactor"* ]]
+}
+
+@test "CF.13 test_bdd_4_regression_pass_type_invalid: P6 frontmatter regression_pass 非 bool → 校验失败且报错含 regression_pass" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/cf-XXXXXX")
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: T001
+agent: verifier
+pass: 1
+fail: 0
+ui_affected: false
+regression_pass: "yes"
+---
+- PASS BDD-1: 全量回归全绿 (P6-evidence/regression.log)
+EOF
+    run bash -c "FILE='$dir/P6-acceptance.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    [ -n "$output" ]
+    [[ "$output" == *"regression_pass"* ]]
+}
+
+@test "CF.14 test_bdd_4_regression_pass_type_valid: P6 frontmatter regression_pass: true（合法 bool）→ 校验通过" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/cf-XXXXXX")
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+---
+phase: P6
+task_id: T001
+agent: verifier
+pass: 1
+fail: 0
+ui_affected: false
+regression_pass: true
+---
+- PASS BDD-1: 全量回归全绿 (P6-evidence/regression.log)
+EOF
+    run bash -c "FILE='$dir/P6-acceptance.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
