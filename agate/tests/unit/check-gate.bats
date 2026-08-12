@@ -863,6 +863,22 @@ EOF
     [ "$status" -eq 2 ]
 }
 
+@test "test_bdd_2b_p6_gate_default_body_mentions_change_type_still_functional" {
+    # BDD-2 回归（P4-review §2.1 BLOCKER）：功能任务 frontmatter 无 change_type，
+    # 仅正文散文提及 `change_type: refactor` 关键字 → P6 仍走既有功能口径（exit 2），不误拦
+    local dir
+    dir=$(create_task_dir)
+    printf '\nchange_type: refactor 是可选字段，缺省为功能任务（本文档仅作说明，本任务不采用 refactor 口径）\n' >> "$dir/P1-requirements.md"
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1
+- PASS BDD-2
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "log" > "$dir/P6-evidence/result.log"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    [ "$status" -eq 2 ]
+}
+
 @test "test_bdd_3_p6_gate_refactor_with_regression_evidence" {
     # BDD-3: change_type=refactor + regression_pass:true + P6-evidence/regression.log + 关键路径 PASS → gate 通过
     local dir

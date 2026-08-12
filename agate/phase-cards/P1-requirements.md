@@ -65,6 +65,8 @@ packages: [pkg-a]           # list，必填
 domains: [backend, frontend]  # list，必填
 # 可选字段：override / implicit_coupling / coupling_checklist / internal_only /
 # internal_only_reason / 跳过风险 / design_trivial / follows_existing_pattern
+# ── v2.0 refactor 任务类型声明（可选，缺省 = 功能任务）──
+# change_type: refactor   # 当前仅支持 refactor；枚举非法值由 frontmatter schema 拦截
 # ── v2.0 标记"已解决/已确认"状态（可选，仅标记存在时写）──
 # need_confirm_resolved: []   # list[str]：已解决的 NEED_CONFIRM 项描述（逐条匹配正文）
 # suggest_resolved: []        # list[str]：已采纳的 SUGGEST 项描述

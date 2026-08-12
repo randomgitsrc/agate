@@ -533,6 +533,9 @@ trigger: gate_fail
 产出测试代码后，必须自跑测试，确认每个红灯的失败原因都是"被测模块未实现"（import 失败 / 模块不存在 / 组件未导出）。
 如果某个红灯的失败原因是"断言与测试数据矛盾"（如断言行数/列数/页数与 fixture 不符）——这是测试代码 bug，先修正断言再交付，不要交付给 P5。
 手写魔数断言（`expect(x).toBe(100)` 但数据实际 50 行）与数据矛盾是 T075 的教训，P3 阶段就要发现。
+## refactor 任务（P1 change_type: refactor）：回归测试口径
+按回归测试口径设计——复用/保留既有测试用例，标注每条回归用例覆盖的路径，**不新增功能行为断言**；
+跳过 check-tdd-red 红灯（重构无新行为可断言，红灯语义不适用，回归质量由 P5 全量回归 + P6 regression.log 兜底）。
 ```
 
 **修复轮派发时追加**（P2.63，给主 Agent 的模板）：
@@ -589,6 +592,12 @@ P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由�
 写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
 P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
 不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
+## refactor 任务（P1 change_type: refactor）：P6 回归验收口径
+P6 验收换用回归口径（换口径 ≠ 裁 P6，P6 仍不可裁剪）——三段式：① 行为不变声明（禁止伪造功能 BDD）；
+② 全量回归全绿（以一条关键路径 BDD 的 PASS 行呈现，引用 P6-evidence/regression.log，尾行 EXIT_CODE: 0）；
+③ 关键路径行为不变断言 BDD 逐条 PASS/FAIL。frontmatter 额外声明 `regression_pass: true`；
+回归双证（regression_pass + regression.log）是 check-gate.sh P6 硬校验，任一缺失 → gate exit 1；
+regression.log 必须被 PASS 行引用；禁止新增非 BDD 编号 PASS 行；no_behavior_change 不豁免回归双证。
 ```
 
 **P8 派发时追加**：

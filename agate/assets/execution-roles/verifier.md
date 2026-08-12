@@ -123,6 +123,17 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 **无法验证的 BDD**：标 `FAIL`，不标 PASS。诚实比完整更重要。
 
+### refactor 任务验收口径（P6 模式，P1 change_type: refactor）
+
+> 功能任务（缺省）走上方既有口径。refactor 任务 P6 换用**回归验收口径**（换口径 ≠ 裁 P6）：
+> 本次重构仅改变内部实现、不改外部行为，验收对象是"重构后行为与重构前一致"。
+
+- **三段式验收记录**（P6-acceptance.md）：① 行为不变声明节（判定依据 = 全量回归全绿 + 关键路径 BDD 逐条 PASS；**禁止为凑验收数量新增功能性质 BDD**——禁止伪造功能 BDD）；② 全量回归全绿节（以一条关键路径 BDD 的 PASS 行呈现，引用 `P6-evidence/regression.log`）；③ 关键路径行为不变断言 BDD 逐条 PASS/FAIL（每条带证据引用）。
+- **regression.log 产出**：全量回归套件实跑输出落盘 `P6-evidence/regression.log`，**尾行 `EXIT_CODE: 0`**（check-p6-provenance.sh 审计 5 核对"声明 PASS 但日志 exit≠0"的矛盾）。
+- **frontmatter 额外声明** `regression_pass: true`（bool，可选字段）：`pass`/`fail`/`ui_affected` 照常必填。回归双证（regression_pass + regression.log）是 check-gate.sh P6 对 refactor 任务的硬校验，任一缺失 → gate exit 1。
+- **格式约束**：regression.log 必须被一条 PASS 行引用（审计 1c）；禁止新增非 BDD 编号 PASS 行（如 `- PASS REGRESSION: ...`）——回归结果作为关键路径 BDD 的 PASS 行呈现，多文件证据逗号分隔；BDD 编号机制对 refactor 不豁免（P6 PASS+FAIL ≥ P1 BDD 数）。
+- **no_behavior_change 不豁免回归双证**：refactor 口径只看 change_type，即使任务声明了 no_behavior_change，回归双证仍强制。
+
 ### 输入（自己读取）
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）

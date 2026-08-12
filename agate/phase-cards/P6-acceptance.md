@@ -2,6 +2,7 @@
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
 > 裁剪跳阶 → P6 不可裁剪。no_behavior_change 可简化（快速验收），不可省略。
+> `change_type: refactor` 的任务（P1 frontmatter 声明）P6 **换用回归验收口径**（换口径 ≠ 裁 P6，P6 仍不可裁剪）——见下方「refactor 任务：回归验收口径」。
 
 ## 如果是首次进入本阶段
 
@@ -82,6 +83,33 @@ ui_affected: false                # bool（与 P2 声明一致）
 描述文本可自由添加，不影响解析（provenance 脚本用精确正则提取路径）。
 
 **总结行格式**：行首 `- PASS`/`- FAIL` 只用于 BDD 条目，不得用于总结行。总结行用其他格式（如 `**Summary**: 34/34 PASS, 0 FAIL`）。check-p6-format.sh `--fix` 会自动修正违规总结行。
+
+### P6-acceptance.md（refactor 任务：回归验收口径）
+
+> 适用：P1 frontmatter 声明 `change_type: refactor` 的任务（P2-design.md §3.2）。功能任务（缺省）走上方既有口径，不受本节影响。
+
+refactor 任务无新增功能行为可验收，P6 验收口径 = **行为不变声明 + 全量回归全绿 + 关键路径 BDD 逐条**，固定为三段式：
+
+1. **行为不变声明节**：verifier 自声明"本次重构仅改变内部实现，不改外部行为；判定依据 = 全量回归全绿 + 关键路径 BDD 逐条 PASS；**禁止为凑验收数量新增功能性质 BDD**（禁止伪造功能 BDD）"。
+2. **全量回归全绿节**：以"全量回归全绿"为一条关键路径 BDD 的 PASS 行——`- PASS BDD-NN: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)`，其中 regression.log 为全量回归套件实跑输出，尾行 `EXIT_CODE: 0`（check-p6-provenance.sh 审计 5 核对）。
+3. **关键路径验收节**：其余关键路径行为不变断言 BDD 逐条 PASS/FAIL（每条带证据引用）。
+
+frontmatter 额外声明 `regression_pass: true`（bool，可选字段）：
+```yaml
+# ── v2.0 机器汇总 ──
+pass: N
+fail: 0
+ui_affected: false
+regression_pass: true      # refactor 口径：全量回归全绿声明（change_type=refactor 时 gate 必校验）
+```
+
+约束：
+- **回归双证是硬校验**：`regression_pass: true` + `P6-evidence/regression.log` 存在是 check-gate.sh P6 对 refactor 任务的强制要求，任一缺失 → gate exit 1（BDD-4）。回归检查独立于关键路径 FAIL 判定，关键路径 PASS 不能豁免。
+- **regression.log 必须被一条 PASS 行引用**（满足 check-p6-provenance.sh 审计 1c 证据引用 + 审计 5 EXIT_CODE 核对）。
+- **禁止新增非 BDD 编号 PASS 行**：check-p6-format.sh 只认 `- PASS|FAIL BDD-N` 行，回归结果不能单列 `- PASS REGRESSION: ...`——"全量回归全绿"作为一条关键路径 BDD 的 PASS 行呈现，多文件证据用逗号分隔。
+- **BDD 编号机制不豁免**：refactor 任务 P1 仍须 ≥1 条"关键路径行为不变断言" BDD，P6 逐条 PASS/FAIL 对照（check-p6-provenance.sh 审计 3 的 PASS+FAIL ≥ P1 BDD 数 对 refactor 不豁免）。
+- **no_behavior_change 不豁免回归双证**：refactor 口径只看 change_type，即使任务声明了 no_behavior_change，回归双证仍强制（BDD-6）。
+- **禁止伪造功能 BDD**：禁止为凑验收数量新增功能性质 BDD——refactor 任务的 BDD 都是关键路径行为不变断言。
 
 ### P6-evidence/
 

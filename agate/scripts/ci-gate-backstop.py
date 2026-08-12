@@ -73,6 +73,31 @@ def resolve_tasks_dir(project_root: str) -> str:
     return str(Path(project_root) / os.environ.get("AGATE_TASKS_DIR", "docs/tasks"))
 
 
+def _read_p1_change_type(task_dir: str) -> str:
+    """读 P1-requirements.md 的 change_type（TAG0002，复用 agate-md-field-get.py 通道）。
+
+    返回 "refactor"（或空字符串）。文件不存在/读取失败时静默返回空——缺省视为功能任务。
+    """
+    if not task_dir:
+        return ""
+    p1_file = Path(task_dir) / "P1-requirements.md"
+    if not p1_file.exists():
+        return ""
+    field_get = _AGATE_ROOT / "scripts/agate-md-field-get.py"
+    if not field_get.exists():
+        return ""
+    env = dict(os.environ)
+    env["FILE"] = str(p1_file)
+    try:
+        result = subprocess.run(
+            ["python3", str(field_get), "change_type"],
+            capture_output=True, text=True, env=env, timeout=30,
+        )
+    except subprocess.SubprocessError:
+        return ""
+    return result.stdout.strip()
+
+
 def main() -> int:
     platform = detect_ci_platform()
     print(f"CI platform: {platform}")
@@ -110,6 +135,13 @@ def main() -> int:
         # P3 红灯检查独立跑（check-gate.sh P3 只检查文件存在）
         # 必须在 .gate-result.json 存在性判断之前执行——
         # --no-verify 场景（无 .gate-result.json）正是 P3 兜底要覆盖的核心场景
+        # TAG0002 [SCOPE+]: refactor 任务跳过 TDD 红灯（P2-design.md §3.4）——
+        # 重构无新功能断言，测试套件本就全绿，check-tdd-red 的 exit 2 绿灯会被误判 FAIL。
+        # change_type 读 P1-requirements.md frontmatter（复用 agate-md-field-get.py 读取通道）。
+        is_refactor = _read_p1_change_type(task_dir) == "refactor"
+        if is_refactor:
+            print("SKIP: refactor 任务，TDD 红灯不适用（回归口径由 P5/P6 全量回归兜底）")
+            return 0
         # check-tdd-red.sh exit 语义：
         #   0 = 真红灯（符合 TDD）→ 通过
         #   1 = 假红灯（测试代码自身 bug）→ FAIL

@@ -295,6 +295,20 @@ case "$PHASE" in
       # frontmatter 无该汇总（旧格式）→ 回退正文 grep 计数，但计数口径改严格——只认行首
       # `- PASS|FAIL ... BDD-N` 带 BDD 编号的行，消除总结行（如 `- PASS: 16`）误判（F11）。
       P6_FILE="$TASK_DIR/P6-acceptance.md"
+      # ── v2.0 refactor 口径分流（TAG0002 Phase A，P2-design.md §3.3）──
+      # 缺省（未声明 change_type）→ 走既有功能口径，行为与改造前一致（BDD-2）
+      CHANGE_TYPE=""
+      if [ -f "$TASK_DIR/P1-requirements.md" ]; then
+          CHANGE_TYPE=$(FILE="$TASK_DIR/P1-requirements.md" python3 "$SCRIPT_DIR/agate-md-field-get.py" change_type 2>/dev/null || echo "")
+      fi
+      if [ "$CHANGE_TYPE" = "refactor" ]; then
+          REGRESSION_PASS=$(FILE="$P6_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" regression_pass 2>/dev/null || echo "")
+          if [ "$REGRESSION_PASS" != "true" ] || [ ! -f "$TASK_DIR/P6-evidence/regression.log" ]; then
+              echo "GATE P6: change_type=refactor 但缺全量回归证据（须 P6-acceptance.md frontmatter regression_pass: true 且 P6-evidence/regression.log 存在）" >&2
+              exit 1
+          fi
+      fi
+      # ↓↓ 既有判定（pass/fail 汇总 / 证据目录非空）原样保留，不随 change_type 变化 ↓↓
       PASS_FM=$(FILE="$P6_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" pass 2>/dev/null || echo "")
       FAIL_FM=$(FILE="$P6_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" fail 2>/dev/null || echo "")
       if [ -n "$PASS_FM" ] && [ -n "$FAIL_FM" ]; then

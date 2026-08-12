@@ -2,7 +2,8 @@
 # tests/unit/agate-md-field-get.bats — MD 字段提取共享工具单元测试
 # T001 v2.0 流 A（P2-design.md §3.1.2）：双读改造——frontmatter 优先 + 无 key 正则回退。
 # 6 个既有用例改写为 BDD-1/3/9/10 覆盖（详见 P3-test-cases.md）。
-# +4（TAG0002）：MDF.7-10 覆盖 change_type（BDD-1）与 regression_pass（BDD-4）新 op。
+# +6（TAG0002）：MDF.7-12 覆盖 change_type（BDD-1 frontmatter-only / BDD-2 正文提及不误判）
+# 与 regression_pass（BDD-4）。
 load ../helpers/load.bash
 
 @test "MDF.1 BDD-1: risk_level 从 frontmatter 块读取（字段级 presence 优先）" {
@@ -59,11 +60,28 @@ load ../helpers/load.bash
     [ "$status" -eq 0 ]; [[ "$output" == "refactor" ]]
 }
 
-@test "MDF.8 test_bdd_1_change_type_body_fallback: frontmatter 无 change_type 时正文正则回退（与 risk_level 同模式）" {
+@test "MDF.8 test_bdd_1_change_type_frontmatter_only: frontmatter 无 change_type 时正文行 `change_type: refactor` 不读取（frontmatter-only，无正文回退）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\n---\nchange_type: refactor\n' > "$dir/P1.md"
     run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
-    [ "$status" -eq 0 ]; [[ "$output" == "refactor" ]]
+    [ "$status" -eq 0 ]; [[ "$output" == "" ]]
+}
+
+@test "MDF.11 test_bdd_2_change_type_prose_mention: 功能任务正文散文提及 change_type: refactor 关键字仍输出空（不走功能口径误判，BDD-2）" {
+    # P4-review §2.1 BLOCKER 回归：正文"change_type: refactor 是可选字段"这类散文
+    # 不得被 _regex_fallback 匹配成 refactor——change_type 是 frontmatter-only 机器字段
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\n---\nchange_type: refactor 是可选字段，缺省为功能任务\n' > "$dir/P1.md"
+    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    [ "$status" -eq 0 ]; [[ "$output" == "" ]]
+}
+
+@test "MDF.12 test_bdd_2_change_type_negated_mention: 功能任务正文否定式提及 change_type: refactor 关键字仍输出空（BDD-2）" {
+    # P4-review §2.1 BLOCKER 回归：正文"本任务不涉及 change_type: refactor 机制"也不得误判
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\n---\n本任务不涉及 change_type: refactor 机制\n' > "$dir/P1.md"
+    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    [ "$status" -eq 0 ]; [[ "$output" == "" ]]
 }
 
 @test "MDF.9 test_bdd_4_regression_pass_frontmatter: P6 frontmatter 声明 regression_pass: true 读取为 true" {

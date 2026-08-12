@@ -171,7 +171,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   - P3：仅 low 风险可裁剪（medium/high 必须走 TDD 红灯）
   - P4 不可裁剪（实现是交付底线——没有实现就没有可发布产物）
   - P5 不可裁剪（验证是交付底线——没有验证就没有可发布产物）
-  - P6 不可裁剪（验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6）
+  - P6 不可裁剪（验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6。`change_type: refactor` 的任务 P6 换用回归口径（行为不变 + 全量回归全绿 + 关键路径验收）——换口径 ≠ 裁 P6，P6 仍不可裁剪）
   - 裁剪 P7：需源码文件数 ≤ 5 AND 无 implicit_coupling 声明 AND 有 coupling_checklist（列出检查过的耦合点，如 api-schema: checked, data-model: checked。防止无脑写"无隐式耦合"）
   - 裁剪 P8：需声明 internal_only: true + internal_only_reason: <理由>
 

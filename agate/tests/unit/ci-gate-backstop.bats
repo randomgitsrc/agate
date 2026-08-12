@@ -163,3 +163,32 @@ EOF
     [[ "$output" == *"refactor"* ]]
     [[ "$output" != *"FAIL"* ]]
 }
+
+@test "backstop P3: 功能任务正文提及 change_type 关键字仍走 TDD 兜底（不 SKIP，BDD-2）" {
+    # P4-review §2.1 BLOCKER 回归：功能任务 frontmatter 无 change_type，仅正文散文提及
+    # `change_type: refactor` → backstop 不得误判为 refactor 跳过 check-tdd-red。
+    # mock exit 2（绿灯）→ 正确行为是 FAIL；若误判 refactor 会输出 SKIP 且 exit 0。
+    local repo
+    repo=$(git_init "$BATS_TEST_TMPDIR/repo-p3-body-mention")
+    setup_git_repo_p3 "$repo"
+    cat > "$repo/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+risk_level: medium
+---
+change_type: refactor 是可选字段，缺省为功能任务（本文档仅作说明，本任务不采用 refactor 口径）
+EOF
+    git -C "$repo" add -A
+    git -C "$repo" commit -qm "p3 body mention"
+    cd "$repo"
+    export GITHUB_ACTIONS=true
+    local mock="$BATS_TEST_TMPDIR/mock-tdd-body-mention"
+    echo '#!/bin/bash' > "$mock"
+    echo 'exit 2' >> "$mock"
+    chmod +x "$mock"
+    export AGATE_TDD_RED_SCRIPT="$mock"
+    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    [[ "$output" == *"FAIL"* ]]
+    [[ "$output" == *"绿灯"* ]]
+    [[ "$output" != *"SKIP: refactor"* ]]
+}

@@ -119,7 +119,7 @@ change_type: refactor     # 当前仅支持 refactor；枚举非法值由 frontm
 - **取值枚举**：`refactor`（唯一合法值）。`no_behavior_change` **不是** change_type 的取值（P1 §2.1：两者语义方向相反，互补不替代）——SUGGEST #1 提及的"长期将 no_behavior_change deprecate 归并入 change_type"明确超出 Phase A，不做。
 - **缺省语义**：frontmatter 无 change_type（存量任务/模板/fixture）→ 功能口径，与改造前完全一致（BDD-2）。
 - **机器通道**：
-  - `agate-md-field-get.py`：新增 `change_type` op（STRING_FIELDS，读 frontmatter；可选正文正则回退 `change_type:\s*(\S+)`，与 risk_level 同模式）。
+  - `agate-md-field-get.py`：新增 `change_type` op（NO_FALLBACK_STRING_FIELDS，frontmatter-only，无正文回退——change_type 是新增 P1 机器字段，正文旧格式从未有该字段，无向后兼容需求；正文散文提及 change_type 不得误判为 refactor（BDD-2））。
   - `agate-frontmatter-check.py` P1 schema：`migrated_keys` 增 `change_type`，`types` 增 `change_type: str`，`enums` 增 `{"change_type": ("refactor",)}`，**不加入 required**。
   - `check-gate.sh` P1 分支不改：P1 gate 不解析 change_type，未知 frontmatter 键不报错（校验器只校验已知键 + 嵌套深度），故"P1 声明 change_type: refactor 时 gate 通过且不报错"（BDD-1）成立——该断言已在本设计的 minimal_validation 中验证。
 

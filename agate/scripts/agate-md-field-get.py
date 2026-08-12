@@ -11,7 +11,10 @@
     → 正则回退（v0.35 行为，扫描全文，兼容旧格式正文内嵌字段）
 
 用法（op 列表）：
-  risk_level                 frontmatter 字符串 / 正文 "risk_level: low|medium|high"
+  风险_level                 frontmatter 字符串 / 正文 "risk_level: low|medium|high"
+  change_type                frontmatter 字符串（P1 任务类型声明，可选；缺省=功能口径；
+                            frontmatter-only，无正文回退，TAG0002——正文散文提及
+                            "change_type: refactor" 不读取）
   ui_affected                frontmatter bool（归一化输出 "true"/"false"）/ 正文 "ui_affected: true|false"
   phases                     frontmatter list（内联或块式）/ 正文内联 "[P1, P2]" 或块式 "- Pn"
   candidate_count             frontmatter int（P2-design.md）/ 正文 "candidate_count: N"
@@ -20,6 +23,7 @@
   internal_only / design_trivial               presence 语义 bool 字段
   coupling_checklist / follows_existing_pattern  presence 语义 list 字段
   pass / fail                                    P6 int 汇总字段（frontmatter-only，无正文回退）
+  regression_pass                               P6 refactor 回归全绿 bool（frontmatter-only，无正文回退）
   blocker_count / deviation_count /
   deviation_critical_count / design_gap_count /
   design_gap_reviewed_count                      P7 int 计数字段（frontmatter-only，无正文回退）
@@ -60,6 +64,19 @@ except ImportError:
 # 依赖此处输出小写，不能是 Python str(bool) 的 "True"/"False"。
 BOOL_FIELDS = frozenset({"ui_affected", "internal_only", "design_trivial"})
 
+# P6 refactor 口径的"回归全绿"声明字段（TAG0002，P2-design.md §3.1.3）：bool 无正文回退。
+# 与 NO_FALLBACK_INT_FIELDS 同语义——frontmatter 无该字段时输出空字符串，不做正文正则
+# 回退（防正文伪造陷阱，MDF.10：正文写 `regression_pass: false` 陷阱行不应被读到）。
+NO_FALLBACK_BOOL_FIELDS = frozenset({"regression_pass"})
+
+# TAG0002（P2-design.md §3.1.3，P4-review §2.1 BLOCKER 修复）：P1 任务类型声明字段
+# （可选，缺省=功能口径），frontmatter-only，无正文回退——change_type 是新增 P1 机器字段，
+# v0.35 正文旧格式从未有该字段（与 risk_level 不同——risk_level 有旧正文格式需要回退，
+# 无向后兼容需求）。正文散文提及 `change_type: refactor`（如"change_type: refactor 是可选
+# 字段"、"本任务不涉及 change_type: refactor 机制"）不得被误判为 refactor 任务（否则违反
+# BDD-2"未声明 change_type 的任务验收行为与改造前完全一致"）。
+NO_FALLBACK_STRING_FIELDS = frozenset({"change_type"})
+
 # list 字段：frontmatter 值（YAML list）格式化为空格连接字符串。
 LIST_FIELDS = frozenset({
     "phases", "packages", "domains",
@@ -87,6 +104,7 @@ NO_FALLBACK_LIST_FIELDS = frozenset({
 })
 
 # presence 语义的纯字符串字段：key 存在且值非 null → 输出值原样，否则空。
+# 注意：change_type 不在其中——它走 NO_FALLBACK_STRING_FIELDS（frontmatter-only，无正文回退）。
 STRING_FIELDS = frozenset({"override", "internal_only_reason", "跳过风险", "risk_level"})
 
 
@@ -109,7 +127,7 @@ def _read_frontmatter(text):
 
 
 def _format_value(value, field):
-    if field in BOOL_FIELDS:
+    if field in BOOL_FIELDS or field in NO_FALLBACK_BOOL_FIELDS:
         return str(value).lower()
     if field in LIST_FIELDS:
         if isinstance(value, list):
@@ -167,14 +185,16 @@ def _get(text, op):
     # 字段级 presence 检测：frontmatter 是 dict 且 key 存在且值非 null → 取 frontmatter
     if isinstance(fm, dict) and op in fm and fm[op] is not None:
         return _format_value(fm[op], op)
-    if op in NO_FALLBACK_INT_FIELDS or op in NO_FALLBACK_LIST_FIELDS:
-        return ""  # 流 B/C 字段：无正文回退语义，frontmatter 无该字段直接输出空字符串
+    if op in (NO_FALLBACK_INT_FIELDS | NO_FALLBACK_LIST_FIELDS
+              | NO_FALLBACK_BOOL_FIELDS | NO_FALLBACK_STRING_FIELDS):
+        return ""  # 流 B/C/TAG0002 字段：无正文回退语义，frontmatter 无该字段直接输出空字符串
     return _regex_fallback(text, op)  # 字段不在 frontmatter → 正则回退
 
 
 KNOWN_OPS = (
     BOOL_FIELDS | LIST_FIELDS | INT_FIELDS | STRING_FIELDS
-    | NO_FALLBACK_INT_FIELDS | NO_FALLBACK_LIST_FIELDS
+    | NO_FALLBACK_INT_FIELDS | NO_FALLBACK_LIST_FIELDS | NO_FALLBACK_BOOL_FIELDS
+    | NO_FALLBACK_STRING_FIELDS
 )
 
 
