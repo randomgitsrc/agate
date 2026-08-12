@@ -110,6 +110,20 @@ EOF
     ! grep -q '^- PASS：34' "$TASK_DIR/P6-acceptance.md"
 }
 
+@test "F13 check-p6-format.sh --fix: POSIX locale 下全角冒号总结行仍被归一化（locale 回归）" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- PASS BDD-1: verified (evidence/log.json)
+- PASS：34
+- FAIL：0
+EOF
+    run env LC_ALL=POSIX LANG= bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+    grep -q '^\*\*Summary\*\*: PASS: 34' "$TASK_DIR/P6-acceptance.md"
+    grep -q '^\*\*Summary\*\*: FAIL: 0' "$TASK_DIR/P6-acceptance.md"
+    ! grep -q '^- PASS：34' "$TASK_DIR/P6-acceptance.md"
+}
+
 @test "F_P6FMFIX.1 check-p6-format.sh --fix: frontmatter 的 pass:/fail: 字段不被正文归一化 sed 误伤，仍为合法 YAML" {
     # P6 回退修复核心复现场景（P6-gate-diagnosis.md BDD-17）：BDD-16 要求的
     # frontmatter pass:/fail: 字段此前会被 --fix 的整文件 sed 误判为正文散文 pass/fail 行，

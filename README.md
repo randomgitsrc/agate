@@ -97,7 +97,9 @@ cd <你克隆 agate 的目录> && git pull
 cd ~/.local/share/agate && git pull
 ```
 
-无需重装 hook——软链接会自动指向最新代码。已有项目的 `.state.yaml` 与新版本协议兼容（除非有重大版本变更，CHANGELOG 会说明）。
+无需重装 hook——软链接会自动指向最新代码。
+
+**已有 agate 项目（跑过任务）升级前，先读 `agate/UPGRADING.md`**——它讲清楚旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，以及各版本的破坏性变更（如 v0.40.0 任务编号硬切，旧 `.state.yaml` 不兼容）。新接入项目直接读 `agate/SETUP.md`。
 
 ## 卸载
 
