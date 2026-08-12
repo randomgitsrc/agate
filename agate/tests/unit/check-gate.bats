@@ -1162,6 +1162,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
@@ -1182,6 +1183,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
@@ -1200,6 +1202,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
@@ -1225,6 +1228,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
@@ -1243,6 +1247,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
@@ -1255,6 +1260,43 @@ EOF
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
     [ "$status" -eq 2 ]
     [[ "$output" != *"tag v0.2.0 不存在"* ]]
+}
+
+@test "G8.9 check-gate.sh P8 P8-release.md 缺 debt_check 字段 期望 exit 1" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P8-release.md" <<'EOF'
+bump_type: minor
+EOF
+    local repo
+    repo=$(git_init)
+    echo "init" > "$repo/README.md" && git_commit "$repo" "init"
+    cp -r "$dir" "$repo/task"
+    echo "v0.1.0" > "$repo/package.json"
+    echo "## [Unreleased]" > "$repo/CHANGELOG.md"
+    git -C "$repo" add package.json CHANGELOG.md
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"debt_check"* ]]
+}
+
+@test "G8.10 check-gate.sh P8 debt_check 内容任意（debt_check: none）期望 exit 2 不阻断" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P8-release.md" <<'EOF'
+bump_type: minor
+debt_check: none
+EOF
+    local repo
+    repo=$(git_init)
+    echo "init" > "$repo/README.md" && git_commit "$repo" "init"
+    cp -r "$dir" "$repo/task"
+    echo "v0.1.0" > "$repo/package.json"
+    echo "## [Unreleased]" > "$repo/CHANGELOG.md"
+    git -C "$repo" add package.json CHANGELOG.md
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    [ "$status" -eq 2 ]
+    [[ "$output" != *"debt_check"* ]]
 }
 
 # ========== 默认 case ==========
@@ -1498,6 +1540,7 @@ EOF
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
 bump_type: minor
+debt_check: none
 EOF
     local repo
     repo=$(git_init)
