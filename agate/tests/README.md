@@ -32,6 +32,7 @@ bash agate/tests/scripts/count-tests.sh
 | agate-next-card.sh | unit/agate-next-card.bats | 20 |
 | agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 16 |
 | check-p6-evidence.sh | unit/check-p6-evidence.bats | 28 |
+| check-p6-format.sh | unit/check-p6-format.bats | 14 |
 | check-p6-provenance.sh | unit/check-p6-provenance.bats | 38 |
 | check-scope-resolved.sh | unit/check-scope-resolved.bats | 11 |
 | check-frontmatter.sh | unit/check-frontmatter.bats | 10 |

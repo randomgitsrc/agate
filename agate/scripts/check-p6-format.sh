@@ -79,7 +79,9 @@ fi
 BODY_PART="$FIXED"
 
 # 总结行修正：行首 - PASS/- FAIL 后纯数字结尾（非 BDD 条目）→ 改为 Summary 格式
-FIXED=$(printf '%s' "$FIXED" | sed -E 's/^-\s+(PASS|FAIL)\s*[:：]\s*([0-9]+)\s*$/\*\*Summary\*\*: \1: \2/')
+# v0.40.3：[:：] bracket expression 在 POSIX/单字节 locale 下无法匹配全角 UTF-8 冒号，
+# 导致 --fix 静默失效（exit 0 但文件不变）。改用 alternation (:|：) 规避 POSIX class 歧义。
+FIXED=$(printf '%s' "$FIXED" | sed -E 's/^-\s+(PASS|FAIL)\s*(:|：)\s*([0-9]+)\s*$/\*\*Summary\*\*: \1: \3/')
 if [ "$FIXED" != "$BODY_PART" ]; then
     CHANGES=1
 fi
