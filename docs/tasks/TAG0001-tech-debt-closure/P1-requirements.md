@@ -12,6 +12,10 @@ risk_level: medium             # 触及 gate 脚本（check-gate.sh P8 分支）
 phases: [P1, P2, P3, P4, P5, P6, P7, P8]   # 全流程，无裁剪（理由见 §5 裁剪说明）
 packages: [agate]              # 协议本体单一包（改的是 worktree 的 agate/）
 domains: [backend, cli]        # backend=check-gate.sh P8 分支/新 schema 校验器/回退比对脚本/bats；cli=orchestrator 读取层（P8 卡片、state-transitions 回退规则、工作区初始化 mkdir）。无 frontend、无 security
+# ── SCOPE+ 已解决（P2 回补，2026-08-12）──
+scope_resolved:
+  - "P8 gate 加 debt_check 缺失即 exit 1 需同步更新 check-gate.bats 既有 6 处 G8 fixture——已纳入 P2 方案 §9 SCOPE+ #1，P3/P4 同步更新 fixture + 新增用例，不需新增 BDD（BDD-16/17 覆盖）"
+  - "check-protocol-consistency.py SCRIPT_ALIGNMENT_ANCHORS 需为 check-debt.sh 加锚点 + scripts/README.md 脚本清单补录——已纳入 P2 方案 §9 SCOPE+ #2，P4 同步处理，不需新增 BDD"
 ---
 
 # TAG0001 — agate 技术债登记闭环（Phase 1-3）+ tech-debt 归类修正：P1 需求基线
