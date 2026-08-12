@@ -1,6 +1,6 @@
 task_id: TAG0001
-phase: P8
-status: active
+phase: READY
+status: done
 retries:
   P5:
     - round: 1
