@@ -52,8 +52,8 @@ load ../helpers/load.bash
 
 @test "test_bdd_4_tag0003_scope_rechecked_to_nine" {
     # TAG0003 已验收工作区口径随本次修正重验（8→9，修订注在案，BDD-4）
-    local tag3_p1="$AGATE_ROOT/../docs/tasks/TAG0003-workspace-architecture/P1-requirements.md"
-    local tag3_p6="$AGATE_ROOT/../docs/tasks/TAG0003-workspace-architecture/P6-acceptance.md"
+    local tag3_p1="$AGATE_ROOT/../agate-workspace/tasks/TAG0003-workspace-architecture/P1-requirements.md"
+    local tag3_p6="$AGATE_ROOT/../agate-workspace/tasks/TAG0003-workspace-architecture/P6-acceptance.md"
     [ -f "$tag3_p1" ]
     [ -f "$tag3_p6" ]
     run grep -q '9 子目录' "$tag3_p1"

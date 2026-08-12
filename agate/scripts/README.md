@@ -149,8 +149,10 @@ WARNING 放行。想让 WARNING 也阻断，把 workflow 里的命令改成加 `
 
 ## 已知 WARNING（当前仓库，均非缺陷）
 
-跑当前（已修复的）仓库会有 4 个 WARNING，都是预期内的、不需修：
+跑当前（已修复的）仓库会有约 280 个 WARNING，都是预期内的、不需修，主要来源：
 1. `analyst.md` 的 capability_requirements 示例含 `@vision-helper`（YAML 保留字符，加引号更规范，但作为示例无害）
-2-4. 几处叙事文件引用了「提议中但尚未创建」的文件（如本脚本早期提议的 `.sh` 版本名）
+2. 大量叙事文件引用了「提议中但尚未创建」或已迁移/归档的文件（如历史评审引述旧路径、计划文档引用当时存在的任务产出）
+3. 工作区任务产物（`agate-workspace/tasks/`）作为叙事文件宽松处理，其历史阶段产出互相引用旧 `docs/tasks/` 路径降级为 WARNING
 
 要消除 WARNING 1，给 analyst.md 那行加引号：`- "@vision-helper（若可调用，作为补充）"`。
+其余为叙事性引述，属正常现象，不需要修——WARNING 数量随任务/评审历史增长，不代表缺陷。

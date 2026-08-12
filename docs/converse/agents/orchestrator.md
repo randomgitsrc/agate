@@ -82,7 +82,7 @@ permission:
 ## 开始
 
 1. 跑 `bash ~/.agate/scripts/agate-summary.sh` 确认协议版本
-2. 读 `docs/tasks/active-tasks.md`：
+2. 读 `{AGATE_WORKSPACE}/tasks/active-tasks.md`：
    - 无进行中任务 → 写 P0-brief.md → 读下方阶段卡片继续
    - 有进行中任务 → 读 `.state.yaml` → 按 phase 读对应阶段卡片
 3. **只读一张阶段卡片**——卡片自包含该阶段的完整执行信息，读完就知道下一步做什么：
@@ -106,8 +106,8 @@ permission:
 ## 接入（一次性）
 
 1. `bash ~/.agate/scripts/install-hook.sh` — 安装 pre-commit + commit-msg + pre-push hook
-2. `mkdir -p {project_root}/docs/tasks/`
-3. 若 `docs/tasks/active-tasks.md` 不存在，从 `{agate_root}/assets/templates/active-tasks-template.md` 复制（已存在则跳过）
+2. `mkdir -p {AGATE_WORKSPACE}/tasks/`
+3. 若 `{AGATE_WORKSPACE}/tasks/active-tasks.md` 不存在，从 `{agate_root}/assets/templates/active-tasks-template.md` 复制（已存在则跳过）
 
 ---
 
@@ -128,8 +128,8 @@ permission:
 
 - `AGENTS.md`（本仓库开发指引，含 SELF-GATE.md 引用）
 - `SELF-GATE.md`（改协议/脚本的自审流程）
-- `docs/archived/plans/T001-HANDOFF-V2.0.md`（交接文档，任务核心上下文，任务 READY 后归档）
-- `docs/tasks/active-tasks.md`（任务看板）
+- `agate-workspace/archived/plans/T001-HANDOFF-V2.0.md`（交接文档，任务核心上下文，任务 READY 后归档）
+- `{AGATE_WORKSPACE}/tasks/active-tasks.md`（任务看板）
 
 ## 项目特定约束
 

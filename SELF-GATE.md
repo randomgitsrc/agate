@@ -119,7 +119,7 @@ python3 agate/scripts/check-protocol-consistency.py
 - A7 设计原则一致性：变更是否符合已记录的 ADR（agate/adr.md）？逐条检查相关 ADR。如发现未记录的架构决策，建议补充新 ADR
 
 若发现 A1/A2/A3 疑似不一致，先按角色文件"DESIGN_GAP 优先核查"原则查
-`docs/tasks/{Txxx}/P4-implementation.md`/`P7-consistency.md` 是否已有
+`{AGATE_WORKSPACE}/tasks/{Txxx}/P4-implementation.md`/`P7-consistency.md` 是否已有
 `REVIEWED-ACCEPTED` 记录，避免把已知偏离误判为新 MISALIGNED。
 
 每项输出：
@@ -176,7 +176,7 @@ docs/reviews/agate-alignment-review-{date}.md
 - 若 MISALIGNED：具体差异描述 + 建议修复方向 + **反向传播：列出该偏差应该影响的其他文件**
 
 若发现 A1/A2/A3 疑似不一致，先按角色文件"DESIGN_GAP 优先核查"原则查
-`docs/tasks/{Txxx}/P4-implementation.md`/`P7-consistency.md` 是否已有
+`{AGATE_WORKSPACE}/tasks/{Txxx}/P4-implementation.md`/`P7-consistency.md` 是否已有
 `REVIEWED-ACCEPTED` 记录，避免把已知偏离误判为新 MISALIGNED。
 
 ## 分阶段落盘（留痕文件，防空返回）

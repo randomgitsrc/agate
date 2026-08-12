@@ -71,9 +71,9 @@ agate 是「项目开发协议」——它本身有开发资料（设计文档�
 
 完整步骤（含 Claude Code / OpenCode 具体命令、Windows 无符号链接权限的退化方案、要不要设默认 agent）见 **`agate/SETUP.md`**——这一步是平台相关、最容易卡住的一步，单独写了篇指南，不在这里展开。
 
-**3. 第一次用，`docs/tasks/` 是空的，这是正常的**
+**3. 第一次用，`agate-workspace/` 还没建，这是正常的**
 
-不需要手动创建 `docs/tasks/active-tasks.md`——Agent 启动后会自己检查这个文件是否存在，不存在就从 `assets/templates/active-tasks-template.md` 复制结构、建好目录，再开始第一个任务（T001）。这个初始化逻辑写在 `orchestrator-template.md` 和 `state-machine.md` 里，不需要人工介入。
+不需要手动创建 `agate-workspace/tasks/active-tasks.md`——Agent 启动后会自己检查这个文件是否存在，不存在就从 `assets/templates/active-tasks-template.md` 复制结构、建好目录，再开始第一个任务（TAG0001）。这个初始化逻辑写在 `orchestrator-template.md` 和 `state-machine.md` 里，不需要人工介入。
 
 ---
 
