@@ -97,7 +97,7 @@
 主 Agent 执行：
 
 LOOP:
-    1. 读 active-tasks.md → 当前状态
+    1. 读 {AGATE_WORKSPACE}/tasks/active-tasks.md → 当前状态
     2. if 状态 == READY: 输出交付小结（格式见 dispatch-protocol.md「任务完成小结」），等待人工 make publish，退出
     3. if 状态 == DONE: 报告任务已完成，退出
     3. if 状态 == PAUSED: 报告暂停原因，退出
@@ -121,7 +121,7 @@ LOOP:
     9. goto LOOP
 ```
 
-**关键：每一轮都重新读 active-tasks.md**，不依赖上一轮在记忆里的状态。即使中间被压缩，重读文件就能继续。
+**关键：每一轮都重新读 `{AGATE_WORKSPACE}/tasks/active-tasks.md`**，不依赖上一轮在记忆里的状态。即使中间被压缩，重读文件就能继续。
 
 ---
 
@@ -147,7 +147,7 @@ LOOP:
 
 ### 护栏 4：状态一致性检查
 
-每轮开始先检查 active-tasks.md 和任务目录文件是否一致（见 state-machine.md）。不一致 → 停下，避免在错误状态上继续。
+每轮开始先检查 `{AGATE_WORKSPACE}/tasks/active-tasks.md` 和任务目录文件是否一致（见 state-machine.md）。不一致 → 停下，避免在错误状态上继续。
 
 ---
 
@@ -157,7 +157,7 @@ LOOP:
 
 1. **每步派发的 subagent 在独立上下文**——P1 的细节留在 P1 subagent，主 Agent 不carry
 2. **主 Agent 每步只增加"路径 + 摘要"**——一个任务跑完 7 步，主 Agent 上下文只多了 7 行摘要
-3. **状态从文件读，不在上下文累积**——每轮读 active-tasks.md，不靠记忆
+3. **状态从文件读，不在上下文累积**——每轮读 `{AGATE_WORKSPACE}/tasks/active-tasks.md`，不靠记忆
 
 这样即使 /loop 跑完整个 P1-P8，主 Agent 的上下文增量在**单任务内是常数级**（几行摘要 + 当前状态）。
 
@@ -165,14 +165,14 @@ LOOP:
 
 "常数级"只对**单个任务**成立，对主 Agent 的整个生命周期不成立。主 Agent 跑 10 个任务就累积 10 个任务的摘要 + 派发记录 + 门槛判定。跑久了主 Agent 自己会触发压缩——上下文爆炸从"单会话内"转移到了"主 Agent 长期运行"层面。
 
-**原则：主 Agent 尽量无状态。** 因为状态全部落盘（active-tasks.md + 任务目录 + orchestrator-log.md），主 Agent 理论上不需要在记忆里保留任何历史：
+**原则：主 Agent 尽量无状态。** 因为状态全部落盘（`{AGATE_WORKSPACE}/tasks/active-tasks.md` + 任务目录 + orchestrator-log.md），主 Agent 理论上不需要在记忆里保留任何历史：
 
-- 每轮只依赖文件（每轮重读 active-tasks.md），不依赖上一轮的记忆
+- 每轮只依赖文件（每轮重读 `{AGATE_WORKSPACE}/tasks/active-tasks.md`），不依赖上一轮的记忆
 - **一个任务到达 DONE 后，主 Agent 应主动"忘掉"该任务的所有中间摘要**——状态已落盘，记忆里不需要保留
 - 主 Agent 自己也会被压缩/中断，但因为无状态，重读文件就能恢复（和子 Agent 一样靠状态落盘抗中断）
 - **`orchestrator-log.md` 防无响应**——长操作前写 `NEXT: ...`，写下去就完成使命，不需要再读回来
 
-实践上：长时间运行时，主 Agent 处理完一个任务就可以开新会话/清理上下文，从 active-tasks.md 重新加载待办任务列表继续。**主 Agent 的"记忆"应该是 active-tasks.md，不是它的上下文窗口。**
+实践上：长时间运行时，主 Agent 处理完一个任务就可以开新会话/清理上下文，从 `{AGATE_WORKSPACE}/tasks/active-tasks.md` 重新加载待办任务列表继续。**主 Agent 的"记忆"应该是 `{AGATE_WORKSPACE}/tasks/active-tasks.md`，不是它的上下文窗口。**
 
 这正是解决用户最初问题（上下文爆炸触发自动压缩）的机制。
 

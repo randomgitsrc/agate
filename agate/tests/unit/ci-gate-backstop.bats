@@ -37,7 +37,7 @@ load ../helpers/load.bash
 setup_git_repo_p3() {
     local repo="$1"
     git_init "$repo"
-    mkdir -p "$repo/docs/tasks/T001"
+    mkdir -p "$repo/agate-workspace/tasks/T001"
     # 根 .state.yaml（ci-gate-backstop.py 读根目录的）
     cat > "$repo/.state.yaml" <<'EOF'
 task_id: T001
@@ -45,7 +45,7 @@ phase: P3
 status: active
 retries: {}
 EOF
-    echo '## P3 test cases' > "$repo/docs/tasks/T001/P3-test-cases.md"
+    echo '## P3 test cases' > "$repo/agate-workspace/tasks/T001/P3-test-cases.md"
     git -C "$repo" add -A
     git -C "$repo" commit -qm "p3"
 }

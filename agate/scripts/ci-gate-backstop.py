@@ -54,6 +54,25 @@ def get_pr_metadata(platform: str) -> dict:
     return {}
 
 
+def resolve_tasks_dir(project_root: str) -> str:
+    """通过工作区解析器取 tasks 基目录（与 bash 侧共用同一解析逻辑，BDD-13）。
+
+    解析器不存在时（旧 AGATE_ROOT）退回 env/default，保证向后兼容。
+    """
+    script = _AGATE_ROOT / "scripts/agate-workspace-resolve.sh"
+    if not script.exists():
+        return str(Path(project_root) / os.environ.get("AGATE_TASKS_DIR", "docs/tasks"))
+    result = subprocess.run(
+        ["bash", str(script), str(project_root)],
+        capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        for line in result.stdout.splitlines():
+            if line.startswith("AGATE_TASKS_DIR="):
+                return line[len("AGATE_TASKS_DIR="):].strip()
+    return str(Path(project_root) / os.environ.get("AGATE_TASKS_DIR", "docs/tasks"))
+
+
 def main() -> int:
     platform = detect_ci_platform()
     print(f"CI platform: {platform}")
@@ -83,8 +102,8 @@ def main() -> int:
         print(f"SKIP: phase={phase}，无 gate 需要对照")
         return 0
 
-    tasks_base = os.environ.get("AGATE_TASKS_DIR", "docs/tasks")
-    task_dir = str(repo_root / tasks_base / task_id) if task_id else ""
+    tasks_dir = resolve_tasks_dir(str(repo_root))
+    task_dir = str(Path(tasks_dir) / task_id) if task_id else ""
     ci_exit, ci_output = run_gate(phase, task_dir)
 
     if phase == "P3":

@@ -30,24 +30,24 @@ load ../helpers/load.bash
     local repo
     repo=$(git_init)
     # 先 commit 旧 .state.yaml + P1 产出（commit gate 要求旧产出已 commit）
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 risk_level: medium
 phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
 - Given test
 EOF
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/
+    git -C "$repo" add agate-workspace/tasks/T001/
     git -C "$repo" commit -qm "init"
     # 改 phase 到 P3 并暂存
-    sed -i 's/phase: P1/phase: P3/' "$repo/docs/tasks/T001/.state.yaml"
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    sed -i 's/phase: P1/phase: P3/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     # 顺序跳 P1→P3 = forward，跳 2，没限制
     [ "$status" -eq 0 ]
 }
@@ -210,15 +210,15 @@ EOF
 @test "ST.11 check-state-transition.sh 多阶段 retries 不同阈值 期望 exit 0（P2:2 不超, P3:1 不超）" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    echo "# P2 design" > "$repo/docs/tasks/T001/P2-design.md"
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    echo "# P2 design" > "$repo/agate-workspace/tasks/T001/P2-design.md"
     cat > "$repo/.state.yaml" <<'EOF'
 task_id: T001
 phase: P2
 status: active
 retries: {}
 EOF
-    git -C "$repo" add .state.yaml docs/tasks/T001/
+    git -C "$repo" add .state.yaml agate-workspace/tasks/T001/
     git -C "$repo" commit -qm "init"
     cat > "$repo/.state.yaml" <<'EOF'
 task_id: T001
@@ -340,130 +340,130 @@ EOF
 @test "ST.16 commit gate: P1→P2 推进，P1 产出已 commit → exit 0" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/P1-requirements.md" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
 risk_level: medium
 phases: [P0, P1, P2, P3]
 - Given test
 EOF
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/
+    git -C "$repo" add agate-workspace/tasks/T001/
     git -C "$repo" commit -qm "T001 P1"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P2
 status: active
 retries: {}
 EOF
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "ST.17 commit gate: P1→P2 推进，P1 产出与 phase 推进在同一 commit → exit 0（模式 B）" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" add agate-workspace/tasks/T001/.state.yaml
     git -C "$repo" commit -qm "T001 phase P1"
     # P1 产出 + phase 改 P2 在同一个暂存区（模式 B）
-    echo "# P1 output" > "$repo/docs/tasks/T001/P1-requirements.md"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    echo "# P1 output" > "$repo/agate-workspace/tasks/T001/P1-requirements.md"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P2
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    git -C "$repo" add agate-workspace/tasks/T001/
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "ST.18 commit gate: P1→P2 推进，P1 产出不存在 → exit 0（产出存在性由 check-gate.sh 检查）" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" add agate-workspace/tasks/T001/.state.yaml
     git -C "$repo" commit -qm "T001 phase P1"
     # 改 phase 到 P2，但 P1 产出从未创建
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P2
 status: active
 retries: {}
 EOF
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "ST.19 commit gate: PAUSED→P3 恢复 → 跳过 commit gate" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    echo "# P2 design" > "$repo/docs/tasks/T001/P2-design.md"
-    git -C "$repo" add docs/tasks/T001/P2-design.md
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    echo "# P2 design" > "$repo/agate-workspace/tasks/T001/P2-design.md"
+    git -C "$repo" add agate-workspace/tasks/T001/P2-design.md
     # 状态 machine PAUSED（old_phase 无数字）
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: PAUSED
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" add agate-workspace/tasks/T001/.state.yaml
     git -C "$repo" commit -qm "Paused"
     # 恢复到 P3
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
 status: active
 retries: {}
 EOF
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "ST.20 commit gate: P3→P1 回退 → 跳过 commit gate" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    echo "# P1" > "$repo/docs/tasks/T001/P1-requirements.md"
-    git -C "$repo" add docs/tasks/T001/P1-requirements.md
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    echo "# P1" > "$repo/agate-workspace/tasks/T001/P1-requirements.md"
+    git -C "$repo" add agate-workspace/tasks/T001/P1-requirements.md
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P3
 status: active
 retries: {}
 EOF
-    git -C "$repo" add docs/tasks/T001/.state.yaml
+    git -C "$repo" add agate-workspace/tasks/T001/.state.yaml
     git -C "$repo" commit -qm "T001 P3"
     # 回退到 P1
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     # 回退自身被检查 1 拦截（exit 1），但我们只验证 commit gate 不触发
     # 所以这里不 assert exit code，只 assert 输出不含 commit gate 消息
     [[ "$output" != *"产出必须已 commit"* ]]
@@ -473,19 +473,19 @@ EOF
 @test "ST_ARCHIVE.1 回退 P6→P5，P6-acceptance.md 仍在原位（未归档）期望 exit 1" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P6
 status: active
 retries: {}
 EOF2
-    echo "old p6" > "$repo/docs/tasks/T001/P6-acceptance.md"
+    echo "old p6" > "$repo/agate-workspace/tasks/T001/P6-acceptance.md"
     git_commit "$repo" "init"
 
-    sed -i 's/phase: P6/phase: P5/' "$repo/docs/tasks/T001/.state.yaml"
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    sed -i 's/phase: P6/phase: P5/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P6 的自撰产出"* ]]
     [[ "$output" == *"agate-archive-stale-outputs.sh"* ]]
@@ -494,8 +494,8 @@ EOF2
 @test "ST_ARCHIVE.2 回退 P6→P5，P6-acceptance.md 已被归档（原位不存在）期望 exit 0" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P6
 status: active
@@ -503,17 +503,17 @@ retries: {}
 EOF2
     git_commit "$repo" "init"
 
-    sed -i 's/phase: P6/phase: P5/' "$repo/docs/tasks/T001/.state.yaml"
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    sed -i 's/phase: P6/phase: P5/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "ST_ARCHIVE.3 回退 P5→P4（P5 不在 self-authored 名单）不受归档检查影响" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P5
 status: active
@@ -521,17 +521,17 @@ retries: {}
 EOF2
     git_commit "$repo" "init"
 
-    sed -i 's/phase: P5/phase: P4/' "$repo/docs/tasks/T001/.state.yaml"
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    sed -i 's/phase: P5/phase: P4/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "ST_ARCHIVE.4 前进 P4→P5（非回退方向）不触发归档检查" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P4
 status: active
@@ -539,29 +539,29 @@ retries: {}
 EOF2
     git_commit "$repo" "init"
 
-    sed -i 's/phase: P4/phase: P5/' "$repo/docs/tasks/T001/.state.yaml"
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    sed -i 's/phase: P4/phase: P5/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "ST_ARCHIVE.5 回退 P1->P0（退到起始阶段），P1-review.md 仍在原位 -> 不触发归档检查（与检查 1 一致，P0 是起始阶段）" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P1
 status: active
 retries: {}
 EOF2
-    echo "req" > "$repo/docs/tasks/T001/P1-requirements.md"
-    echo "review" > "$repo/docs/tasks/T001/P1-review.md"
+    echo "req" > "$repo/agate-workspace/tasks/T001/P1-requirements.md"
+    echo "review" > "$repo/agate-workspace/tasks/T001/P1-review.md"
     git_commit "$repo" "init"
 
-    sed -i 's/phase: P1/phase: P0/' "$repo/docs/tasks/T001/.state.yaml"
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    sed -i 's/phase: P1/phase: P0/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     # P0 是起始阶段，退到 P0 不受归档检查约束（new_num=0，与检查 1 的守卫一致）
     [ "$status" -eq 0 ]
 }
@@ -569,19 +569,19 @@ EOF2
 @test "ST_ARCHIVE.6 回退 P2->P1，P2-design.md 已归档但 P2-review.md 仍在原位 期望 exit 1" {
     local repo
     repo=$(git_init)
-    mkdir -p "$repo/docs/tasks/T001"
-    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF2'
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF2'
 task_id: T001
 phase: P2
 status: active
 retries: {}
 EOF2
-    echo "review" > "$repo/docs/tasks/T001/P2-review.md"
+    echo "review" > "$repo/agate-workspace/tasks/T001/P2-review.md"
     git_commit "$repo" "init"
 
-    sed -i 's/phase: P2/phase: P1/' "$repo/docs/tasks/T001/.state.yaml"
-    git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    sed -i 's/phase: P2/phase: P1/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-review.md"* ]]
 }

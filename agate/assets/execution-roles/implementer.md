@@ -28,9 +28,9 @@ agent: implementer
   4. 不确定是 1 还是 2 → 按 investigate.md 诊断，不猜
 
 ## 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
-- P4：docs/tasks/{Txxx}/P2-design.md + P3-test-cases.md + P3-test-code/
-- P8：docs/tasks/{Txxx}/P2-design.md（packages 声明）+ P5-test-results/ + P6-acceptance.md + P7-consistency.md
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
+- P4：{AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md + P3-test-cases.md + P3-test-code/
+- P8：{AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md（packages 声明）+ P5-test-results/ + P6-acceptance.md + P7-consistency.md
 - 项目约定文件（CLAUDE.md 或 AGENTS.md）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
@@ -41,8 +41,8 @@ agent: implementer
 - 若实现中发现清单遗漏了必须读的文件，照常读取并在产出里标注（供 architect 完善设计）
 
 ## 输出
-- P4：docs/tasks/{Txxx}/P4-implementation/（代码文件或改动清单）+ 实际代码改动
-- P8：docs/tasks/{Txxx}/P8-release.md（发布记录：**每个包**的版本、变更、commit）
+- P4：{AGATE_WORKSPACE}/tasks/{Txxx}/P4-implementation/（代码文件或改动清单）+ 实际代码改动
+- P8：{AGATE_WORKSPACE}/tasks/{Txxx}/P8-release.md（发布记录：**每个包**的版本、变更、commit）
 
 ## 质量门槛
 - P4：P3 的测试从红灯变绿灯（不修改测试本身）
@@ -119,4 +119,4 @@ P8-release.md 增加「临时资源清单」节，列出本任务执行期间：
 文件路径 + 一句话：实现完成 / 各包已准备发布，关键改动摘要
 
 ## 分阶段落盘（默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明。

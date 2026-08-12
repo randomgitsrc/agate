@@ -1,3 +1,53 @@
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0003
+role: implementer-review-fix
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+**评审修复轮（P4 review needs-revision）**：修复 P4-review.md 的 F1/F2 两个主要缺陷 + 回归测试 MW.9 + 低危顺手项。修复后重跑全量验证。
+
+### 约束
+- **增量模式**：上轮产出见 P4-implementation-core.md（migrate 工具实现）；上轮 dispatch-context（P4-dispatch-context-implementer-core.md / -fix.md）复用其约束。本文件只列修复目标。
+- **必须修复（F1，主要）**：`agate/scripts/agate-migrate-workspace.sh:113-115` 迁移自动 commit 静默失败——
+  1. 裸 `git commit` 触发项目自身 pre-commit hook（迁移任务带的旧版本 dispatch-context 卡片 hash 与当前协议不一致 → hook exit 1 拦截）；
+  2. `|| true` 吞掉 exit 1、`2>/dev/null` 吞掉 stderr；
+  3. 工具照常打印「迁移完成」并 exit 0 → BDD-8（git 历史可追溯）静默不满足，用户被误导。
+  修复（按 review 推荐，选项 A + B 组合）：
+  - **选项 A（推荐做）**：机械性 rename commit 跳过项目 hook + pathspec 限定只提交迁移目录：`git -c core.hooksPath=/dev/null commit -qm "chore(workspace): migrate legacy docs/tasks layout to workspace" -- "$AGATE_TASKS_DIR" "${AGATE_WORKSPACE}/archived"`。
+  - **选项 B（必做）**：不再吞 commit 失败——检查 `git commit` 退出码，失败时输出显式错误「迁移已移动文件，但自动 commit 被 pre-commit hook 拦截（BDD-8 git 历史未保留），请手工 `git commit` 完成迁移」，并 exit 1 而非 0。
+- **必须修复（F2，主要）**：实现记录声称的两处缓解实际不存在——
+  1. migrate 脚本 commit 处补显式注释/输出标注「全量 index commit 风险 / pathspec 限定说明」；
+  2. `agate/UPGRADING.md` v2.0.0 迁移节补「迁移前先 commit 或 unstage 无关暂存改动」提示。
+- **必须新增（回归测试 MW.9）**：带 pre-commit hook 的 fixture 回归测试，覆盖「迁移 commit 不被自身 hook 拦截」——fixture 仓库按 install-hook 方式装 hook + 旧版本 dispatch-context 文件，运行迁移工具，断言自动 commit 成功且 BDD-8 历史可追溯。
+- **低危顺手项（review 第 4 条，按成本评估做或记录）**：pre-commit-gate.sh:14 注释旧路径；migrate 空目标（已存在空目录）边角；check-pruning 正则转义；install-hook 自定义工作区提示。
+- 改完后自跑验证：全量 bats（含新 MW.9）+ shellcheck + `python3 agate/scripts/check-protocol-consistency.py` 0 ERROR + count-tests 无漂移。
+- 遵守 AGENTS.md 脚本约定。禁止行首 `- PASS` / `- FAIL` 格式（provenance 审计拦截）。
+
+### 上游关联
+- P4-review.md（评审意见——**必读**，修复依据，F1/F2/修复清单/低危项）。
+- review 复核 DESIGN_GAP：**决策意图同意、实现需修正**——自动 commit 方向对（满足 BDD-8），但裸 commit + 吞失败是缺陷；按 F1/F2 修复后即可确认。
+- 当前状态：P4 实现全部测试绿 + consistency 0 ERROR；仅 migrate 自动 commit 缺陷（fixture 无 hook 故既有测试未捕获）。
+
+### 输入文件
+- docs/tasks/TAG0003-workspace-architecture/P4-review.md（评审意见——必读，修复依据）
+- docs/tasks/TAG0003-workspace-architecture/P4-implementation-core.md（实现记录——必读，F2 声称的缓解要补）
+- agate/scripts/agate-migrate-workspace.sh（修复对象——必读）
+- agate/UPGRADING.md（修复对象——必读，补迁移提示）
+- agate/tests/unit/agate-migrate-workspace.bats（新增 MW.9 的位置——必读）
+- agate/tests/helpers/fixtures.bash + git-helper.bash（fixture 构造参考——按需读取）
+- AGENTS.md（脚本约定/测试约定——必读）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -14,7 +64,7 @@
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 5. 更新 .state.yaml phase=P4 → P5
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
@@ -24,7 +74,7 @@
 → 修复后重跑全量测试（T027 教训：修复可能引入回归）
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P4 MAX=3）
 
-**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
+**若这次是从 P6（或其他更后的阶段）退回来的**：`docs/tasks/Txxx/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `docs/tasks/Txxx/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
 
 ## 前置条件
 
@@ -148,3 +198,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree 是改造对象（分支 dev/workspace，P4 改动未 commit）；`~/.agate` → 主 checkout 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 已核实查证（review 实证）：迁移工具自动 commit 被自身 hook 拦截 + `|| true` 吞失败（fixture /tmp/opencode/migtest3/repo 复现）；工具全文无全量 index 风险标注；UPGRADING.md v2.0.0 节无「迁移前保持暂存区干净」提示。
+- 测试基线：全量 bats 624 用例；consistency 0 ERROR；shellcheck 0；count-tests 624 无漂移。
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

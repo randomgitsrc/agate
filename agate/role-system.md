@@ -90,8 +90,8 @@ subagent 读取角色文件，按角色定义的方式工作。
 ```
 你是 plan-eng-review 评审角色。
 角色定义：读取 {agate_root}/assets/review-roles/plan-eng-review.md
-评审对象：docs/tasks/TAG0002/P2-design.md
-产出：docs/tasks/TAG0002/P2-review.md，Header 里 status 字段填 approved/rejected
+评审对象：{AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md
+产出：{AGATE_WORKSPACE}/tasks/{Txxx}/P2-review.md，Header 里 status 字段填 approved/rejected
 ```
 
 评审产出的 `status` 字段就是门槛判定的依据。

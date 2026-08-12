@@ -27,16 +27,16 @@ agent: verifier
 - **UI 任务：必须实际运行，不能靠"代码看起来对"判断**
 
 ### 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
-- docs/tasks/{Txxx}/P1-requirements.md（BDD 条件、范围声明）
-- docs/tasks/{Txxx}/P2-design.md（是否 ui_affected）
-- docs/tasks/{Txxx}/P3-test-code/（测试）
-- docs/tasks/{Txxx}/P4-implementation/（实现）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md（BDD 条件、范围声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md（是否 ui_affected）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P3-test-code/（测试）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P4-implementation/（实现）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ### 输出
-- docs/tasks/{Txxx}/P5-test-results/unit.md — 单元/回归结果（含 failed 计数）
-- docs/tasks/{Txxx}/P5-test-results/e2e.md — 若 ui_affected：Playwright/E2E 实跑结果 + 截图路径
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P5-test-results/unit.md — 单元/回归结果（含 failed 计数）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P5-test-results/e2e.md — 若 ui_affected：Playwright/E2E 实跑结果 + 截图路径
 - 必要时 evidences/（截图、日志）
 
 ### 质量门槛
@@ -124,20 +124,20 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 **无法验证的 BDD**：标 `FAIL`，不标 PASS。诚实比完整更重要。
 
 ### 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
-- docs/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）
-- docs/tasks/{Txxx}/P5-test-results/（技术验证结果，可复用避免重复跑）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P5-test-results/（技术验证结果，可复用避免重复跑）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 - 运行环境（debug backend / 临时 HOME，严禁碰正式服务）
 
 ### 输出
-- docs/tasks/{Txxx}/P6-acceptance.md — 验收报告，每条 BDD 一个结果块
-- docs/tasks/{Txxx}/P6-evidence/ — 验收证据目录（每条 BDD 至少一个证据文件）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P6-acceptance.md — 验收报告，每条 BDD 一个结果块
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P6-evidence/ — 验收证据目录（每条 BDD 至少一个证据文件）
   - test-output.log — 验证脚本执行日志（所有任务通用）
   - screenshots/ — Playwright 截图（仅 UI 任务）
   - traces/ — Playwright trace（仅 UI 任务，可选）
 - evidences/ — Playwright 截图（desktop + mobile，若 ui_affected）——**本地工作文件**：pre-commit-gate 已放行该目录，但只有 `P6-evidence/` 里被 PASS/FAIL 行引用的文件才算验收证据，`evidences/` 可作为补充参考随任务提交
-- docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
 
 P6-acceptance.md 的 pass/fail 汇总 + ui_affected 写入文件头 **frontmatter**（`---` 分隔块，与
 phase/task_id/agent 等 Header 同块，不写在正文里）。**可直接复制的完整样例**：
@@ -198,7 +198,7 @@ P5 问"测试过了吗"，P6 问"用户要的行为做到了吗"。一个实现�
 P6-acceptance.md 路径 + 一句话：BDD 验收 X/Y 通过
 
 ## 分阶段落盘（默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明，便于 subagent 在无 prompt 派发场景下也能遵循。
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明，便于 subagent 在无 prompt 派发场景下也能遵循。
 
 ## P6 gate 格式契约（精确正则）
 

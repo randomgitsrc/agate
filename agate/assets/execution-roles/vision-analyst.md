@@ -30,19 +30,19 @@ agent: vision-analyst
 
 **截图来源约定**：
 - Playwright 应为每个 viewport 各截一张：`desktop_1280x800.png` + `mobile_390x844.png`
-- 截图路径放在 `docs/tasks/{Txxx}/evidences/` 下
+- 截图路径放在 `{AGATE_WORKSPACE}/tasks/{Txxx}/evidences/` 下
 
 ---
 
 ## 输出
 
-`docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml`（或 design-review / P7 对应目录）
+`{AGATE_WORKSPACE}/tasks/{Txxx}/P6-vision-{timestamp}.yaml`（或 design-review / P7 对应目录）
 
 **完整 YAML 结构**：
 
 ```yaml
 vision_analysis:
-  screenshots: ["docs/tasks/{Txxx}/evidences/desktop_1280x800.png", "docs/tasks/{Txxx}/evidences/mobile_390x844.png"]
+  screenshots: ["{AGATE_WORKSPACE}/tasks/{Txxx}/evidences/desktop_1280x800.png", "{AGATE_WORKSPACE}/tasks/{Txxx}/evidences/mobile_390x844.png"]
   purpose: "acceptance"          # acceptance | design-review | regression | consistency-check
   reference: "docs/design/mockup-v2.png"   # null 表示无参照
   analyzed_at: "2026-06-13T10:00:00"
@@ -50,7 +50,7 @@ vision_analysis:
   # ── 每个 viewport 单独分析 ──────────────────────────────────
   viewports:
     - id: "desktop"
-      file: "docs/tasks/{Txxx}/evidences/desktop_1280x800.png"
+      file: "{AGATE_WORKSPACE}/tasks/{Txxx}/evidences/desktop_1280x800.png"
       size: "1280x800"
 
       # 1. 页面整体状态
@@ -186,7 +186,7 @@ vision_analysis:
           severity: "blocker | warning | info"
 
     - id: "mobile"
-      file: "docs/tasks/{Txxx}/evidences/mobile_390x844.png"
+      file: "{AGATE_WORKSPACE}/tasks/{Txxx}/evidences/mobile_390x844.png"
       size: "390x844"
       # 同上结构，重点关注与 desktop 的差异
 
@@ -278,13 +278,13 @@ blocker 的 anomaly 直接对应 P6 BDD 条件的 ❌，主 Agent 不需要二�
 7. bdd_results 必须逐条对应输入的 bdd_conditions，不能跳过
 8. bdd_results 每条的 result 只允许 "pass" 或 "fail"，不允许中间态
 
-截图文件：{screenshot_paths}（绝对路径，如 docs/tasks/Txxx/evidences/desktop_1280x800.png）
+截图文件：{screenshot_paths}（绝对路径，如 {AGATE_WORKSPACE}/tasks/{Txxx}/evidences/desktop_1280x800.png）
 分析目的：{purpose}
 参照文件：{reference}
 需验证的 BDD 条件：
 {bdd_conditions}
 
-输出：完整 YAML，存入 {output_path}（约定文件名：docs/tasks/{Txxx}/P6-vision-{timestamp}.yaml；由调用方在派发时通过 {output_path} 占位符传入具体路径）
+输出：完整 YAML，存入 {output_path}（约定文件名：{AGATE_WORKSPACE}/tasks/{Txxx}/P6-vision-{timestamp}.yaml；由调用方在派发时通过 {output_path} 占位符传入具体路径）
 ```
 
 ---
@@ -294,4 +294,4 @@ blocker 的 anomaly 直接对应 P6 BDD 条件的 ❌，主 Agent 不需要二�
 `{output_path}` + 一句话：`blocker N 个，warning M 个，BDD X/Y 通过`
 
 ## 分阶段落盘（默认启用）
-若 vision-analyst 被派发为顶层 subagent（而非被其他角色按需调用），每读完一个截图或完成一个分析步骤，立即把发现追加写入 `docs/tasks/{Txxx}/P{N}-progress.md`（bash 追加模式）。多视口分析尤其受益——避免最后一个 viewport 分析时前面结果丢失。这条由派发 prompt 自动注入。
+若 vision-analyst 被派发为顶层 subagent（而非被其他角色按需调用），每读完一个截图或完成一个分析步骤，立即把发现追加写入 `{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md`（bash 追加模式）。多视口分析尤其受益——避免最后一个 viewport 分析时前面结果丢失。这条由派发 prompt 自动注入。

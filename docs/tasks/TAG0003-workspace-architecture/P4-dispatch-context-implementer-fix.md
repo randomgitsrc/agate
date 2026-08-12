@@ -1,3 +1,49 @@
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0003
+role: implementer-fix
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+**定向修复轮**：补齐 P4 三个并行 implementer 遗漏/交接的 3 个脚本改动，解决 SCOPE_GAP + 一处红灯。
+
+### 约束
+- **增量模式**：上轮产出见 P4-implementation-core.md / -docs.md / -tests.md；上轮 dispatch-context 复用其约束（版本隔离、P2 方案 A、只改 worktree agate/）。
+- **本次只改 3 个文件**（都是脚本，不在上轮三个文件集内，属 P2 §1.1 声明但遗漏的）：
+  1. `agate/scripts/check-protocol-consistency.py`（[SCOPE_GAP] 补做）：`PATH_IGNORE_SUBSTRINGS` 中 `"docs/tasks/"`（L72）替换/补充为工作区运行时目录（如 `"agate-workspace/"`），`"docs/agents/"`（L69）按 project.md 新位置重校准（BDD-20 白名单重校准）。跑 `python3 agate/scripts/check-protocol-consistency.py` 确认 0 ERROR（或按实际引用调整后 0 ERROR）。
+  2. `agate/scripts/install-hook.sh`（[SCOPE_GAP] 补做）：L87 提示文字 `git add docs/tasks/` 改为工作区 tasks 路径（BDD-6）。
+  3. `agate/scripts/agate-render-dispatch-prompt.sh`（RP.13 红灯修复）：L109 目前只替换 `{agate_root}`/`{Txxx}` 占位符；docs 组已把 templates/execution-roles 换用 `{AGATE_WORKSPACE}` 占位符 → 渲染输出残留，需补 `{AGATE_WORKSPACE}` 替换（可替换为空/默认 `agate-workspace/`，取决于模板使用处语义；以渲染后无残留占位符为目标）。
+- 改完后自跑验证：
+  - `python3 agate/scripts/check-protocol-consistency.py` → 0 ERROR
+  - `bats agate/tests/unit/agate-render-dispatch-prompt.bats` → 全绿（RP.13 转绿）
+  - 相关脚本 shellcheck 干净
+- **DESIGN_GAP（迁移工具自动 commit）已由主 Agent 标记 [DESIGN_GAP_REVIEWED: 已确认]**——P3 MW.3 断言 git log --follow 在新路径可追溯旧 commit，git mv 只暂存 rename 未 commit 时历史为空，自动 commit 是满足 BDD-8 的必要行为；风险（全量 index commit）已由工具注释 + UPGRADING.md 提示缓解。你**不需要**修改该决策，只确保相关测试通过。
+- 遵守 AGENTS.md 脚本约定（set -euo pipefail、紧凑输出等）。
+- 禁止行首 `- PASS` / `- FAIL` 格式（provenance 审计拦截）。
+
+### 上游关联
+- implementer-core 摘要：解析器+迁移工具新增、4 脚本改造；P3 目标 47/47 转绿；shellcheck 0 error。
+- implementer-docs 摘要：16 文档换血完成，orchestrator 路径切换完成。
+- implementer-tests 摘要：8 文件 392 处换血，用例数 624 无漂移；红灯 1 处（RP.13 render-dispatch-prompt 残留占位符）。
+- 交接项：[SCOPE_GAP] check-protocol-consistency.py / install-hook.sh 归属未定；RP.13 需 core 补替换。
+
+### 输入文件
+- docs/tasks/TAG0003-workspace-architecture/P4-implementation-core.md（上轮实现记录——必读）
+- docs/tasks/TAG0003-workspace-architecture/P4-implementation-tests.md（上轮实现记录，含 RP.13 说明——必读）
+- docs/tasks/TAG0003-workspace-architecture/P2-design.md（§1.1/§3.7 相关声明——必读）
+- agate/scripts/check-protocol-consistency.py、agate/scripts/install-hook.sh、agate/scripts/agate-render-dispatch-prompt.sh（改造对象——必读）
+- AGENTS.md（脚本约定——必读）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -14,7 +60,7 @@
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 5. 更新 .state.yaml phase=P4 → P5
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
@@ -24,7 +70,7 @@
 → 修复后重跑全量测试（T027 教训：修复可能引入回归）
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P4 MAX=3）
 
-**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
+**若这次是从 P6（或其他更后的阶段）退回来的**：`docs/tasks/Txxx/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `docs/tasks/Txxx/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
 
 ## 前置条件
 
@@ -148,3 +194,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree 是改造对象（分支 dev/workspace，HEAD=80c30d5=P3 commit + 未提交的 P4 三组改动）；`~/.agate` → 主 checkout 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 已核实查证：check-protocol-consistency.py 有 PATH_IGNORE_SUBSTRINGS（L69 docs/agents/、L72 docs/tasks/）；install-hook.sh L87 提示 `git add docs/tasks/`；agate-render-dispatch-prompt.sh L109 替换 {agate_root}/{Txxx} 无 {AGATE_WORKSPACE}。
+- 当前 P4 改动已在工作树（未 commit）：6 脚本（2 新 + 4 改）+ 16 文档 + 7 测试 fixture。
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

@@ -1,3 +1,59 @@
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0003
+role: implementer-docs
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+实现 TAG0003 工作区架构的**协议文档换血 + roadmap 机制 + 内容边界判据**：16 个协议文档的 `docs/tasks` 引用改为工作区路径，orchestrator-template 路径切换（project.md / active-tasks / 8 子目录初始化 / 旧布局迁移指引），WORKFLOW.md 内容边界判据正式规则 + roadmap 循环规范，新增 `roadmap-template.md` 模板。
+
+### 约束
+- 本任务是 **agate 协议自身改造**（dogfooding）：只改 worktree 的 `agate/`，**禁止改动 `~/.agate`**（稳定版 v0.40.2 开发工具）。
+- **只改本角色文件集**（协议文档），不改脚本、不改测试（那是另外两个并行 implementer 的活）：
+  - `agate/orchestrator-template.md`：project.md 路径 `{project_root}/docs/agents/project.md`（L21/25/113）→ `{AGATE_WORKSPACE}/agents/project.md`；active-tasks 路径（L69/94/115）→ `{AGATE_WORKSPACE}/tasks/active-tasks.md`；接入 `mkdir -p`（L93）建 8 子目录（roadmap/tasks/agents/archived/reviews/decisions/plans/logs）；启动时旧布局检测（docs/tasks/active-tasks.md 存在而工作区无 → 输出迁移指引「运行 `bash {agate_root}/scripts/agate-migrate-workspace.sh`」，不静默使用旧路径、不静默失败，BDD-10）。
+  - `agate/state-machine.md`：首接入节（L33-44）`mkdir docs/tasks/` → 建工作区 8 子目录；产出路径 `docs/tasks/Txxx/Pn-*.md`（L48）→ 工作区内路径。
+  - `agate/dispatch-protocol.md`：全部 `docs/tasks/{Txxx}/` 引用（28 处，L28-1181）→ 工作区路径占位（`{AGATE_WORKSPACE}/tasks/{Txxx}/` 语义）。
+  - `agate/git-integration.md`：commit 规范里的 `docs/tasks/{task_id}/`（L89/115）→ 工作区路径。
+  - `agate/role-system.md`：评审对象/产出路径（L93-94）→ 工作区路径。
+  - `agate/WORKFLOW.md`：目录结构图（L66-82）、多任务适配（L258）、状态落盘（L297）→ 工作区路径；**内容边界判据正式规则（BDD-17 文档锚点，§3.5 原文）**；roadmap 循环规范（BDD-14/15/16，§3.4 原文）。
+  - `agate/SETUP.md`：新项目接入步骤：project.md 位置 → 工作区 agents/；初始化建工作区目录；.agate.env 配置说明（BDD-1/2/3）。
+  - `agate/UPGRADING.md`：存量项目迁移指引（迁移工具使用步骤 + 旧布局说明，BDD-6/8/10/18）。
+  - `agate/phase-cards/P{1,2,3,4,5,6,7,8}*.md`：`git add docs/tasks/{Txxx}/`（各卡片）→ 工作区路径。
+  - `agate/assets/templates/active-tasks-template.md`：复制目标路径 + 目录结构图（L61-72）→ 工作区。
+  - `agate/assets/templates/project.md`：复制目标 `{project_root}/docs/agents/project.md`（L3）→ 工作区 agents/。
+  - `agate/assets/templates/dispatch-context.md`：`docs/tasks/{Txxx}/`（L25-26）→ 工作区路径。
+  - `agate/assets/templates/task-files.md`：目录说明（L3）→ 工作区路径。
+  - `agate/assets/templates/dispatch-prompt.md`：`docs/tasks/{Txxx}/`（L20）→ 工作区路径。
+  - `agate/assets/execution-roles/*.md`（7 个）：输入/产出路径中的 `docs/tasks/{Txxx}/` → 工作区路径。
+  - `agate/loop-orchestration.md` + `agate/rules/state-transitions.md`：active-tasks/任务目录引用 → 工作区路径。
+  - **新增** `agate/assets/templates/roadmap-template.md`：roadmap 条目模板（条目 id、标题、状态标识 backlog/scheduled/in-progress/done/cancelled、来源、关联 task_id、创建、更新），BDD-14/15/16。
+- 路径语义统一用 `{AGATE_WORKSPACE}/...`（工作区根）表述，保留 `AGATE_TASKS_DIR`（tasks 基目录）作为 bash 侧变量名。文档是给人类 + orchestrator 读的，路径占位需清晰、与解析器输出一致。
+- **注意**：orchestrator-template.md 是符号链接接入的模板（`~/.agate/orchestrator-template.md`），你改的是 worktree 的这份（协议本体），改动会在 P8 发布时随协议一起生效。
+- 实现中发现 P2 设计歧义/缺口 → 标 `[DESIGN_GAP: 描述]`（单行 tag）；发现新隐含需求 → 标 `[SCOPE+]`。
+- 禁止行首 `- PASS` / `- FAIL` 格式（provenance 审计拦截）。
+
+### 上游关联
+- P2 已批准（plan-eng-review approved）：方案 A；内容边界判据（§3.5）；roadmap 循环（§3.4）；orchestrator 路径切换（§3.3）。
+- 3 项 SCOPE+ 已回补 P1 scope_resolved。
+- 并行 implementer-core 正在实现解析器/迁移工具（文件不重叠）；implementer-tests 正在换血测试 fixture（文件不重叠）。
+
+### 输入文件
+- docs/tasks/TAG0003-workspace-architecture/P2-design.md（方案设计 §3.3/3.4/3.5 + 1.1 文档改动清单——**必读**）
+- docs/tasks/TAG0003-workspace-architecture/P1-requirements.md（20 条 BDD，尤其 BDD-1/6/10/11/12/14/15/16/17——必读）
+- docs/tasks/TAG0003-workspace-architecture/P0-brief.md（环境约束——必读）
+- AGENTS.md（项目约定/文档规范——必读）
+- 待改文档本身（按上文文件集逐一读取并换血）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -14,7 +70,7 @@
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 5. 更新 .state.yaml phase=P4 → P5
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
@@ -24,7 +80,7 @@
 → 修复后重跑全量测试（T027 教训：修复可能引入回归）
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P4 MAX=3）
 
-**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
+**若这次是从 P6（或其他更后的阶段）退回来的**：`docs/tasks/Txxx/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `docs/tasks/Txxx/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
 
 ## 前置条件
 
@@ -148,3 +204,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree 是改造对象（分支 dev/workspace，HEAD=80c30d5=P3 commit）；`~/.agate` → 主 checkout 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 已核实查证：agate/ 下 43 个文件引用 `docs/tasks`（含本角色文件集的 16 文档）；orchestrator-template.md 有 project.md 路径 3 处 + active-tasks 路径 3 处 + 接入 mkdir 1 处。
+- 协议目录结构：agate/ 含 WORKFLOW.md / dispatch-protocol.md / state-machine.md / role-system.md / git-integration.md / platform-notes.md / LIMITATIONS.md / orchestrator-template.md / phase-cards/ / assets/（execution-roles + review-roles + templates）/ scripts/ / tests/ / AGENTS.md / adr.md / CONTEXT.md / SETUP.md / UPGRADING.md / loop-orchestration.md / rules/。
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

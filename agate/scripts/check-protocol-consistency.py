@@ -65,11 +65,11 @@ NARRATIVE_DIRS = ("docs/plans/", "docs/reviews/", "docs/design-notes/", "archive
 PATH_IGNORE_SUBSTRINGS = (
     "...",                      # docs/...md 之类省略写法
     "xxx",                      # {role_id}.md 示例
-    "{",                        # 含占位符 {Txxx} / {agate_root}
-    "docs/agents/",             # 项目侧 orchestrator 安装位置（示例）
+    "{",                        # 含占位符 {Txxx} / {agate_root} / {AGATE_WORKSPACE}
+    "agate-workspace/",         # v2.0 工作区运行时目录（tasks/agents/archived/reviews/...）
+    "docs/agents/",             # 旧布局项目侧 project.md 位置（v2.0 起迁移到工作区 agents/）
     "docs/converse/",           # 项目侧示例
     "docs/notes/lessons.md",    # 运行时由 P8 生成
-    "docs/tasks/",              # 运行时任务目录
     "docs/process/",            # 历史路径示例
     "docs/design/",             # 项目侧设计稿示例
     "docs/decisions/",          # 项目侧决策记录示例

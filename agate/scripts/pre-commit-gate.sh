@@ -11,7 +11,7 @@
 #
 # 触发条件：.state.yaml phase 变更 OR 阶段产出文件变更
 #
-# 多任务架构：扫描所有暂存的 .state.yaml（根 + docs/tasks/{Txxx}/）
+# 多任务架构：扫描所有暂存的 .state.yaml（根 + {AGATE_WORKSPACE}/tasks/{Txxx}/）
 # 单任务架构：向后兼容根 .state.yaml
 
 set -euo pipefail
@@ -24,7 +24,16 @@ REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 # hook 被软链到项目 .git/hooks/ 时，readlink -f 解析软链到真实脚本位置 -> 本体根
 # 顺序关键：先 readlink -f 解析软链，再 dirname 两次取本体根（不能先 dirname 再 /..，会解析到 .git）
 AGATE_ROOT="${AGATE_ROOT:-$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")}"
-AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
+
+# 工作区路径单点解析（TAG0003 v2.0）：.agate.env(AGATE_WORKSPACE=) > AGATE_TASKS_DIR env > 默认 agate-workspace/
+# 解析器输出 AGATE_WORKSPACE / AGATE_TASKS_DIR（均绝对路径），source 模式只 export 不输出
+if [ -f "$AGATE_ROOT/scripts/agate-workspace-resolve.sh" ]; then
+    source "$AGATE_ROOT/scripts/agate-workspace-resolve.sh" "$REPO_ROOT" \
+        || { echo "GATE ERROR: 无法加载 agate-workspace-resolve.sh" >&2; exit 1; }
+else
+    # 兼容旧 AGATE_ROOT（解析器未部署）：退回原默认值
+    AGATE_TASKS_DIR="${AGATE_TASKS_DIR:-docs/tasks}"
+fi
 
 # R1 修复：source 后验证函数已加载，防止静默放行
 source "$AGATE_ROOT/scripts/gate-result.sh" \
@@ -80,7 +89,7 @@ for STATE_FILE in $STAGED_STATE_FILES; do
     # 如果 .state.yaml 在任务目录下，TASK_DIR = dirname
     # 如果 .state.yaml 在根目录，TASK_DIR = REPO_ROOT/AGATE_TASKS_DIR/TASK_ID
     if [ "$STATE_DIR" = "$REPO_ROOT" ]; then
-        TASK_DIR="$REPO_ROOT/$AGATE_TASKS_DIR/$TASK_ID"
+        TASK_DIR="$AGATE_TASKS_DIR/$TASK_ID"
     else
         TASK_DIR="$STATE_DIR"
     fi

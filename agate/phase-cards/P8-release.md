@@ -70,7 +70,7 @@ check-gate.sh P8 $TASK_DIR
 
 **状态与版本**：
 - [ ] .state.yaml phase == READY
-- [ ] active-tasks.md 任务行状态已更新
+- [ ] {AGATE_WORKSPACE}/tasks/active-tasks.md 任务行状态已更新
 - [ ] git 工作区干净
 - [ ] git tag 已创建
 

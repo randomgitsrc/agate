@@ -17,15 +17,15 @@ agent: consistency-reviewer
 - 跨文件一致性必须引用具体文件和节名（非裸 "一致"）
 
 ## 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束）
-- docs/tasks/{Txxx}/P1-requirements.md（BDD 条件、SCOPE+ 声明）
-- docs/tasks/{Txxx}/P2-design.md（packages、domains、方案设计）
-- docs/tasks/{Txxx}/P4-implementation.md（DESIGN_GAP 声明）
-- docs/tasks/{Txxx}/P6-acceptance.md（BDD 验收结果）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md（BDD 条件、SCOPE+ 声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md（packages、domains、方案设计）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P4-implementation.md（DESIGN_GAP 声明）
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P6-acceptance.md（BDD 验收结果）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ## 输出
-- docs/tasks/{Txxx}/P7-consistency.md — 一致性审查结论
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P7-consistency.md — 一致性审查结论
 
 ## 实质锚点要求（N3）
 
@@ -65,7 +65,7 @@ review 类 subagent 不能靠代码改动校验兜底。结论必须附带实质
 P7-consistency.md 路径 + 一句话：BLOCKER=N, DESIGN_GAP 未配对=M
 
 ## 分阶段落盘（默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。
 
 ## P7 gate 格式契约
 

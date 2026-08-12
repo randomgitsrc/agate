@@ -62,8 +62,15 @@ fi
 if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     # R4(a) bug fix：补实现已文档化的文件数条件
     # ⚠️ 用 --cached（暂存区），不用 HEAD~1（pre-commit 时本次变更还没进 HEAD）
+    # TAG0003 v2.0 去硬编码：排除模式从写死 ^docs/tasks/ 改为跟随工作区 tasks 相对路径
+    # （从 TASK_DIR 反推 tasks 基目录 = dirname(TASK_DIR)，兼容 docs/tasks / agate-workspace/tasks / 自定义路径）
+    TASKS_BASE_REL=""
+    REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+    if [ -n "$REPO_ROOT" ] && [ -n "$TASK_DIR" ]; then
+        TASKS_BASE_REL=$(realpath --relative-to="$REPO_ROOT" "$(dirname "$TASK_DIR")" 2>/dev/null || echo "")
+    fi
     SOURCE_FILE_COUNT=$(git diff --cached --name-only 2>/dev/null \
-        | grep -cvE '^docs/tasks/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG' || echo 0)
+        | grep -cvE "^docs/tasks/|^${TASKS_BASE_REL}/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG" || echo 0)
     SOURCE_FILE_COUNT=$(echo "$SOURCE_FILE_COUNT" | tail -1)
 
     if [ "$SOURCE_FILE_COUNT" -gt 5 ]; then

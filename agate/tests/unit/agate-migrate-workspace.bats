@@ -128,3 +128,55 @@ EOF
     [ -f "$ext_ws/tasks/T001/P1-requirements.md" ]
     [[ "$output" == *"WARNING"* ]]
 }
+
+@test "MW.9 [BDD-8] 迁移自动 commit 不被项目自身 pre-commit hook 拦截（带 hook fixture 回归）" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/TAG0001-demo"
+    # .state.yaml 用 v2.0 编号格式（^T[A-Z]{2}\d+$），否则 hook 的 check-state-yaml 会先拦截
+    cat > "$repo/docs/tasks/TAG0001-demo/.state.yaml" <<'EOF'
+task_id: TAG0001
+phase: P1
+status: active
+retries: {}
+EOF
+    echo "## 看板" > "$repo/docs/tasks/active-tasks.md"
+    echo "# P1" > "$repo/docs/tasks/TAG0001-demo/P1-requirements.md"
+    # 旧版本 dispatch-context：内嵌卡片与当前协议不一致 → hook 2p 卡片 hash 校验会拦截裸 commit
+    cat > "$repo/docs/tasks/TAG0001-demo/P1-dispatch-context-analyst.md" <<'EOF'
+---
+phase: P1
+---
+<!-- AGATE_CARD_START -->
+## 旧版本 P1 卡片（非当前协议）
+该卡片内容与 agate-next-card.sh 当前输出不一致，hash 校验应失败。
+<!-- AGATE_CARD_END -->
+EOF
+    git_commit "$repo" "init task"
+    # 按 install-hook.sh 方式装 pre-commit hook（软链）
+    mkdir -p "$repo/.git/hooks"
+    ln -sf "$AGATE_SCRIPTS/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
+    chmod +x "$AGATE_SCRIPTS/pre-commit-gate.sh"
+    # 运行迁移工具：自动 commit 应跳过自身 hook（core.hooksPath=/dev/null）成功完成
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    [ "$status" -eq 0 ]
+    [ -f "$repo/agate-workspace/tasks/TAG0001-demo/P1-requirements.md" ]
+    # 断言自动 commit 已落盘（BDD-8）：git log 含迁移 commit
+    local log
+    log=$(git -C "$repo" log --oneline 2>/dev/null)
+    [[ "$log" == *"migrate legacy docs/tasks layout"* ]]
+    # 断言 rename 成对提交：暂存区无旧路径残留（防 partial commit 只提交新路径的回归）
+    [[ -z "$(git -C "$repo" status --short | grep 'docs/tasks' || true)" ]]
+    # 断言历史可追溯：--follow 在新路径能追到迁移前的 init commit
+    local history
+    history=$(git -C "$repo" log --follow --oneline -- agate-workspace/tasks/TAG0001-demo/P1-requirements.md 2>/dev/null)
+    [[ "$history" == *"init task"* ]]
+    [[ "$history" == *"migrate legacy"* ]]
+    # 回归守卫：hook 仍然生效——迁移后改 .state.yaml 的裸 commit 应被卡片校验拦截
+    # （若 hook 安装失败，本测试会退化——裸 commit 不被拦、迁移 commit 必然存在，MW.9 失去判别力）
+    printf '\n# hook-liveness probe\n' >> "$repo/agate-workspace/tasks/TAG0001-demo/.state.yaml"
+    git -C "$repo" add -f "agate-workspace/tasks/TAG0001-demo/.state.yaml"
+    run git -C "$repo" commit -qm "hook-liveness probe"
+    [ "$status" -ne 0 ]
+    git -C "$repo" reset -q
+}

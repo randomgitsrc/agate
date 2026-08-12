@@ -30,22 +30,23 @@ LLM 不是可靠的循环执行器。让它"一直 while 下去"，跑几轮后�
 
 这是"宏观状态"——任务走到哪了。
 
-**首次接入项目时，`docs/tasks/` 和 `active-tasks.md` 不存在，这是正常情况，不是异常**：
+**首次接入项目时，工作区（默认 `{AGATE_WORKSPACE}` = 项目根下 `agate-workspace/`）和 `active-tasks.md` 不存在，这是正常情况，不是异常**：
 
 ```
 主 Agent 任何时候要读 active-tasks.md 之前，先检查：
-  docs/tasks/active-tasks.md 是否存在？
+  {AGATE_WORKSPACE}/tasks/active-tasks.md 是否存在？
     存在 → 正常读取，按下面的状态机推进
     不存在 → 这是项目第一次接入 agate：
-      1. mkdir -p docs/tasks/
+      1. mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs}
+         （创建 8 个子目录：roadmap/tasks/agents/archived/reviews/decisions/plans/logs）
       2. 从 {agate_root}/assets/templates/active-tasks-template.md
-         复制结构到 docs/tasks/active-tasks.md（清空示例数据，保留表结构）
+         复制结构到 {AGATE_WORKSPACE}/tasks/active-tasks.md（清空示例数据，保留表结构）
       3. 视为"无进行中任务"，可以直接创建第一个任务（TAG0001）
 ```
 
 不要把"文件不存在"误判为错误或异常，更不要因为读不到文件就假设任务已完成或卡住——这是初始化场景，唯一正确动作是建表，然后继续往下走。
 
-### 第二层：阶段产出文件（docs/tasks/Txxx/Pn-*.md）
+### 第二层：阶段产出文件（{AGATE_WORKSPACE}/tasks/{Txxx}/Pn-*.md）
 
 每个阶段的产出文件本身就是"这个阶段完成了"的证据。文件的 Header 里有可判定字段：
 
@@ -223,7 +224,7 @@ PAUSED 恢复协议：
 
   恢复步骤：
   1. 主 Agent 重读该任务的 .state.yaml → 获取 PAUSED 前的阶段和 retry 计数
-  2. 人工回复的内容写入 docs/tasks/{Txxx}/PAUSED-resolution.md（含 Header）
+  2. 人工回复的内容写入 {AGATE_WORKSPACE}/tasks/{Txxx}/PAUSED-resolution.md（含 Header）
   3. 主 Agent 将 PAUSED-resolution.md 路径加入重派 prompt（"人工决策见此文件"）
   4. 按 PAUSED 前的阶段重新派发 subagent
 
@@ -294,7 +295,7 @@ P8 是**「发布准备」**，不是「发布」。P8 gate 通过后进入 READ
 function 执行一步(task_id):
     1. 读 .state.yaml 或 active-tasks.md → 得到 (当前阶段, 重试记录)
        **状态标记绑定检查**（T019 教训：.state.yaml 标了 P5 但无 P5 产出）：
-       .state.yaml 的 phase 标记为 Pn，但 docs/tasks/{task_id}/ 下 Pn 产出文件
+       .state.yaml 的 phase 标记为 Pn，但 {AGATE_WORKSPACE}/tasks/{task_id}/ 下 Pn 产出文件
        不存在 → 无效标记，回退到 Pn-1 重新执行 gate。标记前必须验证 gate。
     1.5 环境一致性验证（若 .state.yaml 含 env_state 字段）
 
@@ -306,8 +307,8 @@ function 执行一步(task_id):
        注意：此步骤只适用于 .state.yaml 显式记录了 env_state 的任务。
        无 env_state 的任务跳过此步骤。
     2. 若当前阶段 == P0：主 Agent 亲自写 P0-brief.md（见 dispatch-protocol.md 步骤0），完成后继续
-       否则：确认 docs/tasks/{task_id}/P0-brief.md 已存在（必填字段：task/known_risks/executor_env/env_constraints）
-       读 docs/tasks/{task_id}/ → 确认当前阶段输入文件就绪
+       否则：确认 {AGATE_WORKSPACE}/tasks/{task_id}/P0-brief.md 已存在（必填字段：task/known_risks/executor_env/env_constraints）
+       读 {AGATE_WORKSPACE}/tasks/{task_id}/ → 确认当前阶段输入文件就绪
     3. 派发当前阶段的 subagent（见 dispatch-protocol.md）
     4. subagent 返回摘要（路径 + 一句话）
     4.5 扫描 subagent 产出是否含 [SCOPE+] 或 [SCOPE_GAP]：
@@ -384,7 +385,7 @@ function 执行一步(task_id):
 
 除 active-tasks.md 宏观看板外，每任务有独立状态文件：
 
-位置：`docs/tasks/{Txxx}/.state.yaml`
+位置：`{AGATE_WORKSPACE}/tasks/{Txxx}/.state.yaml`
 
 ```yaml
 task_id: TAG0001
@@ -445,7 +446,7 @@ env_state:
       卡片查不到的信息回退到 orchestrator-template.md「Fallback（按需查阅，不要求每轮必读）」节。
       不能假设压缩前读过的内容还在上下文里。
   1. 主 Agent 重新读 active-tasks.md → "TAG0001 在 P4，重试 0"
-  2. 读 docs/tasks/TAG0001/ → P4-implementation/ 是否已有文件？
+  2. 读 {AGATE_WORKSPACE}/tasks/TAG0001/ → P4-implementation/ 是否已有文件？
      - 有 → P4 已完成，直接判定门槛，进 P5
      - 没有 → P4 没做完，重新派发 P4 subagent
   3. 接着干
@@ -457,7 +458,7 @@ env_state:
 
 **`orchestrator-log.md` 防无响应**：
 
-文件：`docs/tasks/{Txxx}/orchestrator-log.md`，主 Agent 专用，记录关键决策和下一步——写下去就完成使命，恢复任务用 `.state.yaml` + 产出文件，不依赖此文件。
+文件：`{AGATE_WORKSPACE}/tasks/{Txxx}/orchestrator-log.md`，主 Agent 专用，记录关键决策和下一步——写下去就完成使命，恢复任务用 `.state.yaml` + 产出文件，不依赖此文件。
 
 规则：
 - 仅追加不编辑不整理

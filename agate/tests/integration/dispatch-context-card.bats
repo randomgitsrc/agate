@@ -36,8 +36,8 @@ role: ROLE_PLACEHOLDER
 上游摘要信息
 
 ### 输入文件
-- docs/tasks/TXX0999/P0-brief.md
-- docs/tasks/TXX0999/前阶段产出.md
+- agate-workspace/tasks/TXX0999/P0-brief.md
+- agate-workspace/tasks/TXX0999/前阶段产出.md
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->
@@ -110,7 +110,7 @@ role: test-designer
 无
 
 ### 输入文件
-- docs/tasks/TXX0999/P0-brief.md
+- agate-workspace/tasks/TXX0999/P0-brief.md
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->

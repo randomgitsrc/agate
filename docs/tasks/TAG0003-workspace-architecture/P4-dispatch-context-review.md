@@ -1,3 +1,55 @@
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0003
+role: review
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+独立评审 TAG0003 P4 实现（worktree agate/ 的 6 脚本 + 16 文档 + 7 测试 fixture + 3 修复轮脚本改动），产出 docs/tasks/TAG0003-workspace-architecture/P4-review.md（status: approved / rejected / needs-revision）。你是偏执 Staff Engineer（C8 映射：domains=[backend,cli] + risk=high → review，P4 实现评审不可省）。
+
+### 约束
+- **只审不写**：不直接修改实现文件，只产出评审意见。
+- 本任务是 **agate 协议自身改造**（dogfooding）：评审对象是 worktree `agate/`（新版协议），`~/.agate` 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 评审重点（review 角色清单 + 本任务特有风险）：
+  1. **数据安全与正确性（Pass 1 CRITICAL）**：迁移工具 `agate-migrate-workspace.sh` 的 git mv / fallback mv / 自动 commit 逻辑——是否可能误删/覆盖数据？空源/冲突/仓库外边界是否安全？自动 commit 的全量 index 风险是否被正确标注与缓解？
+  2. **路径解析正确性（Pass 1）**：`agate-workspace-resolve.sh` 解析优先级（.agate.env > AGATE_TASKS_DIR > 默认）、相对/绝对路径、含空格、项目外路径——输出是否与 BDD-2/3/4/5 一致？pre-commit-gate.sh 消费绝对路径时是否避免 REPO_ROOT 重复拼接（P2-review 非阻塞项 2）？
+  3. **去硬编码完整性（Pass 1）**：check-state-transition.sh（dirname!=REPO_ROOT 语义）、check-pruning.sh（工作区 tasks 相对路径）、check-protocol-consistency.py（PATH_IGNORE_SUBSTRINGS 白名单）——是否仍有 `docs/tasks` 残留硬编码导致行为错误？（允许文档侧示例/旧布局兼容的保留引用，但要区分）
+  4. **代码健康（Pass 2 INFORMATIONAL）**：脚本 set -euo pipefail、shellcheck、错误处理、资源清理；ci-gate-backstop.py 与 bash 解析器的一致性。
+  5. **行为不变回归（BDD-13）**：既有 gate 逻辑语义是否保持（只是路径来源变化）？既有 603/624 用例数是否不漂移？
+  6. **SCOPE_GAP 闭环**：check-protocol-consistency.py / install-hook.sh / agate-render-dispatch-prompt.sh 补做是否到位？
+  7. **DESIGN_GAP 审查**：迁移工具自动 commit（已标记 [DESIGN_GAP_REVIEWED: 已确认]）——复核该决策是否有更安全的替代，若同意保持，标注确认；若不同意，标 BLOCKER。
+  8. **文档一致性**：orchestrator-template 路径切换、WORKFLOW 内容边界判据、roadmap 循环规范是否与 P2 设计一致、是否可在 P6 验收。
+- 结论必须引用实质锚点（文件路径 + 行号/函数/决策编号），不引用锚点的裸 "approved" 会被 gate 判假完成。
+- 产出文件 Header 必须含 `status:` 字段（approved/rejected/needs-revision），与返回摘要一致。
+- 禁止行首 `- PASS` / `- FAIL` 格式（provenance 审计拦截）。
+
+### 上游关联
+- implementer-core：解析器+迁移工具新增、4 脚本改造；P3 目标 47/47 转绿；shellcheck 0 error；[DESIGN_GAP] 迁移工具自动 commit（主 Agent 已标记 REVIEWED 已确认）。
+- implementer-docs：16 文档换血完成，WORKFLOW 内容边界判据 + roadmap 循环规范落地，orchestrator 路径切换完成。
+- implementer-tests：8 文件 392 处换血，用例数 624 无漂移；[SCOPE_GAP] 2 脚本 + RP.13 红灯交接。
+- implementer-fix：SCOPE_GAP 白名单/提示路径重校准 + RP.13 补 {AGATE_WORKSPACE} 替换，三处全绿（consistency 0 ERROR / render-dispatch-prompt.bats 16/16 / install-hook.bats 5/5 / shellcheck 0 / count-tests 624）。
+- 主 Agent 自跑：resolve+migrate 17/17 绿、check-state-transition 47 ok、consistency 0 ERROR。
+
+### 输入文件
+- docs/tasks/TAG0003-workspace-architecture/P2-design.md（方案设计——必读，对照评审）
+- docs/tasks/TAG0003-workspace-architecture/P4-implementation-core.md / -docs.md / -tests.md / -fix.md（实现记录——必读）
+- docs/tasks/TAG0003-workspace-architecture/P1-requirements.md（20 条 BDD——必读）
+- docs/tasks/TAG0003-workspace-architecture/P3-test-cases.md（测试契约——必读）
+- agate/scripts/ 下 9 个改动脚本（agate-workspace-resolve.sh / agate-migrate-workspace.sh / pre-commit-gate.sh / ci-gate-backstop.py / check-state-transition.sh / check-pruning.sh / check-protocol-consistency.py / install-hook.sh / agate-render-dispatch-prompt.sh——必读，逐个审查）
+- agate/orchestrator-template.md + agate/WORKFLOW.md（核心文档改动——必读）
+- agate/tests/ 下改动 fixture + 新增测试（按需读取）
+- AGENTS.md（项目约定/脚本约定——必读）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -14,7 +66,7 @@
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 5. 更新 .state.yaml phase=P4 → P5
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
@@ -24,7 +76,7 @@
 → 修复后重跑全量测试（T027 教训：修复可能引入回归）
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P4 MAX=3）
 
-**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
+**若这次是从 P6（或其他更后的阶段）退回来的**：`docs/tasks/Txxx/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `docs/tasks/Txxx/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
 
 ## 前置条件
 
@@ -148,3 +200,13 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree 是改造对象（分支 dev/workspace，P4 改动未 commit）；`~/.agate` → 主 checkout 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 改动面：9 脚本（2 新 + 7 改）+ 16 文档 + 1 新模板 + 7 测试 fixture + 3 实现记录文件。
+- 测试基线：全量 bats 624 用例（含 P3 新增 21）；consistency 0 ERROR；shellcheck 0 error；count-tests 624 无漂移。
+- 已核实查证：P2 §1.1 明确列出 check-protocol-consistency.py（BDD-20 白名单）+ install-hook.sh（BDD-6 提示）；pre-commit-gate.sh L83 现为 `TASK_DIR="$REPO_ROOT/$AGATE_TASKS_DIR/$TASK_ID"`（绝对路径时不可再拼 REPO_ROOT）。
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

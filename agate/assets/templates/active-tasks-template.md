@@ -1,6 +1,6 @@
 # 任务看板 (Task Board) — active-tasks-template.md
 
-> 复制此文件到 `{project_root}/docs/tasks/active-tasks.md`，清空示例数据后使用。
+> 复制此文件到 `{AGATE_WORKSPACE}/tasks/active-tasks.md`，清空示例数据后使用。
 > `.state.yaml` 是单任务的权威状态，`active-tasks.md` 是全局汇总视图（主 Agent 维护，subagent 不直接改）。
 
 ---
@@ -14,8 +14,10 @@
 
 ### 待开始
 
-| 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
-|------|----------|------|------|--------|------|----------|----------|
+| 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | roadmap | 创建日期 | 更新日期 |
+|------|----------|------|------|--------|------|---------|----------|----------|
+
+> `roadmap` 列记录该任务的 roadmap 条目 id（格式 `RM-{项目代号}{编号}`），无则留空。由 roadmap 条目拆出的任务必须填（见 WORKFLOW.md「roadmap 循环」）。
 
 ### 已完成
 
@@ -58,7 +60,7 @@
 ## 目录结构
 
 ```
-docs/tasks/
+{AGATE_WORKSPACE}/tasks/
 ├── active-tasks.md          ← 本文件
 ├── T001-xxx/
 │   ├── .state.yaml          ← 单任务权威状态

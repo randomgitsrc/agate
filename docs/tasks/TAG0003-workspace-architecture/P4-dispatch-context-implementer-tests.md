@@ -1,3 +1,53 @@
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0003
+role: implementer-tests
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+实现 TAG0003 工作区架构的**测试 fixture 换血**：8 个既有 .bats 测试文件中的 `docs/tasks` 硬编码路径（377 处）换血为工作区路径，保持用例数不漂移（603 条基线）；`tests/helpers/fixtures.bash` 评估新增 `AGATE_TASKS_DIR` 测试变量辅助路径构造。
+
+### 约束
+- 本任务是 **agate 协议自身改造**（dogfooding）：只改 worktree 的 `agate/`，**禁止改动 `~/.agate`**（稳定版 v0.40.2 开发工具）。测试用 worktree 本体（load.bash 反推 AGATE_ROOT）。
+- **只改本角色文件集**（测试 fixture），不改脚本、不改协议文档（那是另外两个并行 implementer 的活）：
+  - `agate/tests/integration/pre-commit-hook.bats`（最大改动面，42 用例）
+  - `agate/tests/integration/dispatch-context-card.bats`
+  - `agate/tests/unit/check-state-transition.bats`（只做既有用例的路径换血，**不动 P3 新增的 ST_WS.1-4 用例**）
+  - `agate/tests/unit/ci-gate-backstop.bats`
+  - `agate/tests/unit/check-pruning.bats`
+  - `agate/tests/unit/agate-capture-env-baseline.bats`
+  - `agate/tests/unit/dispatch-context-warning.bats`
+  - `agate/tests/regression/v040-dotarchived-exclusion.bats`
+  - `agate/tests/helpers/fixtures.bash`：`create_task_dir` 用 mktemp **不改**；可新增 `AGATE_TASKS_DIR` 测试变量辅助路径构造（评估后决定，非强制）
+- **换血语义**：fixture 里 `mkdir -p $repo/docs/tasks/...`、`git add docs/tasks/...`、`run bash ... docs/tasks/T001` 等硬编码路径 → 工作区路径（默认 `agate-workspace/tasks/` 语义；测试中可用变量或字面量，但必须与解析器默认一致）。
+- **用例数不漂移**：只换路径不改用例数。改动前先跑 `bash agate/tests/scripts/count-tests.sh` 记录基线（应为 603），改动后重跑确认不变。
+- **自查≠gate**：改完自跑全量 bats 确认绿色（自查），但自查通过 ≠ P5 gate 通过。若红灯来自并行 implementer-core 尚未完成的脚本改动（解析器/迁移工具），记录但不阻塞——你的职责是路径换血正确。
+- 实现中发现 P2 设计歧义/缺口 → 标 `[DESIGN_GAP: 描述]`（单行 tag）；发现新隐含需求 → 标 `[SCOPE+]`。
+- 遵守 AGENTS.md 测试约定：临时文件用 `$BATS_TEST_TMPDIR`；fixture .state.yaml 以 `.` 开头、`git add -f` 暂存；helpers 加载顺序 load.bash → fixtures.bash → git-helper.bash。
+- 禁止行首 `- PASS` / `- FAIL` 格式（provenance 审计拦截）。
+
+### 上游关联
+- P2 已批准（plan-eng-review approved）：方案 A；测试换血范围（§1.1）+ 用例数口径（§3.7：既有 603 条换血不改数，新增允许增长）。
+- P3 新增测试（agate-workspace-resolve.bats / agate-migrate-workspace.bats / check-state-transition.bats ST_WS 用例）已红灯提交——**不要改动这三个文件**（它们是 P4-core 要变绿的目标）。
+- 并行 implementer-core 正在实现解析器/迁移工具（文件不重叠）；implementer-docs 正在换血协议文档（文件不重叠）。
+
+### 输入文件
+- docs/tasks/TAG0003-workspace-architecture/P2-design.md（方案设计 §1.1 测试改动清单 + §3.7 用例数口径——**必读**）
+- docs/tasks/TAG0003-workspace-architecture/P0-brief.md（环境约束——必读）
+- AGENTS.md（测试约定/helpers/CI——必读）
+- 待换血的 8 个 .bats 文件 + tests/helpers/fixtures.bash（逐一读取并换血）
+- docs/tasks/TAG0003-workspace-architecture/P1-requirements.md（BDD-6/13/20 口径——选读）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -14,7 +64,7 @@
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
 5. 更新 .state.yaml phase=P4 → P5
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+6. git add docs/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
 7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
@@ -24,7 +74,7 @@
 → 修复后重跑全量测试（T027 教训：修复可能引入回归）
 → 读 agate/rules/state-transitions.md 确认 retry 上限（P4 MAX=3）
 
-**若这次是从 P6（或其他更后的阶段）退回来的**：`{AGATE_WORKSPACE}/tasks/{Txxx}/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `{AGATE_WORKSPACE}/tasks/{Txxx}/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
+**若这次是从 P6（或其他更后的阶段）退回来的**：`docs/tasks/Txxx/` 下不会再有旧的 P6-acceptance.md（已被归档），但当初具体是哪条 BDD 失败、失败原因是什么，会摘要在 `docs/tasks/Txxx/.retreat-history.md` 里——**重新派发 implementer 时，dispatch-context 必须引用这份摘要**，不能让 implementer 只看到"现有代码"却不知道具体要修哪里。已有代码不会被撤销、也不需要重新实现，是在已有实现基础上定向修复。
 
 ## 前置条件
 
@@ -148,3 +198,14 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree 是改造对象（分支 dev/workspace，HEAD=80c30d5=P3 commit）；`~/.agate` → 主 checkout 是稳定版 v0.40.2 开发工具（禁止改动）。
+- 版本隔离三条铁律：改协议只改 worktree 的 `agate/`；跑 gate/读卡片用 `~/.agate`（原版规则）；跑测试用 worktree 本体（load.bash 反推 AGATE_ROOT 到 worktree）。
+- 已核实查证：8 个 .bats 文件共 377 处 `docs/tasks` 引用；`tests/helpers/fixtures.bash` 的 `create_task_dir` 用 mktemp（不依赖 docs/tasks）；count-tests.sh 基线 = 603 条。
+- 测试框架：bats 1.10.0；CI 里 ~/.agate 软链不存在，load.bash 通过 BATS_TEST_DIRNAME 反推 AGATE_ROOT。
+- 既有测试结构：agate/tests/{sanity.bats, unit/, regression/, integration/}；unit/ 下 30+ 个 .bats 文件。
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

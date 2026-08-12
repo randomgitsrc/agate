@@ -105,8 +105,13 @@ if [ -n "$appendix" ]; then
     rendered="${rendered}"$'\n\n'"${appendix}"
 fi
 
+# v2.0 工作区布局（TAG0003）：TASK_DIR = {AGATE_WORKSPACE}/tasks/{Txxx}，
+# 故 AGATE_WORKSPACE = dirname(dirname(TASK_DIR))（相对/绝对、workspace/legacy 布局均自洽）
+AGATE_WORKSPACE_RENDER="$(dirname "$(dirname "$TASK_DIR")")"
+
 rendered="$(printf '%s' "$rendered" | sed \
     -e "s|{agate_root}|${AGATE_ROOT}|g" \
+    -e "s|{AGATE_WORKSPACE}|${AGATE_WORKSPACE_RENDER}|g" \
     -e "s/{execution-roles|review-roles}/${ROLE_DIR}/g" \
     -e "s/{阶段 Pn}/${PHASE}/g" \
     -e "s/{Pn}/${PHASE}/g" \

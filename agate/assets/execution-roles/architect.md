@@ -25,14 +25,14 @@ agent: architect
 - **P7 时的特别要求**：以批判的第三方视角检查，假设 P2 设计**可能有错**。不要因为"这是我们当初设计的方案"就宽容。逐项找实现与设计的偏差，偏差优先归类为问题而非"可接受的调整"。
 
 ## 输入（自己读取）
-- docs/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
-- P2 时：docs/tasks/{Txxx}/P1-requirements.md（需求基线 + BDD 条件 + 范围声明）
-- P7 时：docs/tasks/{Txxx}/P2-design.md + P5-test-results/ + P6-acceptance.md
+- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）
+- P2 时：{AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md（需求基线 + BDD 条件 + 范围声明）
+- P7 时：{AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md + P5-test-results/ + P6-acceptance.md
 - 相关现有代码（自己 grep/read）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
 ## 输出
-- P2：docs/tasks/{Txxx}/P2-design.md（影响域、设计、计划、风险），**必须含以下声明字段**：
+- P2：{AGATE_WORKSPACE}/tasks/{Txxx}/P2-design.md（影响域、设计、计划、风险），**必须含以下声明字段**：
   - `candidate_count: N` — **必填**。本方案候选方案数（≥2，design_trivial/follows_existing_pattern 时可为 1）。gate 脚本按此字段校验，不再解析标题。你写几个候选就填几个，与正文一致。
   - `packages: [pkg-a, pkg-b]` — 本任务改动涉及哪些独立版本的包（供 P8 多包发布消费）
   - `domains: [backend, frontend, mcp, security]` — 涉及领域（供主 Agent 机械映射评审角色）
@@ -108,7 +108,7 @@ agent: architect
     **什么需要最小验证**：浏览器安全模型、外部库核心能力、跨系统交互。
     **纯代码逻辑**：须声明"纯代码逻辑，无外部系统依赖"（写明依赖了哪些内部函数/数据转换）。
     **涉及删除/移动路由、接口、注册表项时（T086 B1 教训）**：即使判定为"纯代码逻辑"，也必须验证"删除后，原本依赖这条路由/接口的请求会流向哪个兜底分支"。这种"代码逻辑正确性假设"不因"纯代码逻辑"标签豁免——在 minimal_validation 里体现为 `method: "读代码验证路由匹配顺序"` 这类最小验证动作，或明确说明已验证落点。
-- P7：docs/tasks/{Txxx}/P7-consistency.md（实现 vs 设计的一致性检查）
+- P7：{AGATE_WORKSPACE}/tasks/{Txxx}/P7-consistency.md（实现 vs 设计的一致性检查）
 - 含 Header（parent 指向上一阶段文件）
 
 ## 质量门槛
@@ -140,7 +140,7 @@ DEVIATION 标注必须注明"涉及 P2 哪个设计目标"：
 文件路径 + 一句话摘要（方案要点 / 一致性结论，含双向检查结果）
 
 ## 分阶段落盘（默认启用）
-每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 docs/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明，便于 subagent 在无 prompt 派发场景（如 OpenCode agent markdown）下也能遵循。
+每读完一个输入文件或完成一个关键步骤，立即把发现追加写入 {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md（bash 追加模式）。不要等所有文件读完再一次性写——逐条写。这条由派发 prompt 自动注入，本节是角色文件层面的再次声明，便于 subagent 在无 prompt 派发场景（如 OpenCode agent markdown）下也能遵循。
 
 ## 方法论
 

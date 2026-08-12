@@ -90,9 +90,9 @@ bash agate/scripts/agate-retreat-to.sh {TASK_DIR} {目标阶段} "{诊断原因}
 ## 中断恢复步骤
 
 1. 重读 orchestrator-template.md 的 mapping 表 → 查当前阶段卡片
-2. 读 active-tasks.md → 确认进行中任务
+2. 读 {AGATE_WORKSPACE}/tasks/active-tasks.md → 确认进行中任务
 3. 读 .state.yaml → 确认 phase + retries
-4. 读 docs/tasks/{Txxx}/ → 确认产出文件是否存在（不存在 → 无效标记，回退到 Pn-1）
+4. 读 {AGATE_WORKSPACE}/tasks/{Txxx}/ → 确认产出文件是否存在（不存在 → 无效标记，回退到 Pn-1）
 5. 按卡片指引执行当前阶段
 
 ## 状态标记绑定（T019 教训）

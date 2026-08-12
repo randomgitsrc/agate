@@ -58,8 +58,9 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 ```bash
 # 修改进行中任务的 .state.yaml 的 task_id
 # T001 → TAG0001（选你项目的 2 字母代号 + 数字）
-# Linux：sed -i 's/^task_id: T001$/task_id: TAG0001/' docs/tasks/T001-*/.state.yaml
-# macOS（BSD sed 的 -i 需空后缀）：sed -i '' 's/^task_id: T001$/task_id: TAG0001/' docs/tasks/T001-*/.state.yaml
+# 路径按你项目的实际任务目录（v2.0 起在工作区 {AGATE_WORKSPACE}/tasks/ 下）
+# Linux：sed -i 's/^task_id: T001$/task_id: TAG0001/' {AGATE_WORKSPACE}/tasks/T001-*/.state.yaml
+# macOS（BSD sed 的 -i 需空后缀）：sed -i '' 's/^task_id: T001$/task_id: TAG0001/' {AGATE_WORKSPACE}/tasks/T001-*/.state.yaml
 ```
 
 **已完成的旧任务**：编号保留 `T001`，不进新格式（历史记录，不被扫描）。
@@ -73,13 +74,13 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 
 ### 2.3 旧任务目录
 
-- 目录位置不变（都在 `docs/tasks/`）
-- 旧目录 `docs/tasks/T001-xxx/` 保留不动 = 无检测触发
-- 新任务用新目录 `docs/tasks/TAG0001-xxx/`
+- v2.0 起任务目录位于工作区 `{AGATE_WORKSPACE}/tasks/` 下
+- 旧目录 `docs/tasks/T001-xxx/` 保留不动 = 无检测触发（迁移工具会将其迁入工作区 `tasks/`，见 v2.0.0 变更节）
+- 新任务用新目录 `{AGATE_WORKSPACE}/tasks/TAG0001-xxx/`
 
-### 2.4 项目侧文件（docs/agents/project.md 等）
+### 2.4 项目侧文件（project.md 等）
 
-- `docs/agents/project.md`（项目特定信息）**不在 agate 协议内，不会自动升级**——若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
+- `{AGATE_WORKSPACE}/agents/project.md`（项目特定信息，v2.0 起位于工作区）**不在 agate 协议内，不会自动升级**——若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
 - 其他项目自有文件同理：升级后检查一次即可，agate 不负责这些
 
 ---
@@ -87,6 +88,37 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 ## 3. 已知破坏性变更（按版本）
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
+
+### v2.0.0 — 工作区架构（docs/tasks → agate-workspace/）（影响：所有已部署项目 + 进行中任务）
+
+**背景**：agate 的全部编排状态（任务/看板/归档/评审/决策/计划/日志/roadmap/agent 知识）从项目 `docs/tasks/`、`docs/agents/`、`docs/archived/` 迁移到**工作区**（默认项目根 `agate-workspace/`，可用 `.agate.env` 配置位置）。orchestrator 从工作区读取 project.md 与 active-tasks，不再读 `docs/` 下旧路径。
+
+**① 迁移工具（推荐）**：在项目根运行
+
+```bash
+bash {agate_root}/scripts/agate-migrate-workspace.sh
+```
+
+**迁移前先处理暂存区**：迁移工具会自动 commit 目录 rename（保留 git 历史），commit 用 pathspec 限定只提交迁移目录，不会带上迁移前已暂存的无关改动——但为避免状态混乱，建议先 `git commit` 或 `git unstage`（`git reset`）掉无关的已暂存改动，让暂存区只含迁移内容。
+
+工具自动完成：
+- `docs/tasks/`（含 active-tasks.md + 全部任务目录 + 被 gitignore 的 `.state.yaml`）→ 工作区 `tasks/`（git mv 目录级，保留 git 历史）
+- `docs/archived/` → 工作区 `archived/`
+- 空源 no-op（项目从无 docs/tasks 时正常退出）
+- 幂等：重复运行无新增动作
+
+迁移后验证：`ls {AGATE_WORKSPACE}/tasks/` 应包含 active-tasks.md 与任务目录；`bash {agate_root}/scripts/agate-summary.sh` 正常。
+
+**② 手工迁移（不用工具时）**：`git mv docs/tasks {AGATE_WORKSPACE}/tasks`、`git mv docs/archived {AGATE_WORKSPACE}/archived`；`.state.yaml` 若被 gitignore 需 `git add -f` 后随目录移动。
+
+**③ 项目侧文件位置变化**：
+- `docs/agents/project.md` → `{AGATE_WORKSPACE}/agents/project.md`（模板 `assets/templates/project.md`）
+- `docs/tasks/active-tasks.md` → `{AGATE_WORKSPACE}/tasks/active-tasks.md`
+- 项目 README 等产品文档**留在**项目 `docs/` 不动（内容边界判据：编排状态进工作区，产品文档留项目 docs/，见 WORKFLOW.md「内容边界判据」）
+
+**④ 未迁移时的行为**：orchestrator 启动检测到旧布局（`docs/tasks/active-tasks.md` 存在而工作区 tasks 无 active-tasks）→ 输出迁移指引并停止自动推进，不静默使用旧路径。
+
+**⑤ 外部工作区**：`.agate.env` 指向项目外路径时，git mv 无法跨仓库（fallback 普通 `mv` + WARNING「git 历史无法在新路径追溯」）。
 
 ### v0.40.0 — 任务编号硬切 + orchestrator 符号链接接入（影响：进行中任务 + 已部署项目）
 
@@ -126,7 +158,7 @@ python3 ~/.agate/scripts/check-protocol-consistency.py
 
 # 3. 进行中任务的 .state.yaml 能通过校验
 cd <项目目录>
-git add docs/tasks/{进行中任务}/.state.yaml
+git add {AGATE_WORKSPACE}/tasks/{进行中任务}/.state.yaml
 # 触发 pre-commit → 应无"task_id 格式错误"
 git reset   # 取消暂存
 ```
@@ -136,7 +168,7 @@ git reset   # 取消暂存
 ## 5. 常见问题
 
 **Q: 旧任务目录会导致升级后报错吗？**
-A: 不会——只要不暂存它的 `.state.yaml`。consistency 不查 .state.yaml 格式，pre-commit 只在暂存时校验。
+A: 不会——只要不暂存它的 `.state.yaml`。consistency 不查 .state.yaml 格式，pre-commit 只在暂存时校验。v2.0 起旧任务目录会由迁移工具迁入工作区，未迁移时 orchestrator 会输出迁移指引。
 
 **Q: 必须把旧任务编号都改成 TAG0001 吗？**
 A: 只有"继续进行中的"必须改。已完成/归档的保留旧编号即可。
