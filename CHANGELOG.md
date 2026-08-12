@@ -8,6 +8,22 @@
 
 ---
 
+## [0.42.0] - 2026-08-12
+
+### 新增（TAG0002 重构一等任务机制，Phase A）
+- **`change_type: refactor` 任务类型声明**（P1 frontmatter 可选机器字段，枚举 `{refactor}`，缺省 = 功能任务）：重构任务可在 P1 声明类型，gate/CI 按类型分流——`agate-md-field-get.py` 新增 `change_type`/`regression_pass` 读取 op；`agate-frontmatter-check.py` P1 schema 增枚举校验
+- **P6 重构验收口径（回归口径，非功能 BDD 口径）**：change_type=refactor 的任务，P6 验收改为三段式——行为不变声明 + 全量回归全绿（frontmatter `regression_pass: true` + `P6-evidence/regression.log` 尾行 `EXIT_CODE: 0` 双证）+ 关键路径行为不变 BDD 逐条 PASS/FAIL；`check-gate.sh` P6 分支按 change_type 分流硬校验（缺回归双证 → gate 不通过）
+- **P3 重构回归测试口径**：refactor 任务 P3 走回归测试设计（既有用例覆盖映射，不新增功能行为断言），跳过 TDD 红灯步骤（红灯语义不适用）；`ci-gate-backstop.py` P3 分支对 change_type=refactor 任务跳过 check-tdd-red 兜底（避免全量即绿被误判 FAIL）
+
+### 变更（TAG0002 重构一等任务机制，Phase A）
+- **重构验收口径对 no_behavior_change 独立**：refactor 判定只看 change_type，不读 no_behavior_change——即使重构任务声明 no_behavior_change，回归双证仍强制（换口径 ≠ 裁 P6，P6 仍不可裁剪）；WORKFLOW.md/state-machine.md/dispatch-protocol.md 同步"P6 不可裁剪"表述
+- **可发现性**：P1/P6/P3 卡片 + verifier/test-designer 角色 + P5/P6/P3 派发指引补充 refactor 口径说明；明文禁止"为凑验收数量新增功能性质 BDD"
+
+### 文档（TAG0002 重构一等任务机制，Phase A）
+- P6-acceptance.md / P1-requirements.md / P3-tdd.md 卡片 refactor 分支说明；verifier.md / test-designer.md 角色口径
+
+---
+
 ## [0.41.0] - 2026-08-12
 
 ### 破坏性变更（TAG0003 工作区架构）
