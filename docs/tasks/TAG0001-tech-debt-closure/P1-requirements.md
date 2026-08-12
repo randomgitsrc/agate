@@ -254,7 +254,7 @@ capability_requirements:
     status: available
 
   - need: git（retreat 提交历史读取）
-    why: 回退覆盖比对需从 git log 提取 retreat: 提交；agate 本身依赖 git
+    why: "回退覆盖比对需从 git log 提取 retreat: 提交；agate 本身依赖 git"
     available:
       - "git（worktree 仓库已核实，全仓库 2 条 retreat 记录可作 fixture）"
     status: available
