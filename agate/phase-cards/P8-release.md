@@ -87,6 +87,12 @@ check-gate.sh P8 $TASK_DIR
 - [ ] 系统环境无污染
 - [ ] 项目依赖恢复到发布版本
 
+**协议一致性（改造协议自身的任务必做，TAG0001-0003 批次 D4 教训）**：
+- [ ] **在干净 checkout 上跑一次 `check-protocol-consistency.py`**（`git clone` 到临时目录或 CI 兜底确认），0 ERROR
+  - 原因：本地 worktree 的 `.worktrees` 路径过滤会掩盖任务产出文件的扫描问题，本地 0 ERROR ≠ CI 0 ERROR
+  - 若无法干净 checkout，**至少确认 CI 的 consistency job 对本次 PR 通过**
+- [ ] **确认任务产出目录（`docs/tasks/` 或 `{AGATE_WORKSPACE}/tasks/`）不被一致性检查器误扫**（若为 dogfooding 任务，任务产出应已在 `NARRATIVE_DIRS` 白名单）
+
 **生产环境无残留**：
 - [ ] 无 PROD_TOUCHED 标记（触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`）
 - [ ] 生产数据/API 未被测试写入
