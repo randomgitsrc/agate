@@ -585,3 +585,78 @@ EOF2
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-review.md"* ]]
 }
+
+# ── C 组：任务级 .state.yaml 检测去硬编码（TAG0003 BDD-13 + SCOPE+ #1）──
+# 语义：任务级判定从「路径含 docs/tasks/[^/]+/」改为 dirname(STATE_FILE) != REPO_ROOT，
+# 三种布局（docs/tasks / agate-workspace/tasks / 自定义路径）均正确路由、行为不变。
+
+@test "ST_WS.1 [BDD-13] 新布局 agate-workspace/tasks 任务级检测：回退 P3→P1 期望 exit 1" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/agate-workspace/tasks/T001"
+    cat > "$repo/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    git_commit "$repo" "init"
+    sed -i 's/phase: P3/phase: P1/' "$repo/agate-workspace/tasks/T001/.state.yaml"
+    git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PAUSED"* ]]
+}
+
+@test "ST_WS.2 [BDD-13] 自定义任务路径（非 docs/tasks）任务级检测：回退 P3→P1 期望 exit 1" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/custom-tasks/T001"
+    cat > "$repo/custom-tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    git_commit "$repo" "init"
+    sed -i 's/phase: P3/phase: P1/' "$repo/custom-tasks/T001/.state.yaml"
+    git_stage "$repo" "custom-tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' custom-tasks/T001/.state.yaml"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PAUSED"* ]]
+}
+
+@test "ST_WS.3 [BDD-13] 根级 .state.yaml 行为不变：回退 P3→P1 期望 exit 1（回归守卫）" {
+    local repo
+    repo=$(git_init)
+    cat > "$repo/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    git_commit "$repo" "init"
+    sed -i 's/phase: P3/phase: P1/' "$repo/.state.yaml"
+    git_stage "$repo" ".state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PAUSED"* ]]
+}
+
+@test "ST_WS.4 [BDD-13] 旧布局 docs/tasks 任务级检测行为不变：回退 P3→P1 期望 exit 1（回归守卫）" {
+    local repo
+    repo=$(git_init)
+    mkdir -p "$repo/docs/tasks/T001"
+    cat > "$repo/docs/tasks/T001/.state.yaml" <<'EOF'
+task_id: T001
+phase: P3
+status: active
+retries: {}
+EOF
+    git_commit "$repo" "init"
+    sed -i 's/phase: P3/phase: P1/' "$repo/docs/tasks/T001/.state.yaml"
+    git_stage "$repo" "docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PAUSED"* ]]
+}
