@@ -8,6 +8,25 @@
 
 ---
 
+## [0.43.0] - 2026-08-12
+
+### 新增（TAG0001 技术债登记闭环，Phase 1-3）
+- **DEBT 条目模板 `assets/templates/tech-debt-template.md`**：标准技术债登记格式——用法/判据三分法（技术/管理/协议）+「都不影响→不登记」出口 + 三态（open/in_progress/closed）+ 字段表 + 可解析示例条目；落点 `{AGATE_WORKSPACE}/debt/tech-debt.md`（单文件多条目，每条 fenced yaml 机器块 + 可选正文）
+- **`agate-debt-check.py` + `check-debt.sh`**：技术债 schema 校验器（fail-closed 薄壳 + 独立 .py）——必填字段 / 枚举（category/status/priority/source）/ 类型 / closed 准入（须 task_id + evidence 引用 P5/P6 证据）/ 同文件 id 唯一性；无任何 yaml 块 → no-op（向后兼容）
+- **`check-debt.sh --retreat-coverage` 回退覆盖比对**：`git log --all --grep='^retreat:'` 提取回退提交，与 `source: retreat` DEBT 条目 evidence 引用比对，未登记 → WARNING（恒 exit 0，只读提醒不挂 gate）
+- **P8 `debt_check` 必填字段**：P8-release.md 产出规格新增（`none` = 本次无关注项 / `reviewed` = 已核对并附条目清单）；check-gate.sh P8 分支缺失即 exit 1 硬拦截、内容任意放行不阻断发布；`debt_check: none` 可跨发布 grep 计数（防无脑打勾可观测）
+
+### 变更（TAG0001 debt/ 归类修正 + 回退强制）
+- **工作区子目录集 8→9**：新增 `debt/` 技术债登记目录（WORKFLOW.md 目录图 + orchestrator-template/SETUP/state-machine 三处 mkdir 同步同一 9 集字面量）；tech-debt 不再归入 `agents/`（该目录只放 agent 输入知识 project.md/memory）
+- **回退落地后必须建 DEBT 条目**：`rules/state-transitions.md` 回退规则 + P6/P4 卡片 + `agate-retreat-to.sh` 回退完成提醒 四处同步「`source: retreat` 条目，evidence 引用回退提交哈希」强制
+- **review 可发现性**：`plan-eng-review.md` 追加「提债须用标准 DEBT 条目格式」
+
+### 文档
+- **UPGRADING.md v0.43.0 节**：子目录 8→9（可选启用）/ tech-debt 路径 / P8 debt_check / 回退强制四项升级指引
+- **TAG0003 BDD-1 口径修订注**（P1/P6 各一行）：8 子目录 → 9 子目录口径更新
+
+---
+
 ## [0.42.0] - 2026-08-12
 
 ### 新增（TAG0002 重构一等任务机制，Phase A）
