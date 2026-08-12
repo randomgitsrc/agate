@@ -1,4 +1,9 @@
 task_id: TAG0002
-phase: P0
+phase: P1
 status: active
-retries: {}
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
