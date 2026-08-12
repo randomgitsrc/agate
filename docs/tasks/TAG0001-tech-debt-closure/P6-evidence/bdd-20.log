@@ -1,0 +1,6 @@
+=== BDD-20: 登记 DEBT 不豁免当前任务 + review 卡强制标准格式 ===
+--- 模板硬规则（豁免） ---
+15:> **硬规则：登记 DEBT 不豁免当前任务。** 记了债 ≠ 当前任务的验收声明可以打折扣——该完成的验收一个都不能少。登记只是承认"有账"，不改变本期必须交付的范围。
+--- review 角色卡标准 DEBT 条目格式 ---
+20:- **若提出"后续应重构 / 存在架构债"，须用标准 DEBT 条目格式**（模板 `assets/templates/tech-debt-template.md`，`evidence` 必填，登记于 `{AGATE_WORKSPACE}/debt/tech-debt.md`）——强制格式，不强制产出（review 可不提债，一旦提"后续应重构/存在架构债"必须用标准格式）
+EXIT_CODE: 0

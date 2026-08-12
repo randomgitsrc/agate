@@ -1,0 +1,3 @@
+=== BDD-5: 合法条目（open 无 task_id + closed 含 task_id/P5-P6 证据）过校验 ===
+check-debt exit=0
+EXIT_CODE: 0

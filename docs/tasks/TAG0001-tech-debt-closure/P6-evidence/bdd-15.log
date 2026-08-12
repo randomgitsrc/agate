@@ -1,0 +1,8 @@
+=== BDD-15: 真实 retreat 记录消息格式（023b28b P5->P4 / 29301ad P6->P5）fixture 两向可复现 ===
+--- 方向 A：未建条目 → WARNING ---
+2
+--- 方向 B：已建条目且 evidence 引用两个提交 → 无 WARNING（s1=d02a5cb s2=0bb5e14） ---
+NO WARNING (good)
+--- covered-hashes 输出 ---
+0bb5e14 d02a5cb 
+EXIT_CODE: 0

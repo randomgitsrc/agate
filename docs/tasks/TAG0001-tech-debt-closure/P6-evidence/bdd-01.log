@@ -1,0 +1,7 @@
+=== BDD-1: WORKFLOW.md 目录图含 debt/ ===
+86:├── debt/                         # 技术债登记（tech-debt.md，模板见 assets/templates/tech-debt-template.md）
+--- agents/ 注释行 ---
+85:├── agents/                       # agent 输入知识（project.md / memory）
+--- agents/ 注释是否含 tech-debt ---
+NO MATCH (good)
+EXIT_CODE: 0

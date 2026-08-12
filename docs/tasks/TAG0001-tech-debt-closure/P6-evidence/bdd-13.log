@@ -1,0 +1,7 @@
+=== BDD-13: git 历史含 retreat 提交但无对应条目 → WARNING（不阻断） ===
+--- 仓库 retreat 提交 ---
+270938a retreat: P6 -> P4（诊断：测试回退）
+--- 运行回退覆盖比对（无 tech-debt.md） ---
+GATE DEBT WARNING: retreat 提交 270938a（retreat: P6 -> P4（诊断：测试回退））未登记为 source: retreat DEBT 条目（evidence 须引用该提交，文件 /tmp/opencode/bdd13-mIgwyo/agate-workspace/debt/tech-debt.md）
+check-debt exit=0
+EXIT_CODE: 0

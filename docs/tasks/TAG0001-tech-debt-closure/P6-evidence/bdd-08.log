@@ -1,0 +1,10 @@
+=== BDD-8: closed 缺 task_id / 缺 P5-P6 证据引用 → 拦截 ===
+--- 子场景1：closed 缺 task_id ---
+GATE DEBT: /tmp/opencode/bdd08-85tlcE/closed-no-task.md tech-debt 条目格式错误：
+  - closed-no-task.md:DEBT0001: closed 条目必须含 task_id
+check-debt exit=1
+--- 子场景2：closed 有 task_id 但 evidence 无 P5/P6 ---
+GATE DEBT: /tmp/opencode/bdd08-85tlcE/closed-no-evref.md tech-debt 条目格式错误：
+  - closed-no-evref.md:DEBT0001: closed 条目 evidence 须引用 task_id 与 P5/P6 证据
+check-debt exit=1
+EXIT_CODE: 0

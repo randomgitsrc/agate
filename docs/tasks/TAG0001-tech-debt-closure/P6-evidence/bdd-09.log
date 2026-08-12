@@ -1,0 +1,8 @@
+=== BDD-9: 三态语义（open+task_id 视为 in_progress 合法） ===
+--- open + task_id（视为 in_progress）→ 合法 exit 0 ---
+check-debt exit=0
+--- 模板三态表 + schema 枚举仅三值（已在 BDD-7 验证 accepted 拦截） ---
+24:| `status` | 是 | `open` / `in_progress` / `closed` | 三态 |
+38:| `open` | 已登记未立项 | 无（`task_id` 非空即视为已立项，属 `in_progress` 语义，schema 不拦截此组合） |
+39:| `in_progress` | 已立项/进行中 | `task_id` 非空即视为 in_progress |
+EXIT_CODE: 0

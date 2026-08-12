@@ -1,0 +1,9 @@
+=== BDD-7: 非法枚举值（category: bug）→ 拦截 ===
+GATE DEBT: /tmp/opencode/bdd07-dS5Naf/tech-debt.md tech-debt 条目格式错误：
+  - tech-debt.md:DEBT0001: 非法值 'category'（bug 合法值: technical, management, protocol）
+check-debt exit=1
+--- 另测 status: accepted（第四态） ---
+GATE DEBT: /tmp/opencode/bdd07-dS5Naf/tech-debt.md tech-debt 条目格式错误：
+  - tech-debt.md:DEBT0001: 非法值 'status'（accepted 合法值: open, in_progress, closed）
+check-debt exit=1
+EXIT_CODE: 0

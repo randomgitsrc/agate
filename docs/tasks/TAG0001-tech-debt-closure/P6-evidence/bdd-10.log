@@ -1,0 +1,8 @@
+=== BDD-10: 无文件/空文件/纯正文 → no-op exit 0 ===
+--- 文件不存在 ---
+check-debt exit=0
+--- 空文件 ---
+check-debt exit=0
+--- 纯正文无 yaml 块（旧格式） ---
+check-debt exit=0
+EXIT_CODE: 0

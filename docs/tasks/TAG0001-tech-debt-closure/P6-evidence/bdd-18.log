@@ -1,0 +1,8 @@
+=== BDD-18: debt_check: none 可跨发布 grep 计数（止损4 数据形态） ===
+--- P8 卡片明确 none 为合法选项 ---
+48:- `debt_check: none / reviewed`——债务清单确认留痕（TAG0001 Phase 3）：`none` = 本次无关注项（合法选项，不视为失败）；`reviewed` = 已核对，建议正文附条目 id 清单。只查留痕存在，不查内容达标、不阻断发布
+--- 可跨发布计数示例：git 历史中 P8-release.md 的 debt_check: none 记录 ---
+006c3e6 2026-08-13 wf(TAG0001-P4): 技术债闭环实现（校验器+回退比对+P8 debt_check+debt/ 归类修正，review approved）
+618ef8c 2026-08-12 wf(TAG0003-P8): 发布准备完成（minor v0.41.0，README badge + CHANGELOG + UPGRADING 同步）
+b73905a 2026-08-01 fix: sync docs for CHANGELOG P8-only + audit 6 + CHANGELOG entry
+EXIT_CODE: 0

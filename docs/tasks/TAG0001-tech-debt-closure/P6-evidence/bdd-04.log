@@ -1,0 +1,8 @@
+=== BDD-4: TAG0003 口径重验（8→9 修订注） ===
+--- docs/tasks/TAG0003-workspace-architecture/P1-requirements.md ---
+88:> 【2026-08-12 修订注】口径由 TAG0001 更新为 **9 子目录**（含 `debt/`）——WORKFLOW.md 目录规范已改，本记录保留原 8 子目录证据；BDD-4 重验判据 = 修订注存在 + 三处 mkdir 与目录图一致为 9。
+--- docs/tasks/TAG0003-workspace-architecture/P6-acceptance.md ---
+26:> 【2026-08-12 修订注】口径由 TAG0001 更新为 **9 子目录**（含 `debt/`）——WORKFLOW.md 目录规范已改，本记录保留原 8 子目录证据；BDD-4 重验判据 = 修订注存在 + 三处 mkdir 与目录图一致为 9。
+--- 三处 mkdir 9 集一致性（无 8 集残留） ---
+no 8-set residual
+EXIT_CODE: 0

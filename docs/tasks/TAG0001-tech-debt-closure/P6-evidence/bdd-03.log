@@ -1,0 +1,9 @@
+=== BDD-3: SETUP/UPGRADING tech-debt 路径 ===
+--- UPGRADING.md debt/tech-debt.md 路径 ---
+97:- 归类修正：tech-debt 不再归入 `agents/`（该目录只放 agent 输入知识 project.md/memory）；`{AGATE_WORKSPACE}/agents/` 若已有 tech-debt.md，可手动移到 `{AGATE_WORKSPACE}/debt/tech-debt.md`。
+99:**② tech-debt.md 路径**：技术债登记文件位于 `{AGATE_WORKSPACE}/debt/tech-debt.md`（模板 `assets/templates/tech-debt-template.md`），不再指向 agents/。
+--- SETUP.md 含 debt ---
+114:mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs,debt}
+--- UPGRADING 是否残留 agents/tech-debt 过期路径 ---
+NO agents/tech-debt (good)
+EXIT_CODE: 0
