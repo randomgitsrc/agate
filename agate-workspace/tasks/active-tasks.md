@@ -15,6 +15,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
+| TAG0004 | agate 脚本环境适配（Windows 原生兼容 + Linux 基线回归）：pre-commit-gate 空格静默绕过 / 13 py 缺 encoding / P6 证据 ASCII 正则 / 全角冒号 locale 残留 / CRLF / 路径正则元字符 | ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
 
 ### 已完成
 
@@ -59,7 +60,7 @@
 ## 目录结构
 
 ```
-docs/tasks/
+{AGATE_WORKSPACE}/tasks/
 ├── active-tasks.md          ← 本文件
 ├── T001-v2.0-structured/
 │   ├── .state.yaml          ← 单任务权威状态
