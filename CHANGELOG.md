@@ -8,6 +8,37 @@
 
 ---
 
+## [0.45.0] - 2026-08-14
+
+### 修复（TAG0005 agate 机制修复批：4 个已核实机制/契约缺陷）
+
+- **RM-AG0010 C8 表补 backend 域 P2 评审**：role-system.md / rules/review-mapping.md / phase-cards/P2-design.md 三处 C8 映射表 backend 行新增 `plan-eng-review（P2 方案评审）`（保留既有 `review（P4 后）`），附去重说明（同任务命中同一评审角色只派发一次）——消除「P2 gate 强制要 P2-review.md 但 C8 无触发角色 → 主 Agent 被迫自造评审」契约矛盾；check-gate.sh P2 分支未改（无条件要求保留）
+- **RM-AG0011 P5 gate_commands 主/辅命令计数语义**：`agate-gate-p5-count.py` 输出改单行双值 `{main} {aux}`（main 精确匹配 `P5:`、aux 为 `P5_*` 且排除 `_formatter`，与 read-p5-commands.py 执行枚举对齐）；check-gate.sh P5 WARNING 文案改为「X 个主命令 + Y 个辅助命令（共 Z 条 gate_commands.P5 命令）」；仅 P5 无辅助命令时不 WARNING（行为不变）
+- **RM-AG0012① Review 角色特别指令按角色类型条件注入**：`assets/templates/dispatch-prompt.md` 将「Review 角色特别指令」从主代码块拆为「## 阶段特定提示」下独立子块；`agate-render-dispatch-prompt.sh` 按 `ROLE_DIR=review-roles` 追加该节（组装顺序 main_block → review_appendix → 阶段 appendix）——执行角色派发 prompt 不再含 status draft→approved 评审语义，评审角色含完整语义
+- **RM-AG0012② render 角色文件不存在 exit 2 回归锁定**：行为 v0.23.0 已修复（exit 2 + stderr 报错），本任务新增 RP.17 bats 测试锁定
+- **RM-AG0003 空返回自动重试（增量增强）**：dispatch-protocol.md 空返回恢复策略「第 1 次空返回」新增步骤 a——相同 prompt 原样自动重试一次（不占用 retries[Pn] 槽位），会话时长 <1min 输出「会话时长异常短」告警；自动重试仍空返回才进入既有 retries[Pn] 流程；「相同 prompt 直接重试」禁令的唯一豁免（仅限首次/单次/原样重发）；retry 上限/PAUSED 规则未改
+- **同类扫描守卫 / check-debt.sh 依赖加载失败 exit 2**：`check-debt.sh --retreat-coverage` 依赖 agate-workspace-resolve.sh 加载失败（source 失败或文件缺失）从「stderr 报错但 exit 0」改为 **exit 2**（需主 Agent 自判，与 check-gate.sh 约定一致）；「无 retreat 提交」有意跳过分支保持 exit 0；`rg '>&2;\s*exit 0' agate/scripts/*.sh` 仅剩 3 处「跳过」语义（agate-capture-env-baseline.sh）
+
+### 新增（TAG0009 测试套件平台无关化）
+
+- **平台假设静态扫描器 gate**：`agate/scripts/check-platform-assumptions.sh`（bash + POSIX ERE，自身平台无关）扫描 `agate/tests/` 全树的 Unix 假设（R1 硬编码 PATH / R2 命令位置裸 python3 / R3 `[[ -L ]]` symlink / R4 /tmp 逻辑路径 / R5 Unix-only 工具），CI `platform-scan` job（Linux 阻断 + Windows 等价证明）阻断新假设
+- **PYTHON 探测 + harness shim helper**：`agate/tests/helpers/fixtures.bash` 新增 `detect_python` / `PYTHON` 导出（优先 python3 回退 python）+ `create_python_shim_bin`（临时 bin 的 python3 包装器内嵌真解释器绝对路径，测试运行产品脚本时前置 PATH，覆盖 41 例 script-side 裸 python3 失败）+ `SHELLCHECK` 导出（shellcheck|shellcheck.exe 探测）
+- **bats job Windows matrix**：`protocol-tests.yml` bats job 增 `windows-latest`（复用既有 `python` + `PYTHONIOENCODING=utf-8` 模式），Windows CI 作最终确认（本机 Linux 无法本地验证）
+
+### 变更
+
+- **agate-extract-context.sh bc→awk**：P5 failed 求和 `paste -sd+ | bc` → `awk '{s+=$1} END{print s+0}'`（POSIX 工具 Windows Git Bash 自带，同时消除原 `|| echo 0 | tail -1` 管道优先级隐患）
+- **24 个测试文件平台无关化**：测试侧裸 python3 → `$PYTHON`、`env -i PATH="/usr/bin:/bin"` → `env -u PATH`、`[[ -L ]]` symlink 断言按平台分支（Linux readlink / Windows 复制模式 WARNING）、`/tmp` 逻辑路径 → `$BATS_TEST_TMPDIR`、输出匹配 CRLF 归一化（`tr -d '\r'`）、cp1252 编码模拟用例；新增 helpers-python.bats + check-platform-assumptions.bats（14 例）+ CI 扫描器行为测试 step
+- **check-protocol-consistency.py**：CHECK 9 锚点表补 `check-platform-assumptions.sh`（反向覆盖要求）
+
+### 测试
+
+- 全量 733 bats（基线 714 + TAG0005 12 + TAG0009 7）+ consistency 0 ERROR + shellcheck 0 error + 平台假设扫描器零命中
+
+### 文档
+
+- 三处 C8 表去重说明 / dispatch-prompt.md 模板结构调整 / dispatch-protocol.md 空返回策略与内联模板评审语义备注 / scripts/README.md check-debt 描述同步 / tests/README.md 计数表同步
+
 ## [0.44.0] - 2026-08-13
 
 ### 修复（TAG0004 脚本健壮性 + 环境适配：Windows 原生兼容 + Linux 基线回归）

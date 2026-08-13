@@ -89,6 +89,21 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.45.0 — backend 域 P2 评审触发 + 平台假设扫描器（影响：所有已部署项目）
+
+**① backend 域任务 P2 现强制派发方案评审（plan-eng-review）**（RM-AG0010）：
+- C8 映射表 backend 行新增 `plan-eng-review（P2 方案评审）`（保留 `review（P4 后）`）。**所有 backend 域任务（含 low/medium）P2 阶段现在必须派发一个 plan-eng-review 评审 subagent 产 P2-review.md**，否则 check-gate.sh P2 会 exit 1 拦截。
+- 这是「P2 gate 无条件要求 P2-review.md」契约矛盾的对齐——之前 backend low/medium 任务按 C8 不派评审被 gate 拦截、主 Agent 被迫自造评审（TPV0090），现在契约一致了。
+- 同任务命中多个触发行且同一评审角色时去重只派一次（backend+high 均命中 plan-eng-review → 只派 1 个）。
+
+**② 新增平台假设静态扫描器（测试基建，影响：测试套件维护者）**：
+- 新增 `agate/scripts/check-platform-assumptions.sh` 扫描 `agate/tests/` 全树 Unix 假设（硬编码 PATH / 裸 python3 / `[[ -L ]]` / /tmp / bc 等），CI `platform-scan` job 阻断。
+- **测试平台无关原则是硬要求**：写新测试不得硬编码单平台假设（AGENTS.md「测试约定」）；被扫描器检出的假设会导致 CI 失败。
+
+**③ bats job 增 windows-latest matrix（CI 维护者）**：bats job 改 matrix 后 job 名带平台后缀（如 `bats (windows-latest)`），分支保护 required checks 需更新。
+
+**④ P5 gate_commands 计数语义**：check-gate.sh P5 WARNING 文案改「X 个主命令 + Y 个辅助命令」——不影响判定逻辑，仅文案区分主/辅。
+
 ### v0.44.0 — 脚本健壮性 + Windows 环境适配（影响：所有已部署项目）
 
 **① Windows 用户**：agate 现在支持 Git for Windows/MSYS2 下运行 gate 脚本（Windows 原生兼容）。
