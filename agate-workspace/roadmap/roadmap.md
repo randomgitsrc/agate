@@ -17,6 +17,8 @@
 | RM-AG0007 | UI/UX 质量机制缺失：P1/P2 缺 UX 需求与设计评审、P6 缺视觉质量验收 | backlog | qtcalc 对比分析 §6（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 | RM-AG0008 | 0→1 项目目录结构脚手架：agate 立项时应按最佳实践设计合理目录结构，避免东放一点西放一点 | backlog | 用户需求（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 | RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | backlog | 用户需求（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
+| RM-AG0010 | P2 gate 与 C8 映射表契约矛盾：backend 域 P2 无评审角色但 check-gate 硬拦 P2-review.md | backlog | TPV0090 复盘 M1（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
+| RM-AG0011 | check-gate P5 gate_commands 计数语义模糊（P5* 前缀全算，WARNING 误解主/辅命令）| backlog | TPV0090 复盘 M2（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 
 ## 状态标识
 
@@ -125,3 +127,31 @@
   3. **gate 或 WARNING**：检测"新增文件数量/新增依赖方向"与 code-map 声明的偏离（如新的 include/import 方向违反分层）
   4. **设计模式约束**：P2 候选方案评审增加"设计模式合理性"维度（是否引入合适抽象，避免 if-else 胶水堆叠）
 - **归属**：独立任务（协议增加 code-map 维护 + 架构演进纪律），与 RM-AG0008（骨架）、TAG0002（重构一等任务）关联
+
+---
+
+## RM-AG0010 详情
+
+**P2 gate 与 C8 映射表契约矛盾（TPV0090 复盘 M1）**
+
+- **问题**：三层契约不一致——
+  - `check-gate.sh` P2 L155-159：**无条件**硬性要求 `P2-review.md` 存在且 status=approved（"P2 评审不可裁剪，必须派发独立 subagent 产出"）
+  - `role-system.md` C8 表（L52-56）：backend 域 = "review（P4 后）"，**P2 无触发评审角色**（只有 frontend→plan-design-review、high→plan-eng-review、NEED_CONFIRM→plan-ceo-review 触发）
+  - `phase-cards/P2-design.md` L91-96 C8 表：同样 backend 域无 P2 评审
+- **后果**：backend 域（low/medium 风险）任务 P2 时，按 C8 表不派评审 → 无 P2-review.md → check-gate exit 1 拦截 → 主 Agent 被迫"自造评审派发"补文件（TPV0090 实测踩坑）
+- **影响**：每个 backend 域 P2 都会踩（TPV0091 是 backend+frontend，frontend 触发评审没暴露）
+- **建议修复方向（二选一，需设计）**：
+  1. C8 表补一句"backend 域 P2 也派 review"（消除契约差，但增加评审开销）
+  2. check-gate 对无 C8 触发角色的任务豁免 P2-review 硬性要求（但要保证 P2 评审不裁的原则不破——需定义"无角色时评审退化为 self-review 还是必须派通用 review"）
+- **归属**：独立任务（机制契约一致性，涉及 check-gate.sh + role-system.md + P2 卡片三层同步）。与 Q2（卡片 phase 契约，TAG0004 内）同类但独立
+
+---
+
+## RM-AG0011 详情
+
+**check-gate P5 gate_commands 计数语义模糊（TPV0090 复盘 M2）**
+
+- **问题**：`check-gate.sh` L247-253，`P5*` 前缀命令都计入 P5 命令数，WARNING "P2 声明了 N 个 gate_commands.P5 命令，请确认已全部执行"。当 P2 声明 `P5/P5_cli_remote/P5_serial` 时计数 3，但实际是"1 主 + 2 辅助"——WARNING 语义模糊，易误解。
+- **影响**：轻微（WARNING 不阻断，全执行就通过），但理解成本高，可能误导主 Agent。
+- **建议修复方向**：脚本区分"主命令"与"辅助命令"（如 `P5_*` 后缀为辅助），WARNING 文案区分"N 个 P5 命令"与"M 个辅助命令"。
+- **归属**：可随 RM-AG0010 或攒批小任务。
