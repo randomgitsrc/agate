@@ -85,6 +85,7 @@ bash agate/tests/scripts/count-tests.sh
 
 ## 测试约定
 
+- **测试平台无关原则（agate 测试的核心约束）**：测试**不得硬编码单平台假设**——不允许裸 `PATH="/usr/bin:/bin"`、不允许裸 `python3`（应探测 `python3|python`）、不允许假设 POSIX symlink 语义（Windows Git Bash 的 `ln -sf` 退化为复制，`[[ -L ]]` 判定不同）、不允许假设 `/tmp` 等 Unix-only 路径。平台差异场景**按平台分支断言**（Linux 断言软链，Windows 断言"复制模式 + WARNING"），或在 Linux 上用模拟环境（`PYTHONIOENCODING`/`ln` mock/PATH 探测）覆盖分支。**目标：测试套件平台无关，Linux 全量覆盖，Windows CI 只作最终确认。** 违反此原则（新引入 Unix 假设）是测试缺陷，应在 review 拦截（TAG0009 起由静态扫描器 gate 兜底）
 - 测试框架：Bats ≥ 1.2.0（需要 `BATS_TEST_TMPDIR`）
 - 临时文件用 `$BATS_TEST_TMPDIR`，不用 `/tmp`
 - `create_task_dir` 默认写入 `agent: test` frontmatter + Given 行；`--no-state-yaml` 跳过 .state.yaml
