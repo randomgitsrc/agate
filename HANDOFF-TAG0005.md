@@ -124,13 +124,26 @@ bats agate/tests/unit/check-state-transition.bats
 - **合并前在 PR 里看 CI 结果**——bats/shellcheck/consistency/gate-backstop 全绿才算过
 - roadmap 回写 RM-AG0010/0011/0012/0003 → done
 - 复盘按 agate 自身变更流程归档（合并后在主 checkout 写复盘 + 更新 roadmap/版本）
-- **交接顺序**：TAG0005 完成后 → TAG0009（测试套件平台无关化）在下一个 worktree 实施（主 checkout 侧会安排）
+
+## 8b. 同 worktree 顺序执行 TAG0009（本 worktree 连做两个任务）
+
+**本 worktree 承载两个任务（单 PR 合并）**：TAG0005 → TAG0009。
+
+- **TAG0009 任务数据已在 worktree**：`agate-workspace/tasks/TAG0009-tests-platform-neutral/`（P0-brief + .state.yaml phase=P0）
+- **顺序**：TAG0005 走完 P0-P8 到 READY 后，**不合并**，继续在同一 worktree 做 TAG0009（它的 P0 已立项）
+- **两个任务各自状态机**：每个任务有独立 `.state.yaml`（TAG0005 和 TAG0009 分别在各自目录），pre-commit hook 会扫描所有暂存的 `.state.yaml`，两个任务都被 gate 覆盖
+- **P8/版本**：两个任务全部完成后，一次 P8 发布（bump 一次版本，如 v0.45.0），一个 PR 合并 main
+- **TAG0009 关键信息**：
+  - 78 个 Windows bats 失败清单来源：TAG0004 的 PR #127 CI 日志（`gh run view --job 94416790316 --log-failed` 可复现，或主 checkout 有 `/tmp/bats-win-fail.log`）
+  - 分层方案：静态扫描器（check-platform-assumptions，gate 阻断 Unix 假设）+ 批量修测试（PATH/python3/symlink//tmp）+ Linux 模拟覆盖 Windows 分支 + 真 Windows CI 作最终确认
+  - 核心约束：测试平台无关原则（AGENTS.md「测试约定」）——不得硬编码单平台假设；Linux 基线是红线，每处修改先加平台无关失败测试（红）再改
+  - 静态扫描器本身要平台无关（bash+grep 实现，Windows MSYS2 可跑）
 
 ## 9. 交接确认
 
 - worktree 基线全绿：714 bats + consistency 0 ERROR（--strict）
 - hooks 就位（指向 `~/.agate` 稳定版）、orchestrator 已注册、依赖齐全
-- 任务数据就绪：TAG0005 P0-brief + .state.yaml phase=P0
+- 任务数据就绪：TAG0005 P0-brief + .state.yaml phase=P0；TAG0009 数据同在（phase=P0）
 - 交接单位置：`HANDOFF-TAG0005.md`（worktree 根，已 commit）
 
 ---
