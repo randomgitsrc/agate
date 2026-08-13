@@ -58,10 +58,14 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           curl -sSLo shellcheck.zip https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.zip
-          unzip -q shellcheck.zip
-          echo "$GITHUB_WORKSPACE/shellcheck-v0.10.0" >> $GITHUB_PATH
-      - name: Run shellcheck
+          unzip -q shellcheck.zip -d "$GITHUB_WORKSPACE/shellcheck"
+          echo "$GITHUB_WORKSPACE/shellcheck" >> $GITHUB_PATH
+      - name: Run shellcheck (Linux)
+        if: runner.os == 'Linux'
         run: shellcheck -S warning agate/scripts/*.sh
+      - name: Run shellcheck (Windows)
+        if: runner.os == 'Windows'
+        run: shellcheck.exe -S warning agate/scripts/*.sh
 
   consistency:
     runs-on: ${{ matrix.os }}
@@ -84,6 +88,8 @@ jobs:
         run: python3 agate/scripts/check-protocol-consistency.py
       - name: Run consistency check (Windows)
         if: runner.os == 'Windows'
+        env:
+          PYTHONIOENCODING: utf-8
         run: python agate/scripts/check-protocol-consistency.py
 
   gate-backstop:
@@ -107,4 +113,6 @@ jobs:
         run: python3 agate/scripts/ci-gate-backstop.py
       - name: Run gate backstop check (Windows)
         if: runner.os == 'Windows'
+        env:
+          PYTHONIOENCODING: utf-8
         run: python agate/scripts/ci-gate-backstop.py

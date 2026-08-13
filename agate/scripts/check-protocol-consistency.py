@@ -32,6 +32,11 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 下中文 print 在 cp1252 编码会崩 UnicodeEncodeError——强制 stdout 用 UTF-8
+# （Python 3.7+；Linux UTF-8 环境无副作用，CI ubuntu job 行为不变）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 try:
     import yaml
 except ImportError:
