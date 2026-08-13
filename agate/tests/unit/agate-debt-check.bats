@@ -20,6 +20,7 @@ setup() {
     if [ -n "$shim" ]; then
         export PATH="$shim:$PATH"
     fi
+    echo "DEBT-SETUP-DIAG: python3=$(command -v python3 || echo NONE) python=$(command -v python || echo NONE) shim=${shim:-EMPTY}" >&2
 }
 
 # ========== 功能组 A：debt/ 归类修正（工作区目录，BDD-1..4） ==========
