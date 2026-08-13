@@ -46,7 +46,8 @@ phase_num() {
 }
 
 # 只在 .state.yaml 有暂存变更时检查
-git diff --cached --name-only 2>/dev/null | grep -qF "$STATE_BASENAME" || exit 0
+# tr -d '\r'：Git for Windows 的 diff 输出文件名可能带 CRLF 行尾，grep -qF 精确匹配会失败
+git diff --cached --name-only 2>/dev/null | tr -d '\r' | grep -qF "$STATE_BASENAME" || exit 0
 
 old_phase=$(get_old_phase)
 new_phase=$(get_new_phase)

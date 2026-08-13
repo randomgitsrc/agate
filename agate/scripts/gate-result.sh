@@ -51,13 +51,14 @@ has_staged_phase_change() {
     local state_file="$1"
     local basename
     basename=$(basename "$state_file")
-    git diff --cached --name-only 2>/dev/null | grep -qF "$basename" || return 1
+    # tr -d '\r'：Git for Windows diff 输出 CRLF 行尾，grep 精确匹配会失败（TAG0009）
+    git diff --cached --name-only 2>/dev/null | tr -d '\r' | grep -qF "$basename" || return 1
     git diff --cached -- "$basename" 2>/dev/null | grep -qE '^\+.*phase:' || return 1
     return 0
 }
 
 has_staged_phase_output() {
-    git diff --cached --name-only 2>/dev/null | grep -qE 'P[0-9]+-.*\.(md|yaml)$' || return 1
+    git diff --cached --name-only 2>/dev/null | tr -d '\r' | grep -qE 'P[0-9]+-.*\.(md|yaml)$' || return 1
     return 0
 }
 
