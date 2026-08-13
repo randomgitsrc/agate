@@ -23,7 +23,19 @@
 **核心原则（AGENTS.md T001 约定沿用）**：
 - **跑 gate 用 `~/.agate`**（稳定版），**改代码/跑测试在 worktree**。
 - commit 时 pre-commit hook 用 `~/.agate/scripts/pre-commit-gate.sh` 判定——gate 判定对象是 worktree 里的产出文件，但 gate 工具本身是 `~/.agate`。这是有意的：改造期间工具稳定，改造对象变化。
+- **⚠️ gate 工具 ≠ 检查对象（最容易搞混的点）**：
+  - commit hook 的 gate **判定工具**用 `~/.agate`（稳定版）——它读 `~/.agate` 自己的脚本逻辑
+  - 但 `check-protocol-consistency.py` **必须用 worktree 自己的**（`python3 agate/scripts/check-protocol-consistency.py`），因为检查对象是 **worktree 里的协议文件**。若误用 `~/.agate` 的 consistency 脚本，会扫到主 checkout 的文件而非 worktree 的改动
+  - 同理：`bash ~/.agate/scripts/agate-summary.sh` 在 worktree 里跑会显示**主 checkout 的上下文**（版本/分支/HEAD 是稳定版的），不代表 worktree 状态——worktree 自己的状态用 `git log`/`git status` 看
 - **hook 在共享 git 目录**：worktree 的 `.git` 是文件（指向 `/home/kity/oclab/agate/.git`），hook 实际在主 checkout 的 `.git/hooks/`（pre-commit/commit-msg/pre-push 已软链安装）。worktree commit 时 hook 自动触发。
+
+**已完成的 setup（worktree 已可独立使用）**：
+- 依赖齐全：bash 5.2 / python 3.12 / pyyaml / bats 1.10 / shellcheck
+- 基线验证：676 bats 全绿 + consistency 0 ERROR（--strict）
+- commit hook：指向 `~/.agate`（稳定版 v0.43.0），worktree commit 自动触发
+- orchestrator 注册：`.opencode/agents/orchestrator.md` → `~/.agate/orchestrator-template.md`（符号链接，不拷贝）
+- 工作区解析：`agate-workspace-resolve.sh` 输出 worktree 自己的 `agate-workspace/`
+- 任务数据：TAG0004 P0-brief + .state.yaml phase=P0 在 worktree 的 `agate-workspace/tasks/`
 
 ## 3. 任务范围（P0-brief 已锁定，P1 细化 BDD）
 
@@ -51,6 +63,7 @@
 1. **Linux 现状是基线**——现有 676 bats 测试全绿是回归底线，每个修复都必须保持全绿
 2. **Windows 兼容是增量**——本环境（Linux）无法实测 Windows，靠静态修复 + Linux 回归 + CI windows-latest matrix 兜底。**不要宣称"已实测 Windows"**
 3. **不破坏已有协议语义**——改动是"修正则/加 encoding/路径归一化"，不是重构协议流程
+4. **Q2（卡片 phase 对齐）是文档一致性修复，不是语义变更**——只补注"commit 时 phase = 本 commit 产出阶段"到卡片，不改 commit 顺序、不改 gate 判定逻辑。若 P1 分析发现需要改 gate 逻辑（而非纯文档），须先停下来跟用户确认（超出 P0-brief 锁定范围）
 
 ## 4. 关键验证命令
 
@@ -61,6 +74,7 @@
 bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
 
 # 一致性（0 ERROR 才行；--strict 让 WARNING 也阻断）
+# ⚠️ 必须用 worktree 自己的脚本（检查对象是 worktree 里的协议文件），不要用 ~/.agate 的
 python3 agate/scripts/check-protocol-consistency.py --strict
 
 # shellcheck
@@ -80,6 +94,7 @@ bats agate/tests/unit/agate-md-field-get.bats
 
 - **commit 时 phase = 本 commit 产出阶段**：P1 产出 → phase=P1 再 commit；推进 P2 随 P2 产出同 commit。**不要**先写 phase=P2 再 commit P1 产出（pre-commit 会用 P2 gate 检查，P2-design.md 不存在 → 拦截）
 - **改脚本走 TDD**：先写失败测试确认红 → 改脚本确认绿（AGENTS.md「改脚本的工作流」）
+- **批量机械改动（S3 13 py encoding）的 TDD 策略**：这类改动每个都写单独测试边际成本高。建议——①先写一个"grep 断言审计"测试（所有 `open(`/`read_text(` 必须带 `encoding=`，作为回归拦截）；②批量加 encoding 后跑该断言 + 全量 bats 确认绿。不要为每个 py 单独写测试，也不要跳过测试直接改
 - **git 命令加 timeout**、单步串行（AGENTS.md 工具纪律）
 - **commit message 含 `wf(TAG0004-P{阶段}):`** 前缀
 - **改 `agate/*.md`、`agate/scripts/*.py/.sh`、`agate/phase-cards/*` 触发 SELF-GATE**：commit message 需含 `self-gate-review:` 或 `self-gate-skip:`（否则 commit-msg hook WARNING）。协议文档变更需跑 `check-protocol-consistency.py` 确认无 ERROR
@@ -90,6 +105,7 @@ bats agate/tests/unit/agate-md-field-get.bats
 - `.state.yaml`：phase=P0（P1 开始后推进）
 - active-tasks.md「待开始」已有 TAG0004 行
 - roadmap：RM-AG0001/0002 关联本任务（scheduled）
+- **编号体系**：本任务用 `TAG0004`（项目代号 `AG` + 动态数字，v2.0 起的 Jira 式编号）。AGENTS.md 里 T001 说的"独立编号"是 v2.0 之前的旧约定，本任务不适用。校验器 `^T[A-Z]{2}\d+$`
 
 ## 7. 已知风险与止损
 
@@ -101,9 +117,17 @@ bats agate/tests/unit/agate-md-field-get.bats
 
 ## 8. 完成后
 
-- P8 gate + READY → main 合并（PR 普通 merge 非 squash，tag 要求）
+- P8 gate + READY → 提 PR 合并 main（PR 普通 merge 非 squash，tag 要求）
+- **合并前在 PR 里看 CI 双平台结果**（windows-latest matrix 是 Windows 验证的唯一兜底，本环境无法实测）——bats/shellcheck/consistency/gate-backstop 全绿才算过
 - roadmap 回写 RM-AG0001/0002 → done
-- 复盘按 agate 自身变更流程归档
+- 复盘按 agate 自身变更流程归档（合并后在主 checkout 写复盘 + 更新 roadmap/版本）
+
+## 9. 交接确认
+
+- worktree 基线全绿：676 bats + consistency 0 ERROR（--strict）
+- hooks 就位（指向 `~/.agate` 稳定版）、orchestrator 已注册、依赖齐全
+- 任务数据就绪：TAG0004 P0-brief + .state.yaml phase=P0
+- 交接单位置：`HANDOFF-TAG0004.md`（worktree 根，已 commit）
 
 ---
 
