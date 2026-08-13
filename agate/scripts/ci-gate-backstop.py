@@ -48,7 +48,7 @@ def get_pr_metadata(platform: str) -> dict:
     if platform in ("github", "gitea"):
         event_path = os.environ.get("GITHUB_EVENT_PATH", "")
         if event_path and Path(event_path).exists():
-            with open(event_path) as f:
+            with open(event_path, encoding="utf-8") as f:
                 return json.load(f)
         return {}
     return {}
@@ -115,7 +115,7 @@ def main() -> int:
 
     try:
         import yaml
-        with open(state_file) as f:
+        with open(state_file, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         phase = data.get("phase", "")
         task_id = data.get("task_id", "")
@@ -177,7 +177,7 @@ def main() -> int:
         print(f"WARN: 无 .gate-result.json（可能 --no-verify 跳过），CI exit={ci_exit}")
         return 0
 
-    with open(gate_result) as f:
+    with open(gate_result, encoding="utf-8") as f:
         recorded = json.load(f)
 
     recorded_exit = recorded.get("exit_code")

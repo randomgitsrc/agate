@@ -14,9 +14,10 @@
     产出：P1-review.md（agent≠main，含 BDD 编号引用 + 覆盖维度标注）
     review 不通过 → analyst 修改 → 再 review → … → approved（⑩迭代循环）
 3. 预跑 check-gate.sh P1（exit 2，主 Agent 自判）
-4. 更新 .state.yaml phase=P1 → P2
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
-6. git commit -m "wf({Txxx}-P1): {摘要}"
+4. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+   ⚠️ 此时 .state.yaml 的 phase 保持 P1，不要提前写 P2——phase = 本 commit 的产出阶段
+5. git commit -m "wf({Txxx}-P1): {摘要}"（phase=P1，P1 产出含 P1-requirements.md + P1-review.md）
+6. P1 commit 完成后进入 P2：**phase 推进 P2 随 P2 产出 commit 一起**（P2-design.md + P2-review.md 就绪后），不是单独 phase commit
 
 ## 如果是重试
 

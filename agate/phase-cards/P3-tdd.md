@@ -10,9 +10,10 @@
 1. 派发 test-designer subagent → 产出 P3-test-cases.md + 测试代码目录
    1.1 写 P3-dispatch-context-test-designer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 主 Agent 跑 check-tdd-red.sh 确认红灯
-3. 更新 .state.yaml phase=P3 → P4
-4. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
-5. git commit -m "wf({Txxx}-P3): {摘要}"
+3. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+   ⚠️ 此时 .state.yaml 的 phase 保持 P3，不要提前写 P4——phase = 本 commit 的产出阶段
+4. git commit -m "wf({Txxx}-P3): {摘要}"（phase=P3，P3 产出含 P3-test-cases.md + 测试代码）
+5. P3 commit 完成后进入 P4：**phase 推进 P4 随 P4 产出 commit 一起**（P4-implementation.md 就绪后），不是单独 phase commit
 
 ## refactor 任务：回归测试口径
 

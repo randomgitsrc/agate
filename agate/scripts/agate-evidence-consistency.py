@@ -18,7 +18,7 @@ if not os.path.isfile(p6_file):
     sys.exit(0)
 
 pass_bdds = set()
-with open(p6_file) as f:
+with open(p6_file, encoding="utf-8") as f:
     for line in f:
         m = re.match(r"^\s*-\s*PASS\s+(BDD-\d+)", line, re.IGNORECASE)
         if m:
@@ -27,7 +27,7 @@ with open(p6_file) as f:
 fail_in_evidence = set()
 for json_path in glob.glob(os.path.join(evidence_dir, "**/*.json"), recursive=True):
     try:
-        with open(json_path) as f:
+        with open(json_path, encoding="utf-8") as f:
             data = json.load(f)
         if not isinstance(data, dict):
             continue

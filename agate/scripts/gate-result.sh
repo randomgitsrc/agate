@@ -78,7 +78,7 @@ resolve_formatter() {
 run_test_with_formatter() {
     local cmd="$1"
     local fmt_path="$2"
-    local exit_code output
+    local exit_code output raw_json
     local timeout_secs="${AGATE_TDD_TIMEOUT:-120}"
     if command -v timeout &>/dev/null; then
         output=$(timeout "$timeout_secs" bash -c "$cmd" 2>&1) && exit_code=0 || exit_code=$?
@@ -91,11 +91,13 @@ run_test_with_formatter() {
         return 0
     fi
     if [ -z "$fmt_path" ]; then
-        echo "{\"exit_code\":$exit_code,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[]}"
+        raw_json=$(printf '%s' "$output" | python3 "$SCRIPT_DIR/agate-json-get.py" escape)
+        echo "{\"exit_code\":$exit_code,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[],\"name_errors\":[],\"raw_output\":$raw_json}"
     else
         local json_result
         json_result=$(echo "$output" | bash "$fmt_path" "$exit_code" 2>/dev/null) || {
-            echo "{\"exit_code\":$exit_code,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[]}"
+            raw_json=$(printf '%s' "$output" | python3 "$SCRIPT_DIR/agate-json-get.py" escape)
+            echo "{\"exit_code\":$exit_code,\"total\":0,\"passed\":0,\"failed\":0,\"errors\":0,\"failed_tests\":[],\"import_errors\":[],\"syntax_errors\":[],\"name_errors\":[],\"raw_output\":$raw_json}"
         }
         echo "$json_result"
     fi

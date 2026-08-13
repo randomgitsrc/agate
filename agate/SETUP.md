@@ -84,6 +84,20 @@ cp ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 
 `cmd`/PowerShell 的 `mklink` 底层调用的是和 `ln -sf` 同一个系统 API，一样需要管理员权限，不是绕开限制的办法；`mklink /H`（硬链接）在同一 NTFS 分区内不需要管理员权限，可以作为免权限的进阶选项，但硬链接绑定的是当前这份文件的磁盘位置，**agate 自身升级模板文件时如果不是原地改写而是新建后替换（多数 git 实现是这样），硬链接会指向旧内容变成过期链接**——这一点没有在这套环境实测过，如果要用请自己验证一次"升级 agate 后硬链接是否还生效"，不确定就用复制模式更保险。
 
+### Windows 环境适配要点（无 WSL，Git for Windows）
+
+> agate 的 gate 脚本依赖 bash + GNU coreutils，Windows 原生无 bash，但 **Git for Windows** 安装时自带 MSYS2 bash。以下是 Windows 上跑通 agate 的环境要点（详见 `platform-notes.md`「Windows 原生」章节），**所有命令都在 Git Bash 里执行**，不要在 `cmd`/PowerShell 里跑 bash 脚本。
+
+**1. AGATE_ROOT 用 Unix 风格路径**：协议本体路径在 Git Bash 里写成 `/c/Users/<你>/agate/agate`（或 `C:/Users/<你>/agate/agate`），**不要写反斜杠 `C:\...`**——反斜杠在 bash 里是转义符，且 `agate-next-card.sh` 的前缀剥离在盘符/反斜杠下失效（Q1 修复覆盖了归一化，但环境变量里直接写反斜杠仍会被 bash 吃掉）。设 `~/.agate` 软链接用 `ln -s`（Git Bash 里 `~` 是 `C:\Users\<你>`）；无符号链接权限时改用系统环境变量 `AGATE_ROOT=/c/Users/<你>/agate/agate`。
+
+**2. PATH 注入风险**：`C:\Program Files\Git\bin`（git.exe）和 `C:\Program Files\Git\usr\bin`（bash + coreutils）须在 PATH 里且**顺序靠前**，否则 `bash`/`grep`/`sed` 会解析到系统其他位置（或找不到）。`git --version` 与 `bash --version` 跑通即代表 PATH 正常。python 的 `Scripts/` 目录若与 Git 的 usr/bin 冲突，以实际 `which python`/`which bash` 为准调整顺序。
+
+**3. Git Bash 执行 hook**：`bash ~/.agate/scripts/install-hook.sh` 在 Git Bash 里跑。Windows 无符号链接权限时 hook 以**复制模式**安装（输出含「复制模式」提示），升级 agate 后需重跑此命令（复制不自动跟随源文件，见 `platform-notes.md`「已知限制」）。
+
+**4. `PYTHONUTF8=1`**：Windows 的 python 默认用系统 ANSI 代码页（GBK）解释源码/读写文件，agate 的 `.py` 工具按 UTF-8 读写协议文件会乱码/报错。在系统环境变量加 `PYTHONUTF8=1`，或 Git Bash 会话里 `export PYTHONUTF8=1`，让 python 3.7+ 以 UTF-8 模式运行。
+
+**5. CRLF / `core.autocrlf` 处理**：仓库已含 `.gitattributes` 强制 LF（`*.md` 等文本规则除外，历史 review 文件保持 CRLF，见 `agate/AGENTS.md`）；若 clone 的是旧版本仓库（无该文件），手动 `git config core.autocrlf false` 再重新 checkout。已物化 CRLF 的工作区执行 `git add --renormalize .` 重规范化，否则 `.sh` 报 `\r` 语法错、hash 校验 mismatch。
+
 ## 步骤 3（可选）：设成默认 agent
 
 不设的话，每次开会话需要手动选/指定 orchestrator；设了之后新会话默认就是它。

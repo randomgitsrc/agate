@@ -1,3 +1,46 @@
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0004
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**M6 补充（shell 侧 CRLF 容错）**：修复 check-gate.sh 中 frontmatter 提取对 CRLF 行尾 md 文件失效的问题（BDD-14，当前唯一红灯）。py 侧 CRLF 容错已由组 3a 完成；本任务只补 shell 侧。
+
+### 约束
+
+- **修复对象 = worktree 的 `agate/` 目录**（`/home/kity/oclab/agate/.worktrees/agate-TAG0004/agate/`）。**禁止改主 checkout `/home/kity/oclab/agate` 和 `~/.agate`**。
+- **只改本组文件**：`agate/scripts/check-gate.sh`（frontmatter 提取相关）+ 按需 `agate/scripts/check-frontmatter.sh` 链路。**不要动其他逻辑**（M4/RM-AG0001 已完成，别破坏）。
+- **让 P3 红灯变绿，不改测试**：bdd-14 测试（`agate/tests/unit/check-gate.bats`）期望 CRLF 行尾的 P1-review.md/P1-requirements.md 也能提取 frontmatter（check-gate.sh P1 exit 2）。
+- **实现要点**（P2-design 候选 5A）：check-gate.sh 中所有 `sed -n '/^---$/,/^---$/p'` frontmatter 提取（L49/54/80/100/160/165/229/234 等 6+ 处）改为 CRLF 容错——在 sed 前加 `tr -d '\r'` 管道，或 sed 模式改 `/^---\r*$/`。**注意**：不能改变 LF 文件行为（回归守卫 BDD-15）。
+- **自查**：跑 `bats agate/tests/unit/check-gate.bats`（bdd-14 变绿 + 其他 116 例不回归）+ `shellcheck -S warning agate/scripts/check-gate.sh`。自查 ≠ P5 gate。
+- **格式约束**：约束节避免行首 `- PASS`/`- FAIL`。改用"通过/失败"或加引号。
+
+### 上游关联
+
+- 全量自查 690 例中唯一失败 bdd-14（check-gate.sh P1 CRLF frontmatter 提取）。
+- 组 1 已改 check-gate.sh（M4 L356/357 + RM-AG0001 L69/71/89/109/125/129），本次在其基础上补 M6，勿覆盖。
+- 组 3a 已改 py 侧 CRLF 容错（agate-md-field-get.py / agate-frontmatter-check.py）。
+
+### 输入文件
+
+- `agate/scripts/check-gate.sh`（frontmatter 提取处）
+- `agate/tests/unit/check-gate.bats`（bdd-14 测试契约）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P2-design.md`（M6 候选 5A）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -13,10 +56,9 @@
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
-   ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
-6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
-7. P4 commit 完成后进入 P5：**phase 推进 P5 随 P5 产出 commit 一起**（P5-test-results/ 就绪后），不是单独 phase commit
+5. 更新 .state.yaml phase=P4 → P5
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -149,3 +191,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0004`；协议 v0.43.0；全量自查 690 例仅 bdd-14 红
+- 关键路径：改动 `agate/scripts/check-gate.sh`；产出 `agate-workspace/tasks/TAG0004-env-adaptation/P4-implementation-m6-shell.md`
+- 自查命令：`bats agate/tests/unit/check-gate.bats` + `shellcheck -S warning agate/scripts/check-gate.sh`
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

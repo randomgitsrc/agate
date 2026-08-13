@@ -11,7 +11,8 @@
 2. releaser subagent 产出 P8-release.md，**不执行 git commit/tag**
 3. 主 Agent 执行 gate 验证 → 通过后执行 bump-version + CHANGELOG 更新 → 同一 commit + tag
 4. 主 Agent 执行 READY 收尾检查（参考 P8-release.md 临时资源清单）
-5. 更新 .state.yaml phase=READY → DONE
+5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + P8-release.md，若 .gitignore 忽略需 git add -f）
+   ⚠️ 此时 .state.yaml 的 phase 保持 READY，不要提前写 DONE——phase = 本 commit 的产出阶段；终态 DONE 收尾随任务终态 commit 一起
 
 ## 如果是重试
 

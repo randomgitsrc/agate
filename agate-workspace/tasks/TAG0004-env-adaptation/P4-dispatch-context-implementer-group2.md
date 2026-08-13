@@ -1,3 +1,56 @@
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0004
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**组 2（check-tdd-red A/B 判定组）**：实现 TAG0004 中 check-tdd-red.sh 相关修复，让对应 P3 红灯测试变绿（不修改测试本身）：
+- **RM-AG0002**（BDD-30/31）：`agate/scripts/check-tdd-red.sh` 无 formatter 时不再纯 exit-code-only——exit 1 + 输出含编译/错误关键词 → 判 A 类（exit 1）
+- **TPV0090-M4**（BDD-35/36/37）：B 类检测纳入 NameError（项目内未定义符号）——formatter 输出 `name_errors` 字段，judge_result 据此归 B 类
+- **formatter 变更**（BDD-35f）：`agate/assets/formatters/pytest.sh` 输出 JSON 增 `name_errors` 数组字段
+
+### 约束
+
+- **修复对象 = worktree 的 `agate/` 目录**（`/home/kity/oclab/agate/.worktrees/agate-TAG0004/agate/`）。**禁止改主 checkout `/home/kity/oclab/agate` 和 `~/.agate`**。
+- **只改本组文件**：`agate/scripts/check-tdd-red.sh`、`agate/scripts/gate-result.sh`、`agate/assets/formatters/pytest.sh`。**不改 pre-commit-gate.sh/check-gate.sh/check-p6-format.sh/check-p6-evidence.sh（组 1 负责）**、**不改 13 py/phase-cards/SETUP/CI（组 3 负责）**。
+- **让 P3 红灯变绿，不改测试**：测试断言与 BDD 矛盾 → 标 `[DESIGN_GAP]` 不改测试。
+- **实现要点**（P2-design 候选 11A + P2-review 观察项）：
+  - RM-AG0002：无 formatter 路径（gate-result.sh 无 fmt 分支 / judge_result 无 formatter 时）把测试原始输出纳入判定——exit 1 且输出含 `Traceback|SyntaxError|ImportError|ModuleNotFoundError`（**精确组合，不用裸 `error:`**——避免误伤断言失败文本）→ 判 A 类（exit 1）；普通失败（无关键词）→ 仍判正确红灯（exit 0）
+  - TPV0090-M4：gate-result.sh 的 judge_result 在 `errors > 0` 分支前先查 `name_errors`——项目模块内（PROJECT_MODULE 前缀匹配，复用 import_errors 的 count_prefix 机制）的 NameError → B 类（return 0）；其余 errors → 仍 A 类
+  - pytest.sh：输出 JSON 增 `name_errors` 数组（解析输出中 `NameError: name 'X' is not defined`，X 为未定义符号）
+  - **保持向后兼容**：`globals().get()` 规避模式（失败为断言失败非 NameError）→ 走 failed 分支 → B 类不受影响（BDD-36）
+  - **防过宽**：NameError 之外的 TypeError 等真实测试 bug → 仍 A 类（BDD-37）
+- **自查**：跑 `bats agate/tests/unit/check-tdd-red.bats agate/tests/unit/check-tdd-red-formatter.bats` + `shellcheck -S warning` 相关脚本。自查 ≠ P5 gate。
+- **格式约束**：约束节避免行首 `- PASS`/`- FAIL`。改用"通过/失败"或加引号。
+
+### 上游关联
+
+- P2-design.md approved（候选 11A：无 formatter 关键词判定 + NameError B 类扩展一次设计；P2-review 观察项 2/4）。
+- P3-test-cases.md：本组 BDD-30/31/35/36/37/35f 对应测试已写（当前红：BDD-30/35/35f 红；BDD-31/36/37 绿回归守卫）。
+- P1-requirements.md §6：check-tdd-red.sh:43/:70/:87-102/:104-107/:128-131、gate-result.sh。
+
+### 输入文件
+
+- `agate-workspace/tasks/TAG0004-env-adaptation/P2-design.md`（方案 + files_to_read）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P3-test-cases.md`（测试契约）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P1-requirements.md`（BDD + 审计范围）
+- `AGENTS.md`（脚本关键约定、mock pytest 测试约定）
+- 本组 3 个文件 + `agate/tests/unit/check-tdd-red.bats` + `agate/tests/unit/check-tdd-red-formatter.bats`
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -13,10 +66,9 @@
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
-   ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
-6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
-7. P4 commit 完成后进入 P5：**phase 推进 P5 随 P5 产出 commit 一起**（P5-test-results/ 就绪后），不是单独 phase commit
+5. 更新 .state.yaml phase=P4 → P5
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -149,3 +201,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0004`；协议 v0.43.0；bats 1.10 / shellcheck 就绪
+- 关键路径：改动 `agate/scripts/check-tdd-red.sh`、`agate/scripts/gate-result.sh`、`agate/assets/formatters/pytest.sh`；产出 `agate-workspace/tasks/TAG0004-env-adaptation/P4-implementation-group2.md`
+- 自查命令：见约束节
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

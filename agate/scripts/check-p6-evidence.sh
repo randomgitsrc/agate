@@ -34,7 +34,8 @@ EVIDENCE_DIR="$TASK_DIR/P6-evidence"
 PASS_WITHOUT_REF=0
 PASS_WITHOUT_REF_DETAILS=""
 while IFS= read -r line; do
-    if ! echo "$line" | grep -qE '\([a-zA-Z0-9_/. -]*[a-zA-Z0-9_-]\.[a-zA-Z0-9]+[^)]*\)'; then
+    # S2：证据引用正则负类加宽支持中文/空格文件名（保留"文件名+扩展名"结构，防过宽放过真缺证据）
+    if ! echo "$line" | grep -qE '\([^()]*[^()[:space:]]\.[a-zA-Z0-9]+[^)]*\)'; then
         PASS_WITHOUT_REF=$((PASS_WITHOUT_REF + 1))
         PASS_WITHOUT_REF_DETAILS="${PASS_WITHOUT_REF_DETAILS}  - ${line}"$'\n'
     fi

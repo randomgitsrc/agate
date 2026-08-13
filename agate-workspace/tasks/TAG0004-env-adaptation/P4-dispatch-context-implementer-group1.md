@@ -1,3 +1,62 @@
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0004
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**组 1（sh gate 脚本组）**：实现 TAG0004 中 5 个 sh 脚本相关的修复，让对应 P3 红灯测试变绿（不修改测试本身）：
+- **S1**（BDD-1..4）：`agate/scripts/pre-commit-gate.sh` STAGED_STATE_FILES/PROCESSED_DIRS 数组化（L50/57/339/343/350）
+- **M9**（BDD-17）：`agate/scripts/pre-commit-gate.sh:102/133/228` 路径拼入 grep -E 改 grep -F 前缀 + 行首锚定
+- **其他-b**（BDD-19）：`install-hook.sh` 复制模式写 `.agate-root` 标记 + `pre-commit-gate.sh:26` 读标记兜底 AGATE_ROOT 解析
+- **M4**（BDD-11）：`agate/scripts/check-gate.sh:356/357` `[BLOCKER\][:：]?`/`[DEVIATION-CRITICAL\][:：]?` bracket 改 alternation `(:|：)`
+- **RM-AG0001**（BDD-28/29）：`agate/scripts/check-gate.sh` P1 标记正则加反引号容错（L69/71/89/109/125/129）
+- **M5**（BDD-12/13）：`agate/scripts/check-p6-format.sh:69` 4 处 sed `[[:space:]:：]` bracket 改 alternation（与 L84 统一）
+- **S2**（BDD-9/10）：`agate/scripts/check-p6-evidence.sh:37` 证据引用正则负类加宽支持中文文件名
+
+### 约束
+
+- **修复对象 = worktree 的 `agate/` 目录**（`/home/kity/oclab/agate/.worktrees/agate-TAG0004/agate/`）。**禁止改主 checkout `/home/kity/oclab/agate` 和 `~/.agate`**。
+- **只改本组文件**：`agate/scripts/pre-commit-gate.sh`、`agate/scripts/install-hook.sh`、`agate/scripts/check-gate.sh`、`agate/scripts/check-p6-format.sh`、`agate/scripts/check-p6-evidence.sh`。**不改 check-tdd-red.sh/gate-result.sh/formatter（组 2 负责）**、**不改 13 py/phase-cards/SETUP/CI（组 3 负责）**。
+- **让 P3 红灯变绿，不改测试**：测试断言与 BDD 矛盾 → 标 `[DESIGN_GAP]` 不改测试。
+- **实现要点**（P2-design 选定方案）：
+  - S1：`STAGED_STATE_FILES=()` 数组 + `+=("$REPO_ROOT/$f")` + `for STATE_FILE in "${STAGED_STATE_FILES[@]}"`；PROCESSED_DIRS 数组化 + 成员判断改辅助函数/数组遍历；`set -u` 下 `+=()` 处理；§3 验证场景清单 9+1 项（含"任务级 .state.yaml 变更但无 P 产出"变体）
+  - M9：`grep -E "^${TASK_REL}/..."` → `awk 'index($0,prefix)==1'` 行首锚定 + `grep -F` 字面前缀（元字符安全）
+  - 其他-b：install-hook.sh 复制模式写入 `.agate-root` 标记文件存 AGATE_ROOT；pre-commit-gate.sh:26 readlink 失败时读标记兜底
+  - M4：`[BLOCKER\][:：]?` → `[BLOCKER\](:|：)?`；`[DEVIATION-CRITICAL\][:：]?` → `[DEVIATION-CRITICAL\](:|：)?`
+  - RM-AG0001：行首标记正则 `^\s*-?\s*\[...` 加可选反引号前缀（`^\s*\x60*-?\s*\[` 或匹配前 `sed 's/^` *//'`），覆盖 L69/71/89/109/125/129 六处
+  - M5：check-p6-format.sh:69 的 `[[:space:]:：]` → `([[:space:]]|:|：)`（4 处 sed 统一；参照 L84 v0.40.3 修法）
+  - S2：`\([a-zA-Z0-9_/. -]*...\)` → `\([^()]*[^()[:space:]]\.[a-zA-Z0-9]+[^)]*\)`（维持"文件名+扩展名"结构，防过宽）
+- **自查**：跑 `bats agate/tests/unit/check-gate.bats agate/tests/unit/check-p6-evidence.bats agate/tests/unit/check-p6-format.bats agate/tests/integration/pre-commit-hook.bats` + `shellcheck -S warning` 相关脚本。自查 ≠ P5 gate。
+- **格式约束**：约束节避免行首 `- PASS`/`- FAIL`。改用"通过/失败"或加引号。
+
+### 上游关联
+
+- P2-design.md approved（候选 1A/3A/4A/6A/10A/14A + 观察项）。
+- P3-test-cases.md：本组 BDD-1..4/9..13/17/19/28/29 对应测试已写（当前红）。
+- P1-requirements.md §6 审计范围（L50/57/102/133/228/339/343/350、check-gate.sh L356/357/L69/71/89/109/125/129、check-p6-format.sh L69、check-p6-evidence.sh L37、install-hook.sh L31、pre-commit-gate.sh L26）。
+
+### 输入文件
+
+- `agate-workspace/tasks/TAG0004-env-adaptation/P2-design.md`（方案 + files_to_read）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P3-test-cases.md`（测试契约）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P1-requirements.md`（BDD + 审计范围）
+- `AGENTS.md`（脚本关键约定：`set -euo pipefail`、printf '%b'、grep -c || echo 0 | tail -1 等）
+- 本组 5 个脚本 + 对应 .bats 测试
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -13,10 +72,9 @@
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
-   ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
-6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
-7. P4 commit 完成后进入 P5：**phase 推进 P5 随 P5 产出 commit 一起**（P5-test-results/ 就绪后），不是单独 phase commit
+5. 更新 .state.yaml phase=P4 → P5
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -149,3 +207,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0004`；协议 v0.43.0；bats 1.10 / shellcheck 就绪
+- 关键路径：改动 `agate/scripts/` 下 5 个 sh；产出 `agate-workspace/tasks/TAG0004-env-adaptation/P4-implementation-group1.md`
+- 自查命令：见约束节
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

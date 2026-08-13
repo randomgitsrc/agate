@@ -25,7 +25,7 @@ def main():
     state_file = os.environ["STATE_FILE"]
     if op == "check_retreat":
         max_map_str = sys.argv[2]
-        with open(state_file) as f:
+        with open(state_file, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         retries = data.get("retries", {}) or {}
         max_map = dict(p.split(":") for p in max_map_str.split(","))
@@ -39,14 +39,14 @@ def main():
                 print(f"{phase}:{count + 1}:{limit}")
                 break
     elif op == "write_retreat":
-        with open(state_file) as f:
+        with open(state_file, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         retries = data.setdefault("retries", {})
         new_phase = os.environ["NEW_PHASE"]
         attempts = retries.setdefault(new_phase, [])
         attempts.append({"attempt": len(attempts) + 1, "reason": os.environ["RETREAT_REASON"]})
         data["phase"] = new_phase
-        with open(state_file, "w") as f:
+        with open(state_file, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
     else:
         sys.stderr.write("agate-retreat-state: unknown op {}\n".format(op))

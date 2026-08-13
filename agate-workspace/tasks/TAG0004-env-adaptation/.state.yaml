@@ -1,4 +1,11 @@
 task_id: TAG0004
-phase: P3
+phase: P4
 status: in_progress
-retries: {}
+retries:
+  P4:
+    - failure_mode: empty_return
+      prompt_changed: true
+      adjustment: 拆分 3 并行 implementer（按文件归属避免同文件冲突：sh-gate 组 / tdd-red 组 / py-其他-文档 组）
+    - failure_mode: empty_return
+      prompt_changed: true
+      adjustment: 组3 再拆 3a（py encoding+M6）/3b（Q1/Q2/Q5+其他+CI）——组1/组2 已成功

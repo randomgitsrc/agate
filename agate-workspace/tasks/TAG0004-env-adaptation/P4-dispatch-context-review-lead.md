@@ -1,3 +1,46 @@
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0004
+role: review
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**P4 专家组组长汇总**：P4 实现评审派发了 review + cso 两个专家（并行）。你作为组长汇总两份评审意见，产出统一 `P4-review.md`——status: approved / rejected。
+
+### 约束
+
+- **只汇总，不发表新意见**：输入是 P4-review.md（review 专家）+ P4-review-cso.md（cso 专家），你只做汇总判定，不添加自己的新评审意见。
+- **组长规则**：
+  - 任何专家标 BLOCKER → status: rejected
+  - 多位专家分歧 → 标「专家组分歧」交人工
+  - 全票无 BLOCKER → status: approved
+- **结论必须引用实质锚点**：汇总中列出两位专家的关键结论（引用各自文件路径 + 判定 + 严重性），approved 必须引用专家文件。
+- **产出文件**：覆盖 P4-review.md（组长的汇总版本），Header agent 字段必须是组长角色名（review，非 main）——check-gate.sh P4 硬拦截 agent=main 的 approved。
+- **格式约束**：约束节避免行首 `- PASS`/`- FAIL`。改用"通过/失败"或加引号。
+
+### 上游关联
+
+- review 专家：`P4-review.md`（status: approved，无 BLOCKER，DESIGN_GAP 已接受，4 条观察项）。
+- cso 专家：`P4-review-cso.md`（status: approved，0 CRITICAL/0 HIGH，2 MEDIUM 为已声明设计偏差，不阻断）。
+
+### 输入文件
+
+- `agate-workspace/tasks/TAG0004-env-adaptation/P4-review.md`（review 专家产出）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P4-review-cso.md`（cso 专家产出）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -13,10 +56,9 @@
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
-   ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
-6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
-7. P4 commit 完成后进入 P5：**phase 推进 P5 随 P5 产出 commit 一起**（P5-test-results/ 就绪后），不是单独 phase commit
+5. 更新 .state.yaml phase=P4 → P5
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -149,3 +191,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0004`；协议 v0.43.0
+- 关键路径：产出 `agate-workspace/tasks/TAG0004-env-adaptation/P4-review.md`（组长汇总版，覆盖专家版）
+- 查证结果：两位专家均 approved、无 BLOCKER
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

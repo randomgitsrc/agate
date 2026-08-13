@@ -1,3 +1,52 @@
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0004
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**组 3a（py encoding + M6 容错组）**：实现 TAG0004 中 13 个 py 的 encoding 修复 + M6 CRLF 容错，让对应 P3 红灯测试变绿（不修改测试本身）：
+- **S3**（BDD-5..8）：13 个 py 全部文本 `open()` 加 `encoding="utf-8"`
+- **M6**（BDD-14..16）：frontmatter 提取入口 CRLF 归一（py 侧 `agate-md-field-get.py`、`agate-frontmatter-check.py` 读取后剥 `\r`；不改 .gitattributes）
+
+### 约束
+
+- **修复对象 = worktree 的 `agate/` 目录**（`/home/kity/oclab/agate/.worktrees/agate-TAG0004/agate/`）。**禁止改主 checkout `/home/kity/oclab/agate` 和 `~/.agate`**。
+- **只改本组文件（13 个 py）**：`agate-card-inject.py`、`agate-changelog-unreleased.py`、`agate-evidence-consistency.py`、`agate-gate-missing-cmds.py`、`agate-gate-p5-count.py`、`agate-md-field-get.py`、`agate-read-gate-commands.py`、`agate-read-p5-commands.py`、`agate-retreat-state.py`、`agate-state-get.py`、`agate-state-yaml-check.py`、`agate-vision-blocker.py`、`ci-gate-backstop.py`（都在 `agate/scripts/` 下）。**不改 sh 脚本（组 1/2 负责）**、**不改 phase-cards/SETUP/.gitignore/protocol-tests.yml/agate-next-card.sh/agate-workspace-resolve.sh/agate-render-dispatch-prompt.sh（组 3b 负责）**。
+- **让 P3 红灯变绿，不改测试**：测试断言与 BDD 矛盾 → 标 `[DESIGN_GAP]` 不改测试。
+- **实现要点**（P2-design 候选 2A/5A）：
+  - S3：13 个 py 文本 open() 逐一加 `encoding="utf-8"`（P1 §6 清单：agate-card-inject.py:13/15/28、agate-changelog-unreleased.py:8、agate-evidence-consistency.py:21/30、agate-gate-missing-cmds.py:12、agate-gate-p5-count.py:11、agate-md-field-get.py:112、agate-read-gate-commands.py:16、agate-read-p5-commands.py:18、agate-retreat-state.py:28/42/49、agate-state-get.py:25、agate-state-yaml-check.py:21、agate-vision-blocker.py:17、ci-gate-backstop.py:51/118/180；`agate-image-check.py` 的 `Image.open` 是二进制图片，**不在范围**）
+  - M6：py 侧 `_read()`/`_extract_frontmatter_block()` 读取后 `.replace('\r\n', '\n')` 或 `.replace('\r', '')`（agate-md-field-get.py / agate-frontmatter-check.py）；**不改 .gitattributes**
+- **自查**：跑 `bats agate/tests/unit/agate-md-field-get.bats agate/tests/unit/agate-retreat-state.bats agate/tests/unit/agate-scripts-encoding.bats`。自查 ≠ P5 gate。
+- **格式约束**：约束节避免行首 `- PASS`/`- FAIL`。改用"通过/失败"或加引号。
+
+### 上游关联
+
+- P2-design.md approved（候选 2A/5A）。
+- P3-test-cases.md：本组 BDD-5/6/7/8/14/15 对应测试已写（红：BDD-5/14；绿回归守卫：BDD-6/7/8/15）。
+- P1-requirements.md §6 审计范围（S3 13 py 清单、M6 入口）。
+
+### 输入文件
+
+- `agate-workspace/tasks/TAG0004-env-adaptation/P2-design.md`（方案 + files_to_read）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P3-test-cases.md`（测试契约）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P1-requirements.md`（BDD + 审计范围）
+- `AGENTS.md`（脚本关键约定）
+- 13 个 py + 对应 .bats 测试
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -13,10 +62,9 @@
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
-   ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
-6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
-7. P4 commit 完成后进入 P5：**phase 推进 P5 随 P5 产出 commit 一起**（P5-test-results/ 就绪后），不是单独 phase commit
+5. 更新 .state.yaml phase=P4 → P5
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -149,3 +197,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0004`；协议 v0.43.0；bats 1.10 / pyyaml 就绪
+- 关键路径：改动 `agate/scripts/` 下 13 个 py；产出 `agate-workspace/tasks/TAG0004-env-adaptation/P4-implementation-group3a.md`
+- 自查命令：见约束节
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

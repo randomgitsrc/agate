@@ -109,20 +109,36 @@ fi
 # 故 AGATE_WORKSPACE = dirname(dirname(TASK_DIR))（相对/绝对、workspace/legacy 布局均自洽）
 AGATE_WORKSPACE_RENDER="$(dirname "$(dirname "$TASK_DIR")")"
 
+# 其他-c（TAG0004）：sed 替换串转义 & / | / \（& 是"整体匹配"引用、| 是分隔符、\ 是转义符），
+# 防止 AGATE_ROOT 含这些字符时替换错位（BDD-20）
+esc_repl() {
+    printf '%s' "$1" | sed 's/[&|/\\]/\\&/g'
+}
+
+AGATE_ROOT_ESC="$(esc_repl "$AGATE_ROOT")"
+AGATE_WORKSPACE_RENDER_ESC="$(esc_repl "$AGATE_WORKSPACE_RENDER")"
+ROLE_DIR_ESC="$(esc_repl "$ROLE_DIR")"
+PHASE_ESC="$(esc_repl "$PHASE")"
+PHASE_NUM_ESC="$(esc_repl "$PHASE_NUM")"
+ROLE_ESC="$(esc_repl "$ROLE")"
+TASK_ID_ESC="$(esc_repl "$TASK_ID")"
+TODAY_ESC="$(esc_repl "$TODAY")"
+TRACE_ID_ESC="$(esc_repl "$TRACE_ID")"
+
 rendered="$(printf '%s' "$rendered" | sed \
-    -e "s|{agate_root}|${AGATE_ROOT}|g" \
-    -e "s|{AGATE_WORKSPACE}|${AGATE_WORKSPACE_RENDER}|g" \
-    -e "s/{execution-roles|review-roles}/${ROLE_DIR}/g" \
-    -e "s/{阶段 Pn}/${PHASE}/g" \
-    -e "s/{Pn}/${PHASE}/g" \
-    -e "s/P{N}/P${PHASE_NUM}/g" \
-    -e "s/{角色名}/${ROLE}/g" \
-    -e "s/{role}/${ROLE}/g" \
-    -e "s|{Txxx}|${TASK_ID}|g" \
-    -e "s/{YYYY-MM-DD}/${TODAY}/g" \
+    -e "s|{agate_root}|${AGATE_ROOT_ESC}|g" \
+    -e "s|{AGATE_WORKSPACE}|${AGATE_WORKSPACE_RENDER_ESC}|g" \
+    -e "s/{execution-roles|review-roles}/${ROLE_DIR_ESC}/g" \
+    -e "s/{阶段 Pn}/${PHASE_ESC}/g" \
+    -e "s/{Pn}/${PHASE_ESC}/g" \
+    -e "s/P{N}/P${PHASE_NUM_ESC}/g" \
+    -e "s/{角色名}/${ROLE_ESC}/g" \
+    -e "s/{role}/${ROLE_ESC}/g" \
+    -e "s|{Txxx}|${TASK_ID_ESC}|g" \
+    -e "s/{YYYY-MM-DD}/${TODAY_ESC}/g" \
     -e "s/{YYYYMMDD}/${TODAY//-/}/g" \
-    -e "s/{完整 task_id，如 T002-fix-db-migration}/${TASK_ID}/g" \
-    -e "s/{Txxx}-${PHASE}-{YYYYMMDD}/${TRACE_ID}/g" \
+    -e "s/{完整 task_id，如 T002-fix-db-migration}/${TASK_ID_ESC}/g" \
+    -e "s/{Txxx}-${PHASE}-{YYYYMMDD}/${TRACE_ID_ESC}/g" \
 )"
 
 PARENT_NOTE=""

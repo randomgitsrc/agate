@@ -1,3 +1,51 @@
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0004
+role: cso
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**P4 安全评审（cso 角色）**：OWASP Top 10 + STRIDE 视角审查 TAG0004 的 P4 实现，产出 `P4-review-cso.md`——判定 status: approved / rejected / needs-revision。
+
+### 约束
+
+- **只审不写**：不修改代码/产出；评审意见写入 P4-review-cso.md。
+- **本任务特殊性**：修改的是 agate 协议自身的脚本（gate 检查、hook、py 工具、CI）。安全面不同于业务应用——重点看**这些改动是否引入新的安全脆弱点**：
+  - **命令注入/路径注入**：M9 用 `awk 'index($0,p)==1'` + `grep -F` 替代 `grep -E "^${TASK_REL}/"`——路径含 `[`/`*` 时的行为；S1 数组化后路径正确引用（无引号切词注入）；Q1 归一化函数的输入是否可被路径操纵
+  - **编码/字符处理**：13 py 加 encoding 后，Windows 中文路径/内容的读写是否正确；M6 CRLF 容错 `s/\r$//` 是否可能破坏内容（\r 在文件名/内容中）
+  - **hook 信任边界**：其他-b（.agate-root 标记文件）——标记文件被篡改/伪造的后果；pre-commit-gate.sh 读 AGATE_ROOT 的信任链
+  - **正则拒绝服务**：S2 负类加宽 `[^()]*[^()[:space:]]\.[a-zA-Z0-9]+[^)]*` 是否可能导致灾难性回溯；check-gate.sh 反引号容错正则是否引入新的复杂匹配
+  - **敏感数据暴露**：gate 输出/log 是否泄露路径、AGATE_ROOT、环境变量等敏感信息（尤其 Windows 路径）
+  - **CI 安全**：windows-latest matrix 的 shellcheck/bats 安装方式是否安全（无不可信下载源）
+- **结论必须引用实质锚点**：STRIDE 矩阵 + 严重性分级（CRITICAL/HIGH/MEDIUM/LOW）；approved 必须引用文件/行号 + 评估。
+- **格式约束**：约束节避免行首 `- PASS`/`- FAIL`。改用"通过/失败"或加引号。
+
+### 上游关联
+
+- P4 实现五份产出（组 1/2/3a/3b/m6-shell）。
+- 自查结果：bats 全绿、consistency 0 ERROR、shellcheck 0 error。
+- 组 2 的 [DESIGN_GAP]（NameError 归类）与安全相关性：无 project_module 前缀匹配的 NameError 判 B 类——不涉及安全面（不执行任意代码），但需确认 pytest.sh 解析逻辑不会被恶意测试输出欺骗。
+
+### 输入文件
+
+- 五份 P4-implementation-*.md
+- `agate/scripts/` 下实际 diff（git diff 查看改动）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P2-design.md`（方案对照）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P1-requirements.md`（BDD）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -13,10 +61,9 @@
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
-   ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
-6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
-7. P4 commit 完成后进入 P5：**phase 推进 P5 随 P5 产出 commit 一起**（P5-test-results/ 就绪后），不是单独 phase commit
+5. 更新 .state.yaml phase=P4 → P5
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -149,3 +196,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0004`；协议 v0.43.0
+- 关键路径：产出 `agate-workspace/tasks/TAG0004-env-adaptation/P4-review-cso.md`
+- 查证结果：自查全绿；M9 改动涉及路径注入面、其他-b 涉及 hook 信任链、CI 新增 windows-latest
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

@@ -207,7 +207,7 @@ def main():
     # 静默吞掉（那样会让"深到能让解析器自己崩溃"的坏格式被误判为放行）。
     try:
         with open(file_path, encoding="utf-8") as f:
-            text = f.read()
+            text = f.read().replace("\r\n", "\n")
 
         block = _extract_frontmatter_block(text)
         if block is None:

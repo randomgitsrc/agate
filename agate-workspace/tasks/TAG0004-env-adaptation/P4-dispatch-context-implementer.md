@@ -1,3 +1,66 @@
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+
+---
+phase: P4
+generated_by: agate-inject-card.sh + 主 Agent
+task_id: TAG0004
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+实现 TAG0004 全部修复（S1/S2/S3/M4/M5/M6/M9 + Q1/Q2/Q5 + RM-AG0001/RM-AG0002 + TPV0090-M4 + 其他项 + CI），让 P3 的 21 条红灯测试变绿（不修改测试本身），保持 16 条回归守卫绿。产出 `P4-implementation.md` 声明 implementation_dir + 实际代码改动。
+
+### 约束
+
+- **修复对象 = worktree 的 `agate/` 目录**（`/home/kity/oclab/agate/.worktrees/agate-TAG0004/agate/`）。**禁止改主 checkout `/home/kity/oclab/agate` 和 `~/.agate`**（稳定版 v0.43.0）。
+- **按 P2-design.md 方案实现**（候选 1A-16A 选定方案），不擅自扩大范围。发现 P2 设计歧义 → 标 `[DESIGN_GAP: ...]` 或 `[CLARIFY: ...]`；发现 prompt 漏了 P2 已声明改动 → 标 `[SCOPE_GAP]`。
+- **让 P3 红灯变绿，不改测试**：P3-test-cases.md 是行为契约。测试断言与 BDD 矛盾 → 标 `[DESIGN_GAP]` 不改测试。
+- **实现分组**（按 P2-design §1 选定方案）：
+  - **S1**（BDD-1..4）：`pre-commit-gate.sh` STAGED_STATE_FILES/PROCESSED_DIRS 数组化（L50/57/339/343/350）；`set -u` 下 `+=()` 处理；§3 验证场景清单 9+1 项（含 P2-review 观察项 1：任务级 .state.yaml 变更但无 P 产出）
+  - **S3**（BDD-5..8）：13 个 py 全部文本 open() 加 `encoding="utf-8"`（P1 §6 清单；`Image.open` 二进制除外）——**先写 grep 断言审计测试已在 P3 完成**，实现按清单逐一补
+  - **S2**（BDD-9/10）：`check-p6-evidence.sh:37` 正则改负类加宽 `\([^()]*[^()[:space:]]\.[a-zA-Z0-9]+[^)]*\)`（维持"文件名+扩展名"结构，防过宽）
+  - **M4/M5**（BDD-11..13）：`check-gate.sh:356/357` + `check-p6-format.sh:69` bracket 改 alternation `(:|：)`（统一 v0.40.3 L84 修法）
+  - **M6**（BDD-14..16）：frontmatter 提取入口统一 CRLF 归一（py 侧读取后 `.replace('\r\n', '\n')`；shell 侧 `tr -d '\r'` 或 `sed 's/\r$//'`）——入口：`agate-md-field-get.py`、`agate-frontmatter-check.py`、`check-gate.sh` P1/P2 review status 提取、`check-frontmatter.sh` 链路。**不改 .gitattributes**
+  - **M9**（BDD-17）：`pre-commit-gate.sh:102/133/228` 改 `grep -F` 前缀 + `awk 'index($0,p)==1'` 行首锚定
+  - **Q1**（BDD-21/22）：`agate-next-card.sh:56` 前缀剥离改"先试直接剥离，失败再归一化剥离"（Linux 字节不变优先）；归一化统一 `/`、盘符大小写用 `tr` 或 bash 参数替换（P2-review 观察项 3：避免 `\L`）
+  - **Q2**（BDD-23..25）：7 张 phase-cards 补注规则 2 语义（参照 P5 卡）；纯文档，不改 gate 逻辑
+  - **Q5**（BDD-26/27）：SETUP.md Windows 章节 + .gitignore 预设 `!version.txt` + `dist/`
+  - **RM-AG0001**（BDD-28/29）：`check-gate.sh` P1 标记正则加反引号容错（L69/71/89/109/125/129）
+  - **RM-AG0002 + TPV0090-M4**（BDD-30/31/35/36/37）：`check-tdd-red.sh` + `gate-result.sh`——无 formatter 路径 exit 1 + 关键词（`Traceback|SyntaxError|ImportError|ModuleNotFoundError`，**不用裸 `error:`**）→ A 类；formatter 路径 pytest.sh 加 `name_errors` 字段解析（项目模块内 NameError → B 类）；保持 globals().get() 兼容
+  - **其他-a/b/c**（BDD-18/19/20）：`agate-workspace-resolve.sh:33` tr -d '\r'；`install-hook.sh` 复制模式写 `.agate-root` 标记 + `pre-commit-gate.sh:26` 读标记兜底；`agate-render-dispatch-prompt.sh:112-126` sed 转义（awk 替代或转义预处理）
+  - **CI**（BDD-33）：`.github/workflows/protocol-tests.yml` 加 windows-latest matrix（bats/shellcheck/consistency/gate-backstop）
+- **P2-review 4 项观察项全部落实**（见 P3-test-cases.md §P2-review 观察项落实，测试已按此写）。
+- **SELF-GATE 触发**：改 `agate/scripts/*.sh/.py`、`agate/phase-cards/*`、`agate/*.md` 触发——commit message 需 `self-gate-review:`；协议文档变更需跑 `check-protocol-consistency.py` 确认 0 ERROR。
+- **格式约束**：约束节避免行首 `- PASS`/`- FAIL`（被 provenance 预判检测匹配）。改用"通过/失败"或加引号。
+
+### 上游关联
+
+- P2-design.md approved：候选 1A-16A、§2 BDD 映射表 37/37、§3 S1 验证场景清单、§4 files_to_read/gate_commands。
+- P3-test-cases.md：37 条测试用例（21 红 / 16 绿），测试名引用 BDD 编号，分布在 agate/tests/ 下。
+- P1-requirements.md：37 BDD + 审计范围（§6 代码位置清单）。
+- P2-review 4 项非阻塞观察项（已由 test-designer 落实进测试）。
+
+### 输入文件
+
+- `agate-workspace/tasks/TAG0004-env-adaptation/P2-design.md`（方案 + files_to_read 导航 + gate_commands）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P3-test-cases.md`（测试用例契约 + 红灯分布）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P1-requirements.md`（37 BDD + 审计范围）
+- `agate-workspace/tasks/TAG0004-env-adaptation/P0-brief.md`（任务简报）
+- `HANDOFF-TAG0004.md`（worktree 根：交接单，双工作区纪律、TDD 纪律）
+- `AGENTS.md`（项目约定：脚本关键约定、SELF-GATE 触发清单）
+- 按 P2-design §4 files_to_read 读取代码（pre-commit-gate.sh / check-gate.sh / check-p6-format.sh / check-p6-evidence.sh / check-tdd-red.sh / gate-result.sh / agate-next-card.sh / agate-workspace-resolve.sh / install-hook.sh / agate-render-dispatch-prompt.sh / 13 py / formatter pytest.sh / phase-cards / SETUP.md / .gitignore / protocol-tests.yml）
+- `{agate_root}/assets/execution-roles/implementer.md`（角色定义）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -13,10 +76,9 @@
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
 4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
-5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
-   ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
-6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
-7. P4 commit 完成后进入 P5：**phase 推进 P5 随 P5 产出 commit 一起**（P5-test-results/ 就绪后），不是单独 phase commit
+5. 更新 .state.yaml phase=P4 → P5
+6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
+7. git commit -m "wf({Txxx}-P4): {摘要}"
 
 ## 如果是重试
 
@@ -149,3 +211,12 @@ check-gate.sh P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境状态：worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0004`；协议 v0.43.0；基线 676 bats 全绿；P3 已写 37 条测试（21 红 / 16 绿）
+- 关键路径：产出 `agate-workspace/tasks/TAG0004-env-adaptation/P4-implementation.md`；代码改动在 `agate/` 下
+- 自查命令：`bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/`（P3 自跑已有 21 红基线）；`python3 agate/scripts/check-protocol-consistency.py --strict`；`shellcheck -S warning agate/scripts/*.sh`
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。

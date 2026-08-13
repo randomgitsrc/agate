@@ -11,9 +11,10 @@
 2. 对照 P1-P6 产出做跨文件一致性审查
 3. 产出 P7-consistency.md
 4. 预跑 check-gate.sh P7
-5. 更新 .state.yaml phase=P7 → P8
-6. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
-7. git commit -m "wf({Txxx}-P7): {摘要}"
+5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+   ⚠️ 此时 .state.yaml 的 phase 保持 P7，不要提前写 P8——phase = 本 commit 的产出阶段
+6. git commit -m "wf({Txxx}-P7): {摘要}"（phase=P7，P7 产出含 P7-consistency.md）
+7. P7 commit 完成后进入 P8：**phase 推进 P8 随 P8 产出 commit 一起**（P8-release.md 就绪后），不是单独 phase commit
 
 ## 如果是重试
 
