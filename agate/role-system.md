@@ -192,13 +192,13 @@ P4 后评审同理（review + cso + design-review 并行）。
 
 ## 与 gstack 的关系
 
-review-roles 下的 9 个角色提取自 gstack（Garry Tan 开源，MIT）。提取而非引用的原因：
+review-roles 的角色原型（Staff Engineer / CEO / Engineering Manager / Senior Designer / QA / CSO / Debug Expert）受 gstack（Garry Tan 开源，MIT）的概念启发。agate 以独立的执行/评审分离模型重写了这些角色，**未捆绑、复制或链接 gstack 代码**——角色定义内容为 agate 独立创作。保留致谢而非捆绑代码的原因：
 
 1. **自包含**：agate 不依赖外部文档，所有资产在 assets/ 下
-2. **可定制**：提取后可以按项目需要调整角色定义
-3. **稳定**：外部仓库可能变动，提取的副本不受影响
+2. **可定制**：角色定义按项目需要调整
+3. **稳定**：外部仓库可能变动，独立实现不受影响
 
-原始来源：gstack by Garry Tan（保留出处标注，具体地址以实际仓库为准）
+概念启发致谢：`NOTICES.md`（Inspirations 区）。
 
 ---
 

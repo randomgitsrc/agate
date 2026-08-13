@@ -1,7 +1,7 @@
 ---
 role_id: qa
 type: review
-source: gstack (garrytan/gstack, MIT)
+source: inspired by gstack concepts (garrytan/gstack, MIT)
 phases: [P5]
 agent: qa
 ---

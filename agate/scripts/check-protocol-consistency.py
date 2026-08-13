@@ -375,23 +375,23 @@ def check_license(root: Path, rep: Report) -> None:
             ok = False
             rep.error("CHECK6-license", "LICENSE 未包含 MIT 声明", "LICENSE")
         # gstack 归属检查：LICENSE 保持纯 MIT（GitHub 识别），
-        # 第三方来源角色归属移到独立 THIRD-PARTY-NOTICES.md（v0.44.0 拆分）
+        # 概念启发致谢在独立 NOTICES.md（Inspirations 区）
         review_dir = root / "agate" / "assets" / "review-roles"
         uses_gstack = review_dir.exists() and any(
             "gstack" in f.read_text(encoding="utf-8")
             for f in review_dir.glob("*.md")
         )
-        notices = root / "THIRD-PARTY-NOTICES.md"
+        notices = root / "NOTICES.md"
         if uses_gstack and not notices.exists():
             ok = False
             rep.error("CHECK6-license",
-                      "review-roles 提取自 gstack(MIT)，但 THIRD-PARTY-NOTICES.md 不存在（归属须保留）",
-                      "THIRD-PARTY-NOTICES.md")
+                      "review-roles 受 gstack(MIT) 概念启发，但 NOTICES.md 不存在（致谢须保留）",
+                      "NOTICES.md")
         if uses_gstack and notices.exists() and "gstack" not in notices.read_text(encoding="utf-8"):
             ok = False
             rep.error("CHECK6-license",
-                      "THIRD-PARTY-NOTICES.md 未保留 gstack(MIT) 归属",
-                      "THIRD-PARTY-NOTICES.md")
+                      "NOTICES.md 未保留 gstack(MIT) 概念启发致谢",
+                      "NOTICES.md")
     if ok:
         rep.ok("CHECK6-license")
 
