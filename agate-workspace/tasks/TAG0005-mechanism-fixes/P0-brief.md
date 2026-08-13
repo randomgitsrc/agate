@@ -21,7 +21,7 @@ executor_env:
   git: true
 
 env_constraints:
-  debug_env: "本环境为 Linux（UTF-8 locale）；TAG0004 在 worktree 实施中，本任务若需隔离也用 worktree（见 AGENTS.md dogfooding 工作流）"
+  debug_env: "本环境为 Linux（UTF-8 locale）；TAG0004 已完成（v0.44.0），本任务基于最新 main 实施；若需隔离 worktree 按 AGENTS.md dogfooding 工作流"
   test_cmd: "bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/；python3 agate/scripts/check-protocol-consistency.py --strict"
   workspace_path: "{AGATE_WORKSPACE}/tasks/TAG0005-mechanism-fixes/"
   # 均为修复型改动：现有全量 bats 为回归基线，每处修复后全绿 + 对应新增测试
