@@ -307,7 +307,9 @@ EOF
 # 技术债登记
 旧格式纯正文，无 yaml 块。
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/prose-only.md"
+    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
+    echo "bdd5-DIAG: status=$status dir=$dir" >&2
+    printf '%s\n' "$output" | head -8 >&2
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
