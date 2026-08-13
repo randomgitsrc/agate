@@ -28,6 +28,7 @@ agate 协议结构一致性检查 (P3-1)
 from __future__ import annotations
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -127,7 +128,9 @@ def iter_md_files(root: Path):
 
 
 def rel(root: Path, p: Path) -> str:
-    return str(p.relative_to(root))
+    # Windows 下 Path.relative_to 返回反斜杠路径，NARRATIVE_DIRS/PROTOCOL_DIRS 白名单
+    # （正斜杠）匹配失败 → 统一为正斜杠（Linux 下无变化）
+    return str(p.relative_to(root)).replace(os.sep, "/")
 
 
 def is_protocol_file(relpath: str) -> bool:
