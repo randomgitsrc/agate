@@ -78,6 +78,8 @@ EOF
     echo "ST4-DIAG-OUT: $output" >&2
     echo "ST4-DIAG-GIT: $(git -C "$repo" config core.autocrlf 2>&1)" >&2
     echo "ST4-DIAG-SHOW: $(git -C "$repo" show HEAD:.state.yaml 2>&1 | tr '\n' '|')" >&2
+    echo "ST4-DIAG-DIFF: $(git -C "$repo" diff --cached --name-only 2>&1 | cat -A | tr '\n' '|')" >&2
+    echo "ST4-DIAG-GREP: $(git -C "$repo" diff --cached --name-only 2>&1 | grep -qF .state.yaml && echo MATCH || echo NOMATCH)" >&2
     # 修复后回退 P3→P1 差 2 强制 PAUSED，exit 1
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
