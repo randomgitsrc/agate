@@ -6,11 +6,31 @@
 [![version](https://img.shields.io/badge/version-v0.44.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**agate** 是一套面向软件工程的 AI Agent 编排协议。
+## Why agate?
 
-让 LLM Agent 能可靠完成复杂开发任务——通过「主 Agent 派发 subagent、阶段 gate 验收、状态落盘」的机制，解决单 Agent 在长任务中上下文污染、质量失控的问题。
+LLM agents are powerful but unreliable on long tasks: context gets polluted,
+subagents drift, and "it looks done" becomes the only quality signal. agate
+treats an AI agent the way a build system treats a compiler — you don't trust
+the output, you verify it through gates.
+
+agate is a documentation-and-script orchestration protocol. A single
+orchestrator agent never writes code itself. Instead it dispatches dedicated
+subagents through eight phases (P1 requirements → P2 design → P3 test-first →
+P4 implementation → P5 verification → P6 acceptance → P7 consistency → P8
+release), and after every phase it runs an objective gate check — a real
+test runner exit code, a typechecker, a git log. Only a passing gate moves
+the state machine forward. State lands in version-controlled markdown, so
+progress survives crashes and is auditable by humans.
+
+The result: single-agent quality problems (context loss, unchecked output,
+rampant shortcutting) are pushed into a structural workflow. No runtime, no
+daemon, no build step — just markdown protocol files plus bash/python gate
+scripts your agent already knows how to run.
 
 > agent + gate → agate
+
+[![version](https://img.shields.io/badge/version-v0.43.0-blue)](https://github.com/randomgitsrc/agate)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
 

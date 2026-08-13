@@ -1,7 +1,7 @@
 ---
 role_id: investigate
 type: review
-source: gstack (garrytan/gstack, MIT)
+source: inspired by gstack concepts (garrytan/gstack, MIT)
 phases: [any]
 agent: investigate
 ---

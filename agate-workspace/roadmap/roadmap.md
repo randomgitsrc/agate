@@ -10,13 +10,17 @@
 |----|------|------|------|----------|------|------|
 | RM-AG0001 | check-gate P1 标记反引号包裹识别盲区 | scheduled | TPV0091 复盘 §11.1 B1（2026-08-13）| TAG0004 | 2026-08-13 | 2026-08-13 |
 | RM-AG0002 | check-tdd-red 无 formatter 时 A/B 类盲区（编译失败误判红灯）| scheduled | TQC0001 复盘 Q3 残留（2026-08-13）| TAG0004 | 2026-08-13 | 2026-08-13 |
-| RM-AG0003 | subagent 短命会话制度化重试（空返回自动重试一次 + <1min 告警）| backlog | TQC0001 复盘 Q4（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
-| RM-AG0004 | P6 视觉验收能力边界：无多模态模型时强制双证据 + 雷同截图降级待复核 | backlog | TQC0001 复盘 Q7（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
+| RM-AG0003 | subagent 短命会话制度化重试（空返回自动重试一次 + <1min 告警）| scheduled | TQC0001 复盘 Q4（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-13 |
+| RM-AG0004 | P6 视觉验收能力边界：无多模态模型时强制双证据 + 雷同截图降级待复核 | scheduled | TQC0001 复盘 Q7（2026-08-13）| TAG0006 | 2026-08-13 | 2026-08-13 |
 | RM-AG0005 | 冒烟验证脚本内置 finally-kill + 进程清理主 Agent 复核 | cancelled | TQC0001 复盘 Q8（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
-| RM-AG0006 | GUI 自动化框架评估（WinAppDriver/AutoIt）补真实 GUI 交互路径 | backlog | TQC0001 复盘 Q9（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
-| RM-AG0007 | UI/UX 质量机制缺失：P1/P2 缺 UX 需求与设计评审、P6 缺视觉质量验收 | backlog | qtcalc 对比分析 §6（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
-| RM-AG0008 | 0→1 项目目录结构脚手架：agate 立项时应按最佳实践设计合理目录结构，避免东放一点西放一点 | backlog | 用户需求（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
-| RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | backlog | 用户需求（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
+| RM-AG0006 | GUI 自动化框架评估（WinAppDriver/AutoIt）补真实 GUI 交互路径 | scheduled | TQC0001 复盘 Q9（2026-08-13）| TAG0006 | 2026-08-13 | 2026-08-13 |
+| RM-AG0007 | UI/UX 质量机制缺失：P1/P2 缺 UX 需求与设计评审、P6 缺视觉质量验收 | scheduled | qtcalc 对比分析 §6（2026-08-13）| TAG0006 | 2026-08-13 | 2026-08-13 |
+| RM-AG0008 | 0→1 项目目录结构脚手架：agate 立项时应按最佳实践设计合理目录结构，避免东放一点西放一点 | scheduled | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-13 |
+| RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | scheduled | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-13 |
+| RM-AG0010 | P2 gate 与 C8 映射表契约矛盾：backend 域 P2 无评审角色但 check-gate 硬拦 P2-review.md | scheduled | TPV0090 复盘 M1（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-13 |
+| RM-AG0011 | check-gate P5 gate_commands 计数语义模糊（P5* 前缀全算，WARNING 误解主/辅命令）| scheduled | TPV0090 复盘 M2（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-13 |
+| RM-AG0012 | 自定义角色机制两瑕疵：dispatch-prompt 无条件注入评审指令到执行角色 + render 脚本角色不存在时 exit 0 | scheduled | 角色体系验证（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-13 |
+| RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | backlog | 阶段提示词核查（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 
 ## 状态标识
 
@@ -125,3 +129,57 @@
   3. **gate 或 WARNING**：检测"新增文件数量/新增依赖方向"与 code-map 声明的偏离（如新的 include/import 方向违反分层）
   4. **设计模式约束**：P2 候选方案评审增加"设计模式合理性"维度（是否引入合适抽象，避免 if-else 胶水堆叠）
 - **归属**：独立任务（协议增加 code-map 维护 + 架构演进纪律），与 RM-AG0008（骨架）、TAG0002（重构一等任务）关联
+
+---
+
+## RM-AG0010 详情
+
+**P2 gate 与 C8 映射表契约矛盾（TPV0090 复盘 M1）**
+
+- **问题**：三层契约不一致——
+  - `check-gate.sh` P2 L155-159：**无条件**硬性要求 `P2-review.md` 存在且 status=approved（"P2 评审不可裁剪，必须派发独立 subagent 产出"）
+  - `role-system.md` C8 表（L52-56）：backend 域 = "review（P4 后）"，**P2 无触发评审角色**（只有 frontend→plan-design-review、high→plan-eng-review、NEED_CONFIRM→plan-ceo-review 触发）
+  - `phase-cards/P2-design.md` L91-96 C8 表：同样 backend 域无 P2 评审
+- **后果**：backend 域（low/medium 风险）任务 P2 时，按 C8 表不派评审 → 无 P2-review.md → check-gate exit 1 拦截 → 主 Agent 被迫"自造评审派发"补文件（TPV0090 实测踩坑）
+- **影响**：每个 backend 域 P2 都会踩（TPV0091 是 backend+frontend，frontend 触发评审没暴露）
+- **建议修复方向（二选一，需设计）**：
+  1. C8 表补一句"backend 域 P2 也派 review"（消除契约差，但增加评审开销）
+  2. check-gate 对无 C8 触发角色的任务豁免 P2-review 硬性要求（但要保证 P2 评审不裁的原则不破——需定义"无角色时评审退化为 self-review 还是必须派通用 review"）
+- **归属**：独立任务（机制契约一致性，涉及 check-gate.sh + role-system.md + P2 卡片三层同步）。与 Q2（卡片 phase 契约，TAG0004 内）同类但独立
+
+---
+
+## RM-AG0011 详情
+
+**check-gate P5 gate_commands 计数语义模糊（TPV0090 复盘 M2）**
+
+- **问题**：`check-gate.sh` L247-253，`P5*` 前缀命令都计入 P5 命令数，WARNING "P2 声明了 N 个 gate_commands.P5 命令，请确认已全部执行"。当 P2 声明 `P5/P5_cli_remote/P5_serial` 时计数 3，但实际是"1 主 + 2 辅助"——WARNING 语义模糊，易误解。
+- **影响**：轻微（WARNING 不阻断，全执行就通过），但理解成本高，可能误导主 Agent。
+- **建议修复方向**：脚本区分"主命令"与"辅助命令"（如 `P5_*` 后缀为辅助），WARNING 文案区分"N 个 P5 命令"与"M 个辅助命令"。
+- **归属**：可随 RM-AG0010 或攒批小任务。
+
+---
+
+## RM-AG0012 详情
+
+**自定义角色机制两瑕疵（角色体系验证实测，2026-08-13）**
+
+- **背景**：评估"自定义角色机制是否好用"时实测发现——机制本身可用（模板完整、render 脚本支持 execution-roles/ 与 review-roles/、方法 B 稳妥），但有两个瑕疵：
+- **瑕疵 1（模板）**：`agate/assets/templates/dispatch-prompt.md` L10-13 无条件注入"Review 角色特别指令"（产出文件 Header `status:` draft → approved/rejected/needs-revision）。该指令对**评审角色**是必需的，但对**执行角色**（implementer/analyst/test-designer 等）也被注入——执行角色不产评审文件，status 字段语义混乱。实测：render db-specialist（执行角色）后产物含"Review 角色特别指令"。修复方向：按角色类型条件注入（type: review 才注入 status 指令）。
+- **瑕疵 2（脚本）**：`agate-render-dispatch-prompt.sh` L63-67 角色文件不存在时报错到 stderr，但 **exit 0**（实测 `nonexist-role` → 报错但 exit 0）。主 Agent 可能忽略 stderr 继续走 → 派发失败无声。修复方向：角色文件不存在时 exit 非零（如 exit 2），与"渲染成功"区分。
+- **归属**：攒批小任务（模板条件注入 + 脚本 exit code，单点低风险）。
+
+---
+
+## RM-AG0013 详情
+
+**阶段卡缺"同类扫描/影响面梳理"机制层要求（阶段提示词核查，2026-08-13）**
+
+- **背景**：核查 P0-P8 阶段提示词（phase-cards/*.md）时发现——所有阶段卡均无"同类扫描/全仓 grep/影响面梳理/联动"要求。agate 历史多次栽在"修一处漏同类"（M4/M5 的 `[:：]` 只修 check-p6-format.sh:84 一处、Q2 只修 P5 卡、TPV0090 backend 域反复踩 P2 契约）。
+- **现状**："同类扫描强制要求"只存在于 TAG0005/0006/0007 三个 task 的 P0-brief 里（局部、一次性），**机制层（阶段卡）缺失**——未来其他任务不会有此要求。
+- **建议修复方向**：
+  1. **P0 卡片**：加"同类/影响面预判"——写 P0-brief 时识别"这个改动会牵动哪些同类/联动处"
+  2. **P1 卡片**：加"同类扫描"到产出规格或常见错误——analyst 建立 BDD 时 grep 全仓同类，纳入需求
+  3. **P2 卡片**：加"影响面梳理"——architect 画改动影响面（如 ui_affected 64 处消费点），确保联动点同步
+- **范围界定（2026-08-13 用户确认）**：**不属于 TAG0005/0006/0007**——那三个 task 只做各自 roadmap 条目的修复（带 P0-brief 已有的局部同类扫描质量保障）；本条目是**协议本体阶段卡增强**，独立 backlog，另行立项（改 phase-cards/*.md 触发 SELF-GATE）。
+- **归属**：独立任务（阶段卡协议增强），或并入未来"协议机制增强"类任务。
