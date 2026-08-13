@@ -29,11 +29,8 @@ jobs:
       - name: Install bats (Windows)
         if: runner.os == 'Windows'
         run: |
-          curl -sSLo bats.tar.gz https://github.com/bats-core/bats-core/archive/refs/tags/v1.11.0.tar.gz
-          tar -xzf bats.tar.gz
-          cd bats-core-1.11.0
-          ./install.sh "$HOME/.local"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          git clone --depth 1 --branch v1.10.0 https://github.com/bats-core/bats-core.git bats
+          echo "$GITHUB_WORKSPACE/bats/bin" >> $GITHUB_PATH
       - name: Install pyyaml (Windows)
         if: runner.os == 'Windows'
         run: |
