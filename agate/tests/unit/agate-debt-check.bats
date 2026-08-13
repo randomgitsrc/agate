@@ -533,6 +533,16 @@ EOF
     [[ "$output" != *"GATE DEBT WARNING"* ]]
 }
 
+@test "test_bdd_16 check-debt.sh --retreat-coverage 缺 agate-workspace-resolve.sh -> exit 2 + stderr 报错（BDD-16）" {
+    # 依赖加载失败属硬失败，不静默当作成功跳过（同类扫描守卫 BDD-16）
+    local sdir
+    sdir=$(mktemp -d "$BATS_TEST_TMPDIR/debt-XXXXXX")
+    cp "$AGATE_SCRIPTS/check-debt.sh" "$sdir/check-debt.sh"
+    run bash "$sdir/check-debt.sh" --retreat-coverage
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"缺少 agate-workspace-resolve.sh"* ]]
+}
+
 # ========== 功能组 E：P8 锚定留痕（Phase 3，BDD-16..18） ==========
 
 @test "test_bdd_16_p8_card_requires_debt_confirm_and_field" {
