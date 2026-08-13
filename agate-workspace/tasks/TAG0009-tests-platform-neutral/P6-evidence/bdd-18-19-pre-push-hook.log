@@ -1,0 +1,6 @@
+1..4
+ok 1 pre-push hook: 新分支首次推送提示跳过检测
+ok 2 pre-push hook: ln 复制模式下安装输出升级提醒且不要求软链（Windows 兼容，BDD-18/19）
+ok 3 pre-push hook: 大改动触发提示
+ok 4 pre-push hook: 无 agate/*.md 改动时零匹配 → 不报整数表达式错误（T086 回归）
+EXIT_CODE: 0

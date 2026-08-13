@@ -1,0 +1,18 @@
+=== BDD-10: 全文件 grep 字面 PATH 硬编码（期望 0 处）===
+grep_exit=1 (1=无命中)
+
+=== BDD-11: env -u PATH 平台无关构造 ===
+56:    run env -u PATH bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+388:    run env -u PATH bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+
+=== BDD-11: 保留的 exit 3 语义断言（TD.1b / TDD.F8）===
+52:    [ "$status" -eq 1 ]
+57:    [ "$status" -eq 3 ] || [ "$status" -eq 1 ]
+304:    [ "$status" -eq 1 ]
+323:    [ "$status" -eq 1 ]
+359:    [ "$status" -eq 1 ]
+389:    [ "$status" -eq 3 ]
+572:    [ "$status" -eq 1 ]
+632:    [ "$status" -eq 1 ]
+
+EXIT_CODE: 0

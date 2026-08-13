@@ -1,0 +1,13 @@
+1..11
+ok 1 detect_ci_platform: Gitea 优先于 GitHub 被识别
+ok 2 detect_ci_platform: GitLab CI 正确识别
+ok 3 detect_ci_platform: 无可识别平台时 SKIP 而非误判
+ok 4 backstop P3: 真红灯（exit 0）→ PASS
+ok 5 backstop P3: 绿灯（exit 2）→ FAIL
+ok 6 backstop P3: 假红灯（exit 1）→ FAIL
+ok 7 backstop P3: 无运行器（exit 3）→ WARN 不 FAIL
+ok 8 backstop P3: 无 .gate-result.json（--no-verify）时仍执行 check-tdd-red.sh
+ok 9 backstop P3: change_type=refactor 任务跳过 check-tdd-red（SKIP 而非 FAIL，即使 mock exit 2 绿灯）
+ok 10 backstop P3: 功能任务正文提及 change_type 关键字仍走 TDD 兜底（不 SKIP，BDD-2）
+ok 11 backstop P3: cp1252 模拟——无 utf-8 导出崩溃、文件级导出兜底不崩溃（BDD-23/26）
+EXIT_CODE: 0

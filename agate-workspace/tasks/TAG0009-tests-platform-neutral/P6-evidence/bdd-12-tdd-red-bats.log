@@ -1,0 +1,45 @@
+1..43
+ok 1 TD.1 check-tdd-red.sh TEST_RUNNER 指向不存在 + 无 pytest 期望 exit 1
+ok 2 TD.1b check-tdd-red.sh 无 TEST_RUNNER + 无 pytest（无 PATH 找不到 pytest）期望 exit 3
+ok 3 TD.2 check-tdd-red.sh 测试全绿 期望 exit 2（实现先于测试）
+ok 4 TD.3 check-tdd-red.sh 经典红灯（assertion failure）期望 exit 0
+ok 5 TD.4 check-tdd-red.sh B 类：项目内 import 失败 期望 exit 0
+ok 6 TD.5 check-tdd-red.sh A 类：第三方 import 失败 期望 exit 1
+ok 7 TD.6 check-tdd-red.sh A 类：SyntaxError 期望 exit 1
+ok 8 TD.7 check-tdd-red.sh 混合：1 failed + 1 B 类 error 期望 exit 0
+ok 9 TD.8 check-tdd-red.sh 无 PROJECT_MODULE + ImportError 期望 exit 0（启发式）
+ok 10 TDD.N1: TEST_RUNNER without formatter does not add -q
+ok 11 TDD.N2: vitest pure assertion failure → red-light exit 0
+ok 12 TDD.N3: vitest B-class → exit 0
+ok 13 TDD.N4: vitest A-class → exit 0 (exit-code-only without formatter)
+ok 14 TDD.G1: BDD-15 回归：gate_commands.P3 保持正文（不迁移 frontmatter）→ auto-read, red-light exit 0
+ok 15 TDD.G2: no gate_commands.P3 → TEST_RUNNER still works (backward compat)
+ok 16 TDD.G3: TEST_RUNNER env var takes priority over gate_commands.P3
+ok 17 TDD.G4: no TASK_DIR → skip gate_commands read, fall back to TEST_RUNNER
+ok 18 TDD.G5: gate_commands.P3 with double-quoted value → strip quotes
+ok 19 TDD.F1: gate_commands.P3 + P3_formatter → auto-read both, classic red-light exit 0
+ok 20 TDD.F2: gate_commands.P3 without formatter → exit-code-only, red-light exit 0
+ok 21 TDD.F3: formatter detects B-class (import from project_module) → exit 0 + B-class
+ok 22 TDD.F4: formatter detects A-class (SyntaxError) → exit 1 + A-class
+ok 23 TDD.F11: absolute path formatter works
+ok 24 TDD.F12: PROJECT_MODULE env var overrides gate_commands project_module
+ok 25 TDD.F5: formatter detects A-class (import NOT from project_module) → exit 1 + A-class
+ok 26 TDD.F6: green light (exit 0) → exit 2
+ok 27 TDD.F7: TEST_RUNNER env var still works (backward compat, exit-code-only)
+ok 28 TDD.F8: no TEST_RUNNER, no gate_commands.P3, no pytest → exit 3
+ok 29 TDD.F9: no formatter → command runs without -q
+ok 30 TDD.F10: multi-stack P3 + P3_js → both run, combined result → exit 0
+ok 31 TD.FAIL_HINT: classic red-light outputs assertion-mismatch hint
+ok 32 TDD.TIMEOUT: 测试命令超时 → exit 0 + 超时提示
+ok 33 PYX.1 agate-read-gate-commands.py P2 含 P3 + P3_html_formatter + project_module
+ok 34 PYX.2 agate-read-gate-commands.py P2 无 gate_commands → 空 JSON
+ok 35 PYX.3 agate-read-gate-commands.py P2 双引号值被去除
+ok 36 PYX.4 agate-read-gate-commands.py P2 单引号值被去除
+ok 37 PYX.5 agate-read-gate-commands.py P2 末行无换行也能解析
+ok 38 PYX.6 agate-read-gate-commands.py GATE_FILE 不存在 → 非零退出
+ok 39 bdd-30 check-tdd-red.sh 无 formatter + exit 1 + 编译/错误关键词 判 A 类（exit 1，RM-AG0002）
+ok 40 bdd-31 check-tdd-red.sh 无 formatter 普通断言失败仍判正确红灯（exit 0，RM-AG0002）
+ok 41 bdd-35 check-tdd-red.sh formatter 项目模块内 NameError 判 B 类红灯（exit 0，TPV0090-M4）
+ok 42 bdd-36 check-tdd-red.sh globals().get() 规避模式断言失败仍判 B 类（回归，TPV0090-M4）
+ok 43 bdd-37 check-tdd-red.sh 非未定义符号的真实测试 bug（TypeError）仍判 A 类（防过宽，TPV0090-M4）
+EXIT_CODE: 0

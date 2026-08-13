@@ -1,0 +1,34 @@
+1..32
+ok 1 P0: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 2 P1: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 3 P2: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 4 P3: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 5 P4: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 6 P5: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 7 P6: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 8 P7: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 9 P8: CLI body sha256 == 卡片文件 sha256（防漂移前提）
+ok 10 CLI 输出头部三行固定（hook 用作 sha256 校验 marker）
+ok 11 字节稳定性：连续两次调用 P3 sha256 一致
+ok 12 CWD 在项目目录仍能解析 AGATE_ROOT
+ok 13 软链接场景：脚本被 symlink 调用时 readlink -f 解析正确
+ok 14 跨 checkout 路径：通过不同根路径调用 CLI 全量 hash 一致（P0-P8）
+ok 15 无参数 期望 exit 1
+ok 16 2 个参数 期望 exit 1
+ok 17 phase=P9 期望 exit 2
+ok 18 phase=小写 p3 期望 exit 2（case-sensitive）
+ok 19 NC_ROOT.1 AGATE_ROOT 环境变量覆盖
+ok 20 NC_ROOT.2 协议目录不在 git 仓库内时仍能工作
+ok 21 bdd-21 agate-next-card.sh Windows 盘符/反斜杠 AGATE_ROOT 前缀剥离稳定（Q1）
+ok 22 bdd-22 agate-next-card.sh Linux 常规路径前缀剥离字节不变（Q1 回归）
+ok 23 SC.1 check-scope-resolved.sh 不存在的 task 目录 期望 exit 2
+ok 24 SC.2 check-scope-resolved.sh 无 SCOPE+ 触发 期望 exit 0
+ok 25 SC.3 check-scope-resolved.sh 有 SCOPE+ 但无 P1 文件 期望 exit 1
+ok 26 P2.53: progress file with [SCOPE+] text does not trigger SCOPE check
+ok 27 SC.DP1: dispatch-prompt file excluded from SCOPE+ scan
+ok 28 SC.4 check-scope-resolved.sh 有 SCOPE+ 但 P1 无 SCOPE_RESOLVED 期望 exit 1
+ok 29 SC.5 check-scope-resolved.sh 有 SCOPE+ + P1 有 [SCOPE_RESOLVED] 期望 exit 0
+ok 30 SC_BDD22.1 BDD-22: check-scope-resolved.sh 有 SCOPE+ + P1 frontmatter scope_resolved 非空列表 → 闭环判定通过
+ok 31 SC.6 dispatch-context 文件中的 [SCOPE+] 字面引用不触发检查
+ok 32 SC.7 句中 [SCOPE+]（非行首）不触发检查 期望 exit 0
+EXIT_CODE: 0
