@@ -4,14 +4,11 @@ on: [push, pull_request]
 
 jobs:
   bats:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    defaults:
-      run:
-        shell: bash
+    runs-on: ubuntu-latest
+    # v0.44.0 决策：bats 测试套件仅 ubuntu 运行。
+    # Windows 兼容性由 shellcheck/consistency/gate-backstop 的 windows-latest matrix 验证
+    # （脚本产品层面）；bats 测试套件的 Windows 化是独立工作（测试基建），
+    # 见 TAG0009「agate 测试套件 Windows 化」——78 个 Windows bats 失败清单为其已知起点。
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,15 +18,8 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get install -y bats
-          pip install pyyaml
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          git clone --depth 1 --branch v1.10.0 https://github.com/bats-core/bats-core.git bats
-          echo "$GITHUB_WORKSPACE/bats/bin" >> $GITHUB_PATH
           pip install pyyaml
       - name: Run Unit Tests
         run: bats agate/tests/unit/
