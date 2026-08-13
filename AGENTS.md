@@ -135,8 +135,11 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 ## 版本发布
 
 1. 确认 bats 全过 + 0 consistency ERROR + 0 shellcheck error（用例数以 `count-tests.sh` 为准）
-2. 更新 `README.md` version badge
-3. `git tag vN.N.0 && git push origin vN.N.0`
-4. CHECK 7（version badge vs git tag）自动通过
+2. 更新 `README.md` version badge + `CHANGELOG.md` [Unreleased] → 新版本号
+3. **更新 `agate/UPGRADING.md` 新增本版本章节**（破坏性变更逐条列——v0.44.0 教训：漏更新；无自动检查，靠本清单 + P8 卡「主 Agent 必须亲自执行」兜底）
+4. `git tag vN.N.0 && git push origin vN.N.0`
+5. CHECK 7（version badge vs git tag）自动通过
+
+> 版本引用文件清单（agate 仓库自身特有，通用 P8 卡不覆盖）：README badge / CHANGELOG / version 文件 / UPGRADING 章节 / 稳定版引用（文档优先写"稳定版"不写死版本号）。**通用项目的版本清单**（version 文件 + CHANGELOG + 测试重跑 + git log 对照）见 `agate/phase-cards/P8-release.md`「主 Agent 必须亲自执行」。
 
 **release PR 必须用普通 merge（`--no-ff`），禁止 squash merge**：`agate-summary.sh` 用 `git describe --tags --abbrev=0` 探测版本，要求 tag 是 HEAD 的祖先。tag 打在 feature 分支头时，普通 merge 会让该提交成为 main 的祖先（tag 保持有效），而 squash merge 会生成一个内容相同但 SHA 不同的新提交，导致 tag 与 main 分叉、`describe` 回退到旧版本（v0.31.0 事故）。若确实用了 squash，合并后必须把 tag 重新指到 squash 后的 main 提交：`git tag -f vN.N.0 <main-commit> && git push origin vN.N.0 --force`。
