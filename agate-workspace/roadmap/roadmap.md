@@ -19,6 +19,7 @@
 | RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | backlog | 用户需求（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 | RM-AG0010 | P2 gate 与 C8 映射表契约矛盾：backend 域 P2 无评审角色但 check-gate 硬拦 P2-review.md | backlog | TPV0090 复盘 M1（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 | RM-AG0011 | check-gate P5 gate_commands 计数语义模糊（P5* 前缀全算，WARNING 误解主/辅命令）| backlog | TPV0090 复盘 M2（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
+| RM-AG0012 | 自定义角色机制两瑕疵：dispatch-prompt 无条件注入评审指令到执行角色 + render 脚本角色不存在时 exit 0 | backlog | 角色体系验证（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 
 ## 状态标识
 
@@ -155,3 +156,14 @@
 - **影响**：轻微（WARNING 不阻断，全执行就通过），但理解成本高，可能误导主 Agent。
 - **建议修复方向**：脚本区分"主命令"与"辅助命令"（如 `P5_*` 后缀为辅助），WARNING 文案区分"N 个 P5 命令"与"M 个辅助命令"。
 - **归属**：可随 RM-AG0010 或攒批小任务。
+
+---
+
+## RM-AG0012 详情
+
+**自定义角色机制两瑕疵（角色体系验证实测，2026-08-13）**
+
+- **背景**：评估"自定义角色机制是否好用"时实测发现——机制本身可用（模板完整、render 脚本支持 execution-roles/ 与 review-roles/、方法 B 稳妥），但有两个瑕疵：
+- **瑕疵 1（模板）**：`agate/assets/templates/dispatch-prompt.md` L10-13 无条件注入"Review 角色特别指令"（产出文件 Header `status:` draft → approved/rejected/needs-revision）。该指令对**评审角色**是必需的，但对**执行角色**（implementer/analyst/test-designer 等）也被注入——执行角色不产评审文件，status 字段语义混乱。实测：render db-specialist（执行角色）后产物含"Review 角色特别指令"。修复方向：按角色类型条件注入（type: review 才注入 status 指令）。
+- **瑕疵 2（脚本）**：`agate-render-dispatch-prompt.sh` L63-67 角色文件不存在时报错到 stderr，但 **exit 0**（实测 `nonexist-role` → 报错但 exit 0）。主 Agent 可能忽略 stderr 继续走 → 派发失败无声。修复方向：角色文件不存在时 exit 非零（如 exit 2），与"渲染成功"区分。
+- **归属**：攒批小任务（模板条件注入 + 脚本 exit code，单点低风险）。
