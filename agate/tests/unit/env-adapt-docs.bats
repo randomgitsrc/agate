@@ -23,8 +23,6 @@ load ../helpers/load.bash
 
 @test "bdd-25 修复后协议一致性检查 0 ERROR（worktree 自己的脚本，Q2）" {
     run $PYTHON "$AGATE_ROOT/scripts/check-protocol-consistency.py"
-    echo "bdd-25 DIAG status=$status PYTHON=$PYTHON" >&2
-    printf '%s\n' "$output" | grep -E 'ERROR|FAIL CHECK|CHECK 7|tag' | head -5 >&2
     [ "$status" -eq 0 ]
 }
 
