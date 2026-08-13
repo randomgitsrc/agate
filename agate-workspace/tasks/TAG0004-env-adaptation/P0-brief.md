@@ -1,4 +1,4 @@
-task: "agate 协议脚本环境适配（Windows 原生兼容 + Linux 基线回归）：修复审计发现的 SEVERE/MODERATE 环境问题——pre-commit-gate 空格路径静默绕过、13 个 py 缺 encoding、P6 证据引用 ASCII 正则、全角冒号 locale 残留、CRLF 污染、路径正则元字符。核心约束：Linux 现状是基线不得回退，Windows 兼容是增量"
+task: "agate 协议脚本环境适配（Windows 原生兼容 + Linux 基线回归）：修复审计发现的 SEVERE/MODERATE 环境问题 + TQC0001 复盘归入项——pre-commit-gate 空格路径静默绕过、13 个 py 缺 encoding、P6 证据引用 ASCII 正则、全角冒号 locale 残留、CRLF 污染、路径正则元字符；并入 Q1（AGATE_ROOT 路径归一化）、Q5（PATH/编码/CRLF/.gitignore 模板）、Q2（阶段卡片 phase 推进顺序对齐 git-integration.md 规则 2）、M4/M5（全角冒号 locale 残留同类）。核心约束：Linux 现状是基线不得回退，Windows 兼容是增量"
 
 known_risks:
   - "改动面横跨 46 个脚本（25 sh + 21 py），每处都可能在 Windows 修复时破坏 Linux 行为——必须用现有 bats 全量回归 + 新增 Linux 基线测试兜底"
@@ -8,6 +8,10 @@ known_risks:
   - "check-p6-evidence.sh 中文证据文件名（S2）若改正则过宽，可能放过真正的缺证据误报——需新增中文文件名回归测试"
   - "M6（md CRLF）改动 .gitattributes 会影响所有仓库的 md 换行——需评估存量历史 review 文件影响，或改用 frontmatter 提取处统一容错"
   - "【2026-08-13 用户明确】兼容 Windows ≠ 只支持 Windows——Linux 现状是基线，Windows 是新增，两个平台都要跑通，不能为了 Windows 牺牲 Linux"
+  - "【2026-08-13 并入 TQC0001 复盘】Q1：agate-next-card.sh 卡片 hash 校验的 `${CARD_FILE#$AGATE_ROOT/}` 前缀匹配在 Windows 盘符/斜杠下失效（TQC0001 实测 4 次 gate 重试）——路径归一化属本任务范围，修法需同时保证 Linux 前缀匹配不变"
+  - "【2026-08-13 并入 TQC0001 复盘】Q5：Windows 下 PATH 注入、控制台 GBK 乱码、core.autocrlf CRLF、.gitignore 模板缺 version.txt/dist 白名单——SETUP.md 增 Windows 章节 + 模板预设"
+  - "【2026-08-13 并入 TQC0001 复盘】Q2：7 张阶段卡片仍残留 v0.29.0 模式 B 旧写法（先更新 phase=N→N+1 再 commit），与 v0.40.1 git-integration.md 规则 2（phase=本 commit 产出阶段，不得提前写下一阶段）矛盾。P5 卡已同步，P1/P2/P3/P4/P6/P7/P8 未跟上。修复=卡片与规则 2 对齐（补注'commit 时 phase = 本 commit 产出阶段，下一阶段推进随下一阶段产出同 commit'），不改 commit 顺序（P2.64 原子性设计保留）。TQC0001 实测 2 次真实失败 + 1 次侥幸。注意：修改 phase-cards/*.md 触发 SELF-GATE"
+  - "【2026-08-13 并入】M4/M5 全角冒号 [:：] locale 残留（check-gate.sh:356、check-p6-format.sh:69）——v0.40.3 只修了 check-p6-format.sh:84 一处，同类实例未清干净，与审计问题同类，归入本任务一并处理"
 
 executor_env:
   platform: "opencode"
