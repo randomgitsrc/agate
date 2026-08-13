@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 jobs:
   bats:
+    name: bats
     runs-on: ubuntu-latest
     # v0.44.0 决策：bats 测试套件仅 ubuntu 运行。
     # Windows 兼容性由 shellcheck/consistency/gate-backstop 的 windows-latest matrix 验证
@@ -31,6 +32,7 @@ jobs:
         run: bats agate/tests/sanity.bats
 
   shellcheck:
+    name: shellcheck
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -58,6 +60,7 @@ jobs:
         run: shellcheck.exe -S warning agate/scripts/*.sh
 
   consistency:
+    name: consistency
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -83,6 +86,7 @@ jobs:
         run: python agate/scripts/check-protocol-consistency.py
 
   gate-backstop:
+    name: gate-backstop
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
