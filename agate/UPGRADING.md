@@ -89,6 +89,23 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.44.0 — 脚本健壮性 + Windows 环境适配（影响：所有已部署项目）
+
+**① Windows 用户**：agate 现在支持 Git for Windows/MSYS2 下运行 gate 脚本（Windows 原生兼容）。
+- 依赖：Git for Windows（自带 bash/coreutils），python3 + pyyaml，Git Bash 作为执行 shell。
+- 见 `SETUP.md`「Windows 原生」章节（AGATE_ROOT 用 Unix 风格路径 `/c/...`、`PYTHONUTF8=1`、`core.autocrlf` 与 CRLF）。
+- 若你的 hook 是复制模式安装（无符号链接权限），升级后**重跑 install-hook.sh** 更新 hook。
+
+**② 非 Windows 用户**：本版本为修复型，Linux 行为不变（676→714 bats 全绿回归）。无需迁移动作。
+
+**③ CI matrix（项目维护者）**：`.github/workflows/protocol-tests.yml` 新增 `windows-latest` 平台矩阵（bats/shellcheck/consistency/gate-backstop）。分支保护 required checks 需更新为实际 job 名（含平台后缀，如 `shellcheck (ubuntu-latest)`）——若你 fork/自建 CI 参考了 agate 的 workflow，注意此点。
+
+**④ 路径含空格/特殊字符的项目**：`pre-commit-gate.sh` 内部数组化（S1 修复）——路径含空格/`[`/`]`/`*` 时 gate 不再静默绕过。行为更严格但更正确。
+
+**⑤ 中文证据文件名（P6 任务）**：check-p6-evidence.sh 证据引用正则加宽，中文文件名正确匹配。之前因中文证据名被误拦的项目现在可正常通过。
+
+**⑥ 阶段卡片 phase 语义（文档，无强制）**：P1/P2/P3/P4/P6/P7/P8 卡片补注"commit 时 phase = 本 commit 产出阶段"。仅文档说明，gate 判定逻辑零改动，遵循既有习惯即可。
+
 ### v0.43.0 — 技术债登记闭环 + 工作区子目录 8→9（影响：进行中任务 + 已部署项目）
 
 **① 工作区子目录集 8→9（新增 `debt/`，可选启用）**：

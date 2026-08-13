@@ -121,7 +121,7 @@ git log --oneline -3   # 确认交接单已提交
 | 纪律 | 说明 |
 |------|------|
 | 主 checkout 禁止改动 | 它是稳定版来源 + hook 的 AGATE_ROOT |
-| `~/.agate` 禁止改动 | 稳定版 v0.43.0，跑 gate / 读卡片用它 |
+| `~/.agate` 禁止改动 | 稳定版（当前发布 tag），跑 gate / 读卡片用它 |
 | gate 工具 ≠ 检查对象 | commit hook 用 `~/.agate` 判定；但 `check-protocol-consistency.py` 必须用 worktree 自己的（检查 worktree 里的文件） |
 | `~/.agate` 脚本显示主 checkout 上下文 | `agate-summary.sh` 在 worktree 跑显示稳定版 main/HEAD，不代表 worktree 状态 |
 | 工具稳定优先 | hook 指向稳定版，不指向 worktree（避免"用未验证的新 gate 判自己"）——用户已确认此哲学 |
