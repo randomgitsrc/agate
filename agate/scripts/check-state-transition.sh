@@ -33,6 +33,10 @@ get_old_phase() {
     if [ -n "$repo_root" ] && [ "$state_dir" != "$repo_root" ]; then
         git_path=$(realpath --relative-to="$repo_root" "$STATE_FILE" 2>/dev/null || echo "$STATE_BASENAME")
     fi
+    if [ "${AGATE_DEBUG_ST:-}" = "1" ]; then
+        echo "DEBUG-ST: state_file=$STATE_FILE basename=$STATE_BASENAME git_path=$git_path state_dir=$state_dir repo_root=$repo_root" >&2
+        git show "HEAD:$git_path" 2>&1 | head -5 >&2
+    fi
     git show "HEAD:$git_path" 2>/dev/null | python3 "$SCRIPT_DIR/agate-state-get.py" phase_stdin 2>/dev/null || echo ""
 }
 
