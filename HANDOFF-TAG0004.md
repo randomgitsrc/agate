@@ -59,6 +59,10 @@
 - **RM-AG0001** `check-gate.sh` P1 标记反引号包裹识别盲区（`[SUGGEST:` 被反引号包住时行首正则不匹配，typo 兜底也不触发 → 只 WARNING）
 - **RM-AG0002** `check-tdd-red.sh` 无 formatter 时（L43）退化 exit-code-only，编译失败误判红灯
 
+**TPV0090 复盘归入（M4，与 RM-AG0002 同文件 check-tdd-red.sh，A/B 判定增强一次做）**：
+- **M4** `check-tdd-red.sh` B 类检测只认 `import_errors`（L70/88-92），不认 `NameError`——测试代码引用未实现符号抛 NameError 时，`syntax=0 import=0 errors>0` → 判 A 类（"test code has errors"）→ return 1 拦截。但"测试引用未实现符号"正是 TDD 红灯的正常状态（B 类）。修复方向：B 类检测纳入 NameError（项目内未定义符号），或在 formatter 无错误分类时区分"未定义名"与"真实测试 bug"。注意与 RM-AG0002 一起改（同文件，先写 A/B 判定增强的失败测试）
+- **注意**：M4 是 TPV0090 test-designer 实测发现（`globals().get()` 规避模式），修复后该规避不再必要，但**保持向后兼容**（现有用了 globals().get() 的测试仍应通过）
+
 ### 核心约束（不可违反）
 1. **Linux 现状是基线**——现有 676 bats 测试全绿是回归底线，每个修复都必须保持全绿
 2. **Windows 兼容是增量**——本环境（Linux）无法实测 Windows，靠静态修复 + Linux 回归 + CI windows-latest matrix 兜底。**不要宣称"已实测 Windows"**
