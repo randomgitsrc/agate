@@ -18,8 +18,8 @@ agent: test-designer
 
 | BDD | 测试名 | 文件 | 断言类型 | 预期现状（修复前） |
 |-----|--------|------|---------|-------------------|
-| BDD-1 | GPC.1（改断言 `3`→`1 2`） | agate-gate-p5-count.bats | 脚本断言 | 红（现状输出 `3`） |
-| BDD-2 | GPC.2（改断言 `0`→`0 0`） | agate-gate-p5-count.bats | 脚本断言 | 红（现状输出 `0`） |
+| BDD-3 | GPC.1（改断言 `3`→`1 2`） | agate-gate-p5-count.bats | 脚本断言 | 红（现状输出 `3`） |
+| BDD-5 | GPC.2（改断言 `0`→`0 0`） | agate-gate-p5-count.bats | 脚本断言 | 红（现状输出 `0`） |
 | BDD-3 | GPC.3（新增：块含 P5+P5_formatter → `1 0`） | agate-gate-p5-count.bats | 脚本断言 | 红（现状输出 `2`） |
 | BDD-4 | G5_CMD.1（改断言主/辅文案） | check-gate.bats | 脚本断言 | 红（现状输出「2 个 gate_commands.P5」） |
 | BDD-5 | G5_CMD.2（保持，仅 P5 不 WARNING） | check-gate.bats | 脚本断言 | 绿（保持） |
