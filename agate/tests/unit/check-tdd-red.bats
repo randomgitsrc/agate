@@ -46,7 +46,7 @@ EOF
 }
 
 @test "TD.1b check-tdd-red.sh 无 TEST_RUNNER + 无 pytest（无 PATH 找不到 pytest）期望 exit 3" {
-    run env -i PATH="/usr/bin:/bin" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u PATH bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 3 ] || [ "$status" -eq 1 ]
 }
 
@@ -136,7 +136,7 @@ ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
 @test "TDD.N3: vitest B-class → exit 0" {
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
-Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1)
+Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
     run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
 }
@@ -145,7 +145,7 @@ Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1)
 @test "TDD.N4: vitest A-class → exit 0 (exit-code-only without formatter)" {
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
-Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1)
+Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
     run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
 }
@@ -161,7 +161,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -224,7 +224,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -242,7 +242,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
@@ -257,7 +257,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
     [[ "$output" != *"classic red-light"* ]]
@@ -276,7 +276,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
@@ -293,7 +293,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -312,7 +312,7 @@ gate_commands:
   P3_formatter: "$abs_formatter"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -330,7 +330,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PROJECT_MODULE="requests" PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER PROJECT_MODULE="requests" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
@@ -348,7 +348,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -364,7 +364,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 2 ]
     [[ "$output" == *"no red-light"* ]]
 }
@@ -378,7 +378,7 @@ EOF
 }
 
 @test "TDD.F8: no TEST_RUNNER, no gate_commands.P3, no pytest → exit 3" {
-    run env -i PATH="/usr/bin:/bin" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u PATH bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 3 ]
 }
 
@@ -401,7 +401,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     run cat "$sentinel"
     [[ "$output" != *"-q"* ]]
@@ -432,7 +432,7 @@ gate_commands:
   P3_js_formatter: "vitest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
@@ -448,7 +448,7 @@ gate_commands:
   P3: "$fake"
   P3_formatter: "pytest.sh"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"断言"*"数据"* ]]
 }

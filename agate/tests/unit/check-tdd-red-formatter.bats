@@ -94,7 +94,7 @@ Test Files  3 failed"
 
 @test "FMT.8: vitest.sh B-class (Cannot find module '../src/bar') → import_errors[0].module=='../src/bar'" {
     local output="Failed Suites 1
-Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts"
+Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" # scan-exempt: mock 输出样例文本（非路径假设）
     local result
     result=$(echo "$output" | bash "$FORMATTER_DIR/vitest.sh" 1)
     assert_json_field "$result" "d['import_errors'][0]['module']" "../src/bar"
@@ -102,7 +102,7 @@ Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts"
 
 @test "FMT.9: vitest.sh A-class (Cannot find module 'react') → import_errors[0].module=='react'" {
     local output="Failed Suites 1
-Error: Cannot find module 'react' imported from /tmp/test/foo.test.ts"
+Error: Cannot find module 'react' imported from /tmp/test/foo.test.ts" # scan-exempt: mock 输出样例文本（非路径假设）
     local result
     result=$(echo "$output" | bash "$FORMATTER_DIR/vitest.sh" 1)
     assert_json_field "$result" "d['import_errors'][0]['module']" "react"

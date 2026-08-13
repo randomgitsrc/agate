@@ -203,3 +203,24 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"P5 failed 参考: 3"* ]]
 }
+
+@test "EC.16: P6 failed 求和无bc模拟环境仍正确（BDD-24/26）" {
+    cat > "$TEST_TASK_DIR/P1-requirements.md" <<'EOF'
+#### BDD-1: feature works
+EOF
+    mkdir -p "$TEST_TASK_DIR/P5-test-results/pkg-a" "$TEST_TASK_DIR/P5-test-results/pkg-b"
+    echo "  failed: 2" > "$TEST_TASK_DIR/P5-test-results/pkg-a/unit.md"
+    echo "  failed: 1" > "$TEST_TASK_DIR/P5-test-results/pkg-b/unit.md"
+    # 无bc模拟：前置失败 stub 覆盖命令位置，效果等同该工具不在 PATH（Windows 无此工具）
+    local fakebin
+    fakebin="$BATS_TEST_TMPDIR/fakebin-nobc"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/bc" <<'BCEOF'
+#!/usr/bin/env bash
+exit 1
+BCEOF
+    chmod +x "$fakebin/bc"
+    run env PATH="$fakebin:$PATH" bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P6 "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"P5 failed 参考: 3"* ]]
+}

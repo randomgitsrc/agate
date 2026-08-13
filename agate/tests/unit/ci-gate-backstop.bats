@@ -10,7 +10,7 @@ load ../helpers/load.bash
     cd "$repo"
     export GITEA_ACTIONS=true
     export GITHUB_ACTIONS=true
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
     [[ "$output" == *"gitea"* ]]
 }
 
@@ -20,7 +20,7 @@ load ../helpers/load.bash
     cd "$repo"
     export GITLAB_CI=true
     unset GITEA_ACTIONS GITHUB_ACTIONS
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
     [[ "$output" == *"gitlab"* ]]
 }
 
@@ -29,7 +29,7 @@ load ../helpers/load.bash
     repo=$(git_init)
     cd "$repo"
     unset GITEA_ACTIONS GITLAB_CI GITHUB_ACTIONS
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
     [[ "$output" == *"SKIP"* || "$output" == *"None"* ]]
 }
 
@@ -62,7 +62,8 @@ EOF
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"真红灯"* ]]
 }
 
@@ -77,7 +78,8 @@ EOF
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"绿灯"* ]]
 }
@@ -93,7 +95,8 @@ EOF
     echo 'exit 1' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"假红灯"* ]]
 }
@@ -109,7 +112,7 @@ EOF
     echo 'exit 3' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
     [[ "$output" == *"WARN"* ]]
     [[ "$output" != *"FAIL"* ]]
 }
@@ -126,7 +129,8 @@ EOF
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
     # 不创建 .gate-result.json（模拟 --no-verify 场景）
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"真红灯"* ]]
 }
 
@@ -158,7 +162,7 @@ EOF
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
     [[ "$output" == *"SKIP"* ]]
     [[ "$output" == *"refactor"* ]]
     [[ "$output" != *"FAIL"* ]]
@@ -187,7 +191,8 @@ EOF
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"绿灯"* ]]
     [[ "$output" != *"SKIP: refactor"* ]]

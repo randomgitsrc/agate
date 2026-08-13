@@ -5,7 +5,7 @@
 load ../helpers/load.bash
 
 @test "SC.1 check-scope-resolved.sh 不存在的 task 目录 期望 exit 2" {
-    local dir="/tmp/nonexistent-task-$$-$(date +%s%N)"
+    local dir="$BATS_TEST_TMPDIR/nonexistent-task-$$-$(date +%s%N)"
     # 不创建该目录
     run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
     [ "$status" -eq 2 ]

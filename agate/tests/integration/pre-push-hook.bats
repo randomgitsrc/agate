@@ -20,6 +20,31 @@ load ../helpers/load.bash
     [[ "$output" == *"新分支"* ]]
 }
 
+@test "pre-push hook: ln 复制模式下安装输出升级提醒且不要求软链（Windows 兼容，BDD-18/19）" {
+    local repo
+    repo=$(git_init)
+    local agate_root
+    agate_root="$BATS_TEST_TMPDIR/agate-fake"
+    mkdir -p "$agate_root/scripts"
+    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$agate_root/scripts/"
+    cp "$AGATE_ROOT/scripts/commit-msg-self-gate.sh" "$agate_root/scripts/"
+    cp "$AGATE_ROOT/scripts/pre-push-gate.sh" "$agate_root/scripts/"
+
+    # mock ln：退化为 cp（模拟 Windows 无符号链接权限）
+    local fakebin
+    fakebin="$BATS_TEST_TMPDIR/fakebin"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/ln" <<'LNEOF'
+#!/usr/bin/env bash
+cp -f "$2" "$3"
+LNEOF
+    chmod +x "$fakebin/ln"
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' '$agate_root'" 2>&1
+    [[ "$output" == *"复制"* || "$output" == *"需重跑"* ]]
+    [ -f "$repo/.git/hooks/pre-push" ]
+}
+
 @test "pre-push hook: 大改动触发提示" {
     local repo
     repo=$(git_init)
