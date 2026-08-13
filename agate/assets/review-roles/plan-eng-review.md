@@ -1,7 +1,7 @@
 ---
 role_id: plan-eng-review
 type: review
-source: gstack (garrytan/gstack, MIT)
+source: inspired by gstack concepts (garrytan/gstack, MIT)
 phases: [P2]
 agent: plan-eng-review
 ---
