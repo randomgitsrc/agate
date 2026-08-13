@@ -74,6 +74,10 @@ EOF
     sed -i 's/phase: P3/phase: P1/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    echo "ST4-DIAG: status=$status repo=$repo" >&2
+    echo "ST4-DIAG-OUT: $output" >&2
+    echo "ST4-DIAG-GIT: $(git -C "$repo" config core.autocrlf 2>&1)" >&2
+    echo "ST4-DIAG-SHOW: $(git -C "$repo" show HEAD:.state.yaml 2>&1 | tr '\n' '|')" >&2
     # 修复后回退 P3→P1 差 2 强制 PAUSED，exit 1
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
