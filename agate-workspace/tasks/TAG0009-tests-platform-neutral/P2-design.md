@@ -314,7 +314,7 @@ files_to_read:
   - path: agate/tests/unit/install-hook.bats:22-65
     why: "[[ -L ]] 2 处平台分支 + L43 ln mock 先例（复制模式）"
   - path: agate/tests/integration/pre-push-hook.bats:11
-    why: [SCOPE+] 第 3 处 symlink 断言平台分支
+    why: "[SCOPE+] 第 3 处 symlink 断言平台分支"
   - path: agate/tests/unit/agate-next-card.bats:102-106,184-201
     why: cd /tmp 替换 + bdd-21 setup 平台分支
   - path: agate/tests/unit/check-scope-resolved.bats:7-12
