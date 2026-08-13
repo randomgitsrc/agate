@@ -18,7 +18,9 @@ setup() {
     # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
     local shim
     shim=$(create_python_shim_bin) || return 1
-    export PATH="$shim:$PATH"
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
 }
 
 # ========== BDD-2: 全角冒号不再导致字段静默缺失（校验失败并报错，可定位） ==========

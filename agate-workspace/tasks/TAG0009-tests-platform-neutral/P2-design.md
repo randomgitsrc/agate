@@ -312,7 +312,7 @@ files_to_read:
   - path: agate/tests/unit/check-tdd-red.bats:43-51,153-459,476-555
     why: TD.1b/TDD.F8 的 PATH 场景 + TDD.G/F 系列 13 处 PATH 覆盖移除 + PYX 测试侧 python3→$PYTHON
   - path: agate/tests/unit/install-hook.bats:22-65
-    why: [[ -L ]] 2 处平台分支 + L43 ln mock 先例（复制模式）
+    why: "[[ -L ]] 2 处平台分支 + L43 ln mock 先例（复制模式）"
   - path: agate/tests/integration/pre-push-hook.bats:11
     why: [SCOPE+] 第 3 处 symlink 断言平台分支
   - path: agate/tests/unit/agate-next-card.bats:102-106,184-201

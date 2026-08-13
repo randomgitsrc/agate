@@ -3,6 +3,16 @@
 
 load ../helpers/load.bash
 
+setup() {
+    # TAG0009 BDD-16/17：check-gate.sh 内部裸 python3（agate-md-field-get.py 等）在
+    # 仅 python 可解析环境（Windows）由 shim 兜底；python3 已可用时 shim 为空、无副作用
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
+}
+
 # ========== P0 (立项阶段，无需脚本 gate) ==========
 
 @test "G0 check-gate.sh P0 立项阶段 期望 exit 2（输出不含『未知』）" {

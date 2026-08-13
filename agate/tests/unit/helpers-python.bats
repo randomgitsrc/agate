@@ -39,7 +39,7 @@ load ../helpers/load.bash
     printf '#!/usr/bin/env bash\nexit 127\n' > "$fakebin/python3"
     chmod +x "$fakebin/python3"
     local shim
-    shim=$(create_python_shim_bin) || skip "无 python 解释器"
+    shim=$(create_python_shim_bin --force) || skip "无 python 解释器"
 
     # P4→P2 非法回退（差 2 ≥ 跳变阈值）
     local repo

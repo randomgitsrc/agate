@@ -14,21 +14,40 @@ export PYTHON="$(detect_python 2>/dev/null || true)"
 # 与 PYTHON 同模式：调用方用 ${SHELLCHECK:-shellcheck} 兜底（bdd-34 断言）
 export SHELLCHECK="$(command -v shellcheck 2>/dev/null || command -v shellcheck.exe 2>/dev/null || true)"
 
-# create_python_shim_bin — 建临时 bin 目录 + python3 包装器指向真解释器（BDD-16/17）
+# create_python_shim_bin [--force] — 建临时 bin 目录 + python3 包装器指向真解释器（BDD-16/17）
 # 产品脚本内部裸 python3 在"仅 python 可解析"环境（Windows）下由 shim 兜底解析。
-# 返回 bin 路径；调用方 setup() 前置到 PATH。包装器内嵌真解释器绝对路径
-# （探测时排除 $BATS_TEST_TMPDIR，避免 command -v python3 解析到自身造成自解析循环）。
+# 返回 bin 路径；调用方 setup() 前置到 PATH。
+# 默认：python3 已在 PATH 上原生可解析时返回空串（不遮蔽原生 python3，防 Windows/Linux
+# 双平台回归——Windows runner setup-python 已提供 python3 时 shim 纯属多余且 wrapper
+# 可能因 MSYS/Windows 路径形式差异 exec 失败）。--force 时无条件创建（供 helpers-python
+# 机制测试显式构造"仅 python"环境，BDD-17）。
+# 包装器在运行时用 command -v 重新解析真解释器（排除 shim 自身目录，避免自解析循环）。
 create_python_shim_bin() {
-    local clean_path
-    clean_path=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vF "$BATS_TEST_TMPDIR" | paste -sd:)
-    local real_py
-    real_py=$(PATH="$clean_path" command -v python3 2>/dev/null || PATH="$clean_path" command -v python 2>/dev/null)
-    [ -n "$real_py" ] || { echo "FATAL: 找不到 python3/python" >&2; return 1; }
-    local bin
-    bin=$(mktemp -d "$BATS_TEST_TMPDIR/shim-bin-XXXXXX")
-    printf '#!/usr/bin/env bash\nexec "%s" "$@"\n' "$real_py" > "$bin/python3"
-    chmod +x "$bin/python3"
-    echo "$bin"
+    local force=0
+    if [ "${1:-}" = "--force" ]; then
+        force=1
+    fi
+    if [ "$force" -eq 0 ] && command -v python3 >/dev/null 2>&1; then
+        echo ""
+        return 0
+    fi
+    local shim_bin
+    shim_bin=$(mktemp -d "$BATS_TEST_TMPDIR/shim-bin-XXXXXX")
+    cat > "$shim_bin/python3" <<'EOF'
+#!/usr/bin/env bash
+# python3 shim 包装器（TAG0009）：运行时解析真解释器，排除 shim 自身目录与测试临时根
+# 避免自解析循环/被测试 stub 遮蔽（fakebin 是 BATS_TEST_TMPDIR 下同级目录）
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -vF "$SELF_DIR" | grep -vF "${BATS_TEST_TMPDIR:-__none__}" | paste -sd:)"
+REAL_PY="$(PATH="$CLEAN_PATH" command -v python3 2>/dev/null || PATH="$CLEAN_PATH" command -v python 2>/dev/null)"
+if [ -z "$REAL_PY" ]; then
+    echo "shim: 找不到 python3/python 解释器" >&2
+    exit 127
+fi
+exec "$REAL_PY" "$@"
+EOF
+    chmod +x "$shim_bin/python3"
+    echo "$shim_bin"
 }
 #   phases: P0 P1 P2 ... 默认全开
 #   选项：
