@@ -16,7 +16,7 @@
 
 | 路径 | 角色 | 纪律 |
 |------|------|------|
-| `/home/kity/oclab/agate/.worktrees/agate-TAG0005` | **本任务 worktree（改造对象）** | 在这里改代码、写阶段产出、跑测试、git commit |
+| `/home/kity/oclab/agate/.worktrees/agate-TAG0005-0009` | **本任务 worktree（改造对象）** | 在这里改代码、写阶段产出、跑测试、git commit |
 | `/home/kity/oclab/agate`（主 checkout） | 协议本体 + 任务数据 + `~/.agate` 指向 | **禁止改动**。它是稳定版来源，也是 hook 的 AGATE_ROOT |
 | `~/.agate`（软链 → 主 checkout/agate） | **稳定版 v0.44.0（开发工具）** | **禁止改动**。跑 gate / 读卡片用它 |
 
