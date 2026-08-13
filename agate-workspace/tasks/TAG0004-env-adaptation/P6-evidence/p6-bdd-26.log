@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-26 SETUP.md 含 Windows 章节覆盖 PYTHONUTF8（Q5）
+
+## 命令: bats --filter "bdd-26 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

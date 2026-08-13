@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-35 check-tdd-red.sh formatter 项目模块内 NameError 判 B 类红灯（exit 0，TPV0090-M4）
+
+## 命令: bats --filter "bdd-35 " agate/tests/unit/check-tdd-red.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

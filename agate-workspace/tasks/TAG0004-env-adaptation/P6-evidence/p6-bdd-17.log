@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-17 pre-commit-gate 任务目录含 [ 元字符时 PROD_TOUCHED 检测不静默绕过（M9）
+
+## 命令: bats --filter "bdd-17 " agate/tests/integration/pre-commit-hook.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

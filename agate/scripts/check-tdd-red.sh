@@ -15,13 +15,17 @@
 # 输出一行标准 JSON：
 #   {"exit_code":1,"total":5,"passed":0,"failed":3,"errors":1,
 #    "failed_tests":["test_foo"],"import_errors":[{"module":"myapp.foo","message":"..."}],
-#    "syntax_errors":[{"file":"test.py","message":"..."}]}
+#    "syntax_errors":[{"file":"test.py","message":"..."}],
+#    "name_errors":[{"symbol":"compute","module":"myapp","message":"..."}]}
+#
+# 无 formatter 时（TEST_RUNNER / gate_commands.P3 未配 P3_formatter），JSON 增
+#   "raw_output":"<测试原始输出>" 字段，供 exit 1 + 编译/import 错误关键词判定 A/B 类。
 #
 # 内置 formatter 位于 {agate_root}/assets/formatters/：
 #   pytest.sh, vitest.sh, go-test.sh, generic-tap.sh, generic-junit-xml.sh, generic-exit-only.sh
 #
 # 环境变量：
-#   TEST_RUNNER — 测试运行器命令（最高优先级，向后兼容，退化为 exit-code-only）
+#   TEST_RUNNER — 测试运行器命令（最高优先级，向后兼容；无 formatter 时按 exit code + 输出关键词判定 A/B）
 #   TASK_DIR — 任务目录路径（用于读取 P2-design.md 的 gate_commands）
 #              也可通过位置参数 $1 传入（check-gate.sh 调用时传递）
 #   PROJECT_MODULE — 项目模块前缀（用于 B 类检测，如 "myapp"、"webapp"）
@@ -40,7 +44,8 @@
 #   P3_{suffix}_formatter: "vitest.sh"    — 对应的 formatter
 #   project_module: "myapp"               — 项目模块前缀（用于 B 类检测）
 #
-# 无 formatter 时退化为 exit-code-only：exit 0→绿灯(2)，exit>0→红灯(0)，无法区分 A/B 类。
+# 无 formatter 时按 exit code + 输出关键词判定：exit 0→绿灯(2)；exit 1 且输出含编译/import 错误
+# 关键词（Traceback|SyntaxError|ImportError|ModuleNotFoundError）→ A 类(1)；其余非零→红灯(0)。
 
 set -euo pipefail
 
@@ -61,13 +66,15 @@ read_gate_commands() {
 judge_result() {
     local json="$1"
     local project_module="$2"
-    local exit_code failed errors syntax_count import_count
+    local exit_code failed errors syntax_count import_count name_errors_count raw_output
 
     exit_code=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get exit_code 1)
     failed=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get failed 0)
     errors=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get errors 0)
     syntax_count=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" len syntax_errors)
     import_count=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" len import_errors)
+    name_errors_count=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" len name_errors)
+    raw_output=$(echo "$json" | python3 "$SCRIPT_DIR/agate-json-get.py" get raw_output "")
 
     if [ "$exit_code" -eq 124 ]; then
         echo "TDD_CHECK: 测试命令超时，视为红灯可推进（请手动确认测试确实失败）"
@@ -77,6 +84,13 @@ judge_result() {
     if [ "$exit_code" -eq 0 ]; then
         echo "TDD_CHECK: tests pass, no red-light — implementation may be ahead of tests"
         return 2
+    fi
+
+    if [ "$exit_code" -eq 1 ] && [ -n "$raw_output" ]; then
+        if printf '%s' "$raw_output" | grep -qE 'Traceback|SyntaxError|ImportError|ModuleNotFoundError'; then
+            echo "TDD_CHECK: A-class error (compile or import error in raw output, no formatter to classify)"
+            return 1
+        fi
     fi
 
     if [ "$syntax_count" -gt 0 ]; then
@@ -99,6 +113,19 @@ judge_result() {
             echo "TDD_CHECK: B-class red-light (heuristic: import errors without syntax errors)"
             return 0
         fi
+    fi
+
+    if [ "$name_errors_count" -gt 0 ]; then
+        if [ -n "$project_module" ]; then
+            local matched
+            matched=$(echo "$json" | PROJECT_MODULE="$project_module" python3 "$SCRIPT_DIR/agate-json-get.py" count_prefix name_errors module PROJECT_MODULE)
+            if [ "$matched" -gt 0 ]; then
+                echo "TDD_CHECK: B-class red-light (NameError from missing project symbol '${project_module}')"
+                return 0
+            fi
+        fi
+        echo "TDD_CHECK: B-class red-light (NameError: test references unimplemented symbol)"
+        return 0
     fi
 
     if [ "$errors" -gt 0 ]; then

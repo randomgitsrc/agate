@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-18 agate-workspace-resolve.sh .agate.env 尾部 \r 不污染 AGATE_WORKSPACE 解析（其他-a）
+
+## 命令: bats --filter "bdd-18 " agate/tests/unit/agate-workspace-resolve.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

@@ -181,3 +181,21 @@ setup() {
     hash_tmp="$(AGATE_ROOT="$tmp_root" bash "$tmp_root/scripts/agate-next-card.sh" P3 | tail -n +5 | sha256sum | awk '{print $1}')"
     [ "$hash_main" = "$hash_tmp" ]
 }
+# ========== TAG0004 Q1 路径归一化（BDD-21/22） ==========
+
+@test "bdd-21 agate-next-card.sh Windows 盘符/反斜杠 AGATE_ROOT 前缀剥离稳定（Q1）" {
+    local dir
+    dir="$BATS_TEST_TMPDIR/q1-win"
+    mkdir -p "$dir/C:\\proj\\agate/phase-cards"
+    cp "$AGATE_ROOT/phase-cards/P3-tdd.md" "$dir/C:\\proj\\agate/phase-cards/"
+    run bash -c "cd '$dir' && AGATE_ROOT='C:\\proj\\agate' bash '$AGATE_SCRIPTS/agate-next-card.sh' P3"
+    [ "$status" -eq 0 ]
+    # 修复前：${CARD_FILE#$AGATE_ROOT/} 把反斜杠当转义 → 剥离失败 → 相对路径含盘符前缀；修复后：phase-cards/P3-tdd.md
+    [[ "$output" == *"路径：phase-cards/P3-tdd.md"* ]]
+}
+
+@test "bdd-22 agate-next-card.sh Linux 常规路径前缀剥离字节不变（Q1 回归）" {
+    run bash "$AGATE_SCRIPTS/agate-next-card.sh" P3
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"路径：phase-cards/P3-tdd.md"* ]]
+}

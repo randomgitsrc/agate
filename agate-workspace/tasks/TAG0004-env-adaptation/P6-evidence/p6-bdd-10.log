@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-10 check-p6-evidence.sh (见截图) 无扩展名引用仍拦截（防修复过宽，S2）
+
+## 命令: bats --filter "bdd-10 " agate/tests/unit/check-p6-evidence.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

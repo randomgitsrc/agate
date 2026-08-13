@@ -10,9 +10,9 @@ import re
 import sys
 
 dc = os.environ["DC_FILE"]
-with open(dc) as f:
+with open(dc, encoding="utf-8") as f:
     text = f.read()
-with open(os.environ["CARD_FILE"]) as f:
+with open(os.environ["CARD_FILE"], encoding="utf-8") as f:
     card = f.read()
 pattern = r"(<!-- AGATE_CARD_START -->\n)(.*?)(<!-- AGATE_CARD_END -->)"
 if not re.search(pattern, text, flags=re.DOTALL):
@@ -25,5 +25,5 @@ def _repl(m):
 
 
 new_text = re.sub(pattern, _repl, text, flags=re.DOTALL)
-with open(dc, "w") as f:
+with open(dc, "w", encoding="utf-8") as f:
     f.write(new_text)

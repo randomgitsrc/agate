@@ -8,6 +8,38 @@
 
 ---
 
+## [0.44.0] - 2026-08-13
+
+### 修复（TAG0004 脚本健壮性 + 环境适配：Windows 原生兼容 + Linux 基线回归）
+
+- **S1 pre-commit-gate.sh 空格路径 fail-open 修复**：`STAGED_STATE_FILES` / `PROCESSED_DIRS` 由空格拼接字符串 → bash 数组（L50/57/339/343/350），消除目录/文件名含空格时静默绕过 gate 的 fail-open 风险；新增空格路径 commit 场景 fixture 回归
+- **S3 13 个 py 文本 open() 补 encoding="utf-8"**：全部文本读写加 `encoding="utf-8"`（Image.open 与二进制模式除外），修复中文路径/内容在非 UTF-8 locale 下解析失败；新增 grep 断言审计测试作永久回归拦截
+- **S2 check-p6-evidence.sh 中文证据文件名支持**：证据引用正则字符类加宽（`\([^()]*[^()[:space:]]\.[a-zA-Z0-9]+[^)]*\)`），中文/含空格文件名正确匹配，维持"必须有扩展名"结构（无扩展名仍拒绝）
+- **M4/M5 全角冒号 POSIX locale**：check-gate.sh L356/357 与 check-p6-format.sh L69 的 `[:：]` bracket 改 alternation（`(:|：)`），修复 `LC_ALL=C` 下全角冒号不匹配（与 v0.40.3 L84 修法统一）
+- **M6 frontmatter 提取 CRLF 容错**：frontmatter 提取入口（agate-md-field-get.py / agate-frontmatter-check.py / check-gate.sh 8 处 sed / check-frontmatter.sh 链路）统一剥离行尾 `\r`，Windows checkout 的 CRLF md 也能正确提取；不动 .gitattributes，历史 CRLF review 文件不受影响
+- **M9 路径正则元字符**：pre-commit-gate.sh 的 `^${TASK_REL}` grep -E 拼接改 grep -F 字面前缀 + `awk index($0,p)==1` 行首锚定（L102/104/133/228/290 共 5 处），目录名含 `[`/`]`/`*` 时不再误判
+- **Q1 agate-next-card.sh 路径归一化**：`${CARD_FILE#$AGATE_ROOT/}` 前缀剥离改"先试直接剥离、失败则归一化后剥离"（rel_card + 盘符小写），修复 Windows 盘符/混合斜杠下卡片 hash 校验失败（TQC0001 实测）；Linux 相对路径输出逐字节不变
+- **Q2 7 张 phase-cards 补注规则 2 语义**：P1/P2/P3/P4/P6/P7/P8 卡片"更新 .state.yaml phase"步骤对齐 git-integration.md 规则 2——commit 时 phase = 本 commit 产出阶段，下一阶段推进随下一阶段产出同 commit（与已对齐的 P5 卡一致，纯文档，gate 判定逻辑零改动）
+- **Q5 SETUP.md Windows 章节 + .gitignore 预设**：SETUP.md 扩展独立 Windows 章节（AGATE_ROOT Unix 风格路径 / PATH 注入风险 / PYTHONUTF8=1 / core.autocrlf 与 CRLF）；.gitignore 模板预设 `!version.txt` + `dist/`
+- **RM-AG0001 check-gate.sh P1 反引号盲区**：行首标记正则（`[SUGGEST:` / `[NEED_CONFIRM]` / `[NO_NEED_CONFIRM]`）加可选反引号容错（L69/71/89/109/121/125/129），`` `[SUGGEST: ...]` `` 正确计 WARNING、`` `[NEED_CONFIRM]` `` 正确阻塞
+- **RM-AG0002 + TPV0090-M4 check-tdd-red A/B 判定增强**：无 formatter 时不再纯 exit-code-only——exit 1 且输出含 compile/error 关键词判 A 类，普通失败仍判正确红灯；formatter 路径 B 类检测纳入 NameError（pytest.sh 增 name_errors 数组），非 NameError（TypeError 等）仍判 A 类；globals().get() 规避模式保持向后兼容
+- **其他-a .agate.env CR 剥离**：agate-workspace-resolve.sh 读取 `.agate.env` 值前 `tr -d '\r'`，Windows 编辑的 CRLF env 文件不再导致路径含 `\r`
+- **其他-b 复制模式 AGATE_ROOT 解析回退**：install-hook.sh 复制模式写 `.agate-root` 标记文件，pre-commit-gate.sh readlink 解析失败时读标记兜底，Windows 复制模式 hook 不再静默放行
+- **其他-c render-dispatch-prompt sed 转义**：agate-render-dispatch-prompt.sh 替换串转义 `&`/`|`（awk gsub + 反斜杠预处理），AGATE_ROOT 含 `&`/`|` 时替换不再错误
+
+### 新增
+- **CI windows-latest matrix**：`.github/workflows/protocol-tests.yml` 新增 `windows-latest` 平台矩阵（bats / shellcheck / consistency / gate-backstop），Windows 原生兼容的唯一兜底验证（本环境为 Linux，不宣称"已实测 Windows"）
+- **S3 grep 断言审计测试**：扫描 `agate/scripts/*.py` 文本 `open(`/`read_text(` 必须带 `encoding=`（Image.open 与二进制模式除外），防后续改动漏加 encoding
+
+### 文档
+- **SETUP.md Windows 章节**（见上 Q5）
+- **Q2 七张阶段卡片规则 2 语义补注**（见上 Q2）
+
+### 变更
+- **S1 数组化**：pre-commit-gate.sh 内部结构改动，行为语义不变（见上 S1）
+
+---
+
 ## [0.43.0] - 2026-08-12
 
 ### 新增（TAG0001 技术债登记闭环，Phase 1-3）

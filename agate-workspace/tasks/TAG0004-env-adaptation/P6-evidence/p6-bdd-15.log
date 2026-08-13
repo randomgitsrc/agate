@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-15 agate-md-field-get.py LF 行尾 ASCII 文件行为不变（M6 回归）
+
+## 命令: bats --filter "bdd-15 " agate/tests/unit/agate-md-field-get.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

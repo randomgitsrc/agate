@@ -109,8 +109,8 @@ STRING_FIELDS = frozenset({"override", "internal_only_reason", "跳过风险", "
 
 
 def _read():
-    with open(os.environ["FILE"]) as f:
-        return f.read()
+    with open(os.environ["FILE"], encoding="utf-8") as f:
+        return f.read().replace("\r\n", "\n")
 
 
 def _read_frontmatter(text):

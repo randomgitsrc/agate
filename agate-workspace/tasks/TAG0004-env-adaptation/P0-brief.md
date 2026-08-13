@@ -1,4 +1,4 @@
-task: "agate 协议脚本健壮性 + 环境适配（Windows 原生兼容 + Linux 基线回归）：修复审计发现的 SEVERE/MODERATE 环境问题 + TQC0001 复盘归入项 + roadmap 并入项（RM-AG0001/AG0002）——pre-commit-gate 空格路径静默绕过、13 个 py 缺 encoding、P6 证据引用 ASCII 正则、全角冒号 locale 残留、CRLF 污染、路径正则元字符；并入 Q1（AGATE_ROOT 路径归一化）、Q5（PATH/编码/CRLF/.gitignore 模板）、Q2（阶段卡片 phase 推进顺序对齐 git-integration.md 规则 2）、M4/M5（全角冒号 locale 残留同类）、RM-AG0001（check-gate P1 反引号包裹盲区）、RM-AG0002（check-tdd-red 无 formatter A/B 类盲区）。核心约束：Linux 现状是基线不得回退，Windows 兼容是增量"
+task: "agate 协议脚本健壮性 + 环境适配（Windows 原生兼容 + Linux 基线回归）：修复审计发现的 SEVERE/MODERATE 环境问题 + TQC0001 复盘归入项 + roadmap 并入项（RM-AG0001/AG0002）+ TPV0090 复盘归入项（M4）——pre-commit-gate 空格路径静默绕过、13 个 py 缺 encoding、P6 证据引用 ASCII 正则、全角冒号 locale 残留、CRLF 污染、路径正则元字符；并入 Q1（AGATE_ROOT 路径归一化）、Q5（PATH/编码/CRLF/.gitignore 模板）、Q2（阶段卡片 phase 推进顺序对齐 git-integration.md 规则 2）、M4/M5（全角冒号 locale 残留同类）、RM-AG0001（check-gate P1 反引号包裹盲区）、RM-AG0002（check-tdd-red 无 formatter A/B 类盲区）、TPV0090-M4（check-tdd-red B 类检测只认 import_errors 不认 NameError）。核心约束：Linux 现状是基线不得回退，Windows 兼容是增量"
 
 known_risks:
   - "改动面横跨 46 个脚本（25 sh + 21 py），每处都可能在 Windows 修复时破坏 Linux 行为——必须用现有 bats 全量回归 + 新增 Linux 基线测试兜底"
@@ -14,6 +14,7 @@ known_risks:
   - "【2026-08-13 并入】M4/M5 全角冒号 [:：] locale 残留（check-gate.sh:356、check-p6-format.sh:69）——v0.40.3 只修了 check-p6-format.sh:84 一处，同类实例未清干净，与审计问题同类，归入本任务一并处理"
   - "【2026-08-13 并入 RM-AG0001】check-gate.sh P1 标记反引号包裹识别盲区——行首正则 `^\\s*-?\\s*\\[SUGGEST:` 对 `` `[SUGGEST: ...]` `` 不匹配（反引号在标记前），typo 兜底也不触发（冒号子串仍存在）→ 只 WARNING 不阻断。与 M4/M5 同在 check-gate.sh，同批修正则，避免二次动同一文件"
   - "【2026-08-13 并入 RM-AG0002】check-tdd-red.sh 无 formatter 时退化为 exit-code-only（L43）——编译失败（A 类）被误判为红灯（exit 0 推进）。有 formatter 时已区分 A/B 类（L80+），仅无 formatter 降级路径残留。修复方向：无 formatter 时对 exit code 做更保守判定（如 exit 1 且输出含 compile/error 关键词 → 判 A 类）"
+  - "【2026-08-13 并入 TPV0090 复盘】M4：check-tdd-red.sh B 类检测只认 import_errors（L70/88-92），不认 NameError——测试代码引用未实现符号抛 NameError 时，syntax=0 import=0 errors>0 → 判 A 类（test code has errors）→ return 1 拦截。但'测试引用未实现符号'正是 TDD 红灯的正常状态（B 类）。修复方向：B 类检测纳入 NameError（项目内未定义符号），或在 formatter 无错误分类时区分'未定义名'与'真实测试 bug'。注意与 RM-AG0002 一起改（同文件 check-tdd-red.sh，先写 A/B 判定增强失败测试）。保持向后兼容：现有用了 globals().get() 规避模式的测试仍应通过"
 
 executor_env:
   platform: "opencode"

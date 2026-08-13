@@ -21,3 +21,7 @@ __pycache__/
 *~
 .DS_Store
 .worktrees/
+
+# 发布产物（dist/ 忽略；version.txt 是发布版本文件，必须入库，不被任何规则误忽略）
+dist/
+!version.txt

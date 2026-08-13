@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-27 仓库 .gitignore 模板预设 version.txt/dist 白名单（Q5）
+
+## 命令: bats --filter "bdd-27 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

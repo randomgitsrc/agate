@@ -28,9 +28,15 @@ agate 协议结构一致性检查 (P3-1)
 from __future__ import annotations
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
+
+# Windows 下中文 print 在 cp1252 编码会崩 UnicodeEncodeError——强制 stdout 用 UTF-8
+# （Python 3.7+；Linux UTF-8 环境无副作用，CI ubuntu job 行为不变）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 try:
     import yaml
@@ -122,7 +128,9 @@ def iter_md_files(root: Path):
 
 
 def rel(root: Path, p: Path) -> str:
-    return str(p.relative_to(root))
+    # Windows 下 Path.relative_to 返回反斜杠路径，NARRATIVE_DIRS/PROTOCOL_DIRS 白名单
+    # （正斜杠）匹配失败 → 统一为正斜杠（Linux 下无变化）
+    return str(p.relative_to(root)).replace(os.sep, "/")
 
 
 def is_protocol_file(relpath: str) -> bool:

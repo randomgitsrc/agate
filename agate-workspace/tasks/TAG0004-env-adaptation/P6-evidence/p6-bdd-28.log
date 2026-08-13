@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-28 check-gate.sh P1 反引号包裹 [SUGGEST: ...] 计入 SUGGEST WARNING（RM-AG0001）
+
+## 命令: bats --filter "bdd-28 " agate/tests/unit/check-gate.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

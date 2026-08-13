@@ -51,3 +51,18 @@ EOF
     [[ "$output" == *"attempt: 2"* ]]
     [[ "$output" == *"test reason"* ]]
 }
+# ========== TAG0004 S3 中文写（BDD-7） ==========
+
+@test "bdd-7 agate-retreat-state.py write_retreat 写回中文 reason 完整（allow_unicode，S3 中文写）" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/retreat-XXXXXX")
+    cat > "$dir/.state.yaml" <<'EOF'
+task_id: T001
+phase: P1
+status: active
+retries: {}
+EOF
+    run bash -c "STATE_FILE='$dir/.state.yaml' NEW_PHASE=P2 RETREAT_REASON='回退原因含中文' python3 '$AGATE_SCRIPTS/agate-retreat-state.py' write_retreat"
+    [ "$status" -eq 0 ]
+    grep -q '回退原因含中文' "$dir/.state.yaml"
+    grep -q '^phase: P2' "$dir/.state.yaml"
+}

@@ -46,12 +46,14 @@ case "$PHASE" in
           echo "GATE P1: P1-review.md 不存在——P1 评审不可裁，所有任务都需独立 requirements-review" >&2
           exit 1
       fi
-      P1_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P1_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+      # M6（BDD-14）：frontmatter 提取 CRLF 容错——sed 首命令 s/\r$// 剥行尾 \r（CRLF md 的 ---\r 不匹配 /^---$/），
+      # 后接原范围模式。LF 文件 s/\r$// 无匹配，行为不变（BDD-15 回归守卫）。本文件内 8 处 /^---$/ 提取统一此模式。
+      P1_REVIEW_STATUS=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P1_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
       if [ "$P1_REVIEW_STATUS" != "approved" ]; then
           echo "GATE P1: P1-review.md frontmatter status 非 approved（当前: ${P1_REVIEW_STATUS:-缺失}）" >&2
           exit 1
       fi
-      P1_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P1_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+      P1_REVIEW_AGENT=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P1_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
       if [ -z "$P1_REVIEW_AGENT" ]; then
           echo "GATE P1: P1-review.md status:approved 但缺 agent 字段" >&2
           exit 1
@@ -65,10 +67,11 @@ case "$PHASE" in
           exit 1
       fi
       # P1 NEED_CONFIRM 检查（v0.30.2 三值分级：[NEED_CONFIRM] 阻塞 / [SUGGEST:] 不阻塞 / [NO_NEED_CONFIRM] 负向）
+      # RM-AG0001：行首正则加可选反引号前缀（`[NEED_CONFIRM] 反引号包裹标记不再漏计；含 `- \`[..]` 反引号在 dash 之后的形态）
       P1_FILE="$TASK_DIR/P1-requirements.md"
-      NC_BLOCKING=$(grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null || echo 0)
+      NC_BLOCKING=$(grep -cE '^\s*`*-?\s*`*\[NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null || echo 0)
       NC_BLOCKING=$(echo "$NC_BLOCKING" | tail -1)
-      NC_SUGGEST=$(grep -cE '^\s*-?\s*\[SUGGEST:' "$P1_FILE" 2>/dev/null || echo 0)
+      NC_SUGGEST=$(grep -cE '^\s*`*-?\s*`*\[SUGGEST:' "$P1_FILE" 2>/dev/null || echo 0)
       NC_SUGGEST=$(echo "$NC_SUGGEST" | tail -1)
       # v2.0 T001 流 C（BDD-21）：NEED_CONFIRM "已解决/已确认"状态结构化——
       # frontmatter need_confirm_resolved 存在时，逐条匹配正文每条 NEED_CONFIRM 的
@@ -76,7 +79,7 @@ case "$PHASE" in
       # F14 教训的 0-vs-0 歧义）。frontmatter 无该字段（旧格式）→ 沿用整段计数阻塞。
       NC_UNRESOLVED="$NC_BLOCKING"
       if [ "$NC_BLOCKING" -gt 0 ]; then
-          NC_RESOLVED_PRESENT=$(sed -n '/^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^need_confirm_resolved:' || true)
+          NC_RESOLVED_PRESENT=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^need_confirm_resolved:' || true)
           NC_RESOLVED_PRESENT=$(echo "$NC_RESOLVED_PRESENT" | tail -1)
           if [ "$NC_RESOLVED_PRESENT" -gt 0 ]; then
               NC_RESOLVED_FM=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" need_confirm_resolved 2>/dev/null || echo "")
@@ -86,7 +89,7 @@ case "$PHASE" in
                   if ! printf '%s\n' "$NC_RESOLVED_FM" | grep -qFx -- "$nc_desc"; then
                       NC_UNRESOLVED=$((NC_UNRESOLVED + 1))
                   fi
-              done < <(grep -E '^\s*-?\s*\[NEED_CONFIRM\]' "$P1_FILE" | sed -E 's/^\s*-?\s*\[NEED_CONFIRM\][[:space:]]*//')
+              done < <(grep -E '^\s*`*-?\s*`*\[NEED_CONFIRM\]' "$P1_FILE" | sed -E 's/^\s*`*-?\s*`*\[NEED_CONFIRM\][[:space:]]*//')
           fi
       fi
       if [ "$NC_UNRESOLVED" -gt 0 ]; then
@@ -96,7 +99,7 @@ case "$PHASE" in
       # v2.0 T001 流 C：SUGGEST WARNING 去重——suggest_resolved 已采纳项不重复 WARNING
       NC_SUGGEST_UNACKED="$NC_SUGGEST"
       if [ "$NC_SUGGEST" -gt 0 ]; then
-          SG_RESOLVED_PRESENT=$(sed -n '/^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^suggest_resolved:' || true)
+          SG_RESOLVED_PRESENT=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P1_FILE" 2>/dev/null | grep -c '^suggest_resolved:' || true)
           SG_RESOLVED_PRESENT=$(echo "$SG_RESOLVED_PRESENT" | tail -1)
           if [ "$SG_RESOLVED_PRESENT" -gt 0 ]; then
               SG_RESOLVED_FM=$(FILE="$P1_FILE" python3 "$SCRIPT_DIR/agate-md-field-get.py" suggest_resolved 2>/dev/null || echo "")
@@ -106,7 +109,7 @@ case "$PHASE" in
                   if ! printf '%s\n' "$SG_RESOLVED_FM" | grep -qFx -- "$sg_desc"; then
                       NC_SUGGEST_UNACKED=$((NC_SUGGEST_UNACKED + 1))
                   fi
-              done < <(grep -E '^\s*-?\s*\[SUGGEST:' "$P1_FILE" | sed -E 's/^\s*-?\s*\[SUGGEST:[[:space:]]*//; s/\]\s*$//')
+              done < <(grep -E '^\s*`*-?\s*`*\[SUGGEST:' "$P1_FILE" | sed -E 's/^\s*`*-?\s*`*\[SUGGEST:[[:space:]]*//; s/`[[:space:]]*$//; s/\]\s*$//')
           fi
       fi
       if [ "$NC_SUGGEST_UNACKED" -gt 0 ]; then
@@ -126,7 +129,7 @@ case "$PHASE" in
           echo "GATE P1: 不合规的 NEED_CONFIRM 标记格式（须用行首 [NEED_CONFIRM]、[SUGGEST: ...] 或 [NO_NEED_CONFIRM] 声明）" >&2
           exit 1
       fi
-      if [ "$NC_BLOCKING" -eq 0 ] && [ "$NC_SUGGEST" -eq 0 ] && ! grep -qE '^\s*-?\s*\[NO_NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null; then
+      if [ "$NC_BLOCKING" -eq 0 ] && [ "$NC_SUGGEST" -eq 0 ] && ! grep -qE '^\s*`*-?\s*`*\[NO_NEED_CONFIRM\]' "$P1_FILE" 2>/dev/null; then
           echo "GATE P1 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] / [SUGGEST: ...] / [NO_NEED_CONFIRM]）" >&2
       fi
       echo "GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式为 #### BDD-NN:" >&2
@@ -156,12 +159,12 @@ case "$PHASE" in
               echo "GATE P2: P2-review.md 不存在（P2 评审不可裁剪，必须派发独立 subagent 产出）" >&2
               exit 1
           fi
-          P2_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+          P2_REVIEW_STATUS=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P2_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
           if [ "$P2_REVIEW_STATUS" != "approved" ]; then
               echo "GATE P2: P2-review.md frontmatter status 非 approved（当前: ${P2_REVIEW_STATUS:-缺失}）" >&2
               exit 1
           fi
-          P2_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P2_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+          P2_REVIEW_AGENT=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P2_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
           if [ -z "$P2_REVIEW_AGENT" ]; then
               echo "GATE P2: P2-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）" >&2
               exit 2
@@ -225,12 +228,12 @@ case "$PHASE" in
           echo "GATE P4: P4-review.md 不存在（P4 评审不可裁剪，必须派发独立 subagent 产出，见 phase-cards/P4-implementation.md C8 机械映射）" >&2
           exit 1
       fi
-      P4_REVIEW_STATUS=$(sed -n '/^---$/,/^---$/p' "$P4_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
+      P4_REVIEW_STATUS=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P4_REVIEW" | { grep '^status:' || true; } | sed 's/^status:\s*//' | head -1)
       if [ "$P4_REVIEW_STATUS" != "approved" ]; then
           echo "GATE P4: P4-review.md frontmatter status 非 approved（当前: ${P4_REVIEW_STATUS:-缺失}）" >&2
           exit 1
       fi
-      P4_REVIEW_AGENT=$(sed -n '/^---$/,/^---$/p' "$P4_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
+      P4_REVIEW_AGENT=$(sed -n 's/\r$//; /^---$/,/^---$/p' "$P4_REVIEW" | { grep '^agent:' || true; } | sed 's/^agent:\s*//' | head -1)
       if [ -z "$P4_REVIEW_AGENT" ]; then
           echo "GATE P4: P4-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）" >&2
           exit 2
@@ -353,8 +356,9 @@ case "$PHASE" in
           DEVCRIT=$DEVCRIT_FM
       else
           # 旧格式回退：正文 grep + 非计数行排除正则（既有逻辑）
-          BLOCKERS=$(grep -E '^\s*-?\s*\[BLOCKER\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[BLOCKER\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
-          DEVCRIT=$(grep -E '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[DEVIATION-CRITICAL\][:：]?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
+          # M4：[:：] bracket 在 POSIX locale 不匹配全角冒号 → 改 alternation (:|：)
+          BLOCKERS=$(grep -E '^\s*-?\s*\[BLOCKER\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[BLOCKER\](:|：)?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
+          DEVCRIT=$(grep -E '^\s*-?\s*\[DEVIATION-CRITICAL\]' "$P7_FILE" 2>/dev/null | grep -cvE '\[DEVIATION-CRITICAL\](:|：)?[[:space:]]*[0-9]+[[:space:]]*条?[[:space:]]*$' || echo 0)
           BLOCKERS=$(echo "$BLOCKERS" | tail -1)
           DEVCRIT=$(echo "$DEVCRIT" | tail -1)
       fi

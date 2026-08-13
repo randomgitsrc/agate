@@ -43,6 +43,13 @@ for m in re.finditer(r".*(?:SyntaxError|IndentationError).*", output):
     file = file_match.group(1) if file_match else ""
     syntax_errors.append({"file": file, "message": line})
 
+name_errors = []
+for m in re.finditer(r".*NameError: name '([^']+)' is not defined.*", output):
+    line = m.group(0).strip()
+    symbol = m.group(1)
+    module = symbol.rpartition('.')[0]
+    name_errors.append({"symbol": symbol, "module": module, "message": line})
+
 result = {
     "exit_code": exit_code,
     "total": total,
@@ -51,7 +58,8 @@ result = {
     "errors": errors,
     "failed_tests": failed_tests,
     "import_errors": import_errors,
-    "syntax_errors": syntax_errors
+    "syntax_errors": syntax_errors,
+    "name_errors": name_errors
 }
 
 print(json.dumps(result, separators=(",", ":")))

@@ -1,0 +1,38 @@
+
+## P3 progress — test-designer（2026-08-13）
+
+- [x] 读 P3-dispatch-context-test-designer.md、test-designer.md、P0-brief.md
+- [x] 读 P1-requirements.md（37 BDD）、P2-design.md（候选 1A-16A + 映射表）、P2-review.md（4 观察项）
+- [x] 读 HANDOFF-TAG0004.md、AGENTS.md、helpers（load/fixtures/git-helper）
+- [x] 读参考测试：check-tdd-red.bats、check-tdd-red-formatter.bats、check-p6-evidence.bats、check-p6-format.bats、check-gate.bats、agate-md-field-get.bats、agate-next-card.bats、agate-workspace-resolve.bats、agate-render-dispatch-prompt.bats、install-hook.bats、pre-commit-hook.bats、sanity.bats、count-tests.sh
+- [x] 读被测脚本：pre-commit-gate.sh、check-gate.sh、check-p6-evidence.sh、check-p6-format.sh、check-tdd-red.sh、gate-result.sh、agate-next-card.sh、agate-workspace-resolve.sh、install-hook.sh、agate-render-dispatch-prompt.sh、pytest.sh formatter
+- [x] 确认 S3 审计现状：13 个 py 文本 open() 缺 encoding（与 P1 §6 清单一致）；Image.open 为二进制除外
+- [x] 确认 Q2 现状：P1/P2/P3/P4/P6/P7/P8 七张卡残留 mode B（"更新 phase=Pn → Pn+1"）；P5 已对齐
+- [x] 确认 CI 现状：protocol-tests.yml 仅 ubuntu-latest；.gitignore 无 version.txt/dist 预设
+- [x] 下一步：实测 M4/M5 locale 行为 + Q1 归一化行为，避免手写魔数断言与数据矛盾
+- [x] 实测验证（/tmp/opencode/tag0004-exp）：
+  - BDD-11 RED：LC_ALL=C 下 `[BLOCKER]：3 条` 被误计（BLOCKER=1, exit 1）
+  - BDD-12/13 GREEN：GNU sed 下 --fix 对 `- fail：3` / `- FAIL: 3` 均归一化为 **Summary**: FAIL: 3（M5 为 BSD/busybox 可移植性修复，Linux 回归守卫）
+  - BDD-28 RED：反引号 `` `[SUGGEST: ...]` `` 不计数（无 SUGGEST 行）
+  - BDD-29 RED：反引号 `` `[NEED_CONFIRM]` `` 走"不合规格式"路径，非"未解决"阻塞（消息不含"未解决的 NEED_CONFIRM"）
+  - BDD-30 RED：无 formatter + SyntaxError → exit 0 误判；BDD-31 GREEN（普通失败 exit 0）
+  - BDD-35 RED：formatter NameError → A 类 exit 1；BDD-36/37 GREEN（断言失败 exit 0 / TypeError exit 1）
+  - BDD-9 RED：中文证据引用被误判缺引用（exit 1）；BDD-10 GREEN（(见截图) exit 1）
+  - BDD-21 RED：AGATE_ROOT='C:\proj\agate' 时 `路径：C:\proj\agate/phase-cards/P3-tdd.md`（反斜杠被参数扩展当转义，前缀剥离失败）
+  - BDD-22 GREEN：Linux 常规路径输出 `路径：phase-cards/P3-tdd.md`
+  - BDD-18 RED：.agate.env CRLF → AGATE_WORKSPACE 值带 \r
+  - BDD-17 RED：目录 T[1] + [PROD_TOUCHED] 行 → PROD_TOUCHED 检测被绕过，commit exit 0
+  - BDD-19 RED：复制模式 hook AGATE_ROOT 落到 .git → gate-result.sh 加载失败 exit 1
+  - BDD-20 RED：AGATE_ROOT 含 & → 输出残留 {agate_root}（sed & 解释）
+  - BDD-14 RED：CRLF P1-review.md → check-gate.sh P1 "status 非 approved（缺失）" exit 1
+  - BDD-5 RED：13 py 文本 open() 缺 encoding；BDD-6/7/8/15 GREEN（Linux UTF-8 回归）
+  - BDD-23 RED：7 张卡含 "更新 .state.yaml phase=Pn → Pn+1"；BDD-24 GREEN（规则 2 在 git-integration.md）
+  - BDD-26/27/33 RED：SETUP 无 PYTHONUTF8 覆盖 / .gitignore 无 version.txt/dist / CI 无 windows-latest
+  - BDD-34 GREEN：shellcheck 现 exit 0
+- [x] 测试落点已定（unit/regression/integration 既有文件 + 2 个新文件）
+- [x] 写出全部测试代码（37 BDD → 37 用例 + formatter 层 BDD-35f，融入 11 个既有 .bats + 2 个新文件）
+- [x] 自跑确认红灯：21 红 / 16 绿（unit 16 红 + integration 5 红），既有用例零回归（unit 602 / integration 60 / regression 17 全绿）
+- [x] 红灯原因逐一核验 = "被测模块未实现"（fail-open / 字符类 / 元字符 / 前缀剥离 / bracket locale / sed & / formatter 缺字段 / 文档缺项），无断言与数据矛盾
+- [x] P3-test-cases.md 已写（含 Header + test_code_dir: agate/tests/ + 37 BDD 映射 + P2-review 4 观察项落实 + 自跑结果）
+- [x] consistency 0 ERROR、count-tests = 707（676 基线 + 31 新增）
+- [x] [PROD_NOT_TOUCHED]

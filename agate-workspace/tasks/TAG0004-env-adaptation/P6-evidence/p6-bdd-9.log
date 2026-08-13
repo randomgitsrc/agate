@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-9 check-p6-evidence.sh 中文文件名证据引用识别为合法（S2）
+
+## 命令: bats --filter "bdd-9 " agate/tests/unit/check-p6-evidence.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

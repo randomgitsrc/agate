@@ -1,0 +1,8 @@
+## 断言: protocol-tests.yml 含 windows-latest matrix（BDD-33）
+## 命令: grep -c 'windows-latest' .github/workflows/protocol-tests.yml
+4
+## matrix.os 声明（4 个 job 均双平台）:
+4
+## 断言: windows-latest 计数 > 0 且 matrix 行数=4
+assertion OK
+EXIT_CODE: 0

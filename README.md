@@ -3,6 +3,9 @@
 > 面向软件工程的 AI Agent 工作流协议。
 > 通过阶段 gate、状态落盘、角色隔离编排 subagent。
 
+[![version](https://img.shields.io/badge/version-v0.44.0-blue)](https://github.com/randomgitsrc/agate)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 ## Why agate?
 
 LLM agents are powerful but unreliable on long tasks: context gets polluted,

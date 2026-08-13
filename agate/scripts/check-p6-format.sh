@@ -66,7 +66,9 @@ fi
 FIXED="$BODY_PART"
 CHANGES=0
 
-FIXED=$(printf '%s' "$FIXED" | sed -E 's/^([[:space:]]*)-\s+(pass)([[:space:]:：]|$)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)-\s+(fail)([[:space:]:：]|$)/\1- FAIL\3/' | sed -E 's/^([[:space:]]*)(pass)([[:space:]:：]|$)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)(fail)([[:space:]:：]|$)/\1- FAIL\3/')
+# M5：line 69 的 [::] 单字节 bracket 残留——POSIX locale 下 [:：] 无法匹配全角冒号
+# → 改 alternation ([[:space:]]|:|：) 与 line 84 v0.40.3 修法统一
+FIXED=$(printf '%s' "$FIXED" | sed -E 's/^([[:space:]]*)-\s+(pass)([[:space:]]|:|：|$)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)-\s+(fail)([[:space:]]|:|：|$)/\1- FAIL\3/' | sed -E 's/^([[:space:]]*)(pass)([[:space:]]|:|：|$)/\1- PASS\3/' | sed -E 's/^([[:space:]]*)(fail)([[:space:]]|:|：|$)/\1- FAIL\3/')
 if [ "$FIXED" != "$BODY_PART" ]; then
     CHANGES=1
 fi

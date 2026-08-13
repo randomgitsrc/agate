@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(1)
 
 try:
-    with open(os.environ["YAML_PATH"]) as f:
+    with open(os.environ["YAML_PATH"], encoding="utf-8") as f:
         data = yaml.safe_load(f)
     va = data.get("vision_analysis", {}) if data else {}
     summary = va.get("summary", {})

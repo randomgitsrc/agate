@@ -213,3 +213,29 @@ EOF
     [ "$status" -eq 0 ]
     grep -q '^- PASS BDD-1' "$TASK_DIR/P6-acceptance.md"
 }
+
+# ========== TAG0004 M5 全角冒号 locale（BDD-12/13，GNU sed 下为回归守卫） ==========
+
+@test "bdd-12 check-p6-format.sh --fix LC_ALL=C 小写 fail 全角冒号总结行归一化（line 69 路径，M5）" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- PASS BDD-1: verified (evidence/log.json)
+- fail：3
+EOF
+    run env LC_ALL=POSIX LANG= bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+    grep -q '^\*\*Summary\*\*: FAIL: 3' "$TASK_DIR/P6-acceptance.md"
+}
+
+@test "bdd-13 check-p6-format.sh --fix+--check LC_ALL=C 半角冒号总结行行为不变（v0.40.3 回归，M5）" {
+    TASK_DIR=$(create_task_dir)
+    cat > "$TASK_DIR/P6-acceptance.md" <<'EOF'
+- PASS BDD-1: verified (evidence/log.json)
+- FAIL: 3
+EOF
+    run env LC_ALL=POSIX LANG= bash "$AGATE_ROOT/scripts/check-p6-format.sh" --fix "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+    grep -q '^\*\*Summary\*\*: FAIL: 3' "$TASK_DIR/P6-acceptance.md"
+    run env LC_ALL=POSIX LANG= bash "$AGATE_ROOT/scripts/check-p6-format.sh" --check "$TASK_DIR/P6-acceptance.md"
+    [ "$status" -eq 0 ]
+}

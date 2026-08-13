@@ -13,7 +13,7 @@ import os
 import re
 import sys
 
-content = open(os.environ["GATE_FILE"]).read()
+content = open(os.environ["GATE_FILE"], encoding="utf-8").read()
 if not content.endswith(chr(10)):
     content += chr(10)
 m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)

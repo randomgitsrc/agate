@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-25 修复后协议一致性检查 0 ERROR（worktree 自己的脚本，Q2）
+
+## 命令: bats --filter "bdd-25 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

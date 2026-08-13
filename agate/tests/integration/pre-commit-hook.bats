@@ -1299,3 +1299,174 @@ EOF
 
     [[ "$output" == *"WORKTREE_SOURCED"* ]]
 }
+
+# ========== TAG0004 S1 空格路径 fail-open 修复（BDD-1/2/3/4）+ M9（BDD-17）+ 复制模式（BDD-19） ==========
+# TDD 红灯：以下用例在修复实现前应红（S1 空格切词 fail-open / M9 正则元字符静默绕过 / BDD-19 复制模式 AGATE_ROOT 解析失败）。
+# 参照：IT.2（合法 P1 全流程）、IT.4（task_id 格式错误）。
+
+@test "bdd-1 pre-commit-gate 空格路径任务 gate 实际不通过时拦截（S1 fail-open 修复）" {
+    echo init > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm init
+    # 任务目录路径含空格 + 该阶段 gate 实际不通过（P1 缺 P1-review.md）
+    mkdir -p "$REPO/agate-workspace/tasks/Task Space"
+    cat > "$REPO/agate-workspace/tasks/Task Space/.state.yaml" <<'EOF'
+task_id: TXX0001
+phase: P1
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add "agate-workspace/tasks/Task Space/.state.yaml"
+    run git -C "$REPO" commit -m "space path gate fail"
+    # 修复前：空格切词 → 该 .state.yaml 被静默跳过 → fail-open（exit 0）；修复后：gate 拦截（exit 1）
+    [ "$status" -eq 1 ]
+}
+
+@test "bdd-2 pre-commit-gate 多个 .state.yaml 含空格路径逐个处理（不因切词丢失文件）" {
+    echo init > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm init
+    # 正常路径任务：.state.yaml 格式合法（phase=P0，gate exit 2 手动判定不阻塞）
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
+task_id: TXX0001
+phase: P0
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add agate-workspace/tasks/T001/.state.yaml
+    # 空格路径任务：.state.yaml 格式非法（task_id 格式错）→ 格式校验应拦截
+    mkdir -p "$REPO/agate-workspace/tasks/Task Space"
+    cat > "$REPO/agate-workspace/tasks/Task Space/.state.yaml" <<'EOF'
+task_id: T001a
+phase: P0
+status: active
+retries: {}
+EOF
+    git -C "$REPO" add "agate-workspace/tasks/Task Space/.state.yaml"
+    run git -C "$REPO" commit -m "space state invalid"
+    # 修复前：空格任务被跳过 → 格式校验不触发 → exit 0；修复后：exit 1
+    [ "$status" -eq 1 ]
+}
+
+@test "bdd-3 pre-commit-gate 空格目录 PROCESSED_DIRS 不拆段 gate 正常执行（输出含 GATE P1）" {
+    echo init > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm init
+    mkdir -p "$REPO/agate-workspace/tasks/Task Space"
+    cat > "$REPO/agate-workspace/tasks/Task Space/.state.yaml" <<'EOF'
+task_id: TXX0001
+phase: P1
+status: active
+retries: {}
+EOF
+    cat > "$REPO/agate-workspace/tasks/Task Space/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    cat > "$REPO/agate-workspace/tasks/Task Space/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: TXX0001
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    git -C "$REPO" add "agate-workspace/tasks/Task Space/"
+    _write_min_valid_dispatch_context "agate-workspace/tasks/Task Space" "P1" "analyst"
+    git -C "$REPO" add "agate-workspace/tasks/Task Space/P1-dispatch-context-analyst.md"
+    run git -C "$REPO" commit -m "space valid P1"
+    [ "$status" -eq 0 ]
+    # 修复前：主循环空格切词跳过 → 该任务 gate 从未执行（输出无 GATE P1）；修复后：gate 正常执行
+    [[ "$output" == *"GATE P1"* ]]
+}
+
+@test "bdd-4 pre-commit-gate 无空格路径单任务 gate 行为不变（Linux 回归）" {
+    echo init > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm init
+    mkdir -p "$REPO/agate-workspace/tasks/T001"
+    cat > "$REPO/agate-workspace/tasks/T001/.state.yaml" <<'EOF'
+task_id: TXX0001
+phase: P1
+status: active
+retries: {}
+EOF
+    cat > "$REPO/agate-workspace/tasks/T001/P1-requirements.md" <<'EOF'
+---
+agent: test
+---
+risk_level: medium
+phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]
+- Given test precondition
+EOF
+    cat > "$REPO/agate-workspace/tasks/T001/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: TXX0001
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    git -C "$REPO" add agate-workspace/tasks/T001/
+    _write_min_valid_dispatch_context "agate-workspace/tasks/T001" "P1" "analyst"
+    git -C "$REPO" add "agate-workspace/tasks/T001/P1-dispatch-context-analyst.md"
+    run git -C "$REPO" commit -m "normal P1"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"GATE P1"* ]]
+}
+
+@test "bdd-17 pre-commit-gate 任务目录含 [ 元字符时 PROD_TOUCHED 检测不静默绕过（M9）" {
+    echo init > "$REPO/README.md"
+    git -C "$REPO" add README.md
+    git -C "$REPO" commit -qm init
+    # 目录名含正则元字符 [ ]（TASK_REL 拼入 grep -E 的位置）
+    mkdir -p "$REPO/agate-workspace/tasks/T[1]"
+    cat > "$REPO/agate-workspace/tasks/T[1]/.state.yaml" <<'EOF'
+task_id: TXX0001
+phase: P5
+status: active
+retries: {}
+EOF
+    cat > "$REPO/agate-workspace/tasks/T[1]/P5-verification.md" <<'EOF'
+[PROD_TOUCHED] 生产环境被接触
+EOF
+    git -C "$REPO" add "agate-workspace/tasks/T[1]/"
+    run git -C "$REPO" commit -m "metachar prod touched"
+    # 修复前：grep -E 把 [1] 当字符类 → 前缀不匹配 → PROD_TOUCHED 检测被静默绕过（exit 0）；修复后：exit 1
+    [ "$status" -eq 1 ]
+}
+
+@test "bdd-19 pre-commit-gate 复制模式 hook 经 .agate-root 标记正确解析 AGATE_ROOT（其他-b）" {
+    local repo
+    repo=$(git_init)
+    # 复制模式安装（Windows 无符号链接权限）：hook 是副本，非软链
+    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
+    chmod +x "$repo/.git/hooks/pre-commit"
+    # 复制模式安装时 install-hook.sh 写入的 AGATE_ROOT 兜底标记（修复后生效）
+    printf '%s\n' "$AGATE_ROOT" > "$repo/.git/hooks/.agate-root"
+    cd "$repo"
+    echo init > README.md
+    git add README.md
+    git commit -qm init
+    mkdir -p agate-workspace/tasks/T001
+    cat > agate-workspace/tasks/T001/.state.yaml <<'EOF'
+task_id: TXX0001
+phase: P0
+status: active
+retries: {}
+EOF
+    git add agate-workspace/tasks/T001/
+    # 需 unset AGATE_ROOT：load.bash 已 export，会掩盖 readlink 解析路径；复制模式故障仅在无 env 覆盖时暴露
+    run env -u AGATE_ROOT git commit -m "copy mode hook"
+    # 修复前：readlink 解析到 .git/hooks → AGATE_ROOT 错 → gate-result.sh 加载失败 exit 1；修复后：exit 0
+    [ "$status" -eq 0 ]
+}

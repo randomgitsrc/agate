@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-31 check-tdd-red.sh 无 formatter 普通断言失败仍判正确红灯（exit 0，RM-AG0002）
+
+## 命令: bats --filter "bdd-31 " agate/tests/unit/check-tdd-red.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

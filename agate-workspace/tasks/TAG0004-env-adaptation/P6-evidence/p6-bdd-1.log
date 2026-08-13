@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-1 pre-commit-gate 空格路径任务 gate 实际不通过时拦截（S1 fail-open 修复）
+
+## 命令: bats --filter "bdd-1 " agate/tests/integration/pre-commit-hook.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

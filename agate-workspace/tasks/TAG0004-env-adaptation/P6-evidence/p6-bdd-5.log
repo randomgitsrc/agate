@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-5 全部 agate/scripts/*.py 文本 open()/read_text() 带 encoding=utf-8（Image.open 与二进制除外，S3）
+
+## 命令: bats --filter "bdd-5 " agate/tests/unit/agate-scripts-encoding.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

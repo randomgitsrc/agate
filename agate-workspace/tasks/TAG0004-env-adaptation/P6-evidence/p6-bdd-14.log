@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-14 check-gate.sh P1 CRLF 行尾 P1-review.md frontmatter 提取不失效（M6）
+
+## 命令: bats --filter "bdd-14 " agate/tests/unit/check-gate.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

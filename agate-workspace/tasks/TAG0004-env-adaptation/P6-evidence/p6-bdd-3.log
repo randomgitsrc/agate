@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-3 pre-commit-gate 空格目录 PROCESSED_DIRS 不拆段 gate 正常执行（输出含 GATE P1）
+
+## 命令: bats --filter "bdd-3 " agate/tests/integration/pre-commit-hook.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-13 check-p6-format.sh --fix+--check LC_ALL=C 半角冒号总结行行为不变（v0.40.3 回归，M5）
+
+## 命令: bats --filter "bdd-13 " agate/tests/unit/check-p6-format.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

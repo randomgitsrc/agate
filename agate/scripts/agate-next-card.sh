@@ -53,6 +53,32 @@ fi
 
 # 输出格式（固定，便于下游 hook 做 sha256 校验）
 # 路径用仓库相对路径——跨 checkout 保持字节稳定
-REL_CARD="${CARD_FILE#$AGATE_ROOT/}"
+# Q1（TAG0004）：前缀剥离先试直接剥离（Linux 字节不变），失败再归一化双方（统一 /、盘符小写）后剥离。
+# 归一化用 tr/bash 参数替换，不用 sed '\L'（GNU 专有，macOS/BSD sed 不可移植）。
+# 盘符小写（C:/ → c:/），bash 参数替换 + tr，不依赖 sed '\L'
+lower_drive() {
+    local p="$1" drive
+    if [[ "$p" =~ ^[A-Za-z]: ]]; then
+        drive="$(printf '%s' "${p:0:1}" | tr 'A-Z' 'a-z')"
+        p="${drive}${p:1}"
+    fi
+    printf '%s' "$p"
+}
+
+rel_card() {
+    local root="$1" file="$2" rel
+    rel="${file#$root/}"
+    if [ "$rel" = "$file" ]; then
+        local root_norm file_norm
+        root_norm="$(printf '%s' "$root" | tr '\\' '/' )"
+        root_norm="$(lower_drive "$root_norm")"
+        file_norm="$(printf '%s' "$file" | tr '\\' '/' )"
+        file_norm="$(lower_drive "$file_norm")"
+        rel="${file_norm#$root_norm/}"
+    fi
+    printf '%s' "$rel"
+}
+
+REL_CARD="$(rel_card "$AGATE_ROOT" "$CARD_FILE")"
 printf '## 当前阶段卡片：%s\n\n路径：%s\n---\n' "$PHASE" "$REL_CARD"
 cat "$CARD_FILE"

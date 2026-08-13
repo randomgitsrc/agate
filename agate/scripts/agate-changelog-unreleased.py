@@ -5,7 +5,7 @@ import os
 import re
 import sys
 
-with open(os.environ["CHANGELOG_FILE"]) as f:
+with open(os.environ["CHANGELOG_FILE"], encoding="utf-8") as f:
     text = f.read()
 m = re.search(r"##\s*\[Unreleased\](.*?)(?=##\s*\[|\Z)", text, re.S)
 if m:

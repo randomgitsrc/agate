@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-2 pre-commit-gate 多个 .state.yaml 含空格路径逐个处理（不因切词丢失文件）
+
+## 命令: bats --filter "bdd-2 " agate/tests/integration/pre-commit-hook.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

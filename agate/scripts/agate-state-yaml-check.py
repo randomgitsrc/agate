@@ -18,7 +18,7 @@ valid_phases = "P0 P1 P2 P3 P4 P5 P6 P7 P8 PAUSED READY DONE".split()
 
 state_file = os.environ["STATE_FILE"]
 try:
-    with open(state_file) as f:
+    with open(state_file, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 except yaml.YAMLError as e:
     print("YAML 解析错误: {}".format(e))

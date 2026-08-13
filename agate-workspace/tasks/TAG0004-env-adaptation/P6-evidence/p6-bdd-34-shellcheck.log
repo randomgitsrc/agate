@@ -1,0 +1,7 @@
+## 断言: shellcheck -S warning 对全部 agate/scripts/*.sh 0 error（BDD-34）
+## 检查脚本数量:
+29
+## shellcheck 逐脚本运行（无输出=0 问题）:
+## 结论: 无任何脚本输出 shellcheck 问题（errors=0, warnings=0）
+assertion OK (0 error)
+EXIT_CODE: 0

@@ -30,7 +30,7 @@ PROJECT_ROOT=$(realpath -m "$PROJECT_ROOT")
 # 1) .agate.env 显式配置（最高优先）
 WS_VALUE=""
 if [ -f "$PROJECT_ROOT/.agate.env" ]; then
-    WS_VALUE=$(grep -E '^AGATE_WORKSPACE=' "$PROJECT_ROOT/.agate.env" 2>/dev/null | tail -1 | sed 's/^AGATE_WORKSPACE=//' || true)
+    WS_VALUE=$(grep -E '^AGATE_WORKSPACE=' "$PROJECT_ROOT/.agate.env" 2>/dev/null | tail -1 | sed 's/^AGATE_WORKSPACE=//' | tr -d '\r' || true)
 fi
 
 if [ -n "$WS_VALUE" ]; then

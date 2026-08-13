@@ -34,6 +34,9 @@ chmod +x "$SOURCE"
 if [ -L "$HOOK_FILE" ]; then
     echo "pre-commit hook 已安装: $HOOK_FILE -> $SOURCE"
 else
+    # 复制模式（Windows 无符号链接权限）：写入 AGATE_ROOT 兜底标记。
+    # pre-commit-gate.sh 复制模式（readlink 解析不到本体）读取该标记恢复 AGATE_ROOT。
+    printf '%s\n' "$AGATE_ROOT" > "$HOOK_DIR/.agate-root"
     echo "pre-commit hook 已安装（复制模式，Windows 无符号链接权限）: $HOOK_FILE"
     echo "  ⚠️  升级 agate 后需重跑 install-hook.sh（复制不自动跟随源文件）"
 fi
