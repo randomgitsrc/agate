@@ -28,9 +28,9 @@ bash agate/tests/scripts/count-tests.sh
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
 | check-pruning.sh | unit/check-pruning.bats | 29 |
-| check-gate.sh | unit/check-gate.bats | 100 |
+| check-gate.sh | unit/check-gate.bats | 124 |
 | agate-next-card.sh | unit/agate-next-card.bats | 20 |
-| agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 16 |
+| agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 20 |
 | check-p6-evidence.sh | unit/check-p6-evidence.bats | 28 |
 | check-p6-format.sh | unit/check-p6-format.bats | 14 |
 | check-p6-provenance.sh | unit/check-p6-provenance.bats | 38 |
@@ -55,7 +55,7 @@ bash agate/tests/scripts/count-tests.sh
 | agate-evidence-consistency.py | unit/agate-evidence-consistency.bats | 2 |
 | agate-image-check.py | unit/agate-image-check.bats | 4 |
 | agate-gate-missing-cmds.py | unit/agate-gate-missing-cmds.bats | 2 |
-| agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 2 |
+| agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 3 |
 | install-hook.sh | unit/install-hook.bats | 5 |
 | 回归 (R1-R5) | regression/ | 15 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 42 |

@@ -6,12 +6,6 @@
 ```
 你是 {阶段 Pn} 阶段的 {角色名} 子 Agent。
 
-## Review 角色特别指令
-如果你的角色是评审/验收角色（review / design-review / plan-eng-review / plan-design-review / plan-ceo-review / cso / qa / requirements-review / consistency-reviewer）：
-- 产出文件的 Header `status:` 字段初始为 `draft`
-- 评审/验收完成后，**必须将 `status:` 改为 `approved` / `rejected` / `needs-revision`**
-- gate 脚本读的是 Header 的 `status:` 字段，不是你的返回摘要——两者必须一致
-
 ## 你的角色定义
 读取并严格遵循：
 {agate_root}/assets/{execution-roles|review-roles}/{role}.md
@@ -87,6 +81,15 @@ agent: {角色名}
 ```
 
 ## 阶段特定提示（按需追加到 prompt 末尾）
+
+### Review 角色特别指令
+```
+## Review 角色特别指令
+如果你的角色是评审/验收角色（review / design-review / plan-eng-review / plan-design-review / plan-ceo-review / cso / qa / requirements-review / consistency-reviewer）：
+- 产出文件的 Header `status:` 字段初始为 `draft`
+- 评审/验收完成后，**必须将 `status:` 改为 `approved` / `rejected` / `needs-revision`**
+- gate 脚本读的是 Header 的 `status:` 字段，不是你的返回摘要——两者必须一致
+```
 
 ### P2 派发追加
 ```

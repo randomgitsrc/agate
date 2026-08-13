@@ -3,7 +3,7 @@
 #
 # 新增交付物（P2-design.md §2.1-2.5 + gate_commands.P3，P2 固化）：
 #   - check-debt.sh FILE        = 默认 FILE 模式：tech-debt.md schema 校验（fail-closed）
-#   - check-debt.sh --retreat-coverage = 回退覆盖比对（只读 WARNING，恒 exit 0）
+#   - check-debt.sh --retreat-coverage = 回退覆盖比对（只读 WARNING；依赖加载失败 exit 2，无 retreat 提交等有意跳过 exit 0）
 #   - agate-debt-check.py       = 多条目 schema 校验器（` ```yaml ` fenced 块解析）
 #
 # 覆盖 P1-requirements.md 的 20 条 BDD（1:1：test_bdd_N_* 命名，N = BDD 编号）。

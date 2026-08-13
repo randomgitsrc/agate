@@ -250,10 +250,13 @@ case "$PHASE" in
       # WARNING: 如果 P2 声明了多个 gate_commands.P5 命令（单元+集成+E2E），
       # 提醒主 Agent 确认是否全部执行（T060 教训：只跑子集可能掩盖预存失败）
       if [ -f "$TASK_DIR/P2-design.md" ]; then
-          P5_CMD_COUNT=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 "$SCRIPT_DIR/agate-gate-p5-count.py" 2>/dev/null || echo 0)
-          P5_CMD_COUNT=$(echo "$P5_CMD_COUNT" | tail -1)
-          if [ "$P5_CMD_COUNT" -gt 1 ]; then
-              echo "GATE P5 WARNING: P2 声明了 ${P5_CMD_COUNT} 个 gate_commands.P5 命令，请确认已全部执行（非子集）。" >&2
+          P5_CMD_DATA=$(GATE_FILE="$TASK_DIR/P2-design.md" python3 "$SCRIPT_DIR/agate-gate-p5-count.py" 2>/dev/null || echo "0 0")
+          P5_CMD_DATA=$(printf '%s\n' "$P5_CMD_DATA" | tail -1)
+          P5_MAIN=$(printf '%s\n' "$P5_CMD_DATA" | awk '{print $1}' | tail -1)
+          P5_AUX=$(printf '%s\n' "$P5_CMD_DATA" | awk '{print $2}' | tail -1)
+          P5_TOTAL=$((P5_MAIN + P5_AUX))
+          if [ "$P5_TOTAL" -gt 1 ]; then
+              echo "GATE P5 WARNING: P2 声明了 ${P5_MAIN} 个主命令 + ${P5_AUX} 个辅助命令（共 ${P5_TOTAL} 条 gate_commands.P5 命令），请确认已全部执行（非子集）。" >&2
               echo "  T060 教训：只跑子集可能掩盖预存失败（T056 venv 遗漏跨 4 个任务周期无人发现）。" >&2
           fi
       fi

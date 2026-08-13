@@ -20,7 +20,7 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 | `check-pruning.sh` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
 | `check-scope-resolved.sh` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
 | `check-retrospective.sh` (P2.12) | 异常模式提醒（不阻塞）| 0=总是通过 |
-| `check-debt.sh` | 技术债登记校验：默认 FILE 模式=DEBT 条目 schema 校验（fail-closed）；`--retreat-coverage`=回退覆盖比对（git log `retreat:` 提交 vs `source: retreat` 条目，缺失 WARNING，恒 exit 0）| FILE 模式 0=通过, 1=校验失败；回退模式恒 0 |
+| `check-debt.sh` | 技术债登记校验：默认 FILE 模式=DEBT 条目 schema 校验（fail-closed）；`--retreat-coverage`=回退覆盖比对（git log `retreat:` 提交 vs `source: retreat` 条目，缺失 WARNING）| FILE 模式 0=通过, 1=校验失败；回退模式：依赖加载失败 exit 2（需主 Agent 自判），无 retreat 提交等有意跳过 exit 0 |
 | `gate-result.sh` | gate 结果工具函数库 | （被 source）|
 
 ### CI 兜底

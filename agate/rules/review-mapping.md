@@ -14,6 +14,7 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 
 | domain | risk_level | 触发评审角色 | 插入阶段 |
 |--------|------------|-------------|---------|
+| backend | 任意 | plan-eng-review | P2 |
 | backend | 任意 | review | P4 后 |
 | frontend | 任意 | plan-design-review | P2 |
 | frontend | 任意 | design-review | P4 后 |
@@ -21,6 +22,8 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 | security | 任意 | cso | P4 后 |
 | 任意 | **high** | plan-eng-review（P2 方案评审，硬规则） + P4 实现评审（按 domains 派 review/design-review/cso） | P2 + P4 |
 | P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review | P1 后 / P2 |
+
+> **去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。
 
 > **risk=high 的 P4 实现评审不可省**：P2 plan-eng-review 审的是方案设计（P2-design.md），
 > P4 review 审的是实现代码（SQL 注入/竞态/TOCTOU/资源泄漏）。高风险任务（安全/权限/数据
