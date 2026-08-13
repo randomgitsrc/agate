@@ -1,0 +1,10 @@
+=== BDD-3: P5 计数区分主/辅命令 ===
+--- fixture: P5 + P5_unit + P5_e2e + P5_formatter（1 主 2 辅，formatter 不计）---
+count.py 输出: 1 2
+--- fixture: 仅 P5（1 主 0 辅）---
+count.py 输出: 1 0
+--- fixture: 无 gate_commands（0 0）---
+count.py 输出: 0 0
+--- fixture: P5 + P5_e2e（1 主 1 辅）---
+count.py 输出: 1 1
+EXIT_CODE: 0

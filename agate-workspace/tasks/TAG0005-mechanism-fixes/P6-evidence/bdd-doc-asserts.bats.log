@@ -1,0 +1,18 @@
+=== 文档断言 bats 用例实跑（BDD-1/2/9/12/13/14/15）===
+--- check-gate.bats 中 TAG0005 文档断言用例清单 ---
+1347:@test "TAG0005 BDD-1 三处 C8 表 backend 行含 plan-eng-review（P2 方案评审触发）" {
+1353:@test "TAG0005 BDD-2 check-gate.sh P2 分支仍无条件要求 P2-review.md（gate 不改，回归锁）" {
+1358:@test "TAG0005 BDD-9 协议内「Review 角色特别指令」仅模板单文件（rg -l 单文件语义）" {
+1366:@test "TAG0005 BDD-12 dispatch-protocol.md 空返回恢复策略含「自动重试一次」" {
+1370:@test "TAG0005 BDD-13 dispatch-protocol.md 短会话（<1min）异常告警含「会话时长异常短」" {
+1375:@test "TAG0005 BDD-14 dispatch-protocol.md retry 上限/PAUSED 段未改（回归锁）" {
+1380:@test "TAG0005 BDD-15 全仓 scripts「stderr 报错后 exit 0」仅剩「跳过」语义" {
+--- 运行 check-gate.bats 并提取 TAG0005 相关用例结果 ---
+ok 83 TAG0005 BDD-1 三处 C8 表 backend 行含 plan-eng-review（P2 方案评审触发）
+ok 84 TAG0005 BDD-2 check-gate.sh P2 分支仍无条件要求 P2-review.md（gate 不改，回归锁）
+ok 85 TAG0005 BDD-9 协议内「Review 角色特别指令」仅模板单文件（rg -l 单文件语义）
+ok 86 TAG0005 BDD-12 dispatch-protocol.md 空返回恢复策略含「自动重试一次」
+ok 87 TAG0005 BDD-13 dispatch-protocol.md 短会话（<1min）异常告警含「会话时长异常短」
+ok 88 TAG0005 BDD-14 dispatch-protocol.md retry 上限/PAUSED 段未改（回归锁）
+ok 89 TAG0005 BDD-15 全仓 scripts「stderr 报错后 exit 0」仅剩「跳过」语义
+EXIT_CODE: 0

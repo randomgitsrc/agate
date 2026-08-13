@@ -1,0 +1,25 @@
+=== BDD-1: 三处 C8 表 backend 行含 P2 触发角色 ===
+--- role-system.md C8 表 backend 行 ---
+43:| 工程经理 | plan-eng-review.md | P2 | 架构对不对 |
+56:| backend | 任意 | plan-eng-review（P2 方案评审）+ review（P4 后）|
+60:| 任意 | **high** | **plan-eng-review 必须派发**（P2.1 硬规则，check-gate.sh 对 agent=main 硬拦截 exit 1）|
+63:**去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。
+68:- **`risk_level: high` 是新增触发维度**——P2 review 必须派发独立 plan-eng-review，不再允许主 Agent 自己跑
+69:- `agent:` 字段协作规范：所有评审产出文件（P2-review.md 等）Header 含 `agent: plan-eng-review` 等——主 Agent 在派发 prompt Header 里填好，subagent 复制即可
+70:- 高频评审角色（hardening 后）排序变化：`plan-eng-review` 和 `cso` 因为 risk=high + security/权限触发率上升成为最高频
+93:你是 plan-eng-review 评审角色。
+94:角色定义：读取 {agate_root}/assets/review-roles/plan-eng-review.md
+113:例如 plan-ceo-review 的结论是"转向"，映射为 `status: rejected`；plan-eng-review 的"approved"直接就是 `status: approved`。无论用哪个评审角色做门槛，主 Agent 都只读 `status` 字段判定，不需要理解各角色的具体结论语义。
+153:  - 涉及架构/技术方案 → plan-eng-review
+173:├── plan-eng-review   → P2-review-eng.md
+--- review-mapping.md C8 表 backend 行 ---
+17:| backend | 任意 | plan-eng-review | P2 |
+23:| 任意 | **high** | plan-eng-review（P2 方案评审，硬规则） + P4 实现评审（按 domains 派 review/design-review/cso） | P2 + P4 |
+26:> **去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。
+28:> **risk=high 的 P4 实现评审不可省**：P2 plan-eng-review 审的是方案设计（P2-design.md），
+--- phase-cards/P2-design.md C8 表 backend 行 ---
+95:| backend | 任意 | plan-eng-review（P2 方案评审） |
+97:| 任意 | high | plan-eng-review（硬规则，必须派独立 subagent） |
+100:> **去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。
+111:   - plan-eng-review → P2-review-eng.md
+EXIT_CODE: 0

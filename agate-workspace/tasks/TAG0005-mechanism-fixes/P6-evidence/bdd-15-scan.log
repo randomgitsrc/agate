@@ -1,0 +1,12 @@
+=== BDD-15: 全仓 scripts「>&2;\s*exit 0」仅剩显式跳过语义 ===
+--- rg 扫描 ---
+agate/scripts/agate-capture-env-baseline.sh:23:[ -f "$P2_FILE" ] || { echo "ENV_BASELINE: P2-design.md 不存在，跳过基线捕获（P2 未完成前不应到达此步）" >&2; exit 0; }
+agate/scripts/agate-capture-env-baseline.sh:26:[ -z "$P5_DATA" ] && { echo "ENV_BASELINE: 未在 P2-design.md 找到 gate_commands.P5，跳过基线捕获" >&2; exit 0; }
+agate/scripts/agate-capture-env-baseline.sh:28:COMMIT=$(git rev-parse HEAD 2>/dev/null) || { echo "ENV_BASELINE: 非 git 仓库，跳过" >&2; exit 0; }
+--- 命中行数 ---
+agate/scripts/agate-capture-env-baseline.sh:3
+--- 逐行检查消息文本含「跳过」语义 ---
+命中: agate/scripts/agate-capture-env-baseline.sh:23:[ -f "$P2_FILE" ] || { echo "ENV_BASELINE: P2-design.md 不存在，跳过基线捕获（P2 未完成前不应到达此步）" >&2; exit 0; }
+命中: agate/scripts/agate-capture-env-baseline.sh:26:[ -z "$P5_DATA" ] && { echo "ENV_BASELINE: 未在 P2-design.md 找到 gate_commands.P5，跳过基线捕获" >&2; exit 0; }
+命中: agate/scripts/agate-capture-env-baseline.sh:28:COMMIT=$(git rev-parse HEAD 2>/dev/null) || { echo "ENV_BASELINE: 非 git 仓库，跳过" >&2; exit 0; }
+EXIT_CODE: 0

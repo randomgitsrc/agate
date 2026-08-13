@@ -1,0 +1,22 @@
+=== BDD-9 复核：协议内该指令仅模板一处（含脚本引用核查）===
+--- grep -rl 全部协议文件（含 .sh）---
+agate/assets/templates/dispatch-prompt.md
+agate/scripts/agate-render-dispatch-prompt.sh
+agate/tests/unit/check-gate.bats
+agate/tests/unit/agate-render-dispatch-prompt.bats
+--- 命中文件明细 ---
+agate/assets/templates/dispatch-prompt.md:85:### Review 角色特别指令
+agate/assets/templates/dispatch-prompt.md:87:## Review 角色特别指令
+agate/scripts/agate-render-dispatch-prompt.sh:82:    review_appendix="$(sed -n '/^### Review 角色特别指令$/,/^### /p' "$TEMPLATE" | sed '/^### /d' | extract_first_code_block)"
+agate/tests/unit/check-gate.bats:1358:@test "TAG0005 BDD-9 协议内「Review 角色特别指令」仅模板单文件（rg -l 单文件语义）" {
+agate/tests/unit/check-gate.bats:1360:    hits=$(grep -rl 'Review 角色特别指令' "$AGATE_ROOT" --include='*.md' 2>/dev/null || true)
+agate/tests/unit/agate-render-dispatch-prompt.bats:136:@test "RP.18: execution 角色渲染不含「Review 角色特别指令」（BDD-7）" {
+agate/tests/unit/agate-render-dispatch-prompt.bats:139:    [[ "$output" != *"Review 角色特别指令"* ]]
+agate/tests/unit/agate-render-dispatch-prompt.bats:142:@test "RP.19: review 角色渲染含「Review 角色特别指令」完整 status 语义 approved/rejected/needs-revision（BDD-8）" {
+agate/tests/unit/agate-render-dispatch-prompt.bats:145:    [[ "$output" == *"Review 角色特别指令"* ]]
+--- render 脚本对该节的机制引用（sed 范围提取，非无条件注入副本）---
+80:review_appendix=""
+82:    review_appendix="$(sed -n '/^### Review 角色特别指令$/,/^### /p' "$TEMPLATE" | sed '/^### /d' | extract_first_code_block)"
+109:if [ -n "$review_appendix" ]; then
+110:    rendered="${rendered}"$'\n\n'"${review_appendix}"
+EXIT_CODE: 0

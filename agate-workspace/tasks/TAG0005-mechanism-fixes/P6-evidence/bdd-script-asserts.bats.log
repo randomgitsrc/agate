@@ -1,0 +1,40 @@
+=== 脚本断言 bats 用例实跑（BDD-3/4/5/6/16）===
+--- agate-gate-p5-count.bats（GPC.1/2/3，BDD-3）---
+ok 1 GPC.1 统计 P5 主/辅命令数（1 主 + 2 辅 → '1 2'，BDD-1）
+ok 2 GPC.2 无 gate_commands 块 → 0 0
+ok 3 GPC.3 块含 P5+P5_formatter → 1 0（aux 排除 _formatter，BDD-3）
+--- agate-read-p5-commands.bats（P5C.*，BDD-6 回归守卫）---
+ok 1 P5C.1 P2 含 P5 + P5_formatter + P5_js → 输出对象含 commands
+ok 2 P5C.2 P2 无 gate_commands.P5 → 输出空（供 bash -z 判定）
+ok 3 P5C.3 P2 无 gate_commands 块 → 输出空
+ok 4 P5C.4 P5 键双引号值被去除 + suffix/formatter 关联
+--- check-gate.bats G5_CMD 用例（BDD-4/5）---
+ok 32 G5.1 T060: P2 gate_commands.P5 多命令时 P5 输出 WARNING
+ok 33 G5_CMD.1 P2 gate_commands 声明 P5+P5_e2e（1 主 + 1 辅），其他节含 20 个 bullet -> WARNING 含 1 个主命令 + 1 个辅助命令（共 2 条）而非 22（BDD-4）
+ok 34 G5_CMD.2 P2 gate_commands 只声明 P5（1 键），其他节含 10 个 bullet -> 无 WARNING
+ok 35 G5_CMD.3 P2 无 gate_commands 块 -> 无 WARNING，无崩溃
+ok 36 G5_CMD.4 P2 gate_commands 声明 P5+P6（1 个 P5 键）-> 无 WARNING（P6 不算 P5 命令）
+ok 37 G5_CMD.5 gate_commands 块位于文件末尾且无尾随换行 -> 仍正确计数 1 主 + 1 辅（共 2 条）（回归：末尾换行边界，BDD-4）
+--- agate-debt-check.bats（BDD-16 + 既有有意跳过守卫）---
+ok 1 test_bdd_1_workflow_directory_diagram_has_debt_dir
+ok 2 test_bdd_2_mkdir_nine_subdirs_synced_across_three_files
+ok 3 test_bdd_3_setup_upgrading_debt_path_consistent
+ok 4 test_bdd_4_tag0003_scope_rechecked_to_nine
+ok 5 test_bdd_5_valid_entry_passes_schema
+ok 6 test_bdd_6_evidence_missing_intercepted
+ok 7 test_bdd_7_invalid_enum_values_intercepted
+ok 8 test_bdd_8_closed_missing_task_id_or_p5p6_intercepted
+ok 9 test_bdd_9_three_state_and_open_with_task_id_legal
+ok 10 test_bdd_10_no_file_or_no_yaml_block_is_noop
+ok 11 test_bdd_11_t001_backfill_entries_pass_schema
+ok 12 test_bdd_12_retreat_requires_debt_entry_documented
+ok 13 test_bdd_13_retreat_commit_without_entry_warns
+ok 14 test_bdd_14_retreat_entry_present_no_warning
+ok 15 test_bdd_15_real_retreat_records_fixture_reproducible
+ok 16 test_bdd_16 check-debt.sh --retreat-coverage 缺 agate-workspace-resolve.sh -> exit 2 + stderr 报错（BDD-16）
+ok 17 test_bdd_16_p8_card_requires_debt_confirm_and_field
+ok 18 test_bdd_17_p8_gate_checks_debt_check_existence_only
+ok 19 test_bdd_18_empty_confirmation_observable
+ok 20 test_bdd_19_criteria_documented_with_no_registration_outlet
+ok 21 test_bdd_20_registration_does_not_exempt_current_task
+EXIT_CODE: 0

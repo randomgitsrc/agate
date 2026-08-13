@@ -1,0 +1,8 @@
+=== BDD-5: 仅主命令（无 P5_*）时不输出多命令 WARNING ===
+--- fixture: 仅 P5 → 应无「辅助命令」WARNING ---
+PASS: 未输出主/辅 WARNING
+--- check-gate P5 完整输出 ---
+GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定
+--- exit code ---
+check-gate P5 exit=2 (0 或 2 均可，只要无多命令 WARNING)
+EXIT_CODE: 0

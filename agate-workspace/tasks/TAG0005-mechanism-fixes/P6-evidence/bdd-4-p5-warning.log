@@ -1,0 +1,7 @@
+=== BDD-4: check-gate P5 多命令 WARNING 文案区分主/辅 ===
+--- fixture: P5 + P5_e2e → 应有「1 个主命令 + 1 个辅助命令」---
+GATE P5: 需从 P2-design.md gate_commands.P5 动态读取，主 Agent 自行判定
+GATE P5 WARNING: P2 声明了 1 个主命令 + 1 个辅助命令（共 2 条 gate_commands.P5 命令），请确认已全部执行（非子集）。
+--- exit code（应为 2 = WARNING 级）---
+check-gate P5 exit=2
+EXIT_CODE: 0
