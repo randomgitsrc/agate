@@ -10,7 +10,6 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0004 | agate 脚本环境适配（Windows 原生兼容 + Linux 基线回归）：pre-commit-gate 空格静默绕过 / 13 py 缺 encoding / P6 证据 ASCII 正则 / 全角冒号 locale 残留 / CRLF / 路径正则元字符 / TPV0090-M4 NameError 盲区 | 🔄 | P8 | 高 | — | 2026-08-13 | 2026-08-13 |
 
 ### 待开始
 
@@ -25,6 +24,7 @@
 | TAG0003 | agate 工作区架构（agate-workspace/ 目录规范 + roadmap 任务管理循环 + .agate.env 配置 + docs/tasks 迁移工具）→ v0.41.0 | ✅✅ | READY | 高 | 2026-08-12 |
 | TAG0002 | 重构一等任务（Phase A：change_type: refactor + P6 重构验收口径 + gate 分流）→ v0.42.0 | ✅✅ | READY | 高 | 2026-08-12 |
 | TAG0001 | agate 技术债登记闭环（Phase 1-3：模板+schema 校验+回退强制+P8 确认+回填验证 + debt/ 归类修正）→ v0.43.0 | ✅✅ | READY | 高 | 2026-08-12 |
+| TAG0004 | agate 脚本环境适配（Windows 原生兼容 + Linux 基线回归）：S1 空格路径 fail-open / S3 encoding / S2 中文证据 / M4M5 全角冒号 / M6 CRLF / M9 元字符 / Q1 路径归一化 / Q2 卡片 / Q5 文档 / RM-AG0001 / RM-AG0002+TPV0090-M4 / CI windows matrix → v0.44.0 | ✅✅ | READY | 高 | 2026-08-13 |
 
 ---
 
