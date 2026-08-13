@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-16 .gitattributes 不含强制 *.md eol 规则（历史 CRLF review 文件不被改写，M6）
+
+## 命令: bats --filter "bdd-16 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-4 pre-commit-gate 无空格路径单任务 gate 行为不变（Linux 回归）
+
+## 命令: bats --filter "bdd-4 " agate/tests/integration/pre-commit-hook.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

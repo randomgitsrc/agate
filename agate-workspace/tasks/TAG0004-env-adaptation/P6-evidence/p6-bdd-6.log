@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-6 agate-md-field-get.py 读取含中文内容协议文件正确返回字段（S3 中文读）
+
+## 命令: bats --filter "bdd-6 " agate/tests/unit/agate-md-field-get.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-22 agate-next-card.sh Linux 常规路径前缀剥离字节不变（Q1 回归）
+
+## 命令: bats --filter "bdd-22 " agate/tests/unit/agate-next-card.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-36 check-tdd-red.sh globals().get() 规避模式断言失败仍判 B 类（回归，TPV0090-M4）
+
+## 命令: bats --filter "bdd-36 " agate/tests/unit/check-tdd-red.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

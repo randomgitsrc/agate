@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-12 check-p6-format.sh --fix LC_ALL=C 小写 fail 全角冒号总结行归一化（line 69 路径，M5）
+
+## 命令: bats --filter "bdd-12 " agate/tests/unit/check-p6-format.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

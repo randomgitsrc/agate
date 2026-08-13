@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-29 check-gate.sh P1 反引号包裹 [NEED_CONFIRM] 判为未解决阻塞项（RM-AG0001）
+
+## 命令: bats --filter "bdd-29 " agate/tests/unit/check-gate.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

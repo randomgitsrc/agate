@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-33 protocol-tests.yml 含 windows-latest matrix（Windows 唯一兜底验证）
+
+## 命令: bats --filter "bdd-33 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

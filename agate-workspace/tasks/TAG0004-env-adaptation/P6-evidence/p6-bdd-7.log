@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-7 agate-retreat-state.py write_retreat 写回中文 reason 完整（allow_unicode，S3 中文写）
+
+## 命令: bats --filter "bdd-7 " agate/tests/unit/agate-retreat-state.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

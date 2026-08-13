@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-37 check-tdd-red.sh 非未定义符号的真实测试 bug（TypeError）仍判 A 类（防过宽，TPV0090-M4）
+
+## 命令: bats --filter "bdd-37 " agate/tests/unit/check-tdd-red.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

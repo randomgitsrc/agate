@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-8 agate-state-get.py Linux 纯 ASCII .state.yaml 读取行为不变（S3 回归）
+
+## 命令: bats --filter "bdd-8 " agate/tests/unit/agate-scripts-encoding.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

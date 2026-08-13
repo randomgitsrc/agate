@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-24 git-integration.md 规则 2 语义不变（commit 顺序/gate 判定逻辑无改动，Q2）
+
+## 命令: bats --filter "bdd-24 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

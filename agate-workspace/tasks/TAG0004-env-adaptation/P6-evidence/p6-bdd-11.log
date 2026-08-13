@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-11 check-gate.sh P7 LC_ALL=C 全角冒号 [BLOCKER]：3 条 总结行不误计为阻塞（M4）
+
+## 命令: bats --filter "bdd-11 " agate/tests/unit/check-gate.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

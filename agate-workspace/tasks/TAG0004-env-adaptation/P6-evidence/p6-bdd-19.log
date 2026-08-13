@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-19 pre-commit-gate 复制模式 hook 经 .agate-root 标记正确解析 AGATE_ROOT（其他-b）
+
+## 命令: bats --filter "bdd-19 " agate/tests/integration/pre-commit-hook.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

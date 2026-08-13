@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-21 agate-next-card.sh Windows 盘符/反斜杠 AGATE_ROOT 前缀剥离稳定（Q1）
+
+## 命令: bats --filter "bdd-21 " agate/tests/unit/agate-next-card.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

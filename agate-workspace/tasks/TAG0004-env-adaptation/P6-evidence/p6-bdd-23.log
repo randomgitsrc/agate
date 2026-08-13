@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-23 7 张阶段卡片与 git-integration.md 规则 2 对齐（无先更新 phase=N→N+1 旧写法，Q2）
+
+## 命令: bats --filter "bdd-23 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

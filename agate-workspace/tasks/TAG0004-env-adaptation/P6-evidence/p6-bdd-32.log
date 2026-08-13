@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-32 全量 bats 测试文件可被 bats 解析（P5 全量回归前提，BDD-32）
+
+## 命令: bats --filter "bdd-32 " agate/tests/unit/env-adapt-docs.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0

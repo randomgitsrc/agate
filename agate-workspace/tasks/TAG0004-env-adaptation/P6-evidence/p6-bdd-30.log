@@ -1,0 +1,6 @@
+1..1
+ok 1 bdd-30 check-tdd-red.sh 无 formatter + exit 1 + 编译/错误关键词 判 A 类（exit 1，RM-AG0002）
+
+## 命令: bats --filter "bdd-30 " agate/tests/unit/check-tdd-red.bats
+## 工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0004
+EXIT_CODE: 0
