@@ -30,12 +30,14 @@ get_old_phase() {
     local state_dir repo_root
     state_dir=$(realpath -m "$(dirname "$STATE_FILE")")
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+    if [ -n "$repo_root" ]; then
+        # Git for Windows 的 --show-toplevel 返回 C:/...（Windows 风格），而 realpath -m
+        # 返回 /c/...（MSYS 风格）——必须统一归一，否则字符串比较恒不等、realpath
+        # --relative-to 混用两种风格产生错误 pathspec（TAG0009 Windows ST.* 全系失败）
+        repo_root=$(realpath -m "$repo_root")
+    fi
     if [ -n "$repo_root" ] && [ "$state_dir" != "$repo_root" ]; then
         git_path=$(realpath --relative-to="$repo_root" "$STATE_FILE" 2>/dev/null || echo "$STATE_BASENAME")
-    fi
-    if [ "${AGATE_DEBUG_ST:-}" = "1" ]; then
-        echo "DEBUG-ST: state_file=$STATE_FILE basename=$STATE_BASENAME git_path=$git_path state_dir=$state_dir repo_root=$repo_root" >&2
-        git show "HEAD:$git_path" 2>&1 | head -5 >&2
     fi
     git show "HEAD:$git_path" 2>/dev/null | python3 "$SCRIPT_DIR/agate-state-get.py" phase_stdin 2>/dev/null || echo ""
 }

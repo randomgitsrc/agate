@@ -73,9 +73,7 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P3/phase: P1/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && AGATE_DEBUG_ST=1 bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml 2>&1"
-    echo "ST4-DIAG-STATUS: $status" >&2
-    printf 'ST4-TRACE: %s\n' "$output" | grep -E 'DEBUG-ST|old_phase|new_phase|exit|GATE STATE' | head -12 >&2
+    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
     # 修复后回退 P3→P1 差 2 强制 PAUSED，exit 1
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]

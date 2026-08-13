@@ -18,6 +18,11 @@ set -euo pipefail
 
 # REPO_ROOT = 当前 git 仓库根（项目仓库或 agate 仓库本身）
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+# Git for Windows 的 --show-toplevel 返回 C:/...，realpath -m 返回 /c/...——统一归一，
+# 否则 realpath --relative-to 混用两种风格产生错误路径（TAG0009 Windows 修复）
+if [ -n "$REPO_ROOT" ]; then
+    REPO_ROOT=$(realpath -m "$REPO_ROOT" 2>/dev/null || echo "$REPO_ROOT")
+fi
 
 # AGATE_ROOT = 协议本体路径
 # v0.33.0：AGATE_ROOT 自定位到脚本自身本体的上一级（支持 worktree 隔离）
