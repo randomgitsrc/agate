@@ -34,6 +34,10 @@ jobs:
           cd bats-core-1.11.0
           ./install.sh "$HOME/.local"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Install pyyaml (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pip install pyyaml
       - name: Run Unit Tests
         run: bats agate/tests/unit/
         env:

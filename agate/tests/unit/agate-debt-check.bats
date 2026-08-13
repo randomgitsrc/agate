@@ -20,7 +20,6 @@ setup() {
     if [ -n "$shim" ]; then
         export PATH="$shim:$PATH"
     fi
-    echo "DEBT-SETUP-DIAG: python3=$(command -v python3 || echo NONE) python=$(command -v python || echo NONE) shim=${shim:-EMPTY}" >&2
 }
 
 # ========== 功能组 A：debt/ 归类修正（工作区目录，BDD-1..4） ==========
@@ -308,8 +307,6 @@ EOF
 旧格式纯正文，无 yaml 块。
 EOF
     run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
-    echo "bdd5-DIAG: status=$status dir=$dir" >&2
-    printf '%s\n' "$output" | head -8 >&2
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
