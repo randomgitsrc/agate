@@ -10,14 +10,14 @@ gate_commands:
   P5_unit: pytest unit
   P5_e2e: npx vitest
 EOF
-    run bash -c "GATE_FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-gate-p5-count.py'"
+    run bash -c "GATE_FILE='$dir/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-gate-p5-count.py'"
     [ "$status" -eq 0 ]; [[ "$output" == "1 2" ]]
 }
 
 @test "GPC.2 无 gate_commands 块 → 0 0（BDD-5 边界）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/gpc-XXXXXX")
     echo "无 gate_commands" > "$dir/P2.md"
-    run bash -c "GATE_FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-gate-p5-count.py'"
+    run bash -c "GATE_FILE='$dir/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-gate-p5-count.py'"
     [ "$status" -eq 0 ]; [[ "$output" == "0 0" ]]
 }
 
@@ -28,6 +28,6 @@ gate_commands:
   P5: pytest
   P5_formatter: pytest.sh
 EOF
-    run bash -c "GATE_FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-gate-p5-count.py'"
+    run bash -c "GATE_FILE='$dir/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-gate-p5-count.py'"
     [ "$status" -eq 0 ]; [[ "$output" == "1 0" ]]
 }

@@ -11,7 +11,7 @@ EOF
     cat > "$dir/P6-evidence/result.json" <<'EOF'
 {"bdd_results": [{"id": "BDD-1", "status": "fail"}]}
 EOF
-    run bash -c "EVIDENCE_DIR='$dir/P6-evidence' P6_FILE='$dir/P6-acceptance.md' python3 '$AGATE_SCRIPTS/agate-evidence-consistency.py'"
+    run bash -c "EVIDENCE_DIR='$dir/P6-evidence' P6_FILE='$dir/P6-acceptance.md' $PYTHON '$AGATE_SCRIPTS/agate-evidence-consistency.py'"
     [ "$status" -eq 0 ]; [[ "$output" == *"BDD-1"* ]]
 }
 
@@ -24,6 +24,6 @@ EOF
     cat > "$dir/P6-evidence/result.json" <<'EOF'
 {"bdd_results": [{"id": "BDD-1", "status": "pass"}]}
 EOF
-    run bash -c "EVIDENCE_DIR='$dir/P6-evidence' P6_FILE='$dir/P6-acceptance.md' python3 '$AGATE_SCRIPTS/agate-evidence-consistency.py'"
+    run bash -c "EVIDENCE_DIR='$dir/P6-evidence' P6_FILE='$dir/P6-acceptance.md' $PYTHON '$AGATE_SCRIPTS/agate-evidence-consistency.py'"
     [ "$status" -eq 0 ]; [ -z "$output" ]
 }

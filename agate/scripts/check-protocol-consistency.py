@@ -667,6 +667,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-debt.sh",
         "keywords": ["debt", "retreat"],
     },
+    {
+        "desc": "平台假设静态扫描器（TAG0009：Unix 假设检出 + CI 阻断）",
+        "script": "agate/scripts/check-platform-assumptions.sh",
+        "keywords": ["平台假设", "R1", "R2"],
+    },
 ]
 
 

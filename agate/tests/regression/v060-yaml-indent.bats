@@ -11,7 +11,7 @@ load ../helpers/load.bash
     local block
     block=$(awk '/^executor_env:/,/^[a-z_]+:/' "$file" | head -10)
     # 验证 yaml.safe_load 成功
-    echo "$block" | python3 -c "import yaml, sys; yaml.safe_load(sys.stdin)"
+    echo "$block" | $PYTHON -c "import yaml, sys; yaml.safe_load(sys.stdin)"
 }
 
 @test "R1.2 task-files.md executor_env: 顶格（无前导空格）" {

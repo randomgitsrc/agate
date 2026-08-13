@@ -29,25 +29,25 @@ bash agate/tests/scripts/count-tests.sh
 |------|---------|-------|
 | check-pruning.sh | unit/check-pruning.bats | 29 |
 | check-gate.sh | unit/check-gate.bats | 124 |
-| agate-next-card.sh | unit/agate-next-card.bats | 20 |
+| agate-next-card.sh | unit/agate-next-card.bats | 22 |
 | agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 20 |
-| check-p6-evidence.sh | unit/check-p6-evidence.bats | 28 |
-| check-p6-format.sh | unit/check-p6-format.bats | 14 |
-| check-p6-provenance.sh | unit/check-p6-provenance.bats | 38 |
-| check-scope-resolved.sh | unit/check-scope-resolved.bats | 11 |
-| check-frontmatter.sh | unit/check-frontmatter.bats | 10 |
+| check-p6-evidence.sh | unit/check-p6-evidence.bats | 30 |
+| check-p6-format.sh | unit/check-p6-format.bats | 16 |
+| check-p6-provenance.sh | unit/check-p6-provenance.bats | 36 |
+| check-scope-resolved.sh | unit/check-scope-resolved.bats | 10 |
+| check-frontmatter.sh | unit/check-frontmatter.bats | 14 |
 | check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
-| check-state-transition.sh | unit/check-state-transition.bats | 26 |
+| check-state-transition.sh | unit/check-state-transition.bats | 30 |
 | check-changelog.sh | unit/check-changelog.bats | 8 |
-| check-retrospective.sh | unit/check-retrospective.bats | 11 |
-| check-tdd-red.sh | unit/check-tdd-red.bats | 38 |
-| formatters | unit/check-tdd-red-formatter.bats | 12 |
-| ci-gate-backstop.py | unit/ci-gate-backstop.bats | 8 |
+| check-retrospective.sh | unit/check-retrospective.bats | 10 |
+| check-tdd-red.sh | unit/check-tdd-red.bats | 43 |
+| formatters | unit/check-tdd-red-formatter.bats | 13 |
+| ci-gate-backstop.py | unit/ci-gate-backstop.bats | 11 |
 | agate-json-get.py | unit/agate-json-get.bats | 8 |
 | agate-read-p5-commands.py | unit/agate-read-p5-commands.bats | 4 |
 | agate-state-get.py | unit/agate-state-get.bats | 6 |
-| agate-retreat-state.py | unit/agate-retreat-state.bats | 3 |
-| agate-md-field-get.py | unit/agate-md-field-get.bats | 6 |
+| agate-retreat-state.py | unit/agate-retreat-state.bats | 4 |
+| agate-md-field-get.py | unit/agate-md-field-get.bats | 14 |
 | agate-state-yaml-check.py | unit/agate-state-yaml-check.bats | 3 |
 | agate-changelog-unreleased.py | unit/agate-changelog-unreleased.bats | 2 |
 | agate-card-inject.py | unit/agate-card-inject.bats | 2 |
@@ -56,10 +56,13 @@ bash agate/tests/scripts/count-tests.sh
 | agate-image-check.py | unit/agate-image-check.bats | 4 |
 | agate-gate-missing-cmds.py | unit/agate-gate-missing-cmds.bats | 2 |
 | agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 3 |
-| install-hook.sh | unit/install-hook.bats | 5 |
-| 回归 (R1-R5) | regression/ | 15 |
-| pre-commit-hook | integration/pre-commit-hook.bats | 42 |
-| pre-push-hook | integration/pre-push-hook.bats | 3 |
+| agate-extract-context.sh | unit/agate-extract-context.bats | 16 |
+| install-hook.sh | unit/install-hook.bats | 6 |
+| 测试 helper（PYTHON 探测 + shim）| unit/helpers-python.bats | 3 |
+| check-platform-assumptions.sh | scripts/check-platform-assumptions.bats | 14 |
+| 回归 (R1-R5) | regression/ | 17 |
+| pre-commit-hook | integration/pre-commit-hook.bats | 48 |
+| pre-push-hook | integration/pre-push-hook.bats | 4 |
 | 协议一致性 | integration/consistency.bats | 11 |
 | self-gate | integration/protocol-alignment-review.bats | 8 |
 | 框架自检 | sanity.bats | 6 |

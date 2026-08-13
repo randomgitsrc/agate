@@ -1234,7 +1234,7 @@ ui_affected: true
 EOF2
     mkdir -p "$repo/agate-workspace/tasks/T086/P6-evidence/screenshots"
     # 生成 100x100 极低方差图（全浅色，variance=0，触发 WARNING）
-    python3 -c "
+    $PYTHON -c "
 import struct, zlib
 w, h = 100, 100
 raw = b'\x00' + b'\xff\xff\xff' * w

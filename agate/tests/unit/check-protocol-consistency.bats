@@ -4,7 +4,7 @@
 load ../helpers/load.bash
 
 @test "CHECK 9: EXIT_CODE 锚点存在且关键词匹配" {
-    run python3 -c "
+    run $PYTHON -c "
 import sys; sys.path.insert(0, '$AGATE_SCRIPTS')
 from importlib import util
 spec = util.spec_from_file_location('cpc', '$AGATE_SCRIPTS/check-protocol-consistency.py')
@@ -18,7 +18,7 @@ assert len(exit_code_anchors) >= 2, f'Expected >=2 EXIT_CODE anchors, got {len(e
 }
 
 @test "CHECK 9: AGATE_ALIGNMENT_REVIEW_THRESHOLD 锚点存在" {
-    run python3 -c "
+    run $PYTHON -c "
 import sys; sys.path.insert(0, '$AGATE_SCRIPTS')
 from importlib import util
 spec = util.spec_from_file_location('cpc', '$AGATE_SCRIPTS/check-protocol-consistency.py')
@@ -32,7 +32,7 @@ assert len(threshold_anchors) >= 1, f'Expected >=1 threshold anchor, got {len(th
 }
 
 @test "CHECK 9: ci-gate-backstop.py 被纳入 anchor coverage 扫描范围" {
-    run python3 -c "
+    run $PYTHON -c "
 import sys; sys.path.insert(0, '$AGATE_SCRIPTS')
 from importlib import util
 spec = util.spec_from_file_location('cpc', '$AGATE_SCRIPTS/check-protocol-consistency.py')

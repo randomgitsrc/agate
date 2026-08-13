@@ -5,6 +5,10 @@ load ../helpers/load.bash
 
 setup() {
     INJECT_CMD="$AGATE_SCRIPTS/agate-inject-card.sh"
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    export PATH="$shim:$PATH"
 }
 
 # ========== 基本功能 ==========

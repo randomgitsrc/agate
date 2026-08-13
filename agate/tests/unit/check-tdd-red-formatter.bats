@@ -10,7 +10,7 @@ assert_json_field() {
     local expr="$2"
     local expected="$3"
     local actual
-    actual=$(printf '%s' "$json" | python3 -c "import sys,json; d=json.load(sys.stdin); print($expr)" 2>/dev/null)
+    actual=$(printf '%s' "$json" | $PYTHON -c "import sys,json; d=json.load(sys.stdin); print($expr)" 2>/dev/null)
     [ "$actual" = "$expected" ]
 }
 
@@ -18,7 +18,7 @@ assert_json_contains() {
     local json="$1"
     local expr="$2"
     local expected="$3"
-    printf '%s' "$json" | python3 -c "
+    printf '%s' "$json" | $PYTHON -c "
 import sys,json
 d=json.load(sys.stdin)
 val=$expr

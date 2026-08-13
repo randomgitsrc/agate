@@ -8,6 +8,13 @@
 
 load ../helpers/load.bash
 
+setup() {
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    export PATH="$shim:$PATH"
+}
+
 make_fake_pytest() {
     local output="$1"
     local exit_code="$2"
@@ -486,7 +493,7 @@ gate_commands:
   P3_html_formatter: "vitest.sh"
   project_module: "myapp"
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q --tb=short"'* ]]
     [[ "$output" == *'"cmd": "npx vitest run"'* ]]
@@ -503,7 +510,7 @@ agent: test
 ---
 无 gate_commands 块
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"commands": []'* ]]
     [[ "$output" == *'"project_module": ""'* ]]
@@ -519,7 +526,7 @@ agent: test
 gate_commands:
   P3: "pytest -q"
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q"'* ]]
 }
@@ -534,7 +541,7 @@ agent: test
 gate_commands:
   P3: 'pytest -q'
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q"'* ]]
 }
@@ -543,13 +550,13 @@ EOF
     local dir
     dir=$(mktemp -d "$BATS_TEST_TMPDIR/py-XXXXXX")
     printf 'gate_commands:\n  P3: "pytest -q"' > "$dir/P2-design.md"
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q"'* ]]
 }
 
 @test "PYX.6 agate-read-gate-commands.py GATE_FILE 不存在 → 非零退出" {
-    run bash -c "GATE_FILE='/nonexistent/P2.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='/nonexistent/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -ne 0 ]
 }
 

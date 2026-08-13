@@ -16,7 +16,7 @@ load ../helpers/load.bash
     mkdir -p "$tmpdir/agate-workspace/tasks/T001-fake"
     echo "# live file" > "$tmpdir/agate-workspace/tasks/T001-fake/live.md"
 
-    run python3 -c "
+    run $PYTHON -c "
 import sys
 sys.path.insert(0, '$AGATE_SCRIPTS')
 from importlib import util
@@ -37,7 +37,7 @@ assert any('live.md' in f for f in files), f'非归档的活文件被误排除: 
     mkdir -p "$tmpdir/agate-workspace/archived/tasks/T001-fake"
     echo "not: valid: yaml: [" > "$tmpdir/agate-workspace/archived/tasks/T001-fake/bad.md"
 
-    run python3 -c "
+    run $PYTHON -c "
 import sys
 sys.path.insert(0, '$AGATE_SCRIPTS')
 from importlib import util

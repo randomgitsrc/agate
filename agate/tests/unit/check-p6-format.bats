@@ -151,7 +151,7 @@ EOF
     ! grep -q '\*\*Summary\*\*: FAIL: 0' "$TASK_DIR/P6-acceptance.md"
 
     # frontmatter 依然是合法 YAML，且 pass/fail 数值未变
-    run python3 -c "
+    run $PYTHON -c "
 import yaml
 text = open('$TASK_DIR/P6-acceptance.md').read()
 assert text.startswith('---\n'), 'frontmatter 头未保留'
@@ -186,7 +186,7 @@ EOF
     [ "$status" -eq 0 ]
 
     # frontmatter 不受影响，依然合法
-    run python3 -c "
+    run $PYTHON -c "
 import yaml
 text = open('$TASK_DIR/P6-acceptance.md').read()
 end = text.find('\n---', 4)

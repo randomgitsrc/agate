@@ -3,6 +3,13 @@
 
 load ../helpers/load.bash
 
+setup() {
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    export PATH="$shim:$PATH"
+}
+
 # 注意：此脚本需要真实 git 仓库（用 git show HEAD:file）
 
 @test "ST.1 check-state-transition.sh 无 .state.yaml 暂存 期望 exit 0" {

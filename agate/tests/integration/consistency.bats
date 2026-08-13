@@ -6,7 +6,7 @@
 load ../helpers/load.bash
 
 setup() {
-    CONSISTENCY_OUTPUT=$(python3 "$AGATE_ROOT/scripts/check-protocol-consistency.py" 2>&1) || true
+    CONSISTENCY_OUTPUT=$($PYTHON "$AGATE_ROOT/scripts/check-protocol-consistency.py" 2>&1) || true
 }
 
 @test "CON.1 CHECK 1: YAML 代码块可解析" {

@@ -8,7 +8,13 @@ load ../helpers/load.bash
     repo=$(git_init)
 
     ( cd "$repo" && bash "$AGATE_ROOT/scripts/install-hook.sh" "$AGATE_ROOT" >/dev/null 2>&1 )
-    [ -L "$repo/.git/hooks/pre-push" ] || fail "pre-push 应为软链"
+    # 平台分支：Linux 断言软链语义（readlink 指向 pre-push-gate.sh，无 -L 字面满足 R3 零命中）；
+    # Windows 复制模式断言文件已安装（软链语义由 Linux 分支 + mock ln 用例覆盖）
+    if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
+        [ -f "$repo/.git/hooks/pre-push" ] || fail "pre-push 应已安装"
+    else
+        [[ "$(readlink "$repo/.git/hooks/pre-push")" == "$AGATE_ROOT/scripts/pre-push-gate.sh" ]] || fail "pre-push 应为软链"
+    fi
 
     cd "$repo"
     echo "test" > file.txt

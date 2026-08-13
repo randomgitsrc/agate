@@ -23,8 +23,13 @@ load ../helpers/load.bash
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-pp1")
     run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' bash '$AGATE_SCRIPTS/install-hook.sh' '$AGATE_ROOT'" 2>&1
-    [[ -L "$repo/.git/hooks/pre-push" ]]
-    [[ "$(readlink "$repo/.git/hooks/pre-push")" == "$AGATE_SCRIPTS/pre-push-gate.sh" ]]
+    # 平台分支：Linux 用 readlink 断言真软链语义（R3 扫描器要求无 -L 字面）；
+    # Windows 复制模式由独立 mock ln 用例覆盖（见下）
+    if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
+        [ -f "$repo/.git/hooks/pre-push" ]
+    else
+        [[ "$(readlink "$repo/.git/hooks/pre-push")" == "$AGATE_SCRIPTS/pre-push-gate.sh" ]]
+    fi
 }
 
 @test "install-hook: 已有非软链 pre-push → 备份并替换为软链" {
@@ -35,8 +40,12 @@ load ../helpers/load.bash
     printf '#!/usr/bin/env bash\nexit 0\n' > "$hook"
     run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' bash '$AGATE_SCRIPTS/install-hook.sh' '$AGATE_ROOT'" 2>&1
     [[ "$output" == *"已备份现有 pre-push hook"* ]]
-    [[ -L "$hook" ]]
-    [[ "$(readlink "$hook")" == "$AGATE_SCRIPTS/pre-push-gate.sh" ]]
+    # 平台分支：Linux 断言软链语义；Windows 复制模式由独立 mock ln 用例覆盖
+    if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
+        [ -f "$hook" ]
+    else
+        [[ "$(readlink "$hook")" == "$AGATE_SCRIPTS/pre-push-gate.sh" ]]
+    fi
     [[ -n "$(ls "$(dirname "$hook")"/pre-push.bak.* 2>/dev/null | head -1)" ]]
 }
 

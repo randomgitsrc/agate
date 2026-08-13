@@ -5,11 +5,14 @@ on: [push, pull_request]
 jobs:
   bats:
     name: bats
-    runs-on: ubuntu-latest
-    # v0.44.0 决策：bats 测试套件仅 ubuntu 运行。
-    # Windows 兼容性由 shellcheck/consistency/gate-backstop 的 windows-latest matrix 验证
-    # （脚本产品层面）；bats 测试套件的 Windows 化是独立工作（测试基建），
-    # 见 TAG0009「agate 测试套件 Windows 化」——78 个 Windows bats 失败清单为其已知起点。
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,17 +22,57 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get install -y bats
           pip install pyyaml
+      - name: Install bats (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          curl -sSLo bats.tar.gz https://github.com/bats-core/bats-core/archive/refs/tags/v1.11.0.tar.gz
+          tar -xzf bats.tar.gz
+          cd bats-core-1.11.0
+          ./install.sh "$HOME/.local"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Run Unit Tests
         run: bats agate/tests/unit/
+        env:
+          PYTHONIOENCODING: utf-8
+      - name: Run Scanner Behavior Tests (check-platform-assumptions.bats)
+        run: bats agate/tests/scripts/check-platform-assumptions.bats
+        env:
+          PYTHONIOENCODING: utf-8
       - name: Run Regression Tests
         run: bats agate/tests/regression/
+        env:
+          PYTHONIOENCODING: utf-8
       - name: Run Integration Tests
         run: bats agate/tests/integration/
+        env:
+          PYTHONIOENCODING: utf-8
       - name: Self-check framework
         run: bats agate/tests/sanity.bats
+        env:
+          PYTHONIOENCODING: utf-8
+
+  platform-scan:
+    name: platform-scan
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run platform-assumptions scan (Linux, 阻断 gate)
+        if: runner.os == 'Linux'
+        run: bash agate/scripts/check-platform-assumptions.sh
+      - name: Run platform-assumptions scan (Windows, 等价性证明)
+        if: runner.os == 'Windows'
+        run: bash agate/scripts/check-platform-assumptions.sh
 
   shellcheck:
     name: shellcheck
