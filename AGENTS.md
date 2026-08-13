@@ -110,26 +110,7 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 - **consistency**：`python3 agate/scripts/check-protocol-consistency.py`
 - **gate-backstop**：`python3 agate/scripts/ci-gate-backstop.py`（push 后重跑 gate + P6 git blame 单 author WARNING）
 
-## v2.0 改造期间执行约定（T001，2026-08-09 起）
-
-> 本任务（agate v2.0 结构化改造，T001）期间的跨会话约定，避免重复踩坑。
-
-- **双工作区**：改造对象 = worktree 的 `agate/`（分支 feat/v2.0）；开发工具 = `~/.agate`（v0.35.0 稳定版，指向主 checkout，**勿动**）。跑 gate/读卡片用 `~/.agate`，改代码/跑测试在 worktree。主 checkout（`/home/kity/oclab/agate`）是协议本体，禁止改动。
-- **任务编号空间**：本任务 `T001` 使用 agate 改造项目**独立编号**（从 T001 起），**不沿用**主 checkout git 历史里的 peekview 项目编号（T016-T090 系列）。校验器 `agate-state-yaml-check.py` 要求 `^T\d+$`。
-- **工具纪律（卡死教训，2026-08-09 多次实战验证）**：
-  - **bash 命令一律加 `timeout`**（外层 `timeout N cmd`，N 按命令预期耗时给 30-90s），工具 timeout 参数同步设（bash 工具 timeout 毫秒）。无 timeout 的 bash 在本环境多次被 abort/挂起。
-  - **单步串行，不并行 bash**：一次只发一个 bash 调用；必须链多步时用 `&&` 且每步短。并行 bash 是 abort 高危。
-  - **卡住就换路，不重试同一 bash**：bash 偶发长时间无响应。卡住后改用 read/grep/glob **工具**（它们不走 bash，独立通道）替代，不要反复重试同一条 bash。
-  - **读文件/搜索优先用工具**：read（分段）、grep、glob 工具不占 bash 通道，能避开 bash 卡死。bash 只用于真正需要 shell 的操作（git/测试/gate）。
-  - **长命令分片 + 大 timeout**：全量 bats 分 unit/regression/integration 片跑，每片设大 timeout；gate/consistency 单跑。
-  - **输出控制在几十行内**：避免大输出（grep -c 大文件、cat 长文件）——用 `grep -n` 精确匹配或 read 分段。
-  - **先看全输出再分析**：不用 `tail` 截断关键输出（count-tests 教训：数字被 tail 吞掉导致误判）。
-  - **commit 前检查 hook 会跑什么**：pre-commit 会按 .state.yaml phase 跑 check-gate。commit 时 phase 应与"本次产出所在阶段"一致（P1 产出 → phase=P1 再 commit，commit 后再推进），否则 hook 会因"下一阶段产出不存在"拦截（P2-design 未产出时 phase=P2 → GATE P2 未通过）。
-  - **hook 机制在共享 git 目录**：worktree 的 `.git/hooks` 为空，hook 实际在共同 git 目录 `/home/kity/oclab/agate/.git/hooks/`（pre-commit/pre-push 软链已装；commit-msg 已补装）。改 hook 装那里。
-- **核心上下文**：任务目标/范围/已踩坑见 `agate-workspace/archived/plans/T001-HANDOFF-V2.0.md`（任务 READY 后归档，原在 worktree 根目录）；阶段产出已归档在 `agate-workspace/archived/tasks/T001-v2.0-structured/`（原 `docs/tasks/T001-v2.0-structured/`，PR #111 审查发现该目录混入协议变更导致 CI consistency 检查误报，归档后脱离扫描范围）。
-- **编号规则将随 v2.0 改造**：流 D 会把编号改为 Jira 式 `TAG0001`（项目代号+动态数字），硬切不兼容旧 `T\d+`（见 P0-brief 流 D）。
-
-## dogfooding 工作流（TAG0004 起通用约定）
+## dogfooding 工作流（agate 自身改造任务通用约定）
 
 > 本节是**触发块**：任何 agate 自身改造任务（TAG0004+）需要隔离 worktree 时，**必须先读**：
 > - 构建流程：`docs/guides/worktree-dogfooding-guide.md`（10 步标准流程）
@@ -139,6 +120,16 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 - **gate 工具 ≠ 检查对象**：commit hook 用 `~/.agate`（稳定版）判定；但 `check-protocol-consistency.py` 必须用 worktree 自己的（检查 worktree 里的协议文件）。
 - **工具稳定优先**：hook 指向 `~/.agate` 稳定版，不指向 worktree（避免"用未验证的新 gate 判自己"）。
 - **~/.agate 脚本在 worktree 跑显示主 checkout 上下文**：`agate-summary.sh` 显示稳定版 main/HEAD，不代表 worktree 状态。
+- **工具纪律（T001/TAG0004 多次实战验证）**：
+  - **bash 命令一律加 `timeout`**（外层 `timeout N cmd`，N 按命令预期耗时给 30-90s），工具 timeout 参数同步设。无 timeout 的 bash 在本环境多次被 abort/挂起。
+  - **单步串行，不并行 bash**：一次只发一个 bash 调用；必须链多步时用 `&&` 且每步短。并行 bash 是 abort 高危。
+  - **卡住就换路，不重试同一 bash**：bash 偶发长时间无响应。卡住后改用 read/grep/glob **工具**（它们不走 bash，独立通道）替代，不要反复重试同一条 bash。
+  - **读文件/搜索优先用工具**：read（分段）、grep、glob 工具不占 bash 通道，能避开 bash 卡死。bash 只用于真正需要 shell 的操作（git/测试/gate）。
+  - **长命令分片 + 大 timeout**：全量 bats 分 unit/regression/integration 片跑，每片设大 timeout；gate/consistency 单跑。
+  - **输出控制在几十行内**：避免大输出（grep -c 大文件、cat 长文件）——用 `grep -n` 精确匹配或 read 分段。
+  - **先看全输出再分析**：不用 `tail` 截断关键输出（count-tests 教训：数字被 tail 吞掉导致误判）。
+  - **commit 前检查 hook 会跑什么**：pre-commit 会按 .state.yaml phase 跑 check-gate。commit 时 phase 应与"本次产出所在阶段"一致（P1 产出 → phase=P1 再 commit，commit 后再推进），否则 hook 会因"下一阶段产出不存在"拦截（P2-design 未产出时 phase=P2 → GATE P2 未通过）。
+  - **hook 机制在共享 git 目录**：worktree 的 `.git/hooks` 为空，hook 实际在共同 git 目录 `/home/kity/oclab/agate/.git/hooks/`（pre-commit/pre-push 软链已装；commit-msg 已补装）。改 hook 装那里。
 
 ## 版本发布
 
