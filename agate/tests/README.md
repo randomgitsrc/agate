@@ -80,6 +80,7 @@ GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
 - 发现新 bug → **修脚本前先写回归测试**（regression/）
 - 协议文档声明新规则 → **必须新增对应 .bats 用例**
 - 章节标题数字漂移 → 跑 `count-tests.sh` 同步
+- 发现平台假设（`PATH="/usr/bin:/bin"`/裸 `python3`/`[[ -L ]]` 单平台断言/`/tmp`）→ **修测试为平台无关**（探测或按平台分支），并在 Linux 上用模拟环境覆盖 Windows 分支——测试套件目标是平台无关（原则见 AGENTS.md「测试约定」）
 
 ## 已知风险
 
