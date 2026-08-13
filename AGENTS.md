@@ -129,6 +129,17 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 - **核心上下文**：任务目标/范围/已踩坑见 `agate-workspace/archived/plans/T001-HANDOFF-V2.0.md`（任务 READY 后归档，原在 worktree 根目录）；阶段产出已归档在 `agate-workspace/archived/tasks/T001-v2.0-structured/`（原 `docs/tasks/T001-v2.0-structured/`，PR #111 审查发现该目录混入协议变更导致 CI consistency 检查误报，归档后脱离扫描范围）。
 - **编号规则将随 v2.0 改造**：流 D 会把编号改为 Jira 式 `TAG0001`（项目代号+动态数字），硬切不兼容旧 `T\d+`（见 P0-brief 流 D）。
 
+## dogfooding 工作流（TAG0004 起通用约定）
+
+> 本节是**触发块**：任何 agate 自身改造任务（TAG0004+）需要隔离 worktree 时，**必须先读**：
+> - 构建流程：`docs/guides/worktree-dogfooding-guide.md`（10 步标准流程）
+> - 交接单模板：`agate/assets/templates/handoff-template.md`（复制到 worktree 根 `HANDOFF-{Txxx}.md` 填写）
+
+- **双工作区**（改造对象 = worktree `agate/`；开发工具 = `~/.agate` 稳定版，**勿动**）：跑 gate/读卡片用 `~/.agate`，改代码/跑测试在 worktree。主 checkout（`/home/kity/oclab/agate`）是协议本体，禁止改动。
+- **gate 工具 ≠ 检查对象**：commit hook 用 `~/.agate`（稳定版）判定；但 `check-protocol-consistency.py` 必须用 worktree 自己的（检查 worktree 里的协议文件）。
+- **工具稳定优先**：hook 指向 `~/.agate` 稳定版，不指向 worktree（避免"用未验证的新 gate 判自己"）。
+- **~/.agate 脚本在 worktree 跑显示主 checkout 上下文**：`agate-summary.sh` 显示稳定版 main/HEAD，不代表 worktree 状态。
+
 ## 版本发布
 
 1. 确认 bats 全过 + 0 consistency ERROR + 0 shellcheck error（用例数以 `count-tests.sh` 为准）
