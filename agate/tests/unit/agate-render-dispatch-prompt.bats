@@ -126,3 +126,18 @@ teardown() {
     output=$(AGATE_ROOT="$AGATE_ROOT" bash "$AGATE_SCRIPTS/agate-render-dispatch-prompt.sh" P3 test-designer "$TEST_TASK_DIR")
     [[ "$output" == *"P3 自检"* ]]
 }
+
+# ========== TAG0004 其他-c：sed 替换串转义（BDD-20） ==========
+
+@test "bdd-20 agate-render-dispatch-prompt.sh AGATE_ROOT 含 & 时替换按字面插入（其他-c）" {
+    local root
+    root="$BATS_TEST_TMPDIR/x&y/agate"
+    mkdir -p "$root/assets/templates" "$root/assets/execution-roles"
+    cp "$AGATE_ROOT/assets/templates/dispatch-prompt.md" "$root/assets/templates/"
+    cp "$AGATE_ROOT/assets/execution-roles/implementer.md" "$root/assets/execution-roles/"
+    run env AGATE_ROOT="$root" bash "$AGATE_SCRIPTS/agate-render-dispatch-prompt.sh" P4 implementer "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    # 修复前：sed 替换串 & 被当"整体匹配引用" → {agate_root} 残留；修复后：字面插入
+    [[ "$output" != *"{agate_root}"* ]]
+    [[ "$output" == *"$root"* ]]
+}

@@ -115,3 +115,15 @@ run_resolve() {
     [ -n "$tasks" ]
     [ "$(realpath -m "$tasks/active-tasks.md")" = "$(realpath -m "$project/agate-workspace/tasks/active-tasks.md")" ]
 }
+
+# ========== TAG0004 其他-a：.agate.env CR 剥离（BDD-18） ==========
+
+@test "bdd-18 agate-workspace-resolve.sh .agate.env 尾部 \\r 不污染 AGATE_WORKSPACE 解析（其他-a）" {
+    local project
+    project=$(mktemp -d "$BATS_TEST_TMPDIR/ws-XXXXXX")
+    printf 'AGATE_WORKSPACE=ws-crlf\r\n' > "$project/.agate.env"
+    run_resolve "$project"
+    [ "$status" -eq 0 ]
+    # 修复前：sed 取值保留 \r → realpath 结果含 \r 尾字符；修复后：无 \r
+    [ "$(ws_out)" = "$(realpath -m "$project/ws-crlf")" ]
+}

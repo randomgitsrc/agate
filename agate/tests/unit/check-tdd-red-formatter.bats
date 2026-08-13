@@ -145,3 +145,14 @@ not ok 3 - test gamma"
     assert_json_field "$result" "d['errors']" "1"
     assert_json_field "$result" "d['passed']" "1"
 }
+
+# ========== TAG0004 TPV0090-M4 formatter name_errors 字段（BDD-35，TDD 红灯） ==========
+
+@test "bdd-35f FMT.13: pytest.sh 输出含 NameError 时 JSON 含 name_errors 字段（项目内未定义符号）" {
+    local output="ERROR tests/test_x.py - NameError: name 'compute' is not defined
+1 error"
+    local result
+    result=$(echo "$output" | bash "$FORMATTER_DIR/pytest.sh" 2)
+    # 修复前：pytest.sh 无 name_errors 字段（KeyError）；修复后：解析出 1 条 NameError
+    assert_json_field "$result" "len(d['name_errors'])" "1"
+}

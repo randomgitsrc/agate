@@ -1960,3 +1960,87 @@ EOF
     [ "$status" -eq 1 ]
     [[ "$output" != *"回退抵达"* ]]
 }
+
+# ========== TAG0004 M4/M6/RM-AG0001（BDD-11/14/28/29，TDD 红灯） ==========
+
+@test "bdd-11 check-gate.sh P7 LC_ALL=C 全角冒号 [BLOCKER]：3 条 总结行不误计为阻塞（M4）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P7-consistency.md" <<'EOF'
+- [BLOCKER]：3 条
+EOF
+    run env LC_ALL=C LANG= bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    # 修复前：[:：] bracket 在 POSIX locale 下不匹配全角冒号 → 总结行被计为真实 BLOCKER（exit 1）；修复后：exit 0
+    [ "$status" -eq 0 ]
+}
+
+@test "bdd-14 check-gate.sh P1 CRLF 行尾 P1-review.md frontmatter 提取不失效（M6）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    printf -- '---\r\nphase: P1\r\ntask_id: T001-test\r\nstatus: approved\r\nagent: requirements-review\r\n---\r\n## BDD 评审\r\n- BDD-1: PASS\r\n' > "$dir/P1-review.md"
+    printf -- '---\r\nagent: test\r\nrisk_level: medium\r\nphases: [P1,P2,P3,P4,P5,P6,P7,P8]\r\n---\r\n- [NO_NEED_CONFIRM]\r\n' > "$dir/P1-requirements.md"
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    # 修复前：sed -n '/^---$/...' 对 CRLF 的 ---\r 不匹配 → status 提取为空 → exit 1；修复后：exit 2
+    [ "$status" -eq 2 ]
+}
+
+@test "bdd-28 check-gate.sh P1 反引号包裹 [SUGGEST: ...] 计入 SUGGEST WARNING（RM-AG0001）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- [NO_NEED_CONFIRM]
+- `[SUGGEST: 推荐 X，理由 Y]`
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 2 ]
+    # 修复前：行首正则 ^\s*-?\s*\[SUGGEST: 不匹配反引号前缀 → 漏计（无 SUGGEST WARNING）；修复后：WARNING
+    [[ "$output" == *"SUGGEST"* ]]
+}
+
+@test "bdd-29 check-gate.sh P1 反引号包裹 [NEED_CONFIRM] 判为未解决阻塞项（RM-AG0001）" {
+    local dir
+    dir=$(create_task_dir --no-state-yaml)
+    cat > "$dir/P1-requirements.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: draft
+agent: analyst
+---
+# Requirements
+- Given x When y Then z
+- `[NEED_CONFIRM]` z 的边界条件需确认
+EOF
+    cat > "$dir/P1-review.md" <<'EOF'
+---
+phase: P1
+task_id: T001-test
+status: approved
+agent: requirements-review
+---
+## BDD 评审
+- BDD-1: PASS
+EOF
+    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    [ "$status" -eq 1 ]
+    # 修复前：走"不合规格式"路径（消息不含"未解决的 NEED_CONFIRM"）；修复后：判未解决阻塞
+    [[ "$output" == *"未解决的 NEED_CONFIRM"* ]]
+}

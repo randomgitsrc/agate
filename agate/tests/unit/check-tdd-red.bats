@@ -552,3 +552,76 @@ EOF
     run bash -c "GATE_FILE='/nonexistent/P2.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -ne 0 ]
 }
+
+# ========== TAG0004 RM-AG0002 无 formatter A/B 判定（BDD-30/31） + TPV0090-M4 NameError B 类（BDD-35/36/37） ==========
+# 参照 TDD.F* 系列：gate_commands.P3 + P3_formatter + project_module 的写法。
+
+@test "bdd-30 check-tdd-red.sh 无 formatter + exit 1 + 编译/错误关键词 判 A 类（exit 1，RM-AG0002）" {
+    local fake
+    fake=$(make_fake_pytest "Traceback (most recent call last):
+SyntaxError: invalid syntax" 1)
+    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    # 修复前：无 formatter 降级 exit-code-only → 编译失败被误判正确红灯（exit 0）；修复后：A 类 exit 1
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"A-class"* ]]
+}
+
+@test "bdd-31 check-tdd-red.sh 无 formatter 普通断言失败仍判正确红灯（exit 0，RM-AG0002）" {
+    local fake
+    fake=$(make_fake_pytest "2 failed, 5 passed" 1)
+    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"red-light"* ]]
+}
+
+@test "bdd-35 check-tdd-red.sh formatter 项目模块内 NameError 判 B 类红灯（exit 0，TPV0090-M4）" {
+    local fake
+    fake=$(make_fake_pytest "1 error
+ERROR tests/test_x.py - NameError: name 'compute' is not defined" 2)
+    local task_dir="$BATS_TEST_TMPDIR/task-bdd35"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P3_formatter: "pytest.sh"
+  project_module: "myapp"
+EOF
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    # 修复前：errors>0 一律判 A 类（exit 1）；修复后：项目内 NameError 归 B 类（exit 0）
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"B-class"* ]]
+}
+
+@test "bdd-36 check-tdd-red.sh globals().get() 规避模式断言失败仍判 B 类（回归，TPV0090-M4）" {
+    local fake
+    fake=$(make_fake_pytest "2 failed, 5 passed
+FAILED tests/test_x.py::test_y - assert 1 == 2" 1)
+    local task_dir="$BATS_TEST_TMPDIR/task-bdd36"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P3_formatter: "pytest.sh"
+  project_module: "myapp"
+EOF
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"classic red-light"* ]]
+}
+
+@test "bdd-37 check-tdd-red.sh 非未定义符号的真实测试 bug（TypeError）仍判 A 类（防过宽，TPV0090-M4）" {
+    local fake
+    fake=$(make_fake_pytest "1 error
+ERROR tests/test_x.py - TypeError: unsupported operand type(s)" 2)
+    local task_dir="$BATS_TEST_TMPDIR/task-bdd37"
+    mkdir -p "$task_dir"
+    cat > "$task_dir/P2-design.md" <<EOF
+gate_commands:
+  P3: "$fake"
+  P3_formatter: "pytest.sh"
+  project_module: "myapp"
+EOF
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"A-class"* ]]
+}

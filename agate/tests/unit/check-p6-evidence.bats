@@ -479,3 +479,32 @@ EOF
     run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
     [ "$status" -eq 0 ]
 }
+
+# ========== TAG0004 S2 中文证据文件名（BDD-9/10） ==========
+
+@test "bdd-9 check-p6-evidence.sh 中文文件名证据引用识别为合法（S2）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (截图 验证通过.png)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "img" > "$dir/P6-evidence/截图 验证通过.png"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    # 修复前：ASCII-only 字符类不匹配中文文件名 → 误判缺证据引用（exit 1）；修复后：exit 0
+    [ "$status" -eq 0 ]
+}
+
+@test "bdd-10 check-p6-evidence.sh (见截图) 无扩展名引用仍拦截（防修复过宽，S2）" {
+    local dir
+    dir=$(create_task_dir)
+    cat > "$dir/P6-acceptance.md" <<'EOF'
+- PASS BDD-1 (见截图)
+EOF
+    mkdir -p "$dir/P6-evidence"
+    echo "img" > "$dir/P6-evidence/截图.png"
+    run bash "$AGATE_SCRIPTS/check-p6-evidence.sh" "$dir"
+    # 字符类加宽不放宽"必须有文件名+扩展名"结构 → 仍应 exit 1
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"缺文件证据引用"* ]]
+}

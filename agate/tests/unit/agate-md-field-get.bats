@@ -98,3 +98,18 @@ load ../helpers/load.bash
     run bash -c "FILE='$dir/P6.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' regression_pass"
     [ "$status" -eq 0 ]; [[ "$output" == "" ]]
 }
+# ========== TAG0004 S3 中文读（BDD-6）+ M6 LF 回归（BDD-15） ==========
+
+@test "bdd-6 agate-md-field-get.py 读取含中文内容协议文件正确返回字段（S3 中文读）" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\nrisk_level: high\ntask: 中文任务名验证\n---\n正文含中文\n' > "$dir/P1.md"
+    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    [ "$status" -eq 0 ]; [[ "$output" == "high" ]]
+}
+
+@test "bdd-15 agate-md-field-get.py LF 行尾 ASCII 文件行为不变（M6 回归）" {
+    local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
+    printf -- '---\nagent: test\nrisk_level: medium\n---\nbody\n' > "$dir/P1.md"
+    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    [ "$status" -eq 0 ]; [[ "$output" == "medium" ]]
+}
