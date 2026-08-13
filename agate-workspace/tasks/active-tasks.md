@@ -10,7 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0004 | agate 脚本环境适配（Windows 原生兼容 + Linux 基线回归）：pre-commit-gate 空格静默绕过 / 13 py 缺 encoding / P6 证据 ASCII 正则 / 全角冒号 locale 残留 / CRLF / 路径正则元字符 / TPV0090-M4 NameError 盲区 | 🔄 | P7 | 高 | — | 2026-08-13 | 2026-08-13 |
+| TAG0004 | agate 脚本环境适配（Windows 原生兼容 + Linux 基线回归）：pre-commit-gate 空格静默绕过 / 13 py 缺 encoding / P6 证据 ASCII 正则 / 全角冒号 locale 残留 / CRLF / 路径正则元字符 / TPV0090-M4 NameError 盲区 | 🔄 | P8 | 高 | — | 2026-08-13 | 2026-08-13 |
 
 ### 待开始
 
