@@ -661,9 +661,9 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "frontmatter schema 校验",
-        "script": "agate/scripts/check-frontmatter.sh",
+        "script": "agate/scripts/check-frontmatter.py",
         "keywords": ["frontmatter"],
-        "callers": ["agate/scripts/pre-commit-gate.sh"],
+        "callers": ["agate/scripts/pre-commit-gate.py"],
     },
     {
         "desc": "tech-debt schema 校验 + 回退覆盖比对（DEBT 条目）",

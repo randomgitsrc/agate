@@ -1281,25 +1281,16 @@ DCEND
     cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$workflow_root/scripts/"
     chmod +x "$workflow_root/scripts/pre-commit-gate.sh"
 
-    # 隔离本体的 gate-result.sh：被 source 时打印标记（主 checkout 版不打印）
-    cat > "$workflow_root/scripts/gate-result.sh" <<'EOF'
-# 隔离本体专用 gate-result.sh -- 被 source 时打印 WORKTREE_SOURCED 标记
-echo "WORKTREE_SOURCED"
-EOF
-
-    # 构造最小可 gate 场景（P1 阶段，无 P1-review.md -> 会走 gate-result 加载路径）
-    mkdir -p "$repo/agate-workspace/tasks/TX/workflow-test"
-    cat > "$repo/agate-workspace/tasks/TX/workflow-test/.state.yaml" <<EOF
-task_id: TX
-phase: P1
-status: active
-retries: {}
+    # 隔离本体的 pre-commit-gate.py：薄壳 exec 到本文件时打印标记（主 checkout 版不打印）
+    cat > "$workflow_root/scripts/pre-commit-gate.py" <<'EOF'
+#!/usr/bin/env python3
+print("WORKTREE_SOURCED")
 EOF
 
     # 模拟真实 worktree hook 场景：hook 是软链 -> 隔离本体的 pre-commit-gate.sh
     ln -sf "$workflow_root/scripts/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
 
-    # 不设 AGATE_ROOT，通过软链运行 -> 应自定位到隔离本体，source 到带标记的 gate-result.sh
+    # 不设 AGATE_ROOT，通过软链运行 -> 薄壳应自定位到软链目标的真实目录并 exec 那里的 py
     run bash -c "unset AGATE_ROOT; cd '$repo' && bash '$repo/.git/hooks/pre-commit' 2>&1"
 
     [[ "$output" == *"WORKTREE_SOURCED"* ]]

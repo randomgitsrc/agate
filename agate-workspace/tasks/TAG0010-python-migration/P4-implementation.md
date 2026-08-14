@@ -790,3 +790,198 @@ implementation_dir: agate/tests/
 ## 偏离点
 
 > 无 DEVIATION / DESIGN_GAP。
+
+---
+
+# P4 实现记录 — 批次 3a（pre-commit-gate.py 主程序，承载调度逻辑）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 `agate/scripts/pre-commit-gate.py`（迁移源 pre-commit-gate.sh 保留，未改动；薄壳化是批次 3d）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/pre-commit-gate.py`（520 行） | `pre-commit-gate.sh`（404 行） | `agate_common`（write_gate_result / read_state_phase / read_state_task_id / resolve_agate_root / resolve_workspace / run_git）+ 12 个子脚本（sys.executable）：check-state-yaml / check-state-transition / check-gate / check-p6-provenance / check-pruning / check-scope-resolved / agate-next-card / check-frontmatter / check-p6-format / check-retrospective / check-changelog / check-p6-evidence + agate-state-get.py helper（phase_stdin） |
+
+- `#!/usr/bin/env python3`；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：hook 无参数运行；exit 0/1；`GATE P{n} (...)` / `GATE WARNING` / `GATE STATE-YAML` 输出格式；全部写 stderr（同 sh）
+- 承载逻辑（sh 版逐段对应，均已在 py 侧实现）：
+  1. **REPO_ROOT**：`git rev-parse --show-toplevel`（失败回退 cwd）+ `os.path.realpath` 归一（等价 sh realpath -m）
+  2. **AGATE_ROOT**：`resolve_agate_root(__file__)`（env 优先 → 脚本真实路径上溯 → 复制模式 `.agate-root` 恢复）
+  3. **工作区**：`resolve_workspace(repo_root)` → tasks_dir（等价 agate-workspace-resolve.sh source 语义）
+  4. **收集暂存 .state.yaml**（根 + 任务级，S1 数组化：空格路径不切词）
+  5. 每个 state file：格式校验（check-state-yaml）→ phase 变更检测（`git diff --cached` 逐行 `^\+.*phase:`）→ 状态转移（check-state-transition）→ 读 phase/task_id（agate_common）→ **OLD_PHASE**（`git show HEAD:STATE_REL` 经 stdin 管道进 agate-state-get.py phase_stdin，`$(...)` 剥尾换行 → rstrip）→ 反推 TASK_DIR → phase-产出一致性 WARNING（2f）→ 非 gate 阶段跳过 → **PROD_TOUCHED 三步检测**（只扫新增行 `^+[^+]`、剥 `+`、AGATE_CARD 块删除，锚点关键字存活）→ frontmatter schema（2g.2）→ P6 格式归一化（check-p6-format --fix + git add）→ **check-gate**（2>&1 合并捕获）→ **write_gate_result**（agate_common）→ P6 provenance / pruning / scope（gate_exit≠1 时跑）→ **dispatch-context hash 校验**（agate-next-card.py + sha256，CRLF 归一化）→ retrospective → CHANGELOG（P8）→ P6 evidence（P6/P7）→ B3 / E3 → gate 结果处理（0/1/2 三态）
+  6. **扫描暂存 P{n}-*.md 一致性**（无 .state.yaml 变更的任务也检查，section 3，WARNING 不拦截）
+- **fail-closed**：agate_common import 失败（缺 pyyaml → agate_common 自身 exit 1；agate_common.py 缺失 → GATE ERROR + exit 1）；子脚本缺失/执行失败 → 非零阻断（不运行 sh 兜底）
+- **软链调用场景**（git 经 `.git/hooks/pre-commit` 软链调起）：`SCRIPT_DIR` 用 `os.path.realpath(__file__)` 解析 + `sys.path` 显式插入——sh 版 readlink -f 语义等价，避免子脚本/公共库定位失败
+- 子脚本调用统一封装：`_run_script_rc`（stdout/stderr 透传或 stderr 抑制）/ `_run_script_capture`（merge 合并 2>&1 / suppress / stdin 输入），等价 sh 的 `bash x.sh args` / `2>/dev/null` / `2>&1` / 管道四种形态
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：pre-commit-gate.py 编译通过
+- 手动功能核对（临时 git repo，非 bats）：
+  - P1 缺 review → `GATE P1 (...): 未通过` + check-gate stderr + exit 1
+  - P1 完整（requirements + review + dispatch-context 嵌入卡片）→ `GATE P1: 需主 Agent 手动判断` + exit 0 + `.gate-result.json` 写入（phase/task_id/exit_code/runner=pre-commit-hook/prev_commit_sha 字段齐全）
+  - 缺 dispatch-context（产出已暂存）→ `GATE: subagent 派发阶段产出 commit 需提供 P1-dispatch-context-{role}.md` + exit 1
+  - PROD_TOUCHED 正向 → `GATE: [PROD_TOUCHED] 检测到生产环境接触...commit 中止` + exit 1
+  - 空格路径任务 + task_id 非法 → `GATE STATE-YAML: .state.yaml 格式错误` + exit 1（S1 空格不切词）
+  - 回退 P2→P1 → check-gate 检测「回退抵达」+ exit 2 不拦截（OLD_PHASE 管道正确）
+  - P4 暂存代码文件缺 dispatch-context → `GATE: ... P4-dispatch-context-{role}.md` + exit 1（E3/P4 分支）
+  - section 3：暂存 P2 产出但 phase=P1 → `GATE WARNING: 暂存了 P2 产出但 phase=P1` + exit 0
+  - 真实 git commit 经软链 hook → 提交成功 + `.gate-result.json` 落盘
+  - `check-protocol-consistency.py`：未重跑（主 Agent 验证阶段执行；本批只动 pre-commit-gate.sh → 新增 py，锚点表 CHECK8/9 的 pre-commit-gate.sh 条目 .sh 仍存在，不 ERROR；批次 4 文档引用同步时统一处理）
+
+## 偏离点
+
+[DEVIATION: 2p dispatch-context hash 校验的提示消息脚本名后缀改 .sh → .py（"重新调 agate-next-card.py P2 复制到 dispatch-context 文件" / "调 agate-next-card.py P2 嵌入 dispatch-context 模板"）——sh 版写 agate-next-card.sh；与新脚本名一致（batch 1a-2f 同款先例）。bats 不断言该消息正文]
+
+[DEVIATION: PROD_TOUCHED 检测的 `git diff --cached -- "$TASK_REL"` 传相对路径（sh 同款）——py 版用 run_git 直传，无需 awk 前缀过滤（TASK_REL 非暂存名过滤，sh 的 `tr -d '\r' | awk prefix | grep -q .` 守卫等价实现为 `any(f.startswith(prefix) for f in _staged_name_only())`）]
+
+> 实现说明（非 DEVIATION）：`_extract_card` 复刻 `sed -n '/START/,/END/p' | sed '1d;$d' | tr -d '\r'` 语义（区间含标记行 + 首末行删除 + CR 剥离，未闭合读到 EOF）。`_staged_name_only` 每处调用都是独立 git 子进程——sh 同样每处重跑 `git diff --cached`，行为一致（P6 --fix 的 git add 会改变后续暂存集，独立调用保持语义）。
+
+---
+
+# P4 实现记录 — 批次 3b（commit-msg-self-gate / pre-push-gate / install-hook py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 3 个 .py（迁移源 .sh 保留，未改动；薄壳化是批次 3d）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/commit-msg-self-gate.py` | `commit-msg-self-gate.sh`（37 行） | `agate_common.run_git`（ImportError/SystemExit 降级本地 subprocess） |
+| `agate/scripts/pre-push-gate.py` | `pre-push-gate.sh`（28 行） | `agate_common.run_git`（同上降级） |
+| `agate/scripts/install-hook.py` | `install-hook.sh`（93 行） | `agate_common.run_git`（同上降级）+ `os.symlink`/`shutil.copyfile`/`os.chmod` |
+
+- 全部 `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：hook 无参数（pre-push / install-hook）或 1 参数（commit-msg-self-gate COMMIT_MSG_FILE，缺参 → 用法错误 exit 1，同 sh `${1:?}`）+ exit 语义（commit-msg/pre-push 永不阻断 exit 0；install-hook 非 git 仓库 / AGATE_ROOT 缺脚本 → stderr + exit 1）
+- commit-msg-self-gate.py：self-gate 触发面 grep（`^(agate/scripts/.*\.(sh|py)|agate/[^/]+\.md|agate/.+/.*\.md|SELF-GATE\.md)$` 逐行 `re.match` + `line.rstrip("\r")`）→ commit message 扫 `^self-gate-skip:\s*\S+` / `^self-gate-review:\s*\S+`（`re.MULTILINE`）→ 均未命中则 6 行 WARNING 写 stderr（已与 sh 版输出字节 diff 验证 IDENTICAL）+ exit 0；commit message 读取失败回退空串（同 `cat 2>/dev/null || true`）
+- pre-push-gate.py：`AGATE_ALIGNMENT_REVIEW_THRESHOLD` 关键字保留（默认 20，env 覆盖；非数字回退 20——提示型永不阻断，sh 的 `-gt` 硬失败场景降级为不中断）；stdin 逐行 split（local_ref/local_sha/remote_ref/remote_sha 4 字段）→ `local_sha` 空跳过 → `remote_sha`=40 个 0 → 新分支提示 → 否则 `git diff <remote>..<local> -- 'agate/*.md'` 统计首字符 `+`/`-` 行数（含 `--- a/` / `+++ b/` 头行，与 `grep -cE '^[+-]'` 一致，sh/py 实测同为 22）→ 超阈值 3 行提示（stdout）+ exit 0
+- install-hook.py：AGATE_ROOT 优先级保持 sh 原语义 **argv[1] > env AGATE_ROOT > ~/.agate**（**不用 `resolve_agate_root`**——其 env 优先 + 脚本路径上溯语义与「默认 ~/.agate 稳定版」契约不同，见偏离点）；`git rev-parse --show-toplevel` 失败 → 「不在 git 仓库中」stderr + exit 1；`_ln_sf` 复刻 `ln -sf`（先 unlink 既有再 symlink；OSError → `shutil.copyfile` 退化为复制模式）→ `os.path.islink` 判定（同 sh `[ -L ]`）；pre-commit 复制模式写 `.agate-root` 兜底标记（仅 pre-commit，同 sh）；`_backup`（`shutil.copyfile` 到 `.bak.{int(time.time())}`，仅非软链既有 hook）；`_chmod_x`（既有 mode `| 0o111` 追加执行位，Windows 失败忽略）；`.gitignore` 检测（`^\s*[*]*\.state\.yaml` 逐行 match → 3 行 WARNING + 空行，stdout）
+
+### 引用面核查（确认本次无需改动）
+
+- `tests/unit/commit-msg-self-gate.bats` / `tests/unit/install-hook.bats` / `tests/integration/pre-push-hook.bats` / `tests/integration/commit-msg-self-gate.bats` / `protocol-alignment-review.bats`：当前仍调用 `.sh`（`.sh` 保留可跑），调用点改 `.py` 属后续薄壳批次（3d）+ 测试改造，不在本批范围
+- `install-hook.sh` 消息正文写「重跑 install-hook.sh」（复制模式提示）——install-hook.py 原样保留该文本（.sh 薄壳化后用户仍以 `install-hook.sh` 名调用，语义保持）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：3 个新 py 均编译通过
+- 手动功能核对（临时 git repo + monkeypatch，非 bats）：
+  - commit-msg-self-gate.py：非 agate 触发面 → exit 0 无输出；缺参 → 用法错误 exit 1；agate/scripts/*.py / *.sh / agate/*.md 触发 → 6 行 WARNING 写 stderr + exit 0（**与 sh 版输出字节 diff IDENTICAL**）；`self-gate-review:` / `self-gate-skip:` 命中 → 无输出 exit 0
+  - pre-push-gate.py：新分支（ZERO_SHA）→ 「新分支」提示 + exit 0；无 agate/*.md 改动 → 无输出 exit 0；8→12 行改动 threshold=2 → 3 行 WARNING + exit 0（改动行数 22 与 sh `grep -cE '^[+-]'` 实测一致）
+  - install-hook.py：正常安装 → pre-commit/commit-msg/pre-push 三个软链指向 .sh（readlink 验证）；既有非软链 pre-push → `.bak.{epoch}` 备份 + 替换软链；monkeypatch `os.symlink` 抛 OSError（模拟 Windows 无符号链接权限）→ 复制模式 + `.agate-root` 标记 + 「复制模式」提示 + exit 0；非 git 仓库 → 「不在 git 仓库中」+ exit 1；AGATE_ROOT 缺 pre-commit 源 → 错误 + exit 1；缺 commit-msg 源 → 「跳过 commit-msg hook 安装」提示 + 继续 + exit 0；`.gitignore` 忽略 `.state.yaml` → 3 行 WARNING
+
+## 偏离点
+
+[DEVIATION: 三个新 py 的 `run_git` 均带本地 subprocess 降级（`except (ImportError, SystemExit)`）——agate_common 缺 pyyaml 时其模块顶部 `sys.exit(1)` 是 **SystemExit**（`Exception` 捕获不到，批次 3a pre-commit-gate.py 注释已指明该行为），若不捕获会让 **WARNING-only 的 commit-msg-self-gate / pre-push-gate 从"提示型"退化为阻断型**（exit 1）。本批降级为本地实现以保持「永不拦截」契约（对比 pre-commit-gate.py：阻断型 gate 才 fail-closed）。公共库可用时仍走 `agate_common.run_git`（公共库 import 复用成立）]
+
+[DEVIATION: install-hook.py 的 AGATE_ROOT 解析**不用** `agate_common.resolve_agate_root`——安装器语义是「argv[1] > env > ~/.agate 稳定版」（sh 原文 `${1:-${AGATE_ROOT:-$HOME/.agate}}`），而 resolve_agate_root 是「env 优先 → 脚本真实路径上溯」（服务于 hook 软链自定位）。两者契约不同：若用 resolve_agate_root，worktree 场景会把 AGATE_ROOT 解析成 worktree 自身而非 ~/.agate 稳定版，破坏"安装指向稳定版"的设计。逐行保留 sh 语义]
+
+> 实现说明（非 DEVIATION）：pre-push-gate.py 对 `git diff` 改动行计数统计**含** `--- a/` / `+++ b/` 头行（`line[:1] in ("+","-")`）——与 sh `grep -cE '^[+-]'` 语义逐字节一致（grep 也会命中头行），实测 8→12 行场景 sh/py 同为 22。install-hook.py 的 `_ln_sf` 在复制模式下对 commit-msg / pre-push 不写 `.agate-root` 标记（同 sh：标记仅 pre-commit 复制模式写入）。
+
+# P4 实现记录 — 批次 3d（3 个 hook 脚本改写为薄壳）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+把 3 个 hook .sh 覆盖为薄壳（~15 行/个），原逻辑全部删除（py 侧单份维护，不保留双份）。薄壳只做「AGATE_ROOT 自定位 + python 探测 + exec py 主程序 + exec 失败 fail-closed 阻断」。保持 `#!/usr/bin/env bash` + `set -u`（`-euo pipefail` 改为 `-u`——薄壳无管道/命令链，无需 `-e -o pipefail`）。
+
+| 文件 | 行数（404/37/28 → 20/20/21） | exec 目标 |
+|------|------|-----------|
+| `agate/scripts/pre-commit-gate.sh` | 20 | `pre-commit-gate.py`（错误消息保留 `PROD_TOUCHED` / `PROD_NOT_TOUCHED` 锚点关键字） |
+| `agate/scripts/commit-msg-self-gate.sh` | 20 | `commit-msg-self-gate.py`（self-gate 触发面 grep 逻辑在 py 侧） |
+| `agate/scripts/pre-push-gate.sh` | 21 | `pre-push-gate.py`（薄壳注释保留 `AGATE_ALIGNMENT_REVIEW_THRESHOLD` 关键字：`# AGATE_ALIGNMENT_REVIEW_THRESHOLD 阈值在 pre-push-gate.py 内维护`） |
+
+- AGATE_ROOT 自定位逐字采用 P2 §3.3 模板（`readlink -f` 解析软链后 dirname 两次取本体根；复制模式 `.agate-root` 标记恢复）
+- python 探测 `python3 → python`；exec 失败 → `GATE ERROR` + 提示安装 python3 + pyyaml + `exit 1`（fail-closed，不运行 sh 兜底逻辑）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `bash -n`：3 个薄壳均通过语法检查
+- 行数核对：pre-commit-gate.sh 20 行 / commit-msg-self-gate.sh 20 行 / pre-push-gate.sh 21 行
+
+## 偏离点
+
+无。
+
+# P4 实现记录 — 批次 3e（修复 2 个因薄壳化过时的 bats 用例）
+
+## implementation_dir
+
+```
+implementation_dir: agate/tests/
+```
+
+## 本批次改动清单
+
+批次 3d 把 3 个 hook .sh 改写为薄壳后，2 个 bats 用例的 setup/断言仍按「旧 sh 调度版」设计而失败。本批只改这 2 个 bats 文件（不改 py / 薄壳 / 其他文件）：
+
+### 1. `agate/tests/integration/pre-commit-hook.bats` #42（worktree 自定位）
+
+- 删除隔离本体的 `gate-result.sh` 标记文件（薄壳不再 source 它）
+- 在 `workflow_root/scripts/` 新增带标记的 `pre-commit-gate.py`（`print("WORKTREE_SOURCED")`），断言软链 hook 输出含 `WORKTREE_SOURCED`——证明薄壳 `readlink -f` 自定位到软链目标的真实目录并 exec 了那里的 py
+- 删除已无用的「最小可 gate 场景」（P1 任务 setup）——标记 py 直接输出并 exit 0，不再需要构造 gate-result 加载路径
+- 保留 Windows skip 分支（无 POSIX 软链，自定位场景无法验证）
+
+### 2. `agate/tests/unit/dispatch-context-warning.bats` #25（B3-warning）
+
+- fake root 复制改为 py 依赖：`pre-commit-gate.sh`（薄壳入口）+ `pre-commit-gate.py` + `agate_common.py` + 被调用 py 的完整 transitive 闭包（check-state-yaml / check-state-transition / agate-state-get / check-frontmatter / check-p6-format / check-gate / check-p6-provenance / check-pruning / check-scope-resolved / check-retrospective / check-changelog / check-p6-evidence + agate-state-yaml-check / agate-frontmatter-check / agate-md-field-get / agate-gate-missing-cmds / agate-gate-p5-count / agate-vision-blocker / agate-evidence-consistency / agate-image-check / agate-changelog-unreleased / agate-json-get）
+- 删除全部 .sh 复制（gate-result.sh / check-*.sh / check-state-yaml.sh 等——薄壳不 source 不调用）
+- **不复制 `agate-next-card.py`**（保留 B3 WARNING 路径意图，断言不变：输出含 `dispatch-context`）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `bats agate/tests/integration/pre-commit-hook.bats`：48/48 绿
+- `bats agate/tests/unit/dispatch-context-warning.bats`：1/1 绿
+
+## 偏离点
+
+[DEVIATION: #25 除 fake root 换 py 依赖外，**setup 的 `task_id: T001` 必须改为合法格式 `TAG0001`**（含目录名）——旧 sh 的 `check-state-yaml.sh` 在 fake root 缺 `agate-state-yaml-check.py` 时因 `python3` 报错 → ERRORS 空 → fail-open 放行；py 版 `check-state-yaml.py` 对校验器缺失是 fail-closed（exit 1），且 `T001` 本身就不符合 task_id 格式（T + 2 大写 + 数字），会先在步骤 2a 拦截、根本到不了 2n.1 B3 WARNING。派发指引未预见此点，为让断言可达必须修正 setup]
+
+# P4 实现记录 — 批次 3f（锚点表同步：check-frontmatter 条目改指 py）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+批次 3d 薄壳化 pre-commit-gate.sh 后，CHECK 9 报 1 个 WARNING（`check-frontmatter.sh 未被任何流程文件调用`）。同步 `check-protocol-consistency.py` 的 `SCRIPT_ALIGNMENT_ANCHORS` 里 check-frontmatter 条目，使其指向 py 迁移后的真实路径：
+
+| 字段 | 改前 | 改后 |
+|------|------|------|
+| `script` | `agate/scripts/check-frontmatter.sh` | `agate/scripts/check-frontmatter.py` |
+| `callers` | `agate/scripts/pre-commit-gate.sh` | `agate/scripts/pre-commit-gate.py` |
+
+只改这 1 个条目，其余锚点（check-*.sh 尚在）与逻辑均不动（批次 4 统一同步）。
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `python3 agate/scripts/check-protocol-consistency.py`：0 ERROR、1 WARNING（CHECK9-coverage：`gate 脚本 agate/scripts/check-frontmatter.sh 未纳入 CHECK 9 锚点表`）
+
+## 偏离点
+
+[DEVIATION: 派发指引预期改后回到 0 WARNING，实测为 1 WARNING（CHECK9-coverage）——CHECK9-callers 已修复（pre-commit-gate.py 含 check-frontmatter.py 调用点，grep 确认），但**迁移源 `check-frontmatter.sh` 仍保留在磁盘**（批次 1a 约定「迁移源 .sh 保留，未改动」），反向覆盖扫描（`check_anchor_coverage` 遍历 `check-*.sh`）发现它不再被锚点表覆盖。此为批次 4「统一同步锚点 + 迁移源 .sh 删档」前的已知中间态，按本批次约束（只改 1 个锚点条目、不改逻辑）不处理]

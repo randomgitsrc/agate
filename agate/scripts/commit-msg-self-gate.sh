@@ -1,37 +1,20 @@
 #!/usr/bin/env bash
-# commit-msg-self-gate.sh — commit-msg hook
-# 检测 self-gate 触发文件的改动，要求 commit message 含 self-gate-review: 路径
-# WARNING 不拦截——遵循 hook 鲁棒性优先原则
-
-set -euo pipefail
-
-COMMIT_MSG_FILE="${1:?用法: commit-msg-self-gate.sh COMMIT_MSG_FILE}"
-
-# 检查暂存区是否含 self-gate 触发文件
-SELF_GATE_TRIGGERED=false
-STAGED_FILES=$(git diff --cached --name-only 2>/dev/null | tr -d '\r' || true)
-if echo "$STAGED_FILES" | grep -qE '^(agate/scripts/.*\.(sh|py)|agate/[^/]+\.md|agate/.+/.*\.md|SELF-GATE\.md)$'; then
-    SELF_GATE_TRIGGERED=true
+# commit-msg-self-gate.sh — commit-msg hook 薄壳（逻辑在 commit-msg-self-gate.py 单份维护）
+set -u
+# 1. AGATE_ROOT 自定位（软链→本体；复制模式 .agate-root 恢复）
+AGATE_ROOT="${AGATE_ROOT:-$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")}"
+if [ ! -d "$AGATE_ROOT/scripts" ] \
+    && [ -f "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root" ]; then
+    AGATE_ROOT=$(tr -d '\r' < "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root")
 fi
-
-if [ "$SELF_GATE_TRIGGERED" = "false" ]; then
-    exit 0
+# 2. python 探测：python3 → python
+PY=""
+for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { PY="$c"; break; }; done
+# 3. exec python 主程序
+if [ -n "$PY" ] && [ -f "$AGATE_ROOT/scripts/commit-msg-self-gate.py" ]; then
+    exec "$PY" "$AGATE_ROOT/scripts/commit-msg-self-gate.py" "$@"
 fi
-
-# 检查 commit message 是否含 self-gate-skip: 理由 或 self-gate-review: 路径
-COMMIT_MSG=$(cat "$COMMIT_MSG_FILE" 2>/dev/null || true)
-if echo "$COMMIT_MSG" | grep -qE '^self-gate-skip:\s*\S+'; then
-    exit 0
-fi
-if echo "$COMMIT_MSG" | grep -qE '^self-gate-review:\s*\S+'; then
-    exit 0
-fi
-
-echo "GATE SELF-GATE: 暂存区含 self-gate 触发文件（agate/scripts/*.sh / agate/scripts/*.py / agate/*.md / SELF-GATE.md），" >&2
-echo "  但 commit message 未含 self-gate-review: 路径。" >&2
-echo "  请先派发 protocol-alignment-review subagent，审查报告路径写入 commit message：" >&2
-echo "    self-gate-review: docs/reviews/agate-alignment-review-{date}.md" >&2
-echo "  或如果本次改动确实不需要 self-gate（如纯 typo），在 commit message 加：" >&2
-echo "    self-gate-skip: 理由" >&2
-
-exit 0
+# 4. exec 失败 → fail-closed 阻断（不运行 sh 兜底逻辑）
+echo "GATE ERROR: 无法启动 python gate（python3/python 均不可用或脚本缺失）" >&2
+echo "  self-gate 触发面检测无法执行，commit 中止——请安装 python3 + pyyaml" >&2
+exit 1
