@@ -42,6 +42,20 @@
 - [x] 全量 735 bats 绿（scripts 23 含新增 2）+ count-tests 727 + consistency 0 ERROR
 - 注：本批 subagent 1 次空返回 → 拆 py 与 bats 两步 + 不跑 bats 策略
 
-## 批次 2（复合 11 脚本）— 待办
+## 批次 2（复合 11 脚本）— 全部完成
 
-- [ ] check-state-transition / check-retrospective / check-pruning / check-debt / check-tdd-red / check-gate（拆子任务）/ check-p6-evidence / check-p6-provenance / agate-capture-env-baseline / agate-retreat-to / agate-inject-card → py
+- [x] 2a（0faaed4）：check-retrospective / agate-inject-card / check-debt → py；修 inject-card 占位符错误消息未透传
+- [x] 2b（8b8fbc6）：check-state-transition / agate-retreat-to → py；MAX_RETRY_MAP 并入 agate_common
+- [x] 2c（236ac80）：check-pruning / agate-capture-env-baseline → py
+- [x] 2d（3e86a65）：check-p6-evidence / check-p6-provenance → py
+- [x] 2e（5ee8b88）：check-tdd-red → py（复用 agate_common formatter）
+- [x] 2f（3547b62）：check-gate → py（P0-P8 全分支 + 187 处调用点）；修 bdd-5 read_text 误判自定义函数
+- 每批全量 bats 全绿 + count-tests 727 + consistency 0 ERROR
+
+## 批次 3（hook 链 4 个）— 待办
+
+- [ ] pre-commit-gate / commit-msg-self-gate / pre-push-gate 薄壳化 + install-hook.sh → install-hook.py
+
+## 批次 4（收尾）— 待办
+
+- [ ] consistency 锚点表 + 文档引用同步 + SETUP pyyaml 强制化 + UPGRADING + scripts/README.md + CI
