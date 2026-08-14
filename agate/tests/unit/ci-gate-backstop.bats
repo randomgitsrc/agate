@@ -70,8 +70,11 @@ EOF
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    echo "B595-DIAG: mock=$mock tdd_script=$AGATE_TDD_RED_SCRIPT PYTHON=$PYTHON" >&2
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
+    echo "B595-STATUS: $status" >&2
+    printf 'B595-OUT: %s\n' "$output" | head -6 >&2
     [[ "$output" == *"真红灯"* ]]
 }
 
