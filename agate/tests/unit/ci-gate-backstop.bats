@@ -69,7 +69,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"真红灯"* ]]
@@ -85,7 +85,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
@@ -102,7 +102,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 1' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
@@ -119,7 +119,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 3' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"WARN"* ]]
     [[ "$output" != *"FAIL"* ]]
@@ -135,7 +135,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     # 不创建 .gate-result.json（模拟 --no-verify 场景）
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
@@ -169,7 +169,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"SKIP"* ]]
     [[ "$output" == *"refactor"* ]]
@@ -198,7 +198,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
@@ -220,7 +220,7 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     # ① 清除继承的 utf-8 导出 + 强制 cp1252 → 中文 print 崩溃
     run env -u PYTHONIOENCODING bash -c "PYTHONIOENCODING=cp1252 '$PYTHON' $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"UnicodeEncodeError"* ]]
