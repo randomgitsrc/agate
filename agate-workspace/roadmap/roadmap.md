@@ -21,6 +21,7 @@
 | RM-AG0011 | check-gate P5 gate_commands 计数语义模糊（P5* 前缀全算，WARNING 误解主/辅命令）| scheduled | TPV0090 复盘 M2（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-13 |
 | RM-AG0012 | 自定义角色机制两瑕疵：dispatch-prompt 无条件注入评审指令到执行角色 + render 脚本角色不存在时 exit 0 | scheduled | 角色体系验证（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-13 |
 | RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | backlog | 阶段提示词核查（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
+| RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | backlog | TAG0005/0009 复盘核实（2026-08-14）| — | 2026-08-13 | 2026-08-14 |
 
 ## 状态标识
 
@@ -183,3 +184,18 @@
   3. **P2 卡片**：加"影响面梳理"——architect 画改动影响面（如 ui_affected 64 处消费点），确保联动点同步
 - **范围界定（2026-08-13 用户确认）**：**不属于 TAG0005/0006/0007**——那三个 task 只做各自 roadmap 条目的修复（带 P0-brief 已有的局部同类扫描质量保障）；本条目是**协议本体阶段卡增强**，独立 backlog，另行立项（改 phase-cards/*.md 触发 SELF-GATE）。
 - **归属**：独立任务（阶段卡协议增强），或并入未来"协议机制增强"类任务。
+
+---
+
+## RM-AG0014 详情
+
+**跨平台/外部环境验证的机制边界（TAG0005/0009 复盘核实，2026-08-14）**
+
+- **背景**：TAG0009 在 Windows CI 排障拉了 11.7 小时（78→29→全绿），复盘归因于"supplementable 是声明非协议"。核实后修正——**主因是机制误用，不是机制缺失**：
+- **核实 1：机制误用**——协议已有 `verification_env`（dispatch-protocol.md L884-886）专用于"环境依赖"场景（debug server、测试数据库、临时端口），触发条件含"P0-brief known_risks 含环境依赖"。TAG0009 的 P0-brief **声明了"无法实测 Windows 靠 CI matrix 兜底"**（满足 verification_env 触发条件），但 P1 实际把"真 Windows CI"标成了 `supplementable`（capability_requirements 三态，用于**能力缺失**如缺 vision/skill）——**用错了机制**。跨平台验证是"环境依赖"，不是"能力缺失"。
+- **核实 2：真协议空白**——`verification_env` 只定义"如何声明环境"，**没有定义"环境验证失败后怎么办"**：无 CI 轮次预算、无止损轮次、无"一次 CI 验证多个假设"的批处理要求、无 READY 后外部问题归属（原任务补丁 vs 新任务）。11.7 小时拉锯的根源在此。
+- **建议修复方向**：
+  1. **明确 supplementable vs verification_env 边界**：P1 卡片 + analyst 角色加注——"能力缺失"用 supplementable，"环境依赖/需外部环境验证"用 verification_env；跨平台验证属后者
+  2. **补 verification_env 的失败处理协议**：本地无法验证的项，P1 声明时同时列"可验证清单 vs 不可验证清单"；设定每轮 CI 验证多假设的批处理要求；设止损轮次（如 3 轮未收敛必须升级汇报）；定义 READY 后暴露外部问题的归属（补丁 vs 新任务）
+  3. **CI 轮次预算进 P1**：risk_level 或专门字段记录"预计外部验证轮次"，让主 Agent 和用户对总时长有预期
+- **归属**：独立任务（协议机制增强：dispatch-protocol + P1 卡片 + analyst 角色），与 RM-AG0013（阶段卡同类扫描）同属"协议机制增强"簇。
