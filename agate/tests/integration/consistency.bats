@@ -41,12 +41,12 @@ setup() {
 }
 
 @test "CON.9 CHECK 9: md5 去重锚点已实现" {
-    # 锁住"已实现"：check-p6-evidence.sh 实际包含 md5 去重逻辑
+    # 锁住"已实现"：check-p6-evidence.py 实际包含 md5 去重逻辑
     # 防回归——如果有人删了 md5 去重实现，此测试会红
     # 历史：曾锁住"缺口存在"防止删锚点代实现；md5 在 commit 949055c 实现后，
     # 缺口消失，断言改写为锁定"实现存在"
-    grep -q 'MD5_LIST' agate/scripts/check-p6-evidence.sh
-    grep -q 'md5sum' agate/scripts/check-p6-evidence.sh
+    grep -q '_md5_entries' agate/scripts/check-p6-evidence.py
+    grep -q 'md5sum' agate/scripts/check-p6-evidence.py
 }
 
 @test "CON.10 CHECK 8: v0.6 关键词存在性" {
@@ -58,6 +58,6 @@ setup() {
 }
 
 @test "CON.12 CHECK 9: NEED_CONFIRM 三值锚点存在（v0.30.2 起 SUGGEST）" {
-    grep -q 'NO_NEED_CONFIRM' agate/scripts/check-gate.sh
-    grep -q 'SUGGEST' agate/scripts/check-gate.sh
+    grep -q 'NO_NEED_CONFIRM' agate/scripts/check-gate.py
+    grep -q 'SUGGEST' agate/scripts/check-gate.py
 }

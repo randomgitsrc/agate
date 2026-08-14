@@ -430,7 +430,7 @@ EOF
     [ "$status" -eq 0 ]
     run grep -q 'DEBT' "$AGATE_ROOT/phase-cards/P4-implementation.md"
     [ "$status" -eq 0 ]
-    run grep -q 'DEBT' "$AGATE_ROOT/scripts/agate-retreat-to.sh"
+    run grep -q 'DEBT' "$AGATE_ROOT/scripts/agate-retreat-to.py"
     [ "$status" -eq 0 ]
 }
 
@@ -564,7 +564,7 @@ EOF
 
 @test "test_bdd_17_p8_gate_checks_debt_check_existence_only" {
     # check-gate.sh P8 分支含 debt_check 留痕检查（只查存在，不查内容；行为用例见 check-gate.bats G8.9/G8.10）（BDD-17）
-    run grep -q 'debt_check:' "$AGATE_ROOT/scripts/check-gate.sh"
+    run grep -q 'debt_check:' "$AGATE_ROOT/scripts/check-gate.py"
     [ "$status" -eq 0 ]
 }
 

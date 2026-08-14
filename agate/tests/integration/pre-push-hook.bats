@@ -7,9 +7,9 @@ load ../helpers/load.bash
     local repo
     repo=$(git_init)
 
-    ( cd "$repo" && bash "$AGATE_ROOT/scripts/install-hook.sh" "$AGATE_ROOT" >/dev/null 2>&1 )
+    ( cd "$repo" && "$PYTHON" "$AGATE_ROOT/scripts/install-hook.py" "$AGATE_ROOT" >/dev/null 2>&1 )
     # 平台分支：Linux 断言软链语义（readlink 指向 pre-push-gate.sh，无 -L 字面满足 R3 零命中）；
-    # Windows 复制模式断言文件已安装（软链语义由 Linux 分支 + mock ln 用例覆盖）
+    # Windows 复制模式断言文件已安装（软链语义由 Linux 分支 + AGATE_HOOK_COPY_MODE 复制用例覆盖）
     if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
         [ -f "$repo/.git/hooks/pre-push" ] || fail "pre-push 应已安装"
     else
@@ -36,17 +36,8 @@ load ../helpers/load.bash
     cp "$AGATE_ROOT/scripts/commit-msg-self-gate.sh" "$agate_root/scripts/"
     cp "$AGATE_ROOT/scripts/pre-push-gate.sh" "$agate_root/scripts/"
 
-    # mock ln：退化为 cp（模拟 Windows 无符号链接权限）
-    local fakebin
-    fakebin="$BATS_TEST_TMPDIR/fakebin"
-    mkdir -p "$fakebin"
-    cat > "$fakebin/ln" <<'LNEOF'
-#!/usr/bin/env bash
-cp -f "$2" "$3"
-LNEOF
-    chmod +x "$fakebin/ln"
-
-    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' '$agate_root'" 2>&1
+    # AGATE_HOOK_COPY_MODE=1 强制复制分支（py 版不调外部 ln，替代原 mock ln → cp 模拟 Windows 无符号链接权限）
+    run bash -c "cd '$repo' && AGATE_HOOK_COPY_MODE=1 "$PYTHON" '$AGATE_ROOT/scripts/install-hook.py' '$agate_root'" 2>&1
     [[ "$output" == *"复制"* || "$output" == *"需重跑"* ]]
     [ -f "$repo/.git/hooks/pre-push" ]
 }
@@ -55,7 +46,7 @@ LNEOF
     local repo
     repo=$(git_init)
 
-    ( cd "$repo" && bash "$AGATE_ROOT/scripts/install-hook.sh" "$AGATE_ROOT" >/dev/null 2>&1 )
+    ( cd "$repo" && "$PYTHON" "$AGATE_ROOT/scripts/install-hook.py" "$AGATE_ROOT" >/dev/null 2>&1 )
 
     cd "$repo"
     mkdir -p agate
@@ -93,7 +84,7 @@ EOF
     local repo
     repo=$(git_init)
 
-    ( cd "$repo" && bash "$AGATE_ROOT/scripts/install-hook.sh" "$AGATE_ROOT" >/dev/null 2>&1 )
+    ( cd "$repo" && "$PYTHON" "$AGATE_ROOT/scripts/install-hook.py" "$AGATE_ROOT" >/dev/null 2>&1 )
 
     cd "$repo"
     echo "test" > file.txt

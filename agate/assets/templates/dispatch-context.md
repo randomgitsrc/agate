@@ -1,8 +1,8 @@
-> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+> **所有 P1-P8 阶段统一强制本文件存在**——commit 前暂存区必须含至少一个当前阶段的 dispatch-context 文件。该文件是 subagent 的核心信息源，禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。
 
 ---
 phase: {P1-P8}
-generated_by: agate-inject-card.sh + 主 Agent
+generated_by: agate-inject-card.py + 主 Agent
 task_id: {Txxx}
 role: {角色名，如 analyst / requirements-review / implementer}
 ---
@@ -29,7 +29,7 @@ role: {角色名，如 analyst / requirements-review / implementer}
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->
-{由 agate-inject-card.sh 注入，禁止手写}
+{由 agate-inject-card.py 注入，禁止手写}
 <!-- AGATE_CARD_END -->
 
 <objective_info>
@@ -38,4 +38,4 @@ role: {角色名，如 analyst / requirements-review / implementer}
 - 查证结果：{grep/命令输出摘要}
 </objective_info>
 
-> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

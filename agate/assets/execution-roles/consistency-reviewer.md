@@ -37,7 +37,7 @@ review 类 subagent 不能靠代码改动校验兜底。结论必须附带实质
 | CRITICAL=0 | 跨文件检查项 + 引用源文件节名（如 `P2 packages`、`P1 BDD-03`、`P4 implementation`） |
 | SCOPE+ 闭环 | 列出 SCOPE+ 条目 + 对应 `[SCOPE_RESOLVED]` |
 
-**gate 脚本校验**：check-gate.sh P7 检查——P7-consistency.md 含 `DESIGN_GAP_REVIEWED` 标记时，须同时含跨文件引用关键词（`P1.*BDD\|P2.*packages\|P4.*implementation`），不含则 WARNING。
+**gate 脚本校验**：check-gate.py P7 检查——P7-consistency.md 含 `DESIGN_GAP_REVIEWED` 标记时，须同时含跨文件引用关键词（`P1.*BDD\|P2.*packages\|P4.*implementation`），不含则 WARNING。
 
 ## 检查清单
 

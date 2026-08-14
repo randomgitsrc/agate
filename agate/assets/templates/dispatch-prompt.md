@@ -156,7 +156,7 @@ P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由�
 凡是要求 subagent 产出可核验日志的场景（P5 测试执行、P6 验证脚本执行），
 日志文件末行必须是可解析的退出码声明，格式固定为：
 `EXIT_CODE: <n>`（n 为整数，0 表示成功）
-不符合此格式的日志，check-p6-provenance.sh 的一致性检测（M1.3b）不做强判定，
+不符合此格式的日志，check-p6-provenance.py 的一致性检测（M1.3b）不做强判定，
 仅输出 INFO 提示"日志缺少标准 EXIT_CODE 尾行，无法自动核验一致性"。
 ```
 

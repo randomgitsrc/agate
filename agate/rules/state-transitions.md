@@ -21,7 +21,7 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 - P2-review.md 有效 + status: approved + P2-design.md 声明 packages/domains/ui_affected/gate_commands + 候选方案 ≥2 + 含权衡/选择理由/取舍/考量/trade-off
 
 ### P3 → P4
-- check-tdd-red.sh exit 0 + assertion_failures>0 + collection_errors==0
+- check-tdd-red.py exit 0 + assertion_failures>0 + collection_errors==0
 - UI 任务：P3 含 Playwright/E2E 用例
 
 ### P4 → P5
@@ -32,8 +32,8 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 - UI 任务：gate_commands.P5 E2E 命令 exit 0
 
 ### P6 → P7
-- check-gate.sh P6 exit 2（FAIL=0 / NC=0 / 证据非空）
-- check-p6-provenance.sh exit 0（由审计 3 自动对照 BDD 总数，exit 1 硬阻，无过渡期兜底）
+- check-gate.py P6 exit 2（FAIL=0 / NC=0 / 证据非空）
+- check-p6-provenance.py exit 0（由审计 3 自动对照 BDD 总数，exit 1 硬阻，无过渡期兜底）
 
 ### P7 → P8
 - 声明行 [BLOCKER]: N 条 被排除后 =0 / [DEVIATION-CRITICAL] 同理
@@ -65,23 +65,23 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 | Pn → Pn-1（单步回退）| ✅ 允许 | retry+1，定向回补不清零目标阶段已有的 retry |
 | |n-m| ≥ 2（跨多阶段）| ❌ 强制 PAUSED |
 
-**回退时的自撰产出归档（self-authored gate 专属）**：P1/P2/P6/P7 的产出文件（判定对象是主 Agent/verifier 自己写的 markdown）在被跨过时必须先归档，不能留在原位——否则重新走到该阶段时，旧文件的内容可能被误当作仍然有效，`check-gate.sh` 不会区分"修复前写的"还是"修复后写的"。P4/P5 属于外部产出 gate（判定对象是测试运行器 exit code），没有跨重试持久化的自撰文件，不需要归档。
+**回退时的自撰产出归档（self-authored gate 专属）**：P1/P2/P6/P7 的产出文件（判定对象是主 Agent/verifier 自己写的 markdown）在被跨过时必须先归档，不能留在原位——否则重新走到该阶段时，旧文件的内容可能被误当作仍然有效，`check-gate.py` 不会区分"修复前写的"还是"修复后写的"。P4/P5 属于外部产出 gate（判定对象是测试运行器 exit code），没有跨重试持久化的自撰文件，不需要归档。
 
 ```bash
-bash agate/scripts/agate-archive-stale-outputs.sh {被跨过的阶段} {TASK_DIR}
+python3 agate/scripts/agate-archive-stale-outputs.py {被跨过的阶段} {TASK_DIR}
 ```
 
-`check-state-transition.sh` 会在检测到单步回退时，检查被跨过阶段的产出文件是否仍在原位——若未归档，直接拦截 commit，提示先跑上面这条命令。归档不是删除：文件被移到 `{TASK_DIR}/.archived/{时间戳}-{阶段}/`，历史证据留痕保留；同时会在 `{TASK_DIR}/.retreat-history.md`（不被归档，始终留在当前任务目录）追加一份摘要，P6 的话还会摘录具体 FAIL 详情，避免重新派发时忘记"当初是哪里失败的"。
+`check-state-transition.py` 会在检测到单步回退时，检查被跨过阶段的产出文件是否仍在原位——若未归档，直接拦截 commit，提示先跑上面这条命令。归档不是删除：文件被移到 `{TASK_DIR}/.archived/{时间戳}-{阶段}/`，历史证据留痕保留；同时会在 `{TASK_DIR}/.retreat-history.md`（不被归档，始终留在当前任务目录）追加一份摘要，P6 的话还会摘录具体 FAIL 详情，避免重新派发时忘记"当初是哪里失败的"。
 
 **多步回退的自动化**：若诊断已经明确指向 2 阶之外（如 P6→P4），不需要手动分两次执行"归档→改 phase→commit"，可以直接：
 
 ```bash
-bash agate/scripts/agate-retreat-to.sh {TASK_DIR} {目标阶段} "{诊断原因}"
+python3 agate/scripts/agate-retreat-to.py {TASK_DIR} {目标阶段} "{诊断原因}"
 ```
 
-这个脚本会依次产生多个独立的、diff=1 的真实 commit（每一步都归档 + 过 gate 校验），不会绕过或放宽 `check-state-transition.sh` 对大跳回退的 PAUSED 限制——它只是自动化了合法的单步回退序列，不是让大跳直接放行。调用前需确保暂存区没有与本次回退无关的文件（脚本会检查并拒绝）。
+这个脚本会依次产生多个独立的、diff=1 的真实 commit（每一步都归档 + 过 gate 校验），不会绕过或放宽 `check-state-transition.py` 对大跳回退的 PAUSED 限制——它只是自动化了合法的单步回退序列，不是让大跳直接放行。调用前需确保暂存区没有与本次回退无关的文件（脚本会检查并拒绝）。
 
-**回退落地后必须建 DEBT 条目（TAG0001 强制）**：任何正式回退（`retreat:` 提交，含多步回退）完成后，必须建立 `source: retreat` 的 DEBT 条目，`evidence` 引用该 retreat 提交的哈希——模板见 `assets/templates/tech-debt-template.md`，条目登记于 `{AGATE_WORKSPACE}/debt/tech-debt.md`。回退是协议定义的事实事件，登记不依赖任何人的判断（BDD-12）；事后 `check-debt.sh --retreat-coverage` 会把未登记的 retreat 提交比对出来并报 WARNING（只读提醒，不阻断 commit/发布）。
+**回退落地后必须建 DEBT 条目（TAG0001 强制）**：任何正式回退（`retreat:` 提交，含多步回退）完成后，必须建立 `source: retreat` 的 DEBT 条目，`evidence` 引用该 retreat 提交的哈希——模板见 `assets/templates/tech-debt-template.md`，条目登记于 `{AGATE_WORKSPACE}/debt/tech-debt.md`。回退是协议定义的事实事件，登记不依赖任何人的判断（BDD-12）；事后 `check-debt.py --retreat-coverage` 会把未登记的 retreat 提交比对出来并报 WARNING（只读提醒，不阻断 commit/发布）。
 
 ## PAUSED 恢复
 

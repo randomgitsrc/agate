@@ -90,7 +90,7 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 ### Hardening 关键约束（P2.1/P2.10 v2 降级方案）
 
-你的 P6-acceptance.md 会通过 `scripts/check-p6-provenance.sh` 客观行为审计：
+你的 P6-acceptance.md 会通过 `scripts/check-p6-provenance.py` 客观行为审计：
 
 - **每条 PASS 后必须引证据路径**：`- PASS BDD-1: 描述 (P6-evidence/screenshots/bdd-1.png)`——括号内路径相对 P6-evidence/，文件**必须存在**。一条 PASS 也可引用多个证据文件（逗号分隔）：`- PASS BDD-1: 描述 (file1.json, file2.log)`
 - **多条 PASS 可共享同一证据文件**：如 3 条 PASS 引用 `shared.json` 是允许的。但每条 PASS 必须有引用、每个证据文件必须被引用（充数文件被拦）
@@ -129,8 +129,8 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 > 本次重构仅改变内部实现、不改外部行为，验收对象是"重构后行为与重构前一致"。
 
 - **三段式验收记录**（P6-acceptance.md）：① 行为不变声明节（判定依据 = 全量回归全绿 + 关键路径 BDD 逐条 PASS；**禁止为凑验收数量新增功能性质 BDD**——禁止伪造功能 BDD）；② 全量回归全绿节（以一条关键路径 BDD 的 PASS 行呈现，引用 `P6-evidence/regression.log`）；③ 关键路径行为不变断言 BDD 逐条 PASS/FAIL（每条带证据引用）。
-- **regression.log 产出**：全量回归套件实跑输出落盘 `P6-evidence/regression.log`，**尾行 `EXIT_CODE: 0`**（check-p6-provenance.sh 审计 5 核对"声明 PASS 但日志 exit≠0"的矛盾）。
-- **frontmatter 额外声明** `regression_pass: true`（bool，可选字段）：`pass`/`fail`/`ui_affected` 照常必填。回归双证（regression_pass + regression.log）是 check-gate.sh P6 对 refactor 任务的硬校验，任一缺失 → gate exit 1。
+- **regression.log 产出**：全量回归套件实跑输出落盘 `P6-evidence/regression.log`，**尾行 `EXIT_CODE: 0`**（check-p6-provenance.py 审计 5 核对"声明 PASS 但日志 exit≠0"的矛盾）。
+- **frontmatter 额外声明** `regression_pass: true`（bool，可选字段）：`pass`/`fail`/`ui_affected` 照常必填。回归双证（regression_pass + regression.log）是 check-gate.py P6 对 refactor 任务的硬校验，任一缺失 → gate exit 1。
 - **格式约束**：regression.log 必须被一条 PASS 行引用（审计 1c）；禁止新增非 BDD 编号 PASS 行（如 `- PASS REGRESSION: ...`）——回归结果作为关键路径 BDD 的 PASS 行呈现，多文件证据逗号分隔；BDD 编号机制对 refactor 不豁免（P6 PASS+FAIL ≥ P1 BDD 数）。
 - **no_behavior_change 不豁免回归双证**：refactor 口径只看 change_type，即使任务声明了 no_behavior_change，回归双证仍强制。
 
@@ -196,9 +196,9 @@ ui_affected: false                # bool（与 P2 声明一致）
 
 ### gate 格式预检（返回主 Agent 前执行）
 
-1. 运行 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix "$TASK_DIR/P6-acceptance.md"` 归一化格式
-2. 运行 `bash $AGATE_ROOT/scripts/check-p6-evidence.sh "$TASK_DIR"` 预检证据格式
-3. 运行 `bash $AGATE_ROOT/scripts/check-p6-provenance.sh "$TASK_DIR"` 预检 provenance
+1. 运行 `python3 $AGATE_ROOT/scripts/check-p6-format.py --fix "$TASK_DIR/P6-acceptance.md"` 归一化格式
+2. 运行 `python3 $AGATE_ROOT/scripts/check-p6-evidence.py "$TASK_DIR"` 预检证据格式
+3. 运行 `python3 $AGATE_ROOT/scripts/check-p6-provenance.py "$TASK_DIR"` 预检 provenance
 4. 预检 exit 0 → 返回主 Agent
 5. 预检 exit 1/2 → 修复后重试（最多 2 轮），仍失败 → 返回主 Agent 并附预检错误消息
 
@@ -216,7 +216,7 @@ P6-acceptance.md 路径 + 一句话：BDD 验收 X/Y 通过
 gate 脚本用以下正则匹配，产出必须严格符合：
 
 - PASS/FAIL 行：`^\s*- (PASS|FAIL)\b`（行首，`-` 后空格，PASS/FAIL 大写）
-- 总结行禁止用行首 `- PASS`/`- FAIL`（用 `**Summary**: PASS: 34` 格式，check-p6-format.sh 会自动修正）
+- 总结行禁止用行首 `- PASS`/`- FAIL`（用 `**Summary**: PASS: 34` 格式，check-p6-format.py 会自动修正）
 - vision 引用：独立括号 `(vision: path/to/yaml)`，不与截图引用合并在同一括号
 - vision YAML 结构：`vision_analysis.summary.blocker_count`（嵌套，非顶层）
 - 截图引用：`(screenshots/filename.png)`

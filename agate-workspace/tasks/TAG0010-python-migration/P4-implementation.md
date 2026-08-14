@@ -1328,3 +1328,142 @@ implementation_dir: agate/scripts/install-hook.py + agate/tests/unit/install-hoo
 [DEVIATION: 任务描述「确认 .agate-root 写到 fake agate_root/scripts/.agate-root」位置有误——实际正确位置是 `$repo/.git/hooks/.agate-root`：① sh 版 install-hook.sh L39 即写 `$HOOK_DIR/.agate-root`；② 3 个 gate 薄壳复制模式恢复逻辑读 `dirname(readlink -f BASH_SOURCE)/.agate-root`（复制品 hook 在 .git/hooks/ 下）；③ integration bdd-19（pre-commit-hook.bats L1451）同样写 `.git/hooks/.agate-root`。本次 #5 新增断言按正确位置判定]
 
 [DEVIATION: 任务要求「补充 `## 批次 4d` 小节」——本文件批次记录均用 `#` 级标题（`# P4 实现记录 — 批次 X`），既有批次 4d 记录已占该标题；为保持一致用 `# P4 实现记录 — 批次 4d-fix` 追加到文件末尾，不改既有 4d 记录内容]
+
+# P4 实现记录 — 批次 4e（rules/ + assets/ 文档脚本名引用同步）
+
+## 背景
+
+批次 4d 删除了 27 个已 py 化的 .sh（保留 3 个 hook 薄壳）。P1 表 B 的 in-scope 文档已同步，但 `agate/rules/` + `agate/assets/` 下的文档（表 B 范围外）仍引用已删 .sh——这些文档会被主 Agent/subagent 实际读取执行（如 verifier.md 教 subagent 跑 `bash check-p6-format.sh --fix`，现在会失败）。本批同步（SCOPE+）。
+
+## implementation_dir
+
+```
+implementation_dir: agate/rules/state-transitions.md + agate/assets/**/*.md（9 个文件，仅脚本名引用）
+```
+
+## 本批次改动清单
+
+只改脚本名引用，不改文档语义/结构。按 `grep -rn "\.sh"` 定位后逐处同步。
+
+### 1. `agate/rules/state-transitions.md` — 9 处
+
+- L24 `check-tdd-red.sh` → `check-tdd-red.py`
+- L35 `check-gate.sh P6` → `check-gate.py P6`
+- L36 `check-p6-provenance.sh` → `check-p6-provenance.py`
+- L68 `check-gate.sh` → `check-gate.py`
+- L71 `bash agate/scripts/agate-archive-stale-outputs.sh` → `python3 agate/scripts/agate-archive-stale-outputs.py`（命令式引用）
+- L74 `check-state-transition.sh` → `check-state-transition.py`
+- L79 `bash agate/scripts/agate-retreat-to.sh` → `python3 agate/scripts/agate-retreat-to.py`（命令式引用）
+- L82 `check-state-transition.sh` → `check-state-transition.py`
+- L84 `check-debt.sh --retreat-coverage` → `check-debt.py --retreat-coverage`
+
+### 2. `agate/assets/execution-roles/verifier.md` — 7 处
+
+- L93 `scripts/check-p6-provenance.sh` → `scripts/check-p6-provenance.py`
+- L132 `check-p6-provenance.sh` → `check-p6-provenance.py`
+- L133 `check-gate.sh P6` → `check-gate.py P6`
+- L199 `bash $AGATE_ROOT/scripts/check-p6-format.sh --fix ...` → `python3 $AGATE_ROOT/scripts/check-p6-format.py --fix ...`
+- L200 `bash $AGATE_ROOT/scripts/check-p6-evidence.sh` → `python3 $AGATE_ROOT/scripts/check-p6-evidence.py`
+- L201 `bash $AGATE_ROOT/scripts/check-p6-provenance.sh` → `python3 $AGATE_ROOT/scripts/check-p6-provenance.py`
+- L219 `check-p6-format.sh` → `check-p6-format.py`
+
+（L150 `pre-commit-gate` 无扩展名且指 hook 薄壳 → 保留）
+
+### 3. `agate/assets/execution-roles/architect.md` — 2 处
+
+- L73 `check-tdd-red.sh` → `check-tdd-red.py`、`agate-capture-env-baseline.sh` → `agate-capture-env-baseline.py`
+- L133 `check-gate.sh` → `check-gate.py`
+
+（L67/L69 `P3_formatter: "pytest.sh"` 是 formatters/ 真实存在的 .sh → 保留）
+
+### 4. `agate/assets/execution-roles/consistency-reviewer.md` — 1 处
+
+- L40 `check-gate.sh P7` → `check-gate.py P7`
+
+### 5. `agate/assets/formatters/README.md` — 1 处
+
+- L3 `check-tdd-red.sh` → `check-tdd-red.py`（其余 `*.sh` 均为 formatters/ 真实脚本 `pytest.sh`/`vitest.sh`/`go-test.sh`/`generic-*.sh` → 保留）
+
+### 6. `agate/assets/templates/active-tasks-template.md` — 1 处
+
+- L49 `check-tdd-red.sh` → `check-tdd-red.py`
+
+### 7. `agate/assets/templates/dispatch-context.md` — 4 处
+
+- L1 `check-p6-provenance.sh` → `check-p6-provenance.py`
+- L5 `agate-inject-card.sh` → `agate-inject-card.py`
+- L32 `agate-inject-card.sh` → `agate-inject-card.py`
+- L41 `check-p6-provenance.sh` → `check-p6-provenance.py`
+
+### 8. `agate/assets/templates/dispatch-prompt.md` — 1 处
+
+- L159 `check-p6-provenance.sh` → `check-p6-provenance.py`
+
+### 9. `agate/assets/review-roles/protocol-alignment-review.md` — 8 处
+
+- L25 `check-frontmatter.sh` → `check-frontmatter.py`
+- L35 `agate/scripts/check-*.sh`（脚本行为）→ `agate/scripts/check-*.py`
+- L37 `check-p6-provenance.sh`、`check-gate.sh` → `.py`
+- L40 `agate/scripts/check-*.sh`（pre-commit 触发行为）→ `agate/scripts/check-*.py`
+- L41 `check-gate.sh`/`check-pruning.sh`/`check-scope-resolved.sh` → `.py`
+- L55 `check-gate.sh` → `check-gate.py`
+- L56 `check-pruning.sh`/`check-state-yaml.sh` → `.py`
+- L91 `check-XXX.sh:XXX` → `check-XXX.py:XXX`
+
+（L12 触发条件 `agate/scripts/*.sh`、`agate/scripts/*.py` 并列出 → 保留：3 个 hook 薄壳仍是 .sh，glob 仍有效）
+
+### 10. `agate/assets/templates/handoff-template.md` — 无改动
+
+- L25 `pre-commit-gate.sh`（hook 薄壳）→ 保留
+- L29 `agate-summary.py` 已是 py → 无需改
+- L67 `shellcheck -S warning agate/scripts/*.sh` → 保留：3 hook 薄壳仍为 .sh，glob 有效
+- L70 `bash agate/tests/scripts/count-tests.sh` → 保留（count-tests.sh 不在迁移范围）
+- L83 `agate/scripts/*.py/.sh` → 保留（两类均存在）
+
+### 11. `agate/assets/templates/task-files.md` — 无改动
+
+- L265/L267 `P3_formatter: "pytest.sh"` → 保留（formatters/ 真实脚本）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- 逐名 grep 复核：`check-tdd-red/check-gate/check-p6-provenance/check-p6-format/check-p6-evidence/check-state-transition/check-debt/check-pruning/check-scope-resolved/check-state-yaml/check-frontmatter/check-changelog/check-retrospective/agate-archive-stale-outputs/agate-retreat-to/agate-capture-env-baseline/agate-inject-card/agate-summary/agate-render-dispatch-prompt/agate-next-card` 的 `.sh` 名在 rules/ + assets/ 下 0 残留
+- 无 `install-hook.sh`/`gate-result.sh`/`agate-workspace-resolve.sh` 残留
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。批内所有命令式引用（`bash ...`）统一改为 `python3 ...`（与 verifier.md 既有 `$AGATE_ROOT` 风格一致）；`protocol-alignment-review.md` 的 `check-*.sh` glob 改为 `check-*.py`（3 hook 均非 check-* 命名，glob 指已删脚本）。
+
+# P4 实现记录 — 批次 4e-fix（收尾：3 个测试文件引用已删 .sh 修复）
+
+## 背景
+
+批次 4d 删除 27 个已 py 化 .sh 后，`integration/pre-push-hook.bats`（3 处 `install-hook.sh`）与 `integration/consistency.bats`（CON.9/CON.12 各 grep 已删 .sh）仍引用已删脚本导致测试失败。本批收尾修复（SCOPE+）。
+
+## implementation_dir
+
+```
+implementation_dir: agate/tests/integration/pre-push-hook.bats + agate/tests/integration/consistency.bats
+```
+
+## 本批次改动清单
+
+### 1. `agate/tests/integration/pre-push-hook.bats`
+
+- 3 处 `bash "$AGATE_ROOT/scripts/install-hook.sh"` → `"$PYTHON" "$AGATE_ROOT/scripts/install-hook.py"`（L10/L58/L96；L49 的 `install-hook.sh` 连同 mock 一并改，见下）
+- 用例 2（"ln 复制模式下安装输出升级提醒"）：删除 fakebin mock ln 块，`run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' ..."` → `run bash -c "cd '$repo' && AGATE_HOOK_COPY_MODE=1 "$PYTHON" '$AGATE_ROOT/scripts/install-hook.py' '$agate_root'"`（同 unit/install-hook.bats 修复先例：py 版不调外部 ln，用 AGATE_HOOK_COPY_MODE=1 环境变量强制复制分支）
+- L12 注释 `mock ln 用例` → `AGATE_HOOK_COPY_MODE 复制用例`（跟随 mock 删除）
+
+### 2. `agate/tests/integration/consistency.bats`
+
+- CON.9：`grep -q 'MD5_LIST' agate/scripts/check-p6-evidence.sh` → `grep -q '_md5_entries' agate/scripts/check-p6-evidence.py`；L44 注释 `.sh` → `.py`。**偏离点**：py 版无 `MD5_LIST` 标识符（sh 版变量），改用 py 版实际的 md5 去重函数名 `_md5_entries`；`md5sum` 锚点在 py 版 docstring 注释中仍存在 → 保留
+- CON.12：`check-gate.sh` → `check-gate.py`（`NO_NEED_CONFIRM`/`SUGGEST` 锚点在 py 版正则中仍存在）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `bats agate/tests/integration/pre-push-hook.bats agate/tests/integration/consistency.bats` → 15/15 全绿（pre-push 4 + consistency 11）
+- @test 行数未增删
+
+## 偏离点
+
+> CON.9 锚点 `MD5_LIST` 在 py 版不存在（sh 版私有变量名未保留），改用 py 版真实实现标识符 `_md5_entries`——测试意图（锁定 md5 去重实现存在）不变。

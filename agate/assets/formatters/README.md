@@ -1,6 +1,6 @@
 # Test Output Formatter Contract
 
-agate 协议通过 **formatter 适配层**实现技术栈无关的测试输出解析。每个 formatter 将特定测试运行器的原始输出转换为统一 JSON 格式，供 `check-tdd-red.sh` 等 gate 脚本消费。
+agate 协议通过 **formatter 适配层**实现技术栈无关的测试输出解析。每个 formatter 将特定测试运行器的原始输出转换为统一 JSON 格式，供 `check-tdd-red.py` 等 gate 脚本消费。
 
 ## 契约
 

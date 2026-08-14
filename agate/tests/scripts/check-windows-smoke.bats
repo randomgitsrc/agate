@@ -95,9 +95,9 @@ load ../helpers/fixtures.bash
     [[ "$output" == *"passed"* ]]
 }
 
-@test "WSMOKE.7 脚本自身平台无关（check-platform-assumptions.sh 扫描 0 命中）" {
+@test "WSMOKE.7 脚本自身平台无关（check-platform-assumptions.py 扫描 0 命中）" {
     local script="$AGATE_ROOT/tests/scripts/check-windows-smoke.sh"
-    run bash "$AGATE_SCRIPTS/check-platform-assumptions.sh" "$script"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$script"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
