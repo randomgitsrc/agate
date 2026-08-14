@@ -7,7 +7,7 @@ load ../helpers/load.bash
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-ig1")
     echo ".state.yaml" > "$repo/.gitignore"
-    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' bash '$AGATE_SCRIPTS/install-hook.sh' '$AGATE_ROOT'" 2>&1
+    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' "$PYTHON" '$AGATE_SCRIPTS/install-hook.py' '$AGATE_ROOT'" 2>&1
     [[ "$output" == *".state.yaml"* ]]
     [[ "$output" == *"忽略"* ]]
 }
@@ -15,14 +15,14 @@ load ../helpers/load.bash
 @test "install-hook: 无 .gitignore → 无 WARNING" {
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-ig2")
-    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' bash '$AGATE_SCRIPTS/install-hook.sh' '$AGATE_ROOT'" 2>&1
+    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' "$PYTHON" '$AGATE_SCRIPTS/install-hook.py' '$AGATE_ROOT'" 2>&1
     [[ "$output" != *".state.yaml"*"忽略"* ]]
 }
 
 @test "install-hook: pre-push 是软链指向 pre-push-gate.sh" {
     local repo
     repo=$(git_init "$BATS_TEST_TMPDIR/repo-pp1")
-    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' bash '$AGATE_SCRIPTS/install-hook.sh' '$AGATE_ROOT'" 2>&1
+    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' "$PYTHON" '$AGATE_SCRIPTS/install-hook.py' '$AGATE_ROOT'" 2>&1
     # 平台分支：Linux 用 readlink 断言真软链语义（R3 扫描器要求无 -L 字面）；
     # Windows 复制模式由独立 mock ln 用例覆盖（见下）
     if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
@@ -38,7 +38,7 @@ load ../helpers/load.bash
     local hook="$repo/.git/hooks/pre-push"
     mkdir -p "$(dirname "$hook")"
     printf '#!/usr/bin/env bash\nexit 0\n' > "$hook"
-    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' bash '$AGATE_SCRIPTS/install-hook.sh' '$AGATE_ROOT'" 2>&1
+    run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' "$PYTHON" '$AGATE_SCRIPTS/install-hook.py' '$AGATE_ROOT'" 2>&1
     [[ "$output" == *"已备份现有 pre-push hook"* ]]
     # 平台分支：Linux 断言软链语义；Windows 复制模式由独立 mock ln 用例覆盖
     if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
@@ -59,19 +59,13 @@ load ../helpers/load.bash
     cp "$AGATE_ROOT/scripts/commit-msg-self-gate.sh" "$agate_root/scripts/"
     cp "$AGATE_ROOT/scripts/pre-push-gate.sh" "$agate_root/scripts/"
 
-    # mock ln：让它退化为 cp（模拟 Windows 无符号链接权限）
-    local fakebin
-    fakebin="$BATS_TEST_TMPDIR/fakebin"
-    mkdir -p "$fakebin"
-    cat > "$fakebin/ln" <<'LNEOF'
-#!/usr/bin/env bash
-cp -f "$2" "$3"
-LNEOF
-    chmod +x "$fakebin/ln"
-
-    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' '$agate_root'" 2>&1
+    # AGATE_HOOK_COPY_MODE=1 强制复制分支（py 版不调外部 ln，替代原 mock ln → cp 模拟 Windows 无符号链接权限）
+    run bash -c "cd '$repo' && AGATE_HOOK_COPY_MODE=1 "$PYTHON" '$AGATE_ROOT/scripts/install-hook.py' '$agate_root'" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" == *"复制"* || "$output" == *"需重跑"* ]]
+    # 复制模式写 .agate-root 兜底标记到 hook 所在 .git/hooks/（gate 脚本 dirname(BASH_SOURCE) 读取处，同 sh 版 L39）
+    [ -f "$repo/.git/hooks/.agate-root" ]
+    [[ "$(cat "$repo/.git/hooks/.agate-root")" == "$agate_root" ]]
 }
 
 @test "install-hook: ln 复制模式下 pre-push hook 以复制安装并提示重跑（BDD-18/19）" {
@@ -84,17 +78,8 @@ LNEOF
     cp "$AGATE_ROOT/scripts/commit-msg-self-gate.sh" "$agate_root/scripts/"
     cp "$AGATE_ROOT/scripts/pre-push-gate.sh" "$agate_root/scripts/"
 
-    # mock ln：退化为 cp（模拟 Windows 无符号链接权限），复用 L43 先例
-    local fakebin
-    fakebin="$BATS_TEST_TMPDIR/fakebin-pp"
-    mkdir -p "$fakebin"
-    cat > "$fakebin/ln" <<'LNEOF'
-#!/usr/bin/env bash
-cp -f "$2" "$3"
-LNEOF
-    chmod +x "$fakebin/ln"
-
-    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' '$agate_root'" 2>&1
+    # AGATE_HOOK_COPY_MODE=1 强制复制分支（py 版不调外部 ln，替代原 mock ln → cp 模拟 Windows 无符号链接权限）
+    run bash -c "cd '$repo' && AGATE_HOOK_COPY_MODE=1 "$PYTHON" '$AGATE_ROOT/scripts/install-hook.py' '$agate_root'" 2>&1
     [ "$status" -eq 0 ]
     [[ "$output" == *"复制"* || "$output" == *"需重跑"* ]]
     [ -f "$repo/.git/hooks/pre-push" ]

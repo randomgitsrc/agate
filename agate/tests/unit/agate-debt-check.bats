@@ -549,7 +549,7 @@ EOF
     cp "$AGATE_SCRIPTS/check-debt.py" "$sdir/check-debt.py"
     run "$PYTHON" "$sdir/check-debt.py" --retreat-coverage
     [ "$status" -eq 2 ]
-    [[ "$output" == *"缺少 agate-workspace-resolve.sh"* ]]
+    [[ "$output" == *"缺少 agate_common"* ]]
 }
 
 # ========== 功能组 E：P8 锚定留痕（Phase 3，BDD-16..18） ==========

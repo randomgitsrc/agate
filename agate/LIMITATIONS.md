@@ -35,14 +35,14 @@ T026 事故：主 Agent 编造 11/16 条 BDD 验收结果（不跑验证脚本�
 **方向性错配**：agate 的防御机器（五步校验、gate 亲跑、上下文隔离）主要布置在 subagent 一侧——而 subagent 是廉价的、可无限重派的、失败即被打回的一方。主 Agent 一侧——握有全部最终裁量权（裁剪、gate 算不算过、SCOPE+ 范围）且被实证是主要事故源（T005/T006/T016/T019 根因全是主 Agent）——几乎没有任何外部约束。这个错配是"纯文档协议 + 单编排者"这条路线的结构性产物：只要主 Agent 是唯一最终裁判且它写的东西是唯一事实源，就不可能从内部约束它。承认这一点，比继续往 subagent 侧加检查更重要。
 
 **降级缓解（v2 客观行为审计，已实现）**：
-- P6 验收：`scripts/check-p6-provenance.sh` 六道客观审计
+- P6 验收：`scripts/check-p6-provenance.py` 六道客观审计
   - 证据-结论对应：每条 PASS 的证据引用路径必须存在 + 每个证据文件必须被引用（空 png 充数拦截）；多条 PASS 可共享同一证据文件
   - dispatch-context 审计：P6-dispatch-context-{role}.md 不含验收结论预判（防误导 verifier）
   - BDD 总数对照：P6 结果数 = P1 `#### BDD-NN` 标题数（精确计数，不再依赖 Given 行数启发式）
-- P2 评审：agent=main 硬拦截（check-gate.sh exit 1，不可自行批准评审）
+- P2 评审：agent=main 硬拦截（check-gate.py exit 1，不可自行批准评审）
 - P5 机械化回归判定（v0.24.0，P2.47/P2.48）：任务开始时自动捕获全量测试失败列表快照（`pre-task-baseline.md`），P5 阶段对两次快照做 `comm` diff——只在"任务后"出现的 = 新增回归，直接拦截；两边都有的 = 预存，需 `known-failures.md` 登记。判定不再依赖主 Agent 文字声明，纯粹是两个文件的集合运算。缓解但不根治——P5 整体仍是 self-authored gate，快照文件本身理论上仍可被主 Agent 绕过（如 `--no-verify` 或手改 fail-list.txt），与 provenance 审计的已知局限同级。
 - 已知局限：主 Agent 可造假证据文件（如空 png 充数），但造假成本远高于合规（需造 N 个文件 + 正确交叉引用 + BDD 总数匹配）。证据-结论对应检查只验证引用存在性和数量，不验证证据内容真实性（如截图是否为真实 UI 截图 vs 纯色 png）——这是造假成本提升 + 留痕审计，不是硬保证
-- 已知局限：`git commit --no-verify` 绕过 pre-commit hook 时 provenance 审计也被绕过，CI backstop 现已重跑 check-p6-provenance.sh（M4.2），provenance 的 CI 层覆盖为 git blame WARNING + provenance 重跑
+- 已知局限：`git commit --no-verify` 绕过 pre-commit hook 时 provenance 审计也被绕过，CI backstop 现已重跑 check-p6-provenance.py（M4.2），provenance 的 CI 层覆盖为 git blame WARNING + provenance 重跑
  - 根治：Phase 3 平台支持独立 git author 后，agent 字段升级为 git author 硬检查
 
 → ADR-001（隔离性不约束主 Agent 裁量权）、ADR-005（改动性质判断依赖主 Agent）
@@ -82,15 +82,15 @@ agate 作为项目开发流程时，P2 评审角色（plan-eng-review / cso / de
 
 **缓解（v0.8）**：协议-脚本语义对齐审查（protocol-alignment-review）。改协议/脚本时派发独立 review subagent 做语义审查（A1-A6 审查清单），CHECK 9 做结构兜底（锚点表关键词存在性检查）。语义一致性仍非 100% 自动化——需要人触发审查 + 人确认 NEEDS_HUMAN_REVIEW 项。→ ADR-002（可判定性不覆盖协议文档自身的一致性）
 
-## 局限 6：运行时依赖 bash+git+python3+pyyaml+Pillow（可选），但不限制被管理项目语言
+## 局限 6：运行时依赖 python3+git+pyyaml（强制）+ bash（仅 hook 薄壳）+ Pillow（可选），但不限制被管理项目语言
 
-agate 的 gate 脚本和 pre-commit hook 依赖 bash、git、python3（+pyyaml+Pillow）作为运行时工具。这些是**工具依赖**，不是被管理项目的语言限制——agate 编排的项目可以是任何语言（Go、Rust、Java、Ruby 等），只要执行环境有 bash+git+python3 可用。
+agate 的 gate 脚本和 pre-commit hook 依赖 python3、git、pyyaml 作为运行时工具（TAG0010 起产品逻辑全部 Python 化，bash 仅剩 3 个 hook 薄壳）。这些是**工具依赖**，不是被管理项目的语言限制——agate 编排的项目可以是任何语言（Go、Rust、Java、Ruby 等），只要执行环境有 python3+git 可用。
 
 具体影响：
-- **bash**：所有 gate 脚本（check-gate.sh、check-pruning.sh 等）和 pre-commit hook 用 bash 编写。无 bash 则无法运行 gate
+- **python3 + pyyaml（强制）**：全部 gate 脚本（check-gate.py、check-pruning.py 等）和 pre-commit hook 用 Python 编写，`agate_common.py` 及所有状态读取工具 import yaml。**pyyaml 是强制依赖**（`pip install pyyaml`），缺失时脚本 fail-closed（exit 1 阻断），不做静默降级。无 python3 则无法运行 gate
+- **bash（仅 3 个 hook 薄壳）**：git hook 入口保留 `.sh` 薄壳（定位 AGATE_ROOT + python 探测 + exec py 主程序）。**无 bash 环境（纯 cmd/PowerShell）成为可行选项**——gate 脚本可直接 `python3` 运行（P0-P8 全程可执行），仅 hook 薄壳需要 sh（Git for Windows 自带）。详见 `platform-notes.md`「Windows 原生」
 - **git**：状态落盘、pre-commit hook、P8 version 检测、P7 源文件计数均依赖 git。非 git 项目无法使用 agate
-- **python3 + pyyaml**：`check-protocol-consistency.py` 和 `ci-gate-backstop.py` 需要 python3 + pyyaml。此外状态/vision 类检查逻辑已抽离为独立 `.py` 工具（`agate/scripts/agate-*.py`，见 AGENTS.md 依赖节），缺 python3 时这些工具的 YAML/状态解析逻辑不可用
-- **Pillow（可选）**：check-p6-evidence.sh 的像素方差检测和 average hash 相似度检测需要 Pillow。Pillow 未安装时这两项检测跳过并输出 WARNING（不阻断 gate），可设 `AGATE_SKIP_IMAGE_CHECKS=1` 主动声明跳过。CI 环境建议安装 Pillow 以获得完整检测覆盖
+- **Pillow（可选）**：check-p6-evidence.py 的像素方差检测和 average hash 相似度检测需要 Pillow。Pillow 未安装时这两项检测跳过并输出 WARNING（不阻断 gate），可设 `AGATE_SKIP_IMAGE_CHECKS=1` 主动声明跳过。CI 环境建议安装 Pillow 以获得完整检测覆盖
 
 **现状**：这些依赖是 agate 作为"零基础设施文档协议"的代价——用通用工具替代专用服务。如果执行环境不满足，gate 检查和 pre-commit hook 不可用，但协议的文档部分（阶段卡片、角色文件、状态机规则）仍可参考。→ ADR-003（不绑定被管理项目技术栈，但 agate 自身有运行时依赖）
 
@@ -115,7 +115,7 @@ ci-gate-backstop.py 设计为 CI 层兜底——在 pre-commit hook 被绕过时
 - AGATE_TASKS_DIR 环境变量（v0.13.0 新增）允许配置任务目录路径，但 CI 平台检测仍需手动适配
 - Gitea Actions 的环境变量（`GITEA_ACTIONS=true`）和事件文件格式尚未实测确认（见第六部分验证状态说明），`get_pr_metadata` 的 Gitea 分支先按 GitHub 兼容路径实现，实测不符时需调整
 
-**现状**：CI backstop 是可选增强层。核心 gate 检查在 pre-commit hook 中运行，不依赖特定 CI 平台。非支持平台的用户可参考 ci-gate-backstop.py 的逻辑自行实现对应平台的 backstop。M4.2 新增 provenance 审计重跑（check-p6-provenance.sh），CI backstop 现在同时重跑 check-gate.sh + check-p6-provenance.sh。
+**现状**：CI backstop 是可选增强层。核心 gate 检查在 pre-commit hook 中运行，不依赖特定 CI 平台。非支持平台的用户可参考 ci-gate-backstop.py 的逻辑自行实现对应平台的 backstop。M4.2 新增 provenance 审计重跑（check-p6-provenance.py），CI backstop 现在同时重跑 check-gate.py + check-p6-provenance.py。
 
 ## 这些局限意味着什么
 

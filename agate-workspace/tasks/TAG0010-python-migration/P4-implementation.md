@@ -1101,3 +1101,230 @@ implementation_dir: agate/tests/integration/protocol-alignment-review.bats
 ## 偏离点
 
 > 无 DEVIATION / DESIGN_GAP。SG.7 的 commit-msg-self-gate.sh 断言不受影响（该脚本作为 3 个 hook 薄壳之一保留 sh，本次仅对 SH/check-*.py 匹配）。
+
+---
+
+# P4 实现记录 — 批次 4c-1（9 个协议文档脚本引用 .sh → .py 同步）
+
+## implementation_dir
+
+```
+implementation_dir: agate/ 协议文档（9 个，按 P1 表 B）
+```
+
+## 本批次改动清单
+
+> 机械换后缀：已 py 化脚本（scripts/ 下有同名 .py）的引用 `.sh` → `.py`（同名换后缀）；3 个 hook 薄壳（pre-commit-gate.sh / commit-msg-self-gate.sh / pre-push-gate.sh）保留 `.sh`；count-tests.sh / check-windows-smoke.sh 不在范围；install-hook.sh → install-hook.py。只改脚本名引用，不改文档语义。
+
+| 文档 | 改动处数（按 P1 表 B 核对） |
+|------|---------------------------|
+| `agate/dispatch-protocol.md` | 22 处（check-gate.py×6 / check-p6-provenance.py×4 / agate-inject-card.py×3 / check-state-transition.py×2 / check-p6-evidence.py×2 / check-tdd-red.py×1 / check-scope-resolved.py×1 / check-p6-format.py×1 / agate-archive-stale-outputs.py×1 / agate-retreat-to.py×1） |
+| `agate/orchestrator-template.md` | 7 处（agate_common.py×2〔agate-workspace-resolve.sh 归并〕/ agate-summary.py×1 / agate-migrate-workspace.py×1 / check-gate.py×1 / agate-inject-card.py×1 / install-hook.py×1） |
+| `agate/git-integration.md` | 3 处（check-gate.py×2 / check-p6-provenance.py×1） |
+| `agate/WORKFLOW.md` | 21 处（check-gate.py×7 / check-p6-provenance.py×3 / check-p6-evidence.py×2 / check-pruning.py×2 / check-tdd-red.py×1 / check-scope-resolved.py×1 / check-state-transition.py×1 / check-changelog.py×1 / check-state-yaml.py×1 / check-retrospective.py×1 / agate_common.py×1）；pre-commit-gate.sh 保留 |
+| `agate/state-machine.md` | 17 处（check-tdd-red.py×6 / check-gate.py×5 / check-p6-provenance.py×2 / check-state-transition.py×2 / check-scope-resolved.py×1 / check-pruning.py×1） |
+| `agate/phase-cards/P6-acceptance.md` | 表 B 列 check-p6-format.py×5；另同步本卡其它 py 化引用（check-gate.py×4 / check-p6-evidence.py×3 / check-p6-provenance.py×6 / agate-archive-stale-outputs.py×1 / agate-retreat-to.py×1）；pre-commit-gate.sh 保留 |
+| `agate/assets/templates/handoff-template.md` | 2 处（agate-summary.py×1 / agate_common.py×1〔agate-workspace-resolve.sh 归并〕）；pre-commit-gate.sh + count-tests.sh 保留 |
+| `agate/assets/templates/task-files.md` | 6 处（check-tdd-red.py×3 / check-state-yaml.py×1 / check-p6-provenance.py×1 / check-scope-resolved.py×1）；pytest.sh formatter 引用保留（assets/formatters/ 仍为 sh） |
+| `agate/assets/templates/tech-debt-template.md` | 表 B 列 check-debt.py×3；另含 agate-retreat-to.py×1（py 化引用一并改） |
+
+合计：约 82 处脚本名引用（按表 B 口径 9 文档全部覆盖）。
+
+## 自查结果（自查 ≠ P5 gate）
+
+未跑任何 bats（按派发指引，由主 Agent 验证）。逐文档 `grep -n "\.sh"` 自查：
+
+- 残留 `.sh` 引用清单（应只剩 3 hook 薄壳 + count-tests + check-windows-smoke + 有意保留项）：
+  - `WORKFLOW.md` L303 `pre-commit-gate.sh`（hook 薄壳，有意保留）
+  - `state-machine.md` L273 formatter 脚本（pytest.sh / vitest.sh / go-test.sh / generic-exit-only.sh，assets/formatters/ 仍为 sh，非本任务迁移对象）
+  - `P6-acceptance.md` L145 `pre-commit-gate.sh`（hook 薄壳，有意保留）
+  - `handoff-template.md` L25 `pre-commit-gate.sh`（hook 薄壳）+ L67 `shellcheck -S warning agate/scripts/*.sh`（dev 命令 glob，脚本仍在）+ L70 `count-tests.sh`（不在范围）+ L83 `agate/scripts/*.py/.sh`（self-gate 触发面 glob，含 sh 仍合法）
+  - `task-files.md` L265/L267 `pytest.sh`（formatter，非迁移对象）
+- `bash ... .py` 错误调用残留：0
+- 全部 9 文档无已 py 化脚本的 `.sh` 引用残留（`grep -oE '(scripts/)?(check|agate|ci-gate|install-hook)-?[a-z-]*\.sh'` 零命中）
+
+## 偏离点
+
+[DEVIATION: 表 B 对 P6-acceptance.md / tech-debt-template.md 只列了主要脚本（check-p6-format / check-debt），但这两个文档内还含其它已 py 化脚本的引用（P6 卡的 check-gate / check-p6-evidence / check-p6-provenance / agate-archive-stale-outputs / agate-retreat-to；debt 模板的 agate-retreat-to）——按「已 py 化（scripts/ 有同名 .py）→ 换 .py」的通用规则一并同步，保证两文档无 py 化残留]
+
+[DEVIATION: `agate-workspace-resolve.sh`（批次 0 已归并进 agate_common.py，无同名 .py）的文档引用改指向 `agate_common.py`——orchestrator-template L22/L70 命令从 `bash .../agate-workspace-resolve.sh` 改为 `python3 .../agate_common.py`（执行模式输出 AGATE_WORKSPACE=/AGATE_TASKS_DIR= 两行，CLI 契约等价）；WORKFLOW L79、handoff-template L37 同理。install-hook.sh / agate-summary.sh / check-p6-format.sh 等命令式引用从 `bash` 改为 `python3`]
+
+> 实现说明（非 DEVIATION）：3 个 hook 薄壳（pre-commit-gate.sh / commit-msg-self-gate.sh / pre-push-gate.sh）在所有文档中保留 `.sh` 引用，符合 P1 表 B 约定「仅 3 个 hook 入口保留 sh 薄壳」；本批次 9 文档中 commit-msg-self-gate.sh / pre-push-gate.sh 无直接引用出现，无需改动。
+
+---
+
+# P4 实现记录 — 批次 4c-2（5 个文档内容重写：scripts/README / platform-notes / UPGRADING / SETUP / LIMITATIONS）
+
+## implementation_dir
+
+```
+implementation_dir: agate/ 协议文档（5 个，按 P1 表 B 内容重写批）
+```
+
+## 本批次改动清单
+
+> 本批次是 P1 表 B 中「需要内容重写」的 5 个文档（非机械换后缀），保留各文档原有结构/风格，按 py 化最终态（30 sh → py、3 hook 保留 sh 薄壳、install-hook.sh → install-hook.py、agate_common.py 归并）重写。
+
+### 1. `agate/scripts/README.md` — 脚本清单表按 sh/py 分类重写
+
+- **Bash 薄壳（.sh — 仅 3 个 git hook 入口）**：`pre-commit-gate.sh` / `commit-msg-self-gate.sh` / `pre-push-gate.sh`（定位 AGATE_ROOT + python 探测 + exec 对应 .py 主程序 + 失败 fail-closed 阻断）
+- **Python 脚本（.py）**：Gate 检查表全部改 .py 名（pre-commit-gate.py / commit-msg-self-gate.py / pre-push-gate.py 主程序 + 14 个 check-*.py）；新增「公共库」`agate_common.py`（替代 gate-result.sh + agate-workspace-resolve.sh，执行模式两行输出契约）；CI 兜底 ci-gate-backstop.py；安装 install-hook.py；版本发现 agate-summary.py / agate-changes.py；阶段卡片 CLI agate-next-card.py + 新增工作区工具组（agate-migrate-workspace / agate-extract-context / agate-archive-stale-outputs / agate-capture-env-baseline / agate-retreat-to / agate-inject-card / agate-render-dispatch-prompt）
+- 「检查逻辑单点工具」表从「从 .sh 内联 python 抽离」框架改为「纯 Python 单点工具」，补 agate-frontmatter-check.py；复制依赖注记改为「连带复制 .py（含 agate_common.py）」
+- Windows 用户注记：脚本已不依赖 bash，`python3 ~/.agate/scripts/xxx.py` 直接运行
+- 协议结构一致性检查（P3-1）章节保留不动
+
+### 2. `agate/platform-notes.md` — Windows 章节重写 + 脚本引用 py
+
+- Windows 章节引言：「依赖 bash + GNU coreutils」→「gate 脚本已全部 Python 化，无 bash 环境（纯 cmd/PowerShell）成为可行选项，仅 3 个 hook 薄壳需要 sh（Git for Windows）」
+- 前置条件表：Git for Windows 说明改为「提供 git + sh（hook 薄壳用）」；新增 **pyyaml 强制依赖**行；shellcheck → ruff（开发者）
+- 安装步骤：验证 bash 可用 → 验证 sh（hook 用）+ 纯 python 路径；`bash .../install-hook.sh` → `python3 .../install-hook.py`；`bash .../agate-summary.sh` → `python3 .../agate-summary.py`
+- 已知限制：CRLF 行改为「3 个 hook 薄壳 .sh 报 \r，py 已显式 utf-8 免疫」；CI 行改为「bats job 已加 windows-latest matrix（技术路线冒烟）」
+- 不支持的场景：「纯 cmd/PowerShell 无 bash：25 个 .sh 无法运行」→「TAG0010 起成为可行选项，仅 hook 薄壳需要 sh（无 bash 时 hook 不触发，可用 CI backstop 兜底）」
+- 既有脚本引用 py：check-p6-provenance.sh → .py（×2）、check-gate.sh → .py（×2）
+
+### 3. `agate/UPGRADING.md` — 新增本版本迁移章节 + 既有引用 py 化
+
+- **新增 `### v0.46.0（占位，最终版本号由 P8 确认）— 产品逻辑 Python 化` 章节**（置于已知破坏性变更列表顶部）：
+  - ① 30 脚本改名/删档清单全表：24 个同名换后缀（13 批次 1 + 11 批次 2）、install-hook.sh → install-hook.py、3 hook 保留 .sh 薄壳 + 新增 .py 主程序、gate-result.sh + agate-workspace-resolve.sh 删档并入 agate_common.py
+  - ② install-hook 迁移命令：`python3 ~/.agate/scripts/install-hook.py`；符号链接模式无需重装（自动跟随）、复制模式必须重跑
+  - ③ shellcheck → ruff 说明（扫描面收敛到 3 薄壳）
+  - ④ python3 + pyyaml 强制依赖声明（薄壳 fail-closed 语义）
+  - ⑤ 无 bash 环境成为可行选项（Windows）
+- 既有引用 py 化（按 P1 表 B 14 处）：通用升级步骤 install-hook.sh/agate-summary.sh → .py；v0.45.0/v0.44.0/v0.43.0/v0.41.0 历史章节的 check-gate.sh / check-platform-assumptions.sh / install-hook.sh / check-p6-evidence.sh / check-debt.sh / agate-migrate-workspace.sh / agate-summary.sh 引用全部 .py 化；升级后验证节 agate-summary.sh → .py；`pre-commit-gate.sh` 内部数组化历史条目保留（薄壳仍为 .sh）
+
+### 4. `agate/SETUP.md` — pyyaml 强制安装 + 脚本调用 py 化
+
+- 前置 blockquote 新增运行依赖：**Python 3.8+ 且 `pip install pyyaml`（强制）**，pyyaml 缺失时脚本 fail-closed 阻断
+- 脚本引用 py 化：agate-workspace-resolve.sh → agate_common.py（×2，解析说明）；install-hook.sh → install-hook.py（×3）；agate-summary.sh → agate-summary.py（×4）；agate-next-card.sh → agate-next-card.py；步骤 4 装 hook 前置 `pip install pyyaml`；步骤 5 验证命令全部改 py（含 `python3 .../agate_common.py` 输出两行）；CRLF 行改「3 个 hook 薄壳 .sh 报 \r，py 免疫」
+
+### 5. `agate/LIMITATIONS.md` — 局限 6 强制依赖 + 脚本引用 py
+
+- 局限 6 标题改「运行时依赖 python3+git+pyyaml（强制）+ bash（仅 hook 薄壳）+ Pillow（可选）」；正文重写：pyyaml 从「可选/部分工具」改为「强制依赖（fail-closed 阻断）」；bash 从「所有 gate 脚本依赖」改为「仅 3 个 hook 薄壳」+ 无 bash 环境成为可行选项；Pillow 保持可选（check-p6-evidence.py）
+- 脚本引用 py 化：check-p6-provenance.sh → .py（×3，局限 3/局限 8）；check-gate.sh → check-gate.py（×2，局限 3/局限 8）；check-p6-evidence.sh → .py（局限 6）
+
+## 自查结果（自查 ≠ P5 gate）
+
+未跑任何 bats（按派发指引，由主 Agent 验证）。逐文档 `grep -nE '\.sh'` 自查：
+
+- `scripts/README.md`：残留 .sh 仅 3 薄壳表 + count-tests/check-windows-smoke 注记 + gate-result.sh/agate-workspace-resolve.sh（作为 agate_common.py 的替代来源说明）+ `.bats/.bash/.sh/.py` 扫描器覆盖说明
+- `platform-notes.md`：残留 .sh 仅 3 薄壳 + CRLF 行说明
+- `UPGRADING.md`：残留 .sh 为迁移表（旧名对照）本身 + v0.44.0 历史条目的 pre-commit-gate.sh（薄壳保留）+ shellcheck glob + count-tests.sh 注记
+- `SETUP.md`：残留 .sh 仅 CRLF 行「3 个 hook 薄壳 .sh」
+- `LIMITATIONS.md`：残留 .sh 仅局限 6 的「bash（仅 3 个 hook 薄壳）」表述
+- 无「bash ... xxx.sh」错误命令残留（新章节外）
+
+## 偏离点
+
+[DEVIATION: UPGRADING 新章节版本号按派发指引「写 v0.45.0 占位」的意图是"本任务即将发布版本的占位"——但当前 git tag / CHANGELOG 已是 v0.45.0（已发布，UPGRADING 已有 v0.45.0 章节），本任务（TAG0010）发布时版本必然 > v0.45.0。故按「下一 minor 版本」惯例写 **v0.46.0（占位）** 并显式标注「最终版本号由 P8 确认」，与派发指引意图一致（占位 + P8 确认），偏离其字面数字]
+
+[DEVIATION: scripts/README.md 的「检查逻辑单点工具」表在原文档的「从 .sh 内联 python 抽离的独立 .py」框架（14 个工具）下补了 agate-frontmatter-check.py（原表缺失），并重写框架表述——py 化后「从 .sh 抽离」的历史语境不再成立，改为「纯 Python 单点工具」]
+
+> 实现说明（非 DEVIATION）：platform-notes / SETUP / UPGRADING 中保留的「3 个 hook 薄壳 .sh」表述与 P1 表 B 约定一致；UPGRADING v0.44.0 历史条目「pre-commit-gate.sh 内部数组化（S1 修复）」保留 .sh（该薄壳仍为 .sh，历史记录不应改写）。
+
+---
+
+# P4 实现记录 — 批次 4c-3（CI workflow 同步：shellcheck 收敛 + 新增 ruff job + 扫描器调用目标）
+
+## implementation_dir
+
+```
+implementation_dir: .github/workflows/protocol-tests.yml
+```
+
+## 本批次改动清单
+
+> P1 表 B「CI（protocol-tests.yml）」行的三处同步，其余 job（bats / consistency / gate-backstop）保持不变，YAML 结构/风格保持。
+
+1. **shellcheck job：扫描目标收敛到 3 个 hook 薄壳**
+   - `shellcheck -S warning agate/scripts/*.sh`（Linux）→ `shellcheck -S warning agate/scripts/pre-commit-gate.sh agate/scripts/commit-msg-self-gate.sh agate/scripts/pre-push-gate.sh`
+   - `shellcheck.exe -S warning agate/scripts/*.sh`（Windows）→ 同上 3 薄壳显式列表
+   - 步骤名同步标注「3 hook 薄壳」（`Run shellcheck (Linux, 3 hook 薄壳)` / `Run shellcheck (Windows, 3 hook 薄壳)`）
+2. **新增 ruff job（独立 job，非 pre-commit 子步骤，P2 §3.4 SUGGEST-4）**
+   - `runs-on: ubuntu-latest` 单平台（ruff 为纯静态分析，结果与平台无关，无需 Windows matrix）
+   - steps：checkout → setup-python '3.10' → `pip install ruff && ruff check agate/scripts/`（项目根 pyproject.toml 自动生效）
+3. **platform-scan job：check-platform-assumptions 调用目标 .sh → .py（2 处）**
+   - Linux（阻断 gate）：`bash agate/scripts/check-platform-assumptions.sh` → `python3 agate/scripts/check-platform-assumptions.py`
+   - Windows（等价性证明）：→ `python agate/scripts/check-platform-assumptions.py`（沿用 consistency / gate-backstop 的「Linux 用 python3、Windows 用 python」平台惯例，并加 `PYTHONIOENCODING: utf-8` 与其它 Windows py 步骤一致）
+
+## 自查结果（自查 ≠ P5 gate）
+
+未跑任何 bats（按派发指引，由主 Agent 验证）。`python3 -c "import yaml; yaml.safe_load(...)"` 校验 YAML 结构合法。
+
+## 偏离点
+
+[DEVIATION: P2 §3.4 原文为「独立 job（`pip install ruff && ruff check agate/scripts/`）」未指定平台——实现选用 ubuntu-latest 单平台（ruff 静态分析结果平台无关，Windows 侧无需重复执行），与 shellcheck job 保留 Windows matrix（薄壳是 sh，需双平台验证）形成对照；install/scan 合并进单个 step 的 `run`（`pip install ruff && ruff check ...`），与 P2 字面一致]
+
+---
+
+# P4 实现记录 — 批次 4d（删档前预清理：install-hook 调用点 + check-debt 报错消息）
+
+## implementation_dir
+
+```
+implementation_dir: agate/tests/unit/install-hook.bats + agate/scripts/check-debt.py + agate/tests/unit/agate-debt-check.bats
+```
+
+## 本批次改动清单
+
+> 批次 4 删档（27 个已 py 化 .sh）前的 2 处引用预清理。未删任何 .sh（删档由主 Agent 执行）；未跑任何 bats（按派发指引，由主 Agent 验证）。
+
+### 1. `unit/install-hook.bats`：6 处调用点 .sh → .py（@test 数不变）
+
+- 4 处 `run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' bash '$AGATE_SCRIPTS/install-hook.sh' '$AGATE_ROOT'"` → `run bash -c "cd '$repo' && AGATE_ROOT='$AGATE_ROOT' "$PYTHON" '$AGATE_SCRIPTS/install-hook.py' '$AGATE_ROOT'"`
+- 2 处 `run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' '$agate_root'"` → `run bash -c "cd '$repo' && PATH='$fakebin:$PATH' "$PYTHON" '$AGATE_ROOT/scripts/install-hook.py' '$agate_root'"`
+- 引号形态与批次 2a agate-debt-check.bats L540 同款先例：`bash -c` 外层的 `"$PYTHON"` 由外层 shell 展开为探测出的解释器绝对路径（fixtures.bash `detect_python`，无空格），单 token 传内层 bash
+- @test 行不增删、断言不动（6 用例不变）；头部注释 `install-hook.sh` 名未改（注释非调用点，留待批次 4 文档引用同步（表 B）处理）
+
+### 2. `check-debt.py` 覆盖模式依赖缺失报错消息 + `unit/agate-debt-check.bats` test_bdd_16 断言同步
+
+- `check-debt.py` L53：`"GATE DEBT: 缺少 agate-workspace-resolve.sh，无法解析工作区，回退覆盖比对无法执行"` → `"GATE DEBT: 缺少 agate_common.py（resolve_workspace），无法解析工作区，回退覆盖比对无法执行"`（agate-workspace-resolve.sh 批次 4 将删档，工作区解析已并入 agate_common.py）
+- `unit/agate-debt-check.bats` test_bdd_16（L552）断言：`"缺少 agate-workspace-resolve.sh"` → `"缺少 agate_common"`（与新消息匹配）
+- 失败语义不变：依赖缺失 → stderr 报错 + exit 2（需主 Agent 自判）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `python3 -m py_compile agate/scripts/check-debt.py`：编译通过
+- grep 复核：`install-hook.bats` 无残留 `bash '...install-hook.sh'` 调用点（仅头部注释含 `install-hook.sh` 字样）；`agate-debt-check.bats` 无残留 `"缺少 agate-workspace-resolve.sh"` 断言
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。头部注释 `# tests/unit/install-hook.bats — install-hook.sh .gitignore 检测` 中的 `.sh` 名未改——注释非调用点、不在本次 2 处预清理范围（批次 1b/2a 改头注释发生在 py 化当批，本次为删档前预清理的最小改动），若删档后需彻底消除 `install-hook.sh` 字样，由批次 4 文档同步（表 B）一并处理。
+
+---
+
+# P4 实现记录 — 批次 4d-fix（install-hook.py 复制模式测试失效修复）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/install-hook.py + agate/tests/unit/install-hook.bats
+```
+
+## 本批次改动清单
+
+> 批次 4d 把 install-hook.bats 调用点改为 py 后，#5/#6 的 fakebin mock `ln`（退化为 cp）对 py 版失效——py 用 `os.symlink` 不调外部 `ln`，mock 无作用，os.symlink 在 Linux 直接成功 → 测试断言"复制"消息失败。本批次给 `_ln_sf` 加测试开关修复。
+
+### 1. `install-hook.py` `_ln_sf`（L47）增加复制模式强制开关
+
+- 新增环境变量开关：`os.environ.get("AGATE_HOOK_COPY_MODE") == "1"` 时跳过 `os.symlink` 直接走复制分支（`shutil.copyfile`），语义 = 复制模式（后续 pre-commit 分支会写 `.agate-root` 标记 + 打印"复制模式/需重跑"消息）
+- 默认行为不变：无开关时正常 `os.symlink`，仅在 OSError（Windows 无符号链接权限）时退化为复制
+- 等价于 sh 版在 PATH 前插 mock `ln`（使 ln → cp）的效果，但不再依赖外部命令
+
+### 2. `unit/install-hook.bats` #5/#6：mock ln → 环境变量开关
+
+- 删除两处 fakebin mock `ln`（`cat > "$fakebin/ln"` + `chmod +x` + `PATH='$fakebin:$PATH'` 前缀）
+- `run bash -c "... PATH='$fakebin:$PATH' "$PYTHON" ..."` → `run bash -c "... AGATE_HOOK_COPY_MODE=1 "$PYTHON" ..."`（6 处调用点中的 2 处复制模式用例；另 4 处软链用例不动）
+- 断言不变：#5 `[ "$status" -eq 0 ]` + 输出含"复制"或"需重跑"；#6 同 + `[ -f "$repo/.git/hooks/pre-push" ]`
+- #5 新增 `.agate-root` 兜底标记断言：`[ -f "$repo/.git/hooks/.agate-root" ]` + 内容等于 fake agate_root（确认复制模式写标记到 hook 所在 `.git/hooks/`，gate 脚本 `dirname(BASH_SOURCE)` 读取处）
+- @test 行不增删（6 用例不变）；fakebin 变量声明随之删除
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `bats agate/tests/unit/install-hook.bats`：**6/6 绿**（#5/#6 复制模式用例经 `AGATE_HOOK_COPY_MODE=1` 恢复断言）
+
+## 偏离点
+
+[DEVIATION: 任务描述「确认 .agate-root 写到 fake agate_root/scripts/.agate-root」位置有误——实际正确位置是 `$repo/.git/hooks/.agate-root`：① sh 版 install-hook.sh L39 即写 `$HOOK_DIR/.agate-root`；② 3 个 gate 薄壳复制模式恢复逻辑读 `dirname(readlink -f BASH_SOURCE)/.agate-root`（复制品 hook 在 .git/hooks/ 下）；③ integration bdd-19（pre-commit-hook.bats L1451）同样写 `.git/hooks/.agate-root`。本次 #5 新增断言按正确位置判定]
+
+[DEVIATION: 任务要求「补充 `## 批次 4d` 小节」——本文件批次记录均用 `#` 级标题（`# P4 实现记录 — 批次 X`），既有批次 4d 记录已占该标题；为保持一致用 `# P4 实现记录 — 批次 4d-fix` 追加到文件末尾，不改既有 4d 记录内容]

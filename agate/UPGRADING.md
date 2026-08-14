@@ -13,7 +13,7 @@ agate 的校验器（`agate-state-yaml-check.py` 等）**只在 .state.yaml 被 
 - **旧任务数据（已完成/归档）如果不动它，升级后零检测触发、零问题**
 - 只有"**要继续推进的进行中任务**"和"**新任务**"需要符合新版本规范
 
-**升级最小动作**：`git pull` 拉新版 agate + 重跑 `install-hook.sh`（见下文），其余按需。
+**升级最小动作**：`git pull` 拉新版 agate + 重跑 `install-hook.py`（见下文），其余按需。
 
 ---
 
@@ -24,10 +24,10 @@ agate 的校验器（`agate-state-yaml-check.py` 等）**只在 .state.yaml 被 
 cd <你克隆 agate 的目录> && git pull
 
 # 2. 重装 hook（推荐，pre-commit/commit-msg 软链自动跟随；pre-push 也是软链 v0.32+ 自动跟随）
-bash ~/.agate/scripts/install-hook.sh
+python3 ~/.agate/scripts/install-hook.py
 
 # 3. 验证版本
-bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
+python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 ```
 
 **符号链接 vs 复制模式**：
@@ -89,27 +89,97 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.46.0（占位，最终版本号由 P8 确认）— 产品逻辑 Python 化（影响：所有已部署项目 + 直接调用脚本的用户）
+
+> ⚠️ 本节版本号为本任务（TAG0010）即将发布的版本占位，**最终版本号由 P8 发布时确认**（可能非 v0.46.0）。
+> 这是 agate 自建以来最大的一次脚本层破坏性变更：`agate/scripts/` 下全部 30 个 `.sh` 脚本的 bash 逻辑迁移为 Python（`.py`），仅 3 个 git hook 入口保留 `.sh` 薄壳。
+
+**① 脚本改名/删档清单（直接调用脚本的用户必须改命令）**：
+
+| 迁移前（.sh） | 迁移后（.py） | 说明 |
+|---------------|--------------|------|
+| `check-changelog.sh` | `check-changelog.py` | 同名换后缀 |
+| `check-frontmatter.sh` | `check-frontmatter.py` | 同名换后缀 |
+| `check-state-yaml.sh` | `check-state-yaml.py` | 同名换后缀 |
+| `check-p6-format.sh` | `check-p6-format.py` | 同名换后缀 |
+| `check-scope-resolved.sh` | `check-scope-resolved.py` | 同名换后缀 |
+| `agate-archive-stale-outputs.sh` | `agate-archive-stale-outputs.py` | 同名换后缀 |
+| `agate-extract-context.sh` | `agate-extract-context.py` | 同名换后缀 |
+| `agate-next-card.sh` | `agate-next-card.py` | 同名换后缀 |
+| `agate-render-dispatch-prompt.sh` | `agate-render-dispatch-prompt.py` | 同名换后缀 |
+| `agate-summary.sh` | `agate-summary.py` | 同名换后缀 |
+| `agate-changes.sh` | `agate-changes.py` | 同名换后缀 |
+| `agate-migrate-workspace.sh` | `agate-migrate-workspace.py` | 同名换后缀 |
+| `check-platform-assumptions.sh` | `check-platform-assumptions.py` | 同名换后缀 |
+| `check-state-transition.sh` | `check-state-transition.py` | 同名换后缀 |
+| `check-retrospective.sh` | `check-retrospective.py` | 同名换后缀 |
+| `check-pruning.sh` | `check-pruning.py` | 同名换后缀 |
+| `check-debt.sh` | `check-debt.py` | 同名换后缀 |
+| `check-tdd-red.sh` | `check-tdd-red.py` | 同名换后缀 |
+| `check-gate.sh` | `check-gate.py` | 同名换后缀 |
+| `check-p6-evidence.sh` | `check-p6-evidence.py` | 同名换后缀 |
+| `check-p6-provenance.sh` | `check-p6-provenance.py` | 同名换后缀 |
+| `agate-capture-env-baseline.sh` | `agate-capture-env-baseline.py` | 同名换后缀 |
+| `agate-retreat-to.sh` | `agate-retreat-to.py` | 同名换后缀 |
+| `agate-inject-card.sh` | `agate-inject-card.py` | 同名换后缀 |
+| `install-hook.sh` | `install-hook.py` | 同名换后缀 |
+| `pre-commit-gate.sh` | **保留 `.sh` 薄壳** + 新增 `pre-commit-gate.py` | hook 入口薄壳化：只做定位 AGATE_ROOT + python 探测 + exec py 主程序 |
+| `commit-msg-self-gate.sh` | **保留 `.sh` 薄壳** + 新增 `commit-msg-self-gate.py` | 同上 |
+| `pre-push-gate.sh` | **保留 `.sh` 薄壳** + 新增 `pre-push-gate.py` | 同上 |
+| `gate-result.sh` | **删档** → 并入 `agate_common.py` | 函数库合并为公共模块 |
+| `agate-workspace-resolve.sh` | **删档** → 并入 `agate_common.py` | 工作区解析合并为公共模块 |
+
+- **调用命令变化**：`bash ~/.agate/scripts/xxx.sh` → `python3 ~/.agate/scripts/xxx.py`（hook 薄壳仍由 git 经 sh 执行，无需手动调）
+- **新增 `agate_common.py`**：承载原 gate-result.sh + agate-workspace-resolve.sh 的函数库（`write_gate_result` / `read_state_phase` / `resolve_workspace` / `probe_python` / `run_git` / `MAX_RETRY_MAP` 等），执行模式输出 `AGATE_WORKSPACE=` / `AGATE_TASKS_DIR=` 两行（workspace-resolve 契约不变）
+- 3 个 hook 薄壳是**仅存的 `.sh`**；`agate/tests/scripts/count-tests.sh` / `check-windows-smoke.sh` 不在迁移范围（保持 sh）
+
+**② install-hook 迁移命令**：
+
+```bash
+# 旧：bash ~/.agate/scripts/install-hook.sh
+python3 ~/.agate/scripts/install-hook.py
+```
+
+- **符号链接模式（Linux/macOS 标准）**：hook 为 `ln -sf` 软链 → 升级 agate 后**自动跟随新代码，无需重装**。不放心可重跑一次上面的命令确认。
+- **复制模式（Windows 无符号链接权限）**：hook 是复制品，不自动跟随 → **必须重跑** `python3 ~/.agate/scripts/install-hook.py`（会以复制模式重装 + 写 `.agate-root` 标记）。
+- 手动复制的 hook（早期版本 `cp` 方式）：同样重跑上面的命令。
+
+**③ shellcheck → ruff（开发者）**：
+
+- `shellcheck` 扫描面收敛到 3 个 hook 薄壳（`shellcheck -S warning agate/scripts/*.sh` 只覆盖它们）
+- Python 脚本改用 **ruff** 静态检查：`ruff check agate/scripts/`（规则集在仓库根 `pyproject.toml`，TAG0010 交付）——CI `ruff` job 独立运行
+- `bash agate/tests/scripts/count-tests.sh` 不受影响（保持 sh）
+
+**④ python3 + pyyaml 强制依赖（影响：所有已部署项目）**：
+
+- 全部 gate 逻辑现为 Python，**pyyaml 从「可选」变为「强制」**（agate_common.py 及所有状态读取工具 import yaml，缺失时 fail-closed exit 1）
+- 安装：`pip install pyyaml`（Python 3.8+）
+- **hook 薄壳 fail-closed 语义**：薄壳探测不到 python3/python 或对应 `.py` 缺失时，输出 `GATE ERROR` 并 **exit 1 阻断 commit**（不静默放行、无 sh 兜底逻辑）——Windows 无 python 环境的机器 commit 会被阻断，需先装 python3 + pyyaml
+- Pillow 仍为可选（仅 check-p6-evidence.py 的像素方差/ahash）
+
+**⑤ 无 bash 环境（纯 cmd/PowerShell）成为可行选项**：gate 脚本已全部 Python 化，`python3` 可直接运行（P0-P8 全程可执行）；唯一受限是 git hook 入口薄壳仍需 sh（Git for Windows）。详见 `platform-notes.md`「Windows 原生」。
+
 ### v0.45.0 — backend 域 P2 评审触发 + 平台假设扫描器（影响：所有已部署项目）
 
 **① backend 域任务 P2 现强制派发方案评审（plan-eng-review）**（RM-AG0010）：
-- C8 映射表 backend 行新增 `plan-eng-review（P2 方案评审）`（保留 `review（P4 后）`）。**所有 backend 域任务（含 low/medium）P2 阶段现在必须派发一个 plan-eng-review 评审 subagent 产 P2-review.md**，否则 check-gate.sh P2 会 exit 1 拦截。
+- C8 映射表 backend 行新增 `plan-eng-review（P2 方案评审）`（保留 `review（P4 后）`）。**所有 backend 域任务（含 low/medium）P2 阶段现在必须派发一个 plan-eng-review 评审 subagent 产 P2-review.md**，否则 check-gate.py P2 会 exit 1 拦截。
 - 这是「P2 gate 无条件要求 P2-review.md」契约矛盾的对齐——之前 backend low/medium 任务按 C8 不派评审被 gate 拦截、主 Agent 被迫自造评审（TPV0090），现在契约一致了。
 - 同任务命中多个触发行且同一评审角色时去重只派一次（backend+high 均命中 plan-eng-review → 只派 1 个）。
 
 **② 新增平台假设静态扫描器（测试基建，影响：测试套件维护者）**：
-- 新增 `agate/scripts/check-platform-assumptions.sh` 扫描 `agate/tests/` 全树 Unix 假设（硬编码 PATH / 裸 python3 / `[[ -L ]]` / /tmp / bc 等），CI `platform-scan` job 阻断。
+- 新增 `agate/scripts/check-platform-assumptions.py` 扫描 `agate/tests/` 全树 Unix 假设（硬编码 PATH / 裸 python3 / `[[ -L ]]` / /tmp / bc 等），CI `platform-scan` job 阻断。
 - **测试平台无关原则是硬要求**：写新测试不得硬编码单平台假设（AGENTS.md「测试约定」）；被扫描器检出的假设会导致 CI 失败。
 
 **③ bats job 增 windows-latest matrix（CI 维护者）**：bats job 改 matrix 后 job 名带平台后缀（如 `bats (windows-latest)`），分支保护 required checks 需更新。
 
-**④ P5 gate_commands 计数语义**：check-gate.sh P5 WARNING 文案改「X 个主命令 + Y 个辅助命令」——不影响判定逻辑，仅文案区分主/辅。
+**④ P5 gate_commands 计数语义**：check-gate.py P5 WARNING 文案改「X 个主命令 + Y 个辅助命令」——不影响判定逻辑，仅文案区分主/辅。
 
 ### v0.44.0 — 脚本健壮性 + Windows 环境适配（影响：所有已部署项目）
 
 **① Windows 用户**：agate 现在支持 Git for Windows/MSYS2 下运行 gate 脚本（Windows 原生兼容）。
 - 依赖：Git for Windows（自带 bash/coreutils），python3 + pyyaml，Git Bash 作为执行 shell。
 - 见 `SETUP.md`「Windows 原生」章节（AGATE_ROOT 用 Unix 风格路径 `/c/...`、`PYTHONUTF8=1`、`core.autocrlf` 与 CRLF）。
-- 若你的 hook 是复制模式安装（无符号链接权限），升级后**重跑 install-hook.sh** 更新 hook。
+- 若你的 hook 是复制模式安装（无符号链接权限），升级后**重跑 install-hook.py** 更新 hook。
 
 **② 非 Windows 用户**：本版本为修复型，Linux 行为不变（676→714 bats 全绿回归）。无需迁移动作。
 
@@ -117,7 +187,7 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 
 **④ 路径含空格/特殊字符的项目**：`pre-commit-gate.sh` 内部数组化（S1 修复）——路径含空格/`[`/`]`/`*` 时 gate 不再静默绕过。行为更严格但更正确。
 
-**⑤ 中文证据文件名（P6 任务）**：check-p6-evidence.sh 证据引用正则加宽，中文文件名正确匹配。之前因中文证据名被误拦的项目现在可正常通过。
+**⑤ 中文证据文件名（P6 任务）**：check-p6-evidence.py 证据引用正则加宽，中文文件名正确匹配。之前因中文证据名被误拦的项目现在可正常通过。
 
 **⑥ 阶段卡片 phase 语义（文档，无强制）**：P1/P2/P3/P4/P6/P7/P8 卡片补注"commit 时 phase = 本 commit 产出阶段"。仅文档说明，gate 判定逻辑零改动，遵循既有习惯即可。
 
@@ -130,9 +200,9 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 
 **② tech-debt.md 路径**：技术债登记文件位于 `{AGATE_WORKSPACE}/debt/tech-debt.md`（模板 `assets/templates/tech-debt-template.md`），不再指向 agents/。
 
-**③ P8-release.md 新增 `debt_check` 必填字段**：发布准备阶段确认债务清单并留痕（`none` = 本次无关注项 / `reviewed` = 已核对）。check-gate.sh P8 分支对缺失该字段的 P8-release.md 硬拦截（exit 1）；字段存在则内容任意放行（不阻断发布）。
+**③ P8-release.md 新增 `debt_check` 必填字段**：发布准备阶段确认债务清单并留痕（`none` = 本次无关注项 / `reviewed` = 已核对）。check-gate.py P8 分支对缺失该字段的 P8-release.md 硬拦截（exit 1）；字段存在则内容任意放行（不阻断发布）。
 
-**④ 回退落地后必须建 DEBT 条目**：任何正式回退（`retreat:` 提交）完成后必须建立 `source: retreat` 的 DEBT 条目（`evidence` 引用 retreat 提交哈希）。`check-debt.sh --retreat-coverage` 会把未登记的 retreat 提交比对出来并报 WARNING（只读提醒，不挂 gate）。
+**④ 回退落地后必须建 DEBT 条目**：任何正式回退（`retreat:` 提交）完成后必须建立 `source: retreat` 的 DEBT 条目（`evidence` 引用 retreat 提交哈希）。`check-debt.py --retreat-coverage` 会把未登记的 retreat 提交比对出来并报 WARNING（只读提醒，不挂 gate）。
 
 ### v0.41.0 — 工作区架构（docs/tasks → agate-workspace/）（影响：所有已部署项目 + 进行中任务）
 
@@ -141,7 +211,7 @@ bash ~/.agate/scripts/agate-summary.sh   # 应显示新版本号
 **① 迁移工具（推荐）**：在项目根运行
 
 ```bash
-bash {agate_root}/scripts/agate-migrate-workspace.sh
+python3 {agate_root}/scripts/agate-migrate-workspace.py
 ```
 
 **迁移前先处理暂存区**：迁移工具会自动 commit 目录 rename（保留 git 历史），commit 用 pathspec 限定只提交迁移目录，不会带上迁移前已暂存的无关改动——但为避免状态混乱，建议先 `git commit` 或 `git unstage`（`git reset`）掉无关的已暂存改动，让暂存区只含迁移内容。
@@ -152,7 +222,7 @@ bash {agate_root}/scripts/agate-migrate-workspace.sh
 - 空源 no-op（项目从无 docs/tasks 时正常退出）
 - 幂等：重复运行无新增动作
 
-迁移后验证：`ls {AGATE_WORKSPACE}/tasks/` 应包含 active-tasks.md 与任务目录；`bash {agate_root}/scripts/agate-summary.sh` 正常。
+迁移后验证：`ls {AGATE_WORKSPACE}/tasks/` 应包含 active-tasks.md 与任务目录；`python3 {agate_root}/scripts/agate-summary.py` 正常。
 
 **② 手工迁移（不用工具时）**：`git mv docs/tasks {AGATE_WORKSPACE}/tasks`、`git mv docs/archived {AGATE_WORKSPACE}/archived`；`.state.yaml` 若被 gitignore 需 `git add -f` 后随目录移动。
 
@@ -196,7 +266,7 @@ bash {agate_root}/scripts/agate-migrate-workspace.sh
 
 ```bash
 # 1. 版本
-bash ~/.agate/scripts/agate-summary.sh
+python3 ~/.agate/scripts/agate-summary.py
 
 # 2. 协议一致性（0 ERROR）
 python3 ~/.agate/scripts/check-protocol-consistency.py

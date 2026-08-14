@@ -15,7 +15,7 @@ created: {YYYY-MM-DD}
 agent: {main|analyst|architect|reviewer|test-designer|implementer|verifier|vision-analyst}
 ---
 
-> **agent 字段由主 Agent 在派发 prompt Header 里填好**（角色 ID），subagent 复制即可，不要自行推断。缺字段 → `check-p6-provenance.sh` 缺字段 WARNING（exit 2 不阻塞，向后兼容）。
+> **agent 字段由主 Agent 在派发 prompt Header 里填好**（角色 ID），subagent 复制即可，不要自行推断。缺字段 → `check-p6-provenance.py` 缺字段 WARNING（exit 2 不阻塞，向后兼容）。
 ```
 
 ## 各阶段文件清单
@@ -61,7 +61,7 @@ P3/P4 的代码路径由产出文件显式声明，不使用固定目录名：
 
 - P1 → 主 Agent 确认有 BDD 条件 + 无未决 `[NEED_CONFIRM]`
 - P2-review.md `status` → subagent 评审产出的结论
-- P3 → 主 Agent 跑 `scripts/check-tdd-red.sh` 验证（UI 任务查 Playwright 用例存在）
+- P3 → 主 Agent 跑 `scripts/check-tdd-red.py` 验证（UI 任务查 Playwright 用例存在）
 - P5 → 主 Agent 跑 `gate_commands.P5` 验证（UI 任务实跑 Playwright/E2E）
 - P6 → 主 Agent 确认 P1 每条 BDD 有实跑结果
 - P7 → 主 Agent grep `[BLOCKER]` 验证
@@ -146,7 +146,7 @@ domains: [backend, cli]           # list，必填
 # internal_only_reason: "内部工具" # string；P8 裁剪时必填
 # 跳过风险: "..."                 # string；裁剪时必填
 # design_trivial: true            # bool；P2 候选方案可减为 1 时
-# follows_existing_pattern: [agate/scripts/check-state-yaml.sh]  # list
+# follows_existing_pattern: [agate/scripts/check-state-yaml.py]  # list
 # ── v2.0 标记"已解决/已确认"状态（可选，仅标记存在时写，BDD-21/22）──
 # need_confirm_resolved: []       # list[str]：已解决的 NEED_CONFIRM 项描述（逐条匹配正文）
 # suggest_resolved: []            # list[str]：已采纳的 SUGGEST 项描述
@@ -214,7 +214,7 @@ capability_requirements:
 ## SCOPE+ 增补区（后续阶段回写）
 - [SCOPE+ from P2] 新需求 + 对应 BDD
 （已纳入基线后不删除本条，而是在文件头 frontmatter 的 `scope_resolved` 列表中追加对应
-描述——`check-scope-resolved.sh` 闭环判定改读该结构化列表，BDD-22）
+描述——`check-scope-resolved.py` 闭环判定改读该结构化列表，BDD-22）
 ```
 
 **能力三态说明**：
@@ -260,7 +260,7 @@ ui_affected: false                # bool，必填
 
 ## 3. gate 命令（在 P2 固化，后续不得修改）
 gate_commands:
-  P3: "pytest"                     # 可选：测试运行器（verbose 输出，供 check-tdd-red.sh 自动读取）
+  P3: "pytest"                     # 可选：测试运行器（verbose 输出，供 check-tdd-red.py 自动读取）
   P3_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected 且新增测试在 E2E 层时必填（T090 问题2）
   P3_formatter: "pytest.sh"  # 可选：formatter 脚本（见 assets/formatters/README.md 速查表）
   P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
@@ -268,7 +268,7 @@ gate_commands:
   P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected: true 时必填
   P6: "pytest -q --tb=no tests/acceptance/"
   project_module: "myapp"  # 可选：项目模块前缀，B 类检测用
-# P3 键（可选）：声明后 check-tdd-red.sh 自动读取，无需主 Agent 手动设 TEST_RUNNER。
+# P3 键（可选）：声明后 check-tdd-red.py 自动读取，无需主 Agent 手动设 TEST_RUNNER。
 # P3 用 verbose 输出（区分 A/B 类错误），P5 用紧凑输出（只判过没过），两者分离。
 # 非 pytest 项目建议声明此键（如 P3: "npx vitest run"）。
 # 紧凑输出要求：P5/P6 gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式

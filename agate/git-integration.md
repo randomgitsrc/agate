@@ -28,7 +28,7 @@ subagent 在独立上下文里只负责产出文件，**不碰 git**。commit �
 
 不是每个 subagent 的中间操作都 commit（噪音太多），也不是整个任务才 commit 一次（中途崩溃丢进度）。
 
-**粒度：每个阶段门槛通过后，主 Agent commit 一次。** 一个 Pn 阶段的产出是一个原子的进度单位。**这个规则由 `check-gate.sh` 强制执行**——每个阶段的 gate 检查该阶段产出是否合格。产出和 .state.yaml phase 更新在同一个 commit 里。
+**粒度：每个阶段门槛通过后，主 Agent commit 一次。** 一个 Pn 阶段的产出是一个原子的进度单位。**这个规则由 `check-gate.py` 强制执行**——每个阶段的 gate 检查该阶段产出是否合格。产出和 .state.yaml phase 更新在同一个 commit 里。
 
 **phase 字段语义（消除"提前写"歧义）**：`.state.yaml` 的 `phase` 字段 = **本 commit 提交的产出阶段**，不是"当前进展到哪"。commit 时 phase 写该阶段（如提交 P5 产出 → phase=P5），**不得提前写下一阶段**。否则 P5 的合法产出（如 `P5-test-results/fail-list.txt`）会在 phase=P6 的 commit 里被 P6 的 self-authored gate 硬拦截（P6 拦截"非证据文件"以防验收阶段改代码）。
 
@@ -183,7 +183,7 @@ wf(T042): P2 review approved
 - 风险: high，由独立 plan-eng-review 评审通过
 ```
 
-**禁止 `--no-verify` 绕过 hook**：CI backstop 会重跑 `check-gate.sh` + `check-p6-provenance.sh` + git blame 单 author WARNING，绕过 hook 的"恶意 commit"会被抓到并在日志暴露。详见 LIMITATIONS.md 局限 3。
+**禁止 `--no-verify` 绕过 hook**：CI backstop 会重跑 `check-gate.py` + `check-p6-provenance.py` + git blame 单 author WARNING，绕过 hook 的"恶意 commit"会被抓到并在日志暴露。详见 LIMITATIONS.md 局限 3。
 
 **P6 单 author WARNING**：当 P6-acceptance.md git blame 显示只有一个 author（通常是主 Agent 自写而不是独立 verifier），CI 会发 WARNING——这是 provenance 客观审计之外的最后一层可观测性兜底。
 

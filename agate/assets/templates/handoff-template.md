@@ -26,7 +26,7 @@
 - **⚠️ gate 工具 ≠ 检查对象（最容易搞混的点）**：
   - commit hook 的 gate **判定工具**用 `~/.agate`（稳定版）——它读 `~/.agate` 自己的脚本逻辑
   - 但 `check-protocol-consistency.py` **必须用 worktree 自己的**（`python3 agate/scripts/check-protocol-consistency.py`），因为检查对象是 **worktree 里的协议文件**。若误用 `~/.agate` 的 consistency 脚本，会扫到主 checkout 的文件而非 worktree 的改动
-  - 同理：`bash ~/.agate/scripts/agate-summary.sh` 在 worktree 里跑会显示**主 checkout 的上下文**（版本/分支/HEAD 是稳定版的），不代表 worktree 状态——worktree 自己的状态用 `git log`/`git status` 看
+  - 同理：`python3 ~/.agate/scripts/agate-summary.py` 在 worktree 里跑会显示**主 checkout 的上下文**（版本/分支/HEAD 是稳定版的），不代表 worktree 状态——worktree 自己的状态用 `git log`/`git status` 看
 - **hook 在共享 git 目录**：worktree 的 `.git` 是文件（指向主 checkout `.git`），hook 实际在主 checkout 的 `.git/hooks/`（pre-commit/commit-msg/pre-push 已软链安装）。worktree commit 时 hook 自动触发。
 
 **已完成的 setup（worktree 已可独立使用）**：
@@ -34,7 +34,7 @@
 - 基线验证：全量 bats 全绿 + consistency 0 ERROR（--strict）
 - commit hook：指向 `~/.agate`（稳定版），worktree commit 自动触发
 - orchestrator 注册：`.opencode/agents/orchestrator.md` → `~/.agate/orchestrator-template.md`（符号链接，不拷贝）
-- 工作区解析：`agate-workspace-resolve.sh` 输出 worktree 自己的 `agate-workspace/`
+- 工作区解析：`agate_common.py` 输出 worktree 自己的 `agate-workspace/`
 - 任务数据：{Txxx} P0-brief + .state.yaml phase=P0 在 worktree 的 `agate-workspace/tasks/`
 
 ## 3. 任务范围（P0-brief 已锁定，P1 细化 BDD）

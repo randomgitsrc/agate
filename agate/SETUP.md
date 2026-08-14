@@ -3,6 +3,8 @@
 > 面向**第一次把 agate 接入某个项目**的人。`README.md`「快速上手」讲的是"装 agate 本体"，这份文档讲的是下一步——怎么让 OpenCode / Claude Code 真的能调起 orchestrator，这一步是平台相关的，容易卡住，所以单独写。
 >
 > 前置：已完成 `README.md`「快速上手」第 1 步（`~/.agate` 软链接存在，指向协议本体）。没做完先去做那一步。
+>
+> 运行依赖：**Python 3.8+ 且 `pip install pyyaml`（强制）**——全部 gate 脚本已 Python 化（TAG0010），pyyaml 缺失时脚本 fail-closed 阻断。详见 `platform-notes.md`。
 
 ---
 
@@ -10,7 +12,7 @@
 
 - **只需要注册 orchestrator 这一个 agent**。P1-P8 的执行角色/评审角色不需要在平台层预注册——派发时是"派一个通用 subagent，把角色文件路径写进 prompt 让它自己读"，见 `role-system.md`「方法 B」。
 - `orchestrator-template.md` 对所有项目内容完全一致，**标准接入方式是符号链接直接指向它，不要拷贝**。这样 agate 升级模板，你项目里的 orchestrator 提示词自动跟着升级，不需要手动同步。
-- 项目特定信息（工作区规则、gate 命令、测试基线……）**只写进** `{AGATE_WORKSPACE}/agents/project.md`（可选文件，模板见 `assets/templates/project.md`），不要碰 orchestrator.md 本身。工作区默认在项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 指向其他位置（含项目外绝对路径），解析见 `scripts/agate-workspace-resolve.sh`。
+- 项目特定信息（工作区规则、gate 命令、测试基线……）**只写进** `{AGATE_WORKSPACE}/agents/project.md`（可选文件，模板见 `assets/templates/project.md`），不要碰 orchestrator.md 本身。工作区默认在项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 指向其他位置（含项目外绝对路径），解析见 `scripts/agate_common.py`。
 
 ---
 
@@ -67,7 +69,7 @@ opencode debug agent orchestrator
 
 ### Windows（无 WSL，用 Git for Windows）
 
-符号链接需要管理员权限或开发者模式（和 `install-hook.sh` 装 hook 遇到的限制是同一个系统限制）：
+符号链接需要管理员权限或开发者模式（和 `install-hook.py` 装 hook 遇到的限制是同一个系统限制）：
 
 ```bash
 # Git Bash 里，和 Linux/macOS 写法一样：
@@ -80,7 +82,7 @@ ln -sf ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 cp ~/.agate/orchestrator-template.md .claude/agents/orchestrator.md
 cp ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 ```
-⚠️ **复制模式的代价**：agate 升级模板后不会自动同步，你需要在每次升级完 agate 后手动重跑上面这两条 `cp` 命令。目前没有自动漂移检测（`agate-summary.sh` 现有的漂移检测只覆盖 `scripts/` 目录下的脚本副本，不覆盖这个文件），这是已知的手动步骤，忘了也不会报错提醒——建议每次升级 agate 后养成习惯重跑一遍。
+⚠️ **复制模式的代价**：agate 升级模板后不会自动同步，你需要在每次升级完 agate 后手动重跑上面这两条 `cp` 命令。目前没有自动漂移检测（`agate-summary.py` 现有的漂移检测只覆盖 `scripts/` 目录下的脚本副本，不覆盖这个文件），这是已知的手动步骤，忘了也不会报错提醒——建议每次升级 agate 后养成习惯重跑一遍。
 
 `cmd`/PowerShell 的 `mklink` 底层调用的是和 `ln -sf` 同一个系统 API，一样需要管理员权限，不是绕开限制的办法；`mklink /H`（硬链接）在同一 NTFS 分区内不需要管理员权限，可以作为免权限的进阶选项，但硬链接绑定的是当前这份文件的磁盘位置，**agate 自身升级模板文件时如果不是原地改写而是新建后替换（多数 git 实现是这样），硬链接会指向旧内容变成过期链接**——这一点没有在这套环境实测过，如果要用请自己验证一次"升级 agate 后硬链接是否还生效"，不确定就用复制模式更保险。
 
@@ -88,15 +90,15 @@ cp ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 
 > agate 的 gate 脚本依赖 bash + GNU coreutils，Windows 原生无 bash，但 **Git for Windows** 安装时自带 MSYS2 bash。以下是 Windows 上跑通 agate 的环境要点（详见 `platform-notes.md`「Windows 原生」章节），**所有命令都在 Git Bash 里执行**，不要在 `cmd`/PowerShell 里跑 bash 脚本。
 
-**1. AGATE_ROOT 用 Unix 风格路径**：协议本体路径在 Git Bash 里写成 `/c/Users/<你>/agate/agate`（或 `C:/Users/<你>/agate/agate`），**不要写反斜杠 `C:\...`**——反斜杠在 bash 里是转义符，且 `agate-next-card.sh` 的前缀剥离在盘符/反斜杠下失效（Q1 修复覆盖了归一化，但环境变量里直接写反斜杠仍会被 bash 吃掉）。设 `~/.agate` 软链接用 `ln -s`（Git Bash 里 `~` 是 `C:\Users\<你>`）；无符号链接权限时改用系统环境变量 `AGATE_ROOT=/c/Users/<你>/agate/agate`。
+**1. AGATE_ROOT 用 Unix 风格路径**：协议本体路径在 Git Bash 里写成 `/c/Users/<你>/agate/agate`（或 `C:/Users/<你>/agate/agate`），**不要写反斜杠 `C:\...`**——反斜杠在 bash 里是转义符，且 `agate-next-card.py` 的前缀剥离在盘符/反斜杠下失效（Q1 修复覆盖了归一化，但环境变量里直接写反斜杠仍会被 bash 吃掉）。设 `~/.agate` 软链接用 `ln -s`（Git Bash 里 `~` 是 `C:\Users\<你>`）；无符号链接权限时改用系统环境变量 `AGATE_ROOT=/c/Users/<你>/agate/agate`。
 
 **2. PATH 注入风险**：`C:\Program Files\Git\bin`（git.exe）和 `C:\Program Files\Git\usr\bin`（bash + coreutils）须在 PATH 里且**顺序靠前**，否则 `bash`/`grep`/`sed` 会解析到系统其他位置（或找不到）。`git --version` 与 `bash --version` 跑通即代表 PATH 正常。python 的 `Scripts/` 目录若与 Git 的 usr/bin 冲突，以实际 `which python`/`which bash` 为准调整顺序。
 
-**3. Git Bash 执行 hook**：`bash ~/.agate/scripts/install-hook.sh` 在 Git Bash 里跑。Windows 无符号链接权限时 hook 以**复制模式**安装（输出含「复制模式」提示），升级 agate 后需重跑此命令（复制不自动跟随源文件，见 `platform-notes.md`「已知限制」）。
+**3. Git Bash 执行 hook**：`python3 ~/.agate/scripts/install-hook.py` 在 Git Bash 里跑。Windows 无符号链接权限时 hook 以**复制模式**安装（输出含「复制模式」提示），升级 agate 后需重跑此命令（复制不自动跟随源文件，见 `platform-notes.md`「已知限制」）。
 
 **4. `PYTHONUTF8=1`**：Windows 的 python 默认用系统 ANSI 代码页（GBK）解释源码/读写文件，agate 的 `.py` 工具按 UTF-8 读写协议文件会乱码/报错。在系统环境变量加 `PYTHONUTF8=1`，或 Git Bash 会话里 `export PYTHONUTF8=1`，让 python 3.7+ 以 UTF-8 模式运行。
 
-**5. CRLF / `core.autocrlf` 处理**：仓库已含 `.gitattributes` 强制 LF（`*.md` 等文本规则除外，历史 review 文件保持 CRLF，见 `agate/AGENTS.md`）；若 clone 的是旧版本仓库（无该文件），手动 `git config core.autocrlf false` 再重新 checkout。已物化 CRLF 的工作区执行 `git add --renormalize .` 重规范化，否则 `.sh` 报 `\r` 语法错、hash 校验 mismatch。
+**5. CRLF / `core.autocrlf` 处理**：仓库已含 `.gitattributes` 强制 LF（`*.md` 等文本规则除外，历史 review 文件保持 CRLF，见 `agate/AGENTS.md`）；若 clone 的是旧版本仓库（无该文件），手动 `git config core.autocrlf false` 再重新 checkout。已物化 CRLF 的工作区执行 `git add --renormalize .` 重规范化，否则 3 个 hook 薄壳 `.sh` 报 `\r` 语法错、卡片 sha256 校验 mismatch（py 文件已显式 `encoding="utf-8"` 读写，免疫）。
 
 ## 步骤 3（可选）：设成默认 agent
 
@@ -117,19 +119,23 @@ EOF
 ## 步骤 4：装 hook
 
 ```bash
-bash ~/.agate/scripts/install-hook.sh
+# 前置：确保 python3 + pyyaml 可用（强制依赖）
+python3 --version
+pip install pyyaml
+
+python3 ~/.agate/scripts/install-hook.py
 ```
 
 ## 步骤 5：整体验证
 
 ```bash
-bash ~/.agate/scripts/agate-summary.sh   # 确认协议版本、hook 已装
-bash ~/.agate/scripts/agate-workspace-resolve.sh  # 确认工作区解析（输出 AGATE_WORKSPACE）
+python3 ~/.agate/scripts/agate-summary.py   # 确认协议版本、hook 已装
+python3 ~/.agate/scripts/agate_common.py  # 确认工作区解析（输出 AGATE_WORKSPACE / AGATE_TASKS_DIR 两行）
 mkdir -p {AGATE_WORKSPACE}/{roadmap,tasks,agents,archived,reviews,decisions,plans,logs,debt}
 # 若 {AGATE_WORKSPACE}/tasks/active-tasks.md 不存在，orchestrator 首次运行会自动从模板建，不需要手动建
 ```
 
-然后真开一个会话，指定/选择 orchestrator agent，让它执行「开始」那几步（读 `agate-summary.sh` 输出、读 `active-tasks.md`），确认它能正常找到 `{agate_root}`（`~/.agate` 或你设置的路径）、解析出 `{AGATE_WORKSPACE}` 并读到阶段卡片。
+然后真开一个会话，指定/选择 orchestrator agent，让它执行「开始」那几步（读 `agate-summary.py` 输出、读 `active-tasks.md`），确认它能正常找到 `{agate_root}`（`~/.agate` 或你设置的路径）、解析出 `{AGATE_WORKSPACE}` 并读到阶段卡片。
 
 ## .agate.env 配置（可选）
 
@@ -141,7 +147,7 @@ AGATE_WORKSPACE=agate-workspace            # 相对路径 → 相对项目根解
 AGATE_WORKSPACE=/srv/agate-ws/My Project   # 绝对路径（可含空格）→ 指向项目外
 ```
 
-优先级：`.agate.env` 显式配置 > 环境变量 `AGATE_TASKS_DIR` > 默认 `agate-workspace/`。缺失 `.agate.env` 不报错，走默认（BDD-4）。解析逻辑见 `scripts/agate-workspace-resolve.sh`。
+优先级：`.agate.env` 显式配置 > 环境变量 `AGATE_TASKS_DIR` > 默认 `agate-workspace/`。缺失 `.agate.env` 不报错，走默认（BDD-4）。解析逻辑见 `scripts/agate_common.py`。
 
 ## .gitignore 建议
 
@@ -161,4 +167,4 @@ AGATE_WORKSPACE=/srv/agate-ws/My Project   # 绝对路径（可含空格）→ �
 
 - 符号链接方式：什么都不用做，orchestrator 提示词自动跟着新版本。
 - 复制模式（Windows 无权限场景）：重跑步骤 2 的 `cp` 命令。
-- 两种方式都建议顺手跑一次 `bash ~/.agate/scripts/agate-summary.sh`，它会检测协议版本和本地脚本副本漂移（但目前不覆盖 orchestrator.md 复制模式的漂移，见上文已知限制）。
+- 两种方式都建议顺手跑一次 `python3 ~/.agate/scripts/agate-summary.py`，它会检测协议版本和本地脚本副本漂移（但目前不覆盖 orchestrator.md 复制模式的漂移，见上文已知限制）。

@@ -88,8 +88,8 @@ P2 --[P2-review.md status==rejected && retry<MAX]--> P2 (retry+1)
 P2 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
     （若 P2 设计涉及 UI：P2-design.md 必须声明 ui_affected: true，并列出需 E2E 覆盖的交互点）
 
-P3 --[scripts/check-tdd-red.sh exit 0 AND assertion_failures>0 AND collection_errors==0]--> P4
-    （check-gate.sh P3 只检查 P3-test-cases.md 存在，红灯由主 Agent 手动跑 check-tdd-red.sh + CI backstop P3 兜底确认）
+P3 --[scripts/check-tdd-red.py exit 0 AND assertion_failures>0 AND collection_errors==0]--> P4
+    （check-gate.py P3 只检查 P3-test-cases.md 存在，红灯由主 Agent 手动跑 check-tdd-red.py + CI backstop P3 兜底确认）
     （TDD 红灯：测试正确但因实现未写而断言失败。collection/import error 视为测试本身错误）
     （若 P2 声明 ui_affected：P3 必须包含对应的 Playwright/E2E 用例，主 Agent 确认）
 P3 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
@@ -116,7 +116,7 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
 P5 --[有 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 P5 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P6 --[scripts/check-gate.sh P6 exit 2（FAIL=0/证据非空）AND scripts/check-p6-provenance.sh exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻）]--> P7
+P6 --[scripts/check-gate.py P6 exit 2（FAIL=0/证据非空）AND scripts/check-p6-provenance.py exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻）]--> P7
      ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3 平台支持独立 git author）
      （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
@@ -166,7 +166,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   P1-requirements.md 的「裁剪说明」声明 phases: [列表]，主 Agent 据此跳过未列出的阶段。
   跳过时，当前阶段的 gate 自动判定为"通过"，直接转移到裁剪声明中的下一个阶段。
 
-  **裁剪条件（hook 验证，见 scripts/check-pruning.sh）**：
+  **裁剪条件（hook 验证，见 scripts/check-pruning.py）**：
   - P2 不可裁剪（方案设计是必经阶段。P1 analyst 做需求分析不做方案设计，无法预知 P2 architect 会发现哪些隐含问题。design_trivial / follows_existing_pattern 可简化 P2（1 个候选方案），不可省略 P2）
   - P3：仅 low 风险可裁剪（medium/high 必须走 TDD 红灯）
   - P4 不可裁剪（实现是交付底线——没有实现就没有可发布产物）
@@ -210,7 +210,7 @@ P8 gate 通过 ≠ 直接标记 READY。主 Agent 必须逐项检查：
   retry 计数：定向回补不清零目标阶段已有的 retry（防止借回补绕过重试上限）
 
   **[SCOPE_RESOLVED] 标记（P2.11）**：主 Agent 增补 P1 基线时，必须标记 [SCOPE_RESOLVED: from {来源文件}]。
-  未标记的 [SCOPE+] → gate 拦截（scripts/check-scope-resolved.sh）。
+  未标记的 [SCOPE+] → gate 拦截（scripts/check-scope-resolved.py）。
 
 ## Pre-commit 检查全景
 
@@ -256,13 +256,13 @@ PAUSED 恢复协议：
 
 门槛接受**前两种**（assertion failure 或 B 类 import failure），拒绝第三种。
 
-**判定方式**：主 Agent 跑 `scripts/check-tdd-red.sh`（见下），不自行解析测试输出。check-gate.sh P3 只检查 P3-test-cases.md 存在。脚本通过 formatter 将测试输出标准化为 JSON，再判定 A/B 类（exit 0=红灯可推进 / exit 1=A类错误 / exit 2=绿灯违反TDD）。
+**判定方式**：主 Agent 跑 `scripts/check-tdd-red.py`（见下），不自行解析测试输出。check-gate.py P3 只检查 P3-test-cases.md 存在。脚本通过 formatter 将测试输出标准化为 JSON，再判定 A/B 类（exit 0=红灯可推进 / exit 1=A类错误 / exit 2=绿灯违反TDD）。
 
-**`scripts/check-tdd-red.sh` 设计**：
+**`scripts/check-tdd-red.py` 设计**：
 
 脚本通过 **formatter** 将测试输出标准化为 JSON，再判定 A/B 类错误。formatter 在 `gate_commands.P3_formatter` 中声明（可选键，见 P2-design.md）。不提供 formatter 时退化为 exit-code-only（所有红灯 = 可推进，精度降低但不会阻断）。
 
-**formatter 契约**：formatter 脚本接收测试运行器的原始输出（stdin），输出标准化 JSON（含 `exit_code`、`failed`、`errors`、`import_errors`、`syntax_errors` 等字段）。check-tdd-red.sh 解析 JSON 判定：
+**formatter 契约**：formatter 脚本接收测试运行器的原始输出（stdin），输出标准化 JSON（含 `exit_code`、`failed`、`errors`、`import_errors`、`syntax_errors` 等字段）。check-tdd-red.py 解析 JSON 判定：
 - assertion 失败 / 项目内 import 失败 → B 类红灯（exit 0，可推进）
 - SyntaxError / 第三方 import 失败 → A 类错误（exit 1，测试代码自身错误）
 - 全部通过 → exit 2（实现先于测试，违反 TDD）
@@ -322,18 +322,18 @@ function 执行一步(task_id):
        - P2: grep 'status: approved' {task}/P2-review.md → 命中;
              grep -cE '^(packages|domains|ui_affected|gate_commands):' {task}/P2-design.md → ≥4;
              候选方案 ≥2; grep -qE '权衡|选择理由|取舍|考量|trade-?off' {task}/P2-design.md → 命中（或含"选择"+理由/原因/因为组合）
-       - P3: scripts/check-tdd-red.sh → exit 0（含经典红灯和 B 类 import 红灯）；
+       - P3: scripts/check-tdd-red.py → exit 0（含经典红灯和 B 类 import 红灯）；
              （UI 任务：确认 P3-test-cases.md 含 Playwright/E2E 用例描述）
        - P4: git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'
        - P5: 从 P2-design.md gate_commands.P5 读取命令执行 → exit 0 AND failed==0;
              grep -rlE '^\s*-?\s*\[PROD_TOUCHED\]' {task}/ → 无命中（行首锚点匹配正向声明，不匹配句中引用）;
              （UI 任务：从 gate_commands.P5 读取 E2E 命令执行 → exit 0）
-         - P6: scripts/check-gate.sh P6 → 脚本化部分通过（exit 2，FAIL=0/证据非空已验，BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行）;
+         - P6: scripts/check-gate.py P6 → 脚本化部分通过（exit 2，FAIL=0/证据非空已验，BDD 总数对照由 check-p6-provenance.py 审计 3 自动执行）;
               grep -cE '^\s*- (PASS|FAIL)' {task}/P6-acceptance.md → =P1 BDD 总数（审计 3 自动执行，不符时 exit 1）;
               （UI 条件：vision-analyst YAML summary.blocker_count → =0）
        - P7: grep -E '^\s*-?\s*\[BLOCKER\]' {task}/P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0;
               grep -E '^\s*-?\s*\[DEVIATION-CRITICAL\]' {task}/P7-consistency.md | grep -cvE '\[DEVIATION-CRITICAL\][:：]?\s*\d+\s*条?\s*$' → =0
-        - P8: scripts/check-gate.sh P8 → 脚本化部分通过（exit 2）;
+        - P8: scripts/check-gate.py P8 → 脚本化部分通过（exit 2）;
               从 P2-design.md gate_commands 逐包读取发布检查命令执行 → 全部 exit 0;
               从 P2-design.md gate_commands.P5 重跑 P5 命令 → exit 0 AND failed==0;
               git log v{prev_version}..HEAD --oneline 对照 CHANGELOG 条目 → 无遗漏;
@@ -538,7 +538,7 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 
 1. **诊断**：主 Agent 分析 gate 失败原因，确定问题源头在哪一阶段，落盘 `P{N}-gate-diagnosis.md`
 2. **跳转**：直接改 .state.yaml phase 到目标阶段
-3. **PAUSED**（diff≥2 时）：check-state-transition.sh 拦截 → 主 Agent 在 PAUSED resolution 中写明诊断和目标 → 人工批准
+3. **PAUSED**（diff≥2 时）：check-state-transition.py 拦截 → 主 Agent 在 PAUSED resolution 中写明诊断和目标 → 人工批准
 4. **恢复到目标**：修完后从目标往下逐阶段重跑
 5. **不在中间阶段停留**：诊断已确认问题在源头，中间阶段不需要重做
 
@@ -558,7 +558,7 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 | P6→P2 | 4 | PAUSED → 人工批准诊断 → 恢复 P2 → 修完 → P3→P4→P5→P6 重跑 |
 | P7→P4 | 3 | PAUSED → 人工批准诊断 → 恢复 P4 → 修完 → P5→P6→P7 重跑 |
 
-#### 对 check-state-transition.sh 的影响
+#### 对 check-state-transition.py 的影响
 
 **不改脚本**。diff≥2 仍强制 PAUSED。但 PAUSED 的语义从"认输"变为"诊断通道"——主 Agent 在 PAUSED resolution 中写明诊断和目标，人工批准后恢复到目标阶段。这与 ② PAUSED 语义翻转协同。
 

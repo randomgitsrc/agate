@@ -49,10 +49,16 @@ def _ln_sf(source, link_path):
 
     Windows 无符号链接权限时 os.symlink 抛 OSError → 退化为复制（模拟 Git Bash 的
     ln → cp 退化）。返回是否建了软链（调用方用 os.path.islink 判定，同 sh `[ -L ]`）。
+    AGATE_HOOK_COPY_MODE=1 时强制走复制分支（测试用，模拟 Windows 无权限场景——
+    等价于 sh 版在 PATH 前插 mock ln 使其退化为 cp）。
     """
     if os.path.lexists(link_path):
         with contextlib.suppress(OSError):
             os.unlink(link_path)
+    if os.environ.get("AGATE_HOOK_COPY_MODE") == "1":
+        with contextlib.suppress(OSError):
+            shutil.copyfile(source, link_path)
+        return
     try:
         os.symlink(source, link_path)
     except OSError:

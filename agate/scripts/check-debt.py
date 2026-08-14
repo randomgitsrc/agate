@@ -50,7 +50,7 @@ def _retreat_coverage(repo_root):
     条目的 evidence 引用比对，缺失打 WARNING。依赖加载失败 → exit 2（需主 Agent 自判）。"""
     if resolve_workspace is None:
         sys.stderr.write(
-            "GATE DEBT: 缺少 agate-workspace-resolve.sh，无法解析工作区，回退覆盖比对无法执行\n"
+            "GATE DEBT: 缺少 agate_common.py（resolve_workspace），无法解析工作区，回退覆盖比对无法执行\n"
         )
         sys.exit(2)
 
