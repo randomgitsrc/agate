@@ -26,7 +26,8 @@ load ../helpers/load.bash
     p=$(py_path "$AGATE_ROOT/scripts/check-protocol-consistency.py")
     echo "B25-DIAG: PYTHON=$PYTHON py_path=$p raw=$AGATE_ROOT/scripts/check-protocol-consistency.py cygpath=$(command -v cygpath || echo NONE)" >&2
     run $PYTHON "$p"
-    printf 'B25-OUT: %s\n' "$output" | grep -iE 'error|FAIL|not found|无法|No such' | head -3 >&2
+    echo "B25-STATUS: $status" >&2
+    printf '%s\n' "$output" | grep -iE 'error|FAIL|不存在|无法' | head -12 >&2
     [ "$status" -eq 0 ]
 }
 
