@@ -26,7 +26,8 @@
 - **hook 在共享 git 目录**：worktree 的 `.git` 是文件（指向主 checkout `.git`），hook 在主 checkout 的 `.git/hooks/`，worktree commit 时自动触发。
 
 **已完成的 setup**：
-- 依赖：bash / python 3.12 / pyyaml / bats 1.10 / shellcheck（**ruff 未装**——TAG0010 验收需要，P1 时 `pip install ruff` 或确认可用）
+- 依赖：bash / python 3.12 / pyyaml / bats 1.10 / shellcheck。
+- **ruff**：TAG0010 引入的**新开发 gate**（替代 shellcheck 对 py 的检查；**运行 agate 不需要**）。安装方式（CI 装 / 本地统一环境 / pyproject.toml 声明）是 **TAG0010 P1 设计决策项**——避免各装各的环境混乱。本机未装（已清理尝试）。
 - 基线：733 bats 全绿 + consistency 0 ERROR（--strict）
 - hook / orchestrator / 工作区解析：全部就位
 - 任务数据：TAG0010 + TAG0011 都在 worktree（phase=P0）
