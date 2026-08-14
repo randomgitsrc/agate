@@ -10,6 +10,18 @@ detect_python() {
 }
 export PYTHON="$(detect_python 2>/dev/null || true)"
 
+# py_path <path> — 把 MSYS/Git Bash 路径转成 Windows python 可解析的形式（TAG0009）
+# Git Bash 里 $AGATE_ROOT 等是 /c/...（MSYS 风格），Windows 原生 python 无法 open()/解析；
+# 用 cygpath -m 转成 C:/...（Windows python 与 bash 双兼容）。Linux 上无 cygpath，直接返回。
+py_path() {
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -m "$1" 2>/dev/null || echo "$1"
+    else
+        echo "$1"
+    fi
+}
+export -f py_path
+
 # SHELLCHECK — 工具名平台差异探测（Windows 下为 shellcheck.exe，BDD-25）
 # 与 PYTHON 同模式：调用方用 ${SHELLCHECK:-shellcheck} 兜底（bdd-34 断言）
 export SHELLCHECK="$(command -v shellcheck 2>/dev/null || command -v shellcheck.exe 2>/dev/null || true)"
