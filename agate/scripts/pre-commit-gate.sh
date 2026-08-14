@@ -224,10 +224,12 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
         if [ ${#DC_FILES[@]} -gt 0 ]; then
             EXPECTED=$(bash "$AGATE_ROOT/scripts/agate-next-card.sh" "$PHASE" 2>/dev/null) || true
             if [ -n "$EXPECTED" ]; then
-                EXPECTED_HASH=$(printf '%s' "$EXPECTED" | sha256sum | awk '{print $1}')
+                # Windows checkout 的 dispatch-context 是 CRLF（autocrlf），卡片源是 LF——
+                # 提取的 EMBEDDED 归一化行尾再比 hash，否则恒 mismatch（TAG0009）
+                EXPECTED_HASH=$(printf '%s' "$EXPECTED" | tr -d '\r' | sha256sum | awk '{print $1}')
                 for DC_FILE in "${DC_FILES[@]}"; do
                     EMBEDDED=$(sed -n '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/p' "$DC_FILE" \
-                               | sed '1d;$d')
+                               | sed '1d;$d' | tr -d '\r')
                     EMBEDDED_HASH=$(printf '%s' "$EMBEDDED" | sha256sum | awk '{print $1}')
                     if [ "$EMBEDDED_HASH" != "$EXPECTED_HASH" ]; then
                         echo "GATE: $(basename "$DC_FILE") 卡片内容与 CLI 输出不一致（hash mismatch）" >&2
