@@ -3,7 +3,7 @@
 > 面向软件工程的 AI Agent 工作流协议。
 > 通过阶段 gate、状态落盘、角色隔离编排 subagent。
 
-[![version](https://img.shields.io/badge/version-v0.45.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.46.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ## Why agate?
@@ -29,7 +29,7 @@ scripts your agent already knows how to run.
 
 > agent + gate → agate
 
-[![version](https://img.shields.io/badge/version-v0.43.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.46.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ---
