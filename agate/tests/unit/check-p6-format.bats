@@ -153,7 +153,7 @@ EOF
     # frontmatter 依然是合法 YAML，且 pass/fail 数值未变
     run $PYTHON -c "
 import yaml
-text = open('$TASK_DIR/P6-acceptance.md').read()
+text = open('$(py_path "$TASK_DIR")/P6-acceptance.md').read()
 assert text.startswith('---\n'), 'frontmatter 头未保留'
 end = text.find('\n---', 4)
 assert end > 0, '找不到 frontmatter 闭合边界'
@@ -188,7 +188,7 @@ EOF
     # frontmatter 不受影响，依然合法
     run $PYTHON -c "
 import yaml
-text = open('$TASK_DIR/P6-acceptance.md').read()
+text = open('$(py_path "$TASK_DIR")/P6-acceptance.md').read()
 end = text.find('\n---', 4)
 data = yaml.safe_load(text[4:end])
 assert data['pass'] == 2 and data['fail'] == 0, data

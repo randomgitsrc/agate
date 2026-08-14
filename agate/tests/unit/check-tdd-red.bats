@@ -56,6 +56,8 @@ EOF
 
 @test "TD.1b check-tdd-red.sh 无 TEST_RUNNER + 无 pytest（无 PATH 找不到 pytest）期望 exit 3" {
     run env -u PATH bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    echo "TD1b-DIAG: status=$status" >&2
+    printf 'TD1b-OUT: %s\n' "$output" | head -4 >&2
     [ "$status" -eq 3 ] || [ "$status" -eq 1 ]
 }
 
