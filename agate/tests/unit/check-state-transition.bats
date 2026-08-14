@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/check-state-transition.bats — 20 用例覆盖 check-state-transition.sh
+# tests/unit/check-state-transition.bats — 20 用例覆盖 check-state-transition.py
 
 load ../helpers/load.bash
 
@@ -14,28 +14,28 @@ setup() {
 
 # 注意：此脚本需要真实 git 仓库（用 git show HEAD:file）
 
-@test "ST.1 check-state-transition.sh 无 .state.yaml 暂存 期望 exit 0" {
+@test "ST.1 check-state-transition.py 无 .state.yaml 暂存 期望 exit 0" {
     local repo
     repo=$(git_init)
     echo "init" > "$repo/README.md"
     git_commit "$repo" "init"
     # .state.yaml 未暂存
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 0 ]
 }
 
-@test "ST.2 check-state-transition.sh 新 phase: P1（首次）期望 exit 0" {
+@test "ST.2 check-state-transition.py 新 phase: P1（首次）期望 exit 0" {
     local repo
     repo=$(git_init)
     # HEAD 没有 .state.yaml，新文件
     cp "$AGATE_ROOT/tests/fixtures/full-task/.state.yaml" "$repo/.state.yaml"
     # 不暂存
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     # 没有 staged change → exit 0
     [ "$status" -eq 0 ]
 }
 
-@test "ST.3 check-state-transition.sh 顺序跳 P1→P3（差 2）期望 exit 0" {
+@test "ST.3 check-state-transition.py 顺序跳 P1→P3（差 2）期望 exit 0" {
     local repo
     repo=$(git_init)
     # 先 commit 旧 .state.yaml + P1 产出（commit gate 要求旧产出已 commit）
@@ -56,12 +56,12 @@ EOF
     # 改 phase 到 P3 并暂存
     sed -i 's/phase: P1/phase: P3/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     # 顺序跳 P1→P3 = forward，跳 2，没限制
     [ "$status" -eq 0 ]
 }
 
-@test "ST.4 check-state-transition.sh 回退 P3→P1（差 2）期望 exit 1（强制 PAUSED）" {
+@test "ST.4 check-state-transition.py 回退 P3→P1（差 2）期望 exit 1（强制 PAUSED）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -73,13 +73,13 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P3/phase: P1/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     # 修复后回退 P3→P1 差 2 强制 PAUSED，exit 1
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
 }
 
-@test "ST.5 check-state-transition.sh 回退 P4→P2（差 2）期望 exit 1（强制 PAUSED）" {
+@test "ST.5 check-state-transition.py 回退 P4→P2（差 2）期望 exit 1（强制 PAUSED）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -91,11 +91,11 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P4/phase: P2/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 1 ]
 }
 
-@test "ST.6 check-state-transition.sh retries[P2]>=3 + phase 非 PAUSED 期望 exit 1" {
+@test "ST.6 check-state-transition.py retries[P2]>=3 + phase 非 PAUSED 期望 exit 1" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -116,12 +116,12 @@ retries:
     - attempt: 3
 EOF
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
 }
 
-@test "ST.7 check-state-transition.sh retries[P2]>=3 + phase: PAUSED 期望 exit 0" {
+@test "ST.7 check-state-transition.py retries[P2]>=3 + phase: PAUSED 期望 exit 0" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -142,11 +142,11 @@ retries:
     - attempt: 3
 EOF
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 0 ]
 }
 
-@test "ST.8 check-state-transition.sh 终止态 PAUSED/READY/DONE 期望 exit 0" {
+@test "ST.8 check-state-transition.py 终止态 PAUSED/READY/DONE 期望 exit 0" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -159,13 +159,13 @@ EOF
     # 改为 PAUSED
     sed -i 's/phase: P1/phase: PAUSED/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 0 ]
 }
 
 # ── A 组：MAX_RETRY 按阶段差异化 ────────────────────────────────────────────
 
-@test "ST.9 check-state-transition.sh retries[P3]>=2 + phase 非 PAUSED 期望 exit 1（P3 MAX=2）" {
+@test "ST.9 check-state-transition.py retries[P3]>=2 + phase 非 PAUSED 期望 exit 1（P3 MAX=2）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -185,13 +185,13 @@ retries:
     - attempt: 2
 EOF
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
     [[ "$output" == *"P3"* ]]
 }
 
-@test "ST.10 check-state-transition.sh retries[P5]>=2 + phase 非 PAUSED 期望 exit 1（P5 MAX=2）" {
+@test "ST.10 check-state-transition.py retries[P5]>=2 + phase 非 PAUSED 期望 exit 1（P5 MAX=2）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -211,12 +211,12 @@ retries:
     - attempt: 2
 EOF
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P5"* ]]
 }
 
-@test "ST.11 check-state-transition.sh 多阶段 retries 不同阈值 期望 exit 0（P2:2 不超, P3:1 不超）" {
+@test "ST.11 check-state-transition.py 多阶段 retries 不同阈值 期望 exit 0（P2:2 不超, P3:1 不超）" {
     local repo
     repo=$(git_init)
     mkdir -p "$repo/agate-workspace/tasks/T001"
@@ -241,13 +241,13 @@ retries:
     - attempt: 1
 EOF
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     # P2: 2 < 3 (MAX) → 不超限
     # P3: 1 < 2 (MAX) → 不超限
     [ "$status" -eq 0 ]
 }
 
-@test "ST.12 check-state-transition.sh retries[P2]=3 + retries[P3]=2 期望 exit 1（任一超限）" {
+@test "ST.12 check-state-transition.py retries[P2]=3 + retries[P3]=2 期望 exit 1（任一超限）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -271,7 +271,7 @@ retries:
     - attempt: 2
 EOF
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     # P2: 3 >= 3 → 超限；P3: 2 >= 2 → 超限
     # Python 报告第一个匹配后 break，exit 1
     [ "$status" -eq 1 ]
@@ -279,7 +279,7 @@ EOF
 
 # ── B 组：回退跳变恢复 exit 1 + 保留守卫 ────────────────────────────────────
 
-@test "ST.13 check-state-transition.sh 回退 P3→P1（差 2）期望 exit 1（恢复强制 PAUSED）" {
+@test "ST.13 check-state-transition.py 回退 P3→P1（差 2）期望 exit 1（恢复强制 PAUSED）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -291,13 +291,13 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P3/phase: P1/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     # 恢复 exit 1 后回退 P3→P1 差 2 应拦截
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
 }
 
-@test "ST.14 check-state-transition.sh 回退 P4→P2（差 2）期望 exit 1（恢复强制 PAUSED）" {
+@test "ST.14 check-state-transition.py 回退 P4→P2（差 2）期望 exit 1（恢复强制 PAUSED）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -309,11 +309,11 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P4/phase: P2/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 1 ]
 }
 
-@test "ST.15 check-state-transition.sh PAUSED→P3 恢复 期望 exit 0（验证 old_num 守卫）" {
+@test "ST.15 check-state-transition.py PAUSED→P3 恢复 期望 exit 0（验证 old_num 守卫）" {
     local repo
     repo=$(git_init)
     cat > "$repo/.state.yaml" <<'EOF'
@@ -339,7 +339,7 @@ status: active
 retries: {}
 EOF
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     # PAUSED→P4 是合法恢复，应 exit 0
     [ "$status" -eq 0 ]
 }
@@ -370,7 +370,7 @@ status: active
 retries: {}
 EOF
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -395,7 +395,7 @@ status: active
 retries: {}
 EOF
     git -C "$repo" add agate-workspace/tasks/T001/
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -419,7 +419,7 @@ status: active
 retries: {}
 EOF
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -446,7 +446,7 @@ status: active
 retries: {}
 EOF
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -472,7 +472,7 @@ status: active
 retries: {}
 EOF
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     # 回退自身被检查 1 拦截（exit 1），但我们只验证 commit gate 不触发
     # 所以这里不 assert exit code，只 assert 输出不含 commit gate 消息
     [[ "$output" != *"产出必须已 commit"* ]]
@@ -494,7 +494,7 @@ EOF2
 
     sed -i 's/phase: P6/phase: P5/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P6 的自撰产出"* ]]
     [[ "$output" == *"agate-archive-stale-outputs.sh"* ]]
@@ -514,7 +514,7 @@ EOF2
 
     sed -i 's/phase: P6/phase: P5/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -532,7 +532,7 @@ EOF2
 
     sed -i 's/phase: P5/phase: P4/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -550,7 +550,7 @@ EOF2
 
     sed -i 's/phase: P4/phase: P5/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -570,7 +570,7 @@ EOF2
 
     sed -i 's/phase: P1/phase: P0/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     # P0 是起始阶段，退到 P0 不受归档检查约束（new_num=0，与检查 1 的守卫一致）
     [ "$status" -eq 0 ]
 }
@@ -590,7 +590,7 @@ EOF2
 
     sed -i 's/phase: P2/phase: P1/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-review.md"* ]]
 }
@@ -612,7 +612,7 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P3/phase: P1/' "$repo/agate-workspace/tasks/T001/.state.yaml"
     git_stage "$repo" "agate-workspace/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' agate-workspace/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
 }
@@ -630,7 +630,7 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P3/phase: P1/' "$repo/custom-tasks/T001/.state.yaml"
     git_stage "$repo" "custom-tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' custom-tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' custom-tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
 }
@@ -647,7 +647,7 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P3/phase: P1/' "$repo/.state.yaml"
     git_stage "$repo" ".state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' .state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
 }
@@ -665,7 +665,7 @@ EOF
     git_commit "$repo" "init"
     sed -i 's/phase: P3/phase: P1/' "$repo/docs/tasks/T001/.state.yaml"
     git_stage "$repo" "docs/tasks/T001/.state.yaml"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' docs/tasks/T001/.state.yaml"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' docs/tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PAUSED"* ]]
 }

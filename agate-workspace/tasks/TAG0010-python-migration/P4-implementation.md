@@ -332,3 +332,65 @@ implementation_dir: agate/scripts/
 [DEVIATION: check-debt.py 覆盖模式依赖加载失败的判定对象从「agate-workspace-resolve.sh 文件缺失」变为「agate_common 不可导入」——agate-workspace-resolve.sh 已被 agate_common.py 取代（批次 0）。失败语义等价（依赖缺失 → exit 2 + 需主 Agent 自判），stderr 消息保留 sh 版原文以维持 test_bdd_16 断言不变]
 
 > 实现说明（非 DEVIATION）：`bash -c "cd ... && "$PYTHON" '.../check-debt.py'"` 的引号形态与原始 `bash '.../check-debt.sh'` 的裸字形态等价——`$PYTHON` 为探测出的解释器绝对路径（无空格），外层 shell 展开后为单个 token，已用真实 git repo 实测 bash -c 字符串可正常执行。
+
+---
+
+# P4 实现记录 — 批次 2b（check-state-transition / agate-retreat-to py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 2 个 .py（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/check-state-transition.py` | `check-state-transition.sh` | `agate_common.MAX_RETRY_MAP` / `agate_common.run_git` + `agate-state-get.py`（phase_stdin stdin / phase / retries_over） |
+| `agate/scripts/agate-retreat-to.py` | `agate-retreat-to.sh` | `agate_common.MAX_RETRY_MAP` + `agate-state-get.py phase` / `agate-retreat-state.py`（check_retreat / write_retreat）/ `agate-archive-stale-outputs.py`（批次 1b 已 py 化） |
+
+- 全部 `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：exit 0/1 语义 + stderr 输出格式（GATE STATE / GATE RETREAT 消息逐字节一致）
+- `$(...)` 剥尾换行 → `.rstrip("\n")`（agate-state-get 各子命令 stdout、agate-retreat-state check_retreat stdout）
+- check-state-transition.py：`git show | agate-state-get.py phase_stdin` 管道 → `run_git` + subprocess（input=stdin 传入）；`git diff --cached` 的 `tr -d '\r'` 剥离 → 逐行 `.rstrip("\r")`；`grep -qF "$STATE_BASENAME"` 子串匹配 → `any(basename in line)`；`grep -oE '[0-9]+' || echo "0"` → 正则无匹配回退 0；检查 4 的 `_find_stale` 用 `_STALE_OUTPUTS` dict（与 agate-archive-stale-outputs.py `_OUTPUTS` 保持一致）
+- agate-retreat-to.py：`grep -vE '^${TASK_DIR#./}/'` 暂存区外文件过滤 → 去 `./` 前缀后 `startswith(task_dir + "/")`（路径字面前缀判定，等价安全）；`git commit ... || { 报错; exit 1 }` → returncode 判定；归档/状态子进程一律 `sys.executable`
+
+### 修改 `agate/scripts/agate_common.py`
+
+- 新增模块级常量 `MAX_RETRY_MAP = "P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2"`（**单一数据源**，见下）——check-state-transition.py / agate-retreat-to.py 均 `from agate_common import MAX_RETRY_MAP`（`_DEFAULT_MAX_RETRY_MAP` 别名），两脚本仍支持环境变量 `MAX_RETRY_MAP=` 覆盖（同 sh `${MAX_RETRY_MAP:-...}` 语义）
+
+### 改动 3 个 bats 文件（调用点 .sh → .py，`@test` 数不变）
+
+- `unit/check-state-transition.bats`：30 处 `bash '$AGATE_SCRIPTS/check-state-transition.sh'` → `'$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py'`；20 个 @test 名 + 头部注释脚本名改 .py（30 用例不变）
+- `unit/agate-retreat-to.bats`：setup `RETREAT_CMD` 改 .py + 5 处 `bash '$RETREAT_CMD'` → `'$PYTHON' '$RETREAT_CMD'` + 头部注释（5 用例不变）
+- `integration/pre-commit-hook.bats`：IT_RETREAT.1/2 两处调用 + 2 个 @test 名 + 2 处注释改 .py
+
+### 其他引用核查（确认无需改动）
+
+- `unit/dispatch-context-warning.bats` L32：`cp .../check-state-transition.sh` 复制到 fake root 供**仍为 sh 的 pre-commit-gate.sh**（批次 3 才 py 化）调用，保持 .sh 复制不变
+- `unit/agate-debt-check.bats` L433：`grep -q 'DEBT' .../agate-retreat-to.sh` 断言的是迁移源 .sh 内容（.sh 保留，DEBT 提醒文本仍在）→ 不改
+- `agate/scripts/pre-commit-gate.sh` L88 / `agate-summary.sh` L46 等 sh 侧调用点：非本批次范围（批次 3/4 迁移对象），不改
+- `agate/tests/README.md` L40 覆盖度表格：留待批次 4 文档引用同步（表 B）处理（批次 1b/1c/2a 同款先例）
+
+## MAX_RETRY_MAP 归属说明
+
+按派发指引特殊要点 1，**放 `agate_common.py`（模块级常量，单一数据源）**，两脚本从 agate_common import——避免连字符文件名 import 问题（check-state-transition.py 的 `import check_state_transition` 需下划线映射，不可行）。`check-retrospective.py`（批次 2a）仍有自己的模块级 `MAX_RETRY_MAP` 字面值，未并入 agate_common（非本批次范围，记录供后续统一）。
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：check-state-transition.py / agate-retreat-to.py / agate_common.py 均编译通过
+- 手动功能核对（与 sh 版 exit code / 输出对照）：
+  - check-state-transition.py：无暂存 → exit 0；新文件未暂存 → exit 0；回退 P3→P1 → exit 1 +「回退跳变 P3→P1（差 2），强制 PAUSED」；retries[P2]=3 + PAUSED → exit 0；`MAX_RETRY_MAP` env 覆盖 P2 max=1 → exit 1 +「P2=1 (MAX=1)」；回退 P6→P5 产出未归档 → exit 1 + 含「agate-archive-stale-outputs.sh」提示（ST_ARCHIVE.1 断言依赖，消息保留 sh 原文）
+  - agate-retreat-to.py：目标 phase 不低于当前 → exit 1 +「不是回退」；目标非法 → exit 1；暂存区外文件 → exit 1 + 文件列表；路径 retry 超限 → exit 1 +「超限」；P6→P4 全流程 → exit 0 + 2 个独立 commit（`retreat: P6 -> P5` / `retreat: P5 -> P4`）+ phase P4 + retries 追加 + P6 归档 +「共 2 步」+ DEBT 提醒
+
+## 偏离点
+
+[DESIGN_GAP: check-state-transition.py 检查 4 的提示消息保留 sh 原文「退回前须先跑：bash agate/scripts/agate-archive-stale-outputs.sh P{old} {task_dir}」——sh 版消息指向 .sh（.sh 保留、仍可跑），且 `unit/check-state-transition.bats` ST_ARCHIVE.1 断言 `[[ "$output" == *"agate-archive-stale-outputs.sh"* ]]`；改为 .py 会破坏 bats 断言。保持 CLI 契约（消息字节不变），后续随文档同步批次（表 B）一并更新]
+
+[SCOPE+]: `unit/check-state-transition.bats` 的 `setup()` python3 shim（TAG0009 BDD-16/17）在 py 版下已无作用（脚本经 `$PYTHON` 直调 + 内部 `sys.executable`，不再裸调 python3）——按最小实现原则保留不动（批次 2a check-retrospective.bats / agate-debt-check.bats 同款先例），记录供后续清理]
+
+> 实现说明（非 DESIGN_GAP）：agate-retreat-to.py 对 `git commit` 失败（含 pre-commit hook 拒绝）在 `if rc != 0` 分支报「已停在 P{old}」并 exit 1——与 sh `|| { ...; exit 1 }` 语义一致；hook 拒绝场景的集成行为由 IT_RETREAT.2（真实 hook 仓库）在主 Agent 侧验证。

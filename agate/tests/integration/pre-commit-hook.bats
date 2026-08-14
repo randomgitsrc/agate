@@ -966,9 +966,9 @@ EOF2
     [[ "$output" != *"不应直接改代码"* ]]
 }
 
-# ========== agate-retreat-to.sh 与真实 pre-commit hook 的集成 ==========
+# ========== agate-retreat-to.py 与真实 pre-commit hook 的集成 ==========
 
-@test "IT_RETREAT.1 agate-retreat-to.sh 在装了真实 hook 的仓库里，每一步都真的过 hook 校验" {
+@test "IT_RETREAT.1 agate-retreat-to.py 在装了真实 hook 的仓库里，每一步都真的过 hook 校验" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
@@ -985,7 +985,7 @@ EOF2
     git -C "$REPO" add agate-workspace/tasks/T001/
     git -C "$REPO" commit -qm "setup P6 state"
 
-    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' agate-workspace/tasks/T001 P4 '集成测试诊断'"
+    run bash -c "cd '$REPO' && '$PYTHON' '$AGATE_SCRIPTS/agate-retreat-to.py' agate-workspace/tasks/T001 P4 '集成测试诊断'"
     [ "$status" -eq 0 ]
     [[ "$output" == *"共 2 步"* ]]
 
@@ -997,7 +997,7 @@ EOF2
     [[ "$output" == *"retreat: P5 -> P4"* ]]
 }
 
-@test "IT_RETREAT.2 中途一步的 commit 被 hook 拒绝时，agate-retreat-to.sh 明确报告停在哪步且不继续" {
+@test "IT_RETREAT.2 中途一步的 commit 被 hook 拒绝时，agate-retreat-to.py 明确报告停在哪步且不继续" {
     echo "init" > "$REPO/README.md"
     git -C "$REPO" add README.md
     git -C "$REPO" commit -qm "init"
@@ -1015,12 +1015,12 @@ EOF2
     git -C "$REPO" commit -qm "setup P6 state"
 
     # 故意在工作区留一个行首 [PROD_TOUCHED] 声明的文件（真声明，phase 无关，
-    # 会被 pre-commit-gate.sh 的一值声明步骤 1 硬拦截）。agate-retreat-to.sh 的
+    # 会被 pre-commit-gate.sh 的一值声明步骤 1 硬拦截）。agate-retreat-to.py 的
     # git add "$TASK_DIR" 会在第一步（P6->P5）把它一并带上，验证中途拒绝时脚本
     # 能正确报告"已停在 P6"且不会继续尝试后续步骤
     echo "[PROD_TOUCHED] 意外接触了生产环境" > "$REPO/agate-workspace/tasks/T001/note.md"
 
-    run bash -c "cd '$REPO' && bash '$AGATE_SCRIPTS/agate-retreat-to.sh' agate-workspace/tasks/T001 P4 '集成测试：中途拒绝'"
+    run bash -c "cd '$REPO' && '$PYTHON' '$AGATE_SCRIPTS/agate-retreat-to.py' agate-workspace/tasks/T001 P4 '集成测试：中途拒绝'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"未通过 pre-commit hook 校验"* ]]
     [[ "$output" == *"已停在 P6"* ]]

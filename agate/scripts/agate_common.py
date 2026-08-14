@@ -33,6 +33,14 @@ except ImportError:
 _AGATE_ROOT = Path(__file__).resolve().parent.parent
 
 
+# ---------- MAX_RETRY_MAP（单一数据源） ----------
+# 按阶段差异化 MAX_RETRY（P3/P5/P6/P7/P8=2，其他=3）。
+# 供 check-state-transition.py / agate-retreat-to.py 共享（原 check-state-transition.sh
+# 的字面值 + check-retrospective.py 的模块级常量，TAG0010 批次 2b 统一于此）；
+# 两脚本仍支持环境变量覆盖（MAX_RETRY_MAP=... 优先，同 sh 版 ${MAX_RETRY_MAP:-...} 语义）。
+MAX_RETRY_MAP = "P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2"
+
+
 # ---------- run_git / 通用工具 ----------
 
 

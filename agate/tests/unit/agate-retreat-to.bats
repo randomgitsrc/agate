@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
-# tests/unit/agate-retreat-to.bats — agate-retreat-to.sh 自动化多步回退校验
+# tests/unit/agate-retreat-to.bats — agate-retreat-to.py 自动化多步回退校验
 
 load ../helpers/load.bash
 
 setup() {
-    RETREAT_CMD="$AGATE_SCRIPTS/agate-retreat-to.sh"
+    RETREAT_CMD="$AGATE_SCRIPTS/agate-retreat-to.py"
 }
 
 _init_task_repo() {
@@ -28,7 +28,7 @@ EOF
     repo=$(git_init)
     _init_task_repo "$repo" "P6"
 
-    run bash -c "cd '$repo' && bash '$RETREAT_CMD' docs/tasks/T001 P4 '诊断原因测试'"
+    run bash -c "cd '$repo' && '$PYTHON' '$RETREAT_CMD' docs/tasks/T001 P4 '诊断原因测试'"
     [ "$status" -eq 0 ]
     [[ "$output" == *"共 2 步"* ]]
 
@@ -47,7 +47,7 @@ EOF
     repo=$(git_init)
     _init_task_repo "$repo" "P4"
 
-    run bash -c "cd '$repo' && bash '$RETREAT_CMD' docs/tasks/T001 P6 '诊断'"
+    run bash -c "cd '$repo' && '$PYTHON' '$RETREAT_CMD' docs/tasks/T001 P6 '诊断'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"不是回退"* ]]
 }
@@ -60,7 +60,7 @@ EOF
   - attempt: 1
   - attempt: 2"
 
-    run bash -c "cd '$repo' && bash '$RETREAT_CMD' docs/tasks/T001 P4 '诊断'"
+    run bash -c "cd '$repo' && '$PYTHON' '$RETREAT_CMD' docs/tasks/T001 P4 '诊断'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"超限"* ]]
 
@@ -79,7 +79,7 @@ EOF
     echo "unrelated" > "$repo/other-project/wip.txt"
     git -C "$repo" add other-project/wip.txt
 
-    run bash -c "cd '$repo' && bash '$RETREAT_CMD' docs/tasks/T001 P4 '诊断'"
+    run bash -c "cd '$repo' && '$PYTHON' '$RETREAT_CMD' docs/tasks/T001 P4 '诊断'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"TASK_DIR 之外的文件"* ]]
     [[ "$output" == *"wip.txt"* ]]
@@ -94,6 +94,6 @@ EOF
     repo=$(git_init)
     _init_task_repo "$repo" "P6"
 
-    run bash -c "cd '$repo' && bash '$RETREAT_CMD' docs/tasks/T001 PAUSED '诊断'"
+    run bash -c "cd '$repo' && '$PYTHON' '$RETREAT_CMD' docs/tasks/T001 PAUSED '诊断'"
     [ "$status" -eq 1 ]
 }
