@@ -1268,6 +1268,11 @@ DCEND
 
 @test "pre-commit hook: AGATE_ROOT 未设时自定位到脚本自身本体（worktree 支持，T086）" {
     local repo workflow_root
+    # Windows Git Bash 的 ln -sf 退化为复制（无 POSIX 软链语义），readlink 自定位无法验证
+    # ——worktree 软链 hook 自定位是 POSIX 特性，Windows 上由 install-hook 复制模式 + .agate-root 标记兜底
+    if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
+        skip "Windows 无 POSIX 软链，软链 hook 自定位场景无法验证（install-hook 复制模式已覆盖 Windows 语义）"
+    fi
     repo=$(git_init)
 
     # 模拟 worktree：隔离协议本体目录
