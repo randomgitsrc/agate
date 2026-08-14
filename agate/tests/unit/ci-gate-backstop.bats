@@ -8,6 +8,8 @@ load ../helpers/load.bash
 # 统一在文件级 export PYTHONIOENCODING=utf-8，保证中文关键词断言命中且不 UnicodeEncodeError 崩溃
 setup() {
     export PYTHONIOENCODING=utf-8
+    # Windows python 无法解析 MSYS /c/... 路径——经 py_path 转 C:/...（TAG0009）
+    BACKSTOP_PY=$(py_path "$AGATE_SCRIPTS/ci-gate-backstop.py")
 }
 
 @test "detect_ci_platform: Gitea 优先于 GitHub 被识别" {
@@ -16,7 +18,7 @@ setup() {
     cd "$repo"
     export GITEA_ACTIONS=true
     export GITHUB_ACTIONS=true
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>/dev/null || true"
     [[ "$output" == *"gitea"* ]]
 }
 
@@ -26,7 +28,7 @@ setup() {
     cd "$repo"
     export GITLAB_CI=true
     unset GITEA_ACTIONS GITHUB_ACTIONS
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>/dev/null || true"
     [[ "$output" == *"gitlab"* ]]
 }
 
@@ -35,7 +37,7 @@ setup() {
     repo=$(git_init)
     cd "$repo"
     unset GITEA_ACTIONS GITLAB_CI GITHUB_ACTIONS
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>/dev/null || true"
     [[ "$output" == *"SKIP"* || "$output" == *"None"* ]]
 }
 
@@ -68,7 +70,7 @@ EOF
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"真红灯"* ]]
 }
@@ -84,7 +86,7 @@ EOF
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"绿灯"* ]]
@@ -101,7 +103,7 @@ EOF
     echo 'exit 1' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"假红灯"* ]]
@@ -118,7 +120,7 @@ EOF
     echo 'exit 3' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"WARN"* ]]
     [[ "$output" != *"FAIL"* ]]
 }
@@ -135,7 +137,7 @@ EOF
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
     # 不创建 .gate-result.json（模拟 --no-verify 场景）
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"真红灯"* ]]
 }
@@ -168,7 +170,7 @@ EOF
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"SKIP"* ]]
     [[ "$output" == *"refactor"* ]]
     [[ "$output" != *"FAIL"* ]]
@@ -197,7 +199,7 @@ EOF
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "$PYTHON '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"绿灯"* ]]
@@ -220,10 +222,10 @@ EOF
     chmod +x "$mock"
     export AGATE_TDD_RED_SCRIPT="$mock"
     # ① 清除继承的 utf-8 导出 + 强制 cp1252 → 中文 print 崩溃
-    run env -u PYTHONIOENCODING bash -c "PYTHONIOENCODING=cp1252 '$PYTHON' '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run env -u PYTHONIOENCODING bash -c "PYTHONIOENCODING=cp1252 '$PYTHON' $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"UnicodeEncodeError"* ]]
     # ② 文件级 utf-8 导出生效 → 无崩溃、中文关键词可断言
-    run bash -c "'$PYTHON' '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "'$PYTHON' $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" != *"UnicodeEncodeError"* ]]
     [[ "$output" == *"真红灯"* ]]
