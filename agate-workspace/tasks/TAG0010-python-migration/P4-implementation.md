@@ -128,3 +128,58 @@ implementation_dir: agate/scripts/
 [DESIGN_GAP: 批次 1a 的 bats 自查发现并处理一个 sh→py 语义差异——sh 命令替换 $(...) 会剥掉子进程输出尾部换行，而 Python subprocess capture 不剥。check-scope-resolved.py 的 agate-md-field-get scope_resolved 空结果时 print 仍输出 "\n"，sh 版 $(...) 收尾为空串落到正文回退判定，py 版若直接判非空会误走 frontmatter 分支（SC.4 红）。实现采用 .rstrip("\n") 等价 sh $(...) 语义；check-changelog.py 的 agate-changelog-unreleased 输出同样处理]
 
 > 实现说明（非 DESIGN_GAP）：check-changelog.py 的 post-bump 模式分支（check-changelog.sh L20-24）在本批 4 个 bats 无直接用例覆盖，已手动与 sh 版逐字节对比验证（含"无版本段落" fail 分支 exit 1 + stderr）。
+
+---
+
+# P4 实现记录 — 批次 1b（check-p6-format / agate-archive-stale-outputs / agate-extract-context py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 3 个 .py（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 |
+|------|--------|
+| `agate/scripts/check-p6-format.py` | `check-p6-format.sh` |
+| `agate/scripts/agate-archive-stale-outputs.py` | `agate-archive-stale-outputs.sh` |
+| `agate/scripts/agate-extract-context.py` | `agate-extract-context.sh` |
+
+- 全部 `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix，walrus 未用）
+- CLI 契约与 sh 版等价：exit code、stdout/stderr 输出格式、归档目录命名（`.archived/{YYYYmmdd-HHMMSS}-{PHASE}`）、breadcrumb 追加语义，均已与 sh 版实测 diff 核对（见偏离点说明 2 项脚本名后缀）
+- check-p6-format.py：--check 用 `re.IGNORECASE` 候选 + 严格大写/BDD 编号双正则；--fix 的 6 段 sed 归一化按行等价实现（`(\s|:|：|$)` alternation 保留全角冒号兼容，同 sh M5 修法）；frontmatter 切分语义（首行 `---` + 其后首条 `---` 起始行闭合）逐字节对齐
+- agate-archive-stale-outputs.py：`_OUTPUTS` dict 替代 `_outputs_for` case；P6 专属 P6-evidence/ 连带归档；`.retreat-history.md` 追加模式（含 FAIL 摘要 code block 结构）与 sh 逐字节一致
+- agate-extract-context.py：grep 管道 → 逐行正则等价；`grep -c ... || echo 0` 的无匹配双行 quirk 原样保留（见偏离点）；`grep -A5 | head -6` 多匹配 `--` 分隔语义复刻；P6 failed 求和用 `re.findall` 累加；P5 implementation_dir 顺序（P4-implementation.md 文件优先 + 目录递归）与 grep -rh 一致
+
+### 改动 3 个 bats 文件（调用点 .sh → .py，`@test` 数不变）
+
+- `unit/check-p6-format.bats`：16 处 `run bash .../check-p6-format.sh` → `run "$PYTHON" .../check-p6-format.py`（含 `env LC_ALL=POSIX LANG=` 两处）；`@test` 名内脚本名同步改 .py（15 个）。F_BDD18.1 的 `check-gate.sh`（批次 2）不动
+- `unit/agate-archive-stale-outputs.bats`：setup 的 `ARCHIVE_CMD` 改 .py + 7 处 `run bash "$ARCHIVE_CMD"` → `run "$PYTHON" "$ARCHIVE_CMD"`
+- `unit/agate-extract-context.bats`：16 处 `run bash .../agate-extract-context.sh` → `run "$PYTHON" .../agate-extract-context.py`（含 EC.16 的 `env PATH=...` 一处）+ 头部注释改 .py
+
+### 其他引用核查（确认无需改动）
+
+- `unit/check-state-transition.bats` L500：断言的是 check-state-transition.sh（批次 2，未迁移）stderr 中的 `agate-archive-stale-outputs.sh` 字符串，非调用点，sh 版输出不变 → 不改
+- `unit/agate-debt-check.bats` L489-490：fixture git commit message 正文提到 `check-p6-format.sh`，非调用点 → 不改
+- `regression/v040-dotarchived-exclusion.bats`：仅注释提到 `agate-archive-stale-outputs.sh` → 不改
+- `agate/scripts/check-state-transition.sh` L115 / `agate-retreat-to.sh` L18 / `pre-commit-gate.sh` L183：仍引用 .sh（批次 2/3 迁移目标，本批次不动）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `bats unit/check-p6-format.bats`：16/16 绿
+- `bats unit/agate-archive-stale-outputs.bats`：7/7 绿
+- `bats unit/agate-extract-context.bats`：16/16 绿
+- 3 个 .py `py_compile` 均编译通过；`bats unit/agate-scripts-encoding.bats`（bdd-5 全 py 显式 encoding 扫描）2/2 绿
+- 手动 sh vs py 输出 diff：extract-context 各 phase 探针 / archive 归档目录与 breadcrumb / check-p6-format fix 行为均与 sh 版等价（差异仅脚本名后缀）
+
+## 偏离点
+
+[DESIGN_GAP: 新 py 的 usage/错误消息中脚本名后缀改 .sh → .py（如 "用法: agate-extract-context.py PHASE TASK_DIR [--write]"、"未找到 P1-dispatch-context-*.md"）——sh 版消息写的是 .sh 后缀；为与新脚本名一致而改（batch 1a check-changelog.py 同款先例）。bats 只断言 exit code 不断言消息正文，P5 可复验]
+
+[SCOPE+]: `agate/tests/README.md` L35/59/96 仍引用 3 个脚本的 .sh 名（覆盖度表格 + R2.4 已知风险描述）——按派发指引"README 文档引用不擅自改"，留待批次 4 文档引用同步（表 B）处理]
+
+> 实现说明（非 DESIGN_GAP）：agate-extract-context.py 的 `_grep_count` 复刻了 sh `grep -c ... || echo 0` 无匹配时输出双行 "0\n0" 的 quirk（实测 sh 确实输出 `- BDD 条件数: 0\n0`），为保 CLI 契约逐字节等价而保留；P6 空 P5-test-results 时实测 sh 输出 "P5 failed 参考: 0"（无 set -e 中断），py 同样返回 0。

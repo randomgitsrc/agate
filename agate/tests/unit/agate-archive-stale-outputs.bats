@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
-# tests/unit/agate-archive-stale-outputs.bats — agate-archive-stale-outputs.sh 归档校验
+# tests/unit/agate-archive-stale-outputs.bats — agate-archive-stale-outputs.py 归档校验
 
 load ../helpers/load.bash
 
 setup() {
-    ARCHIVE_CMD="$AGATE_SCRIPTS/agate-archive-stale-outputs.sh"
+    ARCHIVE_CMD="$AGATE_SCRIPTS/agate-archive-stale-outputs.py"
 }
 
 @test "ARCH.1 P6 阶段有 P6-acceptance.md + P6-evidence/，归档 P6" {
@@ -14,7 +14,7 @@ setup() {
     echo "old p6 content" > "$task_dir/P6-acceptance.md"
     touch "$task_dir/P6-evidence/screenshots/a.png"
 
-    run bash "$ARCHIVE_CMD" P6 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P6 "$task_dir"
     [ "$status" -eq 0 ]
     [ ! -f "$task_dir/P6-acceptance.md" ]
     [ ! -d "$task_dir/P6-evidence" ]
@@ -31,7 +31,7 @@ setup() {
     task_dir="$BATS_TEST_TMPDIR/task2"
     mkdir -p "$task_dir"
 
-    run bash "$ARCHIVE_CMD" P4 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P4 "$task_dir"
     [ "$status" -eq 0 ]
     [[ "$output" == *"无需归档"* ]]
     [ ! -d "$task_dir/.archived" ]
@@ -43,7 +43,7 @@ setup() {
     mkdir -p "$task_dir"
     echo "content" > "$task_dir/P6-acceptance.md"
 
-    run bash "$ARCHIVE_CMD" P6 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P6 "$task_dir"
     [ "$status" -eq 0 ]
     [ ! -f "$task_dir/P6-acceptance.md" ]
 
@@ -59,12 +59,12 @@ setup() {
     mkdir -p "$task_dir"
     echo "first attempt" > "$task_dir/P6-acceptance.md"
 
-    run bash "$ARCHIVE_CMD" P6 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P6 "$task_dir"
     [ "$status" -eq 0 ]
     sleep 1
 
     echo "second attempt" > "$task_dir/P6-acceptance.md"
-    run bash "$ARCHIVE_CMD" P6 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P6 "$task_dir"
     [ "$status" -eq 0 ]
 
     local count
@@ -81,7 +81,7 @@ setup() {
 - FAIL BDD-7: 购物车金额错误 (screenshots/b.png)
 EOF
 
-    run bash "$ARCHIVE_CMD" P6 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P6 "$task_dir"
     [ "$status" -eq 0 ]
     [ -f "$task_dir/.retreat-history.md" ]
     grep -q "FAIL BDD-7" "$task_dir/.retreat-history.md"
@@ -97,11 +97,11 @@ EOF
     task_dir="$BATS_TEST_TMPDIR/task6"
     mkdir -p "$task_dir"
     echo "- FAIL BDD-7: 第一次失败 (a.png)" > "$task_dir/P6-acceptance.md"
-    run bash "$ARCHIVE_CMD" P6 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P6 "$task_dir"
     [ "$status" -eq 0 ]
     sleep 1
     echo "- FAIL BDD-7: 第二次仍失败 (b.png)" > "$task_dir/P6-acceptance.md"
-    run bash "$ARCHIVE_CMD" P6 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P6 "$task_dir"
     [ "$status" -eq 0 ]
 
     grep -q "第一次失败" "$task_dir/.retreat-history.md"
@@ -115,7 +115,7 @@ EOF
     echo "req" > "$task_dir/P1-requirements.md"
     echo "review" > "$task_dir/P1-review.md"
 
-    run bash "$ARCHIVE_CMD" P1 "$task_dir"
+    run "$PYTHON" "$ARCHIVE_CMD" P1 "$task_dir"
     [ "$status" -eq 0 ]
     [ ! -f "$task_dir/P1-requirements.md" ]
     [ ! -f "$task_dir/P1-review.md" ]

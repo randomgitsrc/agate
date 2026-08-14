@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""agate-extract-context.py — 从上游产出提取结构化字段，注入 dispatch-context 上游关联节（P4 批次 1b）
+
+从 agate-extract-context.sh 迁移（TAG0010 批次 1b）。用法：
+  agate-extract-context.py PHASE TASK_DIR           # 输出到 stdout
+  agate-extract-context.py PHASE TASK_DIR --write    # 追加到 dispatch-context 文件
+
+PHASE 取值 P1-P8；TASK_DIR 是任务目录路径（含 P0-brief.md 等）。
+exit 0：成功；exit 1：参数错误；exit 2：phase 不在 P1-P8 范围或任务目录不存在。
+
+迁移说明：grep 管道 → 逐行正则等价。sh 版 `grep -c ... || echo 0` 在无匹配时产生
+双行 "0\n0"（grep 打印 0 且 exit 1）——为保 CLI 契约逐字节等价，此 quirk 原样保留。
+"""
+
+import glob
+import os
+import re
+import sys
+
+_BDD_HEAD = re.compile(r"^#### BDD-")
+_BDD_LIST = re.compile(r"^#### (BDD-[^:]+):")
+
+
+def _read_lines(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read().splitlines()
+
+
+def _grep(lines, pattern):
+    """grep -E 等价：返回整行匹配列表（无匹配返回空串，即 sh 的 || true 语义）。"""
+    return [line for line in lines if re.search(pattern, line)]
+
+
+def _grep_count(lines, pattern):
+    """grep -cE 等价：匹配行数；无匹配时复刻 sh 的 "0\\n0" 双行 quirk。"""
+    count = sum(1 for line in lines if re.search(pattern, line))
+    if count == 0:
+        return "0\n0"
+    return str(count)
+
+
+def _grep_after(lines, pattern, after=5, limit=6):
+    """grep -A5 | head -6 等价：逐匹配组输出匹配行 + 其后 after 行，组间 "--" 分隔，
+    累计到 limit 行即停（head 截断语义）。"""
+    out = []
+    matches = [i for i, line in enumerate(lines) if re.search(pattern, line)]
+    for k, idx in enumerate(matches):
+        if k > 0:
+            out.append("--")
+        out.append(lines[idx])
+        out.extend(lines[idx + 1:idx + 1 + after])
+        if len(out) >= limit:
+            break
+    return out[:limit]
+
+
+def _sum_failed(task_dir):
+    """grep -rh '^\\s*failed:' P5-test-results/ | grep -oE '[0-9]+' | awk 求和 等价。"""
+    results_dir = os.path.join(task_dir, "P5-test-results")
+    if not os.path.isdir(results_dir):
+        return None
+    total = 0
+    for root, _dirs, files in os.walk(results_dir):
+        for fn in sorted(files):
+            path = os.path.join(root, fn)
+            try:
+                for line in _read_lines(path):
+                    if re.search(r"^\s*failed:", line):
+                        total += sum(int(m) for m in re.findall(r"[0-9]+", line))
+            except OSError:
+                pass
+    return total
+
+
+def _grep_rh_impl_dirs(task_dir):
+    """grep -rh '^implementation_dir:' P4-implementation.md P4-implementation/ 等价。"""
+    out = []
+    p4 = os.path.join(task_dir, "P4-implementation.md")
+    if os.path.isfile(p4):
+        out.extend(_grep(_read_lines(p4), r"^implementation_dir:"))
+    p4dir = os.path.join(task_dir, "P4-implementation")
+    if os.path.isdir(p4dir):
+        for root, _dirs, files in sorted(os.walk(p4dir)):
+            for fn in sorted(files):
+                path = os.path.join(root, fn)
+                try:
+                    out.extend(_grep(_read_lines(path), r"^implementation_dir:"))
+                except OSError:
+                    pass
+    return out
+
+
+def extract(phase, task_dir):
+    output = ""
+    num = phase[1:]
+
+    if phase == "P1":
+        p0 = os.path.join(task_dir, "P0-brief.md")
+        if os.path.isfile(p0):
+            output += "### P0-brief 关键字段" + "\n"
+            lines = _read_lines(p0)
+            task_line = _grep(lines, r"^task:")
+            if task_line:
+                output += "- " + "\n".join(task_line) + "\n"
+            risks = _grep(lines, r"^known_risks:")
+            if risks:
+                output += "- " + "\n".join(risks) + "\n"
+            env = _grep_after(lines, r"^env_constraints:")
+            if env:
+                output += "- env_constraints:" + "\n" + "\n".join(env) + "\n"
+    elif phase == "P2":
+        p1 = os.path.join(task_dir, "P1-requirements.md")
+        if os.path.isfile(p1):
+            output += "### P1-requirements 关键字段" + "\n"
+            lines = _read_lines(p1)
+            domains = _grep(lines, r"^domains:")
+            if domains:
+                output += "- " + "\n".join(domains) + "\n"
+            risk = _grep(lines, r"^risk_level:")
+            if risk:
+                output += "- " + "\n".join(risk) + "\n"
+            output += "- BDD 条件数: " + _grep_count(lines, r"^#### BDD-") + "\n"
+    elif phase == "P3":
+        p2 = os.path.join(task_dir, "P2-design.md")
+        if os.path.isfile(p2):
+            output += "### P2-design 关键字段" + "\n"
+            fields = _grep(_read_lines(p2), r"^(packages|domains|ui_affected|gate_commands):")
+            if fields:
+                output += "\n".join(fields) + "\n"
+    elif phase == "P4":
+        p2 = os.path.join(task_dir, "P2-design.md")
+        if os.path.isfile(p2):
+            output += "### P2-design 关键字段" + "\n"
+            fields = _grep(_read_lines(p2), r"^(packages|domains|ui_affected|gate_commands|files_to_read):")
+            if fields:
+                output += "\n".join(fields) + "\n"
+        p3 = os.path.join(task_dir, "P3-test-cases.md")
+        if os.path.isfile(p3):
+            output += "- P3 BDD 测试覆盖数: " + _grep_count(_read_lines(p3), r"^#### BDD-") + "\n"
+    elif phase == "P5":
+        p2 = os.path.join(task_dir, "P2-design.md")
+        if os.path.isfile(p2):
+            output += "### P2-design gate_commands" + "\n"
+            gc = _grep_after(_read_lines(p2), r"^gate_commands:")
+            if gc:
+                output += "\n".join(gc) + "\n"
+        impl_dirs = _grep_rh_impl_dirs(task_dir)
+        if impl_dirs:
+            output += "### implementation_dir" + "\n"
+            for line in impl_dirs:
+                output += "- " + line + "\n"
+    elif phase == "P6":
+        p1 = os.path.join(task_dir, "P1-requirements.md")
+        if os.path.isfile(p1):
+            output += "### P1 BDD 编号列表" + "\n"
+            bdd_list = []
+            for line in _read_lines(p1):
+                m = _BDD_LIST.match(line)
+                if m:
+                    bdd_list.append(m.group(1))
+            if bdd_list:
+                for line in bdd_list:
+                    output += "- " + line + "\n"
+            else:
+                output += "- (无 BDD 条件)" + "\n"
+        failed = _sum_failed(task_dir)
+        if failed is not None:
+            output += "- P5 failed 参考: {}（仅供参考，gate 以主 Agent 实跑为准）\n".format(failed)
+    elif phase == "P7":
+        p2 = os.path.join(task_dir, "P2-design.md")
+        if os.path.isfile(p2):
+            output += "### P2-design packages" + "\n"
+            pkgs = _grep(_read_lines(p2), r"^packages:")
+            if pkgs:
+                output += "- " + "\n".join(pkgs) + "\n"
+        p6 = os.path.join(task_dir, "P6-acceptance.md")
+        if os.path.isfile(p6):
+            lines = _read_lines(p6)
+            output += "- P6 验收: {} PASS, {} FAIL\n".format(
+                _grep_count(lines, r"^\s*- PASS"),
+                _grep_count(lines, r"^\s*- FAIL"),
+            )
+            gaps = _grep(lines, r"\[DESIGN_GAP:")
+            if gaps:
+                output += "- DESIGN_GAP 列表:" + "\n" + "\n".join(gaps) + "\n"
+    elif phase == "P8":
+        p2 = os.path.join(task_dir, "P2-design.md")
+        if os.path.isfile(p2):
+            output += "### P2-design packages" + "\n"
+            pkgs = _grep(_read_lines(p2), r"^packages:")
+            if pkgs:
+                output += "- " + "\n".join(pkgs) + "\n"
+        p7 = os.path.join(task_dir, "P7-consistency.md")
+        if os.path.isfile(p7):
+            lines = _read_lines(p7)
+            output += "- P7 BLOCKER 数: " + _grep_count(lines, r"\[BLOCKER\]") + "\n"
+            deviations = _grep(lines, r"\[DEVIATION")
+            if deviations:
+                output += "- DEVIATION 列表:" + "\n" + "\n".join(deviations) + "\n"
+
+    diagnosis = os.path.join(task_dir, "P{}-gate-diagnosis.md".format(num))
+    if os.path.isfile(diagnosis):
+        output += "\n### gate-diagnosis 引用" + "\n"
+        output += "- 参见 P{}-gate-diagnosis.md".format(num) + "\n"
+
+    return output
+
+
+def main():
+    if len(sys.argv) < 3 or len(sys.argv) > 4:
+        sys.stderr.write("用法: agate-extract-context.py PHASE TASK_DIR [--write]\n")
+        sys.exit(1)
+
+    phase = sys.argv[1]
+    task_dir = sys.argv[2]
+    write_mode = sys.argv[3] if len(sys.argv) > 3 else ""
+
+    if phase not in ("P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"):
+        sys.stderr.write("agate-extract-context.py: phase '{}' 不在 P1-P8 范围内\n".format(phase))
+        sys.exit(2)
+
+    if not os.path.isdir(task_dir):
+        sys.stderr.write("agate-extract-context.py: 任务目录不存在: {}\n".format(task_dir))
+        sys.exit(2)
+
+    result = extract(phase, task_dir)
+
+    if write_mode == "--write":
+        pattern = os.path.join(task_dir, "P{}-dispatch-context-*.md".format(phase[1:]))
+        dc_files = sorted(glob.glob(pattern))
+        if dc_files:
+            dc_file = dc_files[0]
+            with open(dc_file, "a", encoding="utf-8") as f:
+                f.write("\n{}\n".format(result))
+            print("已追加到 {}".format(dc_file))
+        else:
+            sys.stderr.write(
+                "agate-extract-context.py: 未找到 P{}-dispatch-context-*.md，输出到 stdout\n".format(phase[1:])
+            )
+            sys.stdout.write("{}\n".format(result))
+    else:
+        sys.stdout.write("{}\n".format(result))
+
+
+if __name__ == "__main__":
+    main()

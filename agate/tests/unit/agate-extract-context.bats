@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# T001 v2.0 流 A（P2-design.md §2 FIND-2 决策）：agate-extract-context.sh 是上下文
+# T001 v2.0 流 A（P2-design.md §2 FIND-2 决策）：agate-extract-context.py 是上下文
 # 摘要工具（非 gate 判定点），保持 grep 不改路由——frontmatter 顶层 key 顶格仍能被
 # 现有 grep 匹配，兼容新旧格式。EC.5/EC.6/EC.10 已用 frontmatter 块声明 domains/
 # risk_level/packages/ui_affected，验证该边界决策的回归安全。@test 数保持 15 不变。
@@ -15,17 +15,17 @@ teardown() {
 }
 
 @test "EC.1: rejects missing arguments" {
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py"
     [ "$status" -eq 1 ]
 }
 
 @test "EC.2: rejects invalid phase" {
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P9 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P9 "$TEST_TASK_DIR"
     [ "$status" -eq 2 ]
 }
 
 @test "EC.3: rejects nonexistent task dir" {
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P1 "/nonexistent"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P1 "/nonexistent"
     [ "$status" -eq 2 ]
 }
 
@@ -36,7 +36,7 @@ task: fix login timeout
 known_risks: [session_expiry]
 ---
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P1 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P1 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"task: fix login timeout"* ]]
 }
@@ -50,7 +50,7 @@ risk_level: high
 #### BDD-1: user can log in
 #### BDD-2: session expires after timeout
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P2 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P2 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"domains: [backend]"* ]]
     [[ "$output" == *"risk_level: high"* ]]
@@ -65,7 +65,7 @@ ui_affected: true
 gate_commands:
   P5: "pytest -q"
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P3 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P3 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"packages: [pkg-a, pkg-b]"* ]]
     [[ "$output" == *"ui_affected: true"* ]]
@@ -78,7 +78,7 @@ EOF
 EOF
     mkdir -p "$TEST_TASK_DIR/P5-test-results"
     echo "  failed: 1" > "$TEST_TASK_DIR/P5-test-results/unit.md"
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P6 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P6 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"- BDD-1"* ]]
     [[ "$output" == *"- BDD-2"* ]]
@@ -93,7 +93,7 @@ EOF
 - PASS BDD-1: works (evidence.log)
 - FAIL BDD-2: broken (evidence2.log)
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P7 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P7 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"1 PASS"* ]]
     [[ "$output" == *"1 FAIL"* ]]
@@ -109,7 +109,7 @@ EOF
 ### 上游关联
 (none)
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P1 "$TEST_TASK_DIR" --write
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P1 "$TEST_TASK_DIR" --write
     [ "$status" -eq 0 ]
     [[ "$output" == *"已追加到"* ]]
     run cat "$TEST_TASK_DIR/P1-dispatch-context-analyst.md"
@@ -129,7 +129,7 @@ EOF
 #### BDD-1: works
 #### BDD-2: edge case
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P4 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P4 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"packages: [pkg-a]"* ]]
     [[ "$output" == *"files_to_read: [src/main.py]"* ]]
@@ -144,7 +144,7 @@ EOF
     cat > "$TEST_TASK_DIR/P4-implementation.md" <<'EOF'
 implementation_dir: src/
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P5 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P5 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"gate_commands"* ]]
     [[ "$output" == *"implementation_dir: src/"* ]]
@@ -158,7 +158,7 @@ EOF
 [BLOCKER] API mismatch
 [DEVIATION] minor naming difference
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P8 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P8 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"packages: [pkg-a, pkg-b]"* ]]
     [[ "$output" == *"BLOCKER 数: 1"* ]]
@@ -172,7 +172,7 @@ EOF
     cat > "$TEST_TASK_DIR/P1-gate-diagnosis.md" <<'EOF'
 gate failed because...
 EOF
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P1 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P1 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"gate-diagnosis 引用"* ]]
     [[ "$output" == *"P1-gate-diagnosis.md"* ]]
@@ -186,7 +186,7 @@ EOF
     mkdir -p "$TEST_TASK_DIR/P4-implementation/pkg-a" "$TEST_TASK_DIR/P4-implementation/pkg-b"
     echo "implementation_dir: pkg-a/src" > "$TEST_TASK_DIR/P4-implementation/pkg-a/notes.md"
     echo "implementation_dir: pkg-b/lib" > "$TEST_TASK_DIR/P4-implementation/pkg-b/notes.md"
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P5 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P5 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"implementation_dir: pkg-a/src"* ]]
     [[ "$output" == *"implementation_dir: pkg-b/lib"* ]]
@@ -199,7 +199,7 @@ EOF
     mkdir -p "$TEST_TASK_DIR/P5-test-results/pkg-a" "$TEST_TASK_DIR/P5-test-results/pkg-b"
     echo "  failed: 2" > "$TEST_TASK_DIR/P5-test-results/pkg-a/unit.md"
     echo "  failed: 1" > "$TEST_TASK_DIR/P5-test-results/pkg-b/unit.md"
-    run bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P6 "$TEST_TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P6 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"P5 failed 参考: 3"* ]]
 }
@@ -220,7 +220,7 @@ EOF
 exit 1
 BCEOF
     chmod +x "$fakebin/bc"
-    run env PATH="$fakebin:$PATH" bash "$AGATE_ROOT/scripts/agate-extract-context.sh" P6 "$TEST_TASK_DIR"
+    run env PATH="$fakebin:$PATH" "$PYTHON" "$AGATE_ROOT/scripts/agate-extract-context.py" P6 "$TEST_TASK_DIR"
     [ "$status" -eq 0 ]
     [[ "$output" == *"P5 failed 参考: 3"* ]]
 }
