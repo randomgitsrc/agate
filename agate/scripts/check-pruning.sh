@@ -66,10 +66,16 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
     # （从 TASK_DIR 反推 tasks 基目录 = dirname(TASK_DIR)，兼容 docs/tasks / agate-workspace/tasks / 自定义路径）
     TASKS_BASE_REL=""
     REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+    if [ -n "$REPO_ROOT" ]; then
+        # Git for Windows 的 --show-toplevel 返回 C:/...，realpath -m 返回 /c/...——统一归一
+        # 避免 realpath --relative-to 混用两种风格产生错误路径（TAG0009 Windows 修复）
+        REPO_ROOT=$(realpath -m "$REPO_ROOT" 2>/dev/null || echo "$REPO_ROOT")
+    fi
     if [ -n "$REPO_ROOT" ] && [ -n "$TASK_DIR" ]; then
         TASKS_BASE_REL=$(realpath --relative-to="$REPO_ROOT" "$(dirname "$TASK_DIR")" 2>/dev/null || echo "")
     fi
     SOURCE_FILE_COUNT=$(git diff --cached --name-only 2>/dev/null \
+        | tr -d '\r' \
         | grep -cvE "^docs/tasks/|^${TASKS_BASE_REL}/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG" || echo 0)
     SOURCE_FILE_COUNT=$(echo "$SOURCE_FILE_COUNT" | tail -1)
 

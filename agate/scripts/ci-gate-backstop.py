@@ -9,6 +9,7 @@ push 时重跑 gate，与 .gate-result.json 对照。
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -16,13 +17,43 @@ from pathlib import Path
 _AGATE_ROOT = Path(__file__).resolve().parent.parent
 
 
+def _find_bash() -> str:
+    """探测可用的 bash（Windows 上避开 WSL bash——subprocess 按 Windows PATH 解析 'bash'
+    可能命中 WSL 的 bash.exe 导致 'Windows Subsystem for Linux has no installed distributions'）。
+
+    优先级：AGATE_BASH 环境变量 → Git Bash 常见路径 → shutil.which（排除 WSL/WindowsApps）。
+    """
+    env_bash = os.environ.get("AGATE_BASH", "").strip()
+    if env_bash:
+        return env_bash
+    candidates = [
+        r"C:\Program Files\Git\bin\bash.exe",
+        r"C:\Program Files (x86)\Git\bin\bash.exe",
+        "/usr/bin/bash",
+        "/bin/bash",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    which = shutil.which("bash")
+    if which:
+        low = which.lower()
+        if "windowsapps" not in low and "wsl" not in low:
+            return which
+    return "bash"
+
+
+def _bash_cmd(args: list) -> list:
+    return [_find_bash()] + args
+
+
 def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
     script = _AGATE_ROOT / "scripts/check-gate.sh"
     if not script.exists():
         return 2, "check-gate.sh not found"
     result = subprocess.run(
-        ["bash", str(script), phase, task_dir],
-        capture_output=True, text=True
+        _bash_cmd([str(script), phase, task_dir]),
+        capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     return result.returncode, result.stderr + result.stdout
 
@@ -63,8 +94,8 @@ def resolve_tasks_dir(project_root: str) -> str:
     if not script.exists():
         return str(Path(project_root) / os.environ.get("AGATE_TASKS_DIR", "docs/tasks"))
     result = subprocess.run(
-        ["bash", str(script), str(project_root)],
-        capture_output=True, text=True
+        _bash_cmd([str(script), str(project_root)]),
+        capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     if result.returncode == 0:
         for line in result.stdout.splitlines():
@@ -91,7 +122,7 @@ def _read_p1_change_type(task_dir: str) -> str:
     try:
         result = subprocess.run(
             ["python3", str(field_get), "change_type"],
-            capture_output=True, text=True, env=env, timeout=30,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, timeout=30,
         )
     except subprocess.SubprocessError:
         return ""
@@ -150,8 +181,8 @@ def main() -> int:
         tdd_script = Path(os.environ.get("AGATE_TDD_RED_SCRIPT", str(_AGATE_ROOT / "scripts/check-tdd-red.sh")))
         if tdd_script.exists():
             tdd_result = subprocess.run(
-                ["bash", str(tdd_script), task_dir],
-                capture_output=True, text=True
+                _bash_cmd([str(tdd_script), task_dir]),
+                capture_output=True, text=True, encoding="utf-8", errors="replace"
             )
             tdd_exit = tdd_result.returncode
             tdd_output = tdd_result.stderr + tdd_result.stdout
@@ -201,7 +232,7 @@ def main() -> int:
             ts = datetime.datetime.fromisoformat(recorded_ts.replace("Z", "+00:00"))
             commit_ts_str = subprocess.run(
                 ["git", "log", "-1", "--format=%cI"],
-                capture_output=True, text=True, check=True
+                capture_output=True, text=True, encoding="utf-8", errors="replace", check=True
             ).stdout.strip()
             commit_ts = datetime.datetime.fromisoformat(commit_ts_str)
             if ts > commit_ts:
@@ -221,7 +252,7 @@ def main() -> int:
             try:
                 blame = subprocess.run(
                     ["git", "blame", "--line-porcelain", str(p6_file)],
-                    capture_output=True, text=True
+                    capture_output=True, text=True, encoding="utf-8", errors="replace"
                 )
                 authors = set()
                 for line in blame.stdout.splitlines():
@@ -236,8 +267,8 @@ def main() -> int:
     provenance_script = _AGATE_ROOT / "scripts/check-p6-provenance.sh"
     if task_dir and provenance_script.exists() and Path(task_dir, "P6-acceptance.md").exists():
         prov_result = subprocess.run(
-            ["bash", str(provenance_script), task_dir],
-            capture_output=True, text=True
+            _bash_cmd([str(provenance_script), task_dir]),
+            capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         if prov_result.returncode == 1:
             print(f"FAIL: check-p6-provenance.sh 重跑未通过：\n{prov_result.stdout}{prov_result.stderr}")

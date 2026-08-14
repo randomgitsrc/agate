@@ -1,0 +1,8 @@
+=== BDD-7: 执行角色派发 prompt 不含「Review 角色特别指令」===
+--- render P2 architect ---
+PASS: architect 输出不含「Review 角色特别指令」
+--- architect 输出行数（应非空，确认正常渲染）---
+87
+--- architect 输出中检查 status 语义词 absence ---
+0
+EXIT_CODE: 0

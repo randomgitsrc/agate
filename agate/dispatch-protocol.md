@@ -109,13 +109,14 @@ subagent 空返回（约定产出文件不存在）是特殊失败模式，不�
 **分阶段落盘已默认启用**（见派发 prompt 模板），每次派发都带落盘指令。空返回仍可能发生（任务结构问题超出落盘缓解范围），此时：
 
 1. 第 1 次空返回：
-   - 计入 `retries[Pn]`（现成规则），记录 `failure_mode: empty_return, prompt_changed: false, adjustment: null`
-   - 分析失败原因：prompt 是否过复杂？输入文件是否过多？任务粒度是否过大？
-   - 调整策略后重派：
-      a. 拆分任务（见「任务粒度指引」）
-      b. 补输入导航（见「输入导航原则」）
-      c. 换 subagent 类型（frontend ↔ general）
-   - 更新本次 retry 记录：`prompt_changed: true, adjustment: <具体调整>`
+   a. 自动重试一次：相同 prompt 原样重发（本次自动重试不占用 `retries[Pn]` 槽位）。
+      - 复用下方「派发耗时弱信号」：若本次会话时长 <1min → 输出「会话时长异常短」告警
+        （提示可能为平台抖动 / 额度中断，而非任务结构问题），并照常自动重试一次。
+      - 自动重试仍空返回 → 进入步骤 b。
+   b. 计入 `retries[Pn]`（现成规则），记录 `failure_mode: empty_return, prompt_changed: false, adjustment: null`
+   c. 分析失败原因：prompt 是否过复杂？输入文件是否过多？任务粒度是否过大？
+   d. 调整策略后重派：拆分任务（见「任务粒度指引」）/ 补输入导航（见「输入导航原则」）/ 换 subagent 类型（frontend ↔ general）
+   e. 更新本次 retry 记录：`prompt_changed: true, adjustment: <具体调整>`
 
 2. 第 2 次空返回（调整策略后仍失败）：
    - 计入 `retries[Pn]`
@@ -123,6 +124,7 @@ subagent 空返回（约定产出文件不存在）是特殊失败模式，不�
 
 **禁止**：不调整策略、相同 prompt 直接重试（`retries` 记录里 `prompt_changed=false` 且非首次）。
 空返回说明 subagent 扛不住当前任务形态，原样重试大概率还是空返回。
+「自动重试一次」是「相同 prompt 直接重试」禁令的唯一豁免——仅限首次、单次、原样重发；自动重试失败后进入步骤 b-e 流程，此后仍禁止不调整直接重试。
 
 **空返回诊断的间接缓解**（当前平台不支持 subagent 活动检测，无法直接判断"subagent 是否在干活"，见 LIMITATIONS.md 局限 4）：
 1. 主 Agent 记录派发耗时作为参考（弱信号，不作主要判据——耗时不能区分"卡死"和"在干活但慢"）
@@ -433,6 +435,7 @@ trigger: gate_fail
 
 ## 你的角色定义
 读取并遵循：{agate_root}/assets/execution-roles/{role}.md
+> 若派发评审角色（review-roles），须追加 assets/templates/dispatch-prompt.md 中评审角色专用节的 status 字段语义说明（产出 Header 初始 draft、完成后改 approved/rejected/needs-revision，gate 读 Header 非返回摘要）。
 
 ## 项目约定（必读）
 - {project_conventions_file}（项目约定、命名规范、目录结构）

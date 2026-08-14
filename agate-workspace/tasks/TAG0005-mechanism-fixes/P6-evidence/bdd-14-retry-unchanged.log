@@ -1,0 +1,19 @@
+=== BDD-14 复核：retry 上限/PAUSED 段未在 P4 提交中改动 ===
+--- P4 提交对 dispatch-protocol.md 的 diff（应仅空返回恢复策略区域）---
+commit 9aacf8168d2e94d82d47aaafc48b3788922fb865
+Author: Test <test@test.local>
+Date:   Thu Aug 13 23:32:28 2026 +0800
+
+    wf(TAG0005-P4): 实现 6 处修复（C8 backend→plan-eng-review/P5 主辅计数/Review 指令条件注入/check-debt exit 2/空返回自动重试/回归测试同步）+ review approved
+--- diff 中是否触碰 MAX_RETRY 行 ---
+未触碰 MAX_RETRY 行
+--- diff 中是否触碰「PAUSED 报告人工」行 ---
+未触碰 PAUSED 报告人工 行
+--- 现状确认两处保留 ---
+123:   - `len(retries[Pn]) > MAX_RETRY` → PAUSED 报告人工
+941:   if len(retries[Pn]) < MAX_RETRY (见 state-machine.md 重试上限表):
+946:       # ⚠️ 条件用 >= MAX_RETRY(Pn) - 1（本次已是最后一次允许的重派），
+947:       # 不能用 >= 3——详情见 state-machine.md 重试上限表（MAX_RETRY 因阶段而异）
+948:       if len(retries[Pn]) >= MAX_RETRY(Pn) - 1:
+123:   - `len(retries[Pn]) > MAX_RETRY` → PAUSED 报告人工
+EXIT_CODE: 0

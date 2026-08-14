@@ -10,7 +10,7 @@ gate_commands:
   P3_formatter: pytest.sh
   P5: npx vitest
 EOF
-    run bash -c "GATE_FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-gate-missing-cmds.py'"
+    run bash -c "GATE_FILE='$dir/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-gate-missing-cmds.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *"P3:pytest"* ]]
     [[ "$output" == *"P5:npx"* ]]
@@ -24,7 +24,7 @@ gate_commands:
   P3: .venv/bin/python -m pytest
   P5: A=1 pytest
 EOF
-    run bash -c "GATE_FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-gate-missing-cmds.py'"
+    run bash -c "GATE_FILE='$dir/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-gate-missing-cmds.py'"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }

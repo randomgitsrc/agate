@@ -4,6 +4,15 @@
 
 load ../helpers/load.bash
 
+setup() {
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
+}
+
 @test "SY.1 check-state-yaml.sh 无 .state.yaml 期望 exit 2" {
     local f
     f=$(mktemp "$BATS_TEST_TMPDIR/state-XXXXXX.yaml")

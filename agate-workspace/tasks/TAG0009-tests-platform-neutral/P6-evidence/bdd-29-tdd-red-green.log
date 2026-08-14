@@ -1,0 +1,41 @@
+=== BDD-29: 修改流程先红后绿（TDD）===
+--- 提交序列（P3 红灯测试 → P4 实现 → P5 验证）---
+6fe7fea wf(TAG0009-P5): 技术验证四条命令全绿（bats 733 ok / consistency 0 ERROR / shellcheck 0 error / 扫描器零命中）+ Windows 分支模拟用例确认
+b1ba2c7 wf(TAG0009-P4): 实现测试平台无关化（扫描器 gate+PYTHON shim+bc→awk+批量修测试+CI windows matrix）+ review approved
+a3fd64f wf(TAG0009-P3): TDD 测试设计 29 BDD 全覆盖（扫描器 14 用例红灯 + 9 文件断言改造 + helper 测试），红灯确认
+49232bc wf(TAG0009-P2): 方案设计定案（harness shim+扫描器 gate+批量修测试/env -u PATH 平台无关构造/R2 正则修正）plan-eng-review approved
+
+--- P3 测试设计：红灯确认记录 ---
+24:**红灯确认**：bats 14/14 全红（扫描器 `agate/scripts/check-platform-assumptions.sh` 尚未创建，exit 127 = 命令不存在），属预期真红灯。
+62:| 10 | 文档断言：修复后全文件 grep 字面 `PATH="/usr/bin:/bin"` 为 0 | unit/check-tdd-red.bats | 文档断言（grep） | 红（当前 15 处） | 任务 B |
+63:| 11 | 改动断言：TD.1b（L48-51）/ TDD.F8（L380-383）改 `env -u PATH` 构造，exit 3/1 语义保持（TEST_RUNNER 不存在路径→exit 1 由 TD.1 覆盖，不重复） | unit/check-tdd-red.bats | 改动断言 | 红 | 任务 B |
+64:| 12 | 回归断言：check-tdd-red.bats 全量通过，红绿灯 exit 0/1/2/3 语义不变 | unit/check-tdd-red.bats | 回归断言 | 绿（改后需保持） | 任务 B |
+68:| 16 | 改动断言：9+1 受影响 .bats 文件 setup 注入 create_python_shim_bin，41 例 script-side 相关用例转绿 | 9 个 .bats + check-tdd-red.bats | 行为断言（回归） | 红（41 例当前失败） | 任务 B |
+72:| 20 | 改动断言：agate-next-card.bats L104 `cd /tmp` → `$BATS_TEST_TMPDIR`；check-scope-resolved.bats L8 → `$BATS_TEST_TMPDIR`；4 处样例文本行尾加 `# scan-exempt:` 标记且内容原样 | unit/agate-next-card.bats / unit/check-scope-resolved.bats / check-tdd-red.bats L139,148 / check-tdd-red-formatter.bats L97,105 | 改动断言 | 红 | 任务 B |
+81:| 29 | 流程约束：每处修复先加平台无关失败测试确认红再改（check-tdd-red 红灯 + AGENTS.md 工作流） | 任务 B 全流程 | 流程约束（非可执行用例） | 不适用 | 任务 B |
+92:- **扫描器自身测试的红灯性质**：14/14 全红且为「命令不存在」（exit 127）类——B 类红灯可推进，非测试代码自身错误。
+
+--- P3 commit 是否只含测试（先红）---
+    self-gate-review: agate/tests/*.bats 变更（测试触发 SELF-GATE），P3 测试先行红灯已确认（扫描器测试 14 红 + check-tdd-red exit 0）
+ .../P3-dispatch-context-test-designer-fix-other.md | 167 +++++++++++++++
+ ...P3-dispatch-context-test-designer-fix-tddred.md | 165 +++++++++++++++
+ .../P3-dispatch-context-test-designer-fix.md       | 172 ++++++++++++++++
+ .../P3-dispatch-context-test-designer-scanner.md   | 172 ++++++++++++++++
+ .../P3-dispatch-context-test-designer.md           | 183 +++++++++++++++++
+ .../TAG0009-tests-platform-neutral/P3-progress.md  |  45 ++++
+ .../P3-test-cases.md                               | 102 +++++++++
+ agate/tests/integration/pre-push-hook.bats         |  25 +++
+ .../tests/scripts/check-platform-assumptions.bats  | 227 +++++++++++++++++++++
+ agate/tests/unit/agate-extract-context.bats        |  21 ++
+ agate/tests/unit/agate-next-card.bats              |  17 +-
+ agate/tests/unit/check-scope-resolved.bats         |   2 +-
+ agate/tests/unit/check-tdd-red-formatter.bats      |   4 +-
+ agate/tests/unit/check-tdd-red.bats                |  34 +--
+ agate/tests/unit/ci-gate-backstop.bats             |  25 ++-
+ agate/tests/unit/env-adapt-docs.bats               |   2 +-
+ agate/tests/unit/install-hook.bats                 |  26 +++
+ 18 files changed, 1354 insertions(+), 37 deletions(-)
+
+--- 扫描器脚本首次出现在 P4（后绿）---
+b1ba2c7 wf(TAG0009-P4): 实现测试平台无关化（扫描器 gate+PYTHON shim+bc→awk+批量修测试+CI windows matrix）+ review approved
+EXIT_CODE: 0

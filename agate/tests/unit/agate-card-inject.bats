@@ -8,7 +8,7 @@ load ../helpers/load.bash
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/ic-XXXXXX")
     printf 'pre\n<!-- AGATE_CARD_START -->\nold\n<!-- AGATE_CARD_END -->\npost\n' > "$dir/dc.md"
     echo "newcard" > "$dir/card.md"
-    run bash -c "DC_FILE='$dir/dc.md' CARD_FILE='$dir/card.md' python3 '$AGATE_SCRIPTS/agate-card-inject.py'"
+    run bash -c "DC_FILE='$dir/dc.md' CARD_FILE='$dir/card.md' $PYTHON '$AGATE_SCRIPTS/agate-card-inject.py'"
     [ "$status" -eq 0 ]
     run cat "$dir/dc.md"
     [[ "$output" == *"newcard"* ]]
@@ -19,6 +19,6 @@ load ../helpers/load.bash
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/ic-XXXXXX")
     echo "no placeholder" > "$dir/dc.md"
     echo "card" > "$dir/card.md"
-    run bash -c "DC_FILE='$dir/dc.md' CARD_FILE='$dir/card.md' python3 '$AGATE_SCRIPTS/agate-card-inject.py'"
+    run bash -c "DC_FILE='$dir/dc.md' CARD_FILE='$dir/card.md' $PYTHON '$AGATE_SCRIPTS/agate-card-inject.py'"
     [ "$status" -ne 0 ]
 }

@@ -22,7 +22,7 @@ load ../helpers/load.bash
 }
 
 @test "bdd-25 修复后协议一致性检查 0 ERROR（worktree 自己的脚本，Q2）" {
-    run python3 "$AGATE_ROOT/scripts/check-protocol-consistency.py"
+    run $PYTHON "$(py_path "$AGATE_ROOT/scripts/check-protocol-consistency.py")"
     [ "$status" -eq 0 ]
 }
 
@@ -51,7 +51,11 @@ load ../helpers/load.bash
 }
 
 @test "bdd-34 shellcheck -S warning agate/scripts/*.sh 0 error（修复不引入 shellcheck 问题）" {
-    run bash -c "shellcheck -S warning '$AGATE_ROOT'/scripts/*.sh 2>&1"
+    local sc
+    sc=$(command -v shellcheck 2>/dev/null || command -v shellcheck.exe 2>/dev/null || echo "")
+    [ -n "$sc" ] || skip "shellcheck 未安装（Windows bats job 未装 shellcheck——由独立 shellcheck job 覆盖）"
+    sc=$(py_path "$sc")
+    run bash -c "cd '$(py_path "$AGATE_ROOT")/scripts' && '$sc' -S warning *.sh 2>&1"
     [ "$status" -eq 0 ]
 }
 

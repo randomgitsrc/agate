@@ -1,0 +1,29 @@
+# P6 progress — 2026-08-13
+
+- 读取 dispatch-context（派发指引：16 BDD 逐条实际验证 + 证据落盘）
+- 读取 verifier.md 角色定义（P6 验收模式）
+- 读取 P0-brief / P1-requirements（16 BDD 清单） / P2-design（完成标准 §7） / P3-test-cases（验证方法）
+- 读取 P5-test-results/unit.md（三条命令全绿 726 bats / consistency 0 ERROR / shellcheck 0 error）
+- 开始逐条验证 BDD-1..16
+- BDD-1 PASS：三处 C8 表 backend 行均含 plan-eng-review（P2 方案评审）——role-system.md L56 / review-mapping.md L17 / phase-cards/P2-design.md L95，均带去重说明（证据 bdd-1-c8-tables.log, bdd-1-c8-rows.log）
+- BDD-2 PASS：check-gate.sh P2 分支仍无条件要求 P2-review.md 存在且 status=approved（L157-164 原样），gate 未放宽（bdd-2-gate-p2.log）
+- BDD-3 PASS：agate-gate-p5-count.py 输出区分主/辅——P5+P5_unit+P5_e2e+P5_formatter→"1 2"（formatter 不计）、仅 P5→"1 0"、无块→"0 0"、P5+P5_e2e→"1 1"（bdd-3-p5-count.log）
+- BDD-4 PASS：check-gate.sh P5 WARNING 文案「1 个主命令 + 1 个辅助命令（共 2 条）」区分主/辅，exit=2（bdd-4-p5-warning.log）
+- BDD-5 PASS：仅 P5（无 P5_*）时不输出多命令 WARNING（bdd-5-p5-only.log）
+- BDD-6 PASS：agate-read-p5-commands.py 未改（git log 无 TAG0005），P5+P5_e2e 全枚举、formatter 仅配对不执行；P5C.1-4 全绿（bdd-6-read-p5.log）
+- BDD-7 PASS：render P2 architect 输出不含「Review 角色特别指令」（87 行正常渲染，0 命中 needs-revision）（bdd-7-exec-no-review.log）
+- BDD-8 PASS：render P2 design-review 输出含该节 + draft/approved/rejected/needs-revision 完整语义（bdd-8-review-instruction.log）
+- BDD-9 PASS：grep -rl 仅命中 dispatch-prompt.md 单文件（模板内节标题+代码块 2 行同文件）；render 脚本仅 sed 范围机制引用（bdd-9-review-single.log）
+- BDD-10 PASS：render 不存在角色 → exit=2 + stderr「角色文件不存在: nonexistent-role」（bdd-10-exit2.log）
+- BDD-11 PASS：RP.17 用例存在且 ok（exit 2 + stderr 断言），RP.18/19 同套件全绿（bdd-11-rp17.log）
+- BDD-12 PASS：dispatch-protocol.md L112「自动重试一次：相同 prompt 原样重发（不占用 retries[Pn] 槽位）」+ L114「自动重试仍空返回 → 进入步骤 b」（bdd-12-13-14-retry.log）
+- BDD-13 PASS：L113「会话时长 <1min → 输出『会话时长异常短』告警」复用派发耗时弱信号（bdd-12-13-14-retry.log）
+- BDD-14 PASS：P4 提交 diff 未触碰 MAX_RETRY / PAUSED 行；现状 L123「len(retries[Pn]) > MAX_RETRY → PAUSED 报告人工」保留（bdd-14-retry-unchanged.log）
+- BDD-15 PASS：rg '>&2;\s*exit 0' 仅 3 处命中，均含「跳过」语义（agate-capture-env-baseline.sh L23/26/28）（bdd-15-scan.log）
+- BDD-16 PASS：check-debt.sh --retreat-coverage 缺依赖 → exit=2 + stderr「缺少 agate-workspace-resolve.sh，无法解析工作区」（bdd-16-check-debt.log）
+- 文档断言 bats（BDD-1/2/9/12/13/14/15）实跑 ok 83-89；脚本断言 bats（GPC/P5C/G5_CMD/test_bdd_16）全绿（bdd-doc-asserts.bats.log, bdd-script-asserts.bats.log）
+- 16/16 PASS, 0 FAIL
+- P6-acceptance.md 已写入（16 PASS / 0 FAIL，frontmatter pass:16 fail:0 ui_affected:false）
+- 自查：check-p6-format.sh exit 0；check-p6-evidence.sh exit 0（16 条 BDD，证据目录非空）；check-p6-provenance.sh exit 0；check-gate.sh P6 exit 2（设计上 P6 属主 Agent 自判类，输出「证据目录非空，FAIL=0，NC=0，P6_TOTAL=16」）
+- 所有 PASS 行引用的证据文件真实存在（18 个 .log，均含实际命令输出 + 末行 EXIT_CODE）
+- 自查≠gate：以上为 verifier 预检，最终以主 Agent 跑的 gate 为准

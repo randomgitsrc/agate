@@ -4,13 +4,21 @@
 
 load ../helpers/load.bash
 
+# TAG0009 BDD-22/23/26：输出编码显式化——含中文输出（真红灯/绿灯/SKIP）的 python 工具
+# 统一在文件级 export PYTHONIOENCODING=utf-8，保证中文关键词断言命中且不 UnicodeEncodeError 崩溃
+setup() {
+    export PYTHONIOENCODING=utf-8
+    # Windows python 无法解析 MSYS /c/... 路径——经 py_path 转 C:/...（TAG0009）
+    BACKSTOP_PY=$(py_path "$AGATE_SCRIPTS/ci-gate-backstop.py")
+}
+
 @test "detect_ci_platform: Gitea 优先于 GitHub 被识别" {
     local repo
     repo=$(git_init)
     cd "$repo"
     export GITEA_ACTIONS=true
     export GITHUB_ACTIONS=true
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>/dev/null || true"
     [[ "$output" == *"gitea"* ]]
 }
 
@@ -20,7 +28,7 @@ load ../helpers/load.bash
     cd "$repo"
     export GITLAB_CI=true
     unset GITEA_ACTIONS GITHUB_ACTIONS
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>/dev/null || true"
     [[ "$output" == *"gitlab"* ]]
 }
 
@@ -29,7 +37,7 @@ load ../helpers/load.bash
     repo=$(git_init)
     cd "$repo"
     unset GITEA_ACTIONS GITLAB_CI GITHUB_ACTIONS
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>/dev/null || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>/dev/null || true"
     [[ "$output" == *"SKIP"* || "$output" == *"None"* ]]
 }
 
@@ -61,8 +69,9 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"真红灯"* ]]
 }
 
@@ -76,8 +85,9 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"绿灯"* ]]
 }
@@ -92,8 +102,9 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 1' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"假红灯"* ]]
 }
@@ -108,8 +119,8 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 3' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"WARN"* ]]
     [[ "$output" != *"FAIL"* ]]
 }
@@ -124,9 +135,10 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 0' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
     # 不创建 .gate-result.json（模拟 --no-verify 场景）
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"真红灯"* ]]
 }
 
@@ -157,8 +169,8 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     [[ "$output" == *"SKIP"* ]]
     [[ "$output" == *"refactor"* ]]
     [[ "$output" != *"FAIL"* ]]
@@ -186,9 +198,35 @@ EOF
     echo '#!/bin/bash' > "$mock"
     echo 'exit 2' >> "$mock"
     chmod +x "$mock"
-    export AGATE_TDD_RED_SCRIPT="$mock"
-    run bash -c "python3 '$AGATE_SCRIPTS/ci-gate-backstop.py' 2>&1 || true"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
     [[ "$output" == *"FAIL"* ]]
     [[ "$output" == *"绿灯"* ]]
     [[ "$output" != *"SKIP: refactor"* ]]
+}
+
+@test "backstop P3: cp1252 模拟——无 utf-8 导出崩溃、文件级导出兜底不崩溃（BDD-23/26）" {
+    # 模拟 Windows 默认代码页 cp1252（中文"真红灯"在 cp1252 下不可表示）：
+    #   ① 未显式设置 PYTHONIOENCODING 时工具 print 中文 → UnicodeEncodeError 崩溃（证明 cp1252 是风险源）
+    #   ② 文件级 setup() export PYTHONIOENCODING=utf-8 → 工具以 utf-8 输出，无崩溃、中文关键词命中
+    #     （BDD-23「显式设置 PYTHONIOENCODING」机制；cp1252 无法表示中文属 codec 保证，断言平台无关）
+    local repo
+    repo=$(git_init "$BATS_TEST_TMPDIR/repo-p3-cp1252")
+    setup_git_repo_p3 "$repo"
+    cd "$repo"
+    export GITHUB_ACTIONS=true
+    local mock="$BATS_TEST_TMPDIR/mock-tdd-cp1252"
+    echo '#!/bin/bash' > "$mock"
+    echo 'exit 0' >> "$mock"
+    chmod +x "$mock"
+    export AGATE_TDD_RED_SCRIPT="$(py_path "$mock")"
+    # ① 清除继承的 utf-8 导出 + 强制 cp1252 → 中文 print 崩溃
+    run env -u PYTHONIOENCODING bash -c "PYTHONIOENCODING=cp1252 '$PYTHON' $BACKSTOP_PY 2>&1 || true"
+    [[ "$output" == *"UnicodeEncodeError"* ]]
+    # ② 文件级 utf-8 导出生效 → 无崩溃、中文关键词可断言
+    run bash -c "'$PYTHON' $BACKSTOP_PY 2>&1 || true"
+    output=$(printf '%s' "$output" | tr -d '\r')
+    [[ "$output" != *"UnicodeEncodeError"* ]]
+    [[ "$output" == *"真红灯"* ]]
 }

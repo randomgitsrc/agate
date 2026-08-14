@@ -3,7 +3,7 @@
 #
 # 新增交付物（P2-design.md §2.1-2.5 + gate_commands.P3，P2 固化）：
 #   - check-debt.sh FILE        = 默认 FILE 模式：tech-debt.md schema 校验（fail-closed）
-#   - check-debt.sh --retreat-coverage = 回退覆盖比对（只读 WARNING，恒 exit 0）
+#   - check-debt.sh --retreat-coverage = 回退覆盖比对（只读 WARNING；依赖加载失败 exit 2，无 retreat 提交等有意跳过 exit 0）
 #   - agate-debt-check.py       = 多条目 schema 校验器（` ```yaml ` fenced 块解析）
 #
 # 覆盖 P1-requirements.md 的 20 条 BDD（1:1：test_bdd_N_* 命名，N = BDD 编号）。
@@ -12,6 +12,15 @@
 # check-gate.sh P8 的 debt_check 行为用例见 tests/unit/check-gate.bats 的 G8.9 / G8.10。
 
 load ../helpers/load.bash
+
+setup() {
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
+}
 
 # ========== 功能组 A：debt/ 归类修正（工作区目录，BDD-1..4） ==========
 
@@ -297,7 +306,7 @@ EOF
 # 技术债登记
 旧格式纯正文，无 yaml 块。
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/prose-only.md"
+    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -531,6 +540,16 @@ EOF
     run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-debt.sh' --retreat-coverage"
     [ "$status" -eq 0 ]
     [[ "$output" != *"GATE DEBT WARNING"* ]]
+}
+
+@test "test_bdd_16 check-debt.sh --retreat-coverage 缺 agate-workspace-resolve.sh -> exit 2 + stderr 报错（BDD-16）" {
+    # 依赖加载失败属硬失败，不静默当作成功跳过（同类扫描守卫 BDD-16）
+    local sdir
+    sdir=$(mktemp -d "$BATS_TEST_TMPDIR/debt-XXXXXX")
+    cp "$AGATE_SCRIPTS/check-debt.sh" "$sdir/check-debt.sh"
+    run bash "$sdir/check-debt.sh" --retreat-coverage
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"缺少 agate-workspace-resolve.sh"* ]]
 }
 
 # ========== 功能组 E：P8 锚定留痕（Phase 3，BDD-16..18） ==========

@@ -15,7 +15,7 @@ gate_commands:
   P5_js: vitest run
   P5_js_formatter: vitest.sh
 EOF
-    run bash -c "P2_DESIGN='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
+    run bash -c "P2_DESIGN='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest"'* ]]
     [[ "$output" == *'"formatter": "pytest.sh"'* ]]
@@ -32,7 +32,7 @@ agent: test
 ---
 gate_commands: {}
 EOF
-    run bash -c "P2_DESIGN='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
+    run bash -c "P2_DESIGN='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -46,7 +46,7 @@ agent: test
 ---
 无 gate_commands
 EOF
-    run bash -c "P2_DESIGN='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
+    run bash -c "P2_DESIGN='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -63,7 +63,7 @@ gate_commands:
   P5_html_formatter: vitest.sh
   P5_html: "npx vitest"
 EOF
-    run bash -c "P2_DESIGN='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
+    run bash -c "P2_DESIGN='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-p5-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q"'* ]]
     [[ "$output" == *'"cmd": "npx vitest"'* ]]

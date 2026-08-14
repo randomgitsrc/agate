@@ -77,6 +77,11 @@ extract_first_code_block() {
 
 main_block="$(sed -n '1,/^## 阶段特定提示/p' "$TEMPLATE" | sed '/^## 阶段特定提示/d' | extract_first_code_block)"
 
+review_appendix=""
+if [ "$ROLE_DIR" = "review-roles" ]; then
+    review_appendix="$(sed -n '/^### Review 角色特别指令$/,/^### /p' "$TEMPLATE" | sed '/^### /d' | extract_first_code_block)"
+fi
+
 appendix=""
 case "$PHASE" in
     P2)
@@ -101,6 +106,9 @@ case "$PHASE" in
 esac
 
 rendered="$main_block"
+if [ -n "$review_appendix" ]; then
+    rendered="${rendered}"$'\n\n'"${review_appendix}"
+fi
 if [ -n "$appendix" ]; then
     rendered="${rendered}"$'\n\n'"${appendix}"
 fi

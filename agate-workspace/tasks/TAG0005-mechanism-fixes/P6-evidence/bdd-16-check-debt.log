@@ -1,0 +1,17 @@
+=== BDD-16: check-debt.sh --retreat-coverage 依赖缺失不再静默 exit 0 ===
+--- 隔离目录（仅 check-debt.sh，无 agate-workspace-resolve.sh）---
+check-debt.sh
+--- 运行 --retreat-coverage ---
+exit=2
+--- 输出 ---
+GATE DEBT: 缺少 agate-workspace-resolve.sh，无法解析工作区，回退覆盖比对无法执行
+--- 断言 exit 非零 + stderr 报错 ---
+PASS: exit=2 (非零)
+PASS: stderr 含「无法解析工作区」
+--- 代码位置确认（L24-30 依赖加载）---
+8:# exit 2 = 覆盖模式：依赖加载失败（agate-workspace-resolve.sh 缺失/source 失败），需主 Agent 自判
+26:    if [ -f "$SCRIPT_DIR/agate-workspace-resolve.sh" ]; then
+27:        source "$SCRIPT_DIR/agate-workspace-resolve.sh" "$REPO_ROOT" \
+28:            || { echo "GATE DEBT: 无法加载 agate-workspace-resolve.sh" >&2; exit 2; }
+30:        echo "GATE DEBT: 缺少 agate-workspace-resolve.sh，无法解析工作区，回退覆盖比对无法执行" >&2
+EXIT_CODE: 0

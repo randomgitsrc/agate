@@ -1,0 +1,11 @@
+1..9
+ok 1 bdd-23 7 张阶段卡片与 git-integration.md 规则 2 对齐（无先更新 phase=N→N+1 旧写法，Q2）
+ok 2 bdd-24 git-integration.md 规则 2 语义不变（commit 顺序/gate 判定逻辑无改动，Q2）
+ok 3 bdd-25 修复后协议一致性检查 0 ERROR（worktree 自己的脚本，Q2）
+ok 4 bdd-16 .gitattributes 不含强制 *.md eol 规则（历史 CRLF review 文件不被改写，M6）
+ok 5 bdd-26 SETUP.md 含 Windows 章节覆盖 PYTHONUTF8（Q5）
+ok 6 bdd-27 仓库 .gitignore 模板预设 version.txt/dist 白名单（Q5）
+ok 7 bdd-33 protocol-tests.yml 含 windows-latest matrix（Windows 唯一兜底验证）
+ok 8 bdd-34 shellcheck -S warning agate/scripts/*.sh 0 error（修复不引入 shellcheck 问题）
+ok 9 bdd-32 全量 bats 测试文件可被 bats 解析（P5 全量回归前提，BDD-32）
+EXIT_CODE: 0

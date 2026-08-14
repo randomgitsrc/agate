@@ -1,0 +1,24 @@
+## P7 progress — consistency-reviewer
+
+- [x] 读 P7-dispatch-context：目标 = 跨文件一致性审查，4 项检查清单（DESIGN_GAP 配对 / SCOPE+ 闭环 / 跨文件一致性 / 未决项清零），预期 frontmatter 0/0/0/1/1
+- [x] 读 consistency-reviewer 角色定义：gate 契约（DESIGN_GAP/DESIGN_GAP_REVIEWED 行首格式、跨文件引用关键词）
+- [x] 读 P0-brief：env_constraints（Linux debug_env，Windows 分支模拟覆盖，[PROD_NOT_TOUCHED]）
+- [x] 读 P1-requirements.md：29 BDD，scope_resolved 已声明（产品脚本裸 python3 另立 TAG0010+），无 [NEED_CONFIRM]，[SCOPE+] 观察 1 条
+- [x] 读 P2-design.md：packages [agate-tests, agate-scripts, ci-workflow]，方案 §2.1-2.9，gate_commands.P5 4 命令，[SCOPE+] 3 条（pre-push-hook L11 归 BDD-8 同类）
+- [x] 读 P4-implementation.md：1 个 [DESIGN_GAP]（readlink 替代 [[ -L ]]），10 个 shim 注入文件，24 文件 python3→$PYTHON
+- [x] 读 P4-review.md：status approved，[DESIGN_GAP] 批准（readlink 语义等价论证）
+- [x] 读 P6-acceptance.md：29/29 PASS，无 BLOCKER/DEVIATION-CRITICAL
+- [x] 读 P5-test-results/unit.md：4 命令全绿（733 bats / consistency 0 ERROR / shellcheck 0 error / 扫描器零命中）
+- [x] 读 check-platform-assumptions.sh（113 行）：R1-R5 模式集与 P2 §2.1 一致（R1 PATH / R2 python3 豁免 / R3 -L / R4 /tmp+scan-exempt 仅 R4 / R5 bc）；scan-exempt 仅在 r4 分支生效（:70）；无 GNU -P；exit 2 目标不存在
+- [x] 读 fixtures.bash：detect_python / PYTHON 导出 / SHELLCHECK 探测 / create_python_shim_bin（内嵌绝对路径+剔除 BATS_TEST_TMPDIR，:21-32）与 P2 §2.2/2.3 一致
+- [x] 读 protocol-tests.yml：bats job matrix [ubuntu, windows]（:12）+ Windows bash shell + bats-core v1.11.0 curl 安装（:29-36）+ Run Scanner Behavior Tests step（:41-44）；platform-scan job 双平台无 continue-on-error（:58-75）；与 P2 §2.9/BDD-7/27 一致
+- [x] 核对 P1(29 BDD) ↔ P6(29 PASS)：P6 每条 `- PASS BDD-N:` 精确 1 条、编号 1-29 全覆盖、无其他 PASS/FAIL 行；P6 frontmatter pass:29 fail:0
+- [x] 核对扫描器模式集一致性：P2 §2.1 R1-R5 ↔ check-platform-assumptions.sh:28-32 ↔ P6 BDD-1~9 ↔ P5 命令 4 零命中
+- [x] 核对 P4 改动归属 ↔ P2 packages [agate-tests, agate-scripts, ci-workflow]：tests 批量修 + helpers + scanner 行为测试；scripts 仅 check-platform-assumptions.sh 新增 + agate-extract-context.sh bc→awk + consistency.py 锚点(:672)；ci-workflow protocol-tests.yml（bats matrix + platform-scan）
+- [x] 核对 shim 注入：10 个 setup 文件（9 新增 + agate-inject-card 合并）+ helpers-python.bats 测试体使用 = 11 处 create_python_shim_bin 引用，与 P4 §1.2 一致
+- [x] 核对 P2 gate_commands.P5(4 命令) ↔ P5-test-results/unit.md（733 ok / consistency 0 ERROR / shellcheck 0 error / 扫描器零命中，全 exit 0）
+- [x] 核对 DESIGN_GAP：P4-implementation.md:77 行首 [DESIGN_GAP:]（readlink 替代 [[ -L ]]），P4-review 批准；install-hook.bats:31,47 用 readlink、pre-push-hook.bats:16 同构
+- [x] 核对未决项：P1 无行首 [NEED_CONFIRM]（仅 [NO_NEED_CONFIRM] 标记行 217）；P2/P4/P6 无 [BLOCKER]/[DEVIATION-CRITICAL]
+- [x] 写 P7-consistency.md（status: approved，frontmatter 0/0/0/1/1）→ 文件存在且非空
+- [x] 跑 check-gate.sh P7（~/.agate 稳定版）：GATE_EXIT=0，无 BLOCKER/DEVIATION-CRITICAL，DESIGN_GAP 1/1 配对，跨文件引用关键词命中
+- [x] [PROD_NOT_TOUCHED]

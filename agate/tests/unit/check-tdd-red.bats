@@ -8,6 +8,15 @@
 
 load ../helpers/load.bash
 
+setup() {
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
+}
+
 make_fake_pytest() {
     local output="$1"
     local exit_code="$2"
@@ -46,7 +55,9 @@ EOF
 }
 
 @test "TD.1b check-tdd-red.sh 无 TEST_RUNNER + 无 pytest（无 PATH 找不到 pytest）期望 exit 3" {
-    run env -i PATH="/usr/bin:/bin" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    # Windows 上 env -u PATH 无法定位 bash（env.exe 按 PATH 找）→ 用绝对 bash 路径，
+    # 保留"无 PATH"语义（脚本内 command -v pytest 仍失败 → exit 3）
+    run env -u PATH "$(command -v bash)" "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 3 ] || [ "$status" -eq 1 ]
 }
 
@@ -136,7 +147,7 @@ ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
 @test "TDD.N3: vitest B-class → exit 0" {
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
-Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1)
+Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
     run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
 }
@@ -145,7 +156,7 @@ Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1)
 @test "TDD.N4: vitest A-class → exit 0 (exit-code-only without formatter)" {
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
-Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1)
+Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
     run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
 }
@@ -161,7 +172,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -224,7 +235,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -242,7 +253,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
@@ -257,7 +268,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
     [[ "$output" != *"classic red-light"* ]]
@@ -276,7 +287,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
@@ -293,7 +304,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -312,7 +323,7 @@ gate_commands:
   P3_formatter: "$abs_formatter"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -330,7 +341,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PROJECT_MODULE="requests" PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER PROJECT_MODULE="requests" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
@@ -348,7 +359,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -364,7 +375,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 2 ]
     [[ "$output" == *"no red-light"* ]]
 }
@@ -378,7 +389,8 @@ EOF
 }
 
 @test "TDD.F8: no TEST_RUNNER, no gate_commands.P3, no pytest → exit 3" {
-    run env -i PATH="/usr/bin:/bin" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    # Windows 上 env -u PATH 无法定位 bash → 用绝对 bash 路径（TAG0009）
+    run env -u PATH "$(command -v bash)" "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 3 ]
 }
 
@@ -401,7 +413,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     run cat "$sentinel"
     [[ "$output" != *"-q"* ]]
@@ -432,7 +444,7 @@ gate_commands:
   P3_js_formatter: "vitest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
@@ -448,7 +460,7 @@ gate_commands:
   P3: "$fake"
   P3_formatter: "pytest.sh"
 EOF
-    run env -u TEST_RUNNER PATH="/usr/bin:/bin" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 0 ]
     [[ "$output" == *"断言"*"数据"* ]]
 }
@@ -486,7 +498,7 @@ gate_commands:
   P3_html_formatter: "vitest.sh"
   project_module: "myapp"
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q --tb=short"'* ]]
     [[ "$output" == *'"cmd": "npx vitest run"'* ]]
@@ -503,7 +515,7 @@ agent: test
 ---
 无 gate_commands 块
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"commands": []'* ]]
     [[ "$output" == *'"project_module": ""'* ]]
@@ -519,7 +531,7 @@ agent: test
 gate_commands:
   P3: "pytest -q"
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q"'* ]]
 }
@@ -534,7 +546,7 @@ agent: test
 gate_commands:
   P3: 'pytest -q'
 EOF
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q"'* ]]
 }
@@ -543,13 +555,13 @@ EOF
     local dir
     dir=$(mktemp -d "$BATS_TEST_TMPDIR/py-XXXXXX")
     printf 'gate_commands:\n  P3: "pytest -q"' > "$dir/P2-design.md"
-    run bash -c "GATE_FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -eq 0 ]
     [[ "$output" == *'"cmd": "pytest -q"'* ]]
 }
 
 @test "PYX.6 agate-read-gate-commands.py GATE_FILE 不存在 → 非零退出" {
-    run bash -c "GATE_FILE='/nonexistent/P2.md' python3 '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
+    run bash -c "GATE_FILE='/nonexistent/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-read-gate-commands.py'"
     [ "$status" -ne 0 ]
 }
 

@@ -1,0 +1,24 @@
+=== BDD-2 R1: 硬编码 PATH ===
+R1 /tmp/fx-r1.txt:1 PATH="/usr/bin:/bin"
+r1_exit=1
+
+=== BDD-3 R2: 命令位置裸 python3 ===
+R2 /tmp/fx-r2.txt:1 python3 -c "print(1)"
+r2_exit=1
+
+=== BDD-4 R3: symlink 单平台断言 ===
+R3 /tmp/fx-r3.txt:1 [[ -L "$repo/.git/hooks/pre-push" ]]
+r3_exit=1
+
+=== BDD-5 R4: /tmp 逻辑路径 ===
+R4 /tmp/fx-r4.txt:1 cd /tmp
+r4_exit=1
+
+=== BDD-6 R5: 裸 bc ===
+R5 /tmp/fx-r5.txt:1 echo 1 | bc
+r5_exit=1
+
+=== BDD-8 R: 全树 0 命中 ===
+tree_exit=0
+=== EXIT_CODE: 0 (rules verified) ===
+EXIT_CODE: 0

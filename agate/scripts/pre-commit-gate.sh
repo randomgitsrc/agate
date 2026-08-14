@@ -18,6 +18,11 @@ set -euo pipefail
 
 # REPO_ROOT = 当前 git 仓库根（项目仓库或 agate 仓库本身）
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+# Git for Windows 的 --show-toplevel 返回 C:/...，realpath -m 返回 /c/...——统一归一，
+# 否则 realpath --relative-to 混用两种风格产生错误路径（TAG0009 Windows 修复）
+if [ -n "$REPO_ROOT" ]; then
+    REPO_ROOT=$(realpath -m "$REPO_ROOT" 2>/dev/null || echo "$REPO_ROOT")
+fi
 
 # AGATE_ROOT = 协议本体路径
 # v0.33.0：AGATE_ROOT 自定位到脚本自身本体的上一级（支持 worktree 隔离）
@@ -51,14 +56,17 @@ type write_gate_result >/dev/null 2>&1 \
 # 1. 收集所有暂存的 .state.yaml 文件（根 + 任务级）
 # S1 数组化：空格路径不再被空格拼接/未引号切词拆段（fail-open 静默绕过修复）
 STAGED_STATE_FILES=()
-if git diff --cached --name-only 2>/dev/null | grep -qF ".state.yaml"; then
+# Git for Windows 的 diff --cached --name-only 输出文件名带 CRLF 行尾，
+# grep 精确匹配/行尾锚点会失败——统一 tr -d '\r'（TAG0009 Windows 修复）
+DIFF_CACHED=$(git diff --cached --name-only 2>/dev/null | tr -d '\r' || true)
+if printf '%s\n' "$DIFF_CACHED" | grep -qF ".state.yaml"; then
     while IFS= read -r f; do
         case "$f" in
             *.state.yaml)
                 STAGED_STATE_FILES+=("$REPO_ROOT/$f")
                 ;;
         esac
-    done < <(git diff --cached --name-only 2>/dev/null | grep -F '.state.yaml' || true)
+    done < <(printf '%s\n' "$DIFF_CACHED" | grep -F '.state.yaml' || true)
 fi
 
 # 2. 对每个暂存的 .state.yaml：格式校验 + 状态转移 + gate
@@ -108,9 +116,10 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
     TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
     # M9：TASK_REL 拼入 grep -E 会被正则元字符（[ ] * 等）吞掉 → 改 awk 行首字面前缀 + grep -F/正则过滤固定段
     STAGED_OUTPUTS=$(git diff --cached --name-only 2>/dev/null \
+        | tr -d '\r' \
         | awk -v p="${TASK_REL}/" 'index($0, p) == 1' \
         | grep -E 'P[0-8]-.*\.md$' || true)
-    STAGED_ADDED=$(git diff --cached --diff-filter=A --name-only 2>/dev/null \
+    STAGED_ADDED=$(git diff --cached --diff-filter=A --name-only 2>/dev/null | tr -d '\r' \
         | awk -v p="${TASK_REL}/" 'index($0, p) == 1' \
         | grep -E 'P[0-8]-.*\.md$' || true)
     if [ -n "$STAGED_OUTPUTS" ]; then
@@ -141,7 +150,7 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
     # R3 修复：只扫任务产出文件，不扫协议/模板/项目文档（后者引用标记是说明性文本，非真正标记）
     # v0.17：三步检测（正向→中止 / 不合规→中止 / 缺失→静默通过）+ 只扫新增行
     TASK_REL=$(realpath --relative-to="$REPO_ROOT" "$TASK_DIR" 2>/dev/null || echo "$TASK_DIR")
-    if git diff --cached --name-only 2>/dev/null | awk -v p="${TASK_REL}/" 'index($0, p) == 1' | grep -q .; then
+    if git diff --cached --name-only 2>/dev/null | tr -d '\r' | awk -v p="${TASK_REL}/" 'index($0, p) == 1' | grep -q .; then
         DIFF_ADDED=$(git diff --cached -- "$TASK_REL" \
             | grep '^+[^+]' \
             | sed 's/^+//' \
@@ -163,7 +172,7 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
     # -x 存在性守卫：与 2p 的 agate-next-card.sh 同惯例，兼容旧 AGATE_ROOT（脚本尚未部署时不硬拦）
     if [ -x "$AGATE_ROOT/scripts/check-frontmatter.sh" ]; then
         for FM_NAME in P1-requirements.md P2-design.md P6-acceptance.md P7-consistency.md; do
-            if git diff --cached --name-only 2>/dev/null | grep -qxF "${TASK_REL}/${FM_NAME}"; then
+            if git diff --cached --name-only 2>/dev/null | tr -d '\r' | grep -qxF "${TASK_REL}/${FM_NAME}"; then
                 bash "$AGATE_ROOT/scripts/check-frontmatter.sh" "$TASK_DIR/$FM_NAME" || exit 1
             fi
         done
@@ -219,10 +228,12 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
         if [ ${#DC_FILES[@]} -gt 0 ]; then
             EXPECTED=$(bash "$AGATE_ROOT/scripts/agate-next-card.sh" "$PHASE" 2>/dev/null) || true
             if [ -n "$EXPECTED" ]; then
-                EXPECTED_HASH=$(printf '%s' "$EXPECTED" | sha256sum | awk '{print $1}')
+                # Windows checkout 的 dispatch-context 是 CRLF（autocrlf），卡片源是 LF——
+                # 提取的 EMBEDDED 归一化行尾再比 hash，否则恒 mismatch（TAG0009）
+                EXPECTED_HASH=$(printf '%s' "$EXPECTED" | tr -d '\r' | sha256sum | awk '{print $1}')
                 for DC_FILE in "${DC_FILES[@]}"; do
                     EMBEDDED=$(sed -n '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/p' "$DC_FILE" \
-                               | sed '1d;$d')
+                               | sed '1d;$d' | tr -d '\r')
                     EMBEDDED_HASH=$(printf '%s' "$EMBEDDED" | sha256sum | awk '{print $1}')
                     if [ "$EMBEDDED_HASH" != "$EXPECTED_HASH" ]; then
                         echo "GATE: $(basename "$DC_FILE") 卡片内容与 CLI 输出不一致（hash mismatch）" >&2
@@ -236,7 +247,7 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
         else
             # 仅当暂存了该阶段的产出文件时才强制要求 dispatch-context
             # 中间 commit / legacy 任务 / 裁剪跳阶 → 不强制
-            STAGED_IN_TASK=$(git diff --cached --name-only 2>/dev/null | awk -v p="${TASK_REL}/" 'index($0, p) == 1' || true)
+            STAGED_IN_TASK=$(git diff --cached --name-only 2>/dev/null | tr -d '\r' | awk -v p="${TASK_REL}/" 'index($0, p) == 1' || true)
             PHASE_OUTPUT=""
             PHASE_OUTPUT_DIR=""
             case "$PHASE" in
@@ -298,6 +309,7 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
     # Only warn when 2p hash check is not active (agate-next-card.sh not available)
     if [ ! -x "$AGATE_ROOT/scripts/agate-next-card.sh" ]; then
         STAGED_OUTPUT_IN_TASK=$(git diff --cached --name-only 2>/dev/null \
+            | tr -d '\r' \
             | awk -v p="${TASK_REL}/" 'index($0, p) == 1' \
             | grep -E 'P[0-8]-.*\.md$' || true)
         if [ -n "$STAGED_OUTPUT_IN_TASK" ]; then
@@ -315,7 +327,7 @@ for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
     fi
 
     # 2n.2 non-phase code staging WARNING/BLOCK (E3, P6 self-authored gate 区分证据/源码)
-    ALL_NONMD=$(git diff --cached --name-only 2>/dev/null | grep -vE '\.(md|yaml)$|^\.state' || true)
+    ALL_NONMD=$(git diff --cached --name-only 2>/dev/null | tr -d '\r' | grep -vE '\.(md|yaml)$|^\.state' || true)
     # 证据文件例外：TASK_REL/P{n}-evidence/ 下的文件不算"代码"
     NON_EVIDENCE_FILES=$(echo "$ALL_NONMD" | grep -vE "^${TASK_REL}/(P[0-9]-evidence/|evidences/)" || true)
     if [ -n "$NON_EVIDENCE_FILES" ]; then
@@ -347,7 +359,7 @@ done
 # 只做 WARNING，不拦截——覆盖"产出了但忘改 phase"的场景
 # 方向判断：产出阶段号 < 当前 phase 且为新增文件 → 历史产出晚提交，不 WARNING
 PROCESSED_DIRS=()
-STAGED_ADDED_ALL=$(git diff --cached --diff-filter=A --name-only 2>/dev/null | grep -E 'P[0-8]-.*\.md$' || true)
+STAGED_ADDED_ALL=$(git diff --cached --diff-filter=A --name-only 2>/dev/null | tr -d '\r' | grep -E 'P[0-8]-.*\.md$' || true)
 for STATE_FILE in "${STAGED_STATE_FILES[@]}"; do
     [ -f "$STATE_FILE" ] || continue
     STATE_DIR=$(dirname "$STATE_FILE")
@@ -387,6 +399,6 @@ while IFS= read -r staged_file; do
         fi
         echo "GATE WARNING: 暂存了 ${out_phase} 产出但 phase=${task_phase}（${task_dir_rel##*/}）——请确认是否需要更新 phase" >&2
     fi
-done < <(git diff --cached --name-only 2>/dev/null | grep -E 'P[0-8]-.*\.md$' || true)
+done < <(printf '%s\n' "$DIFF_CACHED" | grep -E 'P[0-8]-.*\.md$' || true)
 
 exit 0

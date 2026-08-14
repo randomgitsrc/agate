@@ -14,6 +14,15 @@
 
 load ../helpers/load.bash
 
+setup() {
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
+}
+
 # ========== BDD-2: 全角冒号不再导致字段静默缺失（校验失败并报错，可定位） ==========
 
 @test "CF.1 BDD-2: P1 frontmatter risk_level 用全角冒号（risk_level：high）→ 校验失败且报错含 risk_level" {
@@ -33,7 +42,7 @@ domains: [backend]
 - When y
 - Then z
 EOF
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"risk_level"* ]]
 }
@@ -44,7 +53,7 @@ EOF
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/cf-XXXXXX")
     # coupling_checklist 列表项比父 key 少 3 空格缩进 → YAML 解析结构错误（v0.6 yaml-indent 类回归）
     printf -- '---\nphase: P1\ntask_id: T001\nagent: analyst\nrisk_level: high\nphases: [P1]\npackages: [agate]\ndomains: [backend]\ncoupling_checklist:\n- api-schema: checked\n   - data-model: checked\n---\n#### BDD-1: test\n- Given x\n- When y\n- Then z\n' > "$dir/P1-requirements.md"
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"coupling_checklist"* || "$output" == *"line"* || "$output" == *"行"* ]]
 }
@@ -68,7 +77,7 @@ domains: [backend]
 - When y
 - Then z
 EOF
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"low"* ]]
     [[ "$output" == *"medium"* ]]
@@ -93,7 +102,7 @@ domains: [backend]
 - When y
 - Then z
 EOF
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"risk_level"* ]]
 }
@@ -111,7 +120,7 @@ ui_affected: false
 ---
 # P2 design
 EOF
-    run bash -c "FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"candidate_count"* ]]
 }
@@ -132,7 +141,7 @@ deviation_critical_count: 0
 ---
 一致性检查完成。
 EOF
-    run bash -c "FILE='$dir/P7-consistency.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P7-consistency.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"design_gap_count"* ]]
 }
@@ -153,7 +162,7 @@ ui_affected: false
 ---
 # P2 design
 EOF
-    run bash -c "FILE='$dir/P2-design.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P2-design.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"candidate_count"* ]]
 }
@@ -182,7 +191,7 @@ coupling_checklist:
 - When y
 - Then z
 EOF
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"coupling_checklist"* ]]
 }
@@ -194,7 +203,7 @@ EOF
     # 整个 --- ... --- 块只有一行文本，且含全角冒号但不构成 key: value 结构，
     # yaml.safe_load 对此返回 str 而非 dict，且不抛 YAMLError（P2-review 已实测复现）。
     printf -- '---\n风险等级：高\n---\n#### BDD-1: test\n- Given x\n- When y\n- Then z\n' > "$dir/P1-requirements.md"
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" != *"No such file"* ]]
     [[ "$output" == *"映射"* || "$output" == *"必须为"* || "$output" == *"dict"* ]]
@@ -256,7 +265,7 @@ change_type: refactor
 - When y
 - Then z
 EOF
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -279,7 +288,7 @@ change_type: feature
 - When y
 - Then z
 EOF
-    run bash -c "FILE='$dir/P1-requirements.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P1-requirements.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"change_type"* ]]
     [[ "$output" == *"refactor"* ]]
@@ -299,7 +308,7 @@ regression_pass: "yes"
 ---
 - PASS BDD-1: 全量回归全绿 (P6-evidence/regression.log)
 EOF
-    run bash -c "FILE='$dir/P6-acceptance.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P6-acceptance.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ -n "$output" ]
     [[ "$output" == *"regression_pass"* ]]
 }
@@ -318,7 +327,7 @@ regression_pass: true
 ---
 - PASS BDD-1: 全量回归全绿 (P6-evidence/regression.log)
 EOF
-    run bash -c "FILE='$dir/P6-acceptance.md' python3 '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
+    run bash -c "FILE='$dir/P6-acceptance.md' $PYTHON '$AGATE_SCRIPTS/agate-frontmatter-check.py'"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }

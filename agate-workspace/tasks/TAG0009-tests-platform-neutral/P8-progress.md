@@ -1,0 +1,13 @@
+- [读] P8-dispatch-context-implementer.md：目标=产出 P8-release.md（TAG0009 发布计划文档，合并发布模式），bump minor→v0.45.0，不执行 git 操作
+- [读] implementer.md P8 模式：releaser 不 commit/tag；须含 bump_type/debt_check/临时资源清单/Lessons Learned
+- [读] P0-brief.md：env_constraints debug_env=Linux+模拟覆盖，test_cmd 全量 bats+consistency --strict
+- [读] P2-design.md：packages=[agate-tests, agate-scripts, ci-workflow]；改=新增扫描器+bc→awk+helper+19测试文件+CI；不改协议语义
+- [读] P6-acceptance.md：29/29 PASS（扫描器 gate/PYTHON shim/PATH 平台无关/symlink 分支//tmp/编码/CI windows matrix/733 bats 全绿）
+- [读] P7-consistency.md：BLOCKER=0、DEVIATION-CRITICAL=0、DESIGN_GAP 1/1 REVIEWED
+- [读] TAG0005 P8-release.md：合并发布对照——bump minor v0.45.0，debt_check: none，主 Agent 统一执行
+- [查] debt/tech-debt.md 不存在（worktree 与主 checkout 均无 debt/ 目录）→ debt_check: none
+- [查] 当前版本 v0.44.0（README badge L6 + git tag + describe 均确认）；README L32 有残留 v0.43.0 badge
+- [查] git log v0.44.0..HEAD：TAG0009 提交 8 个（P0 fcff7cf ~ P7 5605e7c），TAG0005 提交在前
+- [查] 临时资源：P4/P5/P6 仅本地 bats/shellcheck/consistency/扫描器命令，无服务/端口/安装；shim bin 在 $BATS_TEST_TMPDIR 内随测试清理
+- [写] P8-release.md 完成：bump_type minor(v0.45.0)、debt_check none、CHANGELOG 草稿(TAG0009 摘要)、临时资源清单、Lessons Learned、[PROD_NOT_TOUCHED]
+- [自检] P8-release.md 存在 11618B，bump_type/debt_check/临时资源清单齐全，无行首 PASS/FAIL，Header 正确，[PROD_NOT_TOUCHED]

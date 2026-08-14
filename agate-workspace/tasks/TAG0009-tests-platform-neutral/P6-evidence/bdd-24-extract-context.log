@@ -1,0 +1,18 @@
+1..16
+ok 1 EC.1: rejects missing arguments
+ok 2 EC.2: rejects invalid phase
+ok 3 EC.3: rejects nonexistent task dir
+ok 4 EC.4: P1 extracts P0-brief fields
+ok 5 EC.5: BDD-1 边界（FIND-2 grep 不改路由）：P2 extracts P1 domains（frontmatter 声明）and BDD count
+ok 6 EC.6: P3 extracts P2 structured fields
+ok 7 EC.7: P6 extracts BDD ID list and failed reference
+ok 8 EC.8: P7 extracts PASS/FAIL counts
+ok 9 EC.9: --write mode appends to dispatch-context file
+ok 10 EC.10: P4 extracts P2 fields and P3 BDD count
+ok 11 EC.11: P5 extracts gate_commands and implementation_dir
+ok 12 EC.12: P8 extracts packages and BLOCKER/DEVIATION
+ok 13 EC.13: gate-diagnosis reference auto-appended
+ok 14 EC.14: P5 extracts implementation_dir from package subdirectories
+ok 15 EC.15: P6 extracts failed count from package subdirectories
+ok 16 EC.16: P6 failed 求和无bc模拟环境仍正确（BDD-24/26）
+EXIT_CODE: 0

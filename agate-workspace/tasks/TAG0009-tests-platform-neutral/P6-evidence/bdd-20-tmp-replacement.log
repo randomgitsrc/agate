@@ -1,0 +1,15 @@
+=== BDD-20: 逻辑路径替换 ===
+--- agate-next-card.bats: cd /tmp 应为  ---
+104:    hash="$(cd "$BATS_TEST_TMPDIR" && bash "$CARD_CMD" P3 | sha256sum | awk '{print $1}')"
+--- check-scope-resolved.bats: /tmp/nonexistent 替换 ---
+15:    local dir="$BATS_TEST_TMPDIR/nonexistent-task-$$-$(date +%s%N)"
+34:    dir=$(mktemp -d "$BATS_TEST_TMPDIR/task-XXXXXX")
+--- 全树裸 /tmp 逻辑路径（扫描器 R4 权威：已 BDD-8 零命中）---
+
+=== BDD-20: 4 处样例文本 scan-exempt 标记 ===
+agate/tests/unit/check-tdd-red.bats:146:Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
+agate/tests/unit/check-tdd-red.bats:155:Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
+agate/tests/unit/check-tdd-red-formatter.bats:97:Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" # scan-exempt: mock 输出样例文本（非路径假设）
+agate/tests/unit/check-tdd-red-formatter.bats:105:Error: Cannot find module 'react' imported from /tmp/test/foo.test.ts" # scan-exempt: mock 输出样例文本（非路径假设）
+
+EXIT_CODE: 0

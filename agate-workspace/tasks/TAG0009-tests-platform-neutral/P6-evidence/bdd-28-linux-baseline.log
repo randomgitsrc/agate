@@ -1,0 +1,16 @@
+=== BDD-28: Linux 全量回归基线（P5 记录，全绿）===
+--- P5-test-results/bats.log 末行 ---
+ok 733 SG.8 SELF-GATE.md 含递归终止条件
+EXIT_CODE: 0
+--- P5-test-results/bats.log 计数 ---
+ok=733 not_ok=0
+--- consistency --strict / shellcheck / 扫描器 末行 ---
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/bats.log:ok 439 PV.21 审计5: 日志 EXIT_CODE=1 但 P6 声明 PASS → exit 1
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/bats.log:ok 440 PV.22 审计5: 日志 EXIT_CODE=0 配 PASS → exit 0
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/bats.log:ok 441 PV.23 审计5: 日志缺少 EXIT_CODE 尾行 → WARNING 不阻断
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/bats.log:ok 451 CHECK 9: EXIT_CODE 锚点存在且关键词匹配
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/bats.log:EXIT_CODE: 0
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/consistency.log:EXIT_CODE: 0
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/scan.log:EXIT_CODE: 0
+agate-workspace/tasks/TAG0009-tests-platform-neutral/P5-test-results/shellcheck.log:EXIT_CODE: 0
+EXIT_CODE: 0

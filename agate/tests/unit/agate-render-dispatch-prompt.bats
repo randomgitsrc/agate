@@ -127,6 +127,27 @@ teardown() {
     [[ "$output" == *"P3 自检"* ]]
 }
 
+@test "RP.17: 角色文件不存在 -> exit 2 + stderr 报错（回归锁定 v0.23.0 修复，BDD-10/11）" {
+    run bash "$AGATE_ROOT/scripts/agate-render-dispatch-prompt.sh" P2 nonexistent-role "$TEST_TASK_DIR"
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"角色文件不存在"* ]]
+}
+
+@test "RP.18: execution 角色渲染不含「Review 角色特别指令」（BDD-7）" {
+    run bash "$AGATE_ROOT/scripts/agate-render-dispatch-prompt.sh" P2 architect "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"Review 角色特别指令"* ]]
+}
+
+@test "RP.19: review 角色渲染含「Review 角色特别指令」完整 status 语义 approved/rejected/needs-revision（BDD-8）" {
+    run bash "$AGATE_ROOT/scripts/agate-render-dispatch-prompt.sh" P2 design-review "$TEST_TASK_DIR"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Review 角色特别指令"* ]]
+    [[ "$output" == *"approved"* ]]
+    [[ "$output" == *"rejected"* ]]
+    [[ "$output" == *"needs-revision"* ]]
+}
+
 # ========== TAG0004 其他-c：sed 替换串转义（BDD-20） ==========
 
 @test "bdd-20 agate-render-dispatch-prompt.sh AGATE_ROOT 含 & 时替换按字面插入（其他-c）" {

@@ -9,14 +9,14 @@ load ../helpers/load.bash
 @test "MDF.1 BDD-1: risk_level 从 frontmatter 块读取（字段级 presence 优先）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\nrisk_level: high\n---\nbody\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
     [ "$status" -eq 0 ]; [[ "$output" == "high" ]]
 }
 
 @test "MDF.2 BDD-9: 旧格式（frontmatter 无 risk_level，只在正文）仍通过正则回退正确读取" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\n---\nrisk_level: medium\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
     [ "$status" -eq 0 ]; [[ "$output" == "medium" ]]
 }
 
@@ -26,28 +26,28 @@ load ../helpers/load.bash
     # 若仍走正则会误取正文的 low；新逻辑须经 yaml.safe_load 解析 frontmatter dict 取得 "high"。
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\nrisk_level: "high"\n---\nrisk_level: low\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
     [ "$status" -eq 0 ]; [[ "$output" == "high" ]]
 }
 
 @test "MDF.4 BDD-3: phases 在 frontmatter 内以块式列表（每行 - Pn）声明 → 解析为空格连接列表" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\nphases:\n  - P1\n  - P2\n---\nbody\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' phases"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' phases"
     [ "$status" -eq 0 ]; [[ "$output" == "P1 P2" ]]
 }
 
 @test "MDF.5 BDD-1: 新增 op candidate_count 从 P2 frontmatter 读取（int → str）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\ncandidate_count: 2\n---\nbody\n' > "$dir/P2.md"
-    run bash -c "FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' candidate_count"
+    run bash -c "FILE='$dir/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' candidate_count"
     [ "$status" -eq 0 ]; [[ "$output" == "2" ]]
 }
 
 @test "MDF.6 BDD-1: 新增 op packages 从 frontmatter 列表读取（空格连接）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\npackages: [agate, other-pkg]\n---\nbody\n' > "$dir/P2.md"
-    run bash -c "FILE='$dir/P2.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' packages"
+    run bash -c "FILE='$dir/P2.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' packages"
     [ "$status" -eq 0 ]; [[ "$output" == "agate other-pkg" ]]
 }
 
@@ -56,14 +56,14 @@ load ../helpers/load.bash
 @test "MDF.7 test_bdd_1_change_type_frontmatter: P1 frontmatter 声明 change_type 读取为字符串" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\nrisk_level: high\nchange_type: refactor\n---\nbody\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
     [ "$status" -eq 0 ]; [[ "$output" == "refactor" ]]
 }
 
 @test "MDF.8 test_bdd_1_change_type_frontmatter_only: frontmatter 无 change_type 时正文行 `change_type: refactor` 不读取（frontmatter-only，无正文回退）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\n---\nchange_type: refactor\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
     [ "$status" -eq 0 ]; [[ "$output" == "" ]]
 }
 
@@ -72,7 +72,7 @@ load ../helpers/load.bash
     # 不得被 _regex_fallback 匹配成 refactor——change_type 是 frontmatter-only 机器字段
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\n---\nchange_type: refactor 是可选字段，缺省为功能任务\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
     [ "$status" -eq 0 ]; [[ "$output" == "" ]]
 }
 
@@ -80,14 +80,14 @@ load ../helpers/load.bash
     # P4-review §2.1 BLOCKER 回归：正文"本任务不涉及 change_type: refactor 机制"也不得误判
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\n---\n本任务不涉及 change_type: refactor 机制\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' change_type"
     [ "$status" -eq 0 ]; [[ "$output" == "" ]]
 }
 
 @test "MDF.9 test_bdd_4_regression_pass_frontmatter: P6 frontmatter 声明 regression_pass: true 读取为 true" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\npass: 1\nfail: 0\nui_affected: false\nregression_pass: true\n---\nbody\n' > "$dir/P6.md"
-    run bash -c "FILE='$dir/P6.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' regression_pass"
+    run bash -c "FILE='$dir/P6.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' regression_pass"
     [ "$status" -eq 0 ]; [[ "$output" == "true" ]]
 }
 
@@ -95,7 +95,7 @@ load ../helpers/load.bash
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     # 正文写 regression_pass: false 陷阱行——若错误回退会读到 false；正确行为是空串（无回退语义，调用方判定）
     printf -- '---\nagent: test\npass: 1\nfail: 0\nui_affected: false\n---\nregression_pass: false\n' > "$dir/P6.md"
-    run bash -c "FILE='$dir/P6.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' regression_pass"
+    run bash -c "FILE='$dir/P6.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' regression_pass"
     [ "$status" -eq 0 ]; [[ "$output" == "" ]]
 }
 # ========== TAG0004 S3 中文读（BDD-6）+ M6 LF 回归（BDD-15） ==========
@@ -103,13 +103,13 @@ load ../helpers/load.bash
 @test "bdd-6 agate-md-field-get.py 读取含中文内容协议文件正确返回字段（S3 中文读）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\nrisk_level: high\ntask: 中文任务名验证\n---\n正文含中文\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
     [ "$status" -eq 0 ]; [[ "$output" == "high" ]]
 }
 
 @test "bdd-15 agate-md-field-get.py LF 行尾 ASCII 文件行为不变（M6 回归）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/md-XXXXXX")
     printf -- '---\nagent: test\nrisk_level: medium\n---\nbody\n' > "$dir/P1.md"
-    run bash -c "FILE='$dir/P1.md' python3 '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
+    run bash -c "FILE='$dir/P1.md' $PYTHON '$AGATE_SCRIPTS/agate-md-field-get.py' risk_level"
     [ "$status" -eq 0 ]; [[ "$output" == "medium" ]]
 }

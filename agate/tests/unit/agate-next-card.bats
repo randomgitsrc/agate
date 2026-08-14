@@ -101,7 +101,7 @@ setup() {
 
 @test "CWD 在项目目录仍能解析 AGATE_ROOT" {
     local hash
-    hash="$(cd /tmp && bash "$CARD_CMD" P3 | sha256sum | awk '{print $1}')"
+    hash="$(cd "$BATS_TEST_TMPDIR" && bash "$CARD_CMD" P3 | sha256sum | awk '{print $1}')"
     [ -n "$hash" ]
 }
 
@@ -184,11 +184,19 @@ setup() {
 # ========== TAG0004 Q1 路径归一化（BDD-21/22） ==========
 
 @test "bdd-21 agate-next-card.sh Windows 盘符/反斜杠 AGATE_ROOT 前缀剥离稳定（Q1）" {
-    local dir
+    local dir root_agate
     dir="$BATS_TEST_TMPDIR/q1-win"
-    mkdir -p "$dir/C:\\proj\\agate/phase-cards"
-    cp "$AGATE_ROOT/phase-cards/P3-tdd.md" "$dir/C:\\proj\\agate/phase-cards/"
-    run bash -c "cd '$dir' && AGATE_ROOT='C:\\proj\\agate' bash '$AGATE_SCRIPTS/agate-next-card.sh' P3"
+    # 平台分支构造：Windows 上 'C:/...' 盘符前缀是绝对路径，无法用字面目录模拟
+    # （脚本会把 C:/ 解析为真实盘符，与测试目录下的字面 C: 目录冲突）——
+    # 盘符/反斜杠剥离场景由 Linux 的字面反斜杠目录完整覆盖（TAG0009 平台分支）。
+    if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
+        skip "盘符/反斜杠前缀剥离在 Windows 上无法用字面目录模拟（Linux 字面反斜杠目录已覆盖）"
+    else
+        root_agate='C:\proj\agate'
+    fi
+    mkdir -p "$dir/$root_agate/phase-cards"
+    cp "$AGATE_ROOT/phase-cards/P3-tdd.md" "$dir/$root_agate/phase-cards/"
+    run bash -c "cd '$dir' && AGATE_ROOT='$root_agate' bash '$AGATE_SCRIPTS/agate-next-card.sh' P3"
     [ "$status" -eq 0 ]
     # 修复前：${CARD_FILE#$AGATE_ROOT/} 把反斜杠当转义 → 剥离失败 → 相对路径含盘符前缀；修复后：phase-cards/P3-tdd.md
     [[ "$output" == *"路径：phase-cards/P3-tdd.md"* ]]

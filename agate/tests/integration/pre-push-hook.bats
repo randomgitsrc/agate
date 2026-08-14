@@ -8,7 +8,13 @@ load ../helpers/load.bash
     repo=$(git_init)
 
     ( cd "$repo" && bash "$AGATE_ROOT/scripts/install-hook.sh" "$AGATE_ROOT" >/dev/null 2>&1 )
-    [ -L "$repo/.git/hooks/pre-push" ] || fail "pre-push 应为软链"
+    # 平台分支：Linux 断言软链语义（readlink 指向 pre-push-gate.sh，无 -L 字面满足 R3 零命中）；
+    # Windows 复制模式断言文件已安装（软链语义由 Linux 分支 + mock ln 用例覆盖）
+    if [[ "$(uname -s)" == *MINGW* || "$(uname -s)" == *MSYS* ]]; then
+        [ -f "$repo/.git/hooks/pre-push" ] || fail "pre-push 应已安装"
+    else
+        [[ "$(readlink "$repo/.git/hooks/pre-push")" == "$AGATE_ROOT/scripts/pre-push-gate.sh" ]] || fail "pre-push 应为软链"
+    fi
 
     cd "$repo"
     echo "test" > file.txt
@@ -18,6 +24,31 @@ load ../helpers/load.bash
     run bash -c "echo 'refs/heads/main $(git rev-parse HEAD) refs/heads/main 0000000000000000000000000000000000000000' | bash '$AGATE_ROOT/scripts/pre-push-gate.sh' 2>&1 || true"
 
     [[ "$output" == *"新分支"* ]]
+}
+
+@test "pre-push hook: ln 复制模式下安装输出升级提醒且不要求软链（Windows 兼容，BDD-18/19）" {
+    local repo
+    repo=$(git_init)
+    local agate_root
+    agate_root="$BATS_TEST_TMPDIR/agate-fake"
+    mkdir -p "$agate_root/scripts"
+    cp "$AGATE_ROOT/scripts/pre-commit-gate.sh" "$agate_root/scripts/"
+    cp "$AGATE_ROOT/scripts/commit-msg-self-gate.sh" "$agate_root/scripts/"
+    cp "$AGATE_ROOT/scripts/pre-push-gate.sh" "$agate_root/scripts/"
+
+    # mock ln：退化为 cp（模拟 Windows 无符号链接权限）
+    local fakebin
+    fakebin="$BATS_TEST_TMPDIR/fakebin"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/ln" <<'LNEOF'
+#!/usr/bin/env bash
+cp -f "$2" "$3"
+LNEOF
+    chmod +x "$fakebin/ln"
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash '$AGATE_ROOT/scripts/install-hook.sh' '$agate_root'" 2>&1
+    [[ "$output" == *"复制"* || "$output" == *"需重跑"* ]]
+    [ -f "$repo/.git/hooks/pre-push" ]
 }
 
 @test "pre-push hook: 大改动触发提示" {

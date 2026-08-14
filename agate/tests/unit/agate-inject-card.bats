@@ -5,6 +5,12 @@ load ../helpers/load.bash
 
 setup() {
     INJECT_CMD="$AGATE_SCRIPTS/agate-inject-card.sh"
+    # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
 }
 
 # ========== 基本功能 ==========
@@ -51,8 +57,9 @@ EOF
     expected_body=$(bash "$AGATE_SCRIPTS/agate-next-card.sh" P1)
 
     local expected_hash injected_hash
-    expected_hash=$(printf '%s' "$expected_body" | sha256sum | awk '{print $1}')
-    injected_hash=$(printf '%s' "$injected_body" | sha256sum | awk '{print $1}')
+    # tr -d '\r'：Windows checkout 的 phase-cards 是 CRLF，注入文件是 LF——先归一化再比 hash
+    expected_hash=$(printf '%s' "$expected_body" | tr -d '\r' | sha256sum | awk '{print $1}')
+    injected_hash=$(printf '%s' "$injected_body" | tr -d '\r' | sha256sum | awk '{print $1}')
     [ "$expected_hash" = "$injected_hash" ]
 }
 

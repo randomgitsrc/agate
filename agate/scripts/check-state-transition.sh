@@ -24,14 +24,17 @@ get_old_phase() {
     # HEAD: 版本是 commit 前的旧版本（pre-commit hook 运行时 commit 还没创建）
     # :<path> 是暂存区版本（新的），HEAD:<path> 是旧版本
     local git_path="$STATE_BASENAME"
-    # 任务级 .state.yaml：保留完整路径（TAG0003 v2.0 去硬编码）
-    # 检测语义从「路径含 docs/tasks/[^/]+/」改为「dirname(STATE_FILE) != REPO_ROOT」，
-    # 与 pre-commit-gate.sh 的 TASK_DIR 分支同构，覆盖 docs/tasks / agate-workspace/tasks / 自定义路径
+    # 任务级 .state.yaml：用 git ls-files 取仓库规范相对路径（TAG0003 v2.0 去硬编码）
+    # 不用 realpath --relative-to——Git for Windows 的 --show-toplevel 返回 C:/...
+    # 而 realpath -m 返回 /c/...，混用两种风格会算出错误绝对路径 → git show 失败
+    # （TAG0009 Windows ST.* 全系 get_old_phase 读空致 exit 0）
     local state_dir repo_root
     state_dir=$(realpath -m "$(dirname "$STATE_FILE")")
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-    if [ -n "$repo_root" ] && [ "$state_dir" != "$repo_root" ]; then
-        git_path=$(realpath --relative-to="$repo_root" "$STATE_FILE" 2>/dev/null || echo "$STATE_BASENAME")
+    repo_root=$(git -C "$state_dir" rev-parse --show-toplevel 2>/dev/null || echo "")
+    if [ -n "$repo_root" ]; then
+        local tracked
+        tracked=$(git -C "$repo_root" ls-files --full-name -- "$STATE_FILE" 2>/dev/null | head -1)
+        [ -n "$tracked" ] && git_path="$tracked"
     fi
     git show "HEAD:$git_path" 2>/dev/null | python3 "$SCRIPT_DIR/agate-state-get.py" phase_stdin 2>/dev/null || echo ""
 }
@@ -46,7 +49,8 @@ phase_num() {
 }
 
 # 只在 .state.yaml 有暂存变更时检查
-git diff --cached --name-only 2>/dev/null | grep -qF "$STATE_BASENAME" || exit 0
+# tr -d '\r'：Git for Windows 的 diff 输出文件名可能带 CRLF 行尾，grep -qF 精确匹配会失败
+git diff --cached --name-only 2>/dev/null | tr -d '\r' | grep -qF "$STATE_BASENAME" || exit 0
 
 old_phase=$(get_old_phase)
 new_phase=$(get_new_phase)

@@ -1,0 +1,20 @@
+=== BDD-7/27: protocol-tests.yml CI 接线 ===
+11:      matrix:
+12:        os: [ubuntu-latest, windows-latest]
+58:  platform-scan:
+59:    name: platform-scan
+63:      matrix:
+64:        os: [ubuntu-latest, windows-latest]
+72:        run: bash agate/scripts/check-platform-assumptions.sh
+75:        run: bash agate/scripts/check-platform-assumptions.sh
+82:      matrix:
+83:        os: [ubuntu-latest, windows-latest]
+110:      matrix:
+111:        os: [ubuntu-latest, windows-latest]
+136:      matrix:
+137:        os: [ubuntu-latest, windows-latest]
+
+=== BDD-7: Linux 步骤为阻断 gate（无 continue-on-error）===
+continue-on-error 未出现 → 平台扫描步骤失败即 job 失败阻断合并
+
+EXIT_CODE: 0

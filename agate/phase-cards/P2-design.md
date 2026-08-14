@@ -92,9 +92,12 @@ gate_commands:
 
 | domain | risk_level | 必须派的评审 |
 |--------|------------|------------|
+| backend | 任意 | plan-eng-review（P2 方案评审） |
 | frontend | 任意 | plan-design-review |
 | 任意 | high | plan-eng-review（硬规则，必须派独立 subagent） |
 | P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review |
+
+> **去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。
 
 多个评审角色 `专家组并行` → 组长汇总 → P2-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。

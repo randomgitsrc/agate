@@ -15,7 +15,7 @@ phase: P3
 status: active
 retries: {}
 EOF
-    run bash -c "STATE_FILE='$dir/.state.yaml' python3 '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
+    run bash -c "STATE_FILE='$dir/.state.yaml' $PYTHON '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
     [ "$status" -eq 0 ]; [ -z "$output" ]
 
     # BDD-26：旧编号格式 T001 → 硬切拒绝，提示合法格式 ^T[A-Z]{2}\d+$
@@ -25,14 +25,14 @@ phase: P3
 status: active
 retries: {}
 EOF
-    run bash -c "STATE_FILE='$dir/.state.yaml' python3 '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
+    run bash -c "STATE_FILE='$dir/.state.yaml' $PYTHON '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
     [ "$status" -eq 0 ]; [[ "$output" == *"task_id 格式错误"* ]]
 }
 
 @test "SY.2 缺必填字段 → 缺必填字段: xxx（回归，与流 D 编号规则无关）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/sy-XXXXXX")
     echo "task_id: TAG0001" > "$dir/.state.yaml"
-    run bash -c "STATE_FILE='$dir/.state.yaml' python3 '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
+    run bash -c "STATE_FILE='$dir/.state.yaml' $PYTHON '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
     [ "$status" -eq 0 ]; [[ "$output" == *"缺必填字段"* ]]
 }
 
@@ -43,6 +43,6 @@ task_id: TAG0001
 phase: ZZZ
 status: active
 EOF
-    run bash -c "STATE_FILE='$dir/.state.yaml' python3 '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
+    run bash -c "STATE_FILE='$dir/.state.yaml' $PYTHON '$AGATE_SCRIPTS/agate-state-yaml-check.py'"
     [ "$status" -eq 0 ]; [[ "$output" == *"phase 非法值"* ]]
 }

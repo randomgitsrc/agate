@@ -3,6 +3,16 @@
 
 load ../helpers/load.bash
 
+setup() {
+    # TAG0009 BDD-16/17：check-gate.sh 内部裸 python3（agate-md-field-get.py 等）在
+    # 仅 python 可解析环境（Windows）由 shim 兜底；python3 已可用时 shim 为空、无副作用
+    local shim
+    shim=$(create_python_shim_bin) || return 1
+    if [ -n "$shim" ]; then
+        export PATH="$shim:$PATH"
+    fi
+}
+
 # ========== P0 (立项阶段，无需脚本 gate) ==========
 
 @test "G0 check-gate.sh P0 立项阶段 期望 exit 2（输出不含『未知』）" {
@@ -623,7 +633,7 @@ EOF
     [[ "$output" == *"gate_commands.P5"* || "$output" == *"子集"* || "$output" == *"全量"* ]]
 }
 
-@test "G5_CMD.1 P2 gate_commands 声明 P5+P5_e2e（2 键），其他节含 20 个 bullet -> WARNING 含 2 而非 22" {
+@test "G5_CMD.1 P2 gate_commands 声明 P5+P5_e2e（1 主 + 1 辅），其他节含 20 个 bullet -> WARNING 含 1 个主命令 + 1 个辅助命令（共 2 条）而非 22（BDD-4）" {
     local dir
     dir=$(create_task_dir)
     {
@@ -641,7 +651,8 @@ EOF
 
     run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
     [ "$status" -eq 2 ]
-    [[ "$output" == *"2 个 gate_commands.P5"* ]]
+    [[ "$output" == *"1 个主命令 + 1 个辅助命令"* ]]
+    [[ "$output" == *"共 2 条"* ]]
     [[ "$output" != *"22 个"* ]]
 }
 
@@ -694,13 +705,14 @@ EOF
     [[ "$output" != *"gate_commands.P5 命令"* ]]
 }
 
-@test "G5_CMD.5 gate_commands 块位于文件末尾且无尾随换行 -> 仍正确计数 2 个 P5 键（回归：末尾换行边界）" {
+@test "G5_CMD.5 gate_commands 块位于文件末尾且无尾随换行 -> 仍正确计数 1 主 + 1 辅（共 2 条）（回归：末尾换行边界，BDD-4）" {
     local dir
     dir=$(create_task_dir)
     printf 'gate_commands:\n  P5: "pytest"\n  P5_e2e: "playwright"' > "$dir/P2-design.md"
     run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
     [ "$status" -eq 2 ]
-    [[ "$output" == *"2 个 gate_commands.P5"* ]]
+    [[ "$output" == *"1 个主命令 + 1 个辅助命令"* ]]
+    [[ "$output" == *"共 2 条"* ]]
 }
 
 # ========== P6 (5 用例) ==========
@@ -1338,6 +1350,51 @@ EOF
 
 @test "G-drift-3: verifier.md 不含'写跑分离'" {
     ! grep -q '写跑分离' "$AGATE_ROOT/assets/execution-roles/verifier.md"
+}
+
+# ========== TAG0005 机制修复 文档断言（BDD-1/2/9/12/13/14/15） ==========
+
+@test "TAG0005 BDD-1 三处 C8 表 backend 行含 plan-eng-review（P2 方案评审触发）" {
+    grep -qE '^\| backend \|.*plan-eng-review' "$AGATE_ROOT/role-system.md"
+    grep -qE '^\| backend \|.*plan-eng-review' "$AGATE_ROOT/rules/review-mapping.md"
+    grep -qE '^\| backend \|.*plan-eng-review' "$AGATE_ROOT/phase-cards/P2-design.md"
+}
+
+@test "TAG0005 BDD-2 check-gate.sh P2 分支仍无条件要求 P2-review.md（gate 不改，回归锁）" {
+    grep -q 'P2-review.md 不存在（P2 评审不可裁剪' "$AGATE_ROOT/scripts/check-gate.sh"
+    grep -q 'P2-review.md frontmatter status 非 approved' "$AGATE_ROOT/scripts/check-gate.sh"
+}
+
+@test "TAG0005 BDD-9 协议内「Review 角色特别指令」仅模板单文件（rg -l 单文件语义）" {
+    local hits
+    hits=$(grep -rl 'Review 角色特别指令' "$AGATE_ROOT" --include='*.md' 2>/dev/null || true)
+    hits=$(printf '%s\n' "$hits" | grep -v '^$' || true)
+    [ "$(printf '%s\n' "$hits" | wc -l | tr -d ' ')" -eq 1 ]
+    printf '%s\n' "$hits" | grep -q 'assets/templates/dispatch-prompt.md'
+}
+
+@test "TAG0005 BDD-12 dispatch-protocol.md 空返回恢复策略含「自动重试一次」" {
+    grep -q '自动重试一次' "$AGATE_ROOT/dispatch-protocol.md"
+}
+
+@test "TAG0005 BDD-13 dispatch-protocol.md 短会话（<1min）异常告警含「会话时长异常短」" {
+    grep -q '会话时长异常短' "$AGATE_ROOT/dispatch-protocol.md"
+    grep -q '<1min' "$AGATE_ROOT/dispatch-protocol.md"
+}
+
+@test "TAG0005 BDD-14 dispatch-protocol.md retry 上限/PAUSED 段未改（回归锁）" {
+    grep -q 'MAX_RETRY' "$AGATE_ROOT/dispatch-protocol.md"
+    grep -q 'PAUSED 报告人工' "$AGATE_ROOT/dispatch-protocol.md"
+}
+
+@test "TAG0005 BDD-15 全仓 scripts「stderr 报错后 exit 0」仅剩「跳过」语义" {
+    local hits
+    hits=$(grep -rnE '>&2;[[:space:]]*exit 0' "$AGATE_ROOT"/scripts/*.sh 2>/dev/null || true)
+    if [ -n "$hits" ]; then
+        while IFS= read -r line; do
+            [[ "$line" == *"跳过"* ]]
+        done <<< "$hits"
+    fi
 }
 
 @test "G_OTHER check-gate.sh 未知阶段 期望 exit 2" {

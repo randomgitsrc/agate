@@ -124,6 +124,9 @@ def iter_md_files(root: Path):
             continue
         if "node_modules" in p.parts:
             continue
+        # bats 框架自身（CI 克隆到仓库根的 bats/ 目录，含自带 docs/README 引用非 agate 文件）
+        if "bats" in p.parts:
+            continue
         yield p
 
 
@@ -666,6 +669,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "desc": "tech-debt schema 校验 + 回退覆盖比对（DEBT 条目）",
         "script": "agate/scripts/check-debt.sh",
         "keywords": ["debt", "retreat"],
+    },
+    {
+        "desc": "平台假设静态扫描器（TAG0009：Unix 假设检出 + CI 阻断）",
+        "script": "agate/scripts/check-platform-assumptions.sh",
+        "keywords": ["平台假设", "R1", "R2"],
     },
 ]
 

@@ -1,0 +1,8 @@
+=== BDD-6: read-p5-commands 执行枚举行为不变（主+辅全枚举）===
+--- fixture: P5 + P5_e2e → 全枚举（2 条）---
+{"commands": [{"cmd": "pytest", "formatter": "", "suffix": ""}, {"cmd": "playwright test", "formatter": "", "suffix": "_e2e"}]}
+--- fixture: P5 + P5_unit + P5_e2e + P5_formatter → 枚举主+辅，formatter 仅配对不执行 ---
+{"commands": [{"cmd": "pytest", "formatter": "fmt.sh", "suffix": ""}, {"cmd": "pytest unit", "formatter": "", "suffix": "_unit"}, {"cmd": "npx vitest", "formatter": "", "suffix": "_e2e"}]}
+--- 该文件未被本任务修改（git log 无 TAG0005 提交）---
+5a60ca1 wf(TAG0004-P4): 实现 37 BDD 全部修复（S1 数组化/S3 encoding/S2 正则/M4M5 alternation/M6 CRLF/M9 前缀/Q1 归一化/Q2 卡片/Q5 文档/RM-AG0001/RM-AG0002/TPV0090-M4/CI windows matrix）+ review+cso approved
+EXIT_CODE: 0

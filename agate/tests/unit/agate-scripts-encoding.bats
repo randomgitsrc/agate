@@ -6,7 +6,7 @@
 load ../helpers/load.bash
 
 @test "bdd-5 全部 agate/scripts/*.py 文本 open()/read_text() 带 encoding=utf-8（Image.open 与二进制除外，S3）" {
-    run python3 -c "
+    run $PYTHON -c "
 import glob, re
 violations = []
 for f in sorted(glob.glob('$AGATE_SCRIPTS/*.py')):
@@ -28,6 +28,6 @@ assert not violations, 'open()/read_text() 缺 encoding: ' + '、'.join(violatio
 @test "bdd-8 agate-state-get.py Linux 纯 ASCII .state.yaml 读取行为不变（S3 回归）" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/st-XXXXXX")
     printf 'task_id: T001\nphase: P1\nstatus: active\nretries: {}\n' > "$dir/.state.yaml"
-    run bash -c "STATE_FILE='$dir/.state.yaml' python3 '$AGATE_SCRIPTS/agate-state-get.py' phase"
+    run bash -c "STATE_FILE='$dir/.state.yaml' $PYTHON '$AGATE_SCRIPTS/agate-state-get.py' phase"
     [ "$status" -eq 0 ]; [[ "$output" == "P1" ]]
 }

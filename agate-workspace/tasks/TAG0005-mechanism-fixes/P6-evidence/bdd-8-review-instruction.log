@@ -1,0 +1,14 @@
+=== BDD-8: 评审角色派发 prompt 含「Review 角色特别指令」完整语义 ===
+--- render P2 design-review ---
+PASS: design-review 输出含 Review 指令节
+--- status 完整语义（draft / approved / rejected / needs-revision）---
+  draft: 2
+  approved: 1
+  rejected: 1
+  needs-revision: 1
+--- 指令节上下文 ---
+## Review 角色特别指令
+如果你的角色是评审/验收角色（review / design-review / plan-eng-review / plan-design-review / plan-ceo-review / cso / qa / requirements-review / consistency-reviewer）：
+- 产出文件的 Header `status:` 字段初始为 `draft`
+- 评审/验收完成后，**必须将 `status:` 改为 `approved` / `rejected` / `needs-revision`**
+EXIT_CODE: 0

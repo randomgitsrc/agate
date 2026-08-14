@@ -13,7 +13,7 @@ retries:
     - {attempt: 1}
     - {attempt: 2}
 EOF
-    run bash -c "STATE_FILE='$dir/.state.yaml' CUR=4 TGT=2 python3 '$AGATE_SCRIPTS/agate-retreat-state.py' check_retreat 'P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2'"
+    run bash -c "STATE_FILE='$dir/.state.yaml' CUR=4 TGT=2 $PYTHON '$AGATE_SCRIPTS/agate-retreat-state.py' check_retreat 'P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2'"
     [ "$status" -eq 0 ]
     [[ "$output" == "P3:3:2" ]]
 }
@@ -28,7 +28,7 @@ retries:
   P3:
     - {attempt: 1}
 EOF
-    run bash -c "STATE_FILE='$dir/.state.yaml' CUR=4 TGT=2 python3 '$AGATE_SCRIPTS/agate-retreat-state.py' check_retreat 'P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2'"
+    run bash -c "STATE_FILE='$dir/.state.yaml' CUR=4 TGT=2 $PYTHON '$AGATE_SCRIPTS/agate-retreat-state.py' check_retreat 'P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2'"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -44,7 +44,7 @@ retries:
   P3:
     - {attempt: 1, reason: x}
 EOF
-    run bash -c "STATE_FILE='$dir/.state.yaml' NEW_PHASE=P3 RETREAT_REASON='test reason' python3 '$AGATE_SCRIPTS/agate-retreat-state.py' write_retreat"
+    run bash -c "STATE_FILE='$dir/.state.yaml' NEW_PHASE=P3 RETREAT_REASON='test reason' $PYTHON '$AGATE_SCRIPTS/agate-retreat-state.py' write_retreat"
     [ "$status" -eq 0 ]
     run cat "$dir/.state.yaml"
     [[ "$output" == *"phase: P3"* ]]
@@ -61,7 +61,7 @@ phase: P1
 status: active
 retries: {}
 EOF
-    run bash -c "STATE_FILE='$dir/.state.yaml' NEW_PHASE=P2 RETREAT_REASON='回退原因含中文' python3 '$AGATE_SCRIPTS/agate-retreat-state.py' write_retreat"
+    run bash -c "STATE_FILE='$dir/.state.yaml' NEW_PHASE=P2 RETREAT_REASON='回退原因含中文' $PYTHON '$AGATE_SCRIPTS/agate-retreat-state.py' write_retreat"
     [ "$status" -eq 0 ]
     grep -q '回退原因含中文' "$dir/.state.yaml"
     grep -q '^phase: P2' "$dir/.state.yaml"
