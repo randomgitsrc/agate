@@ -46,7 +46,7 @@ role: ROLE_PLACEHOLDER
 
 <!-- AGATE_CARD_START -->
 DCTPL
-    bash "$AGATE_SCRIPTS/agate-next-card.sh" "$phase" 2>/dev/null >> "$dir/${phase}-dispatch-context-${role}.md"
+    "$PYTHON" "$AGATE_SCRIPTS/agate-next-card.py" "$phase" 2>/dev/null >> "$dir/${phase}-dispatch-context-${role}.md"
     cat >> "$dir/${phase}-dispatch-context-${role}.md" << 'DCTPL'
 <!-- AGATE_CARD_END -->
 
@@ -1186,9 +1186,9 @@ status: approved
 ---
 通过。
 EOF
-    # embed real card content via agate-next-card.sh
+    # embed real card content via agate-next-card.py
     local card_content
-    card_content=$(bash "$AGATE_ROOT/scripts/agate-next-card.sh" P2 2>/dev/null || true)
+    card_content=$("$PYTHON" "$AGATE_ROOT/scripts/agate-next-card.py" P2 2>/dev/null || true)
     cat > "$repo/agate-workspace/tasks/T001/P2-dispatch-context-architect.md" <<EOF
 ---
 agent: test

@@ -52,9 +52,9 @@ EOF
         "$task_dir/P1-dispatch-context-analyst.md" \
         | sed '1d;$d')
 
-    # 与 agate-next-card.sh P1 全文对比（含 header，因为 inject 注入全文）
+    # 与 agate-next-card.py P1 全文对比（含 header，因为 inject 注入全文）
     local expected_body
-    expected_body=$(bash "$AGATE_SCRIPTS/agate-next-card.sh" P1)
+    expected_body=$("$PYTHON" "$AGATE_SCRIPTS/agate-next-card.py" P1)
 
     local expected_hash injected_hash
     # tr -d '\r'：Windows checkout 的 phase-cards 是 CRLF，注入文件是 LF——先归一化再比 hash

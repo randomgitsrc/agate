@@ -42,7 +42,7 @@ role: ROLE_PLACEHOLDER
 
 <!-- AGATE_CARD_START -->
 DCTPL
-    bash "$AGATE_SCRIPTS/agate-next-card.sh" "$phase" 2>/dev/null >> "$out_file"
+    "$PYTHON" "$AGATE_SCRIPTS/agate-next-card.py" "$phase" 2>/dev/null >> "$out_file"
     cat >> "$out_file" << 'DCTPL'
 <!-- AGATE_CARD_END -->
 

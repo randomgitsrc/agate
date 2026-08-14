@@ -183,3 +183,58 @@ implementation_dir: agate/scripts/
 [SCOPE+]: `agate/tests/README.md` L35/59/96 仍引用 3 个脚本的 .sh 名（覆盖度表格 + R2.4 已知风险描述）——按派发指引"README 文档引用不擅自改"，留待批次 4 文档引用同步（表 B）处理]
 
 > 实现说明（非 DESIGN_GAP）：agate-extract-context.py 的 `_grep_count` 复刻了 sh `grep -c ... || echo 0` 无匹配时输出双行 "0\n0" 的 quirk（实测 sh 确实输出 `- BDD 条件数: 0\n0`），为保 CLI 契约逐字节等价而保留；P6 空 P5-test-results 时实测 sh 输出 "P5 failed 参考: 0"（无 set -e 中断），py 同样返回 0。
+
+---
+
+# P4 实现记录 — 批次 1c（agate-next-card / agate-render-dispatch-prompt py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 2 个 .py（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 |
+|------|--------|
+| `agate/scripts/agate-next-card.py` | `agate-next-card.sh` |
+| `agate/scripts/agate-render-dispatch-prompt.py` | `agate-render-dispatch-prompt.sh` |
+
+- 全部 `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：exit 0/1/2 语义 + stdout 字节稳定（next-card 用 `Path.read_bytes()` 逐字节透传卡片，sha256 硬保证不破坏）+ stderr 输出格式
+- agate-next-card.py：readlink -f + dirname → `os.path.realpath`；Q1 前缀剥离（`_rel_card`，先直接剥离、失败再归一化 `\\`→`/` + 盘符小写）复刻 bash 参数替换语义；`$(...)` 剥尾换行无涉及（输出直接 buffer 透传）
+- agate-render-dispatch-prompt.py：sed 管道（范围打印 + 行删除 + 首个 ``` 围栏块抽取）→ `_range`/`_drop`/`_extract_code_block` 正则等价（`/START/,/END/p` 的 END 从 START 后一行开始找的 GNU sed 语义实测复刻）；sed s 替换 → str.replace 字面替换（esc_repl 的 `&|/\\` 转义在字面替换下不再需要）；`$(...)` 剥尾换行 → `.rstrip("\n")`（批次 1a 范式）
+
+### 改动 5 个 bats 文件（调用点 .sh → .py，`@test` 数不变）
+
+- `unit/agate-next-card.bats`：setup `CARD_CMD` 改 .py + 全部调用点 `bash "$CARD_CMD"` → `"$PYTHON" "$CARD_CMD"`；symlink 场景 `ln -sf .../agate-next-card.py` + `"$PYTHON" "$link_dir/card"`；NC_ROOT.2 复制 .py + AGATE_ROOT 覆盖调用；bdd-21/22 的 `bash -c` 内联调用改 py（22 用例不变）
+- `unit/agate-render-dispatch-prompt.bats`：18 处 `run bash .../agate-render-dispatch-prompt.sh` → `run "$PYTHON" .../agate-render-dispatch-prompt.py` + RP.16 命令替换、bdd-20 `env AGATE_ROOT` 两处同步改（20 用例不变）
+- `unit/agate-inject-card.bats`：L57 `expected_body=$(bash .../agate-next-card.sh P1)` → `"$PYTHON" .../agate-next-card.py`（inject-card.sh 内部仍调 .sh，产出等价，hash 对比保持有效）
+- `integration/pre-commit-hook.bats`：L49 卡片嵌入调用 + L1191 `card_content` 生成改 py
+- `integration/dispatch-context-card.bats`：L45 卡片嵌入调用改 py
+
+### 其他引用核查（确认无需改动）
+
+- `unit/dispatch-context-warning.bats` L44：`# Do NOT copy agate-next-card.sh` 是注释（模拟 fake root 无该脚本供 pre-commit-gate.sh 降级），非调用点 → 不改
+- `unit/agate-migrate-workspace.bats` L152：fixture 卡片正文提到 `agate-next-card.sh`，非调用点 → 不改
+- `integration/pre-commit-hook.bats` L28/1253、`integration/dispatch-context-card.bats` L21/97：`generated_by: agate-next-card.sh` 为 fixture 文档头文本，非调用点 → 不改
+- `agate/tests/README.md` L32/33：覆盖度表格仍引用 2 个脚本 .sh 名 → 留待批次 4（表 B）文档同步
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `bats unit/agate-next-card.bats`：22/22 绿
+- `bats unit/agate-render-dispatch-prompt.bats`：20/20 绿
+- 涉及面抽查：`bats unit/agate-scripts-encoding.bats`(2/2) + `unit/dispatch-context-warning.bats` + `unit/agate-inject-card.bats` + `unit/agate-migrate-workspace.bats` + `integration/dispatch-context-card.bats` + `integration/pre-commit-hook.bats` 全绿（合计 121/121）
+- 手动 sh vs py 输出 diff：next-card 全 P0-P8 body sha256 一致；render 全 phase × (architect/implementer/review-role/rollback) 与 sh 逐字节一致（唯一差异 = 渲染产物 header 中脚本名 .sh → .py，见偏离点）
+- 2 个 .py `py_compile` 均编译通过
+
+## 偏离点
+
+[DESIGN_GAP: 新 py 的渲染产物 header / usage 错误消息中脚本名后缀改 .sh → .py（"用法: agate-render-dispatch-prompt.py ..."、"本文件是 agate-render-dispatch-prompt.py 的渲染产物"、"GATE: agate-next-card.py ..."）——sh 版写 .sh 后缀；为与新脚本名一致而改（batch 1a/1b check-changelog.py / agate-extract-context.py 同款先例）。bats 只断言 exit code 与子串，不断言脚本名，P5 可复验]
+
+[SCOPE+]: `agate/tests/README.md` L32/33 仍引用 2 个脚本的 .sh 名（覆盖度表格）——按派发指引"README 文档引用不擅自改"，留待批次 4 文档引用同步（表 B）处理]
+
+> 实现说明（非 DESIGN_GAP）：agate-render-dispatch-prompt.py 对 sed `s` 替换采用 str.replace 字面替换——esc_repl 在 sh 中只为防止 `&`/`|`/`/`/`\` 被 sed 当替换元字符解释，字面替换下无此问题，行为等价（bdd-20 的 `&` 目录路径实测逐字节一致）。`_range` 的 END 从 START 之后一行开始查找复刻了 GNU sed 实测语义（START 行自身匹配 END 模式时范围仍延伸到下一处 END），P2 §3.2 无额外约束。
