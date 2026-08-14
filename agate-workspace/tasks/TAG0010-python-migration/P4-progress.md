@@ -61,10 +61,21 @@
 - [x] 3f：锚点表 check-frontmatter 条目同步 py（0 ERROR，1 coverage WARNING 属批次 4 中间态）
 - 批次 3 专项 85/85 绿 + 全量 733 绿 + count-tests 727 + consistency 0 ERROR
 
-## 批次 4（收尾）— 待办
+## 批次 4（收尾）— 完成
 
-- [ ] consistency 锚点表剩余 15 条涉 sh → py
-- [ ] 文档引用同步（表 B：SETUP/UPGRADING/README/scripts/README.md/tests/README.md）
-- [ ] SETUP pyyaml 强制化 + UPGRADING 新章节
-- [ ] scripts/README.md 重写 + pyproject.toml ruff 规则集落地
-- [ ] CI 同步（shellcheck→ruff、check-platform-assumptions.py 扫描）
+- [x] 4a：consistency 锚点表全面同步 py（V06/SCRIPT_ALIGNMENT/GATE_SCRIPT_EXEMPT/coverage glob）→ --strict 0 WARNING
+- [x] 4b：pyproject.toml ruff 规则集 + 47 py 全绿（261 auto + 52 unsafe + 14 手工）+ bdd-34 shellcheck 收敛 3 薄壳 + ruff 断言 + SG.6 修复
+- [x] 4c-1：9 个协议文档表 B 换后缀
+- [x] 4c-2：5 个内容重写文档（scripts/README / platform-notes / UPGRADING v0.46.0 占位 / SETUP / LIMITATIONS）
+- [x] 4c-3：CI 同步（shellcheck 3 薄壳 + ruff job + scan py）
+- [x] 4d：删 27 个已 py 化 .sh（保留 3 hook 薄壳）+ install-hook 复制模式开关 + check-debt 报错更新 + 修删档后测试引用（agate-debt-check/pre-push/consistency/windows-smoke）
+- [x] 4e：SCOPE+ rules/assets 文档引用同步（9 文件 34 处）
+- 全量 756 bats 绿（unit 625 + integration 85 + sanity/reg 23 + scripts 23）+ count-tests 727 + consistency --strict 0 ERROR 0 WARNING + ruff 0 error
+
+## P4 总结
+
+- 30 个 .sh 全部 py 化（3 hook 保留 sh 薄壳）
+- 19 个 P4 commit（165a31c → 3d342c8）
+- C8 评审 approved（0 BLOCKER）
+- 修 3 个测试缺陷：bdd-5 二进制 open 豁免 / bdd-5 read_text 误判 / inject-card 错误消息透传
+- 待办：P5 验证（gate_commands.P5 全量 + consistency --strict + ruff + scan + ci-backstop）
