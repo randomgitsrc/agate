@@ -53,7 +53,7 @@ def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
         return 2, "check-gate.sh not found"
     result = subprocess.run(
         _bash_cmd([str(script), phase, task_dir]),
-        capture_output=True, text=True
+        capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     return result.returncode, result.stderr + result.stdout
 
@@ -95,7 +95,7 @@ def resolve_tasks_dir(project_root: str) -> str:
         return str(Path(project_root) / os.environ.get("AGATE_TASKS_DIR", "docs/tasks"))
     result = subprocess.run(
         _bash_cmd([str(script), str(project_root)]),
-        capture_output=True, text=True
+        capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     if result.returncode == 0:
         for line in result.stdout.splitlines():
@@ -122,7 +122,7 @@ def _read_p1_change_type(task_dir: str) -> str:
     try:
         result = subprocess.run(
             ["python3", str(field_get), "change_type"],
-            capture_output=True, text=True, env=env, timeout=30,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, timeout=30,
         )
     except subprocess.SubprocessError:
         return ""
@@ -182,7 +182,7 @@ def main() -> int:
         if tdd_script.exists():
             tdd_result = subprocess.run(
                 _bash_cmd([str(tdd_script), task_dir]),
-                capture_output=True, text=True
+                capture_output=True, text=True, encoding="utf-8", errors="replace"
             )
             tdd_exit = tdd_result.returncode
             tdd_output = tdd_result.stderr + tdd_result.stdout
@@ -232,7 +232,7 @@ def main() -> int:
             ts = datetime.datetime.fromisoformat(recorded_ts.replace("Z", "+00:00"))
             commit_ts_str = subprocess.run(
                 ["git", "log", "-1", "--format=%cI"],
-                capture_output=True, text=True, check=True
+                capture_output=True, text=True, encoding="utf-8", errors="replace", check=True
             ).stdout.strip()
             commit_ts = datetime.datetime.fromisoformat(commit_ts_str)
             if ts > commit_ts:
@@ -252,7 +252,7 @@ def main() -> int:
             try:
                 blame = subprocess.run(
                     ["git", "blame", "--line-porcelain", str(p6_file)],
-                    capture_output=True, text=True
+                    capture_output=True, text=True, encoding="utf-8", errors="replace"
                 )
                 authors = set()
                 for line in blame.stdout.splitlines():
@@ -268,7 +268,7 @@ def main() -> int:
     if task_dir and provenance_script.exists() and Path(task_dir, "P6-acceptance.md").exists():
         prov_result = subprocess.run(
             _bash_cmd([str(provenance_script), task_dir]),
-            capture_output=True, text=True
+            capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         if prov_result.returncode == 1:
             print(f"FAIL: check-p6-provenance.sh 重跑未通过：\n{prov_result.stdout}{prov_result.stderr}")

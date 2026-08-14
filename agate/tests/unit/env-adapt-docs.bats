@@ -52,11 +52,10 @@ load ../helpers/load.bash
 
 @test "bdd-34 shellcheck -S warning agate/scripts/*.sh 0 error（修复不引入 shellcheck 问题）" {
     local sc
-    sc=$(py_path "$(command -v shellcheck 2>/dev/null || command -v shellcheck.exe 2>/dev/null || echo shellcheck)")
-    echo "B34-DIAG: sc=$sc AGATE_ROOT=$AGATE_ROOT" >&2
+    sc=$(command -v shellcheck 2>/dev/null || command -v shellcheck.exe 2>/dev/null || echo "")
+    [ -n "$sc" ] || skip "shellcheck 未安装（Windows bats job 未装 shellcheck——由独立 shellcheck job 覆盖）"
+    sc=$(py_path "$sc")
     run bash -c "cd '$(py_path "$AGATE_ROOT")/scripts' && '$sc' -S warning *.sh 2>&1"
-    echo "B34-STATUS: $status" >&2
-    printf 'B34-OUT: %s\n' "$output" | head -6 >&2
     [ "$status" -eq 0 ]
 }
 
