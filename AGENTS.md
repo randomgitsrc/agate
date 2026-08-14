@@ -46,6 +46,17 @@
 - Bats ≥ 1.2.0（需要 `BATS_TEST_TMPDIR`）
 - Python 3.8+ + `pyyaml` + `Pillow`（`pip install pyyaml Pillow`，Pillow 可选）— 检查逻辑抽离为独立 `.py` 工具（`agate/scripts/agate-*.py`），由 `.sh` 薄壳调用。其中 state/vision 类工具（agate-state-get / agate-retreat-state / agate-state-yaml-check / agate-vision-blocker）依赖 pyyaml；agate-image-check 依赖 Pillow（可选，用于像素方差/average hash 检测）
 - shellcheck
+- ruff（Python 化后替代 shellcheck 对 py 的检查——TAG0010 起生效；运行 agate 不需要，开发 agate 需要）
+
+## 开发环境（本机）
+
+> 本机全部工具环境布局见全局 `~/.config/opencode/instructions/environment-map.md`（所有 opencode 项目共享）。
+
+- **开发 agate 用 `~/.venvs/agate-dev/`**（单一共享 venv：python 3.12 + pyyaml + ruff）。
+  - 所有 worktree 共享此环境（agate 是同一仓库多 checkout，代码一致环境也该一致）。
+  - 使用：`~/.venvs/agate-dev/bin/python` / `.../bin/ruff`（不激活绝对路径调用），或 `source ~/.venvs/agate-dev/bin/activate`。
+  - **运行 agate 不需要这个 venv**（只需系统 python3 + pyyaml）——它只服务"开发 agate 本体"。
+- **通用惯例**：Python 项目开发环境统一 `~/.venvs/{项目}-dev/`，一个项目一个 venv，不往系统 pip 乱装。
 
 ## 开发命令
 
