@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/check-scope-resolved.bats — 6 用例覆盖 check-scope-resolved.sh
+# tests/unit/check-scope-resolved.bats — 10 用例覆盖 check-scope-resolved.py
 # 计划：5.5 / 实际 6 行 / 与附录 A 一致
 
 load ../helpers/load.bash
@@ -13,32 +13,32 @@ setup() {
     fi
 }
 
-@test "SC.1 check-scope-resolved.sh 不存在的 task 目录 期望 exit 2" {
+@test "SC.1 check-scope-resolved.py 不存在的 task 目录 期望 exit 2" {
     local dir="$BATS_TEST_TMPDIR/nonexistent-task-$$-$(date +%s%N)"
     # 不创建该目录
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "SC.2 check-scope-resolved.sh 无 SCOPE+ 触发 期望 exit 0" {
+@test "SC.2 check-scope-resolved.py 无 SCOPE+ 触发 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 正常文档，无 SCOPE+ 标记
 EOF
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "SC.3 check-scope-resolved.sh 有 SCOPE+ 但无 P1 文件 期望 exit 1" {
+@test "SC.3 check-scope-resolved.py 有 SCOPE+ 但无 P1 文件 期望 exit 1" {
     local dir
     dir=$(mktemp -d "$BATS_TEST_TMPDIR/task-XXXXXX")
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 [SCOPE+] 新增功能
 EOF
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"无 P1-requirements.md"* ]]
 }
@@ -51,7 +51,7 @@ EOF
     echo "## P2 progress
 - [SCOPE+] 检查: 无新增隐含需求" > "$dir/P2-progress.md"
     echo "- [SCOPE_RESOLVED] test" >> "$dir/P1-requirements.md"
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -62,23 +62,23 @@ EOF
 > render product
 - [SCOPE+] this should be ignored
 EOF
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "SC.4 check-scope-resolved.sh 有 SCOPE+ 但 P1 无 SCOPE_RESOLVED 期望 exit 1" {
+@test "SC.4 check-scope-resolved.py 有 SCOPE+ 但 P1 无 SCOPE_RESOLVED 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
 # P2 design
 [SCOPE+] 新增功能
 EOF
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"SCOPE_RESOLVED"* ]]
 }
 
-@test "SC.5 check-scope-resolved.sh 有 SCOPE+ + P1 有 [SCOPE_RESOLVED] 期望 exit 0" {
+@test "SC.5 check-scope-resolved.py 有 SCOPE+ + P1 有 [SCOPE_RESOLVED] 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -87,11 +87,11 @@ EOF
 EOF
     echo "" >> "$dir/P1-requirements.md"
     echo "[SCOPE_RESOLVED] 已纳入 v0.7" >> "$dir/P1-requirements.md"
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "SC_BDD22.1 BDD-22: check-scope-resolved.sh 有 SCOPE+ + P1 frontmatter scope_resolved 非空列表 → 闭环判定通过" {
+@test "SC_BDD22.1 BDD-22: check-scope-resolved.py 有 SCOPE+ + P1 frontmatter scope_resolved 非空列表 → 闭环判定通过" {
     # T001 v2.0 流 C：SCOPE+ 发现性标记本体保持散文（不迁移，BDD-23），
     # 但其"已解决"状态改为结构化声明于 P1 frontmatter 的 scope_resolved 列表，
     # 闭环判定应改读该结构化状态，而不是继续扫描正文 [SCOPE_RESOLVED] 散文标记。
@@ -102,7 +102,7 @@ EOF
 [SCOPE+] 新增功能
 EOF
     add_p1_field "$dir" "scope_resolved" "[新增功能已纳入 v0.7]"
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -124,7 +124,7 @@ role: implementer
 </dispatch_guide>
 EOF
     # P1 无 SCOPE_RESOLVED，但 SCOPE+ 在 dispatch-context 中应被忽略
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -137,7 +137,7 @@ EOF
 # P2 design
 检查了 [SCOPE+] 的引用情况
 EOF
-    run bash "$AGATE_SCRIPTS/check-scope-resolved.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-scope-resolved.py" "$dir"
     [ "$status" -eq 0 ]
 }
 

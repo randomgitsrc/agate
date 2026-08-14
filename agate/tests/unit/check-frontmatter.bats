@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
-# tests/unit/check-frontmatter.bats — agate-frontmatter-check.py / check-frontmatter.sh
+# tests/unit/check-frontmatter.bats — agate-frontmatter-check.py / check-frontmatter.py
 # T001 v2.0 流 A 新交付物（P2-design.md §3.1.3）：frontmatter schema 校验器。
-# 范式仿 agate-state-yaml-check.py / check-state-yaml.sh（见 tests/unit/agate-state-yaml-check.bats）。
+# 范式仿 agate-state-yaml-check.py / check-state-yaml.py（见 tests/unit/agate-state-yaml-check.bats）。
 #
 # 594 配平（P2-design.md §3.1.5 FIND-7）：本文件新增 10 个 @test（CF.1..CF.10），
 # 由以下 15 文件内各移减/合并 1 条重复覆盖的既有断言配平（N=10=M，详见 P3-test-cases.md
@@ -209,9 +209,9 @@ EOF
     [[ "$output" == *"映射"* || "$output" == *"必须为"* || "$output" == *"dict"* ]]
 }
 
-# ========== BDD-8: 校验器与 .state.yaml 校验同机制接入 pre-commit（check-frontmatter.sh 薄壳契约） ==========
+# ========== BDD-8: 校验器与 .state.yaml 校验同机制接入 pre-commit（check-frontmatter.py 薄壳契约） ==========
 
-@test "CF.10 BDD-8: check-frontmatter.sh 与 check-state-yaml.sh 同构——非空校验输出 → exit 1；合规文件 → exit 0" {
+@test "CF.10 BDD-8: check-frontmatter.py 与 check-state-yaml.py 同构——非空校验输出 → exit 1；合规文件 → exit 0" {
     local dir; dir=$(mktemp -d "$BATS_TEST_TMPDIR/cf-XXXXXX")
     # 坏格式：P2 缺 candidate_count
     cat > "$dir/P2-design.md" <<'EOF'
@@ -225,7 +225,7 @@ ui_affected: false
 ---
 # P2 design
 EOF
-    run bash "$AGATE_SCRIPTS/check-frontmatter.sh" "$dir/P2-design.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-frontmatter.py" "$dir/P2-design.md"
     [ "$status" -eq 1 ]
 
     # 合规：四字段齐全
@@ -241,7 +241,7 @@ ui_affected: false
 ---
 # P2 design
 EOF
-    run bash "$AGATE_SCRIPTS/check-frontmatter.sh" "$dir/P2-design.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-frontmatter.py" "$dir/P2-design.md"
     [ "$status" -eq 0 ]
 }
 

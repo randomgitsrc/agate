@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/check-changelog.bats — 5 用例覆盖 check-changelog.sh
+# tests/unit/check-changelog.bats — 8 用例覆盖 check-changelog.py
 # 计划：5.8 / 实际 5 行 / 与附录 A 一致
 
 load ../helpers/load.bash
@@ -13,15 +13,15 @@ setup() {
     fi
 }
 
-@test "CL.1 check-changelog.sh 无 CHANGELOG 文件 期望 exit 0" {
+@test "CL.1 check-changelog.py 无 CHANGELOG 文件 期望 exit 0" {
     local repo
     repo=$(git_init)
     cd "$repo"
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" T001
     [ "$status" -eq 0 ]
 }
 
-@test "CL.2 check-changelog.sh CHANGELOG 无 [Unreleased] 区域 期望 exit 1" {
+@test "CL.2 check-changelog.py CHANGELOG 无 [Unreleased] 区域 期望 exit 1" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -29,12 +29,12 @@ setup() {
 ## [v0.5.0] - 2026-01-01
 - 已发布
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" T001
     [ "$status" -eq 1 ]
     [[ "$output" == *"无 [Unreleased]"* ]]
 }
 
-@test "CL.3 check-changelog.sh [Unreleased] 无 task_id 期望 exit 1" {
+@test "CL.3 check-changelog.py [Unreleased] 无 task_id 期望 exit 1" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -42,12 +42,12 @@ EOF
 ## [Unreleased]
 - 其他内容
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" T001
     [ "$status" -eq 1 ]
     [[ "$output" == *"未找到 T001"* ]]
 }
 
-@test "CL.4 check-changelog.sh [Unreleased] 含 task_id 期望 exit 0" {
+@test "CL.4 check-changelog.py [Unreleased] 含 task_id 期望 exit 0" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -55,11 +55,11 @@ EOF
 ## [Unreleased]
 - T001 任务完成
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" T001
     [ "$status" -eq 0 ]
 }
 
-@test "CL.5 check-changelog.sh task_id 在历史版本 期望 exit 1" {
+@test "CL.5 check-changelog.py task_id 在历史版本 期望 exit 1" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -70,7 +70,7 @@ EOF
 ## [Unreleased]
 - 新内容
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" T001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" T001
     # task_id 在历史版本不算在 [Unreleased] → exit 1
     [ "$status" -eq 1 ]
 }
@@ -80,7 +80,7 @@ EOF
 # 新格式 TAG0001（无数字紧邻 T）用该正则会提取为空，CHANGELOG 无法记录 —— F17。
 # 改造后直接匹配完整 task_id（去掉短前缀截断），CL.6/CL.7/CL.8 改测新格式行为。
 
-@test "CL.6 BDD-27: CHANGELOG 含完整新格式 task_id TAG0001 → 直接匹配成功" {
+@test "CL.6 BDD-27: check-changelog.py CHANGELOG 含完整新格式 task_id TAG0001 → 直接匹配成功" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -90,11 +90,11 @@ EOF
 ### Fixed
 - TAG0001: 完成 v2.0 结构化改造
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" TAG0001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" TAG0001
     [ "$status" -eq 0 ]
 }
 
-@test "CL.7 BDD-27: CHANGELOG 只含 TAG00012（另一任务的更长编号）时 TAG0001 不误匹配" {
+@test "CL.7 BDD-27: check-changelog.py CHANGELOG 只含 TAG00012（另一任务的更长编号）时 TAG0001 不误匹配" {
     local repo
     repo=$(git_init)
     cd "$repo"
@@ -104,7 +104,7 @@ EOF
 ### Fixed
 - TAG00012: 其他任务条目
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" TAG0001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" TAG0001
     [ "$status" -eq 1 ]
     [[ "$output" == *"未找到"* ]]
 }
@@ -122,6 +122,6 @@ EOF
 ### Fixed
 - TAG0001: 消除 check-changelog 短前缀提取摩擦
 EOF
-    run bash "$AGATE_SCRIPTS/check-changelog.sh" TAG0001
+    run "$PYTHON" "$AGATE_SCRIPTS/check-changelog.py" TAG0001
     [ "$status" -eq 0 ]
 }

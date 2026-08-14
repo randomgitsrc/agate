@@ -76,3 +76,55 @@ implementation_dir: agate/scripts/
 - `_bash_cmd`/`_find_bash` 于批次 2 随 check-gate.py / check-tdd-red.py / check-p6-provenance.py 落地逐个删除
 - 批次 3 薄壳 `resolve_agate_root` / `probe_python` 供 pre-commit-gate.py 等复用
 - gate-result.sh / agate-workspace-resolve.sh 的 sh 版本在本批次保留（批次 1-3 各调用方 py 化后才删档）
+
+---
+
+# P4 实现记录 — 批次 1a（check-changelog / check-frontmatter / check-state-yaml / check-scope-resolved py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 4 个 .py（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 | 依赖既有 py（subprocess + sys.executable） |
+|------|--------|------------------------------------------|
+| `agate/scripts/check-changelog.py` | `check-changelog.sh` | `agate-changelog-unreleased.py`（env CHANGELOG_FILE） |
+| `agate/scripts/check-frontmatter.py` | `check-frontmatter.sh` | `agate-frontmatter-check.py`（env FILE） |
+| `agate/scripts/check-state-yaml.py` | `check-state-yaml.sh` | `agate-state-yaml-check.py`（env STATE_FILE） |
+| `agate/scripts/check-scope-resolved.py` | `check-scope-resolved.sh` | `agate-md-field-get.py scope_resolved`（env FILE） |
+
+- 全部 `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）；pyyaml fail-closed 由依赖 py 自带（无新增 yaml import）
+- CLI 契约与 sh 版逐字节等价（exit 0/1/2 语义 + stderr 输出格式，已手动 diff 验证）
+
+### 改动 4 个 bats 文件（调用点 .sh → .py，`@test` 数不变）
+
+- `unit/check-changelog.bats`：8 处 `run bash .../check-changelog.sh` → `run "$PYTHON" .../check-changelog.py`（含 @test 名）
+- `unit/check-frontmatter.bats`：CF.10 2 处调用改 py（其余用例本就直调 agate-frontmatter-check.py）
+- `unit/check-state-yaml.bats`：9 处调用改 py
+- `unit/check-scope-resolved.bats`：10 处调用改 py
+
+### 其他引用核查（确认无需改动）
+
+- `unit/dispatch-context-warning.bats` L31/36/37 的 `cp "$AGATE_ROOT/scripts/check-*.sh"` 是复制到 fake root 供**仍为 sh 的 pre-commit-gate.sh**（批次 3 才 py 化）调用，本批次保持 .sh 复制不变
+- `integration/consistency.bats` / `pre-commit-hook.bats`：仅注释/@test 名提到脚本，非调用点；consistency 锚点表路径随批次 4 同步（本批次 .sh 仍存在，锚点不 ERROR）
+- `unit/agate-debt-check.bats`：grep 无本批脚本引用
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `bats unit/check-changelog.bats`：8/8 绿
+- `bats unit/check-frontmatter.bats`：14/14 绿
+- `bats unit/check-state-yaml.bats`：9/9 绿
+- `bats unit/check-scope-resolved.bats`：10/10 绿
+- `check-protocol-consistency.py`：0 ERROR（全部通过）
+- `py_compile`：4 个新 py 均编译通过
+
+## 偏离点
+
+[DESIGN_GAP: 批次 1a 的 bats 自查发现并处理一个 sh→py 语义差异——sh 命令替换 $(...) 会剥掉子进程输出尾部换行，而 Python subprocess capture 不剥。check-scope-resolved.py 的 agate-md-field-get scope_resolved 空结果时 print 仍输出 "\n"，sh 版 $(...) 收尾为空串落到正文回退判定，py 版若直接判非空会误走 frontmatter 分支（SC.4 红）。实现采用 .rstrip("\n") 等价 sh $(...) 语义；check-changelog.py 的 agate-changelog-unreleased 输出同样处理]
+
+> 实现说明（非 DESIGN_GAP）：check-changelog.py 的 post-bump 模式分支（check-changelog.sh L20-24）在本批 4 个 bats 无直接用例覆盖，已手动与 sh 版逐字节对比验证（含"无版本段落" fail 分支 exit 1 + stderr）。

@@ -26,3 +26,15 @@
 - [x] 更新 P4-implementation.md（含 implementation_dir 声明 + DESIGN_GAP + 自查结果）
 - [x] 最终自查：grep 确认 resolve_workspace/write_gate_result/probe_python 落盘、ci-gate-backstop 改调、bats 调用改 py
 - [x] 批次 0 完成（ci-gate-backstop.bats 断言本就全绿无需改动，其余 2 个 bats 已改）
+
+## 批次 1a（implementer）
+
+- [x] 读 dispatch-context batch1a（4 脚本范围 + 迁移规则 + bats 调用点改造）
+- [x] 读 P2 §3.2 批次 1 + §3.5 锚点同步 + 参考 agate_common.py / agate-state-get.py
+- [x] 全读 4 个 .sh 迁移源 + 依赖 py（agate-changelog-unreleased / agate-frontmatter-check / agate-state-yaml-check / agate-md-field-get）
+- [x] 读 4 个 bats + dispatch-context-warning / consistency / pre-commit-hook 引用核查
+- [x] 新建 4 个 .py（check-changelog / check-frontmatter / check-state-yaml / check-scope-resolved）
+- [x] 改 4 个 bats 调用点（.sh → $PYTHON .py），@test 数不变
+- [x] 自查：8/14/9/10 全绿；consistency 0 ERROR；py_compile 通过；sh/py 输出逐字节等价（含 post-bump / AGATE_CARD 剥离边界）
+- [x] 更新 P4-implementation.md 批次 1a 节（含 1 条 DESIGN_GAP：$(...) 尾部换行剥离语义）
+- [x] 自查完成返回
