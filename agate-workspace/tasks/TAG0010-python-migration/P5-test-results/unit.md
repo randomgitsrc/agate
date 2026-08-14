@@ -87,3 +87,7 @@ timeout 300 python3 agate/scripts/ci-gate-backstop.py 2>&1 | tail -20
 ## 结论
 
 gate_commands.P5 全部 5 条命令 exit 0 + failed=0 → **P5 通过**。
+
+## flaky 记录（P8 bump 后 P5 重跑）
+
+- ARCH.4（agate-archive-stale-outputs.bats）：全量跑偶发失败（时间戳碰撞：两次归档用 sleep 1 区分，高负载时可能同秒 → count=1）。单跑 7/7 绿、重跑全量 733/733 绿。三振记录第 1 次。非产品 bug。
