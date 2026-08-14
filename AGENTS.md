@@ -48,15 +48,14 @@
 - shellcheck
 - ruff（Python 化后替代 shellcheck 对 py 的检查——TAG0010 起生效；运行 agate 不需要，开发 agate 需要）
 
-## 开发环境（本机）
+## 开发环境（建议做法，非硬性要求）
 
-> 本机全部工具环境布局见全局 `~/.config/opencode/instructions/environment-map.md`（所有 opencode 项目共享）。
+> 运行 agate 只需系统 python3 + pyyaml（见上方「依赖」）。本节讲**开发 agate 本体**（改协议/脚本）时的环境建议。
 
-- **开发 agate 用 `~/.venvs/agate-dev/`**（单一共享 venv：python 3.12 + pyyaml + ruff）。
-  - 所有 worktree 共享此环境（agate 是同一仓库多 checkout，代码一致环境也该一致）。
-  - 使用：`~/.venvs/agate-dev/bin/python` / `.../bin/ruff`（不激活绝对路径调用），或 `source ~/.venvs/agate-dev/bin/activate`。
-  - **运行 agate 不需要这个 venv**（只需系统 python3 + pyyaml）——它只服务"开发 agate 本体"。
-- **通用惯例**：Python 项目开发环境统一 `~/.venvs/{项目}-dev/`，一个项目一个 venv，不往系统 pip 乱装。
+- **开发 agate 建议用专用虚拟环境**（`python3 -m venv` 或 uv/conda），装 pyyaml + ruff（Python 化后替代 shellcheck 对 py 的检查）。
+- 依赖极简（pyyaml + ruff），任何隔离方式都行——不强制特定工具或路径。
+- **运行 agate 不需要这个环境**——它只服务"开发 agate 本体"。
+- worktree 开发时（同一仓库多 checkout），各 checkout 共用同一开发环境即可（代码一致，环境也该一致）。
 
 ## 开发命令
 
