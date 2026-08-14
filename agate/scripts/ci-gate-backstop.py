@@ -88,20 +88,15 @@ def get_pr_metadata(platform: str) -> dict:
 def resolve_tasks_dir(project_root: str) -> str:
     """通过工作区解析器取 tasks 基目录（与 bash 侧共用同一解析逻辑，BDD-13）。
 
-    解析器不存在时（旧 AGATE_ROOT）退回 env/default，保证向后兼容。
+    批次 0 改造：改调 agate_common.resolve_workspace（消除对 agate-workspace-resolve.sh
+    的 bash subprocess）。解析器不存在时（旧 AGATE_ROOT）退回 env/default，保证向后兼容。
     """
-    script = _AGATE_ROOT / "scripts/agate-workspace-resolve.sh"
-    if not script.exists():
+    try:
+        import agate_common
+    except ImportError:
         return str(Path(project_root) / os.environ.get("AGATE_TASKS_DIR", "docs/tasks"))
-    result = subprocess.run(
-        _bash_cmd([str(script), str(project_root)]),
-        capture_output=True, text=True, encoding="utf-8", errors="replace"
-    )
-    if result.returncode == 0:
-        for line in result.stdout.splitlines():
-            if line.startswith("AGATE_TASKS_DIR="):
-                return line[len("AGATE_TASKS_DIR="):].strip()
-    return str(Path(project_root) / os.environ.get("AGATE_TASKS_DIR", "docs/tasks"))
+    _workspace, tasks_dir = agate_common.resolve_workspace(project_root)
+    return str(tasks_dir)
 
 
 def _read_p1_change_type(task_dir: str) -> str:

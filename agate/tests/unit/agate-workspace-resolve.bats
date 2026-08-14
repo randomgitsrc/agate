@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 # tests/unit/agate-workspace-resolve.bats — 工作区路径解析器单元测试（TAG0003）
-# 被测：agate/scripts/agate-workspace-resolve.sh（P4 实现，当前不存在 → P3 红灯）
+# 被测：agate/scripts/agate_common.py（resolve_workspace 执行模式，P4 批次 0）
 #
 # 接口契约（P2-design.md §3.1，P4 实现必须满足）：
-#   bash agate-workspace-resolve.sh [PROJECT_ROOT]   # PROJECT_ROOT 默认 $PWD
+#   python3 agate_common.py [PROJECT_ROOT]   # PROJECT_ROOT 默认 $PWD
 #   输出两行：AGATE_WORKSPACE=<绝对路径> 与 AGATE_TASKS_DIR=<绝对路径>
 #   解析优先级：.agate.env 显式配置(AGATE_WORKSPACE=) > 环境变量 AGATE_TASKS_DIR > 默认 agate-workspace/
 
@@ -22,7 +22,7 @@ tasks_out() {
 # 在指定项目根上运行解析器（未配置任何环境变量）
 run_resolve() {
     local project="$1"
-    run bash -c "bash '$AGATE_SCRIPTS/agate-workspace-resolve.sh' '$project'"
+    run "$PYTHON" "$AGATE_SCRIPTS/agate_common.py" "$project"
 }
 
 @test "WR.1 [BDD-2] 默认工作区位置为项目内 agate-workspace/" {
@@ -79,7 +79,7 @@ run_resolve() {
     local project tasks_base
     project=$(mktemp -d "$BATS_TEST_TMPDIR/ws-XXXXXX")
     tasks_base=$(realpath -m "$project/legacy-tasks")
-    run env AGATE_TASKS_DIR="$tasks_base" bash -c "bash '$AGATE_SCRIPTS/agate-workspace-resolve.sh' '$project'"
+    run env AGATE_TASKS_DIR="$tasks_base" "$PYTHON" "$AGATE_SCRIPTS/agate_common.py" "$project"
     [ "$status" -eq 0 ]
     [ "$(tasks_out)" = "$tasks_base" ]
 }
@@ -88,7 +88,7 @@ run_resolve() {
     local project
     project=$(mktemp -d "$BATS_TEST_TMPDIR/ws-XXXXXX")
     printf 'AGATE_WORKSPACE=env-wins\n' > "$project/.agate.env"
-    run env AGATE_TASKS_DIR="$(realpath -m "$project/ignored-tasks")" bash -c "bash '$AGATE_SCRIPTS/agate-workspace-resolve.sh' '$project'"
+    run env AGATE_TASKS_DIR="$(realpath -m "$project/ignored-tasks")" "$PYTHON" "$AGATE_SCRIPTS/agate_common.py" "$project"
     [ "$status" -eq 0 ]
     [ "$(ws_out)" = "$(realpath -m "$project/env-wins")" ]
     [ "$(tasks_out)" = "$(realpath -m "$project/env-wins/tasks")" ]
@@ -118,7 +118,7 @@ run_resolve() {
 
 # ========== TAG0004 其他-a：.agate.env CR 剥离（BDD-18） ==========
 
-@test "bdd-18 agate-workspace-resolve.sh .agate.env 尾部 \\r 不污染 AGATE_WORKSPACE 解析（其他-a）" {
+@test "bdd-18 agate_common.py .agate.env 尾部 \\r 不污染 AGATE_WORKSPACE 解析（其他-a）" {
     local project
     project=$(mktemp -d "$BATS_TEST_TMPDIR/ws-XXXXXX")
     printf 'AGATE_WORKSPACE=ws-crlf\r\n' > "$project/.agate.env"

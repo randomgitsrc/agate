@@ -31,41 +31,32 @@ load ../helpers/load.bash
     [[ "$result" == "$fakebin/python" ]]
 }
 
-@test "bdd-17 无 python3 环境 + shim：非法回退 P4→P2 仍 exit 1 不静默放行（BDD-17/26）" {
-    # 模拟"python3 不可用"（Windows 无 python3 命令）：fakebin 放一个 exit 127 的 python3 stub
-    local fakebin
-    fakebin="$BATS_TEST_TMPDIR/nopy3"
-    mkdir -p "$fakebin"
-    printf '#!/usr/bin/env bash\nexit 127\n' > "$fakebin/python3"
-    chmod +x "$fakebin/python3"
-    local shim
-    shim=$(create_python_shim_bin --force) || skip "无 python 解释器"
+@test "bdd-17 probe_python 探测 python3→python 回退 + 失败返回空（fail-closed 阻断，BDD-17/26）" {
+    # P2 §3.6 bdd-17 重构：py 自举后不再依赖 bash shim，改为 agate_common.probe_python
+    # （python3 → python 顺序探测；无 python 时返回空 → 调用方须 fail-closed 阻断）
+    local scripts_py
+    scripts_py=$(py_path "$AGATE_SCRIPTS")
 
-    # P4→P2 非法回退（差 2 ≥ 跳变阈值）
-    local repo
-    repo=$(git_init)
-    mkdir -p "$repo/agate-workspace/tasks/T001"
-    cat > "$repo/.state.yaml" <<'EOF'
-task_id: T001
-phase: P4
-status: active
-retries: {}
-EOF
-    git -C "$repo" add .state.yaml
-    git -C "$repo" commit -qm "P4"
-    cat > "$repo/.state.yaml" <<'EOF'
-task_id: T001
-phase: P2
-status: active
-retries: {}
-EOF
-    git -C "$repo" add .state.yaml
-
-    # 无 shim：python3 stub 失败 → 读不到 phase → 静默 exit 0（41 例根因复现）
-    run env PATH="$fakebin:$PATH" bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
+    # ① 正常环境：probe_python 解析到可用 python
+    run env PYTHONPATH="$scripts_py" "$PYTHON" -c "import agate_common; print(agate_common.probe_python() or '')"
     [ "$status" -eq 0 ]
+    [ -n "$output" ]
 
-    # 有 shim：shim 的 python3 指向真解释器 → 正确 exit 1（不静默放行）
-    run env PATH="$shim:$fakebin:$PATH" bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-state-transition.sh' .state.yaml"
-    [ "$status" -eq 1 ]
+    # ② PATH 仅含 python（无 python3）→ probe_python 回退 python
+    local fakebin real_py
+    fakebin="$BATS_TEST_TMPDIR/pyonly"
+    mkdir -p "$fakebin"
+    real_py=$(command -v python 2>/dev/null || command -v python3 2>/dev/null || true)
+    [ -n "$real_py" ] || skip "无 python 解释器"
+    printf '#!/usr/bin/env bash\nexec "%s" "$@"\n' "$real_py" > "$fakebin/python"
+    chmod +x "$fakebin/python"
+    run env PATH="$fakebin" PYTHONPATH="$scripts_py" "$PYTHON" -c "import agate_common; print(agate_common.probe_python() or '')"
+    [[ "$output" == *"$fakebin/python"* ]]
+
+    # ③ PATH 无任何 python → probe_python 返回空（调用方 fail-closed 阻断，不静默放行）
+    local emptybin
+    emptybin="$BATS_TEST_TMPDIR/emptybin"
+    mkdir -p "$emptybin"
+    run env PATH="$emptybin" PYTHONPATH="$scripts_py" "$PYTHON" -c "import agate_common; print(agate_common.probe_python() or 'NONE')"
+    [[ "$output" == *"NONE"* ]]
 }
