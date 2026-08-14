@@ -21,7 +21,7 @@
 | TAG0007 | agate 项目结构管理：0→1 骨架（RM-0008）/ code-map + 架构演进（RM-0009）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
 | TAG0008 | agate 版本管理机制（v1）：多版本共存 + 项目锁定 + 程序化安装/升级（agate-install / agate-resolve / hook 解析入口 / summary 版本显示）| ⏸️ | P0 | 高 | TAG0010 | 2026-08-13 | 2026-08-14 |
 | TAG0009 | agate 测试套件平台无关化：78 个 Windows bats 失败根治（静态扫描器 gate + 批量修正 + Linux 模拟覆盖 Windows 分支）| ✅✅ | READY | 高 | TAG0004 | 2026-08-13 | 2026-08-14 |
-| TAG0010 | agate 产品逻辑 Python 化（阶段一）：30 个 sh → py（hook 保留 sh 薄壳），消解 bash 在 Windows 模拟层问题；TAG0008 依赖本任务 | 🔄 | P2 | 高 | — | 2026-08-14 | 2026-08-14 |
+| TAG0010 | agate 产品逻辑 Python 化（阶段一）：30 个 sh → py（hook 保留 sh 薄壳），消解 bash 在 Windows 模拟层问题；TAG0008 依赖本任务 | 🔄 | P3 | 高 | — | 2026-08-14 | 2026-08-14 |
 | TAG0011 | agate 测试框架迁移（阶段二）：58 个 .bats → pytest + 协议文档全量重写 + CI 同步（达成全 Python）| ⬜ | P0 | 高 | TAG0010 | 2026-08-14 | 2026-08-14 |
 
 ### 已完成
