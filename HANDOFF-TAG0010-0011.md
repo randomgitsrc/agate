@@ -27,7 +27,12 @@
 
 **已完成的 setup**：
 - 依赖：bash / python 3.12 / pyyaml / bats 1.10 / shellcheck。
-- **ruff**：TAG0010 引入的**新开发 gate**（替代 shellcheck 对 py 的检查；**运行 agate 不需要**）。安装方式（CI 装 / 本地统一环境 / pyproject.toml 声明）是 **TAG0010 P1 设计决策项**——避免各装各的环境混乱。本机未装（已清理尝试）。
+- **共享开发环境已建立**（2026-08-14，解决"各装各的环境乱"）：
+  - `~/.venvs/agate-dev/`：单一共享 venv（python 3.12 + pyyaml 6.0.3 + ruff 0.16.3）
+  - 所有 worktree 共享此环境（agate 是同一仓库多 checkout，代码一致环境也该一致）
+  - **进入 worktree 直接用**（不激活，绝对路径调用）：`~/.venvs/agate-dev/bin/python` / `~/.venvs/agate-dev/bin/ruff`
+  - 或激活：`source ~/.venvs/agate-dev/bin/activate`
+  - ruff 是 TAG0010 引入的新开发 gate（替代 shellcheck 对 py 的检查；**运行 agate 不需要**）。正式声明文件（pyproject.toml/requirements-dev.txt）由 TAG0010 P1 设计，本环境先就位
 - 基线：733 bats 全绿 + consistency 0 ERROR（--strict）
 - hook / orchestrator / 工作区解析：全部就位
 - 任务数据：TAG0010 + TAG0011 都在 worktree（phase=P0）
