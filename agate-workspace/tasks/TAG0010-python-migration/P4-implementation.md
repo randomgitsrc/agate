@@ -394,3 +394,60 @@ implementation_dir: agate/scripts/
 [SCOPE+]: `unit/check-state-transition.bats` 的 `setup()` python3 shim（TAG0009 BDD-16/17）在 py 版下已无作用（脚本经 `$PYTHON` 直调 + 内部 `sys.executable`，不再裸调 python3）——按最小实现原则保留不动（批次 2a check-retrospective.bats / agate-debt-check.bats 同款先例），记录供后续清理]
 
 > 实现说明（非 DESIGN_GAP）：agate-retreat-to.py 对 `git commit` 失败（含 pre-commit hook 拒绝）在 `if rc != 0` 分支报「已停在 P{old}」并 exit 1——与 sh `|| { ...; exit 1 }` 语义一致；hook 拒绝场景的集成行为由 IT_RETREAT.2（真实 hook 仓库）在主 Agent 侧验证。
+
+---
+
+# P4 实现记录 — 批次 2c（check-pruning / agate-capture-env-baseline py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 2 个 .py（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/check-pruning.py` | `check-pruning.sh` | `agate_common.run_git`（try/except 兜底 None）+ `agate-md-field-get.py`（env FILE，sys.executable subprocess） |
+| `agate/scripts/agate-capture-env-baseline.py` | `agate-capture-env-baseline.sh` | `agate_common.resolve_formatter / run_test_with_formatter / run_git` + `agate-read-p5-commands.py`（env P2_DESIGN，sys.executable subprocess） |
+
+- 全部 `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：exit 0/1/2 语义 + stderr 输出格式（GATE PRUNING / ENV_BASELINE 消息逐字节一致，已手动 sh vs py 实测 diff 验证）
+- `$(...)` 剥尾换行 → `.rstrip("\n")`（agate-md-field-get / agate-read-p5-commands stdout 均处理）
+- check-pruning.py：`grep -qw 'P{phase}'` 词匹配 → `phase in phases_declared.split()`；`grep -c '^override:'` → `re.findall(..., MULTILINE)`；`grep -qE` → `re.search(..., MULTILINE)`；P2.9 产出文件 glob → `glob.glob` + `os.path.isfile` + basename；git 路径归一 `realpath -m`/`realpath --relative-to` → `os.path.realpath`/`os.path.relpath`
+- agate-capture-env-baseline.py：`sha256sum | cut` → `hashlib.sha256().hexdigest()`；`agate-json-get.py` 6 处取数 → `json.loads` 直接等价（见偏离点）；`cp` → `shutil.copyfile`；`mkdir -p` → `os.makedirs(exist_ok=True)`；缓存文件格式（frontmatter + fail-list code block）与 sh 逐字节一致（差异仅 generated_by 后缀，见偏离点）
+
+### 改动 4 个 bats 文件（调用点 .sh → .py，`@test` 数不变）
+
+- `unit/check-pruning.bats`：29 处调用改 py（`run "$PYTHON" "$AGATE_SCRIPTS/check-pruning.py"`，P2.6a/b 的 `bash -c` 内联改为 `'$PYTHON' '.../check-pruning.py'`）；24 个 @test 名 + 头部注释脚本名改 .py（29 用例不变）
+- `regression/v060-p8-internal-only.bats`：3 处调用改 py + 注释脚本名（3 用例不变）
+- `regression/v060-r4-cached.bats`：2 处 `bash -c` 内联调用改 py + 注释（2 用例不变）
+- `unit/agate-capture-env-baseline.bats`：15 处调用改 py（含 EB.11 的 `env GIT_DIR=...` 形态改 `"$PYTHON"`；EB.4-15 的 `bash -c` 内联改 `'$PYTHON'`）；头部注释 + setup_git_repo_with_p2 内注释（15 用例不变）
+- `tests/helpers/git-helper.bash` L3：注释脚本名 `.sh` → `.py`
+
+### 其他引用核查（确认无需改动）
+
+- `unit/dispatch-context-warning.bats` L35：`cp "$AGATE_ROOT/scripts/check-pruning.sh"` 复制到 fake root 供**仍为 sh 的 pre-commit-gate.sh**（批次 3 才 py 化）调用，保持 .sh 复制不变
+- `unit/check-gate-p5-diff.bats` L14：`generated_by: agate-capture-env-baseline.sh` 为 make_baseline fixture 手写基线文档头，非调用点 → 不改
+- `agate/scripts/pre-commit-gate.sh` L207 / `agate-summary.sh` L46/62 / `agate-summary.py` L28/33：仍引用 .sh（批次 3/4 迁移对象），非本批次范围
+- `check-protocol-consistency.py` 锚点表（CHECK8/CHECK9 的 check-pruning.sh 条目）：.sh 仍存在，锚点不 ERROR → 不改（随批次 4 文档引用同步）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：check-pruning.py / agate-capture-env-baseline.py 均编译通过
+- 手动 sh vs py 输出 diff（多场景实测，stderr + exit code 逐字节一致）：
+  - check-pruning.py：缺 risk_level → 8 条错误全量一致；happy path → exit 0；P7 裁剪 + 6 源码文件（真实 git repo）→ 「源码文件数 ≤ 5，实际=6」；P7 + coupling_checklist → exit 0；P8 + internal_only + reason → exit 0；P8 无 internal_only → exit 1；implicit_coupling → exit 1；legacy-fields（--legacy-fields）→ exit 1；YAML 块式 phases（P2.52）→ exit 0；P2.9 产出文件 + 无 override → exit 1；无 P1 文件 → exit 2
+  - agate-capture-env-baseline.py：EB.1 幂等 → 无输出 exit 0；EB.2 P2 缺失 → WARNING；EB.3 无 P5 → WARNING；EB.4 捕获写入缓存+任务文件（失败数=3 逐字节一致）；EB.5 缓存复用（commit 未变）；EB.6 commit 变 → 重捕获；EB.7 命令集合变 → 重捕获；EB.8 崩溃 exit 127 → 不写文件；EB.9 计数不一致 → 不写文件；EB.10 多命令合并去重（3 条）；EB.11 非 git 仓库 → WARNING 不写文件；EB.13/EB.15 pytest/vitest formatter fail-list 提取；EB.14 无 formatter → 不写文件
+  - 缓存 key 与 sh `printf '%s\n%s' | sha256sum | cut -d' ' -f1` 逐字节一致（实测同一 commit+P5_DATA 下 sh/py 输出同 hex）
+
+## 偏离点
+
+[DEVIATION: agate-capture-env-baseline.py 不再 subprocess 调 `agate-json-get.py`（sh 版 6 处 `echo "$P5_DATA" | python3 agate-json-get.py ...`），改为 `json.loads` 直接等价取数（exit_code / failed_tests / failed / errors / commands 长度）——agate-json-get.py 本身就是 JSON 提取工具，py 版已是 Python 无需再经子进程；行为等价（已实测），属实现层面等价替换]
+
+[DEVIATION: agate-capture-env-baseline.py 的缓存文件 `generated_by:` 字段写 `.py` 后缀（sh 版写 `agate-capture-env-baseline.sh`）——与新脚本名一致（batch 1a/1b/1c/2a/2b 同款先例）；`check-gate.sh` P5 diff 只读 `captured_at_commit:`，不消费该字段；bats 无断言依赖 → 不改 fixture]
+
+> 实现说明（非 DEVIATION）：check-pruning.py 的 `phases` 词匹配用 `phases_declared.split()` 集合成员判定（等价 sh `grep -qw`）——md-field-get 输出的 phases 是空格连接列表，`-w` 整词语义与 split 一致；`source_count` 的正则 `re.search` 逐行判定等价 sh `grep -cvE`（含 TASKS_BASE_REL 空串时 `^/` 模式与 sh 逐字节一致）。

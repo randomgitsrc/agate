@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 # tests/regression/v060-r4-cached.bats — 回归测试：裁剪 P7 用 --cached 不是 HEAD~1
-# 触发：fabca40 "feat(hardening): check-pruning.sh 补 P7/P8 裁剪条件"
+# 触发：fabca40 "feat(hardening): check-pruning.py 补 P7/P8 裁剪条件"
 # 教训：pre-commit 时本次变更还没进 HEAD，用 HEAD~1 会看不到
 # T001 v2.0 流 A（BDD-1）改写：coupling_checklist 现由 add_p1_field 写入
-# P1-requirements.md 的 frontmatter 块（详见 fixtures.bash），check-pruning.sh
+# P1-requirements.md 的 frontmatter 块（详见 fixtures.bash），check-pruning.py
 # 仍能正确读取。@test 数保持 2 不变。
 
 load ../helpers/load.bash
@@ -22,7 +22,7 @@ load ../helpers/load.bash
     cp -r "$dir" "$repo/task"
     # 暂存新增的 6 个 src_*.py
     git -C "$repo" add src_*.py
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-pruning.sh' 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-pruning.py' 'task'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"裁剪 P7 需源码文件数"* ]]
 }
@@ -41,6 +41,6 @@ load ../helpers/load.bash
     done
     cp -r "$dir" "$repo/task"
     git -C "$repo" add src_*.py
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-pruning.sh' 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-pruning.py' 'task'"
     [ "$status" -eq 0 ]
 }

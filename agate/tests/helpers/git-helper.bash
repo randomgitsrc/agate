@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/helpers/git-helper.bash — 临时 git 仓库工具
-# 用于测试 check-pruning.sh / check-state-transition.sh / pre-commit-hook 等需要真实 git 的脚本
+# 用于测试 check-pruning.py / check-state-transition.sh / pre-commit-hook 等需要真实 git 的脚本
 #
 # 用法：
 #   repo=$(git_init)
