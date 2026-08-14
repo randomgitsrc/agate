@@ -1,13 +1,13 @@
 #!/usr/bin/env bats
-# tests/unit/agate-debt-check.bats — agate-debt-check.py / check-debt.sh（TAG0001 技术债登记闭环）
+# tests/unit/agate-debt-check.bats — agate-debt-check.py / check-debt.py（TAG0001 技术债登记闭环）
 #
 # 新增交付物（P2-design.md §2.1-2.5 + gate_commands.P3，P2 固化）：
-#   - check-debt.sh FILE        = 默认 FILE 模式：tech-debt.md schema 校验（fail-closed）
-#   - check-debt.sh --retreat-coverage = 回退覆盖比对（只读 WARNING；依赖加载失败 exit 2，无 retreat 提交等有意跳过 exit 0）
+#   - check-debt.py FILE        = 默认 FILE 模式：tech-debt.md schema 校验（fail-closed）
+#   - check-debt.py --retreat-coverage = 回退覆盖比对（只读 WARNING；依赖加载失败 exit 2，无 retreat 提交等有意跳过 exit 0）
 #   - agate-debt-check.py       = 多条目 schema 校验器（` ```yaml ` fenced 块解析）
 #
 # 覆盖 P1-requirements.md 的 20 条 BDD（1:1：test_bdd_N_* 命名，N = BDD 编号）。
-# 当前全部红灯（TDD）：check-debt.sh / agate-debt-check.py 尚未实现（P4 交付）；
+# 当前全部红灯（TDD）：check-debt.py / agate-debt-check.py 尚未实现（P4 交付）；
 # BDD-1..4 / 12 / 16 / 18 / 19 / 20 为协议文档锚点（P4 同步修改），红灯因"被测模块未改"。
 # check-gate.sh P8 的 debt_check 行为用例见 tests/unit/check-gate.bats 的 G8.9 / G8.10。
 
@@ -117,7 +117,7 @@ source: review
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/tech-debt.md"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -145,7 +145,7 @@ source: review
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/tech-debt.md"
     [ "$status" -eq 1 ]
     [[ "$output" == *"evidence"* ]]
 }
@@ -175,7 +175,7 @@ source: review
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/tech-debt.md"
     [ "$status" -eq 1 ]
     [[ "$output" == *"category"* ]]
 }
@@ -206,7 +206,7 @@ source: review
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/closed-no-task.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/closed-no-task.md"
     [ "$status" -eq 1 ]
     [[ "$output" == *"task_id"* ]]
     # 子场景 2：closed 有 task_id 但 evidence 未引用 P5/P6
@@ -232,7 +232,7 @@ source: review
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/closed-no-evidence-ref.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/closed-no-evidence-ref.md"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P5"* || "$output" == *"P6"* || "$output" == *"evidence"* ]]
 }
@@ -263,7 +263,7 @@ source: review
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/open-with-task.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/open-with-task.md"
     [ "$status" -eq 0 ]
     cat > "$dir/fourth-state.md" <<'EOF'
 # 技术债登记
@@ -286,7 +286,7 @@ source: review
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/fourth-state.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/fourth-state.md"
     [ "$status" -eq 1 ]
     [[ "$output" == *"status"* ]]
 }
@@ -295,18 +295,18 @@ EOF
     # 无文件 / 空文件 / 无 yaml 块（旧格式纯正文）→ exit 0 无输出（向后兼容，BDD-10）
     local dir
     dir=$(mktemp -d "$BATS_TEST_TMPDIR/debt-XXXXXX")
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/not-exist.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/not-exist.md"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
     : > "$dir/empty.md"
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/empty.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/empty.md"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
     cat > "$dir/prose-only.md" <<'EOF'
 # 技术债登记
 旧格式纯正文，无 yaml 块。
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/tech-debt.md"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -415,7 +415,7 @@ source: retrospective
 created_at: 2026-08-12
 ```
 EOF
-    run bash "$AGATE_SCRIPTS/check-debt.sh" "$dir/tech-debt.md"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-debt.py" "$dir/tech-debt.md"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -440,7 +440,7 @@ EOF
     repo=$(git_init)
     echo "init" > "$repo/README.md" && git_commit "$repo" "init"
     git -C "$repo" commit -qm "retreat: P6 -> P4（诊断：测试回退）" --allow-empty
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-debt.sh' --retreat-coverage"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/check-debt.py' --retreat-coverage"
     [ "$status" -eq 0 ]
     [[ "$output" == *"GATE DEBT WARNING"* ]]
 }
@@ -476,7 +476,7 @@ created_at: 2026-08-12
 ```
 EOF
     sed -i "s/@HASH@/$short/" "$repo/agate-workspace/debt/tech-debt.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-debt.sh' --retreat-coverage"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/check-debt.py' --retreat-coverage"
     [ "$status" -eq 0 ]
     [[ "$output" != *"GATE DEBT WARNING"* ]]
 }
@@ -489,7 +489,7 @@ EOF
     git -C "$repo" commit -qm "retreat: P5 -> P4（诊断：BDD-17: check-p6-format.sh --fix 破坏 frontmatter pass/fail 字段，需修复（用户已批准 2026-08-10））" --allow-empty
     git -C "$repo" commit -qm "retreat: P6 -> P5（诊断：BDD-17: check-p6-format.sh --fix 破坏 frontmatter pass/fail 字段，需修复（用户已批准 2026-08-10））" --allow-empty
     # 方向 A：未建条目 → 报缺失 WARNING
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-debt.sh' --retreat-coverage"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/check-debt.py' --retreat-coverage"
     [ "$status" -eq 0 ]
     [[ "$output" == *"GATE DEBT WARNING"* ]]
     # 方向 B：已建条目且 evidence 引用两个提交 → 通过
@@ -537,17 +537,17 @@ created_at: 2026-08-12
 ```
 EOF
     sed -i "s/@HASH1@/$s1/; s/@HASH2@/$s2/" "$repo/agate-workspace/debt/tech-debt.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-debt.sh' --retreat-coverage"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/check-debt.py' --retreat-coverage"
     [ "$status" -eq 0 ]
     [[ "$output" != *"GATE DEBT WARNING"* ]]
 }
 
-@test "test_bdd_16 check-debt.sh --retreat-coverage 缺 agate-workspace-resolve.sh -> exit 2 + stderr 报错（BDD-16）" {
+@test "test_bdd_16 check-debt.py --retreat-coverage 缺 agate-workspace-resolve.sh -> exit 2 + stderr 报错（BDD-16）" {
     # 依赖加载失败属硬失败，不静默当作成功跳过（同类扫描守卫 BDD-16）
     local sdir
     sdir=$(mktemp -d "$BATS_TEST_TMPDIR/debt-XXXXXX")
-    cp "$AGATE_SCRIPTS/check-debt.sh" "$sdir/check-debt.sh"
-    run bash "$sdir/check-debt.sh" --retreat-coverage
+    cp "$AGATE_SCRIPTS/check-debt.py" "$sdir/check-debt.py"
+    run "$PYTHON" "$sdir/check-debt.py" --retreat-coverage
     [ "$status" -eq 2 ]
     [[ "$output" == *"缺少 agate-workspace-resolve.sh"* ]]
 }

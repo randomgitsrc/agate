@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
-# tests/unit/agate-inject-card.bats — agate-inject-card.sh 注入校验
+# tests/unit/agate-inject-card.bats — agate-inject-card.py 注入校验
 
 load ../helpers/load.bash
 
 setup() {
-    INJECT_CMD="$AGATE_SCRIPTS/agate-inject-card.sh"
+    INJECT_CMD="$AGATE_SCRIPTS/agate-inject-card.py"
     # TAG0009 BDD-16/17：harness shim——产品脚本内部裸 python3 在"仅 python 可解析"环境解析到真解释器
     local shim
     shim=$(create_python_shim_bin) || return 1
@@ -43,7 +43,7 @@ role: analyst
 </objective_info>
 EOF
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 0 ]
 
     # 提取注入后的内容（去掉 AGATE_CARD 包装标记）
@@ -99,7 +99,7 @@ EOF
     before_info=$(sed -n '/<!-- AGATE_CARD_END -->/,$p' \
         "$task_dir/P3-dispatch-context-test-designer.md" | tail -n +2)
 
-    run bash "$INJECT_CMD" P3 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P3 "$task_dir"
     [ "$status" -eq 0 ]
 
     local after_guide after_info
@@ -130,7 +130,7 @@ EOF
 <!-- AGATE_CARD_END -->
 EOF
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 0 ]
     [[ "$output" == *"P1-dispatch-context-analyst.md"* ]]
     [[ "$output" == *"P1-dispatch-context-review.md"* ]]
@@ -149,18 +149,18 @@ EOF
     task_dir="$BATS_TEST_TMPDIR/task_empty"
     mkdir -p "$task_dir"
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"不存在"* ]]
 }
 
 @test "无参数时 exit 1" {
-    run bash "$INJECT_CMD"
+    run "$PYTHON" "$INJECT_CMD"
     [ "$status" -eq 1 ]
 }
 
 @test "缺 TASK_DIR 时 exit 1" {
-    run bash "$INJECT_CMD" P1
+    run "$PYTHON" "$INJECT_CMD" P1
     [ "$status" -eq 1 ]
 }
 
@@ -177,7 +177,7 @@ EOF
 <!-- AGATE_CARD_END -->
 EOF
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 0 ]
     [[ "$output" == *"AGATE_CARD 已注入"* ]]
 
@@ -205,7 +205,7 @@ role: analyst
 </dispatch_guide>
 EOF
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"未找到"* ]] || [[ "$output" == *"占位符"* ]]
 }
@@ -223,10 +223,10 @@ EOF
 <!-- AGATE_CARD_END -->
 EOF
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 0 ]
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 0 ]
     [[ "$output" == *"AGATE_CARD 已注入"* ]]
 }
@@ -242,7 +242,7 @@ EOF
 <!-- AGATE_CARD_END -->
 EOF
 
-    run bash "$INJECT_CMD" P3 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P3 "$task_dir"
     [ "$status" -eq 0 ]
 
     local first_hash
@@ -258,7 +258,7 @@ EOF
     echo "" >> "$card_src"
     echo "## 临时测试追加内容" >> "$card_src"
 
-    run bash "$INJECT_CMD" P3 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P3 "$task_dir"
     [ "$status" -eq 0 ]
 
     local second_hash
@@ -290,6 +290,6 @@ role: analyst
 </dispatch_guide>
 EOF
 
-    run bash "$INJECT_CMD" P1 "$task_dir"
+    run "$PYTHON" "$INJECT_CMD" P1 "$task_dir"
     [ "$status" -eq 1 ]
 }

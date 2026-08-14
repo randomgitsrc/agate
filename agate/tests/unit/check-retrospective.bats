@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/check-retrospective.bats — 4 用例覆盖 check-retrospective.sh
+# tests/unit/check-retrospective.bats — 4 用例覆盖 check-retrospective.py
 # 计划：5.9 / 实际 4 行 / 与附录 A 一致
 # 注意：此脚本总是 exit 0，测试只能断言 output 含特定模式
 
@@ -14,16 +14,16 @@ setup() {
     fi
 }
 
-@test "RT.1 check-retrospective.sh 无异常 期望 exit 0 + 无输出" {
+@test "RT.1 check-retrospective.py 无异常 期望 exit 0 + 无输出" {
     local dir
     dir=$(create_task_dir)
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     # 无异常时输出为空
     [ -z "$output" ]
 }
 
-@test "RT.2 check-retrospective.sh retries 超限 期望 exit 0 + 含'重试超限'" {
+@test "RT.2 check-retrospective.py retries 超限 期望 exit 0 + 含'重试超限'" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/.state.yaml" <<'EOF'
@@ -36,7 +36,7 @@ retries:
     - attempt: 2
     - attempt: 3
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [[ "$output" == *"重试超限"* ]]
 }
@@ -82,21 +82,21 @@ EOF
 > render product
 - [SCOPE+] this should be ignored
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [[ "$output" != *"SCOPE+"* ]]
 }
 
-@test "RT.4 check-retrospective.sh override 触发 期望 exit 0 + 含'override'" {
+@test "RT.4 check-retrospective.py override 触发 期望 exit 0 + 含'override'" {
     local dir
     dir=$(create_task_dir)
     sed -i '/^phases:/a override: P2 retained' "$dir/P1-requirements.md"
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [[ "$output" == *"override"* ]]
 }
 
-@test "RT.5 check-retrospective.sh retries[P3]=2 触发超限（P3 MAX=2）" {
+@test "RT.5 check-retrospective.py retries[P3]=2 触发超限（P3 MAX=2）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/.state.yaml" <<'EOF'
@@ -108,12 +108,12 @@ retries:
     - attempt: 1
     - attempt: 2
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [[ "$output" == *"重试超限"* ]]
 }
 
-@test "RT.6 check-retrospective.sh retries[P3]=1 不触发（P3 MAX=2 未达）" {
+@test "RT.6 check-retrospective.py retries[P3]=1 不触发（P3 MAX=2 未达）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/.state.yaml" <<'EOF'
@@ -124,7 +124,7 @@ retries:
   P3:
     - attempt: 1
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -137,7 +137,7 @@ EOF
     cat > "$dir/P2-design.md" <<'EOF'
 检查了 [SCOPE+] 的引用情况
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -150,7 +150,7 @@ EOF
     cat > "$dir/P6-dispatch-context-verifier.md" <<'EOF'
 - [SCOPE+] 发现：新增功能需重新验收
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [[ "$output" != *"SCOPE+"* ]]
 }
@@ -165,7 +165,7 @@ EOF
 <!-- AGATE_CARD_END -->
 正常设计
 EOF
-    run bash "$AGATE_SCRIPTS/check-retrospective.sh" "$dir" "$dir/.state.yaml"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-retrospective.py" "$dir" "$dir/.state.yaml"
     [ "$status" -eq 0 ]
     [[ "$output" != *"SCOPE+"* ]]
 }

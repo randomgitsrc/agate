@@ -276,3 +276,59 @@ implementation_dir: agate/tests/scripts/check-platform-assumptions.bats
 [DEVIATION]: 派发指引 test_bdd_1 建议的断言"`grep -n -- 'grep' <py>` → exit 1"与 py 实际内容不符——py 源码 docstring（L6 "不依赖 grep/find 子进程"）与注释（L95 "等价 sh 的 grep 2>/dev/null"）含字面 `grep`，该 grep 会 exit 0。改为断言真实语义"纯 re 引擎、不调用外部命令"（`grep -nE 'subprocess|os\.system|os\.popen'` → exit 1），覆盖并强化了原意图（py 不依赖外部 grep）。`--perl-regexp` 断言保留]
 
 > 实现说明（非 DEVIATION）：docstring 用例的 fixture 用 make_fixture 逐行写入——`"""` 行（`local q='"""'` 变量）直接传参，块内示例行含缩进（`"    ${py}${ver} ..."`），与 py `_docstring_state` 的 `"""` 奇偶次切换语义逐行核对。测试文件自注释用"块内 python3（文档非可执行代码…）"全角括号收尾，规避 R2 正则对 ASCII 空格后续字符的匹配（沿用原文件 L11/L67 同款写法）。
+
+---
+
+# P4 实现记录 — 批次 2a（check-retrospective / agate-inject-card / check-debt py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 3 个 .py（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/check-retrospective.py` | `check-retrospective.sh` | `agate-state-get.py retries_over`（sys.executable subprocess + env STATE_FILE） |
+| `agate/scripts/agate-inject-card.py` | `agate-inject-card.sh` | `agate-next-card.py PHASE`（sys.executable）+ `agate-card-inject.py`（env DC_FILE / CARD_FILE） |
+| `agate/scripts/check-debt.py` | `check-debt.sh` | `agate_common.resolve_workspace` / `agate_common.run_git` + `agate-debt-check.py`（FILE env / --covered-hashes argv） |
+
+- 全部 `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：exit 0/1/2 语义 + stderr 输出格式（GATE RETRO / GATE DEBT / GATE DEBT WARNING / AGATE_CARD 已注入）
+- `$(...)` 剥尾换行 → `.rstrip("\n")`（agate-state-get retries_over、agate-next-card 卡片全文、agate-debt-check stdout 均处理）
+- check-debt.py 覆盖模式的依赖加载失败：`from agate_common import ...` 的 ImportError → stderr 报「缺少 agate-workspace-resolve.sh…」+ exit 2（保留 sh 版消息，test_bdd_16 断言不变）
+- `git log --all --format=%H%x09%s --grep=^retreat:` → `run_git`（2>/dev/null || true 语义由 returncode 判定等价）
+
+### 改动 3 个 bats 文件 + 2 处引用面（调用点 .sh → .py，`@test` 数不变）
+
+- `unit/check-retrospective.bats`：9 处 `run bash .../check-retrospective.sh` → `run "$PYTHON" .../check-retrospective.py` + 5 个 @test 名 + 头部注释（10 用例不变）
+- `unit/agate-inject-card.bats`：setup `INJECT_CMD` 改 .py + 13 处 `run bash "$INJECT_CMD"` → `run "$PYTHON" "$INJECT_CMD"`（含无参数 / 缺 TASK_DIR 两处）+ 头部注释（11 用例不变）
+- `unit/agate-debt-check.bats`：11 处 `run bash .../check-debt.sh` → `run "$PYTHON" .../check-debt.py`；4 处 `bash -c "cd ... && bash '.../check-debt.sh'"` → `bash -c "cd ... && "$PYTHON" '.../check-debt.py'"`；test_bdd_16 的 `cp` + 调用改 py；@test 名 + 头部注释（21 用例不变）
+- `integration/pre-commit-hook.bats` L1261：`bash .../agate-inject-card.sh` → `"$PYTHON" .../agate-inject-card.py`
+- `unit/agate-card-inject.bats` L4：注释引用 `agate-inject-card.sh` → `.py`
+
+### 其他引用核查（确认无需改动）
+
+- `unit/dispatch-context-warning.bats` L38：`cp .../check-retrospective.sh` 复制到 fake root 供**仍为 sh 的 pre-commit-gate.sh**（批次 3 才 py 化）调用，保持 .sh 复制不变
+- `agate/scripts/pre-commit-gate.sh` L284 / `check-state-transition.sh` L15（注释）等 sh 侧调用点：非本批次范围（批次 3 迁移对象），不改
+- `check-protocol-consistency.py` 锚点表（L552 check-retrospective.sh / L670 check-debt.sh）：.sh 仍存在，反向覆盖扫描只扫 `check-*.sh` + pre-commit-gate.sh + ci-gate-backstop.py，不 ERROR → 不改
+- `tests/README.md` L42 / `agate/scripts/README.md` / `agate-summary.sh` 等文档与汇总脚本引用：留待批次 4 文档引用同步（表 B）处理
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：3 个新 py 均编译通过
+- 手动功能核对（与 sh 版输出/exit code 对照）：
+  - check-retrospective.py：无异常 → exit 0 无输出；P2 retries=3 → exit 0 + 「重试超限（P2=3 (MAX=3)）」；SCOPE+（design 文件）→ 触发；dispatch-prompt 排除 / AGATE_CARD 块内 SCOPE+ → 不触发；override → 触发
+  - agate-inject-card.py：注入后 AGATE_CARD 块 sha256 与 agate-next-card.py P1 全文一致；无参数/缺 TASK_DIR/缺 dispatch-context/无占位符 → exit 1；旧格式 dispatch-context.md 兼容注入；多 role 文件全注入
+  - check-debt.py：FILE 模式合法条目 → exit 0 无输出；缺 evidence / 非法枚举 → exit 1 + 「GATE DEBT: … 条目格式错误」；文件不存在 → exit 0；--retreat-coverage 无条目 → WARNING（exit 0）/ 有条目 → 无 WARNING；无 retreat 提交 → exit 0 无输出；复制到独立目录缺 agate_common → exit 2 + 「缺少 agate-workspace-resolve.sh」
+
+## 偏离点
+
+[DEVIATION: check-debt.py 覆盖模式依赖加载失败的判定对象从「agate-workspace-resolve.sh 文件缺失」变为「agate_common 不可导入」——agate-workspace-resolve.sh 已被 agate_common.py 取代（批次 0）。失败语义等价（依赖缺失 → exit 2 + 需主 Agent 自判），stderr 消息保留 sh 版原文以维持 test_bdd_16 断言不变]
+
+> 实现说明（非 DEVIATION）：`bash -c "cd ... && "$PYTHON" '.../check-debt.py'"` 的引号形态与原始 `bash '.../check-debt.sh'` 的裸字形态等价——`$PYTHON` 为探测出的解释器绝对路径（无空格），外层 shell 展开后为单个 token，已用真实 git repo 实测 bash -c 字符串可正常执行。

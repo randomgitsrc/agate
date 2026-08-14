@@ -1258,7 +1258,7 @@ role: verifier
 <!-- AGATE_CARD_START -->
 <!-- AGATE_CARD_END -->
 DCEND
-    bash "$AGATE_ROOT/scripts/agate-inject-card.sh" P6 "$repo/agate-workspace/tasks/T086"
+    "$PYTHON" "$AGATE_ROOT/scripts/agate-inject-card.py" P6 "$repo/agate-workspace/tasks/T086"
     git -C "$repo" add agate-workspace/tasks/T086/
     # 不绕过 hook — 期望 commit 成功（exit 0），不因 WARNING 拦截
     run git -C "$repo" -c user.name=test -c user.email=test@test commit -m "T086 evidence warning test"

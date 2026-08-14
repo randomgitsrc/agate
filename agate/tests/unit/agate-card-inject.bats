@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # tests/unit/agate-card-inject.bats — agate-card-inject.py 工具单元测试
 # 注意：文件名用 agate-card-inject（非 agate-inject-card），避免与
-# agate-inject-card.sh 的测试文件 agate-inject-card.bats 冲突。
+# agate-inject-card.py 的测试文件 agate-inject-card.bats 冲突。
 load ../helpers/load.bash
 
 @test "IC.1 注入卡片到占位符之间" {
