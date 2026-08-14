@@ -55,9 +55,9 @@ EOF
 }
 
 @test "TD.1b check-tdd-red.sh 无 TEST_RUNNER + 无 pytest（无 PATH 找不到 pytest）期望 exit 3" {
-    run env -u PATH bash "$AGATE_SCRIPTS/check-tdd-red.sh"
-    echo "TD1b-DIAG: status=$status" >&2
-    printf 'TD1b-OUT: %s\n' "$output" | head -4 >&2
+    # Windows 上 env -u PATH 无法定位 bash（env.exe 按 PATH 找）→ 用绝对 bash 路径，
+    # 保留"无 PATH"语义（脚本内 command -v pytest 仍失败 → exit 3）
+    run env -u PATH "$(command -v bash)" "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 3 ] || [ "$status" -eq 1 ]
 }
 
@@ -389,7 +389,8 @@ EOF
 }
 
 @test "TDD.F8: no TEST_RUNNER, no gate_commands.P3, no pytest → exit 3" {
-    run env -u PATH bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    # Windows 上 env -u PATH 无法定位 bash → 用绝对 bash 路径（TAG0009）
+    run env -u PATH "$(command -v bash)" "$AGATE_SCRIPTS/check-tdd-red.sh"
     [ "$status" -eq 3 ]
 }
 

@@ -124,6 +124,9 @@ def iter_md_files(root: Path):
             continue
         if "node_modules" in p.parts:
             continue
+        # bats 框架自身（CI 克隆到仓库根的 bats/ 目录，含自带 docs/README 引用非 agate 文件）
+        if "bats" in p.parts:
+            continue
         yield p
 
 
