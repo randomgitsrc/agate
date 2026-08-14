@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# tests/unit/check-p6-provenance.bats — 15 用例覆盖 check-p6-provenance.sh
+# tests/unit/check-p6-provenance.bats — 15 用例覆盖 check-p6-provenance.py
 # 计划：5.4 / 实际 15 行 / 与附录 A 一致
 
 load ../helpers/load.bash
@@ -13,26 +13,26 @@ setup() {
     fi
 }
 
-@test "PV.1 check-p6-provenance.sh 无 P6 文件 期望 exit 0" {
+@test "PV.1 check-p6-provenance.py 无 P6 文件 期望 exit 0" {
     local dir
     dir=$(mktemp -d "$BATS_TEST_TMPDIR/task-XXXXXX")
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.2 check-p6-provenance.sh PASS 引用不存在的文件 期望 exit 1" {
+@test "PV.2 check-p6-provenance.py PASS 引用不存在的文件 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
 - PASS BDD-1 (ghost.png)
 EOF
     mkdir -p "$dir/P6-evidence"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"证据文件不存在"* ]]
 }
 
-@test "PV.3 check-p6-provenance.sh (vision: ...) 引用被剥离不当文件路径" {
+@test "PV.3 check-p6-provenance.py (vision: ...) 引用被剥离不当文件路径" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -54,11 +54,11 @@ EOF
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
     # vision 引用被剥离 → 只看 screenshots/login.png（存在）
     # vision YAML 在 TASK_DIR/vision.yaml → blocker_count=0 → exit 0
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.4 check-p6-provenance.sh 行末多个括号取最后一个（a.png 不存在但 b.png 存在）" {
+@test "PV.4 check-p6-provenance.py 行末多个括号取最后一个（a.png 不存在但 b.png 存在）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -72,11 +72,11 @@ EOF
     # 最后一个括号 = b.png（存在）
     # a.png 不存在但取的是 b.png → audit 1a 通过
     # evidence 目录只有 b.png → audit 1c 通过
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.4b check-p6-provenance.sh 行末多括号 + 全部不存在 期望 exit 1" {
+@test "PV.4b check-p6-provenance.py 行末多括号 + 全部不存在 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -87,7 +87,7 @@ agent: test
 EOF
     mkdir -p "$dir/P6-evidence"
     # 都不存在
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
 }
 
@@ -114,7 +114,7 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "PV.5b check-p6-provenance.sh 14 PASS 引用 8 共享证据文件 期望 exit 0" {
+@test "PV.5b check-p6-provenance.py 14 PASS 引用 8 共享证据文件 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -140,11 +140,11 @@ EOF
     for i in 1 2 3 4 5 6 7 8; do
         echo "log" > "$dir/P6-evidence/e${i}.json"
     done
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.6 check-p6-provenance.sh 证据文件未被引用（充数文件）期望 exit 1" {
+@test "PV.6 check-p6-provenance.py 证据文件未被引用（充数文件）期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -153,12 +153,12 @@ EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/r1.json"
     echo "filler" > "$dir/P6-evidence/extra.json"  # 充数文件
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"未被"* ]]
 }
 
-@test "PV.7 check-p6-provenance.sh .gitkeep 算隐藏文件不计入证据（exit 0）" {
+@test "PV.7 check-p6-provenance.py .gitkeep 算隐藏文件不计入证据（exit 0）" {
     local dir
     dir=$(create_task_dir)
     cat >> "$dir/P6-acceptance.md" <<'EOF'
@@ -171,22 +171,22 @@ EOF
     # PASS 数也是 1 → 不会触发"empty"检查
     # .gitkeep 是隐藏文件，find 跳过它，所以 audit 1c 不会报
     # 实际跑应该是 exit 0
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.8 check-p6-provenance.sh dispatch-context 含 PASS 预判 期望 exit 1" {
+@test "PV.8 check-p6-provenance.py dispatch-context 含 PASS 预判 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-dispatch-context-subtask.md" <<'EOF'
 - PASS BDD-1 pre-judged
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P6-dispatch-context"* ]]
 }
 
-@test "PV.9 check-p6-provenance.sh P1 BDD 标题数 > P6 总数 期望 exit 1" {
+@test "PV.9 check-p6-provenance.py P1 BDD 标题数 > P6 总数 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     # create_task_dir 默认给 1 条 BDD-1，再加一条 BDD-2，但 P6 只 1 条 PASS
@@ -196,12 +196,12 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"挑验"* ]]
 }
 
-@test "PV.10 check-p6-provenance.sh P1 无标准 BDD 标题 期望 exit 1（无过渡期兜底）" {
+@test "PV.10 check-p6-provenance.py P1 无标准 BDD 标题 期望 exit 1（无过渡期兜底）" {
     local dir
     dir=$(create_task_dir)
     # 去掉默认的 #### BDD-N: 标题行
@@ -211,7 +211,7 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"未使用标准"* ]]
 }
@@ -230,7 +230,7 @@ EOF
     echo x > "$dir/P6-evidence/a.json"
     echo x > "$dir/P6-evidence/b.json"
     echo x > "$dir/P6-evidence/c.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -249,7 +249,7 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo x > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -270,12 +270,12 @@ EOF
     mkdir -p "$dir/P6-evidence"
     echo x > "$dir/P6-evidence/a.json"
     echo x > "$dir/P6-evidence/b.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
 
-@test "PV.11 check-p6-provenance.sh UI + 截图 PASS 缺 vision 引用 期望 exit 1" {
+@test "PV.11 check-p6-provenance.py UI + 截图 PASS 缺 vision 引用 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -287,12 +287,12 @@ EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
     # 缺 vision 引用
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"缺 vision"* ]]
 }
 
-@test "PV.12 check-p6-provenance.sh vision YAML 文件不存在 期望 exit 1" {
+@test "PV.12 check-p6-provenance.py vision YAML 文件不存在 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -304,12 +304,12 @@ EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
     # vision YAML 不存在（路径是 vision/missing.yaml，不创建）
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"vision YAML 引用的文件不存在"* ]]
 }
 
-@test "PV.13 check-p6-provenance.sh vision YAML blocker_count != 0 期望 exit 1" {
+@test "PV.13 check-p6-provenance.py vision YAML blocker_count != 0 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -326,12 +326,12 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/login.png"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"blocker_count="* ]]
 }
 
-@test "PV.14 check-p6-provenance.sh P6 缺 agent 字段 期望 exit 2（WARNING）" {
+@test "PV.14 check-p6-provenance.py P6 缺 agent 字段 期望 exit 2（WARNING）" {
     local dir
     dir=$(create_task_dir)
     # 去掉 P6 的 agent frontmatter
@@ -341,12 +341,12 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     # exit 2 是 WARNING（不阻塞）
     [ "$status" -eq 2 ]
 }
 
-@test "PV.15 check-p6-provenance.sh risk=high + P2-review agent=main 期望 exit 0（agent=main 检查已移至 check-gate.sh）" {
+@test "PV.15 check-p6-provenance.py risk=high + P2-review agent=main 期望 exit 0（agent=main 检查已移至 check-gate.sh）" {
     local dir
     dir=$(create_task_dir --risk-level high)
     cat > "$dir/P2-review.md" <<'EOF'
@@ -360,7 +360,7 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -387,11 +387,11 @@ EOF
   - packages: [pkg-a]
   - ui_affected: true
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.18 check-p6-provenance.sh PASS 行含嵌套括号描述如 nth(1) → 提取 screenshots/ 路径（exit 0）" {
+@test "PV.18 check-p6-provenance.py PASS 行含嵌套括号描述如 nth(1) → 提取 screenshots/ 路径（exit 0）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -402,11 +402,11 @@ agent: test
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.19 check-p6-provenance.sh PASS 行含嵌套括号 + vision 引用 → 提取 screenshots/ 路径（exit 0）" {
+@test "PV.19 check-p6-provenance.py PASS 行含嵌套括号 + vision 引用 → 提取 screenshots/ 路径（exit 0）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -428,11 +428,11 @@ agent: test
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/b07.png"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "PV.20 check-p6-provenance.sh PASS 行含嵌套括号且路径不存在 → exit 1 + 含具体路径" {
+@test "PV.20 check-p6-provenance.py PASS 行含嵌套括号且路径不存在 → exit 1 + 含具体路径" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -443,7 +443,7 @@ agent: test
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     # 不创建 missing.png
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"证据文件不存在"* ]]
     [[ "$output" == *"screenshots/missing.png"* ]]
@@ -466,7 +466,7 @@ EOF
 total: 3, passed: 2, failed: 1
 EXIT_CODE: 1
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"EXIT_CODE"* ]] || [[ "$output" == *"矛盾"* ]]
 }
@@ -486,7 +486,7 @@ EOF
 total: 3, passed: 3, failed: 0
 EXIT_CODE: 0
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -504,7 +504,7 @@ EOF
 === Test Results ===
 total: 3, passed: 3, failed: 0
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
     [[ "$output" == *"EXIT_CODE"* || "$output" == *"跳过"* ]]
 }
@@ -523,7 +523,7 @@ EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/file1.png"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/file2.png"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -538,7 +538,7 @@ agent: test
 EOF
     mkdir -p "$dir/P6-evidence/screenshots"
     head -c 5000 /dev/urandom > "$dir/P6-evidence/screenshots/file1.png"
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"证据文件不存在"* ]]
     [[ "$output" == *"screenshots/file2.png"* ]]
@@ -590,7 +590,7 @@ EOF
 > render product
 你是 P4 阶段的 implementer 子 Agent。
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
     [[ "$output" != *"dispatch-prompt"* ]]
 }
@@ -614,7 +614,7 @@ EOF
   ]
 }
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"evidence JSON 与 P6-acceptance.md 声明不一致"* ]]
 }
@@ -636,7 +636,7 @@ EOF
   ]
 }
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -655,7 +655,7 @@ EOF
   "some_other_field": "value"
 }
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -679,7 +679,7 @@ EOF
   ]
 }
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -699,7 +699,7 @@ EOF
   ]
 }
 EOF
-    run bash "$AGATE_SCRIPTS/check-p6-provenance.sh" "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"evidence JSON 与 P6-acceptance.md 声明不一致"* ]]
 }

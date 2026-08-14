@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+"""check-p6-provenance.py — P6 验收客观行为审计（P2.1/P2.10 降级方案 v2）
+
+从 check-p6-provenance.sh 迁移（TAG0010 批次 2d）。CLI 契约与 sh 版等价：
+  check-p6-provenance.py TASK_DIR
+exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
+
+六道客观审计 + agent 字段协作规范：
+  1. 证据-结论对应（1a PASS 行证据引用路径必须存在 / 1b PASS 数 ≤ 证据文件数，
+     空证据拦截 / 1c 证据文件必须被至少一条 PASS 行引用，空 png 充数拦截）
+  2. dispatch-context 内容约束（不含 PASS/FAIL 验收结论预判）
+  3. BDD 总数自动化对照（P6 PASS+FAIL 数 ≥ P1 BDD 标题数，挑验拦截）
+  4. UI vision YAML 引用（ui_affected=true 时含截图引用的 PASS 行须同时含
+     (vision: ...) 引用 + YAML 存在 + summary.blocker_count == 0）
+  5. 日志 EXIT_CODE 与 PASS/FAIL 声明一致性（M1.3a 约定）
+  6. evidence JSON 与 P6-acceptance.md PASS/FAIL 声明一致性（P2.57）
+
+- grep -cE '^\\s*- PASS\\b' → 逐行 re.search 计数（PASS_COUNT / P6_BODY_STRICT /
+  P1_BDD 均同模式）
+- sed '(vision:...) 剥离 / 行末括号组提取 / 前缀 P6-evidence 剥离' → re.sub /
+  re.search('\\\\([^)]+\\\\)$') / 逐前缀 re.sub
+- find ... -type f -not -name '.*'（递归）→ _find_files（os.walk，隐藏名跳过）
+- 依赖既有 py：agate-md-field-get.py（env FILE）/ agate-vision-blocker.py
+  （env YAML_PATH）/ agate-evidence-consistency.py（env EVIDENCE_DIR + env P6_FILE），
+  均 sys.executable subprocess + $(...) 剥尾换行 → .rstrip("\\n")
+- get_risk_level（sh 版定义但从未调用，死代码）未迁移
+"""
+
+import glob
+import os
+import re
+import subprocess
+import sys
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+_SKIP_AGENT_CHECK = (
+    r"-dispatch-context\.md$",
+    r"-dispatch-context-[^/]*\.md$",
+    r"-dispatch-prompt-[^/]*\.md$",
+    r"-progress\.md$",
+    r"-paused-resolution\.md$",
+)
+
+
+def _run_script(script, args, env_extra):
+    """调既有 py 工具（sys.executable subprocess，env 传参），返回 (stdout 去尾换行, returncode)。
+
+    sh 侧 `$(...) 2>/dev/null || echo ...` 的失败回退语义由调用方按 returncode 决定。
+    """
+    env = dict(os.environ)
+    env.update(env_extra)
+    try:
+        proc = subprocess.run(
+            [sys.executable, os.path.join(SCRIPT_DIR, script)] + args,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=env,
+        )
+    except OSError:
+        return "", 1
+    return (proc.stdout or "").rstrip("\n"), proc.returncode
+
+
+def _find_files(base):
+    """find base -type f -not -name '.*'（递归，排除隐藏名文件）等价。"""
+    files = []
+    for _root, _dirs, names in os.walk(base):
+        for name in names:
+            if name.startswith("."):
+                continue
+            files.append(os.path.join(_root, name))
+    return files
+
+
+def _find_log_files(base):
+    """find base -name '*.log'（递归）等价（含名称以 .log 结尾的条目）。"""
+    if not os.path.isdir(base):
+        return []
+    files = []
+    for root, _dirs, names in os.walk(base):
+        for name in names:
+            if name.endswith(".log"):
+                files.append(os.path.join(root, name))
+    return files
+
+
+def get_agent(file):
+    """sed -n '/^---$/,/^---$/p' | grep '^agent:' | sed 's/^agent:\\s*//' | head -1 等价。"""
+    if not os.path.isfile(file):
+        return ""
+    try:
+        with open(file, encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return ""
+    in_fm = False
+    for line in lines:
+        if line == "---":
+            if not in_fm:
+                in_fm = True
+            else:
+                break
+            continue
+        if in_fm:
+            m = re.match(r"^agent:\s*(.*)", line)
+            if m:
+                return m.group(1)
+    return ""
+
+
+def _is_skipped_agent_check(localname):
+    """sh 版 case 模式（*-dispatch-context*.md / *-dispatch-prompt-*.md / *-progress.md /
+    *-paused-resolution.md）等价判定。"""
+    return any(re.search(p, localname) for p in _SKIP_AGENT_CHECK)
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.stderr.write("用法: check-p6-provenance.py TASK_DIR\n")
+        sys.exit(1)
+    task_dir = sys.argv[1]
+    p1_file = os.path.join(task_dir, "P1-requirements.md")
+    p6_file = os.path.join(task_dir, "P6-acceptance.md")
+    evidence_dir = os.path.join(task_dir, "P6-evidence")
+
+    p6_exists = os.path.isfile(p6_file)
+    p6_text = ""
+    p6_lines = []
+    pass_lines = []
+    if p6_exists:
+        try:
+            with open(p6_file, encoding="utf-8", errors="replace") as f:
+                p6_text = f.read()
+        except OSError:
+            p6_text = ""
+        p6_lines = p6_text.splitlines()
+        pass_lines = [line for line in p6_lines if re.search(r"^\s*- PASS\b", line)]
+
+    # --- 审计 1：证据-结论对应 ---
+    # 只在 P6-acceptance.md 存在时运行（C1 修复：不阻塞非 P6 阶段的 commit）
+    if p6_exists:
+        # 1a: PASS 行里的证据引用路径必须存在
+        # I3 修复：取行末最后一个括号组（证据引用在行末），避免前置括号干扰
+        # R1b 兼容：先剥离 (vision: ...) 引用，避免把它当证据文件路径
+        # R1c 修复：优先精确提取 screenshots/ 路径，避免嵌套括号（如 nth(1)）截断
+        missing_refs = 0
+        missing_details = ""
+        for line in pass_lines:
+            line_clean = re.sub(r"\(vision:[^)]*\)", "", line).rstrip()
+            refs = re.findall(r"screenshots/[^ ),]+", line_clean)
+            if not refs:
+                m = re.search(r"\([^)]+\)$", line_clean)
+                ref_group = m.group(0).replace("(", "").replace(")", "") if m else ""
+                refs = ref_group.split(",")
+            for ref in refs:
+                ref = ref.strip()
+                if not ref:
+                    continue
+                ref_clean = re.sub(r"^(P6-evidence|p6-evidence|evidences)/", "", ref)
+                ref_path = os.path.join(evidence_dir, ref_clean)
+                if not os.path.isfile(ref_path):
+                    missing_refs += 1
+                    missing_details += "  PASS行: {}\n  缺失路径: {}\n".format(line, ref_path)
+
+        if missing_refs > 0:
+            sys.stderr.write("GATE PROVENANCE: P6-acceptance.md 有 {} 条 PASS 引用的证据文件不存在\n".format(missing_refs))
+            if missing_details:
+                sys.stderr.write(missing_details)
+            sys.exit(1)
+
+        # 1b: 证据目录非空检查（多条 PASS 可共享同一证据文件）
+        # I5 修复：排除隐藏文件（.gitkeep, .DS_Store 等）
+        pass_count = len(pass_lines)
+        if os.path.isdir(evidence_dir):
+            evidence_count = len(_find_files(evidence_dir))
+        else:
+            evidence_count = 0
+
+        if pass_count > 0 and evidence_count == 0:
+            sys.stderr.write("GATE PROVENANCE: 有 {} 条 PASS 但 P6-evidence/ 为空或不存在\n".format(pass_count))
+            sys.exit(1)
+
+        # 1c: 证据文件必须被至少一条 PASS 行引用（空 png 充数拦截）
+        # C2 修复：用括号上下文精确匹配，防止子字符串假阴性
+        # C3 修复：只在 PASS 行里搜索，不在整个文件里搜索
+        # I4 修复：匹配时考虑子目录路径（evidences/ screenshots/ 等），固定字符串匹配
+        if evidence_count > 0 and os.path.isdir(evidence_dir):
+            unreferenced = 0
+            for ev_file in _find_files(evidence_dir):
+                ev_basename = os.path.basename(ev_file)
+                if not any(ev_basename in line for line in pass_lines):
+                    unreferenced += 1
+            if unreferenced > 0:
+                sys.stderr.write("GATE PROVENANCE: {} 个证据文件未被 P6-acceptance.md PASS 行引用（可能为充数文件）\n".format(unreferenced))
+                sys.exit(1)
+
+    # --- 审计 2：dispatch-context 内容约束 ---
+    # P6 阶段的 dispatch-context 不能含验收结论预判
+    # Exclude AGATE_CARD embedded block + 文件顶部第一对 "---" 定界的 frontmatter 块
+    # T001 v2.0 流 B（P2-design.md §3.2.3）：P6 结果入 frontmatter 后，frontmatter
+    # 样例块也须排除，避免字段示例被误判为验收结论预判。
+    for dispatch_ctx in sorted(glob.glob(os.path.join(task_dir, "P6-dispatch-context-*.md"))):
+        try:
+            with open(dispatch_ctx, encoding="utf-8", errors="replace") as f:
+                lines = f.read().splitlines()
+        except OSError:
+            lines = []
+        stripped = []
+        in_card = False
+        for line in lines:
+            if "<!-- AGATE_CARD_START -->" in line:
+                in_card = True
+                continue
+            if "<!-- AGATE_CARD_END -->" in line:
+                in_card = False
+                continue
+            if not in_card:
+                stripped.append(line)
+        # 删文件顶部第一对 "---" 定界的 frontmatter 块（sed '/^---$/,/^---$/d'）
+        filtered = []
+        i = 0
+        while i < len(stripped):
+            if stripped[i] == "---":
+                i += 1
+                while i < len(stripped) and stripped[i] != "---":
+                    i += 1
+                i += 1
+            else:
+                filtered.append(stripped[i])
+                i += 1
+        prejudice = sum(1 for line in filtered if re.search(r"^\s*- (PASS|FAIL)\b", line))
+        if prejudice > 0:
+            sys.stderr.write("GATE PROVENANCE: {} 含 {} 处验收结论预判\n".format(os.path.basename(dispatch_ctx), prejudice))
+            sys.exit(1)
+
+    # --- 审计 3：BDD 总数自动化对照 ---
+    # P6 的 PASS+FAIL 数 ≥ P1 的 BDD 标题数（挑验拦截）
+    # T001 v2.0 流 B（BDD-17/18，P2-design.md §3.2.1）：计数口径改从严格式
+    # `grep -cE '^\s*- (PASS|FAIL) BDD-[0-9]'`；新格式（frontmatter 声明 pass+fail）
+    # 优先用该结构化汇总为总数，无 frontmatter 汇总（旧格式）→ 回退从严正文 grep。
+    # FIND-6：新格式下 frontmatter 汇总与正文从严行数不一致 → WARNING（exit 仍 0）。
+    if p6_exists and os.path.isfile(p1_file):
+        p1_text = ""
+        try:
+            with open(p1_file, encoding="utf-8", errors="replace") as f:
+                p1_text = f.read()
+        except OSError:
+            p1_text = ""
+        p1_lines = p1_text.splitlines()
+        p1_bdd = sum(1 for line in p1_lines if re.search(r"^#### BDD-[0-9]", line))
+        p6_body_strict = sum(1 for line in p6_lines if re.search(r"^\s*- (PASS|FAIL) BDD-[0-9]", line))
+
+        pass_fm = ""
+        out, rc = _run_script("agate-md-field-get.py", ["pass"], {"FILE": p6_file})
+        if rc == 0:
+            pass_fm = out
+        fail_fm = ""
+        out, rc = _run_script("agate-md-field-get.py", ["fail"], {"FILE": p6_file})
+        if rc == 0:
+            fail_fm = out
+
+        if pass_fm != "" and fail_fm != "":
+            try:
+                p6_total = int(pass_fm) + int(fail_fm)
+            except ValueError:
+                sys.stderr.write("GATE PROVENANCE: P6-acceptance.md frontmatter pass/fail 非数字（{} / {}）\n".format(pass_fm, fail_fm))
+                sys.exit(1)
+            if p6_total != p6_body_strict:
+                sys.stderr.write("GATE PROVENANCE WARNING: P6-acceptance.md frontmatter 声明 pass+fail={}，正文逐条 '- PASS|FAIL BDD-N' 行数={}，两者不一致，请复核\n".format(p6_total, p6_body_strict))
+        else:
+            p6_total = p6_body_strict
+
+        if p1_bdd == 0:
+            sys.stderr.write("GATE PROVENANCE: P1-requirements.md 未使用标准 #### BDD-NN: 格式（或没有 BDD），标准化后必须使用该格式\n")
+            sys.exit(1)
+        if p6_total < p1_bdd:
+            sys.stderr.write("GATE PROVENANCE: P6 结果数({}) < P1 BDD 条目数({})，挑验不通过\n".format(p6_total, p1_bdd))
+            sys.exit(1)
+
+    # --- 审计 4：UI vision YAML 引用（R1b：T045 评审 v5）---
+    # ui_affected: true 时，含截图引用的 PASS 行必须同时含 (vision: ...) 引用
+    # YAML 文件存在 + summary.blocker_count == 0
+    if p6_exists and os.path.isfile(p1_file):
+        p2_file = os.path.join(task_dir, "P2-design.md")
+        ui_affected = ""
+        if os.path.isfile(p2_file):
+            out, rc = _run_script("agate-md-field-get.py", ["ui_affected"], {"FILE": p2_file})
+            if rc == 0:
+                ui_affected = out
+
+        if ui_affected == "true":
+            vision_missing = 0
+            for line in pass_lines:
+                if re.search(r"\(screenshots/", line):
+                    if not re.search(r"\(vision:\s*[^)]+\)", line):
+                        vision_missing += 1
+
+            if vision_missing > 0:
+                sys.stderr.write("GATE PROVENANCE: ui_affected=true 但有 {} 条含截图的 PASS 缺 vision YAML 引用\n".format(vision_missing))
+                sys.exit(1)
+
+            refs = sorted(set(
+                m
+                for line in p6_lines
+                for m in re.findall(r"\(vision:\s*[^)]+\)", line)
+            ))
+            for ref in refs:
+                yaml_file = re.sub(r"^.*vision:\s*", "", ref).replace(" ", "").replace(")", "")
+                yaml_path = os.path.join(task_dir, yaml_file)
+                if not os.path.isfile(yaml_path):
+                    sys.stderr.write("GATE PROVENANCE: vision YAML 引用的文件不存在: {}\n".format(yaml_file))
+                    sys.exit(1)
+                blocker_count, rc = _run_script("agate-vision-blocker.py", [], {"YAML_PATH": yaml_path})
+                if rc != 0:
+                    blocker_count = "-1"
+                if blocker_count != "0":
+                    sys.stderr.write("GATE PROVENANCE: vision YAML {} 的 blocker_count={}（须为 0）\n".format(yaml_file, blocker_count))
+                    sys.exit(1)
+
+    # --- 审计 5：日志 EXIT_CODE 与 PASS/FAIL 声明一致性（依赖 M1.3a 约定）---
+    if p6_exists:
+        for log_file in _find_log_files(os.path.join(task_dir, "P6-evidence")):
+            try:
+                with open(log_file, encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+            except OSError:
+                content = ""
+            log_lines = content.splitlines()
+            last_line = log_lines[-1] if log_lines else ""
+            if re.match(r"^EXIT_CODE: [0-9]+$", last_line):
+                log_exit = re.search(r"[0-9]+$", last_line).group(0)
+                log_basename = os.path.basename(log_file)
+                if log_basename in p6_text and log_exit != "0":
+                    sys.stderr.write("GATE PROVENANCE: {} 声明 PASS 但日志 EXIT_CODE={}（矛盾）\n".format(log_basename, log_exit))
+                    sys.exit(1)
+            else:
+                sys.stderr.write("GATE PROVENANCE: {} 缺少标准 EXIT_CODE 尾行，跳过一致性核验（不阻塞）\n".format(os.path.basename(log_file)))
+
+    # --- 协作规范：agent 字段 ---
+    # 不做硬拦截（自报数据不可信），缺字段降级为 WARNING
+    # 安全审计（1/2/3）用 ERROR，协作规范用 WARNING——符合「不把自报字段当安全边界」原则
+    # WARNING 不立即 exit——记变量继续往下跑审计 6，最后统一判断 exit code
+    warning_found = 0
+
+    if p6_exists:
+        agent = get_agent(p6_file)
+        if not agent:
+            sys.stderr.write("GATE PROVENANCE: P6-acceptance.md 缺 agent 字段（协作规范，不阻塞）\n")
+            warning_found = 1
+
+    # 所有阶段产出文件 agent 字段存在性（格式校验）
+    if p6_exists:
+        for f in sorted(glob.glob(os.path.join(task_dir, "P[0-8]-*.md"))):
+            if not os.path.isfile(f):
+                continue
+            localname = os.path.basename(f)
+            if localname == "P0-brief.md":
+                continue
+            if _is_skipped_agent_check(localname):
+                continue
+            agent = get_agent(f)
+            if not agent:
+                sys.stderr.write("GATE PROVENANCE: {} 缺 agent 字段（协作规范，不阻塞）\n".format(localname))
+                warning_found = 1
+
+    # 审计 6: evidence JSON 与 P6 PASS/FAIL 声明一致性（P2.57）
+    if os.path.isdir(evidence_dir):
+        inconsistency, rc = _run_script(
+            "agate-evidence-consistency.py", [],
+            {"EVIDENCE_DIR": evidence_dir, "P6_FILE": os.path.join(task_dir, "P6-acceptance.md")},
+        )
+        if rc != 0:
+            inconsistency = ""
+        if inconsistency != "":
+            sys.stderr.write("GATE PROVENANCE: evidence JSON 与 P6-acceptance.md 声明不一致：\n")
+            for line in inconsistency.splitlines():
+                sys.stderr.write("  - {}\n".format(line))
+            sys.exit(1)
+
+    if warning_found == 1:
+        sys.exit(2)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

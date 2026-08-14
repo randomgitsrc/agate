@@ -451,3 +451,113 @@ implementation_dir: agate/scripts/
 [DEVIATION: agate-capture-env-baseline.py 的缓存文件 `generated_by:` 字段写 `.py` 后缀（sh 版写 `agate-capture-env-baseline.sh`）——与新脚本名一致（batch 1a/1b/1c/2a/2b 同款先例）；`check-gate.sh` P5 diff 只读 `captured_at_commit:`，不消费该字段；bats 无断言依赖 → 不改 fixture]
 
 > 实现说明（非 DEVIATION）：check-pruning.py 的 `phases` 词匹配用 `phases_declared.split()` 集合成员判定（等价 sh `grep -qw`）——md-field-get 输出的 phases 是空格连接列表，`-w` 整词语义与 split 一致；`source_count` 的正则 `re.search` 逐行判定等价 sh `grep -cvE`（含 TASKS_BASE_REL 空串时 `^/` 模式与 sh 逐字节一致）。
+
+---
+
+# P4 实现记录 — 批次 2d（check-p6-evidence py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 `agate/scripts/check-p6-evidence.py`（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/check-p6-evidence.py` | `check-p6-evidence.sh` | `agate-md-field-get.py`（env FILE，sys.executable subprocess）+ `agate-image-check.py`（env IMG_PATH / env SCREENSHOTS_DIR，sys.executable subprocess） |
+
+- `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：exit 0/1/2 语义 + stderr 输出格式（GATE P6-EVIDENCE / WARNING 前缀逐字节一致，已 15 个场景手动 sh vs py diff 验证）
+- `$(...)` 剥尾换行 → `.rstrip("\n")`（agate-md-field-get / agate-image-check stdout 均处理）
+- grep → re / pathlib：`grep -cE '^\s*- (PASS|FAIL)'` → `re.findall(MULTILINE)` 计数；`grep -E '^\s*- PASS\b'` 逐行 + S2 结构判定正则（`\([^()]*[^()\s]\.[a-zA-Z0-9]+[^)]*\)`，等价 sh `[^()[:space:]]`）→ `re.findall` + `ref_re.search`
+- `find ... -type f -not -name '.*'`（递归）→ `_find_files`（os.walk，隐藏名跳过）；`stat -c%s`/`stat -f%z` → `os.path.getsize`（失败回退 0）
+- 截图格式判定：`command -v file` → `shutil.which("file")`，`file -b --mime-type` 前缀匹配 `image/`；无 file 时 magic bytes fallback（PNG `\x89PNG` / JPEG `\xff\xd8` / GIF8 / WebP RIFF…WEBP），读前 12 字节等价 sh `head -c 12 | od -t x1 | tr -d ' \n'` 比对
+- `md5sum | sort | uniq -d` → `hashlib.md5` + `Counter`；md5 详情（`printf '%-2s'` 无尾换行 vs sh `printf '%s'`）与重复哈希按 basename 排序语义一致（sh `grep "^${hash}"` 在按 "hash  path" 排序的列表上匹配 → 按 path 排序）
+- ahash：`grep -q "SKIP_NO_PILLOW"` → `in` 判定；`grep -c . | tail -1` 行计数 → `splitlines()` 非空行；`sort -u | grep -c .` → `set()` 去重计数。Pillow 缺失时 agate-image-check ahash 的 SKIP 走 stderr + exit 1，py 版 stdout 为空 → 同 sh `|| echo ""` 吞掉语义，不打印 ahash 段 Pillow 警告（sh 本就不可达分支，保留判定结构）
+- `ls -A` 非空判定 → `os.listdir`；`AGATE_SKIP_IMAGE_CHECKS` 语义（`${VAR:-0}` = 1 跳过方差/相似度、仍做小图/md5）原样保留
+
+### 修改 `agate/tests/unit/check-p6-evidence.bats`（调用点 .sh → .py，`@test` 数不变）
+
+- 30 处 `run bash "$AGATE_SCRIPTS/check-p6-evidence.sh"` → `run "$PYTHON" "$AGATE_SCRIPTS/check-p6-evidence.py"`（fixtures.bash `$PYTHON`，不裸写 python3）
+- 30 个 @test 名 + 头部注释脚本名改 .py（含 E.4 内联注释、L5 消费端引用行号 .py:64）
+
+### 其他引用核查（确认无需改动）
+
+- `unit/dispatch-context-warning.bats` L39：`cp .../check-p6-evidence.sh` 复制到 fake root 供**仍为 sh 的 pre-commit-gate.sh**（批次 3 才 py 化）调用，保持 .sh 复制不变（batch 2a/2b/2c 同款先例）
+- `integration/consistency.bats` CON.9：`grep -q 'MD5_LIST' / 'md5sum' .../check-p6-evidence.sh` 断言的是迁移源 .sh 内容（.sh 保留、文本仍在）→ 不改（batch 2b agate-debt-check.bats L433 同款先例）
+- `agate/scripts/pre-commit-gate.sh` L298、`agate-summary.sh` L46、`agate-summary.py` L25：sh 侧调用点/汇总清单，批次 3/4 迁移对象 → 不改
+- `check-protocol-consistency.py` 锚点表（CHECK 8/9 的 check-p6-evidence.sh 条目）：.sh 仍存在，锚点不 ERROR → 不改（随批次 4 文档引用同步）
+- `agate-md-field-get.py` L63 注释 / `scripts/README.md` L17 / `tests/README.md` L34：文档与注释引用 → 批次 4（表 B）处理
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：check-p6-evidence.py 编译通过
+- 手动 sh vs py 输出 diff（15 场景，exit code + stderr 逐字节一致）：无 P6 文件（exit 2）/ 无 BDD / PASS 缺引用（含详情行）/ 基本通过 / 无证据目录 / 空证据目录 / UI+screenshots 缺失 / UI+≤1KB 非图（exit 1）/ UI+md5 重复（含 basename 详情）/ UI+纯文本 / UI+不同截图 / 中文文件名 / 无扩展名引用 / 缺引用详情 / md5 重复含空格文件名
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。new py 的 usage 消息脚本名后缀 .sh → .py（"用法: check-p6-evidence.py TASK_DIR"），与 batch 1a/1b/1c/2a/2b/2c 同款先例一致；bats 无 no-arg 用例，无断言依赖。
+
+> 范围说明：批次 2d 派发指引原列 check-p6-evidence + check-p6-provenance 两个脚本，本实现仅完成 **check-p6-evidence** 部分（check-p6-provenance 未在本轮做，见主 Agent 调度）。
+
+---
+
+# P4 实现记录 — 批次 2d 后半（check-p6-provenance py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 `agate/scripts/check-p6-provenance.py`（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/check-p6-provenance.py` | `check-p6-provenance.sh` | `agate-md-field-get.py`（env FILE，op pass/fail/ui_affected，sys.executable subprocess）+ `agate-vision-blocker.py`（env YAML_PATH，sys.executable subprocess）+ `agate-evidence-consistency.py`（env EVIDENCE_DIR + env P6_FILE，sys.executable subprocess） |
+
+- `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：exit 0/1/2 语义 + stderr 输出格式（GATE PROVENANCE / WARNING 前缀逐字节一致，已 12 个场景手动 sh vs py diff 验证）
+- `$(...)` 剥尾换行 → `.rstrip("\n")`（三个被调 py 的 stdout 均处理；`|| echo` 失败回退语义按 returncode 判定）
+- grep → re：`PASS_COUNT`/`P6_BODY_STRICT`/`P1_BDD`/预判计数均用逐行 `re.search`（`^\s*- PASS\b` / `^\s*- (PASS|FAIL) BDD-[0-9]` / `^#### BDD-[0-9]` / `^\s*- (PASS|FAIL)\b`，多行模式逐行语义一致）
+- 审计 1a 括号提取链路：`sed 's/(vision:[^)]*)//g'` → `re.sub`；`grep -oE 'screenshots/[^ ),]+'` → `re.findall`；行末括号回退 `grep -oE '\([^)]+\)$'` → `re.search`；`IFS=',' read` 切分 → `split(",")`；`sed 's|^P6-evidence/||'` 三级前缀剥离 → `re.sub(r"^(P6-evidence|p6-evidence|evidences)/", "")`
+- `find ... -type f -not -name '.*'`（递归）→ `_find_files`（os.walk，隐藏名跳过）；审计 5 的 `find ... -name '*.log'` → `_find_log_files`（名称以 .log 结尾，递归）
+- 审计 2：`sed '/<!-- AGATE_CARD_START -->/,/<!-- AGATE_CARD_END -->/d'` + `sed '/^---$/,/^---$/d'`（删第一对 `---` 定界 frontmatter 块）→ 逐行状态机 + 首对 `---` 区间删除（含未闭合时删到 EOF 的 sed 语义）
+- 审计 4 vision 引用：`grep -oE '\(vision:\s*[^)]+\)' | sort -u` → 逐行 `re.findall` + `sorted(set(...))`（grep 逐行语义，`\s` 不跨行）；`sed 's/^.*vision:\s*//' | tr -d ' )'` → `re.sub` + `replace`
+- 审计 5：`tail -1` → 读全文 `splitlines()` 取末行；`grep -qE '^EXIT_CODE: [0-9]+$'` → `re.match`；`grep -qF "$LOG_BASENAME"` → `in p6_text` 子串判定
+- `get_agent`：`sed -n '/^---$/,/^---$/p' | grep '^agent:' | sed 's/^agent:\s*//' | head -1` → 首对 `---` 间 `re.match(r"^agent:\s*(.*)")` 取首个
+- 协作规范 case 模式（*-dispatch-context*.md / *-dispatch-prompt-*.md / *-progress.md / *-paused-resolution.md）→ `_SKIP_AGENT_CHECK` 正则元组
+- 审计 6：`echo "$INCONSISTENCY" | sed 's/^/  - /'` → `splitlines()` 逐行前缀
+
+### 修改 `agate/tests/unit/check-p6-provenance.bats`（调用点 .sh → .py，`@test` 数不变）
+
+- 36 处 `run bash "$AGATE_SCRIPTS/check-p6-provenance.sh"` → `run "$PYTHON" "$AGATE_SCRIPTS/check-p6-provenance.py"`（fixtures.bash `$PYTHON`，不裸写 python3）
+- 36 个 @test 名 + 头部注释脚本名改 .py；`setup()` 的 `create_python_shim_bin` shim **保留**（本文件 PV_BDD19.1/PV_BDD20.1 仍调 `check-gate.sh`，其内部裸 python3 需 shim 兜底）
+
+### 其他引用核查（确认无需改动）
+
+- `unit/dispatch-context-warning.bats` L34：`cp .../check-p6-provenance.sh` 复制到 fake root 供**仍为 sh 的 pre-commit-gate.sh**（内部 `bash .../check-p6-provenance.sh`）调用，保持 .sh 复制不变（batch 2a/2b/2c + check-p6-evidence 同款先例）
+- `unit/check-p6-evidence.bats` L48 注释 `文件存在性由 check-p6-provenance.sh 验证` → 已同步改 .py（引用面）
+- `agate/scripts/pre-commit-gate.sh` L198、`agate-summary.sh` L46、`agate-summary.py` L26、`ci-gate-backstop.py` L262：sh 侧调用点/汇总清单，批次 3/4 迁移对象 → 不改
+- `check-protocol-consistency.py` 锚点表（CHECK 8/9 的 check-p6-provenance.sh 条目）：.sh 仍存在，锚点不 ERROR → 不改（随批次 4 文档引用同步）
+- `tests/README.md` L36、`scripts/README.md` L18、`agate-md-field-get.py` L63 注释、`platform-notes.md`/`phase-cards/P6-acceptance.md`/`verifier.md`/`dispatch-protocol.md` 等文档与注释引用 → 批次 4（表 B）处理
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：check-p6-provenance.py 编译通过
+- 手动 sh vs py 输出 diff（12 场景，exit code + stderr 逐字节一致）：基本通过 / PASS 缺引用（含详情行）/ dispatch-context 预判 / P1 BDD>P6（挑验）/ P1 无标准 BDD / UI 缺 vision 引用 / vision YAML blocker!=0 / vision YAML 通过 / 日志 EXIT_CODE=1 矛盾 / 日志缺 EXIT_CODE 跳过 / evidence JSON 矛盾（含 前缀）/ frontmatter pass+fail 不一致 WARNING / 嵌套括号 nth(1) / 逗号分隔多引用缺一 / agent 缺字段 exit2 / 充数证据文件 / 无 P6 文件
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。三点记录：
+> 1. new py 的 usage 消息脚本名后缀 .sh → .py（"用法: check-p6-provenance.py TASK_DIR"），与 batch 1a/1b/1c/2a/2b/2c/2d 同款先例一致；bats 无 no-arg 用例，无断言依赖。
+> 2. sh 版 `get_risk_level()` 定义但从未被调用（死代码）——未迁移，其余逐条等价。
+> 3. 审计 3 frontmatter pass/fail 非数字时 sh 侧 `$((PASS_FM + FAIL_FM))` 在 `set -e` 下硬失败（exit 1）；py 版显式捕获 ValueError 输出 GATE PROVENANCE 诊断后 exit 1（fail-closed 语义等价，无 bats 覆盖该畸形输入）。
