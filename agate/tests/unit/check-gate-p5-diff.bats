@@ -40,7 +40,7 @@ make_post_fails() {
 @test "PG.1 两份文件均缺失 → 走原有分支，exit 2" {
     local dir
     dir=$(create_task_dir)
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -49,7 +49,7 @@ make_post_fails() {
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123"
     make_post_fails "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -58,7 +58,7 @@ make_post_fails() {
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123" "tests/test_a.py::test_x"
     make_post_fails "$dir" "tests/test_a.py::test_x" "tests/test_b.py::test_y"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"新增失败"* ]]
     [[ "$output" == *"test_b.py::test_y"* ]]
@@ -80,7 +80,7 @@ agent: test
 |---|---------|--------|------|-------------|---------|
 | 1 | test_a | 1 | root cause | 否 | postpone |
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -89,7 +89,7 @@ EOF
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123" "tests/test_a.py::test_x"
     make_post_fails "$dir" "tests/test_a.py::test_x"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"known-failures.md 不存在"* ]]
 }
@@ -99,7 +99,7 @@ EOF
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123" "tests/test_a.py::test_x" "tests/test_b.py::test_y"
     make_post_fails "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -108,7 +108,7 @@ EOF
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123"
     make_post_fails "$dir" "tests/test_a.py::test_x" "tests/test_b.py::test_y"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"新增失败"* ]]
 }
@@ -118,7 +118,7 @@ EOF
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123" "tests/test_a.py::test_x"
     make_post_fails "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -138,7 +138,7 @@ agent: test
 |---|---------|--------|------|-------------|---------|
 | 1 | test_a | 1 | root cause | 否 | postpone |
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"登记不完整"* ]]
 }
@@ -160,7 +160,7 @@ agent: test
 | 1 | test_a | 1 | root cause | 否 | postpone |
 | 2 | test_b | 1 | root cause | 否 | postpone |
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -177,7 +177,7 @@ tests/test_a.py::test_x
 ```
 EOF
     make_post_fails "$dir" "tests/test_b.py::test_y"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"captured_at_commit"* ]]
     [[ "$output" == *"损坏"* ]]
@@ -187,7 +187,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     make_baseline "$dir" "abc123" "tests/test_a.py::test_x"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -195,6 +195,6 @@ EOF
     local dir
     dir=$(create_task_dir)
     make_post_fails "$dir" "tests/test_a.py::test_x"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }

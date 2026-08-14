@@ -69,7 +69,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
 }
 

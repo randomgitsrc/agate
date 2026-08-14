@@ -88,7 +88,7 @@ EOF
 - PASS: 16
 - FAIL: 0
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     # 旧版口径：grep -ciE '^\s*- (PASS|FAIL)' 会命中 3 行（含总结行）→ FAIL 计数被总结行污染。
     # 新版口径：只 1 条真实 PASS BDD-1，无证据目录 → 应因 P6-evidence 缺失而 exit 1，
     # 而不是被总结行的 "- FAIL: 0" 误判出多余 FAIL。

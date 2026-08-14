@@ -16,7 +16,7 @@ agent: analyst
 # Requirements
 - Given x When y Then z
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P1-review.md"* ]]
 }
@@ -42,7 +42,7 @@ agent: main
 ---
 approved
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
     [[ "$output" == *"agent=main"* ]]
 }
@@ -68,7 +68,7 @@ agent: requirements-review
 ---
 All good, approved.
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
     [[ "$output" == *"BDD"* ]] || [[ "$output" == *"锚点"* ]]
 }
@@ -95,7 +95,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS + 覆盖维度：数据✓ 前端✓ 多端✗ 边界✓ 兼容✓
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 2 ]
 }
 
@@ -121,7 +121,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: FAIL - 不可二值判定
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
 }
 
@@ -146,7 +146,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS + 覆盖维度：数据✓
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
 }
 
@@ -176,7 +176,7 @@ gate 规则要求 status: approved 才放行，本次评审未通过。
 ## BDD 评审
 - BDD-1: FAIL - 不可二值判定
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
     [[ "$output" == *"非 approved"* ]]
 }
@@ -204,7 +204,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 1 ]
     [[ "$output" == *"NEED_CONFIRM"* ]]
 }
@@ -231,6 +231,6 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"
+    run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"
     [ "$status" -eq 2 ]
 }

@@ -25,7 +25,7 @@ design_gap_reviewed_count: 1
 - [DESIGN_GAP: P2 未指定错误处理]
 - [DESIGN_GAP_REVIEWED: 已确认]
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -45,7 +45,7 @@ design_gap_reviewed_count: 0
 ---
 - [DESIGN_GAP: P2 未指定错误处理]
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
 }
 
@@ -71,7 +71,7 @@ design_gap_reviewed_count: 0
 ---
 一致性检查完成。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P4"*"DESIGN_GAP"*"P7"* ]]
 }
@@ -99,6 +99,6 @@ design_gap_reviewed_count: 1
 - [DESIGN_GAP: P2 未指定错误处理]
 - [DESIGN_GAP_REVIEWED: 已确认]
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 0 ]
 }

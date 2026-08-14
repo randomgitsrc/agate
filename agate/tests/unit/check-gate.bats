@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
-# tests/unit/check-gate.bats — 覆盖 check-gate.sh（@test 数以 count-tests.sh 为准）
+# tests/unit/check-gate.bats — 覆盖 check-gate.py（@test 数以 count-tests.sh 为准）
 
 load ../helpers/load.bash
 
 setup() {
-    # TAG0009 BDD-16/17：check-gate.sh 内部裸 python3（agate-md-field-get.py 等）在
+    # TAG0009 BDD-16/17：check-gate.py 内部裸 python3（agate-md-field-get.py 等）在
     # 仅 python 可解析环境（Windows）由 shim 兜底；python3 已可用时 shim 为空、无副作用
     local shim
     shim=$(create_python_shim_bin) || return 1
@@ -15,27 +15,27 @@ setup() {
 
 # ========== P0 (立项阶段，无需脚本 gate) ==========
 
-@test "G0 check-gate.sh P0 立项阶段 期望 exit 2（输出不含『未知』）" {
+@test "G0 check-gate.py P0 立项阶段 期望 exit 2（输出不含『未知』）" {
     local dir
     dir=$(create_task_dir)
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P0 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P0 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" != *"未知"* ]]
 }
 
 # ========== P1 (需 P1-review.md) ==========
 
-@test "G1 check-gate.sh P1 缺 P1-review.md 期望 exit 1" {
+@test "G1 check-gate.py P1 缺 P1-review.md 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P1-review.md"* ]]
 }
 
 # ========== P2 多方案探索（5 用例） ==========
 
-@test "G2.1 check-gate.sh P2 0 个候选方案 期望 exit 1" {
+@test "G2.1 check-gate.py P2 0 个候选方案 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -44,12 +44,12 @@ setup() {
 无候选方案。
 EOF
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"需至少 2 个候选方案"* ]]
 }
 
-@test "G2.2 check-gate.sh P2 1 个候选方案 期望 exit 1" {
+@test "G2.2 check-gate.py P2 1 个候选方案 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -57,11 +57,11 @@ EOF
 ### 候选方案 A：方案一
 EOF
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
 }
 
-@test "G2.3 check-gate.sh P2 2 个候选方案 期望 exit 2" {
+@test "G2.3 check-gate.py P2 2 个候选方案 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -77,11 +77,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.4 check-gate.sh P2 h5 候选方案不识别（regex 边界）" {
+@test "G2.4 check-gate.py P2 h5 候选方案不识别（regex 边界）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -91,11 +91,11 @@ EOF
 EOF
     # h5 不被 ^#{2,4} 匹配
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
 }
 
-@test "G2.25 check-gate.sh P2 #### 候选方案识别（h4 支持）" {
+@test "G2.25 check-gate.py P2 #### 候选方案识别（h4 支持）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -111,11 +111,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.26 check-gate.sh P2 全角冒号标题 + candidate_count 字段 期望 exit 2（纯强制）" {
+@test "G2.26 check-gate.py P2 全角冒号标题 + candidate_count 字段 期望 exit 2（纯强制）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -131,11 +131,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.27 check-gate.sh P2 缺 candidate_count 字段 期望 exit 1（纯强制）" {
+@test "G2.27 check-gate.py P2 缺 candidate_count 字段 期望 exit 1（纯强制）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -150,21 +150,21 @@ ui_affected: false
 gate_commands: {}
 EOF
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"candidate_count"* ]]
 }
 
-@test "G2.5 check-gate.sh P2 无 P2 文件 期望 exit 1" {
+@test "G2.5 check-gate.py P2 无 P2 文件 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P3 P4 P5 P6 P7 P8)  # P2 不在
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-design.md"* ]]
 }
 
-@test "G2.8 check-gate.sh P2 候选方案 ≥2 但无权衡 期望 exit 1" {
+@test "G2.8 check-gate.py P2 候选方案 ≥2 但无权衡 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -178,12 +178,12 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"权衡"* ]]
 }
 
-@test "G2.9 check-gate.sh P2 候选方案 ≥2 + 含权衡 期望 exit 2" {
+@test "G2.9 check-gate.py P2 候选方案 ≥2 + 含权衡 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -199,11 +199,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.9a check-gate.sh P2 design_trivial + 1 候选方案 + 含权衡 期望 exit 2" {
+@test "G2.9a check-gate.py P2 design_trivial + 1 候选方案 + 含权衡 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     add_p1_field "$dir" "design_trivial" "true"
@@ -219,11 +219,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 1
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.9b check-gate.sh P2 follows_existing_pattern + 1 候选方案 + 含权衡 期望 exit 2" {
+@test "G2.9b check-gate.py P2 follows_existing_pattern + 1 候选方案 + 含权衡 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     add_p1_field "$dir" "follows_existing_pattern" "[src/foo.py]"
@@ -239,11 +239,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 1
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.10 check-gate.sh P2 有候选方案+权衡+四字段，P2-review.md frontmatter status:rejected 期望 exit 1" {
+@test "G2.10 check-gate.py P2 有候选方案+权衡+四字段，P2-review.md frontmatter status:rejected 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -266,12 +266,12 @@ status: rejected
 ## 裁决
 未通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"非 approved"* ]]
 }
 
-@test "G2.10a check-gate.sh P2 frontmatter rejected + 正文含 status: approved 字面串 期望 exit 1（对抗绕过）" {
+@test "G2.10a check-gate.py P2 frontmatter rejected + 正文含 status: approved 字面串 期望 exit 1（对抗绕过）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -295,12 +295,12 @@ status: rejected
 
 gate 规则要求 status: approved 才放行，本次评审未通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"非 approved"* ]]
 }
 
-@test "G2.11 check-gate.sh P2 有候选方案+权衡+四字段+frontmatter status:approved 期望 exit 2" {
+@test "G2.11 check-gate.py P2 有候选方案+权衡+四字段+frontmatter status:approved 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -322,13 +322,13 @@ status: approved
 ---
 通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G_BDD1.1 BDD-1: check-gate.sh P2 四字段经 frontmatter 声明（非正文）仍被门禁正确读取判定" {
+@test "G_BDD1.1 BDD-1: check-gate.py P2 四字段经 frontmatter 声明（非正文）仍被门禁正确读取判定" {
     # T001 v2.0 流 A：packages/domains/ui_affected 迁入 frontmatter 块后，
-    # check-gate.sh 的判定结果须与声明一致（BDD-1"门禁基于 frontmatter 声明值完成判定"）。
+    # check-gate.py 的判定结果须与声明一致（BDD-1"门禁基于 frontmatter 声明值完成判定"）。
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -349,11 +349,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.13 check-gate.sh P2 有候选方案+权衡+四字段，无 P2-review.md 期望 exit 1" {
+@test "G2.13 check-gate.py P2 有候选方案+权衡+四字段，无 P2-review.md 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -368,7 +368,7 @@ ui_affected: false
 gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-review.md"* ]]
 }
@@ -388,7 +388,7 @@ ui_affected: false
 gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P2-review.md 不存在"* ]]
 }
@@ -417,7 +417,7 @@ status: approved
 ---
 通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"definitely-nonexistent-cmd"* ]]
 }
@@ -446,33 +446,33 @@ status: approved
 ---
 通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" != *"不存在"* ]]
 }
 
 # ========== P3 check-tdd-red.sh 委托（7 个子用例） ==========
 # G3.1-G3.7 见 check-tdd-red.bats（独立文件覆盖）
-# 这里只验证 check-gate.sh P3 检查文件存在性（不跑测试）
+# 这里只验证 check-gate.py P3 检查文件存在性（不跑测试）
 
-@test "G3 check-gate.sh P3 检查 P3-test-cases.md 存在（不跑测试）" {
+@test "G3 check-gate.py P3 检查 P3-test-cases.md 存在（不跑测试）" {
     local dir
     dir=$(create_task_dir)
     # 无 P3-test-cases.md → exit 1
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P3 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P3-test-cases.md 不存在"* ]]
 
     # 有 P3-test-cases.md → exit 2
     echo '## P3 test cases' > "$dir/P3-test-cases.md"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P3 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"check-tdd-red.sh"* ]]
 }
 
 # ========== P4 (7 用例) ==========
 
-@test "G4.1 check-gate.sh P4 暂存区仅 .md 期望 exit 1" {
+@test "G4.1 check-gate.py P4 暂存区仅 .md 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     local repo
@@ -481,11 +481,11 @@ EOF
     cp -r "$dir" "$repo/task"
     echo "doc" > "$repo/task/P4-implementation.md"
     git -C "$repo" add "task/P4-implementation.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P4 'task'"
     [ "$status" -eq 1 ]
 }
 
-@test "G4.2 check-gate.sh P4 暂存区有 .py 代码 期望 exit 0" {
+@test "G4.2 check-gate.py P4 暂存区有 .py 代码 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     local repo
@@ -501,11 +501,11 @@ reviewed, approved.
 EOF
     echo "def hello(): pass" > "$repo/src.py"
     git -C "$repo" add "src.py" "task/P4-review.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P4 'task'"
     [ "$status" -eq 0 ]
 }
 
-@test "G4.3 check-gate.sh P4 暂存区 .md + .yaml + .py 混合 期望 exit 0" {
+@test "G4.3 check-gate.py P4 暂存区 .md + .yaml + .py 混合 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     local repo
@@ -523,11 +523,11 @@ EOF
     echo "code" > "$repo/src.py"
     echo "yaml: 1" > "$repo/config.yaml"
     git -C "$repo" add .
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P4 'task'"
     [ "$status" -eq 0 ]
 }
 
-@test "G4.4 check-gate.sh P4 暂存区 .py 排除 .md 期望 exit 0" {
+@test "G4.4 check-gate.py P4 暂存区 .py 排除 .md 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     local repo
@@ -544,11 +544,11 @@ EOF
     # .py 不在排除列表
     echo "code" > "$repo/src.py"
     git -C "$repo" add "src.py" "task/P4-review.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P4 'task'"
     [ "$status" -eq 0 ]
 }
 
-@test "G4.5 check-gate.sh P4 无 P4-review.md → exit 1（评审不可跳过）" {
+@test "G4.5 check-gate.py P4 无 P4-review.md → exit 1（评审不可跳过）" {
     local dir
     dir=$(create_task_dir)
     local repo
@@ -557,12 +557,12 @@ EOF
     cp -r "$dir" "$repo/task"
     echo "code" > "$repo/src.py"
     git -C "$repo" add "src.py"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P4 'task'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P4-review.md"* ]]
 }
 
-@test "G4.6 check-gate.sh P4 P4-review.md status 非 approved → exit 1" {
+@test "G4.6 check-gate.py P4 P4-review.md status 非 approved → exit 1" {
     local dir
     dir=$(create_task_dir)
     local repo
@@ -578,12 +578,12 @@ reviewed, found issues.
 EOF
     echo "code" > "$repo/src.py"
     git -C "$repo" add "src.py" "task/P4-review.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P4 'task'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"非 approved"* ]]
 }
 
-@test "G4.7 check-gate.sh P4 P4-review.md agent=main → exit 1（不可自批）" {
+@test "G4.7 check-gate.py P4 P4-review.md agent=main → exit 1（不可自批）" {
     local dir
     dir=$(create_task_dir)
     local repo
@@ -599,17 +599,17 @@ self-approved.
 EOF
     echo "code" > "$repo/src.py"
     git -C "$repo" add "src.py" "task/P4-review.md"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P4 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P4 'task'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"agent=main"* ]]
 }
 
 # ========== P5 (固定 exit 2) ==========
 
-@test "G5 check-gate.sh P5 期望 exit 2" {
+@test "G5 check-gate.py P5 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -628,7 +628,7 @@ gate_commands:
   P5_e2e: "playwright test --reporter=line tests/e2e/"
 EOF
 
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]  # P5 恒 exit 2
     [[ "$output" == *"gate_commands.P5"* || "$output" == *"子集"* || "$output" == *"全量"* ]]
 }
@@ -649,7 +649,7 @@ EOF
         echo '  P5_e2e: "playwright test"'
     } > "$dir/P2-design.md"
 
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"1 个主命令 + 1 个辅助命令"* ]]
     [[ "$output" == *"共 2 条"* ]]
@@ -670,7 +670,7 @@ EOF
         echo '  P5: "pytest -q"'
     } > "$dir/P2-design.md"
 
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" != *"gate_commands.P5 命令"* ]]
 }
@@ -684,7 +684,7 @@ phase: P2
 ---
 候选方案：无 gate_commands 声明
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" != *"gate_commands.P5 命令"* ]]
 }
@@ -700,7 +700,7 @@ gate_commands:
   P5: "pytest -q"
   P6: "pytest tests/acceptance"
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" != *"gate_commands.P5 命令"* ]]
 }
@@ -709,7 +709,7 @@ EOF
     local dir
     dir=$(create_task_dir)
     printf 'gate_commands:\n  P5: "pytest"\n  P5_e2e: "playwright"' > "$dir/P2-design.md"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"1 个主命令 + 1 个辅助命令"* ]]
     [[ "$output" == *"共 2 条"* ]]
@@ -717,30 +717,30 @@ EOF
 
 # ========== P6 (5 用例) ==========
 
-@test "G6.1 check-gate.sh P6 含 FAIL 行 期望 exit 1" {
+@test "G6.1 check-gate.py P6 含 FAIL 行 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
 - PASS BDD-1
 - FAIL BDD-2
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"FAIL="* ]]
 }
 
-@test "G6.3 check-gate.sh P6 全 PASS 但无 BDD 期望 exit 1" {
+@test "G6.3 check-gate.py P6 全 PASS 但无 BDD 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
 无 BDD 条目
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"TOTAL=0"* ]]
 }
 
-@test "G6.4 check-gate.sh P6 全 PASS 但无证据目录 期望 exit 1" {
+@test "G6.4 check-gate.py P6 全 PASS 但无证据目录 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -748,12 +748,12 @@ EOF
 - PASS BDD-2
 EOF
     # 没有 P6-evidence/ 目录
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P6-evidence"* ]]
 }
 
-@test "G6.5 check-gate.sh P6 全 PASS + 证据目录非空 期望 exit 2" {
+@test "G6.5 check-gate.py P6 全 PASS + 证据目录非空 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -762,11 +762,11 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G6.10 check-gate.sh P6 含 [NEED_CONFIRM] 不再拦截（v0.30.3 语义修正）" {
+@test "G6.10 check-gate.py P6 含 [NEED_CONFIRM] 不再拦截（v0.30.3 语义修正）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -775,11 +775,11 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G6.11 check-gate.sh P6 无 [NO_NEED_CONFIRM] 不再 WARNING（v0.30.3）" {
+@test "G6.11 check-gate.py P6 无 [NO_NEED_CONFIRM] 不再 WARNING（v0.30.3）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -787,24 +787,24 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" != *"NEED_CONFIRM"* ]]
 }
 
-@test "G6.7 check-gate.sh P6 小写 fail: 被计为 FAIL（大小写不敏感）" {
+@test "G6.7 check-gate.py P6 小写 fail: 被计为 FAIL（大小写不敏感）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
 - PASS BDD-1
 - fail: BDD-2 broken
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"FAIL=1"* ]]
 }
 
-@test "G_BDD16.1 BDD-16: check-gate.sh P6 frontmatter 声明 pass/fail 汇总时门禁基于该汇总判定（非正文 grep 计数）" {
+@test "G_BDD16.1 BDD-16: check-gate.py P6 frontmatter 声明 pass/fail 汇总时门禁基于该汇总判定（非正文 grep 计数）" {
     # T001 v2.0 流 B：正文无任何 "- PASS/FAIL" 行（旧版 grep 计数会得 TOTAL=0 → exit 1），
     # 但 frontmatter 声明 pass:1/fail:0 → 门禁应基于 frontmatter 汇总判定为 exit 2。
     # 这是区分"新逻辑基于 frontmatter" vs "旧逻辑从正文 grep 计数"的关键场景。
@@ -823,11 +823,11 @@ ui_affected: false
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.json"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G6.9 check-gate.sh P6 'failure' 不被计为 FAIL" {
+@test "G6.9 check-gate.py P6 'failure' 不被计为 FAIL" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P6-acceptance.md" <<'EOF'
@@ -836,7 +836,7 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"FAIL=0"* ]]
 }
@@ -856,7 +856,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" != *"change_type"* ]]
 }
@@ -871,7 +871,7 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -887,7 +887,7 @@ EOF
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "log" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -910,7 +910,7 @@ regression_pass: true
 EOF
     mkdir -p "$dir/P6-evidence"
     printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -933,7 +933,7 @@ regression_pass: true
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "other" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"regression.log"* ]]
 }
@@ -956,7 +956,7 @@ ui_affected: false
 EOF
     mkdir -p "$dir/P6-evidence"
     printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"regression_pass"* ]]
 }
@@ -981,7 +981,7 @@ regression_pass: true
 EOF
     mkdir -p "$dir/P6-evidence"
     echo "other" > "$dir/P6-evidence/result.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 1 ]
 }
 
@@ -1005,7 +1005,7 @@ regression_pass: true
 EOF
     mkdir -p "$dir/P6-evidence"
     printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -1029,10 +1029,10 @@ agent: requirements-review
 - BDD-1: PASS
 - BDD-2: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
     echo '## P3 test cases（回归测试口径，不新增功能行为断言）' > "$dir/P3-test-cases.md"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P3 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P3 "$dir"
     [ "$status" -eq 2 ]
     cat > "$dir/P6-acceptance.md" <<'EOF'
 ---
@@ -1049,7 +1049,7 @@ regression_pass: true
 EOF
     mkdir -p "$dir/P6-evidence"
     printf 'bats ... 0 failures\nEXIT_CODE: 0\n' > "$dir/P6-evidence/regression.log"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -1065,51 +1065,51 @@ EOF
 
 # ========== P7 (5 用例) ==========
 
-@test "G7.1 check-gate.sh P7 含 [BLOCKER] 期望 exit 1" {
+@test "G7.1 check-gate.py P7 含 [BLOCKER] 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P7-consistency.md" <<'EOF'
 - [BLOCKER] arch flaw
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"BLOCKER="* ]]
 }
 
-@test "G7.2 check-gate.sh P7 含 [DEVIATION-CRITICAL] 期望 exit 1" {
+@test "G7.2 check-gate.py P7 含 [DEVIATION-CRITICAL] 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P7-consistency.md" <<'EOF'
 - [DEVIATION-CRITICAL] ui break
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"DEVIATION-CRITICAL="* ]]
 }
 
-@test "G7.3 check-gate.sh P7 DESIGN_GAP 未配对 期望 exit 1" {
+@test "G7.3 check-gate.py P7 DESIGN_GAP 未配对 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P7-consistency.md" <<'EOF'
 - [DESIGN_GAP: P2 未指定错误处理]
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"DESIGN_GAP"*"未配对"* ]]
 }
 
-@test "G7.4 check-gate.sh P7 DESIGN_GAP 已配对 期望 exit 0" {
+@test "G7.4 check-gate.py P7 DESIGN_GAP 已配对 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P7-consistency.md" <<'EOF'
 - [DESIGN_GAP: P2 未指定错误处理]
 - [DESIGN_GAP_REVIEWED: 已确认]
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "G7.5 check-gate.sh P7 2 GAP + 1 REVIEWED 期望 exit 1" {
+@test "G7.5 check-gate.py P7 2 GAP + 1 REVIEWED 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P7-consistency.md" <<'EOF'
@@ -1117,19 +1117,19 @@ EOF
 - [DESIGN_GAP: B]
 - [DESIGN_GAP_REVIEWED: A 已确认]
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
 }
 
-@test "G7.6 check-gate.sh P7 空文件 期望 exit 0" {
+@test "G7.6 check-gate.py P7 空文件 期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     : > "$dir/P7-consistency.md"  # 空
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "G7.7 check-gate.sh P7 P4 有 DESIGN_GAP 但 P7 未转抄 期望 exit 1" {
+@test "G7.7 check-gate.py P7 P4 有 DESIGN_GAP 但 P7 未转抄 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P4-implementation.md" <<'EOF'
@@ -1144,14 +1144,14 @@ agent: test
 ---
 一致性检查完成。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P4"*"DESIGN_GAP"*"P7"* ]]
 }
 
 # ========== P8 (5 用例) ==========
 
-@test "G8.1 check-gate.sh P8 缺 bump_type 期望 exit 1" {
+@test "G8.1 check-gate.py P8 缺 bump_type 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1164,12 +1164,12 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add package.json CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"bump_type"* ]]
 }
 
-@test "G8.2 check-gate.sh P8 无 version 文件变更（暂存区）期望 WARNING（不阻断）" {
+@test "G8.2 check-gate.py P8 无 version 文件变更（暂存区）期望 WARNING（不阻断）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1184,13 +1184,13 @@ EOF
     echo "doc" > "$repo/some.md"
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add some.md CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     # P1-6: version 不匹配降级为 WARNING（不设 RC=1），但 CHANGELOG 已变更 → RC=0 → exit 2
     [ "$status" -eq 2 ]
     [[ "$output" == *"WARNING"*"version"* ]]
 }
 
-@test "G8.3 check-gate.sh P8 有 version 但 CHANGELOG 无变更 期望 exit 2 (WARNING)" {
+@test "G8.3 check-gate.py P8 有 version 但 CHANGELOG 无变更 期望 exit 2 (WARNING)" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1204,12 +1204,12 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     # CHANGELOG 没改 → WARNING（不阻断）
     git -C "$repo" add package.json
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
     [[ "$output" == *"CHANGELOG"* ]]
 }
 
-@test "G8.4 check-gate.sh P8 全合规 期望 exit 2" {
+@test "G8.4 check-gate.py P8 全合规 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1223,19 +1223,19 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add package.json CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
 }
 
-@test "G8.5 check-gate.sh P8 无 P8 文件 期望 exit 1" {
+@test "G8.5 check-gate.py P8 无 P8 文件 期望 exit 1" {
     local dir
     dir=$(create_task_dir P0 P1 P2 P3 P4 P5 P6 P7)  # P8 不在
     # P8-release.md 不存在 → bump_type 缺失 → exit 1
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P8 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P8 "$dir"
     [ "$status" -eq 1 ]
 }
 
-@test "G8.7 check-gate.sh P8 tag 不存在 期望 WARNING（exit 2，不阻断）" {
+@test "G8.7 check-gate.py P8 tag 不存在 期望 WARNING（exit 2，不阻断）" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1249,12 +1249,12 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     printf '## [Unreleased]\n\n## [0.2.0] - 2026-07-20\n' > "$repo/CHANGELOG.md"
     git -C "$repo" add package.json CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
     [[ "$output" == *"tag v0.2.0 不存在"* ]]
 }
 
-@test "G8.8 check-gate.sh P8 tag 存在 期望无 tag WARNING" {
+@test "G8.8 check-gate.py P8 tag 存在 期望无 tag WARNING" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1269,12 +1269,12 @@ EOF
     printf '## [Unreleased]\n\n## [0.2.0] - 2026-07-20\n' > "$repo/CHANGELOG.md"
     git -C "$repo" add package.json CHANGELOG.md
     git -C "$repo" tag v0.2.0
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
     [[ "$output" != *"tag v0.2.0 不存在"* ]]
 }
 
-@test "G8.9 check-gate.sh P8 P8-release.md 缺 debt_check 字段 期望 exit 1" {
+@test "G8.9 check-gate.py P8 P8-release.md 缺 debt_check 字段 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1287,12 +1287,12 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add package.json CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 1 ]
     [[ "$output" == *"debt_check"* ]]
 }
 
-@test "G8.10 check-gate.sh P8 debt_check 内容任意（debt_check: none）期望 exit 2 不阻断" {
+@test "G8.10 check-gate.py P8 debt_check 内容任意（debt_check: none）期望 exit 2 不阻断" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1306,7 +1306,7 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add package.json CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
     [[ "$output" != *"debt_check"* ]]
 }
@@ -1360,9 +1360,9 @@ EOF
     grep -qE '^\| backend \|.*plan-eng-review' "$AGATE_ROOT/phase-cards/P2-design.md"
 }
 
-@test "TAG0005 BDD-2 check-gate.sh P2 分支仍无条件要求 P2-review.md（gate 不改，回归锁）" {
-    grep -q 'P2-review.md 不存在（P2 评审不可裁剪' "$AGATE_ROOT/scripts/check-gate.sh"
-    grep -q 'P2-review.md frontmatter status 非 approved' "$AGATE_ROOT/scripts/check-gate.sh"
+@test "TAG0005 BDD-2 check-gate.py P2 分支仍无条件要求 P2-review.md（gate 不改，回归锁）" {
+    grep -q 'P2-review.md 不存在（P2 评审不可裁剪' "$AGATE_ROOT/scripts/check-gate.py"
+    grep -q 'P2-review.md frontmatter status 非 approved' "$AGATE_ROOT/scripts/check-gate.py"
 }
 
 @test "TAG0005 BDD-9 协议内「Review 角色特别指令」仅模板单文件（rg -l 单文件语义）" {
@@ -1397,15 +1397,15 @@ EOF
     fi
 }
 
-@test "G_OTHER check-gate.sh 未知阶段 期望 exit 2" {
+@test "G_OTHER check-gate.py 未知阶段 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P9 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P9 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"未知阶段"* ]]
 }
 
-@test "G2.14 check-gate.sh P2 方案 A（有空格）+ 方案 B 期望 exit 2" {
+@test "G2.14 check-gate.py P2 方案 A（有空格）+ 方案 B 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1421,11 +1421,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G_BDD10.1 BDD-10: check-gate.sh P2 candidate_count 在 frontmatter 与正文声明不同值时以 frontmatter 为准" {
+@test "G_BDD10.1 BDD-10: check-gate.py P2 candidate_count 在 frontmatter 与正文声明不同值时以 frontmatter 为准" {
     # T001 v2.0 流 A：正文出现同名字段 "candidate_count: 1"（不足 2，本应 exit 1），
     # 但 frontmatter 声明 candidate_count: 2（配合 2 个候选方案，应 exit 2）——
     # 断言最终判定与 frontmatter 一致，证明 frontmatter 优先于正文同名字段（不再走正则回退）。
@@ -1445,11 +1445,11 @@ candidate_count: 1
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.17 check-gate.sh P2 候选方案 ≥2 + '选择'标题+正文'理由' 期望 exit 2" {
+@test "G2.17 check-gate.py P2 候选方案 ≥2 + '选择'标题+正文'理由' 期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1465,11 +1465,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.18 check-gate.sh P2-review agent=subagent + frontmatter status:approved → exit 2" {
+@test "G2.18 check-gate.py P2-review agent=subagent + frontmatter status:approved → exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1491,11 +1491,11 @@ status: approved
 ---
 通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.19 check-gate.sh P2-review agent=main + frontmatter status:approved → exit 1" {
+@test "G2.19 check-gate.py P2-review agent=main + frontmatter status:approved → exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1517,12 +1517,12 @@ status: approved
 ---
 通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"agent=main"* ]]
 }
 
-@test "G2.20 check-gate.sh P2-review 缺 agent 字段 + frontmatter status:approved → exit 2 (WARNING)" {
+@test "G2.20 check-gate.py P2-review 缺 agent 字段 + frontmatter status:approved → exit 2 (WARNING)" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1543,36 +1543,36 @@ status: approved
 ---
 通过。
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"agent"* ]]
 }
 
-@test "G7.8 check-gate.sh P7 [BLOCKER]: 0 条（声明）期望 exit 0" {
+@test "G7.8 check-gate.py P7 [BLOCKER]: 0 条（声明）期望 exit 0" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P7-consistency.md" <<'EOF'
 - [BLOCKER]: 0 条
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 0 ]
 }
 
-@test "G7.9 check-gate.sh P7 [BLOCKER]: 0 条 + 实际 BLOCKER 期望 exit 1" {
+@test "G7.9 check-gate.py P7 [BLOCKER]: 0 条 + 实际 BLOCKER 期望 exit 1" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P7-consistency.md" <<'EOF'
 - [BLOCKER]: 0 条
 - [BLOCKER] arch flaw
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"BLOCKER="* ]]
 }
 
 # ========== 额外边界（凑到 33 个用例） ==========
 
-@test "G2.7 check-gate.sh P2 h2 (##) 候选方案也被识别" {
+@test "G2.7 check-gate.py P2 h2 (##) 候选方案也被识别" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1588,11 +1588,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G8.6 check-gate.sh P8 CHANGELOG_FILE 环境变量覆盖" {
+@test "G8.6 check-gate.py P8 CHANGELOG_FILE 环境变量覆盖" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P8-release.md" <<'EOF'
@@ -1607,11 +1607,11 @@ EOF
     # 用非默认 changelog 文件
     echo "## [Unreleased]" > "$repo/HISTORY.md"
     git -C "$repo" add package.json HISTORY.md
-     CHANGELOG_FILE="HISTORY.md" run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+     CHANGELOG_FILE="HISTORY.md" run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.21 check-gate.sh P2 方案 Alpha（多词方案名）期望 exit 2" {
+@test "G2.21 check-gate.py P2 方案 Alpha（多词方案名）期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1627,11 +1627,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G_BDD9.1 BDD-9: check-gate.sh P2-design.md 旧格式（四字段仅在正文、frontmatter 无这些字段）仍被正确读取" {
+@test "G_BDD9.1 BDD-9: check-gate.py P2-design.md 旧格式（四字段仅在正文、frontmatter 无这些字段）仍被正确读取" {
     # T001 v2.0 流 A：在途任务旧格式（v0.35 正文内嵌）双读回退——P2-design.md frontmatter
     # 不含 packages/domains/ui_affected 时，门禁行为须与 v0.35 一致（正则回退）。
     local dir
@@ -1649,11 +1649,11 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
-@test "G2.24 check-gate.sh P2 方案 1 + 方案 2（数字编号）期望 exit 2" {
+@test "G2.24 check-gate.py P2 方案 1 + 方案 2（数字编号）期望 exit 2" {
     local dir
     dir=$(create_task_dir)
     cat > "$dir/P2-design.md" <<'EOF'
@@ -1669,7 +1669,7 @@ gate_commands: {}
 EOF
     add_p2_candidate_count "$dir" 2
     add_p2_review "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P2 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P2 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -1699,7 +1699,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -1727,7 +1727,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"NEED_CONFIRM"* ]]
 }
@@ -1756,7 +1756,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"不合规"* ]]
 }
@@ -1784,7 +1784,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"WARNING"* ]]
 }
@@ -1813,7 +1813,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
 }
 
@@ -1841,7 +1841,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
     [[ "$output" == *"SUGGEST"* ]]
     [[ "$output" != *"未解决的 NEED_CONFIRM 项（阻塞）"* ]]
@@ -1872,7 +1872,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"阻塞"* ]]
 }
@@ -1902,7 +1902,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"重命名为"* ]]
 }
@@ -1931,7 +1931,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"SUGGEST 格式不符"* ]]
 }
@@ -1945,7 +1945,7 @@ EOF
 # P7 一致性检查
 检查了 [DESIGN_GAP: xxx] 的引用
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -1956,7 +1956,7 @@ EOF
 # P7 一致性检查
 - [DESIGN_GAP: xxx] 未配对
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"DESIGN_GAP"* ]]
 }
@@ -1967,7 +1967,7 @@ EOF
     local dir
     dir="$BATS_TEST_TMPDIR/g_retreat1"
     mkdir -p "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
 }
 
@@ -1975,7 +1975,7 @@ EOF
     local dir
     dir="$BATS_TEST_TMPDIR/g_retreat2"
     mkdir -p "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir" P2
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir" P2
     [ "$status" -eq 2 ]
     [[ "$output" == *"回退抵达"* ]]
 }
@@ -1984,7 +1984,7 @@ EOF
     local dir
     dir="$BATS_TEST_TMPDIR/g_retreat3"
     mkdir -p "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P4 "$dir" P6
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P4 "$dir" P6
     [ "$status" -eq 2 ]
     [[ "$output" == *"回退抵达"* ]]
 }
@@ -1993,7 +1993,7 @@ EOF
     local dir
     dir="$BATS_TEST_TMPDIR/g_retreat4"
     mkdir -p "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir" P7
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P6 "$dir" P7
     [ "$status" -eq 2 ]
 }
 
@@ -2003,7 +2003,7 @@ EOF
     mkdir -p "$dir"
     cd "$dir"
     git init -q
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P4 "$dir" P3
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P4 "$dir" P3
     # 暂存区没有代码文件，仍应 exit 1（不因为传了 OLD_PHASE 就被误判成回退而放行）
     [ "$status" -eq 1 ]
 }
@@ -2012,7 +2012,7 @@ EOF
     local dir
     dir="$BATS_TEST_TMPDIR/g_retreat6"
     mkdir -p "$dir"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir" P1
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir" P1
     # OLD_NUM 不大于 NEW_NUM，不判定为回退，走原有 P1 逻辑（P1-review.md 缺失 exit 1）
     [ "$status" -eq 1 ]
     [[ "$output" != *"回退抵达"* ]]
@@ -2020,28 +2020,28 @@ EOF
 
 # ========== TAG0004 M4/M6/RM-AG0001（BDD-11/14/28/29，TDD 红灯） ==========
 
-@test "bdd-11 check-gate.sh P7 LC_ALL=C 全角冒号 [BLOCKER]：3 条 总结行不误计为阻塞（M4）" {
+@test "bdd-11 check-gate.py P7 LC_ALL=C 全角冒号 [BLOCKER]：3 条 总结行不误计为阻塞（M4）" {
     local dir
     dir=$(create_task_dir --no-state-yaml)
     cat > "$dir/P7-consistency.md" <<'EOF'
 - [BLOCKER]：3 条
 EOF
-    run env LC_ALL=C LANG= bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run env LC_ALL=C LANG= "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     # 修复前：[:：] bracket 在 POSIX locale 下不匹配全角冒号 → 总结行被计为真实 BLOCKER（exit 1）；修复后：exit 0
     [ "$status" -eq 0 ]
 }
 
-@test "bdd-14 check-gate.sh P1 CRLF 行尾 P1-review.md frontmatter 提取不失效（M6）" {
+@test "bdd-14 check-gate.py P1 CRLF 行尾 P1-review.md frontmatter 提取不失效（M6）" {
     local dir
     dir=$(create_task_dir --no-state-yaml)
     printf -- '---\r\nphase: P1\r\ntask_id: T001-test\r\nstatus: approved\r\nagent: requirements-review\r\n---\r\n## BDD 评审\r\n- BDD-1: PASS\r\n' > "$dir/P1-review.md"
     printf -- '---\r\nagent: test\r\nrisk_level: medium\r\nphases: [P1,P2,P3,P4,P5,P6,P7,P8]\r\n---\r\n- [NO_NEED_CONFIRM]\r\n' > "$dir/P1-requirements.md"
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     # 修复前：sed -n '/^---$/...' 对 CRLF 的 ---\r 不匹配 → status 提取为空 → exit 1；修复后：exit 2
     [ "$status" -eq 2 ]
 }
 
-@test "bdd-28 check-gate.sh P1 反引号包裹 [SUGGEST: ...] 计入 SUGGEST WARNING（RM-AG0001）" {
+@test "bdd-28 check-gate.py P1 反引号包裹 [SUGGEST: ...] 计入 SUGGEST WARNING（RM-AG0001）" {
     local dir
     dir=$(create_task_dir --no-state-yaml)
     cat > "$dir/P1-requirements.md" <<'EOF'
@@ -2066,13 +2066,13 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 2 ]
     # 修复前：行首正则 ^\s*-?\s*\[SUGGEST: 不匹配反引号前缀 → 漏计（无 SUGGEST WARNING）；修复后：WARNING
     [[ "$output" == *"SUGGEST"* ]]
 }
 
-@test "bdd-29 check-gate.sh P1 反引号包裹 [NEED_CONFIRM] 判为未解决阻塞项（RM-AG0001）" {
+@test "bdd-29 check-gate.py P1 反引号包裹 [NEED_CONFIRM] 判为未解决阻塞项（RM-AG0001）" {
     local dir
     dir=$(create_task_dir --no-state-yaml)
     cat > "$dir/P1-requirements.md" <<'EOF'
@@ -2096,7 +2096,7 @@ agent: requirements-review
 ## BDD 评审
 - BDD-1: PASS
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P1 "$dir"
     [ "$status" -eq 1 ]
     # 修复前：走"不合规格式"路径（消息不含"未解决的 NEED_CONFIRM"）；修复后：判未解决阻塞
     [[ "$output" == *"未解决的 NEED_CONFIRM"* ]]

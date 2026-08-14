@@ -18,7 +18,7 @@ for f in sorted(glob.glob('$AGATE_SCRIPTS/*.py')):
             continue
         if re.search(r'(?<!Image\.)\bopen\(', line) and 'encoding=' not in line and '"rb"' not in line and '"wb"' not in line:
             violations.append(f'{f}:{i}')
-        if 'read_text(' in line and 'encoding=' not in line:
+        if re.search(r'\.read_text\(', line) and 'encoding=' not in line:
             violations.append(f'{f}:{i}')
 assert not violations, 'open()/read_text() 缺 encoding: ' + '、'.join(violations[:30])
 "

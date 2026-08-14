@@ -19,7 +19,7 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add package.json CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
     [[ "$output" == *"脚本化检查通过"* ]]
 }
@@ -38,7 +38,7 @@ EOF
     echo "doc" > "$repo/some.md"
     echo "## [Unreleased]" > "$repo/CHANGELOG.md"
     git -C "$repo" add some.md CHANGELOG.md
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     # P1-6: version 不匹配降为 WARNING → RC 不设 1 → CHANGELOG OK → exit 2
     [ "$status" -eq 2 ]
     [[ "$output" == *"WARNING"*"version"* ]]
@@ -58,7 +58,7 @@ EOF
     echo "v0.1.0" > "$repo/package.json"
     # CHANGELOG 没改 → WARNING（不阻断）
     git -C "$repo" add package.json
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' P8 'task'"
+    run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P8 'task'"
     [ "$status" -eq 2 ]
     [[ "$output" == *"CHANGELOG"* ]]
 }

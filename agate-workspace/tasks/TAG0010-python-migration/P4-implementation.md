@@ -630,3 +630,163 @@ implementation_dir: agate/scripts/
 [SCOPE+]: `unit/check-tdd-red.bats` 的 `setup()` python3 shim（TAG0009 BDD-16/17）在 py 版下已无作用——脚本经 `$PYTHON` 直调 + 内部 `sys.executable`，不再裸调 python3。按最小实现原则保留不动（batch 2b check-state-transition.bats / 2a check-retrospective.bats 同款先例），记录供后续清理]
 
 > 范围说明：批次 2e 派发指引原列 check-tdd-red.bats + check-tdd-red-formatter.bats 两个测试文件，formatter 文件实际无 check-tdd-red 调用点（纯 formatter 直测），故未改动（见上）。
+
+---
+
+# P4 实现记录 — 批次 2f-1（check-gate.py 迁移第一部分：框架 + P0/P1/P2/P3/P4 分支）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 `agate/scripts/check-gate.py`（迁移源 .sh 保留，未改动；P5-P8 分支下一批追加）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/check-gate.py` | `check-gate.sh`（488 行） | `agate_common.run_git`（try/except 兜底本地 subprocess）+ `agate-md-field-get.py`（env FILE，need_confirm_resolved / suggest_resolved）+ `agate-gate-missing-cmds.py`（env GATE_FILE），均 sys.executable |
+
+- `#!/usr/bin/env python3`；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：`check-gate.py PHASE TASK_DIR [OLD_PHASE]`；exit 0/1/2 语义 + stderr 输出格式（GATE P0-P4 / WARNING / 回退抵达 / 未知阶段 消息逐字节一致，已 61 个场景手动 sh vs py diff 验证）
+- 整体结构：`main()` 内回退检测（OLD_PHASE 数字 > PHASE → exit 2）+ `handlers` dict 分发；每分支一个 `gate_pN(task_dir)` 函数
+- **本批只挂 P0-P4**：P5-P8 未实现，按派发指引不留 TODO 空壳；未实现阶段落入 sh `*)` 的「未知阶段」兜底（exit 2），下一批追加真分支
+- `$(...)` 剥尾换行 → `.rstrip("\n")`（agate-md-field-get / agate-gate-missing-cmds stdout 均处理）
+- P1/P2/P4 的 review frontmatter `status:`/`agent:` 提取：`_frontmatter_field` 复刻 sh `sed -n 's/\r$//; /^---$/,/^---$/p'` + `grep '^field:'` + `sed 's/^field:\s*//'` + `head -1`（CRLF 容错由 `splitlines()` 剥 `\r` 承担，M6/bdd-14 语义）
+- P1 流 C：`need_confirm_resolved`/`suggest_resolved` 逐条匹配用 `set(resolved_fm.split("\n"))` 等价 `grep -qFx -- "$desc"`（整行精确匹配）；desc 提取复刻 sed 三连替换（SUGGEST 剥前缀 + 尾部反引号 + 尾部 `]`）
+- P2：candidate_count 首行数字提取（`re.match(r"^candidate_count:")` + `re.search(r"[0-9]+")`）等价 `grep -E | grep -oE | head -1`；design_trivial/follows_existing_pattern 降 MIN_CANDIDATES；`command -v` → `shutil.which`；四字段计数 + 权衡/选择理由 nudge
+- P4：`git diff --cached --name-only` → `run_git`（cwd=当前目录，同 sh 在 repo 内执行）；暂存区排除正则 `(^|/)P[0-8]-.*\.md$|(^|/)\.state\.yaml$` 原样迁移（逐行 `.rstrip("\r")`，check-state-transition.py 同款 tr -d '\r' 处理）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`（含 `-W error::SyntaxWarning`）编译通过
+- 手动 sh vs py 输出 diff：**61 个场景 exit code + stderr 逐字节一致**，覆盖：
+  - P0（1）/ P1（21，含缺 review、agent=main、无 BDD、NEED_CONFIRM 未解决/已解决/反引号包裹、SUGGEST 去重/不匹配、CRLF 行尾、rejected、typo 兜底 1/2、inline NEED_CONFIRM、无声明、缺 status、正文 approved 对抗绕过）/ P2（23，含无设计、0/1/2 候选、缺 candidate_count、缺 review、rejected、agent=main、缺 agent、缺四字段、无权衡、选择+理由、design_trivial、follows_existing_pattern、缺命令 WARNING、全命令可执行、frontmatter 四字段、candidate_count 优先级/正文/frontmatter-only/非数字）/ P3（2）/ P4（9，含无 review、rejected、agent=main、缺 agent、仅 .md、.py、混合、md+yaml+py）/ 回退抵达 3 + 非回退 2 / 未知阶段 1
+- `check-protocol-consistency.py`：0 ERROR（全部通过）
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。三点记录：
+> 1. new py 的 usage 消息脚本名后缀 .sh → .py（"用法: check-gate.py PHASE TASK_DIR"）——与 batch 1a/1b/1c/2a-2e 同款先例一致；sh `${1:?用法: check-gate.sh ...}` 的 no-arg 行为（exit 1）等价保留
+> 2. P5-P8 阶段本批未实现，落入「未知阶段」兜底（exit 2）——sh 版 P5/P6/P8 本身也 exit 2、P7 exit 0，尚未实现阶段与 sh 的 exit code 有差异（P7 例外），下一批追加后消除；bats 的 P5-P8 调用点仍指向 .sh，不受影响
+> 3. `_frontmatter_field`/`_frontmatter_lines` 在首个 `---` 块未闭合（全文只有一个 `---`）时按 sed 语义读到文件尾；与 check-p6-provenance.py `get_agent` 同款实现，bats 无此类畸形输入用例
+
+---
+
+# P4 实现记录 — 批次 2f-2（check-gate.py 迁移第二部分：追加 P5/P6/P7/P8 分支）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 扩展 `agate/scripts/check-gate.py`（P5-P8 分支补齐，sh 迁移源未改动）
+
+- 在既有 `gate_p0`-`gate_p4` 之后追加 `gate_p5`/`gate_p6`/`gate_p7`/`gate_p8` 四个函数，`handlers` dict 挂 P5-P8；模块 docstring 更新为「P0-P8 全部分支已实现」
+- 新增 helper：`_gate_p5_count`（调 `agate-gate-p5-count.py`，env GATE_FILE，失败回退 (0,0)）；`_to_int`（失败回退 0，对应 bash 算术错误按 0 处理）；`_to_int_or_none`（非数字返回 None，对应 bash `[ x -lt y ]` 非整数报错→条件为 false 的语义，用于 P7 DESIGN_GAP 配对避免畸形 frontmatter 误拦截）
+- **P5**：`GATE P5: 需从 P2-design.md gate_commands.P5 动态读取`（exit 2）+ 多命令 WARNING（main+aux 总数 >1，T060 教训）+ pre-task-baseline.md vs fail-list.txt 机械 diff（`captured_at_commit:` 缺失→exit 2；新增失败→拦截 exit 1；预存失败→known-failures.md 存在且登记条目数足够才放行）。fail-list 提取复刻 `sed -n '/```fail-list/,/```/p' | sed '1d;$d' | grep -v '^$'`（含无闭合 fence 时 sed 读到文件尾再 `$d` 的边界）；`comm -13/-12` → sorted set 差集/交集
+- **P6**：change_type=refactor → `regression_pass: true` + `P6-evidence/regression.log` 硬校验；pass/fail frontmatter 汇总（新格式，BDD-16）vs 正文 grep 严格计数回退（旧格式，BDD-18，行首 `- PASS|FAIL ... BDD-N`，`\b` 词边界）；FAIL≠0 或 TOTAL=0 → exit 1；P6-evidence/ 非空校验；最终 exit 2。**不调 check-p6-evidence.py / check-p6-provenance.py**——与 sh 版一致（sh check-gate.sh P6 同样不调，provenance 审计由 pre-commit-gate.sh / ci-gate-backstop.py 单独执行）
+- **P7**：blocker_count/deviation_critical_count frontmatter（新格式，BDD-19）vs 正文 grep + 非计数行排除正则回退（旧格式，M4 `(:|：)` 全角冒号）→ >0 拦截；design_gap_count/design_gap_reviewed_count frontmatter（新格式，BDD-20，reviewed≥count）vs 数量相减回退（旧格式）；T090 关键词 WARNING；R2.3 P4/P7 DESIGN_GAP 转抄交叉核对（P4-implementation.md + P4-implementation/ 目录递归）；N3 跨文件引用 WARNING；exit 0
+- **P8**：bump_type/debt_check 字段存在性（exit 1）；version 文件变更双路径（暂存区 `--stat` + 最近 LOOKBACK commit，AGATE_VERSION_FILES 可配）WARNING；CHANGELOG 双路径（CHANGELOG_FILE 可配）WARNING；tag 存在性检查（VERSION_TAG_PREFIX 可配，从暂存区 CHANGELOG diff 提取首个版本号）WARNING；最终 exit 2。git 命令均走 `_git`（run_git，cwd=当前目录，同 sh 在 repo 内执行）；`HEAD~N` 存在性用 `rev-parse` returncode 判定
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`（含 `-W error::SyntaxWarning`）编译通过
+- 手动 sh vs py 输出 diff：P5（7 场景：缺/有 P2-design 多命令 WARNING、baseline 损坏、new fails 拦截、无 known-failures 拦截、登记不足/足够、干净 exit 2）/ P6（6 场景：旧格式 FAIL>0、新格式干净、新格式 FAIL>0、证据为空、refactor 缺回归证据、refactor 满足）/ P7（7 场景：新格式干净、BLOCKER>0、DEVIATION-CRITICAL、reviewed<count、旧格式 R2.3 遗漏转抄、旧格式干净、N3 WARNING）/ P8（5 场景：缺 bump_type、缺 debt_check、无暂存 WARNING×2、version 暂存、tag 存在/不存在）——**exit code + stderr 逐字节一致**
+- `check-protocol-consistency.py`：未重跑（主 Agent 验证阶段执行；本批只动 check-gate.py 内部，未改协议文档/其他脚本，依赖表不变）
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。一点记录：
+> 1. `_to_int`/`_to_int_or_none` 对非数字 frontmatter 字段（P6 pass/fail、P7 blocker 等）按「算术比较失败→条件为 false」处理，与 bash `[ x -gt 0 ]`/`$((x+1))` 的非整数报错口径一致（畸形输入下 sh 报错 false/直接 exit 1，py 回退为 0 或 None，均不误拦截；P6 非数字 pass/fail sh 会在 `$((...))` 崩溃 exit 1，py 回退 0 → TOTAL=0 拦截，同为阻断语义）
+
+---
+
+# P4 实现记录 — 批次 2f-3（check-gate.bats 全部调用点 .sh → .py）
+
+## implementation_dir
+
+```
+implementation_dir: agate/tests/unit/check-gate.bats
+```
+
+## 本批次改动清单
+
+> 本轮只改 bats 测试文件的调用点/脚本名引用（check-gate.py 本体的 P0-P8 分支已由批次 2f-1/2f-2 完成）。未跑任何 bats（主 Agent 验证）。
+
+### 修改 `agate/tests/unit/check-gate.bats`（调用点 .sh → .py，`@test` 数不变）
+
+- 全局替换 `check-gate.sh` → `check-gate.py`（187 处，含 @test 名、头部注释、调用点）
+- 调用形态同步改为 `$PYTHON`（fixtures.bash `$PYTHON`，不裸写 python3）：
+  - 直接调用：`run bash "$AGATE_SCRIPTS/check-gate.sh"` → `run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py"`（P0-P8 全 phase，共 152 处）
+  - 嵌套调用：`bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/check-gate.sh' ..."` → `bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-gate.py' ..."`（P4/P8 共 16 处，批次 2a/2b/2c 同款先例）
+  - env 形态：`run env LC_ALL=C LANG= bash "$AGATE_SCRIPTS/check-gate.sh"` → `run env LC_ALL=C LANG= "$PYTHON" "$AGATE_SCRIPTS/check-gate.py"`（1 处）
+- 断言体不动（无断言引用脚本名字符串；L1365 的 `grep -q 'P2-review.md frontmatter status 非 approved' "$AGATE_ROOT/scripts/check-gate.py"` 是 grep 被测 .py 源码内容，非脚本名断言）
+- `setup()` 的 `create_python_shim_bin` shim **保留**（本文件 BDD-16/17 语义：py 版内部经 `$PYTHON` 直调 + `sys.executable`，已无裸 python3；保留无副作用，批次 2a/2b 同款先例）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `grep -c 'check-gate\.sh'` → 0 残留；`check-gate.py` 187 处
+- `bats -c` 解析通过（124 用例，与 count-tests.sh 基线一致）
+- `grep 'bash.*check-gate\.py'` 复查：仅剩 16 处 `bash -c "..."` 嵌套包装（内层已为 `'$PYTHON' '.../check-gate.py'`），无 `bash "$AGATE_SCRIPTS/check-gate.py"` 裸 bash 调用残留
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。@test 名/注释内脚本名后缀 .sh → .py（批次 1a-2f 全链同款先例），非断言依赖。
+
+---
+
+# P4 实现记录 — 批次 2f-3 后半（check-gate.bats 以外其余文件调用点 .sh → .py）
+
+## implementation_dir
+
+```
+implementation_dir: agate/tests/
+```
+
+## 本批次改动清单
+
+> 本轮只改其余 bats 测试文件的 `check-gate.sh` 调用点（check-gate.bats 已由批次 2f-3 前半完成）。未跑任何 bats（主 Agent 验证）。
+
+### 修改 7 个 bats 文件（调用点 .sh → .py，`@test` 数不变，断言体不动）
+
+| 文件 | 处数 | 形态 |
+|------|------|------|
+| `regression/v060-p8-cached.bats` | 3 | 嵌套 `bash -c "cd '$repo' && bash '.../check-gate.sh' P8 'task'"` → `bash -c "cd '$repo' && '$PYTHON' '.../check-gate.py' P8 'task'"`（check-gate.bats 嵌套形态同款） |
+| `regression/v060-design-gap.bats` | 4 | `run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"` → `run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"` |
+| `unit/check-gate-p1-review.bats` | 9 | `run bash "$AGATE_ROOT/scripts/check-gate.sh" P1 "$TASK_DIR"` → `run "$PYTHON" "$AGATE_ROOT/scripts/check-gate.py" P1 "$TASK_DIR"` |
+| `unit/check-gate-p5-diff.bats` | 13 | `run bash "$AGATE_SCRIPTS/check-gate.sh" P5 "$dir"` → `run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P5 "$dir"` |
+| `unit/check-retrospective.bats` | 1 | RT_BDD21.1 的 `run bash "$AGATE_SCRIPTS/check-gate.sh" P1 "$dir"` → py |
+| `unit/check-p6-format.bats` | 1 | F_BDD18.1 的 `run bash "$AGATE_SCRIPTS/check-gate.sh" P6 "$dir"` → py |
+| `unit/check-p6-provenance.bats` | 2 | PV_BDD19.1 / PV_BDD20.1 的 `run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"` → py |
+
+合计 **33 处**调用点。全部用 fixtures.bash 的 `$PYTHON`（探测 python3|python），不裸写 python3。
+
+### 其他引用核查（确认无需改动，`grep -rn 'check-gate\.sh' agate/tests/` 残留 17 处全部为有意保留）
+
+- `tests/README.md` L31：覆盖度表格文档引用 → [SCOPE+] 批次 4（表 B）处理
+- `integration/commit-msg-self-gate.bats` L51-52：check-gate.sh 仅作 **CSG.5 的触发文件**（验证 `agate/scripts/*.sh` 改动触发 self-gate hook），非调用/执行引用 → 不改
+- `integration/pre-commit-hook.bats` L1158：@test 名「hook runs check-gate.sh」——pre-commit-gate.sh 此时仍为 sh（批次 3 才 py 化），hook 确实跑 check-gate.sh，名字仍准确 → 不改
+- `integration/consistency.bats` CON.12（L61-62）：grep 迁移源 .sh 内容断言（NO_NEED_CONFIRM/SUGGEST 锚点，.sh 保留、文本仍在）→ 不改（CON.9 check-p6-evidence / batch 2b agate-debt-check L433 同款先例）
+- `unit/check-state-transition.bats` L402 / `unit/check-retrospective.bats` L44 / `unit/check-p6-format.bats` L80-81 / `unit/check-p6-provenance.bats` L94/349/547：@test 名 / 注释提及，非调用点 → 不改
+- `unit/dispatch-context-warning.bats` L33：`cp .../check-gate.sh` 复制到 fake root 供**仍为 sh 的 pre-commit-gate.sh**（批次 3 才 py 化）调用，保持 .sh 复制不变（batch 2a-2e 同款先例）
+- `unit/agate-debt-check.bats` L12/566-567：注释 + grep 迁移源 .sh 内容断言（debt_check 锚点，.sh 保留）→ 不改
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `grep -rn 'check-gate\.sh' agate/tests/`：残留 17 处全部为上述有意保留项（文档引用 / @test 名注释 / 触发文件 / .sh 内容静态断言 / 批次 3 范围），无调用点残留
+- `grep -rn 'check-gate\.py'` 对照：33 处新增调用点 + check-gate.bats 187 处 = 220 处
+- `bash -n` 对 bats `@test "name" {` 语法本就报错（原始未改文件同样报错，批次 1e 先例），不适用；真实验证以主 Agent 的 bats 运行为准
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。

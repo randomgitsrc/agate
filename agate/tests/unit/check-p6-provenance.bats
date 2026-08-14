@@ -110,7 +110,7 @@ design_gap_reviewed_count: 0
 ---
 - [BLOCKER] 历史记录：早期草案曾有架构缺陷，已在本轮修订中解决，frontmatter blocker_count 已归零
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 0 ]
 }
 
@@ -563,7 +563,7 @@ design_gap_reviewed_count: 1
 ---
 - [DESIGN_GAP_REVIEWED: 其中一项已确认]
 EOF
-    run bash "$AGATE_SCRIPTS/check-gate.sh" P7 "$dir"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-gate.py" P7 "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"DESIGN_GAP"* ]]
 }
