@@ -14,14 +14,14 @@ except ImportError:
     sys.stderr.write("agate-state-yaml-check: 需要 pyyaml\n")
     sys.exit(1)
 
-valid_phases = "P0 P1 P2 P3 P4 P5 P6 P7 P8 PAUSED READY DONE".split()
+valid_phases = ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "PAUSED", "READY", "DONE"]
 
 state_file = os.environ["STATE_FILE"]
 try:
     with open(state_file, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 except yaml.YAMLError as e:
-    print("YAML 解析错误: {}".format(e))
+    print(f"YAML 解析错误: {e}")
     sys.exit(0)
 
 errors = []
@@ -33,11 +33,11 @@ if data is None:
 
 for field in ("task_id", "phase", "status"):
     if field not in data:
-        errors.append("缺必填字段: {}".format(field))
+        errors.append(f"缺必填字段: {field}")
 
 task_id = data.get("task_id", "")
 if task_id and not re.match(r"^T[A-Z]{2}\d+$", str(task_id)):
-    errors.append("task_id 格式错误: {}（应为 T + 2 个大写字母项目代号 + 数字，如 TAG0001）".format(task_id))
+    errors.append(f"task_id 格式错误: {task_id}（应为 T + 2 个大写字母项目代号 + 数字，如 TAG0001）")
 
 phase = str(data.get("phase", ""))
 if phase and phase not in valid_phases:
@@ -46,13 +46,13 @@ if phase and phase not in valid_phases:
 retries = data.get("retries", {})
 if retries:
     if not isinstance(retries, dict):
-        errors.append("retries 应为 dict，实际为 {}".format(type(retries).__name__))
+        errors.append(f"retries 应为 dict，实际为 {type(retries).__name__}")
     else:
         for key, val in retries.items():
             if not re.match(r"^P\d+$", str(key)):
-                errors.append("retries key 格式错误: {}（应为大写 P + 数字，如 P2）".format(key))
+                errors.append(f"retries key 格式错误: {key}（应为大写 P + 数字，如 P2）")
             if not isinstance(val, list):
-                errors.append("retries[{}] 应为列表，实际为 {}".format(key, type(val).__name__))
+                errors.append(f"retries[{key}] 应为列表，实际为 {type(val).__name__}")
 
 if errors:
     print("\n".join(errors))

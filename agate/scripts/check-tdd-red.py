@@ -107,10 +107,9 @@ def judge_result(json_str, project_module):
         print("TDD_CHECK: tests pass, no red-light — implementation may be ahead of tests")
         return 2
 
-    if exit_code == 1 and raw_output:
-        if re.search(r"Traceback|SyntaxError|ImportError|ModuleNotFoundError", raw_output):
-            print("TDD_CHECK: A-class error (compile or import error in raw output, no formatter to classify)")
-            return 1
+    if exit_code == 1 and raw_output and re.search(r"Traceback|SyntaxError|ImportError|ModuleNotFoundError", raw_output):
+        print("TDD_CHECK: A-class error (compile or import error in raw output, no formatter to classify)")
+        return 1
 
     if syntax_count > 0:
         print("TDD_CHECK: A-class error (syntax errors in test code)")
@@ -121,9 +120,9 @@ def judge_result(json_str, project_module):
             matched = sum(1 for e in data.get("import_errors", [])
                           if e.get("module", "").startswith(project_module))
             if matched > 0:
-                print("TDD_CHECK: B-class red-light (import errors from missing project module '{}')".format(project_module))
+                print(f"TDD_CHECK: B-class red-light (import errors from missing project module '{project_module}')")
                 return 0
-            print("TDD_CHECK: A-class error (import errors are NOT from project module '{}')".format(project_module))
+            print(f"TDD_CHECK: A-class error (import errors are NOT from project module '{project_module}')")
             return 1
         print("TDD_CHECK: B-class red-light (heuristic: import errors without syntax errors)")
         return 0
@@ -133,7 +132,7 @@ def judge_result(json_str, project_module):
             matched = sum(1 for e in data.get("name_errors", [])
                           if e.get("module", "").startswith(project_module))
             if matched > 0:
-                print("TDD_CHECK: B-class red-light (NameError from missing project symbol '{}')".format(project_module))
+                print(f"TDD_CHECK: B-class red-light (NameError from missing project symbol '{project_module}')")
                 return 0
         print("TDD_CHECK: B-class red-light (NameError: test references unimplemented symbol)")
         return 0
@@ -151,7 +150,7 @@ def judge_result(json_str, project_module):
         return 0
 
     if exit_code >= 120:
-        print("TDD_CHECK: A-class error (test runner failed with exit code {})".format(exit_code))
+        print(f"TDD_CHECK: A-class error (test runner failed with exit code {exit_code})")
         return 1
 
     print("TDD_CHECK: red-light (unexpected test failure)")

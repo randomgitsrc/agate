@@ -53,7 +53,7 @@ def _run_git(repo, args):
     """git -C 等价：cwd=repo 调 subprocess，返回 proc；git 不可用时返回 None。"""
     try:
         return subprocess.run(
-            ["git"] + args,
+            ["git", *args],
             cwd=repo,
             capture_output=True,
             text=True,
@@ -107,23 +107,23 @@ def _check_upstream(repo):
 
     lines = []
     if local_tag == upstream_tag:
-        lines.append("agate 已是最新版本：{}".format(local_tag))
+        lines.append(f"agate 已是最新版本：{local_tag}")
     else:
-        lines.append("agate 有新版本可用：{}（本地 {}）".format(upstream_tag, local_tag))
+        lines.append(f"agate 有新版本可用：{upstream_tag}（本地 {local_tag}）")
         lines.append("更新方式：cd <agate 仓库> && git pull")
         lines.append(
             "如果持续落后，检查 git remote 是否指向 "
             "https://github.com/randomgitsrc/agate.git"
         )
-        upstream_range = "{}..origin/main".format(local_tag)
+        upstream_range = f"{local_tag}..origin/main"
         proc = _run_git(repo, ["log", "--oneline", upstream_range])
         commit_count = _line_count(proc.stdout) if proc is not None and proc.returncode == 0 else 0
         if commit_count > 0:
             lines.append("")
-            lines.append("自 {} 以来的变更（{} commits）：".format(local_tag, commit_count))
+            lines.append(f"自 {local_tag} 以来的变更（{commit_count} commits）：")
             lines.extend(_indent_lines(proc.stdout, limit=10))
             if commit_count > 10:
-                lines.append("  ...（共 {} commits，省略）".format(commit_count))
+                lines.append(f"  ...（共 {commit_count} commits，省略）")
     sys.stdout.buffer.write(("\n".join(lines) + "\n").encode("utf-8"))
 
 
@@ -151,30 +151,30 @@ def main():
         current_tag = _git_stdout(git_toplevel, ["describe", "--tags", "--abbrev=0"])
         if not current_tag:
             sys.stderr.write(
-                "ERROR: 无法找到当前 tag——显式指定：python3 {} v0.4.0..HEAD\n".format(sys.argv[0])
+                f"ERROR: 无法找到当前 tag——显式指定：python3 {sys.argv[0]} v0.4.0..HEAD\n"
             )
             sys.exit(1)
         prev_tag = _first_line(
             _git_stdout(
                 git_toplevel,
-                ["tag", "--sort=-version:refname", "--merged", "{}^".format(current_tag)],
+                ["tag", "--sort=-version:refname", "--merged", f"{current_tag}^"],
             )
         )
-        range_spec = "{}..HEAD".format(prev_tag if prev_tag else current_tag)
+        range_spec = f"{prev_tag if prev_tag else current_tag}..HEAD"
 
     if ".." not in range_spec:
-        range_spec = "{}..HEAD".format(range_spec)
+        range_spec = f"{range_spec}..HEAD"
 
     start = range_spec.split("..", 1)[0]
     end = range_spec.rsplit("..", 1)[1]
     if not _git_ok(git_toplevel, ["rev-parse", start]):
-        sys.stderr.write("ERROR: '{}' 不是有效 ref（tag/commit）\n".format(start))
+        sys.stderr.write(f"ERROR: '{start}' 不是有效 ref（tag/commit）\n")
         sys.exit(1)
     if not _git_ok(git_toplevel, ["rev-parse", end]):
-        sys.stderr.write("ERROR: '{}' 不是有效 ref（tag/commit）\n".format(end))
+        sys.stderr.write(f"ERROR: '{end}' 不是有效 ref（tag/commit）\n")
         sys.exit(1)
 
-    lines = ["=== agate 协议变化 ===", "范围：{}".format(range_spec), ""]
+    lines = ["=== agate 协议变化 ===", f"范围：{range_spec}", ""]
 
     lines.append("--- commits ---")
     lines.extend(_indent_lines(_git_stdout(git_toplevel, ["log", "--oneline", range_spec])))
@@ -210,9 +210,9 @@ def main():
     if high_impact == 0:
         lines.append("  当前变更影响小（无核心文件改动）——可只读 CHANGELOG.md 即可")
     elif high_impact < 3:
-        lines.append("  中等变更（{} 个核心文件）——查阅变更涉及的协议文件".format(high_impact))
+        lines.append(f"  中等变更（{high_impact} 个核心文件）——查阅变更涉及的协议文件")
     else:
-        lines.append("  重大变更（{} 个核心文件）——完整重读所有协议文件".format(high_impact))
+        lines.append(f"  重大变更（{high_impact} 个核心文件）——完整重读所有协议文件")
 
     lines.append("")
     lines.append("=== 完毕 ===")

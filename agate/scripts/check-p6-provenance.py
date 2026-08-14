@@ -52,7 +52,7 @@ def _run_script(script, args, env_extra):
     env.update(env_extra)
     try:
         proc = subprocess.run(
-            [sys.executable, os.path.join(SCRIPT_DIR, script)] + args,
+            [sys.executable, os.path.join(SCRIPT_DIR, script), *args],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             env=env,
         )
@@ -152,18 +152,18 @@ def main():
                 m = re.search(r"\([^)]+\)$", line_clean)
                 ref_group = m.group(0).replace("(", "").replace(")", "") if m else ""
                 refs = ref_group.split(",")
-            for ref in refs:
-                ref = ref.strip()
+            for raw_ref in refs:
+                ref = raw_ref.strip()
                 if not ref:
                     continue
                 ref_clean = re.sub(r"^(P6-evidence|p6-evidence|evidences)/", "", ref)
                 ref_path = os.path.join(evidence_dir, ref_clean)
                 if not os.path.isfile(ref_path):
                     missing_refs += 1
-                    missing_details += "  PASS行: {}\n  缺失路径: {}\n".format(line, ref_path)
+                    missing_details += f"  PASS行: {line}\n  缺失路径: {ref_path}\n"
 
         if missing_refs > 0:
-            sys.stderr.write("GATE PROVENANCE: P6-acceptance.md 有 {} 条 PASS 引用的证据文件不存在\n".format(missing_refs))
+            sys.stderr.write(f"GATE PROVENANCE: P6-acceptance.md 有 {missing_refs} 条 PASS 引用的证据文件不存在\n")
             if missing_details:
                 sys.stderr.write(missing_details)
             sys.exit(1)
@@ -171,13 +171,10 @@ def main():
         # 1b: 证据目录非空检查（多条 PASS 可共享同一证据文件）
         # I5 修复：排除隐藏文件（.gitkeep, .DS_Store 等）
         pass_count = len(pass_lines)
-        if os.path.isdir(evidence_dir):
-            evidence_count = len(_find_files(evidence_dir))
-        else:
-            evidence_count = 0
+        evidence_count = len(_find_files(evidence_dir)) if os.path.isdir(evidence_dir) else 0
 
         if pass_count > 0 and evidence_count == 0:
-            sys.stderr.write("GATE PROVENANCE: 有 {} 条 PASS 但 P6-evidence/ 为空或不存在\n".format(pass_count))
+            sys.stderr.write(f"GATE PROVENANCE: 有 {pass_count} 条 PASS 但 P6-evidence/ 为空或不存在\n")
             sys.exit(1)
 
         # 1c: 证据文件必须被至少一条 PASS 行引用（空 png 充数拦截）
@@ -191,7 +188,7 @@ def main():
                 if not any(ev_basename in line for line in pass_lines):
                     unreferenced += 1
             if unreferenced > 0:
-                sys.stderr.write("GATE PROVENANCE: {} 个证据文件未被 P6-acceptance.md PASS 行引用（可能为充数文件）\n".format(unreferenced))
+                sys.stderr.write(f"GATE PROVENANCE: {unreferenced} 个证据文件未被 P6-acceptance.md PASS 行引用（可能为充数文件）\n")
                 sys.exit(1)
 
     # --- 审计 2：dispatch-context 内容约束 ---
@@ -230,7 +227,7 @@ def main():
                 i += 1
         prejudice = sum(1 for line in filtered if re.search(r"^\s*- (PASS|FAIL)\b", line))
         if prejudice > 0:
-            sys.stderr.write("GATE PROVENANCE: {} 含 {} 处验收结论预判\n".format(os.path.basename(dispatch_ctx), prejudice))
+            sys.stderr.write(f"GATE PROVENANCE: {os.path.basename(dispatch_ctx)} 含 {prejudice} 处验收结论预判\n")
             sys.exit(1)
 
     # --- 审计 3：BDD 总数自动化对照 ---
@@ -263,10 +260,10 @@ def main():
             try:
                 p6_total = int(pass_fm) + int(fail_fm)
             except ValueError:
-                sys.stderr.write("GATE PROVENANCE: P6-acceptance.md frontmatter pass/fail 非数字（{} / {}）\n".format(pass_fm, fail_fm))
+                sys.stderr.write(f"GATE PROVENANCE: P6-acceptance.md frontmatter pass/fail 非数字（{pass_fm} / {fail_fm}）\n")
                 sys.exit(1)
             if p6_total != p6_body_strict:
-                sys.stderr.write("GATE PROVENANCE WARNING: P6-acceptance.md frontmatter 声明 pass+fail={}，正文逐条 '- PASS|FAIL BDD-N' 行数={}，两者不一致，请复核\n".format(p6_total, p6_body_strict))
+                sys.stderr.write(f"GATE PROVENANCE WARNING: P6-acceptance.md frontmatter 声明 pass+fail={p6_total}，正文逐条 '- PASS|FAIL BDD-N' 行数={p6_body_strict}，两者不一致，请复核\n")
         else:
             p6_total = p6_body_strict
 
@@ -274,7 +271,7 @@ def main():
             sys.stderr.write("GATE PROVENANCE: P1-requirements.md 未使用标准 #### BDD-NN: 格式（或没有 BDD），标准化后必须使用该格式\n")
             sys.exit(1)
         if p6_total < p1_bdd:
-            sys.stderr.write("GATE PROVENANCE: P6 结果数({}) < P1 BDD 条目数({})，挑验不通过\n".format(p6_total, p1_bdd))
+            sys.stderr.write(f"GATE PROVENANCE: P6 结果数({p6_total}) < P1 BDD 条目数({p1_bdd})，挑验不通过\n")
             sys.exit(1)
 
     # --- 审计 4：UI vision YAML 引用（R1b：T045 评审 v5）---
@@ -291,30 +288,29 @@ def main():
         if ui_affected == "true":
             vision_missing = 0
             for line in pass_lines:
-                if re.search(r"\(screenshots/", line):
-                    if not re.search(r"\(vision:\s*[^)]+\)", line):
-                        vision_missing += 1
+                if re.search(r"\(screenshots/", line) and not re.search(r"\(vision:\s*[^)]+\)", line):
+                    vision_missing += 1
 
             if vision_missing > 0:
-                sys.stderr.write("GATE PROVENANCE: ui_affected=true 但有 {} 条含截图的 PASS 缺 vision YAML 引用\n".format(vision_missing))
+                sys.stderr.write(f"GATE PROVENANCE: ui_affected=true 但有 {vision_missing} 条含截图的 PASS 缺 vision YAML 引用\n")
                 sys.exit(1)
 
-            refs = sorted(set(
+            refs = sorted({
                 m
                 for line in p6_lines
                 for m in re.findall(r"\(vision:\s*[^)]+\)", line)
-            ))
+            })
             for ref in refs:
                 yaml_file = re.sub(r"^.*vision:\s*", "", ref).replace(" ", "").replace(")", "")
                 yaml_path = os.path.join(task_dir, yaml_file)
                 if not os.path.isfile(yaml_path):
-                    sys.stderr.write("GATE PROVENANCE: vision YAML 引用的文件不存在: {}\n".format(yaml_file))
+                    sys.stderr.write(f"GATE PROVENANCE: vision YAML 引用的文件不存在: {yaml_file}\n")
                     sys.exit(1)
                 blocker_count, rc = _run_script("agate-vision-blocker.py", [], {"YAML_PATH": yaml_path})
                 if rc != 0:
                     blocker_count = "-1"
                 if blocker_count != "0":
-                    sys.stderr.write("GATE PROVENANCE: vision YAML {} 的 blocker_count={}（须为 0）\n".format(yaml_file, blocker_count))
+                    sys.stderr.write(f"GATE PROVENANCE: vision YAML {yaml_file} 的 blocker_count={blocker_count}（须为 0）\n")
                     sys.exit(1)
 
     # --- 审计 5：日志 EXIT_CODE 与 PASS/FAIL 声明一致性（依赖 M1.3a 约定）---
@@ -331,10 +327,10 @@ def main():
                 log_exit = re.search(r"[0-9]+$", last_line).group(0)
                 log_basename = os.path.basename(log_file)
                 if log_basename in p6_text and log_exit != "0":
-                    sys.stderr.write("GATE PROVENANCE: {} 声明 PASS 但日志 EXIT_CODE={}（矛盾）\n".format(log_basename, log_exit))
+                    sys.stderr.write(f"GATE PROVENANCE: {log_basename} 声明 PASS 但日志 EXIT_CODE={log_exit}（矛盾）\n")
                     sys.exit(1)
             else:
-                sys.stderr.write("GATE PROVENANCE: {} 缺少标准 EXIT_CODE 尾行，跳过一致性核验（不阻塞）\n".format(os.path.basename(log_file)))
+                sys.stderr.write(f"GATE PROVENANCE: {os.path.basename(log_file)} 缺少标准 EXIT_CODE 尾行，跳过一致性核验（不阻塞）\n")
 
     # --- 协作规范：agent 字段 ---
     # 不做硬拦截（自报数据不可信），缺字段降级为 WARNING
@@ -360,7 +356,7 @@ def main():
                 continue
             agent = get_agent(f)
             if not agent:
-                sys.stderr.write("GATE PROVENANCE: {} 缺 agent 字段（协作规范，不阻塞）\n".format(localname))
+                sys.stderr.write(f"GATE PROVENANCE: {localname} 缺 agent 字段（协作规范，不阻塞）\n")
                 warning_found = 1
 
     # 审计 6: evidence JSON 与 P6 PASS/FAIL 声明一致性（P2.57）
@@ -374,7 +370,7 @@ def main():
         if inconsistency != "":
             sys.stderr.write("GATE PROVENANCE: evidence JSON 与 P6-acceptance.md 声明不一致：\n")
             for line in inconsistency.splitlines():
-                sys.stderr.write("  - {}\n".format(line))
+                sys.stderr.write(f"  - {line}\n")
             sys.exit(1)
 
     if warning_found == 1:

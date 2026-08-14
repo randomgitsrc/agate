@@ -94,7 +94,7 @@ def main():
 
     if os.path.isfile(cache_file):
         shutil.copyfile(cache_file, baseline)
-        sys.stderr.write("ENV_BASELINE: 复用缓存（commit {} 未变）\n".format(commit))
+        sys.stderr.write(f"ENV_BASELINE: 复用缓存（commit {commit} 未变）\n")
         sys.exit(0)
 
     try:
@@ -115,14 +115,14 @@ def main():
 
         if not fmt_path:
             sys.stderr.write(
-                "ENV_BASELINE: 命令 '{}' 无 formatter，无法提取 fail-list，放弃捕获，不写入任何文件\n".format(cmd)
+                f"ENV_BASELINE: 命令 '{cmd}' 无 formatter，无法提取 fail-list，放弃捕获，不写入任何文件\n"
             )
             parse_ok = False
             break
 
         if run_test_with_formatter is None:
             sys.stderr.write(
-                "ENV_BASELINE: 命令 '{}' 无法执行（agate_common 不可用），放弃捕获，不写入任何文件\n".format(cmd)
+                f"ENV_BASELINE: 命令 '{cmd}' 无法执行（agate_common 不可用），放弃捕获，不写入任何文件\n"
             )
             parse_ok = False
             break
@@ -131,7 +131,7 @@ def main():
             result = json.loads(json_result)
         except ValueError:
             sys.stderr.write(
-                "ENV_BASELINE: 命令 '{}' 结果解析失败，放弃捕获，不写入任何文件\n".format(cmd)
+                f"ENV_BASELINE: 命令 '{cmd}' 结果解析失败，放弃捕获，不写入任何文件\n"
             )
             parse_ok = False
             break
@@ -139,9 +139,7 @@ def main():
         json_exit_code = int(result.get("exit_code", 0))
         if json_exit_code >= 120:
             sys.stderr.write(
-                "ENV_BASELINE: 命令 '{}' 本身崩溃（exit code {}），放弃捕获，不写入任何文件\n".format(
-                    cmd, json_exit_code
-                )
+                f"ENV_BASELINE: 命令 '{cmd}' 本身崩溃（exit code {json_exit_code}），放弃捕获，不写入任何文件\n"
             )
             parse_ok = False
             break
@@ -153,14 +151,12 @@ def main():
         summary_count = json_failed + json_errors
 
         if summary_count == 0:
-            sys.stderr.write("ENV_BASELINE: 命令 '{}' 无失败，跳过\n".format(cmd))
+            sys.stderr.write(f"ENV_BASELINE: 命令 '{cmd}' 无失败，跳过\n")
             continue
 
         if cmd_fail_count != summary_count:
             sys.stderr.write(
-                "ENV_BASELINE: 命令 '{}' 汇总计数({})与明细提取数({})不一致，\n".format(
-                    cmd, summary_count, cmd_fail_count
-                )
+                f"ENV_BASELINE: 命令 '{cmd}' 汇总计数({summary_count})与明细提取数({cmd_fail_count})不一致，\n"
             )
             sys.stderr.write(
                 "  说明当前 runner 的明细行格式未被 formatter 识别，放弃捕获\n"
@@ -173,17 +169,17 @@ def main():
     if not parse_ok:
         sys.exit(0)
 
-    fail_lines = sorted(set(line for line in fail_list.split("\n") if line))
+    fail_lines = sorted({line for line in fail_list.split("\n") if line})
     fail_count = len(fail_lines)
 
     content = (
         "---\n"
-        "captured_at_commit: {}\n".format(commit)
+        f"captured_at_commit: {commit}\n"
         + "generated_by: agate-capture-env-baseline.py\n"
         + "---\n"
         + "# 任务前环境基线\n"
         + "\n"
-        + "失败数：{}\n".format(fail_count)
+        + f"失败数：{fail_count}\n"
         + "\n"
         + "```fail-list\n"
         + "\n".join(fail_lines)
@@ -198,7 +194,7 @@ def main():
         sys.exit(0)
 
     shutil.copyfile(cache_file, baseline)
-    sys.stderr.write("ENV_BASELINE: 已捕获，失败数={}\n".format(fail_count))
+    sys.stderr.write(f"ENV_BASELINE: 已捕获，失败数={fail_count}\n")
     sys.exit(0)
 
 

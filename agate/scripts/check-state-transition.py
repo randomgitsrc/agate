@@ -22,7 +22,8 @@ import sys
 from pathlib import Path
 
 try:
-    from agate_common import MAX_RETRY_MAP as _DEFAULT_MAX_RETRY_MAP, run_git
+    from agate_common import MAX_RETRY_MAP as _DEFAULT_MAX_RETRY_MAP
+    from agate_common import run_git
 except ImportError:
     _DEFAULT_MAX_RETRY_MAP = "P1:3,P2:3,P3:2,P4:3,P5:2,P6:2,P7:2,P8:2"
     run_git = None
@@ -45,7 +46,7 @@ def _run_state_get(args, env, input_text=None):
     $(...) 剥尾换行 → .rstrip("\n")）。"""
     try:
         proc = subprocess.run(
-            [sys.executable, AGATE_STATE_GET] + args,
+            [sys.executable, AGATE_STATE_GET, *args],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             env=env, input=input_text,
         )
@@ -137,7 +138,7 @@ def main():
         diff = old_num - new_num
         if diff >= 2:
             sys.stderr.write(
-                "GATE STATE: 回退跳变 P{}→P{}（差 {}），强制 PAUSED\n".format(old_num, new_num, diff)
+                f"GATE STATE: 回退跳变 P{old_num}→P{new_num}（差 {diff}），强制 PAUSED\n"
             )
             sys.exit(1)
 
@@ -150,7 +151,7 @@ def main():
         retries_json = _run_state_get(["retries_over", MAX_RETRY_MAP], env)
 
         if retries_json and new_phase != "PAUSED":
-            sys.stderr.write("GATE STATE: {}，phase 应为 PAUSED\n".format(retries_json))
+            sys.stderr.write(f"GATE STATE: {retries_json}，phase 应为 PAUSED\n")
             sys.exit(1)
 
     # 检查 4：回退时若被跨过阶段是 self-authored 产出阶段（P1/P2/P6/P7），
@@ -163,14 +164,10 @@ def main():
             stale_found = _find_stale(old_phase, task_dir)
             if stale_found:
                 sys.stderr.write(
-                    "GATE STATE: 回退 P{}->P{}，但 {} 的自撰产出（{}）仍在原位\n".format(
-                        old_num, new_num, old_phase, stale_found
-                    )
+                    f"GATE STATE: 回退 P{old_num}->P{new_num}，但 {old_phase} 的自撰产出（{stale_found}）仍在原位\n"
                 )
                 sys.stderr.write(
-                    "  退回前须先跑：bash agate/scripts/agate-archive-stale-outputs.sh {} {}\n".format(
-                        old_phase, task_dir
-                    )
+                    f"  退回前须先跑：bash agate/scripts/agate-archive-stale-outputs.sh {old_phase} {task_dir}\n"
                 )
                 sys.stderr.write(
                     "  （self-authored gate 产出不能跨重试静默复用，见 LIMITATIONS.md self-authored 分类）\n"

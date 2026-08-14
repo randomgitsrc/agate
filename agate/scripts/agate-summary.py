@@ -50,7 +50,7 @@ def _git(repo, args, fallback=""):
     """git -C 等价：cwd=repo 调 subprocess，stdout 剥尾换行，失败返回 fallback。"""
     try:
         proc = subprocess.run(
-            ["git"] + args,
+            ["git", *args],
             cwd=repo,
             capture_output=True,
             text=True,
@@ -105,12 +105,11 @@ def _check_copy_drift(script_dir):
     for script in _DRIFT_SCRIPTS:
         local = os.path.join("scripts", script)
         auth = os.path.join(script_dir, script)
-        if os.path.isfile(local) and os.path.isfile(auth):
-            if not _files_identical(local, auth):
-                sys.stderr.write(
-                    "⚠️  scripts/{} 与 agate 权威版本不一致——本地副本可能已过期，建议改用 "
-                    "{{agate_root}}/scripts/ 或转发脚本\n".format(script)
-                )
+        if os.path.isfile(local) and os.path.isfile(auth) and not _files_identical(local, auth):
+            sys.stderr.write(
+                f"⚠️  scripts/{script} 与 agate 权威版本不一致——本地副本可能已过期，建议改用 "
+                "{agate_root}/scripts/ 或转发脚本\n"
+            )
 
 
 def main():
@@ -135,9 +134,9 @@ def main():
     lines = [
         "=== agate 当前状态 ===",
         "",
-        "版本：{}".format(current_tag),
-        "分支：{}".format(branch),
-        "HEAD：{}".format(head_sha),
+        f"版本：{current_tag}",
+        f"分支：{branch}",
+        f"HEAD：{head_sha}",
         "",
         "最近 3 commits：",
         recent_commits,
@@ -147,14 +146,14 @@ def main():
         "",
         "快速版本对比：bash ~/.agate/scripts/agate-changes.sh [since-tag]",
         "默认输出自上一个 tag 起的 commit + 受影响的协议文件。",
-        "例：bash ~/.agate/scripts/agate-changes.sh {}".format(current_tag),
+        f"例：bash ~/.agate/scripts/agate-changes.sh {current_tag}",
         "查远端更新：bash ~/.agate/scripts/agate-changes.sh --check-upstream",
         "",
         "=== 启动时建议 ===",
         "",
         "1. 第一行：上面这一段（确认协议版本 + 防护机制就位）",
         "2. 读 ~/.agate/AGENTS.md（协议本体入口指引）",
-        "3. 读 ~/.agate/CHANGELOG.md（{} 段，了解自上次会话以来发生了什么）".format(current_tag),
+        f"3. 读 ~/.agate/CHANGELOG.md（{current_tag} 段，了解自上次会话以来发生了什么）",
         "4. 按 orchestrator-template.md mapping 表读当前阶段卡片，按需查阅 Fallback reference 节",
         "",
     ]

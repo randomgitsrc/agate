@@ -20,6 +20,7 @@ find | wc -l → os.walk 计数；git mv / 普通 mv fallback → subprocess / s
 自动 commit（core.hooksPath=/dev/null）→ subprocess.run(cwd=project_root)。
 """
 
+import contextlib
 import os
 import shutil
 import subprocess
@@ -82,7 +83,7 @@ def main():
                 sys.exit(2)
             i += 2
         else:
-            _err("GATE MIGRATE: 未知参数 {}（用法：python3 agate-migrate-workspace.py [--to <workspace>]）".format(args[i]))
+            _err(f"GATE MIGRATE: 未知参数 {args[i]}（用法：python3 agate-migrate-workspace.py [--to <workspace>]）")
             sys.exit(2)
 
     # 复用解析器取默认工作区（resolve_workspace 只返回，不创建目录）
@@ -108,14 +109,12 @@ def main():
 
         # 目标已存在且为空目录：先移除，避免 git mv 走"移入"语义产生 {dst}/src/... 嵌套（P4-review F3 观察）
         if os.path.isdir(dst) and not os.listdir(dst):
-            try:
+            with contextlib.suppress(OSError):
                 os.rmdir(dst)
-            except OSError:
-                pass
 
         # 目标冲突检测：已存在且非空 → 防覆盖 exit 1（不自动合并）
         if os.path.isdir(dst) and os.listdir(dst):
-            _err("GATE MIGRATE: 目标 {} 已存在且非空（{}）——为避免覆盖，迁移中止。请先处理冲突后重试。".format(label, dst))
+            _err(f"GATE MIGRATE: 目标 {label} 已存在且非空（{dst}）——为避免覆盖，迁移中止。请先处理冲突后重试。")
             sys.exit(1)
 
         file_count = _count_files(src)
@@ -123,8 +122,8 @@ def main():
         # 目录级 git mv：目标在仓库内时保留 git 历史（物理移动含 gitignore 的 .state.yaml 与未追踪文件）
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         if _git_mv(project_root, src, dst):
-            _out("迁移：{}（{} → {}，{} 个文件，git mv 保留历史）".format(label, src, dst, file_count))
-            migrated.append("{}:{} ".format(label, dst))
+            _out(f"迁移：{label}（{src} → {dst}，{file_count} 个文件，git mv 保留历史）")
+            migrated.append(f"{label}:{dst} ")
             git_mv_staged = True
             if marker == "tasks":
                 tasks_migrated = True
@@ -134,11 +133,11 @@ def main():
 
         # git mv 失败（典型：目标在仓库外 exit 128）→ fallback 普通 mv + WARNING
         if _plain_mv(project_root, src, dst):
-            _err("WARNING: 工作区在 git 仓库外，{} 已用普通 mv 移动（{} → {}）——文件已移动，但 git 历史无法在新路径追溯（外部工作区固有限制）".format(label, src, dst))
-            migrated.append("{}:{}(fallback) ".format(label, dst))
+            _err(f"WARNING: 工作区在 git 仓库外，{label} 已用普通 mv 移动（{src} → {dst}）——文件已移动，但 git 历史无法在新路径追溯（外部工作区固有限制）")
+            migrated.append(f"{label}:{dst}(fallback) ")
             return
 
-        _err("GATE MIGRATE: 无法迁移 {}（git mv 与 mv 均失败）：{}".format(label, src))
+        _err(f"GATE MIGRATE: 无法迁移 {label}（git mv 与 mv 均失败）：{src}")
         sys.exit(1)
 
     # 源检测（docs/tasks）：不存在或为空 → 空目录 rmdir 清理，不迁移
@@ -146,10 +145,8 @@ def main():
         if os.listdir(docs_tasks):
             migrate_dir(docs_tasks, tasks_dir, "docs/tasks → 工作区 tasks", "tasks")
         else:
-            try:
+            with contextlib.suppress(OSError):
                 os.rmdir(docs_tasks)
-            except OSError:
-                pass
             _out("迁移：docs/tasks 为空目录，已清理（rmdir）")
 
     # 归档迁移（docs/archived → {workspace}/archived，相对结构保留，BDD-18）
@@ -157,10 +154,8 @@ def main():
         if os.listdir(docs_arch):
             migrate_dir(docs_arch, os.path.join(workspace, "archived"), "docs/archived → 工作区 archived", "archived")
         else:
-            try:
+            with contextlib.suppress(OSError):
                 os.rmdir(docs_arch)
-            except OSError:
-                pass
             _out("迁移：docs/archived 为空目录，已清理（rmdir）")
 
     # 幂等：无任何迁移动作 → no-op exit 0（BDD-19，不建错目录）
@@ -186,8 +181,7 @@ def main():
         commit_paths += ["docs/archived", os.path.join(workspace, "archived")]
     if git_mv_staged:
         proc = subprocess.run(
-            ["git", "-c", "core.hooksPath=/dev/null", "commit", "-qm",
-             "chore(workspace): migrate legacy docs/tasks layout to workspace", "--"] + commit_paths,
+            ["git", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "chore(workspace): migrate legacy docs/tasks layout to workspace", "--", *commit_paths],
             cwd=project_root,
         )
         if proc.returncode == 0:
@@ -212,12 +206,12 @@ def main():
 
     # 迁移后校验 + 摘要（不静默，BDD-10）
     _out("迁移完成。")
-    _out("  工作区根：{}".format(workspace))
-    _out("  tasks 文件数：{}".format(_count_files(tasks_dir)))
+    _out(f"  工作区根：{workspace}")
+    _out(f"  tasks 文件数：{_count_files(tasks_dir)}")
     if os.path.isdir(os.path.join(workspace, "archived")):
         _out("  archived 文件数：{}".format(_count_files(os.path.join(workspace, "archived"))))
     if not ws_override and workspace != os.path.join(project_root, "agate-workspace"):
-        _out("  提示：工作区位于默认 agate-workspace 之外，可在项目根写 .agate.env（AGATE_WORKSPACE={}）持久化配置。".format(workspace))
+        _out(f"  提示：工作区位于默认 agate-workspace 之外，可在项目根写 .agate.env（AGATE_WORKSPACE={workspace}）持久化配置。")
     sys.exit(0)
 
 

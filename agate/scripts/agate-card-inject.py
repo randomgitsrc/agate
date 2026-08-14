@@ -16,7 +16,7 @@ with open(os.environ["CARD_FILE"], encoding="utf-8") as f:
     card = f.read()
 pattern = r"(<!-- AGATE_CARD_START -->\n)(.*?)(<!-- AGATE_CARD_END -->)"
 if not re.search(pattern, text, flags=re.DOTALL):
-    sys.stderr.write("AGATE_CARD 注入失败: {} 中未找到 AGATE_CARD_START/END 占位符\n".format(os.path.basename(dc)))
+    sys.stderr.write(f"AGATE_CARD 注入失败: {os.path.basename(dc)} 中未找到 AGATE_CARD_START/END 占位符\n")
     sys.exit(1)
 
 

@@ -73,12 +73,12 @@ def main():
     if os.path.isfile(state_file):
         over = _retries_over(state_file)
         if over:
-            warnings.append("gate 重试超限（{}）".format(over))
+            warnings.append(f"gate 重试超限（{over}）")
 
     if os.path.isdir(task_dir):
         hit = _scan_scope_plus(task_dir)
         if hit:
-            warnings.append("SCOPE+ 触发（{}）".format(hit))
+            warnings.append(f"SCOPE+ 触发（{hit}）")
 
     p1_file = os.path.join(task_dir, "P1-requirements.md")
     if os.path.isdir(task_dir) and os.path.isfile(p1_file):
@@ -89,7 +89,7 @@ def main():
     if warnings:
         sys.stderr.write("GATE RETRO: 建议复盘 — 检测到异常模式：\n")
         for w in warnings:
-            sys.stderr.write("  - {}\n".format(w))
+            sys.stderr.write(f"  - {w}\n")
         sys.stderr.write("  请在版本 bump 前写简版复盘（docs/releases/v{version}-retrospective.md）\n")
 
     sys.exit(0)

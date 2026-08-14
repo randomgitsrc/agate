@@ -60,10 +60,7 @@ def _rel_card(root, file):
     else:
         root_norm = _lower_drive(root.replace("\\", "/"))
         file_norm = _lower_drive(file.replace("\\", "/"))
-        if file_norm.startswith(root_norm + "/"):
-            rel = file_norm[len(root_norm) + 1:]
-        else:
-            rel = file_norm
+        rel = file_norm[len(root_norm) + 1:] if file_norm.startswith(root_norm + "/") else file_norm
     return rel
 
 
@@ -71,25 +68,25 @@ def main():
     args = sys.argv[1:]
     if len(args) != 1:
         sys.stderr.write(
-            "GATE: agate-next-card.py 需要 1 个参数（PHASE: P0-P8），收到 {} 个\n".format(len(args))
+            f"GATE: agate-next-card.py 需要 1 个参数（PHASE: P0-P8），收到 {len(args)} 个\n"
         )
         sys.exit(1)
 
     phase = args[0]
     if phase not in _PHASE_CARDS:
-        sys.stderr.write("GATE: phase '{}' 不在 P0-P8 范围内\n".format(phase))
+        sys.stderr.write(f"GATE: phase '{phase}' 不在 P0-P8 范围内\n")
         sys.exit(2)
 
     agate_root = _resolve_agate_root()
     card_file = os.path.join(
-        agate_root, "phase-cards", "{}-{}.md".format(phase, _PHASE_CARDS[phase])
+        agate_root, "phase-cards", f"{phase}-{_PHASE_CARDS[phase]}.md"
     )
     if not os.path.isfile(card_file):
-        sys.stderr.write("GATE: 阶段卡片文件不存在: {}\n".format(card_file))
+        sys.stderr.write(f"GATE: 阶段卡片文件不存在: {card_file}\n")
         sys.exit(2)
 
     rel = _rel_card(agate_root, card_file)
-    header = "## 当前阶段卡片：{}\n\n路径：{}\n---\n".format(phase, rel)
+    header = f"## 当前阶段卡片：{phase}\n\n路径：{rel}\n---\n"
     sys.stdout.buffer.write(header.encode("utf-8"))
     # Path.read_bytes 避免裸 open( 触发 bdd-5 encoding 扫描（二进制读取无 encoding 参数）
     sys.stdout.buffer.write(Path(card_file).read_bytes())

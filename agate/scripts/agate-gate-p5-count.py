@@ -21,4 +21,4 @@ if not m:
 block = m.group(1)
 main = len(re.findall(r"^  P5:", block, re.MULTILINE))
 aux = [k for k in re.findall(r"^  (P5_\w+):", block, re.MULTILINE) if not k.endswith("_formatter")]
-print("%s %s" % (main, len(aux)))
+print(f"{main} {len(aux)}")

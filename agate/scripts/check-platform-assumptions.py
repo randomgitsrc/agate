@@ -50,9 +50,7 @@ def _r2_comment_exempt(text):
         return True
     if "command -v python3" in text or "command -v python" in text:
         return True
-    if "env python3" in text:
-        return True
-    return False
+    return "env python3" in text
 
 
 def _docstring_state(text, in_docstring):
@@ -66,7 +64,7 @@ def _docstring_state(text, in_docstring):
     if count == 0:
         return in_docstring, in_docstring
     if in_docstring:
-        return True, not (count % 2 == 1)
+        return True, count % 2 != 1
     return True, count % 2 == 1
 
 
@@ -79,7 +77,7 @@ def _scan_file(path, hits):
     """扫描单个文件：逐行跑 R1-R5 正则 + 行级豁免判定，命中追加到 hits。"""
     in_docstring = False
     try:
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             for line_no, line in enumerate(fh, 1):
                 text = line.rstrip("\n")
                 effective_ds, in_docstring = _docstring_state(text, in_docstring)
@@ -107,7 +105,7 @@ def _scan_target(target, hits):
     elif p.is_file():
         _scan_file(str(p), hits)
     else:
-        sys.stderr.write("FATAL: 目标不存在: {}\n".format(target))
+        sys.stderr.write(f"FATAL: 目标不存在: {target}\n")
         sys.exit(2)
 
 
@@ -122,7 +120,7 @@ def main():
         _scan_target(target, hits)
 
     for rule, file, line_no, text in hits:
-        sys.stderr.write("{} {}:{} {}\n".format(rule, file, line_no, text))
+        sys.stderr.write(f"{rule} {file}:{line_no} {text}\n")
     sys.exit(1 if hits else 0)
 
 

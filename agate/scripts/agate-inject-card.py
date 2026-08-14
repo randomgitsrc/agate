@@ -14,6 +14,7 @@ mktemp → tempfile.mkstemp（显式 encoding="utf-8" 写卡片）；AGATE_CARD 
 agate-card-inject.py（env DC_FILE / CARD_FILE 契约不变）。
 """
 
+import contextlib
 import glob
 import os
 import subprocess
@@ -61,7 +62,7 @@ def main():
     agate_root = _agate_root()
     card_content = _next_card_content(agate_root, phase)
     if not card_content:
-        sys.stderr.write("GATE: agate-next-card.py {} 输出为空\n".format(phase))
+        sys.stderr.write(f"GATE: agate-next-card.py {phase} 输出为空\n")
         sys.exit(1)
 
     dc_files = sorted(glob.glob(os.path.join(task_dir, phase + "-dispatch-context-*.md")))
@@ -69,7 +70,7 @@ def main():
         dc_files = [os.path.join(task_dir, phase + "-dispatch-context.md")]
 
     if not os.path.isfile(dc_files[0]):
-        sys.stderr.write("GATE: {}-dispatch-context-{{role}}.md 不存在\n".format(phase))
+        sys.stderr.write(f"GATE: {phase}-dispatch-context-{{role}}.md 不存在\n")
         sys.exit(1)
 
     for dc_file in dc_files:
@@ -94,11 +95,9 @@ def main():
                     sys.stderr.write(proc.stderr)
                 sys.exit(1)
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 os.remove(card_file)
-            except OSError:
-                pass
-        sys.stdout.write("AGATE_CARD 已注入: {}\n".format(os.path.basename(dc_file)))
+        sys.stdout.write(f"AGATE_CARD 已注入: {os.path.basename(dc_file)}\n")
 
     sys.exit(0)
 

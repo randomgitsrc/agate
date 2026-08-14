@@ -1,0 +1,13 @@
+[tool.ruff]
+target-version = "py38"
+line-length = 120
+src = ["agate/scripts"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "I", "UP", "B", "SIM", "C4", "RUF", "PLW"]
+ignore = [
+  "BLE001",
+  "PLW1510",
+  "SIM115",
+  "RUF001", "RUF002", "RUF003",
+]

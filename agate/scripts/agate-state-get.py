@@ -50,7 +50,7 @@ def main():
                     print(f"{phase}={len(attempts)} (MAX={phase_max})")
                     break
     else:
-        sys.stderr.write("agate-state-get: unknown op {}\n".format(op))
+        sys.stderr.write(f"agate-state-get: unknown op {op}\n")
         sys.exit(2)
 
 

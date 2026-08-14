@@ -62,7 +62,7 @@ def _git(args):
         return run_git(args)
     try:
         proc = subprocess.run(
-            ["git"] + args,
+            ["git", *args],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
         )
         return proc.returncode, proc.stdout
@@ -243,7 +243,7 @@ def gate_p1(task_dir):
                 if desc not in resolved:
                     nc_unresolved += 1
     if nc_unresolved > 0:
-        sys.stderr.write("GATE P1: {} 个未解决的 NEED_CONFIRM 项（阻塞）\n".format(nc_unresolved))
+        sys.stderr.write(f"GATE P1: {nc_unresolved} 个未解决的 NEED_CONFIRM 项（阻塞）\n")
         return 1
 
     # v2.0 T001 流 C：SUGGEST WARNING 去重——suggest_resolved 已采纳项不重复 WARNING
@@ -267,7 +267,7 @@ def gate_p1(task_dir):
                     nc_suggest_unacked += 1
     if nc_suggest_unacked > 0:
         sys.stderr.write(
-            "GATE P1 WARNING: {} 个 SUGGEST 项（主 Agent 可自行采纳，不阻塞）\n".format(nc_suggest_unacked)
+            f"GATE P1 WARNING: {nc_suggest_unacked} 个 SUGGEST 项（主 Agent 可自行采纳，不阻塞）\n"
         )
 
     # typo 兜底 1：旧标记 [NEED_CONFIRM倾向:] 残留
@@ -314,8 +314,7 @@ def gate_p2(task_dir):
             min_candidates = 1
     if candidate_count < min_candidates:
         sys.stderr.write(
-            "GATE P2: P2-design.md candidate_count={}，需至少 {} 个候选方案（design_trivial/follows_existing_pattern 时可只写 1）。请显式声明 candidate_count 字段\n".format(
-                candidate_count, min_candidates)
+            f"GATE P2: P2-design.md candidate_count={candidate_count}，需至少 {min_candidates} 个候选方案（design_trivial/follows_existing_pattern 时可只写 1）。请显式声明 candidate_count 字段\n"
         )
         return 1
 
@@ -340,13 +339,11 @@ def gate_p2(task_dir):
 
     field_count = sum(1 for line in p2_lines if re.match(r"^(packages|domains|ui_affected|gate_commands):", line))
     if field_count < 4:
-        sys.stderr.write("GATE P2: P2-design.md 缺字段（需 packages/domains/ui_affected/gate_commands 四字段，实际 {}）\n".format(field_count))
+        sys.stderr.write(f"GATE P2: P2-design.md 缺字段（需 packages/domains/ui_affected/gate_commands 四字段，实际 {field_count}）\n")
         return 1
 
     # 多方案探索"权衡/选择理由"nudge（v0.6）
-    if re.search(r"权衡|选择理由|取舍|考量|trade-?off|理由与权衡", p2_text):
-        pass
-    elif re.search(r"选择", p2_text) and re.search(r"理由|原因|因为", p2_text):
+    if re.search(r"权衡|选择理由|取舍|考量|trade-?off|理由与权衡", p2_text) or (re.search(r"选择", p2_text) and re.search(r"理由|原因|因为", p2_text)):
         pass
     else:
         sys.stderr.write("GATE P2: P2-design.md 有 ≥2 候选方案但缺'权衡'或'选择理由'描述\n")
@@ -362,8 +359,7 @@ def gate_p2(task_dir):
             token = ""
         if shutil.which(token) is None:
             sys.stderr.write(
-                "GATE P2 WARNING: gate_commands.{} 命令 '{}' 不存在于当前环境——请确认使用完整路径（如 .venv/bin/pytest）或安装依赖。T075 教训：python 不存在导致 P3 gate exit 127\n".format(
-                    key, token)
+                f"GATE P2 WARNING: gate_commands.{key} 命令 '{token}' 不存在于当前环境——请确认使用完整路径（如 .venv/bin/pytest）或安装依赖。T075 教训：python 不存在导致 P3 gate exit 127\n"
             )
 
     sys.stderr.write("GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定\n")
@@ -407,8 +403,8 @@ def gate_p4(task_dir):
     rc, name_only = _git(["diff", "--cached", "--name-only"])
     if rc != 0:
         return 1
-    for line in name_only.splitlines():
-        line = line.rstrip("\r")
+    for raw_line in name_only.splitlines():
+        line = raw_line.rstrip("\r")
         if not _STAGED_EXCLUDE_RE.search(line):
             return 0
     return 1
@@ -425,8 +421,7 @@ def gate_p5(task_dir):
         p5_total = p5_main + p5_aux
         if p5_total > 1:
             sys.stderr.write(
-                "GATE P5 WARNING: P2 声明了 {} 个主命令 + {} 个辅助命令（共 {} 条 gate_commands.P5 命令），请确认已全部执行（非子集）。\n".format(
-                    p5_main, p5_aux, p5_total)
+                f"GATE P5 WARNING: P2 声明了 {p5_main} 个主命令 + {p5_aux} 个辅助命令（共 {p5_total} 条 gate_commands.P5 命令），请确认已全部执行（非子集）。\n"
             )
             sys.stderr.write("  T060 教训：只跑子集可能掩盖预存失败（T056 venv 遗漏跨 4 个任务周期无人发现）。\n")
 
@@ -446,10 +441,7 @@ def gate_p5(task_dir):
         start = next((i for i, line in enumerate(lines) if "```fail-list" in line), None)
         if start is not None:
             end = next((i for i in range(start + 1, len(lines)) if "```" in lines[i]), None)
-            if end is None:
-                end = len(lines)
-            else:
-                end = end + 1
+            end = len(lines) if end is None else end + 1
             pre = lines[start:end]
             if len(pre) > 0:
                 pre = pre[1:]
@@ -458,7 +450,7 @@ def gate_p5(task_dir):
             pre_list = [line for line in pre if line]
 
         pre_set = sorted(set(pre_list))
-        post_set = sorted(set(line for line in _lines(_read_text(post_fails)) if line))
+        post_set = sorted({line for line in _lines(_read_text(post_fails)) if line})
         # comm -13：仅存在于第二文件（新增失败）；comm -12：两文件共有（预存失败）
         new_fails = [x for x in post_set if x not in pre_set]
         still_failing = [x for x in pre_set if x in post_set]
@@ -466,13 +458,13 @@ def gate_p5(task_dir):
         if new_fails:
             sys.stderr.write("GATE P5: 检测到基线快照中不存在的新增失败，视为本任务引入的回归，拦截：\n")
             for item in new_fails:
-                sys.stderr.write("  - {}\n".format(item))
+                sys.stderr.write(f"  - {item}\n")
             return 1
         if still_failing:
             still_count = len(still_failing)
             known_failures = os.path.join(task_dir, "known-failures.md")
             if not os.path.isfile(known_failures):
-                sys.stderr.write("GATE P5: 检测到 {} 个预存失败仍未修复，\n".format(still_count))
+                sys.stderr.write(f"GATE P5: 检测到 {still_count} 个预存失败仍未修复，\n")
                 sys.stderr.write("  基线快照证实这些失败早于本任务存在，但 known-failures.md 不存在——按协议必须登记\n")
                 return 1
             known_entries = sum(
@@ -481,7 +473,7 @@ def gate_p5(task_dir):
             )
             if known_entries < still_count:
                 sys.stderr.write(
-                    "GATE P5: known-failures.md 登记条目数({}) < 预存失败数({})，\n".format(known_entries, still_count)
+                    f"GATE P5: known-failures.md 登记条目数({known_entries}) < 预存失败数({still_count})，\n"
                 )
                 sys.stderr.write("  登记不完整——每个预存失败都应有对应登记行\n")
                 return 1
@@ -525,7 +517,7 @@ def gate_p6(task_dir):
             if re.search(r"^\s*- FAIL\b.*BDD-[0-9]", line, re.IGNORECASE)
         )
     if fail != 0 or total == 0:
-        sys.stderr.write("GATE P6: FAIL={}, TOTAL={}\n".format(fail, total))
+        sys.stderr.write(f"GATE P6: FAIL={fail}, TOTAL={total}\n")
         return 1
 
     # 证据存在性检查（⚠️ self-authored gate 的缓解措施）
@@ -535,7 +527,7 @@ def gate_p6(task_dir):
         return 1
 
     sys.stderr.write(
-        "GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL={}。BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行。\n".format(total)
+        f"GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL={total}。BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行。\n"
     )
     return 2
 
@@ -567,7 +559,7 @@ def gate_p7(task_dir):
             if not re.search(r"\[DEVIATION-CRITICAL\](:|：)?\s*[0-9]+\s*条?\s*$", line)
         )
     if blockers > 0 or devcrit > 0:
-        sys.stderr.write("GATE P7: BLOCKER={}, DEVIATION-CRITICAL={}\n".format(blockers, devcrit))
+        sys.stderr.write(f"GATE P7: BLOCKER={blockers}, DEVIATION-CRITICAL={devcrit}\n")
         return 1
 
     # DESIGN_GAP 配对检查（v0.6：未配对 REVIEWED 标记的 DESIGN_GAP → 不通过）
@@ -579,8 +571,7 @@ def gate_p7(task_dir):
         dg_reviewed = _to_int_or_none(dg_reviewed_fm)
         if dg_count is not None and dg_reviewed is not None and dg_reviewed < dg_count:
             sys.stderr.write(
-                "GATE P7: 有 {} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]（frontmatter: design_gap_count={}, design_gap_reviewed_count={}）——主 Agent 需审查 implementer 的自主决策\n".format(
-                    dg_count - dg_reviewed, dg_count, dg_reviewed)
+                f"GATE P7: 有 {dg_count - dg_reviewed} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]（frontmatter: design_gap_count={dg_count}, design_gap_reviewed_count={dg_reviewed}）——主 Agent 需审查 implementer 的自主决策\n"
             )
             return 1
         if dg_count is None:
@@ -595,16 +586,15 @@ def gate_p7(task_dir):
         unreviewed = dg_count - dg_reviewed
         if unreviewed > 0:
             sys.stderr.write(
-                "GATE P7: 有 {} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]——主 Agent 需审查 implementer 的自主决策\n".format(unreviewed)
+                f"GATE P7: 有 {unreviewed} 条 [DESIGN_GAP] 未配对 [DESIGN_GAP_REVIEWED]——主 Agent 需审查 implementer 的自主决策\n"
             )
             return 1
 
     # 问题4 (T090)：P4 含"设计偏差/gap"关键词但 DESIGN_GAP 计数为 0 → WARNING 提醒人工确认
     if dg_count == 0:
         p4_impl = os.path.join(task_dir, "P4-implementation.md")
-        if os.path.isfile(p4_impl):
-            if re.search(r"设计偏差|design gap|未列入|gap:", _read_text(p4_impl), re.IGNORECASE):
-                sys.stderr.write(
+        if os.path.isfile(p4_impl) and re.search(r"设计偏差|design gap|未列入|gap:", _read_text(p4_impl), re.IGNORECASE):
+            sys.stderr.write(
                     "GATE P7 WARNING: P4 检测到设计偏差相关关键词但 [DESIGN_GAP:] 计数为 0——请确认是否真的无偏差，或 P4 未按标准格式声明\n"
                 )
 
@@ -626,14 +616,13 @@ def gate_p7(task_dir):
     )
     if p4_design_gap_count > dg_count:
         sys.stderr.write(
-            "GATE P7: P4 声明了 {} 条 [DESIGN_GAP]，P7 只转抄了 {} 条——architect 遗漏转抄\n".format(p4_design_gap_count, dg_count)
+            f"GATE P7: P4 声明了 {p4_design_gap_count} 条 [DESIGN_GAP]，P7 只转抄了 {dg_count} 条——architect 遗漏转抄\n"
         )
         return 1
 
     # N3: review 实质锚点 WARNING——P7 有 DESIGN_GAP_REVIEWED 但缺跨文件引用
-    if dg_reviewed > 0:
-        if not re.search(r"P1.*BDD|P2.*packages|P4.*implementation", _read_text(p7_file)):
-            sys.stderr.write(
+    if dg_reviewed > 0 and not re.search(r"P1.*BDD|P2.*packages|P4.*implementation", _read_text(p7_file)):
+        sys.stderr.write(
                 "WARNING P7: P7-consistency.md 有 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词（P1 BDD / P2 packages / P4 implementation）——review 可能未做实质性交叉检查\n"
             )
     return 0
@@ -670,13 +659,13 @@ def gate_p8(task_dir):
     if not cached_version:
         lookback = os.environ.get("AGATE_P8_LOOKBACK", "5")
         lookback_num = _to_int(lookback, 5)
-        rc, _ = _git(["rev-parse", "HEAD~{}".format(lookback_num)])
+        rc, _ = _git(["rev-parse", f"HEAD~{lookback_num}"])
         if rc == 0:
-            rc, stat_out = _git(["diff", "HEAD~{}..HEAD".format(lookback_num), "--stat"])
+            rc, stat_out = _git(["diff", f"HEAD~{lookback_num}..HEAD", "--stat"])
             if rc == 0 and version_re.search(stat_out or ""):
                 recent_version = True
     if not cached_version and not recent_version:
-        sys.stderr.write("GATE P8 WARNING: 暂存区和最近 {} 个 commit 均无 version 文件变更\n".format(lookback_num))
+        sys.stderr.write(f"GATE P8 WARNING: 暂存区和最近 {lookback_num} 个 commit 均无 version 文件变更\n")
 
     # 检查 CHANGELOG 变更（双路径，降级为 WARNING）
     changelog_file = os.environ.get("CHANGELOG_FILE", "CHANGELOG.md")
@@ -687,14 +676,14 @@ def gate_p8(task_dir):
     recent_changelog = False
     if not cached_changelog:
         lookback_num = _to_int(os.environ.get("AGATE_P8_LOOKBACK", "5"), 5)
-        rc, _ = _git(["rev-parse", "HEAD~{}".format(lookback_num)])
+        rc, _ = _git(["rev-parse", f"HEAD~{lookback_num}"])
         if rc == 0:
-            rc, diff_out = _git(["diff", "HEAD~{}..HEAD".format(lookback_num), "--", changelog_file])
+            rc, diff_out = _git(["diff", f"HEAD~{lookback_num}..HEAD", "--", changelog_file])
             if rc == 0 and any(line for line in (diff_out or "").splitlines()):
                 recent_changelog = True
     if not cached_changelog and not recent_changelog:
         sys.stderr.write(
-            "GATE P8 WARNING: 暂存区和最近 {} 个 commit 均无 {} 变更\n".format(lookback_num, changelog_file)
+            f"GATE P8 WARNING: 暂存区和最近 {lookback_num} 个 commit 均无 {changelog_file} 变更\n"
         )
 
     # 检查 tag 存在性（WARNING，不阻断——tag 通常在 gate 通过后才打）
@@ -709,8 +698,7 @@ def gate_p8(task_dir):
         rc, tag_out = _git(["tag", "-l", version_tag_prefix + tag_version])
         if rc == 0 and not any(line for line in (tag_out or "").splitlines()):
             sys.stderr.write(
-                "GATE P8 WARNING: tag {}{} 不存在。打 tag 后再推进到 READY。若 tag 前缀非 v，设置 VERSION_TAG_PREFIX 环境变量。\n".format(
-                    version_tag_prefix, tag_version)
+                f"GATE P8 WARNING: tag {version_tag_prefix}{tag_version} 不存在。打 tag 后再推进到 READY。若 tag 前缀非 v，设置 VERSION_TAG_PREFIX 环境变量。\n"
             )
 
     sys.stderr.write(
@@ -733,10 +721,9 @@ def main():
         new_num = re.search(r"[0-9]+", phase)
         if old_num and new_num and int(old_num.group(0)) > int(new_num.group(0)):
             sys.stderr.write(
-                "GATE {}: 检测到回退抵达（上一阶段 {} → {}），本次 commit 视为回退声明，暂不做完成度校验\n".format(
-                    phase, old_phase, phase)
+                f"GATE {phase}: 检测到回退抵达（上一阶段 {old_phase} → {phase}），本次 commit 视为回退声明，暂不做完成度校验\n"
             )
-            sys.stderr.write("  该阶段的工作尚待重新进行；重新推进离开 {} 时会再次正常校验\n".format(phase))
+            sys.stderr.write(f"  该阶段的工作尚待重新进行；重新推进离开 {phase} 时会再次正常校验\n")
             sys.exit(2)
 
     handlers = {
@@ -752,7 +739,7 @@ def main():
     }
     func = handlers.get(phase)
     if func is None:
-        sys.stderr.write("未知阶段: {}\n".format(phase))
+        sys.stderr.write(f"未知阶段: {phase}\n")
         sys.exit(2)
     sys.exit(func(task_dir))
 

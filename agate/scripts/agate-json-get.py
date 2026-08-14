@@ -49,7 +49,7 @@ def main():
         for e in data.get(key, []):
             print(e)
     else:
-        sys.stderr.write("agate-json-get: unknown op {}\n".format(op))
+        sys.stderr.write(f"agate-json-get: unknown op {op}\n")
         sys.exit(2)
 
 

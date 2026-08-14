@@ -72,7 +72,7 @@ def main():
                 invalid += 1
         if invalid > 0:
             sys.stderr.write(
-                "P6 format deviations found (use --fix to auto-fix): {} 行不符合 '- PASS|FAIL BDD-N:' 逐条格式（总结行/小写/全角均须归一化）\n".format(invalid)
+                f"P6 format deviations found (use --fix to auto-fix): {invalid} 行不符合 '- PASS|FAIL BDD-N:' 逐条格式（总结行/小写/全角均须归一化）\n"
             )
             sys.exit(1)
         sys.exit(0)
@@ -101,10 +101,7 @@ def main():
     changed = changed or c
     fixed_body = "\n".join(fixed)
 
-    if fm_part:
-        full_fixed = fm_part + "\n" + fixed_body if fixed_body else fm_part
-    else:
-        full_fixed = fixed_body
+    full_fixed = (fm_part + "\n" + fixed_body if fixed_body else fm_part) if fm_part else fixed_body
 
     if changed:
         with open(file, "w", encoding="utf-8") as f:

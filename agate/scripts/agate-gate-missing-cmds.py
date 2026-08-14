@@ -26,4 +26,4 @@ for k, v in re.findall(r"^  (P[0-9]\w*):\s*(.+)$", block, re.MULTILINE):
     token = token.lstrip("$(").rstrip(")")
     if "/" in token or "=" in token:
         continue
-    print("{}:{}".format(k, token))
+    print(f"{k}:{token}")

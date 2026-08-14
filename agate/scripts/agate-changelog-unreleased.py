@@ -3,7 +3,6 @@
 
 import os
 import re
-import sys
 
 with open(os.environ["CHANGELOG_FILE"], encoding="utf-8") as f:
     text = f.read()

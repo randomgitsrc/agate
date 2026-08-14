@@ -16,7 +16,6 @@ Python 3.8+（无 match / str.removeprefix）；所有文本读写显式 encodin
 """
 
 import os
-import re
 import subprocess
 import sys
 
@@ -27,7 +26,7 @@ except (ImportError, SystemExit):
     def run_git(args, cwd=None):
         try:
             proc = subprocess.run(
-                ["git"] + args, capture_output=True, text=True,
+                ["git", *args], capture_output=True, text=True,
                 encoding="utf-8", errors="replace", cwd=cwd,
             )
             return proc.returncode, proc.stdout
@@ -45,7 +44,7 @@ def _count_changed(remote_sha, local_sha):
     不来自 diff 的 --cached，无 CRLF 差异场景）。统计首字符为 + 或 - 的行（含
     `--- a/...` / `+++ b/...` 头行，与 grep 一致）；git 失败 → 0（sh `|| true` 语义）。
     """
-    rc, diff = run_git(["diff", "{}..{}".format(remote_sha, local_sha), "--", "agate/*.md"])
+    rc, diff = run_git(["diff", f"{remote_sha}..{local_sha}", "--", "agate/*.md"])
     if rc != 0:
         return 0
     count = 0
@@ -79,8 +78,7 @@ def main():
             continue
         changed = _count_changed(remote_sha, local_sha)
         if changed > threshold:
-            print("⚠️  本次 push（{}）对 agate/*.md 的改动达 {} 行（阈值 {}）".format(
-                local_ref, changed, threshold))
+            print(f"⚠️  本次 push（{local_ref}）对 agate/*.md 的改动达 {changed} 行（阈值 {threshold}）")
             print("    建议先派发一次 protocol-alignment-review，确认改动未破坏协议文件间的语义一致性。")
             print("    忽略本提示继续 push：git push --no-verify")
 

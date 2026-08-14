@@ -48,7 +48,7 @@ def main():
         sys.stderr.write("GATE STATE-YAML: .state.yaml 格式错误：\n")
         for line in errors.splitlines():
             if line:
-                sys.stderr.write("  - {}\n".format(line))
+                sys.stderr.write(f"  - {line}\n")
         sys.exit(1)
 
     sys.exit(0)

@@ -52,7 +52,7 @@ def run_git(args, cwd=None):
     """
     try:
         proc = subprocess.run(
-            ["git"] + args,
+            ["git", *args],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             cwd=cwd,
         )
@@ -170,10 +170,7 @@ def has_staged_phase_change(state_file):
     rc, diff = run_git(["diff", "--cached", "--", basename])
     if rc != 0:
         return False
-    for line in diff.splitlines():
-        if re.match(r"^\+.*phase:", line.rstrip("\r")):
-            return True
-    return False
+    return any(re.match(r"^\+.*phase:", line.rstrip("\r")) for line in diff.splitlines())
 
 
 def has_staged_phase_output():
@@ -181,10 +178,7 @@ def has_staged_phase_output():
     rc, name_only = run_git(["diff", "--cached", "--name-only"])
     if rc != 0:
         return False
-    for line in name_only.splitlines():
-        if re.search(r"P[0-9]+-.*\.(md|yaml)$", line.rstrip("\r")):
-            return True
-    return False
+    return any(re.search(r"P[0-9]+-.*\.(md|yaml)$", line.rstrip("\r")) for line in name_only.splitlines())
 
 
 def resolve_formatter(fmt, task_dir=None, agate_root=None):
@@ -260,7 +254,7 @@ def run_test_with_formatter(cmd, fmt_path, timeout_secs=None):
         exit_code = 124
 
     if exit_code == 124:
-        sys.stderr.write("TDD_CHECK: 测试命令超时（{}s），请手动运行确认：{}\n".format(timeout_secs, cmd))
+        sys.stderr.write(f"TDD_CHECK: 测试命令超时（{timeout_secs}s），请手动运行确认：{cmd}\n")
         return _timeout_json()
 
     if not fmt_path:
@@ -301,8 +295,8 @@ def resolve_workspace(project_root):
     env_file = os.path.join(project_root, ".agate.env")
     if os.path.isfile(env_file):
         with open(env_file, encoding="utf-8") as f:
-            for line in f:
-                line = line.replace("\r", "")
+            for raw_line in f:
+                line = raw_line.replace("\r", "")
                 if line.startswith("AGATE_WORKSPACE="):
                     ws_value = line[len("AGATE_WORKSPACE="):].rstrip("\n")
 
@@ -323,5 +317,5 @@ def resolve_workspace(project_root):
 if __name__ == "__main__":
     project_root = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
     workspace, tasks_dir = resolve_workspace(project_root)
-    print("AGATE_WORKSPACE={}".format(workspace))
-    print("AGATE_TASKS_DIR={}".format(tasks_dir))
+    print(f"AGATE_WORKSPACE={workspace}")
+    print(f"AGATE_TASKS_DIR={tasks_dir}")

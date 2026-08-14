@@ -134,7 +134,7 @@ def _check(basename, schema, data):
 
     for field in schema["required"]:
         if field not in data or data[field] is None:
-            errors.append("{}:{}: 缺必填字段 {}".format(basename, field, field))
+            errors.append(f"{basename}:{field}: 缺必填字段 {field}")
 
     for field, allowed in schema["enums"].items():
         if field in data and data[field] is not None and data[field] not in allowed:
@@ -151,42 +151,33 @@ def _check(basename, schema, data):
         if expected_type is bool:
             if not isinstance(value, bool):
                 errors.append(
-                    "{}:{}: 类型错误（应为 bool，实际 {}）".format(
-                        basename, field, type(value).__name__
-                    )
+                    f"{basename}:{field}: 类型错误（应为 bool，实际 {type(value).__name__}）"
                 )
         elif expected_type is int:
             if not isinstance(value, int) or isinstance(value, bool):
                 errors.append(
-                    "{}:{}: 类型错误（应为 int，实际 {}）".format(
-                        basename, field, type(value).__name__
-                    )
+                    f"{basename}:{field}: 类型错误（应为 int，实际 {type(value).__name__}）"
                 )
             else:
                 min_v = schema["min_values"].get(field)
                 if min_v is not None and value < min_v:
                     errors.append(
-                        "{}:{}: 值 {} 小于最小值 {}".format(basename, field, value, min_v)
+                        f"{basename}:{field}: 值 {value} 小于最小值 {min_v}"
                     )
         elif expected_type is list:
             if not isinstance(value, list):
                 errors.append(
-                    "{}:{}: 类型错误（应为 list，实际 {}）".format(
-                        basename, field, type(value).__name__
-                    )
+                    f"{basename}:{field}: 类型错误（应为 list，实际 {type(value).__name__}）"
                 )
-        elif expected_type is str:
-            if not isinstance(value, str):
-                errors.append(
-                    "{}:{}: 类型错误（应为 str，实际 {}）".format(
-                        basename, field, type(value).__name__
-                    )
-                )
+        elif expected_type is str and not isinstance(value, str):
+            errors.append(
+                f"{basename}:{field}: 类型错误（应为 str，实际 {type(value).__name__}）"
+            )
 
     for field, value in data.items():
         if _value_depth(value) > MAX_DEPTH:
             errors.append(
-                "{}:{}: 嵌套深度超过 {} 层".format(basename, field, MAX_DEPTH)
+                f"{basename}:{field}: 嵌套深度超过 {MAX_DEPTH} 层"
             )
 
     return errors
@@ -225,9 +216,7 @@ def main():
         if not isinstance(data, dict):
             # FIND-5：safe_load 结果非 dict（无 YAMLError，如单行全角冒号纯量）→ 硬拦截
             print(
-                "{}: frontmatter 必须为 key: value 映射（当前解析为 {}）".format(
-                    basename, type(data).__name__
-                )
+                f"{basename}: frontmatter 必须为 key: value 映射（当前解析为 {type(data).__name__}）"
             )
             return
 
@@ -238,7 +227,7 @@ def main():
         if errors:
             print("\n".join(errors))
     except Exception as e:
-        print("{}: frontmatter 处理异常（{}）".format(basename, e))
+        print(f"{basename}: frontmatter 处理异常（{e}）")
 
 
 if __name__ == "__main__":

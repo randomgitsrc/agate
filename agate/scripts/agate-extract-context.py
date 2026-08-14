@@ -12,6 +12,7 @@ exit 0：成功；exit 1：参数错误；exit 2：phase 不在 P1-P8 范围或�
 双行 "0\n0"（grep 打印 0 且 exit 1）——为保 CLI 契约逐字节等价，此 quirk 原样保留。
 """
 
+import contextlib
 import glob
 import os
 import re
@@ -83,10 +84,8 @@ def _grep_rh_impl_dirs(task_dir):
         for root, _dirs, files in sorted(os.walk(p4dir)):
             for fn in sorted(files):
                 path = os.path.join(root, fn)
-                try:
+                with contextlib.suppress(OSError):
                     out.extend(_grep(_read_lines(path), r"^implementation_dir:"))
-                except OSError:
-                    pass
     return out
 
 
@@ -165,7 +164,7 @@ def extract(phase, task_dir):
                 output += "- (无 BDD 条件)" + "\n"
         failed = _sum_failed(task_dir)
         if failed is not None:
-            output += "- P5 failed 参考: {}（仅供参考，gate 以主 Agent 实跑为准）\n".format(failed)
+            output += f"- P5 failed 参考: {failed}（仅供参考，gate 以主 Agent 实跑为准）\n"
     elif phase == "P7":
         p2 = os.path.join(task_dir, "P2-design.md")
         if os.path.isfile(p2):
@@ -198,10 +197,10 @@ def extract(phase, task_dir):
             if deviations:
                 output += "- DEVIATION 列表:" + "\n" + "\n".join(deviations) + "\n"
 
-    diagnosis = os.path.join(task_dir, "P{}-gate-diagnosis.md".format(num))
+    diagnosis = os.path.join(task_dir, f"P{num}-gate-diagnosis.md")
     if os.path.isfile(diagnosis):
         output += "\n### gate-diagnosis 引用" + "\n"
-        output += "- 参见 P{}-gate-diagnosis.md".format(num) + "\n"
+        output += f"- 参见 P{num}-gate-diagnosis.md" + "\n"
 
     return output
 
@@ -216,30 +215,30 @@ def main():
     write_mode = sys.argv[3] if len(sys.argv) > 3 else ""
 
     if phase not in ("P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"):
-        sys.stderr.write("agate-extract-context.py: phase '{}' 不在 P1-P8 范围内\n".format(phase))
+        sys.stderr.write(f"agate-extract-context.py: phase '{phase}' 不在 P1-P8 范围内\n")
         sys.exit(2)
 
     if not os.path.isdir(task_dir):
-        sys.stderr.write("agate-extract-context.py: 任务目录不存在: {}\n".format(task_dir))
+        sys.stderr.write(f"agate-extract-context.py: 任务目录不存在: {task_dir}\n")
         sys.exit(2)
 
     result = extract(phase, task_dir)
 
     if write_mode == "--write":
-        pattern = os.path.join(task_dir, "P{}-dispatch-context-*.md".format(phase[1:]))
+        pattern = os.path.join(task_dir, f"P{phase[1:]}-dispatch-context-*.md")
         dc_files = sorted(glob.glob(pattern))
         if dc_files:
             dc_file = dc_files[0]
             with open(dc_file, "a", encoding="utf-8") as f:
-                f.write("\n{}\n".format(result))
-            print("已追加到 {}".format(dc_file))
+                f.write(f"\n{result}\n")
+            print(f"已追加到 {dc_file}")
         else:
             sys.stderr.write(
-                "agate-extract-context.py: 未找到 P{}-dispatch-context-*.md，输出到 stdout\n".format(phase[1:])
+                f"agate-extract-context.py: 未找到 P{phase[1:]}-dispatch-context-*.md，输出到 stdout\n"
             )
-            sys.stdout.write("{}\n".format(result))
+            sys.stdout.write(f"{result}\n")
     else:
-        sys.stdout.write("{}\n".format(result))
+        sys.stdout.write(f"{result}\n")
 
 
 if __name__ == "__main__":

@@ -985,3 +985,119 @@ implementation_dir: agate/scripts/
 ## 偏离点
 
 [DEVIATION: 派发指引预期改后回到 0 WARNING，实测为 1 WARNING（CHECK9-coverage）——CHECK9-callers 已修复（pre-commit-gate.py 含 check-frontmatter.py 调用点，grep 确认），但**迁移源 `check-frontmatter.sh` 仍保留在磁盘**（批次 1a 约定「迁移源 .sh 保留，未改动」），反向覆盖扫描（`check_anchor_coverage` 遍历 `check-*.sh`）发现它不再被锚点表覆盖。此为批次 4「统一同步锚点 + 迁移源 .sh 删档」前的已知中间态，按本批次约束（只改 1 个锚点条目、不改逻辑）不处理]
+
+# P4 实现记录 — 批次 4a（consistency 锚点表全面同步）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+批次 0-3 全部 30 脚本 py 化后，`check-protocol-consistency.py` 锚点表仍引用旧 `.sh` 路径。按 P2 §3.5 同步锚点数据（只改路径/关键字列表，不动检查逻辑）：
+
+1. **V06_KEYWORD_ASSERTIONS**（4 条涉 sh → py）：
+   - `check-gate.sh` → `check-gate.py`（DESIGN_GAP / --cached 两条）
+   - `check-pruning.sh` → `check-pruning.py`（P2 不可裁剪 / --cached 两条）
+   - 改动前 grep 确认 py 含关键字：check-gate.py 含 DESIGN_GAP×15 / --cached×6；check-pruning.py 含 P2 不可裁剪×2 / --cached×4
+2. **SCRIPT_ALIGNMENT_ANCHORS**（全部 check-*.sh → check-*.py）：check-pruning×6 / check-state-transition×2 / check-gate×6 / check-scope-resolved / check-p6-evidence×4 / check-p6-provenance×3 / check-retrospective / check-changelog / check-state-yaml / check-tdd-red / check-p6-format（含 callers 改指 pre-commit-gate.py）/ check-debt / check-platform-assumptions；**pre-commit-gate.sh / pre-push-gate.sh 两条保留 sh 路径**（薄壳含 PROD_TOUCHED / AGATE_ALIGNMENT_REVIEW_THRESHOLD 关键字，grep 确认）
+3. **GATE_SCRIPT_EXEMPT**：移除 gate-result.sh / install-hook.sh / agate-changes.sh / agate-summary.sh / agate-init.sh（全部已 py 化或并入 agate_common.py，stale 清理）；新增 `check-protocol-consistency.py`（自身命中 check-*.py glob 但无锚点 → 必须豁免）+ `pre-commit-gate.py`（调度编排，无单一 gate 判定逻辑）
+4. **check_anchor_coverage glob**：`check-*.sh` → `check-*.py`（+ pre-commit-gate.sh + **pre-commit-gate.py** + ci-gate-backstop.py 显式追加）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `python3 agate/scripts/check-protocol-consistency.py`：**0 ERROR、0 WARNING**
+- `python3 agate/scripts/check-protocol-consistency.py --strict`：**0 ERROR、0 WARNING**（exit 0）
+
+## 偏离点
+
+[DEVIATION: 派发指引改动清单 2 仅列路径同步，实测 4 条关键字在 py 迁移中被改名（旧 sh 大写常量 → py 小写/中文等价物），同步改锚点关键字使 CHECK 9 仍可对齐：
+- check-pruning.py：`SOURCE_FILE_COUNT`（sh 变量名）→ `源码文件数`（py docstring + 错误消息字面量，grep 命中×2）
+- check-p6-evidence.py：`VARIANCE_WARNING` → `variance_warning`（py 局部变量）、`AHASH_LIST`/`AHASH_DUPES` → `ahash_list`/`ahash_dupes`
+关键字仍存活在 py 中（P2 原则），仅形态从 sh 大写常量变为 py 标识符；锚点表关键字与 py 实际内容对齐。
+另注：check-p6-format 的 callers 从 pre-commit-gate.sh 改指 pre-commit-gate.py（薄壳 sh 不再含 check-p6-format 调用，py 含，CHECK9-callers 判定需真实调用路径）。批次 3f 遗留的 check-frontmatter.sh CHECK9-coverage WARNING 随 glob 改 `check-*.py` 消失（.sh 迁移源不再被反向扫描，符合预期，删档在后续批次）]
+
+---
+
+# P4 实现记录 — 批次 4b（pyproject.toml ruff 规则集 + bdd-34 断言改造）
+
+## implementation_dir
+
+```
+implementation_dir: 项目根（pyproject.toml）+ agate/tests/unit/env-adapt-docs.bats
+```
+
+## 本批次改动清单
+
+### 1. 新建 `pyproject.toml`（项目根）
+
+按 P2 §3.4 规则集原样落地（ruff 0.16.3 实测生效）：
+
+- `target-version = "py38"`（BDD-8：ruff 拒绝 3.10+ 语法）
+- `line-length = 120`
+- `src = ["agate/scripts"]`
+- `select`：E4/E7/E9/F/W/I/UP/B/SIM/C4/RUF/PLW
+- `ignore`：BLE001（fail-closed 宽捕获有意）/ PLW1510（显式捕获 returncode）/ SIM115（一次性 read）/ RUF001-003（Unicode 混淆，中文注释误报）
+
+### 2. 改造 `agate/tests/unit/env-adapt-docs.bats` bdd-34（P2 §3.6 断言级）
+
+原断言（shellcheck `-S warning *.sh` 0 error）改为两块，探测不可用即跳过：
+
+1. **shellcheck 覆盖面收敛到 3 hook 薄壳**：`shellcheck -S warning pre-commit-gate.sh commit-msg-self-gate.sh pre-push-gate.sh`（仍探测 `command -v shellcheck|shellcheck.exe`，不可用 skip）
+2. **新增 ruff 断言**：`ruff check agate/scripts/`（从项目根执行，探测 `command -v ruff`，不可用 skip）
+
+实现为单 @test 内两段独立探测 + 运行；两者均不可用时 skip。测试用例数保持 9 不漂移（count-tests.sh 口径）。
+
+### 3. ruff 违规修复（P2 §3.4 边界内，行为保持）
+
+首次 `ruff check agate/scripts/` 报 **327 error**（47 个 py 均有涉及，UP032 f-string ×~180 为主），全部在 P2 §3.4 边界内处理：
+
+- **`--fix` 自动修 261 处**：UP032 f-string 化 / F401 未用 import / F541 空 f-string / I001 import 排序 / W291 行尾空格 / W292 文件尾换行 / UP031 percent→format / UP015 / SIM905 / SIM114 / C401 set comprehension
+- **`--fix --unsafe-fixes` 再修 52 处**：SIM102 嵌套 if 折叠 / SIM103 return 条件直接 / SIM105 contextlib.suppress / SIM108 三元 / SIM110 any() / SIM201 / RUF005 列表拼接→展开
+- **手工极小调整 14 处**（--unsafe-fixes 未覆盖，行为保持）：
+  - PLW2901 ×6：`for line/ref` 循环体覆写 → 循环变量改名 `raw_line`/`raw_ref`，覆写仍落到 `line`/`ref`
+  - SIM102 ×4：含注释/多语句的嵌套 if → `and` 合并（注释保留）
+  - E741 ×3：`l` 歧义变量名 → `ln`
+  - F841 ×1：pre-commit-gate.py 未用的 `agate_root = resolve_agate_root(...)` → 裸调用（grep 确认无其他引用）
+  - RUF059 ×2：未用解包 `rc_diff`/`ci_output` → `_rc_diff`/`_ci_output`
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `ruff check agate/scripts/`：**All checks passed**（exit 0，pyproject.toml 生效）
+- `shellcheck -S warning pre-commit-gate.sh commit-msg-self-gate.sh pre-push-gate.sh`：**0 error**
+- `bats agate/tests/unit/env-adapt-docs.bats`：**9/9 绿**（含改造后 bdd-34；PATH 含 ruff 时 ruff 断言实际执行）
+- `grep -c "^@test" env-adapt-docs.bats`：9（用例数不漂移）
+
+## 偏离点
+
+[DEVIATION: 派发指引「本机 ~/.venvs/agate-dev/ 有 ruff，可设 PATH 或直接用命令」——该 venv 不在默认 PATH（`command -v ruff` 为空），bats 的 bdd-34 在默认 PATH 下会跳过 ruff 断言（shellcheck 段仍执行）。ruff 断言需 PATH 含 ruff 才实际运行（P5 gate 的 `P5_ruff` 命令同样依赖 PATH 配置）。已用 `PATH=~/.venvs/agate-dev/bin:$PATH` 验证 ruff 断言真执行且通过，非"跳过即绿"的假阳性]
+
+---
+
+# P4 实现记录 — 批次 4b 后半（SG.6 断言过时修复）
+
+## implementation_dir
+
+```
+implementation_dir: agate/tests/integration/protocol-alignment-review.bats
+```
+
+## 本批次改动清单
+
+批次 4a 把 `check-protocol-consistency.py` CHECK 9 锚点表全部改为 `check-*.py` 后，`integration/protocol-alignment-review.bats` SG.6 测试仍用 `find "$AGATE_SCRIPTS" -name 'check-*.sh' -o -name 'pre-commit-gate.sh'` 收集脚本清单——找到 check-changelog.sh（迁移源仍在）但锚点表里是 check-changelog.py → grep 失败，SG.6 红。
+
+修改（仅 SG.6 一个用例，`@test` 数不变）：
+
+1. `find` 匹配改为 `-name 'check-*.py' -o -name 'pre-commit-gate.sh' -o -name 'pre-commit-gate.py'`——与批次 4a `check_anchor_coverage` glob（`check-*.py` + pre-commit-gate.sh + pre-commit-gate.py）对齐，其中 pre-commit-gate.sh 薄壳作为命中锚点保留项、pre-commit-gate.py 为调度编排豁免项
+2. 注释同步为「仓库中所有 check-*.py + pre-commit-gate.sh 薄壳」
+
+## 自查结果（自查 ≠ P5 gate）
+
+- `bats agate/tests/integration/protocol-alignment-review.bats`：**8/8 绿**（含修复后 SG.6）
+- `grep -c "@test"` 不变（8 用例）
+
+## 偏离点
+
+> 无 DEVIATION / DESIGN_GAP。SG.7 的 commit-msg-self-gate.sh 断言不受影响（该脚本作为 3 个 hook 薄壳之一保留 sh，本次仅对 SH/check-*.py 匹配）。

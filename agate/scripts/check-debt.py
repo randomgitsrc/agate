@@ -75,8 +75,8 @@ def _retreat_coverage(repo_root):
         short = full[:7]
         if short not in covered and full not in covered:
             sys.stderr.write(
-                "GATE DEBT WARNING: retreat 提交 {}（{}）未登记为 source: retreat DEBT 条目"
-                "（evidence 须引用该提交，文件 {}）\n".format(short, subject, debt_file)
+                f"GATE DEBT WARNING: retreat 提交 {short}（{subject}）未登记为 source: retreat DEBT 条目"
+                f"（evidence 须引用该提交，文件 {debt_file}）\n"
             )
     return 0
 
@@ -108,15 +108,13 @@ def main():
         )
     except OSError:
         sys.stderr.write(
-            "GATE DEBT: {} tech-debt 校验器异常退出（exit 1），fail-closed 拦截：\n".format(file_path)
+            f"GATE DEBT: {file_path} tech-debt 校验器异常退出（exit 1），fail-closed 拦截：\n"
         )
         sys.exit(1)
 
     if proc.returncode != 0:
         sys.stderr.write(
-            "GATE DEBT: {} tech-debt 校验器异常退出（exit {}），fail-closed 拦截：\n".format(
-                file_path, proc.returncode
-            )
+            f"GATE DEBT: {file_path} tech-debt 校验器异常退出（exit {proc.returncode}），fail-closed 拦截：\n"
         )
         if proc.stderr:
             sys.stderr.write(proc.stderr)
@@ -124,10 +122,10 @@ def main():
 
     errors = (proc.stdout or "").rstrip("\n")
     if errors:
-        sys.stderr.write("GATE DEBT: {} tech-debt 条目格式错误：\n".format(file_path))
+        sys.stderr.write(f"GATE DEBT: {file_path} tech-debt 条目格式错误：\n")
         for line in errors.splitlines():
             if line:
-                sys.stderr.write("  - {}\n".format(line))
+                sys.stderr.write(f"  - {line}\n")
         sys.exit(1)
 
     sys.exit(0)

@@ -41,7 +41,7 @@ def _run_script(script, args, env_extra):
     env.update(env_extra)
     try:
         proc = subprocess.run(
-            [sys.executable, os.path.join(SCRIPT_DIR, script)] + args,
+            [sys.executable, os.path.join(SCRIPT_DIR, script), *args],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             env=env,
         )
@@ -83,9 +83,7 @@ def _is_image(path):
         return True
     if magic[:4] == b"GIF8":
         return True
-    if magic[:4] == b"RIFF" and len(magic) >= 12 and magic[8:12] == b"WEBP":
-        return True
-    return False
+    return bool(magic[:4] == b"RIFF" and len(magic) >= 12 and magic[8:12] == b"WEBP")
 
 
 def _md5_entries(base):
@@ -132,11 +130,11 @@ def main():
     for line in re.findall(r"^\s*- PASS\b.*", p6_text, re.MULTILINE):
         if not ref_re.search(line):
             pass_without_ref += 1
-            pass_without_ref_details += "  - {}\n".format(line)
+            pass_without_ref_details += f"  - {line}\n"
 
     if pass_without_ref > 0:
         sys.stderr.write(
-            "GATE P6-EVIDENCE: 有 {} 条 PASS 缺文件证据引用（每条 PASS 必须引用证据文件，形式不限：截图/日志/JSON/文本）\n".format(pass_without_ref)
+            f"GATE P6-EVIDENCE: 有 {pass_without_ref} 条 PASS 缺文件证据引用（每条 PASS 必须引用证据文件，形式不限：截图/日志/JSON/文本）\n"
         )
         sys.stderr.write(pass_without_ref_details + "\n")
         sys.exit(1)
@@ -145,7 +143,7 @@ def main():
         sys.stderr.write("GATE P6-EVIDENCE: P6-evidence/ 目录不存在或为空\n")
         sys.exit(1)
 
-    sys.stderr.write("GATE P6-EVIDENCE: {} 条 BDD，证据目录非空\n".format(bdd_count))
+    sys.stderr.write(f"GATE P6-EVIDENCE: {bdd_count} 条 BDD，证据目录非空\n")
 
     # UI 截图实质检查（R1a：仅当 P6-acceptance.md 含截图引用时才检查）
     p2_file = os.path.join(task_dir, "P2-design.md")
@@ -201,10 +199,10 @@ def main():
                     if size <= 1024:
                         if _is_image(img):
                             small_image_warning += 1
-                            small_image_details += "  - {}\n".format(os.path.basename(img))
+                            small_image_details += f"  - {os.path.basename(img)}\n"
                         else:
                             empty_count += 1
-                            empty_details += "  - {}\n".format(os.path.basename(img))
+                            empty_details += f"  - {os.path.basename(img)}\n"
                     variance, rc = _run_script("agate-image-check.py", ["variance"], {"IMG_PATH": img})
                     if rc != 0:
                         variance = "-1"
@@ -219,33 +217,33 @@ def main():
                         if 0 <= var_int < 50:
                             variance_warning += 1
                             sys.stderr.write(
-                                "GATE P6-EVIDENCE WARNING: {} 像素方差 {}（<50，疑似纯色/占位图，请确认非充数）\n".format(os.path.basename(img), var_int)
+                                f"GATE P6-EVIDENCE WARNING: {os.path.basename(img)} 像素方差 {var_int}（<50，疑似纯色/占位图，请确认非充数）\n"
                             )
                 if variance_warning > 0:
-                    sys.stderr.write("GATE P6-EVIDENCE WARNING: 有 {} 张截图像素方差 < 50（疑似纯色/占位图，请确认非充数）\n".format(variance_warning))
+                    sys.stderr.write(f"GATE P6-EVIDENCE WARNING: 有 {variance_warning} 张截图像素方差 < 50（疑似纯色/占位图，请确认非充数）\n")
                     sys.exit(2)
 
             if empty_count > 0:
-                sys.stderr.write("GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 {} 个非图片文件 ≤ 1KB（疑似充数）\n".format(empty_count))
+                sys.stderr.write(f"GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 {empty_count} 个非图片文件 ≤ 1KB（疑似充数）\n")
                 sys.stderr.write(empty_details + "\n")
                 sys.exit(1)
             if small_image_warning > 0:
-                sys.stderr.write("GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 {} 个合法图片 ≤ 1KB（元素级小截图，不阻断但请确认非充数）\n".format(small_image_warning))
+                sys.stderr.write(f"GATE P6-EVIDENCE WARNING: P6-evidence/screenshots/ 有 {small_image_warning} 个合法图片 ≤ 1KB（元素级小截图，不阻断但请确认非充数）\n")
                 sys.stderr.write(small_image_details + "\n")
                 sys.exit(2)
 
             # md5 去重（逐字节相同 → 阻断）
             md5_entries = _md5_entries(screenshots_dir)
             md5_total = len(md5_entries)
-            md5_unique = len(set(h for h, _ in md5_entries))
+            md5_unique = len({h for h, _ in md5_entries})
             if md5_total > md5_unique:
                 md5_dupes = md5_total - md5_unique
                 md5_counts = Counter(h for h, _ in md5_entries)
                 md5_details = ""
                 for h in sorted(h for h, c in md5_counts.items() if c > 1):
                     for path in sorted(p for hh, p in md5_entries if hh == h):
-                        md5_details += "  - {}\n".format(os.path.basename(path))
-                sys.stderr.write("GATE P6-EVIDENCE: 有 {} 个截图文件逐字节完全相同（md5 重复，疑似同一物理文件被多条 PASS 引用充数）\n".format(md5_dupes))
+                        md5_details += f"  - {os.path.basename(path)}\n"
+                sys.stderr.write(f"GATE P6-EVIDENCE: 有 {md5_dupes} 个截图文件逐字节完全相同（md5 重复，疑似同一物理文件被多条 PASS 引用充数）\n")
                 sys.stderr.write(md5_details)
                 sys.exit(1)
 
@@ -254,13 +252,13 @@ def main():
                 if "SKIP_NO_PILLOW" in ahash_list:
                     sys.stderr.write("GATE P6-EVIDENCE WARNING: Pillow 未安装，相似度检测已跳过\n")
                 else:
-                    ahash_lines = [l for l in ahash_list.splitlines() if l]
+                    ahash_lines = [ln for ln in ahash_list.splitlines() if ln]
                     ahash_total = len(ahash_lines)
                     ahash_unique = len(set(ahash_lines))
                     if ahash_total > ahash_unique:
                         ahash_dupes = ahash_total - ahash_unique
                         sys.stderr.write(
-                            "GATE P6-EVIDENCE WARNING: 有 {} 组视觉高度相似截图（average hash 相同但非逐字节相同，不阻断，行为差异类 BDD 截图可能视觉相同，请在 acceptance report 说明原因）\n".format(ahash_dupes)
+                            f"GATE P6-EVIDENCE WARNING: 有 {ahash_dupes} 组视觉高度相似截图（average hash 相同但非逐字节相同，不阻断，行为差异类 BDD 截图可能视觉相同，请在 acceptance report 说明原因）\n"
                         )
 
     sys.exit(0)

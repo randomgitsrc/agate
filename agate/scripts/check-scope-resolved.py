@@ -85,7 +85,7 @@ def main():
 
     if not os.path.isfile(p1_file):
         sys.stderr.write(
-            "GATE SCOPE: 产出含 [SCOPE+]（{}），但无 P1-requirements.md\n".format(scope_found)
+            f"GATE SCOPE: 产出含 [SCOPE+]（{scope_found}），但无 P1-requirements.md\n"
         )
         sys.exit(1)
 
@@ -95,21 +95,19 @@ def main():
     if scope_resolved_fm:
         count = len([ln for ln in scope_resolved_fm.splitlines() if ln.strip()])
         sys.stderr.write(
-            "GATE SCOPE: {}有 [SCOPE+]，P1 frontmatter scope_resolved 非空（{} 项已解决）\n".format(
-                scope_found, count
-            )
+            f"GATE SCOPE: {scope_found}有 [SCOPE+]，P1 frontmatter scope_resolved 非空（{count} 项已解决）\n"
         )
         sys.exit(0)
 
     resolved_count = _count_resolved_body(p1_file)
     if resolved_count == 0:
         sys.stderr.write(
-            "GATE SCOPE: 产出含 [SCOPE+]（{}），但 P1 无 [SCOPE_RESOLVED] 标记\n".format(scope_found)
+            f"GATE SCOPE: 产出含 [SCOPE+]（{scope_found}），但 P1 无 [SCOPE_RESOLVED] 标记\n"
         )
         sys.exit(1)
 
     sys.stderr.write(
-        "GATE SCOPE: {}有 [SCOPE+]，P1 有 {} 个 [SCOPE_RESOLVED]\n".format(scope_found, resolved_count)
+        f"GATE SCOPE: {scope_found}有 [SCOPE+]，P1 有 {resolved_count} 个 [SCOPE_RESOLVED]\n"
     )
     sys.exit(0)
 

@@ -50,13 +50,25 @@ load ../helpers/load.bash
     [ "$status" -eq 0 ]
 }
 
-@test "bdd-34 shellcheck -S warning agate/scripts/*.sh 0 error（修复不引入 shellcheck 问题）" {
-    local sc
+@test "bdd-34 shellcheck 3 hook 薄壳 0 error + ruff check agate/scripts/ 0 error（修复不引入 lint 问题）" {
+    local sc rf checked=0
     sc=$(command -v shellcheck 2>/dev/null || command -v shellcheck.exe 2>/dev/null || echo "")
-    [ -n "$sc" ] || skip "shellcheck 未安装（Windows bats job 未装 shellcheck——由独立 shellcheck job 覆盖）"
-    sc=$(py_path "$sc")
-    run bash -c "cd '$(py_path "$AGATE_ROOT")/scripts' && '$sc' -S warning *.sh 2>&1"
-    [ "$status" -eq 0 ]
+    if [ -n "$sc" ]; then
+        sc=$(py_path "$sc")
+        run bash -c "cd '$(py_path "$AGATE_ROOT")/scripts' && '$sc' -S warning pre-commit-gate.sh commit-msg-self-gate.sh pre-push-gate.sh 2>&1"
+        [ "$status" -eq 0 ]
+        checked=1
+    fi
+
+    rf=$(command -v ruff 2>/dev/null || echo "")
+    if [ -n "$rf" ]; then
+        rf=$(py_path "$rf")
+        run bash -c "cd '$(py_path "$AGATE_ROOT")/..' && '$rf' check agate/scripts/ 2>&1"
+        [ "$status" -eq 0 ]
+        checked=1
+    fi
+
+    [ "$checked" -eq 1 ] || skip "shellcheck 与 ruff 均未安装（由独立 CI lint job 覆盖）"
 }
 
 @test "bdd-32 全量 bats 测试文件可被 bats 解析（P5 全量回归前提，BDD-32）" {

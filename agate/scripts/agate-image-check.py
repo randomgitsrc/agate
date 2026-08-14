@@ -7,6 +7,7 @@ ahash 子命令：读 SCREENSHOTS_DIR env，遍历图片算 average hash 并逐�
 stderr 打印 SKIP_NO_PILLOW + exit 1（bash 侧 2>/dev/null || echo 吞掉）；单图异常跳过。
 """
 
+import contextlib
 import glob
 import os
 import sys
@@ -47,12 +48,10 @@ def main():
             return "".join("1" if p >= avg else "0" for p in pixels)
 
         for f in sorted(glob.glob(os.environ["SCREENSHOTS_DIR"] + "/*")):
-            try:
+            with contextlib.suppress(Exception):
                 print(_ahash(f))
-            except Exception:
-                pass
     else:
-        sys.stderr.write("agate-image-check: unknown op {}\n".format(op))
+        sys.stderr.write(f"agate-image-check: unknown op {op}\n")
         sys.exit(2)
 
 

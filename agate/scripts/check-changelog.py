@@ -63,20 +63,20 @@ def main():
 
     unreleased = _unreleased_content(changelog_file)
     if not unreleased:
-        sys.stderr.write("GATE CHANGELOG: {} 无 [Unreleased] 区域\n".format(changelog_file))
+        sys.stderr.write(f"GATE CHANGELOG: {changelog_file} 无 [Unreleased] 区域\n")
         sys.exit(1)
 
     # grep -qE "(^|[^0-9])${TASK_ID}( |:|$|,|-)" 的 re 等价：单词边界保护，
     # 防 TAG0001 被 TAG00012 这类"更长编号任务"的条目误判为匹配（BDD-27 / CL.7）。
     if re.search(
-        r"(^|[^0-9]){}( |:|$|,|-)".format(re.escape(task_id)),
+        rf"(^|[^0-9]){re.escape(task_id)}( |:|$|,|-)",
         unreleased,
         flags=re.M,
     ):
         sys.exit(0)
 
     sys.stderr.write(
-        "GATE CHANGELOG: [Unreleased] 区域未找到 {}（或 {}）\n".format(task_id, task_id)
+        f"GATE CHANGELOG: [Unreleased] 区域未找到 {task_id}（或 {task_id}）\n"
     )
     sys.exit(1)
 

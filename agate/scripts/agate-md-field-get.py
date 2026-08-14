@@ -202,7 +202,7 @@ def main():
     op = sys.argv[1]
     text = _read()
     if op not in KNOWN_OPS:
-        sys.stderr.write("agate-md-field-get: unknown op {}\n".format(op))
+        sys.stderr.write(f"agate-md-field-get: unknown op {op}\n")
         sys.exit(2)
     print(_get(text, op))
 

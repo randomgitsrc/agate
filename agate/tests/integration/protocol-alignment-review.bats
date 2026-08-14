@@ -48,9 +48,9 @@ load ../helpers/load.bash
     local consistency_script="$AGATE_SCRIPTS/check-protocol-consistency.py"
     [ -f "$consistency_script" ]
 
-    # 仓库中所有 check-*.sh + pre-commit-gate.sh
+    # 仓库中所有 check-*.py + pre-commit-gate.sh 薄壳
     local all_scripts
-    all_scripts=$(find "$AGATE_SCRIPTS" -name 'check-*.sh' -o -name 'pre-commit-gate.sh' | sort)
+    all_scripts=$(find "$AGATE_SCRIPTS" -name 'check-*.py' -o -name 'pre-commit-gate.sh' -o -name 'pre-commit-gate.py' | sort)
 
     # 每个脚本都应出现在锚点表中
     for script in $all_scripts; do

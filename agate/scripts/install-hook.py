@@ -18,6 +18,7 @@ stdout；成功 exit 0。Python 3.8+（无 match / str.removeprefix）；所有�
 encoding="utf-8"。
 """
 
+import contextlib
 import os
 import re
 import shutil
@@ -32,7 +33,7 @@ except (ImportError, SystemExit):
     def run_git(args, cwd=None):
         try:
             proc = subprocess.run(
-                ["git"] + args, capture_output=True, text=True,
+                ["git", *args], capture_output=True, text=True,
                 encoding="utf-8", errors="replace", cwd=cwd,
             )
             return proc.returncode, proc.stdout
@@ -50,17 +51,13 @@ def _ln_sf(source, link_path):
     ln → cp 退化）。返回是否建了软链（调用方用 os.path.islink 判定，同 sh `[ -L ]`）。
     """
     if os.path.lexists(link_path):
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(link_path)
-        except OSError:
-            pass
     try:
         os.symlink(source, link_path)
     except OSError:
-        try:
+        with contextlib.suppress(OSError):
             shutil.copyfile(source, link_path)
-        except OSError:
-            pass
 
 
 def _backup(hook_file, label):
@@ -68,7 +65,7 @@ def _backup(hook_file, label):
     if os.path.isfile(hook_file) and not os.path.islink(hook_file):
         backup = hook_file + ".bak." + str(int(time.time()))
         shutil.copyfile(hook_file, backup)
-        print("已备份现有 {} hook".format(label))
+        print(f"已备份现有 {label} hook")
 
 
 def _chmod_x(path):
@@ -81,10 +78,7 @@ def _chmod_x(path):
 
 
 def main():
-    if len(sys.argv) > 1:
-        agate_root = sys.argv[1]
-    else:
-        agate_root = os.environ.get("AGATE_ROOT") or os.path.expanduser("~/.agate")
+    agate_root = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("AGATE_ROOT") or os.path.expanduser("~/.agate")
 
     rc, out = run_git(["rev-parse", "--show-toplevel"])
     if rc != 0 or not out.strip():
@@ -99,7 +93,7 @@ def main():
     source = os.path.join(agate_root, "scripts", "pre-commit-gate.sh")
 
     if not os.path.isfile(source):
-        sys.stderr.write("错误: {} 不存在（AGATE_ROOT={}）\n".format(source, agate_root))
+        sys.stderr.write(f"错误: {source} 不存在（AGATE_ROOT={agate_root}）\n")
         sys.exit(1)
 
     os.makedirs(hook_dir, exist_ok=True)
@@ -108,13 +102,13 @@ def main():
     _ln_sf(source, hook_file)
     _chmod_x(source)
     if os.path.islink(hook_file):
-        print("pre-commit hook 已安装: {} -> {}".format(hook_file, source))
+        print(f"pre-commit hook 已安装: {hook_file} -> {source}")
     else:
         # 复制模式（Windows 无符号链接权限）：写入 AGATE_ROOT 兜底标记。
         # pre-commit-gate 复制模式（readlink 解析不到本体）读取该标记恢复 AGATE_ROOT。
         with open(os.path.join(hook_dir, ".agate-root"), "w", encoding="utf-8") as f:
             f.write(agate_root + "\n")
-        print("pre-commit hook 已安装（复制模式，Windows 无符号链接权限）: {}".format(hook_file))
+        print(f"pre-commit hook 已安装（复制模式，Windows 无符号链接权限）: {hook_file}")
         print("  ⚠️  升级 agate 后需重跑 install-hook.sh（复制不自动跟随源文件）")
 
     # 安装 commit-msg hook（self-gate 强制触发）
@@ -125,11 +119,11 @@ def main():
         _ln_sf(commit_msg_source, commit_msg_hook)
         _chmod_x(commit_msg_source)
         if os.path.islink(commit_msg_hook):
-            print("commit-msg hook 已安装: {} -> {}".format(commit_msg_hook, commit_msg_source))
+            print(f"commit-msg hook 已安装: {commit_msg_hook} -> {commit_msg_source}")
         else:
-            print("commit-msg hook 已安装（复制模式）: {}".format(commit_msg_hook))
+            print(f"commit-msg hook 已安装（复制模式）: {commit_msg_hook}")
     else:
-        print("提示: {} 不存在，跳过 commit-msg hook 安装".format(commit_msg_source))
+        print(f"提示: {commit_msg_source} 不存在，跳过 commit-msg hook 安装")
 
     # 安装 pre-push hook（协议文件大改动自动提示 alignment-review）
     # 备份已有 pre-push hook（与 pre-commit/commit-msg 一致：仅备份非软链的既有 hook）
@@ -138,14 +132,14 @@ def main():
     _backup(pre_push_hook, "pre-push")
 
     if not os.path.isfile(pre_push_source):
-        sys.stderr.write("错误: {} 不存在（AGATE_ROOT={}）\n".format(pre_push_source, agate_root))
+        sys.stderr.write(f"错误: {pre_push_source} 不存在（AGATE_ROOT={agate_root}）\n")
         sys.exit(1)
     _ln_sf(pre_push_source, pre_push_hook)
     _chmod_x(pre_push_source)
     if os.path.islink(pre_push_hook):
-        print("pre-push hook 已安装: {} -> {} (协议文件大改动自动提示)".format(pre_push_hook, pre_push_source))
+        print(f"pre-push hook 已安装: {pre_push_hook} -> {pre_push_source} (协议文件大改动自动提示)")
     else:
-        print("pre-push hook 已安装（复制模式）: {}".format(pre_push_hook))
+        print(f"pre-push hook 已安装（复制模式）: {pre_push_hook}")
 
     # .gitignore 检测：.state.yaml 被忽略时提醒用 git add -f
     gitignore = os.path.join(repo_root, ".gitignore")

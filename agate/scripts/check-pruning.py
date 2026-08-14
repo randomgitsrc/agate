@@ -71,8 +71,8 @@ def _staged_source_count(task_dir):
         "|/P[0-8]-.*\\.md$|^\\\\.|CHANGELOG"
     )
     count = 0
-    for line in out.splitlines():
-        line = line.rstrip("\r")
+    for raw_line in out.splitlines():
+        line = raw_line.rstrip("\r")
         if not re.search(pattern, line):
             count += 1
     return count
@@ -130,7 +130,7 @@ def main():
         # R4(a) bug fix：补实现已文档化的文件数条件（--cached，不用 HEAD~1）
         source_count = _staged_source_count(task_dir)
         if source_count > 5:
-            errors.append("裁剪 P7 需源码文件数 ≤ 5，实际={}".format(source_count))
+            errors.append(f"裁剪 P7 需源码文件数 ≤ 5，实际={source_count}")
 
         # R4(b)：implicit_coupling 维度（self-declaration nudge）
         if re.search(r"^implicit_coupling:", p1_text, re.MULTILINE):
@@ -150,9 +150,8 @@ def main():
 
     # 检查 9：裁剪理由必须含"跳过风险"评估（R3a：self-declaration nudge）
     # P4/P5 已被检查 4/5 硬拦，此处仍纳入条件以保持穷举
-    if not all(p in phases for p in ("P2", "P3", "P4", "P5", "P6", "P7", "P8")):
-        if "跳过风险:" not in p1_text:
-            errors.append("裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）")
+    if not all(p in phases for p in ("P2", "P3", "P4", "P5", "P6", "P7", "P8")) and "跳过风险:" not in p1_text:
+        errors.append("裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）")
 
     # P2.9 实际实现：对比 P1 phases 声明与文件系统中的产出文件
     pruned_with_output = ""
@@ -163,15 +162,15 @@ def main():
             continue
         for f in sorted(glob.glob(os.path.join(task_dir, phase + "-*.md"))):
             if os.path.isfile(f):
-                pruned_with_output += "{}:{} ".format(phase, os.path.basename(f))
+                pruned_with_output += f"{phase}:{os.path.basename(f)} "
 
     if pruned_with_output and has_override == 0:
-        errors.append("裁剪声明与执行不一致（{}），但 P1 无 override: 字段".format(pruned_with_output))
+        errors.append(f"裁剪声明与执行不一致（{pruned_with_output}），但 P1 无 override: 字段")
 
     if errors:
         sys.stderr.write("GATE PRUNING: 裁剪条件不满足：\n")
         for line in errors:
-            sys.stderr.write("  - {}\n".format(line))
+            sys.stderr.write(f"  - {line}\n")
         sys.exit(1)
     sys.exit(0)
 

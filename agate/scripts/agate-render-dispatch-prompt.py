@@ -99,17 +99,17 @@ def main():
     rollback = args[3] if len(args) > 3 else ""
 
     if phase not in _PHASES:
-        sys.stderr.write("agate-render-dispatch-prompt.py: phase '{}' 不在 P1-P8 范围内\n".format(phase))
+        sys.stderr.write(f"agate-render-dispatch-prompt.py: phase '{phase}' 不在 P1-P8 范围内\n")
         sys.exit(2)
 
     if not os.path.isdir(task_dir):
-        sys.stderr.write("agate-render-dispatch-prompt.py: 任务目录不存在: {}\n".format(task_dir))
+        sys.stderr.write(f"agate-render-dispatch-prompt.py: 任务目录不存在: {task_dir}\n")
         sys.exit(2)
 
     agate_root = _resolve_agate_root()
     template = os.path.join(agate_root, "assets", "templates", "dispatch-prompt.md")
     if not os.path.isfile(template):
-        sys.stderr.write("agate-render-dispatch-prompt.py: 模板文件不存在: {}\n".format(template))
+        sys.stderr.write(f"agate-render-dispatch-prompt.py: 模板文件不存在: {template}\n")
         sys.exit(2)
 
     task_id = os.path.basename(task_dir)
@@ -123,16 +123,14 @@ def main():
         role_dir = "review-roles"
     elif not os.path.isfile(review_role) and not os.path.isfile(exec_role):
         sys.stderr.write(
-            "agate-render-dispatch-prompt.py: 角色文件不存在: {} (checked execution-roles/ and review-roles/)\n".format(
-                role
-            )
+            f"agate-render-dispatch-prompt.py: 角色文件不存在: {role} (checked execution-roles/ and review-roles/)\n"
         )
         sys.exit(2)
     else:
         role_dir = "execution-roles"
 
     safe_role = re.sub(r"[^a-zA-Z0-9_-]", "_", role)
-    output_file = os.path.join(task_dir, "P{}-dispatch-prompt-{}.md".format(phase_num, safe_role))
+    output_file = os.path.join(task_dir, f"P{phase_num}-dispatch-prompt-{safe_role}.md")
 
     with open(template, encoding="utf-8") as f:
         tpl_lines = f.read().splitlines()
@@ -198,7 +196,7 @@ def main():
         ("{YYYY-MM-DD}", today),
         ("{YYYYMMDD}", today.replace("-", "")),
         ("{完整 task_id，如 T002-fix-db-migration}", task_id),
-        ("{{Txxx}}-{}-{{YYYYMMDD}}".format(phase), trace_id),
+        (f"{{Txxx}}-{phase}-{{YYYYMMDD}}", trace_id),
     ]
     for pattern, repl in replacements:
         rendered = rendered.replace(pattern, repl)
@@ -216,7 +214,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(final + "\n")
     sys.stdout.write(final + "\n")
-    sys.stderr.write("已写入 {}\n".format(output_file))
+    sys.stderr.write(f"已写入 {output_file}\n")
 
 
 if __name__ == "__main__":

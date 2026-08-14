@@ -44,7 +44,7 @@ def _find_bash() -> str:
 
 
 def _bash_cmd(args: list) -> list:
-    return [_find_bash()] + args
+    return [_find_bash(), *args]
 
 
 def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
@@ -155,7 +155,7 @@ def main() -> int:
 
     tasks_dir = resolve_tasks_dir(str(repo_root))
     task_dir = str(Path(tasks_dir) / task_id) if task_id else ""
-    ci_exit, ci_output = run_gate(phase, task_dir)
+    ci_exit, _ci_output = run_gate(phase, task_dir)
 
     if phase == "P3":
         # P3 红灯检查独立跑（check-gate.sh P3 只检查文件存在）
@@ -184,11 +184,11 @@ def main() -> int:
             if tdd_exit == 0:
                 print("OK: P3 check-tdd-red.sh exit=0（真红灯，符合 TDD）")
             elif tdd_exit == 2:
-                print(f"FAIL: P3 check-tdd-red.sh exit=2（绿灯，实现先于测试，违反 TDD）")
+                print("FAIL: P3 check-tdd-red.sh exit=2（绿灯，实现先于测试，违反 TDD）")
                 print(tdd_output)
                 return 1
             elif tdd_exit == 1:
-                print(f"FAIL: P3 check-tdd-red.sh exit=1（假红灯，测试代码自身有 bug）")
+                print("FAIL: P3 check-tdd-red.sh exit=1（假红灯，测试代码自身有 bug）")
                 print(tdd_output)
                 return 1
             else:

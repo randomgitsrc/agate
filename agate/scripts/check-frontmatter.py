@@ -47,18 +47,16 @@ def main():
     # fail-closed，exit 1，并把 stderr 打印出来方便排查（不再把"校验器崩溃"误判成 exit 0）。
     if py_exit != 0:
         sys.stderr.write(
-            "GATE FRONTMATTER: {} frontmatter 校验器异常退出（exit {}），fail-closed 拦截：\n".format(
-                file_path, py_exit
-            )
+            f"GATE FRONTMATTER: {file_path} frontmatter 校验器异常退出（exit {py_exit}），fail-closed 拦截：\n"
         )
         sys.stderr.write(py_stderr)
         sys.exit(1)
 
     if errors:
-        sys.stderr.write("GATE FRONTMATTER: {} frontmatter 格式错误：\n".format(file_path))
+        sys.stderr.write(f"GATE FRONTMATTER: {file_path} frontmatter 格式错误：\n")
         for line in errors.splitlines():
             if line:
-                sys.stderr.write("  - {}\n".format(line))
+                sys.stderr.write(f"  - {line}\n")
         sys.exit(1)
 
     sys.exit(0)

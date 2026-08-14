@@ -58,7 +58,7 @@ except Exception as exc:
     # 捕获，仍 fail-closed exit 1）；此处捕获 ImportError（agate_common.py 本体缺失，
     # 如脚本被独立复制到缺公共库的目录）。
     sys.stderr.write(
-        "GATE ERROR: 无法加载 agate_common.py（公共库缺失，需 python3 + pyyaml）: {}\n".format(exc)
+        f"GATE ERROR: 无法加载 agate_common.py（公共库缺失，需 python3 + pyyaml）: {exc}\n"
     )
     sys.exit(1)
 
@@ -110,7 +110,7 @@ def _run_script_rc(script, args, suppress_stderr=False):
         return 1
     stderr = subprocess.DEVNULL if suppress_stderr else None
     try:
-        proc = subprocess.run([sys.executable, path] + args, stderr=stderr)
+        proc = subprocess.run([sys.executable, path, *args], stderr=stderr)
     except OSError:
         return 1
     return proc.returncode
@@ -135,7 +135,7 @@ def _run_script_capture(script, args, merge=False, suppress_stderr=False, input_
         stderr = subprocess.PIPE
     try:
         proc = subprocess.run(
-            [sys.executable, path] + args,
+            [sys.executable, path, *args],
             stdout=stdout_pipe, stderr=stderr,
             text=True, encoding="utf-8", errors="replace",
             input=input_text,
@@ -188,7 +188,7 @@ def main():
     repo_root = os.path.realpath(repo_root)
 
     # AGATE_ROOT = 协议本体路径（env 优先 → 脚本真实路径上溯 → 复制模式 .agate-root 恢复）
-    agate_root = resolve_agate_root(os.path.abspath(__file__))
+    resolve_agate_root(os.path.abspath(__file__))
 
     # 工作区路径单点解析（TAG0003 v2.0）：.agate.env > env AGATE_TASKS_DIR > 默认
     # agate-workspace/。resolve_workspace 等价 agate-workspace-resolve.sh 的 source 语义。
@@ -222,9 +222,8 @@ def main():
                     break
 
         # 2c. 状态转移检查（phase 变更时）
-        if phase_changed:
-            if _run_script_rc("check-state-transition.py", [state_file]) != 0:
-                sys.exit(1)
+        if phase_changed and _run_script_rc("check-state-transition.py", [state_file]) != 0:
+            sys.exit(1)
 
         # 2d. 读取状态
         phase = read_state_phase(state_file)
@@ -250,10 +249,7 @@ def main():
 
         # 2e. 反推 TASK_DIR
         state_dir = os.path.dirname(state_file)
-        if state_dir == repo_root:
-            task_dir = os.path.join(tasks_dir, task_id)
-        else:
-            task_dir = state_dir
+        task_dir = os.path.join(tasks_dir, task_id) if state_dir == repo_root else state_dir
 
         # 2f. phase-产出一致性检查（WARNING，不拦截）
         task_rel = os.path.relpath(task_dir, repo_root)
@@ -277,8 +273,7 @@ def main():
                         and int(out_num) < int(phase_num) and out_file in staged_added:
                     continue
                 sys.stderr.write(
-                    "GATE WARNING: 暂存了 {} 产出但 phase={}（{}）——请确认是否需要更新 phase\n".format(
-                        out_phase, phase, task_id)
+                    f"GATE WARNING: 暂存了 {out_phase} 产出但 phase={phase}（{task_id}）——请确认是否需要更新 phase\n"
                 )
 
         # 2g. 跳过非 gate 阶段
@@ -290,13 +285,13 @@ def main():
         # 2g.1 PROD_TOUCHED 检测（P1.2）——仅扫任务目录下的暂存 diff
         # 三步检测（正向→中止 / 不合规→中止 / 缺失→静默通过）+ 只扫新增行
         if any(f.startswith(prefix) for f in _staged_name_only()):
-            rc_diff, diff_raw = run_git(["diff", "--cached", "--", task_rel])
+            _rc_diff, diff_raw = run_git(["diff", "--cached", "--", task_rel])
             diff_added = []
             in_card = False
-            for line in (diff_raw or "").splitlines():
-                if not (len(line) >= 2 and line[0] == "+" and line[1] != "+"):
+            for raw_line in (diff_raw or "").splitlines():
+                if not (len(raw_line) >= 2 and raw_line[0] == "+" and raw_line[1] != "+"):
                     continue
-                line = line[1:]
+                line = raw_line[1:]
                 if not in_card and "<!-- AGATE_CARD_START -->" in line:
                     in_card = True
                     continue
@@ -305,22 +300,21 @@ def main():
                         in_card = False
                     continue
                 diff_added.append(line)
-            if any(re.match(r"^\s*-?\s*\[PROD_TOUCHED\]", l) for l in diff_added):
+            if any(re.match(r"^\s*-?\s*\[PROD_TOUCHED\]", ln) for ln in diff_added):
                 sys.stderr.write(
-                    "GATE: [PROD_TOUCHED] 检测到生产环境接触（{}），commit 中止\n".format(task_id))
+                    f"GATE: [PROD_TOUCHED] 检测到生产环境接触（{task_id}），commit 中止\n")
                 sys.exit(1)
-            if any(re.match(r"^\s*-?\s*\[PROD_TOUCHED\]\s*$", l) for l in diff_added):
+            if any(re.match(r"^\s*-?\s*\[PROD_TOUCHED\]\s*$", ln) for ln in diff_added):
                 sys.stderr.write(
-                    "GATE: 不合规的 PROD_TOUCHED 标记格式（{}），须用行首 [PROD_TOUCHED] 或 [PROD_NOT_TOUCHED] 声明\n".format(task_id))
+                    f"GATE: 不合规的 PROD_TOUCHED 标记格式（{task_id}），须用行首 [PROD_TOUCHED] 或 [PROD_NOT_TOUCHED] 声明\n")
                 sys.exit(1)
 
         # 2g.2 frontmatter schema 校验（P2-design.md §3.1.3，BDD-8 挂载点）
         # 与 2a 同机制：扫描本任务暂存的 P1/P2/P6/P7 产出文件，逐个跑 check-frontmatter
         if os.path.isfile(os.path.join(SCRIPT_DIR, "check-frontmatter.py")):
             for fm_name in ("P1-requirements.md", "P2-design.md", "P6-acceptance.md", "P7-consistency.md"):
-                if (task_rel + "/" + fm_name) in _staged_name_only():
-                    if _run_script_rc("check-frontmatter.py", [os.path.join(task_dir, fm_name)]) != 0:
-                        sys.exit(1)
+                if (task_rel + "/" + fm_name) in _staged_name_only() and _run_script_rc("check-frontmatter.py", [os.path.join(task_dir, fm_name)]) != 0:
+                    sys.exit(1)
 
         # 2h. P6 格式自动归一化（①）——verifier 产出后、gate 前
         if phase == "P6" and os.path.isfile(os.path.join(task_dir, "P6-acceptance.md")):
@@ -337,19 +331,16 @@ def main():
         write_gate_result(phase, task_id, gate_exit, gate_output)
 
         # 2i. P6 客观行为审计（P2.1/P2.10）
-        if gate_exit != 1:
-            if _run_script_rc("check-p6-provenance.py", [task_dir]) == 1:
-                sys.exit(1)
+        if gate_exit != 1 and _run_script_rc("check-p6-provenance.py", [task_dir]) == 1:
+            sys.exit(1)
 
         # 2j. 裁剪条件检查（P2.7-P2.9）
-        if gate_exit != 1:
-            if _run_script_rc("check-pruning.py", [task_dir]) == 1:
-                sys.exit(1)
+        if gate_exit != 1 and _run_script_rc("check-pruning.py", [task_dir]) == 1:
+            sys.exit(1)
 
         # 2k. SCOPE+ 追踪检查（P2.11）
-        if gate_exit != 1:
-            if _run_script_rc("check-scope-resolved.py", [task_dir]) == 1:
-                sys.exit(1)
+        if gate_exit != 1 and _run_script_rc("check-scope-resolved.py", [task_dir]) == 1:
+            sys.exit(1)
 
         # 2p. dispatch-context 卡片 hash 校验（防漂移：嵌入卡片是当前版本）
         # 所有 P1-P8 阶段统一强制 dispatch-context 存在
@@ -369,12 +360,11 @@ def main():
                         embedded_hash = hashlib.sha256(embedded.encode("utf-8")).hexdigest()
                         if embedded_hash != expected_hash:
                             sys.stderr.write(
-                                "GATE: {} 卡片内容与 CLI 输出不一致（hash mismatch）\n".format(
-                                    os.path.basename(dc_file)))
-                            sys.stderr.write("      期望 sha256: {}\n".format(expected_hash))
-                            sys.stderr.write("      实际 sha256: {}\n".format(embedded_hash))
+                                f"GATE: {os.path.basename(dc_file)} 卡片内容与 CLI 输出不一致（hash mismatch）\n")
+                            sys.stderr.write(f"      期望 sha256: {expected_hash}\n")
+                            sys.stderr.write(f"      实际 sha256: {embedded_hash}\n")
                             sys.stderr.write(
-                                "      提示：重新调 agate-next-card.py {} 复制到 dispatch-context 文件\n".format(phase))
+                                f"      提示：重新调 agate-next-card.py {phase} 复制到 dispatch-context 文件\n")
                             sys.exit(1)
             else:
                 # 仅当暂存了该阶段的产出文件时才强制要求 dispatch-context
@@ -382,25 +372,24 @@ def main():
                 staged_in_task = [f for f in _staged_name_only() if f.startswith(prefix)]
                 has_output = False
                 phase_output = _PHASE_OUTPUT.get(phase)
-                if phase_output:
-                    if any(re.search(phase_output, f) for f in staged_in_task):
-                        has_output = True
+                if phase_output and any(re.search(phase_output, f) for f in staged_in_task):
+                    has_output = True
                 phase_output_dir = _PHASE_OUTPUT_DIR.get(phase)
                 if phase_output_dir and os.path.isdir(os.path.join(task_dir, phase_output_dir)):
                     has_output = True
                 if has_output:
                     sys.stderr.write(
-                        "GATE: subagent 派发阶段产出 commit 需提供 {}-dispatch-context-{{role}}.md（至少一个，当前阶段卡片嵌入）\n".format(phase))
+                        f"GATE: subagent 派发阶段产出 commit 需提供 {phase}-dispatch-context-{{role}}.md（至少一个，当前阶段卡片嵌入）\n")
                     sys.stderr.write(
-                        "      提示：调 agate-next-card.py {} 嵌入 dispatch-context 模板\n".format(phase))
+                        f"      提示：调 agate-next-card.py {phase} 嵌入 dispatch-context 模板\n")
                     sys.exit(1)
                 # P4: 用代码文件判断
                 if phase == "P4" and any(
                         not _NON_MD_YAML_RE.search(f) for f in staged_in_task):
                     sys.stderr.write(
-                        "GATE: subagent 派发阶段产出 commit 需提供 {}-dispatch-context-{{role}}.md（至少一个，当前阶段卡片嵌入）\n".format(phase))
+                        f"GATE: subagent 派发阶段产出 commit 需提供 {phase}-dispatch-context-{{role}}.md（至少一个，当前阶段卡片嵌入）\n")
                     sys.stderr.write(
-                        "      提示：调 agate-next-card.py {} 嵌入 dispatch-context 模板\n".format(phase))
+                        f"      提示：调 agate-next-card.py {phase} 嵌入 dispatch-context 模板\n")
                     sys.exit(1)
 
         # 2l. 复盘异常触发（P2.12）——只提醒不中止（sh 2>/dev/null || true）
@@ -408,10 +397,9 @@ def main():
             "check-retrospective.py", [task_dir, state_file], suppress_stderr=True)
 
         # 2m. CHANGELOG 检查（P1.6）——仅 P8 phase 检查，其他阶段不触发
-        if phase == "P8":
-            if _run_script_rc("check-changelog.py", [task_id], suppress_stderr=True) != 0:
-                sys.stderr.write(
-                    "GATE CHANGELOG: 警告 — [Unreleased] 未记录 {}\n".format(task_id))
+        if phase == "P8" and _run_script_rc("check-changelog.py", [task_id], suppress_stderr=True) != 0:
+            sys.stderr.write(
+                f"GATE CHANGELOG: 警告 — [Unreleased] 未记录 {task_id}\n")
 
         # 2n. P6 证据格式检查（P1.7）——exit 1 拦截 / exit 2 仅提示
         if phase in ("P6", "P7"):
@@ -430,19 +418,18 @@ def main():
                 f for f in _staged_name_only()
                 if f.startswith(prefix) and _P_OUTPUT_RE.search(f)
             ]
-            if staged_output_in_task:
-                if not glob.glob(os.path.join(task_dir, phase + "-dispatch-context-*.md")):
-                    # Check if old format exists in HEAD (transitional)
-                    has_dc_in_head = False
-                    rc_ls, ls_out = run_git(["ls-tree", "HEAD", task_rel + "/"])
-                    if rc_ls == 0:
-                        has_dc_in_head = any(
-                            re.search(phase + r"-dispatch-context-.*\.md$", line)
-                            for line in ls_out.splitlines()
-                        )
-                    if not has_dc_in_head:
+            if staged_output_in_task and not glob.glob(os.path.join(task_dir, phase + "-dispatch-context-*.md")):
+                # Check if old format exists in HEAD (transitional)
+                has_dc_in_head = False
+                rc_ls, ls_out = run_git(["ls-tree", "HEAD", task_rel + "/"])
+                if rc_ls == 0:
+                    has_dc_in_head = any(
+                        re.search(phase + r"-dispatch-context-.*\.md$", line)
+                        for line in ls_out.splitlines()
+                    )
+                if not has_dc_in_head:
                         sys.stderr.write(
-                            "GATE WARNING: {} 产出已暂存但 {}-dispatch-context-*.md 不存在——是否忘记先写 dispatch-context？\n".format(phase, phase))
+                            f"GATE WARNING: {phase} 产出已暂存但 {phase}-dispatch-context-*.md 不存在——是否忘记先写 dispatch-context？\n")
 
         # 2n.2 non-phase code staging WARNING/BLOCK (E3, P6 self-authored gate 区分证据/源码)
         all_nonmd = [f for f in _staged_name_only() if not _NON_MD_YAML_RE.search(f)]
@@ -462,17 +449,17 @@ def main():
                 sys.exit(1)
             else:
                 sys.stderr.write(
-                    "GATE WARNING: phase={} 但暂存了代码文件——主 Agent 是否在非实现阶段直接改代码？\n".format(phase))
+                    f"GATE WARNING: phase={phase} 但暂存了代码文件——主 Agent 是否在非实现阶段直接改代码？\n")
 
         # 2o. gate 结果处理
         if gate_exit == 0:
-            sys.stderr.write("GATE {} ({}): 通过\n".format(phase, task_id))
+            sys.stderr.write(f"GATE {phase} ({task_id}): 通过\n")
         elif gate_exit == 1:
-            sys.stderr.write("GATE {} ({}): 未通过\n".format(phase, task_id))
+            sys.stderr.write(f"GATE {phase} ({task_id}): 未通过\n")
             sys.stderr.write(gate_output + "\n")
             sys.exit(1)
         elif gate_exit == 2:
-            sys.stderr.write("GATE {} ({}): 需主 Agent 手动判断\n".format(phase, task_id))
+            sys.stderr.write(f"GATE {phase} ({task_id}): 需主 Agent 手动判断\n")
             sys.stderr.write(gate_output + "\n")
 
     # 3. 扫描暂存的 P{n}-*.md 产出文件（无 .state.yaml 变更的任务也检查一致性）
@@ -516,8 +503,7 @@ def main():
                     and int(out_num) < int(phase_num) and staged_file in staged_added_all:
                 continue
             sys.stderr.write(
-                "GATE WARNING: 暂存了 {} 产出但 phase={}（{}）——请确认是否需要更新 phase\n".format(
-                    out_phase, task_phase, os.path.basename(task_dir_rel)))
+                f"GATE WARNING: 暂存了 {out_phase} 产出但 phase={task_phase}（{os.path.basename(task_dir_rel)}）——请确认是否需要更新 phase\n")
 
     sys.exit(0)
 

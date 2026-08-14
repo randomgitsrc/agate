@@ -34,17 +34,17 @@ def main():
 
     outputs = _OUTPUTS.get(phase, [])
     if not outputs:
-        print("GATE ARCHIVE: {} 无需归档（非 self-authored 产出阶段）".format(phase))
+        print(f"GATE ARCHIVE: {phase} 无需归档（非 self-authored 产出阶段）")
         sys.exit(0)
 
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    archive_dir = os.path.join(task_dir, ".archived", "{}-{}".format(ts, phase))
+    archive_dir = os.path.join(task_dir, ".archived", f"{ts}-{phase}")
     os.makedirs(archive_dir, exist_ok=True)
 
     # 归档前先把关键失败信息摘要写入一份不会被归档的 breadcrumb 文件
     breadcrumb = os.path.join(task_dir, ".retreat-history.md")
     with open(breadcrumb, "a", encoding="utf-8") as f:
-        f.write("\n## {} 归档 {}\n\n归档位置：`{}`\n".format(ts, phase, archive_dir))
+        f.write(f"\n## {ts} 归档 {phase}\n\n归档位置：`{archive_dir}`\n")
         if phase == "P6":
             p6 = os.path.join(task_dir, "P6-acceptance.md")
             if os.path.isfile(p6):
@@ -69,8 +69,7 @@ def main():
         shutil.move(evidence, os.path.join(archive_dir, "P6-evidence"))
         moved += 1
 
-    print("GATE ARCHIVE: {} 产出已归档至 {}（{} 项），失败摘要已写入 {}".format(
-        phase, archive_dir, moved, breadcrumb))
+    print(f"GATE ARCHIVE: {phase} 产出已归档至 {archive_dir}（{moved} 项），失败摘要已写入 {breadcrumb}")
 
 
 if __name__ == "__main__":

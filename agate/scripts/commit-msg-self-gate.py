@@ -14,7 +14,6 @@ CLI 契约：`commit-msg-self-gate.py COMMIT_MSG_FILE`（缺参 → 用法错误
 Python 3.8+（无 match / str.removeprefix）；所有文本读写显式 encoding="utf-8"。
 """
 
-import os
 import re
 import subprocess
 import sys
@@ -28,7 +27,7 @@ except (ImportError, SystemExit):
     def run_git(args, cwd=None):
         try:
             proc = subprocess.run(
-                ["git"] + args, capture_output=True, text=True,
+                ["git", *args], capture_output=True, text=True,
                 encoding="utf-8", errors="replace", cwd=cwd,
             )
             return proc.returncode, proc.stdout
