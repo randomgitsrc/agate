@@ -22,12 +22,7 @@ load ../helpers/load.bash
 }
 
 @test "bdd-25 修复后协议一致性检查 0 ERROR（worktree 自己的脚本，Q2）" {
-    local p
-    p=$(py_path "$AGATE_ROOT/scripts/check-protocol-consistency.py")
-    echo "B25-DIAG: PYTHON=$PYTHON py_path=$p raw=$AGATE_ROOT/scripts/check-protocol-consistency.py cygpath=$(command -v cygpath || echo NONE)" >&2
-    run $PYTHON "$p"
-    echo "B25-STATUS: $status" >&2
-    printf '%s\n' "$output" | grep -iE 'error|FAIL|不存在|无法' | head -12 >&2
+    run $PYTHON "$(py_path "$AGATE_ROOT/scripts/check-protocol-consistency.py")"
     [ "$status" -eq 0 ]
 }
 
