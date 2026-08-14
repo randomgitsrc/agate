@@ -72,6 +72,8 @@ EOF
     export AGATE_TDD_RED_SCRIPT="$mock"
     run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"
     output=$(printf '%s' "$output" | tr -d '\r')
+    echo "B595-DIAG: PYTHON=$PYTHON BACKSTOP_PY=$BACKSTOP_PY status=$status" >&2
+    printf 'B595-OUT: %s\n' "$output" | cat -v | head -8 >&2
     [[ "$output" == *"真红灯"* ]]
 }
 
