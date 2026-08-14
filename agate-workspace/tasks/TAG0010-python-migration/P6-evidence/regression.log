@@ -1,0 +1,31 @@
+ok 704 IT_P6_CODE.5 phase=P2，暂存源码文件 → WARNING 而非硬拦截（回归，现有行为不变）
+ok 705 IT_RETREAT.1 agate-retreat-to.py 在装了真实 hook 的仓库里，每一步都真的过 hook 校验
+ok 706 IT_RETREAT.2 中途一步的 commit 被 hook 拒绝时，agate-retreat-to.py 明确报告停在哪步且不继续
+ok 707 IT_PT_T6.1 P8 dispatch-context 含 AGATE_CARD 注入块（[PROD_TOUCHED] 说明文本）→ 不误拦
+ok 708 IT_PT_T6.2 任务产出文件含句中 [PROD_TOUCHED]（非 AGATE_CARD 块内）→ 不拦截（T090 修复）
+ok 709 IT_PT_T6.3 任务产出文件含行首 [PROD_TOUCHED]（步骤1）→ 拦截（回归）
+ok 710 IT_PT_T6.4 任务产出文件含 [PROD_NOT_TOUCHED]（负向声明）→ 不拦截（回归）
+ok 711 IT_CHANGELOG_P54: P4 commit without CHANGELOG → no CHANGELOG WARNING
+ok 712 IT_CHANGELOG_P54b: P8 commit without CHANGELOG → CHANGELOG WARNING
+ok 713 IT_GATE_REAL.1: hook runs check-gate.sh and writes real .gate-result.json
+ok 714 HOOK_EVIDENCE_WARNING: P6 截图触发低方差 WARNING → commit 不应被拦截（T086 修复）
+ok 715 pre-commit hook: AGATE_ROOT 未设时自定位到脚本自身本体（worktree 支持，T086）
+ok 716 bdd-1 pre-commit-gate 空格路径任务 gate 实际不通过时拦截（S1 fail-open 修复）
+ok 717 bdd-2 pre-commit-gate 多个 .state.yaml 含空格路径逐个处理（不因切词丢失文件）
+ok 718 bdd-3 pre-commit-gate 空格目录 PROCESSED_DIRS 不拆段 gate 正常执行（输出含 GATE P1）
+ok 719 bdd-4 pre-commit-gate 无空格路径单任务 gate 行为不变（Linux 回归）
+ok 720 bdd-17 pre-commit-gate 任务目录含 [ 元字符时 PROD_TOUCHED 检测不静默绕过（M9）
+ok 721 bdd-19 pre-commit-gate 复制模式 hook 经 .agate-root 标记正确解析 AGATE_ROOT（其他-b）
+ok 722 pre-push hook: 新分支首次推送提示跳过检测
+ok 723 pre-push hook: ln 复制模式下安装输出升级提醒且不要求软链（Windows 兼容，BDD-18/19）
+ok 724 pre-push hook: 大改动触发提示
+ok 725 pre-push hook: 无 agate/*.md 改动时零匹配 → 不报整数表达式错误（T086 回归）
+ok 726 SG.1 角色文件 protocol-alignment-review.md 存在且含必需 frontmatter
+ok 727 SG.2 角色文件含 A1-A6 审查清单
+ok 728 SG.3 角色文件含 NEEDS_HUMAN_REVIEW 闭环规则 + HUMAN_CONFIRMED 标记
+ok 729 SG.4 SELF-GATE.md 含派发模板
+ok 730 SG.5 SELF-GATE.md 含检查清单
+ok 731 SG.6 CHECK 9 锚点表覆盖全部 11 个 gate 脚本
+ok 732 SG.7 commit-msg-self-gate.sh 存在且可执行
+ok 733 SG.8 SELF-GATE.md 含递归终止条件
+EXIT_CODE: 0

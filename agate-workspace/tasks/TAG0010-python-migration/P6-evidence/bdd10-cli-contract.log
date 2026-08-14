@@ -1,0 +1,15 @@
+# BDD-10 直接 CLI 契约验证（2026-08-15）
+## AGATE_WORKSPACE=/AGATE_TASKS_DIR= 两行输出（agate_common.py 执行模式）
+AGATE_WORKSPACE=/tmp/opencode/cli-contract-test/agate-workspace
+AGATE_TASKS_DIR=/tmp/opencode/cli-contract-test/agate-workspace/tasks
+exit=0
+## valid .state.yaml -> exit 0
+exit=0
+## invalid .state.yaml -> exit 1 + GATE STATE-YAML 前缀
+GATE STATE-YAML: .state.yaml 格式错误：
+  - YAML 解析错误: expected a single document in the stream
+  -   in "bad.yaml", line 2, column 1
+  - but found another document
+  -   in "bad.yaml", line 3, column 1
+exit=1
+EXIT_CODE: 0

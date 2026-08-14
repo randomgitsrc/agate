@@ -1,0 +1,4 @@
+1..2
+ok 1 bdd-5 全部 agate/scripts/*.py 文本 open()/read_text() 带 encoding=utf-8（Image.open 与二进制除外，S3）
+ok 2 bdd-8 agate-state-get.py Linux 纯 ASCII .state.yaml 读取行为不变（S3 回归）
+EXIT_CODE: 0

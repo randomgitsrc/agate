@@ -1,0 +1,5 @@
+1..3
+ok 1 bdd-13 detect_python 优先 python3，PYTHON 已导出且可执行（BDD-13）
+ok 2 bdd-15 PATH 仅含 python 无 python3 时 detect_python 回退 python（BDD-15/26）
+ok 3 bdd-17 probe_python 探测 python3→python 回退 + 失败返回空（fail-closed 阻断，BDD-17/26）
+EXIT_CODE: 0

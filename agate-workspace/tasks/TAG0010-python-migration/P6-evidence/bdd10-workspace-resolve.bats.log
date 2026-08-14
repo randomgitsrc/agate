@@ -1,0 +1,12 @@
+1..10
+ok 1 WR.1 [BDD-2] 默认工作区位置为项目内 agate-workspace/
+ok 2 WR.2 [BDD-4] 无 .agate.env 时不报错、走默认位置
+ok 3 WR.3 [BDD-3] .agate.env 将工作区指向项目外绝对路径
+ok 4 WR.4 [BDD-3] .agate.env 相对路径相对项目根解析
+ok 5 WR.5 [BDD-5] 工作区路径含空格仍正常解析
+ok 6 WR.6 [BDD-13] 环境变量 AGATE_TASKS_DIR 作为二级解析源（向后兼容）
+ok 7 WR.7 [BDD-13] .agate.env 显式配置优先于 AGATE_TASKS_DIR 环境变量
+ok 8 WR.8 [BDD-11] orchestrator 从工作区内路径读取 project.md（解析输出锚定）
+ok 9 WR.9 [BDD-12] orchestrator 从工作区 tasks/ 读取任务看板（解析输出锚定）
+ok 10 bdd-18 agate_common.py .agate.env 尾部 \r 不污染 AGATE_WORKSPACE 解析（其他-a）
+EXIT_CODE: 0
