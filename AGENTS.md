@@ -46,6 +46,16 @@
 - Bats ≥ 1.2.0（需要 `BATS_TEST_TMPDIR`）
 - Python 3.8+ + `pyyaml` + `Pillow`（`pip install pyyaml Pillow`，Pillow 可选）— 检查逻辑抽离为独立 `.py` 工具（`agate/scripts/agate-*.py`），由 `.sh` 薄壳调用。其中 state/vision 类工具（agate-state-get / agate-retreat-state / agate-state-yaml-check / agate-vision-blocker）依赖 pyyaml；agate-image-check 依赖 Pillow（可选，用于像素方差/average hash 检测）
 - shellcheck
+- ruff（Python 化后替代 shellcheck 对 py 的检查——TAG0010 起生效；运行 agate 不需要，开发 agate 需要）
+
+## 开发环境（建议做法，非硬性要求）
+
+> 运行 agate 只需系统 python3 + pyyaml（见上方「依赖」）。本节讲**开发 agate 本体**（改协议/脚本）时的环境建议。
+
+- **开发 agate 建议用专用虚拟环境**（`python3 -m venv` 或 uv/conda），装 pyyaml + ruff（Python 化后替代 shellcheck 对 py 的检查）。
+- 依赖极简（pyyaml + ruff），任何隔离方式都行——不强制特定工具或路径。
+- **运行 agate 不需要这个环境**——它只服务"开发 agate 本体"。
+- worktree 开发时（同一仓库多 checkout），各 checkout 共用同一开发环境即可（代码一致，环境也该一致）。
 
 ## 开发命令
 
