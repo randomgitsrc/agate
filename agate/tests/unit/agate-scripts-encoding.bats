@@ -16,7 +16,7 @@ for f in sorted(glob.glob('$AGATE_SCRIPTS/*.py')):
         s = line.strip()
         if s.startswith('#') or s.startswith('\"\"\"') or s.startswith(\"'''\"):
             continue
-        if re.search(r'(?<!Image\.)\bopen\(', line) and 'encoding=' not in line:
+        if re.search(r'(?<!Image\.)\bopen\(', line) and 'encoding=' not in line and '"rb"' not in line and '"wb"' not in line:
             violations.append(f'{f}:{i}')
         if 'read_text(' in line and 'encoding=' not in line:
             violations.append(f'{f}:{i}')

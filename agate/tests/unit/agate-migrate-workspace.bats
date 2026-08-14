@@ -16,7 +16,7 @@ load ../helpers/load.bash
     echo "## 看板" > "$repo/docs/tasks/active-tasks.md"
     echo "# P1" > "$repo/docs/tasks/T001/P1-requirements.md"
     git_commit "$repo" "init"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ -f "$repo/agate-workspace/tasks/active-tasks.md" ]
     [ -f "$repo/agate-workspace/tasks/T001/P1-requirements.md" ]
@@ -38,7 +38,7 @@ EOF
     echo "# P2" > "$repo/docs/tasks/T001/P2-design.md"
     echo "# P7" > "$repo/docs/tasks/T001/P7-consistency.md"
     git_commit "$repo" "init"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ -f "$repo/agate-workspace/tasks/T001/.state.yaml" ]
     [ -f "$repo/agate-workspace/tasks/T001/P1-requirements.md" ]
@@ -53,7 +53,7 @@ EOF
     mkdir -p "$repo/docs/tasks/T001"
     echo "unique-content-for-history" > "$repo/docs/tasks/T001/P1-requirements.md"
     git_commit "$repo" "orig task file"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     local history
     history=$(git -C "$repo" log --follow --oneline -- agate-workspace/tasks/T001/P1-requirements.md 2>/dev/null)
@@ -66,11 +66,11 @@ EOF
     mkdir -p "$repo/docs/tasks/T001"
     echo "# P1" > "$repo/docs/tasks/T001/P1-requirements.md"
     git_commit "$repo" "init"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     local before
     before=$(find "$repo/agate-workspace/tasks" -type f | sort)
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ "$(find "$repo/agate-workspace/tasks" -type f | sort)" = "$before" ]
     [ ! -e "$repo/docs/tasks" ]
@@ -82,7 +82,7 @@ EOF
     mkdir -p "$repo/docs/tasks/T001"
     echo "# P1" > "$repo/docs/tasks/T001/P1-requirements.md"
     git_commit "$repo" "init"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ -n "$output" ]
     [[ "$output" == *"迁移"* ]]
@@ -95,12 +95,12 @@ EOF
     echo "# P7" > "$repo/docs/archived/tasks/T009-archive/P7-consistency.md"
     echo "# P8" > "$repo/docs/archived/tasks/T009-archive/P8-release.md"
     git_commit "$repo" "init"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ -f "$repo/agate-workspace/archived/tasks/T009-archive/P7-consistency.md" ]
     [ -f "$repo/agate-workspace/archived/tasks/T009-archive/P8-release.md" ]
     [ ! -e "$repo/docs/archived" ]
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ "$(find "$repo/agate-workspace/archived" -type f | wc -l)" -eq 2 ]
 }
@@ -110,7 +110,7 @@ EOF
     repo=$(git_init)
     echo "readme" > "$repo/README.md"
     git_commit "$repo" "init"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ ! -e "$repo/docs/tasks" ]
     [ ! -d "$repo/agate-workspace/tasks" ]
@@ -123,7 +123,7 @@ EOF
     mkdir -p "$repo/docs/tasks/T001"
     echo "# P1" > "$repo/docs/tasks/T001/P1-requirements.md"
     git_commit "$repo" "init"
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh' --to '$ext_ws'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py' --to '$ext_ws'"
     [ "$status" -eq 0 ]
     [ -f "$ext_ws/tasks/T001/P1-requirements.md" ]
     [[ "$output" == *"WARNING"* ]]
@@ -158,7 +158,7 @@ EOF
     ln -sf "$AGATE_SCRIPTS/pre-commit-gate.sh" "$repo/.git/hooks/pre-commit"
     chmod +x "$AGATE_SCRIPTS/pre-commit-gate.sh"
     # 运行迁移工具：自动 commit 应跳过自身 hook（core.hooksPath=/dev/null）成功完成
-    run bash -c "cd '$repo' && bash '$AGATE_SCRIPTS/agate-migrate-workspace.sh'"
+    run bash -c "cd '$repo' && "$PYTHON" '$AGATE_SCRIPTS/agate-migrate-workspace.py'"
     [ "$status" -eq 0 ]
     [ -f "$repo/agate-workspace/tasks/TAG0001-demo/P1-requirements.md" ]
     # 断言自动 commit 已落盘（BDD-8）：git log 含迁移 commit
