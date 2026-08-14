@@ -56,7 +56,9 @@ load ../helpers/load.bash
 }
 
 @test "bdd-34 shellcheck -S warning agate/scripts/*.sh 0 error（修复不引入 shellcheck 问题）" {
-    run bash -c "${SHELLCHECK:-shellcheck} -S warning '$AGATE_ROOT'/scripts/*.sh 2>&1"
+    local sc
+    sc=$(py_path "$(command -v shellcheck 2>/dev/null || command -v shellcheck.exe 2>/dev/null || echo shellcheck)")
+    run bash -c "cd '$(py_path "$AGATE_ROOT")/scripts' && '$sc' -S warning *.sh 2>&1"
     [ "$status" -eq 0 ]
 }
 
