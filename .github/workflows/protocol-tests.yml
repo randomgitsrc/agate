@@ -35,8 +35,19 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           pip install pyyaml
-      - name: Run Unit Tests
+      - name: Run Unit Tests (Linux, serial)
+        if: runner.os == 'Linux'
         run: bats agate/tests/unit/
+        env:
+          PYTHONIOENCODING: utf-8
+      - name: Run Unit Tests (Windows, parallel)
+        if: runner.os == 'Windows'
+        run: |
+          # TAG0009 优化：Windows runner 上 bats 单文件串行极慢（625 测试 15 分钟，
+          # 主因是大量 git/subprocess 在 Windows 进程启动慢），xargs -P 4 并行各 .bats
+          # 文件（Linux 实测 78s→26s，3 倍加速）。失败聚合到 /tmp/unit-fails.txt。
+          ls agate/tests/unit/*.bats | xargs -P 4 -I{} bash -c 'bats "$1" >/dev/null 2>&1 || echo "FAILED: $1" >> /tmp/unit-fails.txt' _ {}
+          if [ -s /tmp/unit-fails.txt ]; then cat /tmp/unit-fails.txt; exit 1; fi
         env:
           PYTHONIOENCODING: utf-8
       - name: Run Scanner Behavior Tests (check-platform-assumptions.bats)
