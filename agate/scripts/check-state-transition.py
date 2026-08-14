@@ -167,7 +167,7 @@ def main():
                     f"GATE STATE: 回退 P{old_num}->P{new_num}，但 {old_phase} 的自撰产出（{stale_found}）仍在原位\n"
                 )
                 sys.stderr.write(
-                    f"  退回前须先跑：bash agate/scripts/agate-archive-stale-outputs.sh {old_phase} {task_dir}\n"
+                    f"  退回前须先跑：python3 agate/scripts/agate-archive-stale-outputs.py {old_phase} {task_dir}\n"
                 )
                 sys.stderr.write(
                     "  （self-authored gate 产出不能跨重试静默复用，见 LIMITATIONS.md self-authored 分类）\n"

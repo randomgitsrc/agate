@@ -497,7 +497,7 @@ EOF2
     run bash -c "cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' agate-workspace/tasks/T001/.state.yaml"
     [ "$status" -eq 1 ]
     [[ "$output" == *"P6 的自撰产出"* ]]
-    [[ "$output" == *"agate-archive-stale-outputs.sh"* ]]
+    [[ "$output" == *"agate-archive-stale-outputs.py"* ]]
 }
 
 @test "ST_ARCHIVE.2 回退 P6→P5，P6-acceptance.md 已被归档（原位不存在）期望 exit 0" {

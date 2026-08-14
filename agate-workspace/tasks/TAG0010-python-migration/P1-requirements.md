@@ -325,3 +325,12 @@ requires_minimal_validation: true
 - **domains: [backend, cli]**——产品逻辑（backend）+ CLI 工具链（cli）。无 frontend/mcp/security 影响（agate 无 UI；无外部服务面）。
 - **capability_requirements**：见文件头 frontmatter。ruff（available）+ Windows CI（available）均不阻塞；`requires_minimal_validation: true`（Windows 真机行为本地无法验证，P2 architect 须产出 `minimal_validation:` 块）。
 - **P1 基线保护**：本文件为需求基线，后续阶段不直接修改；确需变更走 `[BASELINE_CHANGE: 理由]` + 主 Agent 批准流程。
+
+## 7. SCOPE+ 处理（SCOPE_RESOLVED 闭环登记）
+
+> 活基线增补（P7 一致性审查 BLOCKER-1 处置）：登记 P4-implementation.md 声明的 4 条 [SCOPE+] 处置结果，供 check-scope-resolved.py 追踪。每条行首 [SCOPE_RESOLVED]，与本文件 §2 隐含需求一致。
+
+[SCOPE_RESOLVED: P4 L183——agate/tests/README.md 覆盖度表格及 R2.4 已知风险段对 3 个已 py 化脚本（check-p6-format / agate-archive-stale-outputs / agate-extract-context）的 .sh 名引用已同步为 .py（P7 BLOCKER-1 修复，2026-08-15）]
+[SCOPE_RESOLVED: P4 L238——agate/tests/README.md 覆盖度表格对 2 个已 py 化脚本（agate-next-card / agate-render-dispatch-prompt）的 .sh 名引用已同步为 .py（同上）]
+[SCOPE_RESOLVED: P4 L394——unit/check-state-transition.bats 的 setup() python3 shim（TAG0009 BDD-16/17）有意保留：py 版下已无功能作用，供后续清理；已记录于 P4，无需变更]
+[SCOPE_RESOLVED: P4 L630——unit/check-tdd-red.bats 的 setup() python3 shim 有意保留：py 版下已无功能作用，供后续清理；已记录于 P4，无需变更]

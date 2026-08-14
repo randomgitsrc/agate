@@ -27,20 +27,20 @@ bash agate/tests/scripts/count-tests.sh
 
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
-| check-pruning.sh | unit/check-pruning.bats | 29 |
-| check-gate.sh | unit/check-gate.bats | 124 |
-| agate-next-card.sh | unit/agate-next-card.bats | 22 |
-| agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 20 |
-| check-p6-evidence.sh | unit/check-p6-evidence.bats | 30 |
-| check-p6-format.sh | unit/check-p6-format.bats | 16 |
-| check-p6-provenance.sh | unit/check-p6-provenance.bats | 36 |
-| check-scope-resolved.sh | unit/check-scope-resolved.bats | 10 |
-| check-frontmatter.sh | unit/check-frontmatter.bats | 14 |
-| check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
-| check-state-transition.sh | unit/check-state-transition.bats | 30 |
-| check-changelog.sh | unit/check-changelog.bats | 8 |
-| check-retrospective.sh | unit/check-retrospective.bats | 10 |
-| check-tdd-red.sh | unit/check-tdd-red.bats | 43 |
+| check-pruning.py | unit/check-pruning.bats | 29 |
+| check-gate.py | unit/check-gate.bats | 124 |
+| agate-next-card.py | unit/agate-next-card.bats | 22 |
+| agate-render-dispatch-prompt.py | unit/agate-render-dispatch-prompt.bats | 20 |
+| check-p6-evidence.py | unit/check-p6-evidence.bats | 30 |
+| check-p6-format.py | unit/check-p6-format.bats | 16 |
+| check-p6-provenance.py | unit/check-p6-provenance.bats | 36 |
+| check-scope-resolved.py | unit/check-scope-resolved.bats | 10 |
+| check-frontmatter.py | unit/check-frontmatter.bats | 14 |
+| check-state-yaml.py | unit/check-state-yaml.bats | 9 |
+| check-state-transition.py | unit/check-state-transition.bats | 30 |
+| check-changelog.py | unit/check-changelog.bats | 8 |
+| check-retrospective.py | unit/check-retrospective.bats | 10 |
+| check-tdd-red.py | unit/check-tdd-red.bats | 43 |
 | formatters | unit/check-tdd-red-formatter.bats | 13 |
 | ci-gate-backstop.py | unit/ci-gate-backstop.bats | 11 |
 | agate-json-get.py | unit/agate-json-get.bats | 8 |
@@ -56,10 +56,10 @@ bash agate/tests/scripts/count-tests.sh
 | agate-image-check.py | unit/agate-image-check.bats | 4 |
 | agate-gate-missing-cmds.py | unit/agate-gate-missing-cmds.bats | 2 |
 | agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 3 |
-| agate-extract-context.sh | unit/agate-extract-context.bats | 16 |
-| install-hook.sh | unit/install-hook.bats | 6 |
+| agate-extract-context.py | unit/agate-extract-context.bats | 16 |
+| install-hook.py | unit/install-hook.bats | 6 |
 | 测试 helper（PYTHON 探测 + shim）| unit/helpers-python.bats | 3 |
-| check-platform-assumptions.sh | scripts/check-platform-assumptions.bats | 14 |
+| check-platform-assumptions.py | scripts/check-platform-assumptions.bats | 14 |
 | Windows 冒烟选取器 | `check-windows-smoke.bats`（tests/scripts/ 下） | 7 |
 | 回归 (R1-R5) | regression/ | 17 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 48 |
@@ -93,7 +93,7 @@ GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
 | 编号 | 风险 | 兜底 | 状态 |
 |------|------|------|------|
 | R2.3 | ~~DESIGN_GAP 在 P4 但 architect 忘记转抄 P7 → 静默放过~~ | P4/P7 交叉核对 | 已关闭（v0.6 hardening R2.3） |
-| R2.4 | `agate-archive-stale-outputs.bats` 的 `ARCH.4`（同一任务对 P6 归档两次）偶发因归档目录名用秒级时间戳（`agate-archive-stale-outputs.sh` 的 `TS=$(date +%Y%m%d-%H%M%S)`）而在快速连续执行/系统负载较高时撞名，导致该用例单独失败 | 隔离单跑必过（非逻辑错误，纯计时窗口问题）；全量重跑一次可确认是否为此 flaky，而非真实回归 | 已知不修复——功能正确性不受影响（仅影响测试稳定性），根治需把时间戳粒度提到毫秒级或加序号后缀，评估后判定当前收益不足以覆盖改动风险；v0.35 起即存在，非 v0.40.0 引入，v0.40.0（T001）改造过程中多次复现并确认，见 `docs/reviews/agate-alignment-review-final-2026-08-10.md` |
+| R2.4 | `agate-archive-stale-outputs.bats` 的 `ARCH.4`（同一任务对 P6 归档两次）偶发因归档目录名用秒级时间戳（`agate-archive-stale-outputs.py` 的时间戳）而在快速连续执行/系统负载较高时撞名，导致该用例单独失败 | 隔离单跑必过（非逻辑错误，纯计时窗口问题）；全量重跑一次可确认是否为此 flaky，而非真实回归 | 已知不修复——功能正确性不受影响（仅影响测试稳定性），根治需把时间戳粒度提到毫秒级或加序号后缀，评估后判定当前收益不足以覆盖改动风险；v0.35 起即存在，非 v0.40.0 引入，v0.40.0（T001）改造过程中多次复现并确认，见 `docs/reviews/agate-alignment-review-final-2026-08-10.md` |
 
 ## 目录
 
