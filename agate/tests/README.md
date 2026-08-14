@@ -60,6 +60,7 @@ bash agate/tests/scripts/count-tests.sh
 | install-hook.sh | unit/install-hook.bats | 6 |
 | 测试 helper（PYTHON 探测 + shim）| unit/helpers-python.bats | 3 |
 | check-platform-assumptions.sh | scripts/check-platform-assumptions.bats | 14 |
+| Windows 冒烟选取器 | `check-windows-smoke.bats`（tests/scripts/ 下） | 7 |
 | 回归 (R1-R5) | regression/ | 17 |
 | pre-commit-hook | integration/pre-commit-hook.bats | 48 |
 | pre-push-hook | integration/pre-push-hook.bats | 4 |
@@ -73,7 +74,9 @@ bash agate/tests/scripts/count-tests.sh
 ## CI
 
 GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
-- `bats` job：单元 + 回归 + 集成 + 框架自检
+- `bats` job（ubuntu-latest）：单元 + 回归 + 集成 + 框架自检 + 扫描器行为测试——**功能正确性全量保证**
+- `bats` job（windows-latest）：只跑**技术路线冒烟**（`agate/tests/scripts/check-windows-smoke.sh`，每文件第 1 个用例 + 名称含平台敏感关键词的用例）——Windows 验证"平台敏感机制在 Windows 成立"，不重复验证功能（功能由 Linux 全量保证）
+- `platform-scan` job：平台假设静态扫描（Linux 阻断 / Windows 等价性证明）
 - `shellcheck` job：静态分析
 - `consistency` job：协议一致性检查
 

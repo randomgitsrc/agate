@@ -197,10 +197,11 @@ scope_resolved: ["产品脚本裸 python3 真实 Windows 环境失效（17 文�
 
 ### 3.8 真 Windows CI 最终确认
 
-#### BDD-27: bats job 增加 windows-latest 作最终确认
+#### BDD-27: bats job 增加 windows-latest 作技术路线冒烟
 - Given protocol-tests.yml 的 bats job 当前仅 ubuntu-latest
 - When 本任务修复完成（Linux 全绿）后
 - Then bats job 增加 windows-latest（P2 定精确方式：matrix 或独立 job），push/PR 触发且 0 失败
+  - **设计变更（v0.45.0 合并阶段，主 Agent 确认）**：Windows 分支不跑全量（747 用例 ~11.5 分钟阻塞 CI），改为跑 `agate/tests/scripts/check-windows-smoke.sh` 技术路线冒烟（每文件第 1 个用例 + 平台敏感关键词用例）。功能正确性由 Linux 全量保证，Windows 只验证平台敏感机制成立。详见 P6-acceptance.md §3.8 验收偏差。
 
 #### BDD-28: Linux 全量基线全程保持全绿
 - Given 修改全程

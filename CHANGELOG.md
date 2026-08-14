@@ -23,7 +23,7 @@
 
 - **平台假设静态扫描器 gate**：`agate/scripts/check-platform-assumptions.sh`（bash + POSIX ERE，自身平台无关）扫描 `agate/tests/` 全树的 Unix 假设（R1 硬编码 PATH / R2 命令位置裸 python3 / R3 `[[ -L ]]` symlink / R4 /tmp 逻辑路径 / R5 Unix-only 工具），CI `platform-scan` job（Linux 阻断 + Windows 等价证明）阻断新假设
 - **PYTHON 探测 + harness shim helper**：`agate/tests/helpers/fixtures.bash` 新增 `detect_python` / `PYTHON` 导出（优先 python3 回退 python）+ `create_python_shim_bin`（临时 bin 的 python3 包装器内嵌真解释器绝对路径，测试运行产品脚本时前置 PATH，覆盖 41 例 script-side 裸 python3 失败）+ `SHELLCHECK` 导出（shellcheck|shellcheck.exe 探测）
-- **bats job Windows matrix**：`protocol-tests.yml` bats job 增 `windows-latest`（复用既有 `python` + `PYTHONIOENCODING=utf-8` 模式），Windows CI 作最终确认（本机 Linux 无法本地验证）
+- **bats job Windows matrix（技术路线冒烟）**：`protocol-tests.yml` bats job 增 `windows-latest`，但 Windows 分支**不跑全量**（747 用例 ~11.5 分钟，随测试增长线性上升、阻塞 CI）——改为跑 `agate/tests/scripts/check-windows-smoke.sh`（对每个 .bats 文件选第 1 个用例 + 名称含平台敏感关键词的用例，约 60 文件代表子集，`xargs -P 4` 并行约 2 分钟）。功能正确性由 Linux 全量保证，Windows 只验证每条平台敏感机制（py_path / shim / cp1252 / CRLF / symlink / 盘符路径等）的代表用例跑通——技术路线成立则共享同机制（helper/shim/setup）的同类用例在 Windows 应同样通过
 
 ### 变更
 
@@ -33,7 +33,7 @@
 
 ### 测试
 
-- 全量 733 bats（基线 714 + TAG0005 12 + TAG0009 7）+ consistency 0 ERROR + shellcheck 0 error + 平台假设扫描器零命中
+- 全量 740 bats（基线 714 + TAG0005 12 + TAG0009 7 + WSMOKE 7）+ consistency 0 ERROR + shellcheck 0 error + 平台假设扫描器零命中
 
 ### 文档
 

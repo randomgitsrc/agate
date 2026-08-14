@@ -73,6 +73,7 @@ ui_affected: false
 ### 3.8 真 Windows CI 最终确认（BDD-27~29）
 
 - PASS BDD-27: bats job 增加 windows-latest 作最终确认——protocol-tests.yml bats job 改 matrix `[ubuntu-latest, windows-latest]`，Windows 分支用 bash shell + 下载 bats-core v1.11.0 + `PYTHONIOENCODING: utf-8`，且新增扫描器行为测试步骤(bdd-7-27-ci-workflow.log)
+  - **验收偏差（v0.45.0 合并阶段设计变更，主 Agent 确认）**：Windows bats 从"全量最终确认"调整为"**技术路线冒烟**"——全量 747 用例在 Windows 上 ~11.5 分钟且随测试增长线性上升，阻塞 CI。变更后 `bats` job Windows 分支只跑 `agate/tests/scripts/check-windows-smoke.sh`（每文件第 1 个用例 + 名称含平台敏感关键词的用例，约 60 文件代表子集，`xargs -P 4` 并行约 2 分钟）。**功能正确性由 Linux 全量保证（不降级）**，Windows 只验证每条平台敏感机制（py_path / shim / cp1252 / CRLF / symlink / 盘符路径等）代表用例跑通——技术路线成立则共享同机制（helper/shim/setup）的同类用例在 Windows 应同样通过。代表选取规则机械（规则即定义，无人工维护清单），新增 WSMOKE.1-7 测试锁定脚本行为 + 脚本自身平台无关（扫描器 0 命中）。
 - PASS BDD-28: Linux 全量基线全程全绿——P5 复核：sanity+unit+regression+integration 全量 733 ok / 0 not ok，consistency --strict 0 ERROR、shellcheck 0 error、扫描器零命中，全部 EXIT_CODE: 0(bdd-28-linux-baseline.log, test-output.log)
 - PASS BDD-29: 修改流程先红后绿——git 历史证实 P3 commit 先行交付测试（扫描器 14 用例红灯 exit 127、check-tdd-red 改造断言），P4 commit 才首次创建 `check-platform-assumptions.sh` 实现，符合 AGENTS.md「先加失败测试再改」工作流(bdd-29-tdd-red-green.log)
 
