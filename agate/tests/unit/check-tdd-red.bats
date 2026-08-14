@@ -49,78 +49,78 @@ EOF
     echo "$f"
 }
 
-@test "TD.1 check-tdd-red.sh TEST_RUNNER 指向不存在 + 无 pytest 期望 exit 1" {
-    run env TEST_RUNNER="/nonexistent/fake-pytest" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+@test "TD.1 check-tdd-red.py TEST_RUNNER 指向不存在 + 无 pytest 期望 exit 1" {
+    run env TEST_RUNNER="/nonexistent/fake-pytest" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 1 ]
 }
 
-@test "TD.1b check-tdd-red.sh 无 TEST_RUNNER + 无 pytest（无 PATH 找不到 pytest）期望 exit 3" {
-    # Windows 上 env -u PATH 无法定位 bash（env.exe 按 PATH 找）→ 用绝对 bash 路径，
-    # 保留"无 PATH"语义（脚本内 command -v pytest 仍失败 → exit 3）
-    run env -u PATH "$(command -v bash)" "$AGATE_SCRIPTS/check-tdd-red.sh"
+@test "TD.1b check-tdd-red.py 无 TEST_RUNNER + 无 pytest（无 PATH 找不到 pytest）期望 exit 3" {
+    # Windows 上 env -u PATH 无法定位 bash（env.exe 按 PATH 找）→ 用绝对 $PYTHON 路径，
+    # 保留"无 PATH"语义（脚本内 shutil.which pytest 仍失败 → exit 3）
+    run env -u PATH "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 3 ] || [ "$status" -eq 1 ]
 }
 
-@test "TD.2 check-tdd-red.sh 测试全绿 期望 exit 2（实现先于测试）" {
+@test "TD.2 check-tdd-red.py 测试全绿 期望 exit 2（实现先于测试）" {
     local fake
     fake=$(make_fake_pytest "5 passed" 0)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 2 ]
     [[ "$output" == *"no red-light"* ]]
 }
 
-@test "TD.3 check-tdd-red.sh 经典红灯（assertion failure）期望 exit 0" {
+@test "TD.3 check-tdd-red.py 经典红灯（assertion failure）期望 exit 0" {
     local fake
     fake=$(make_fake_pytest "2 failed, 5 passed" 1)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
 
 # DEPRECATED: pattern-based tests, replaced by TDD.F*
-@test "TD.4 check-tdd-red.sh B 类：项目内 import 失败 期望 exit 0" {
+@test "TD.4 check-tdd-red.py B 类：项目内 import 失败 期望 exit 0" {
     local fake
     fake=$(make_fake_pytest "1 error
 ERROR tests/test_x.py - ImportError: cannot import name 'Yyy' from 'myapp.foo'
 FAILED tests/test_x.py::test_xxx - myapp.foo.Yyy" 2)
-    run env TEST_RUNNER="$fake" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" PROJECT_MODULE="myapp" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
 # DEPRECATED: pattern-based tests, replaced by TDD.F*
-@test "TD.5 check-tdd-red.sh A 类：第三方 import 失败 期望 exit 1" {
+@test "TD.5 check-tdd-red.py A 类：第三方 import 失败 期望 exit 1" {
     local fake
     fake=$(make_fake_pytest "1 error
 ERROR tests/test_x.py - ImportError: No module named 'requests'" 2)
-    run env TEST_RUNNER="$fake" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" PROJECT_MODULE="myapp" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
 # DEPRECATED: pattern-based tests, replaced by TDD.F*
-@test "TD.6 check-tdd-red.sh A 类：SyntaxError 期望 exit 1" {
+@test "TD.6 check-tdd-red.py A 类：SyntaxError 期望 exit 1" {
     local fake
     fake=$(make_fake_pytest "1 error
 ERROR tests/test_x.py - SyntaxError: invalid syntax" 2)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
 # DEPRECATED: pattern-based tests, replaced by TDD.F*
-@test "TD.7 check-tdd-red.sh 混合：1 failed + 1 B 类 error 期望 exit 0" {
+@test "TD.7 check-tdd-red.py 混合：1 failed + 1 B 类 error 期望 exit 0" {
     local fake
     fake=$(make_fake_pytest "1 failed, 1 error
 ERROR tests/test_x.py - ImportError: cannot import name 'Yyy' from 'myapp.foo'
 FAILED tests/test_x.py::test_xxx" 2)
-    run env TEST_RUNNER="$fake" PROJECT_MODULE="myapp" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" PROJECT_MODULE="myapp" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
 # DEPRECATED: pattern-based tests, replaced by TDD.F*
-@test "TD.8 check-tdd-red.sh 无 PROJECT_MODULE + ImportError 期望 exit 0（启发式）" {
+@test "TD.8 check-tdd-red.py 无 PROJECT_MODULE + ImportError 期望 exit 0（启发式）" {
     local fake
     fake=$(make_fake_pytest "1 error
 ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
@@ -128,7 +128,7 @@ ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
     local sentinel="$BATS_TEST_TMPDIR/runner-args-$BATS_TEST_NUMBER"
     local fake
     fake=$(make_args_recording_runner "2 failed, 5 passed" 1 "$sentinel")
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
     run cat "$sentinel"
@@ -139,7 +139,7 @@ ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
 @test "TDD.N2: vitest pure assertion failure → red-light exit 0" {
     local fake
     fake=$(make_fake_pytest "Tests  11 failed | 6 passed" 1)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
@@ -148,7 +148,7 @@ ERROR tests/test_x.py - ImportError: cannot import name 'Z'" 2)
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
 Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
-    run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
@@ -157,7 +157,7 @@ Error: Cannot find module '../src/bar' imported from /tmp/test/foo.test.ts" 1) #
     local fake
     fake=$(make_fake_pytest "Failed Suites 1
 Error: Cannot find module 'requests' imported from /tmp/test/foo.test.ts" 1) # scan-exempt: mock 输出样例文本（非路径假设）
-    run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" PROJECT_MODULE="src/bar" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
 }
 
@@ -172,7 +172,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -187,7 +187,7 @@ gate_commands:
 EOF
     local fake
     fake=$(make_fake_pytest "2 failed, 5 passed" 1)
-    run env TEST_RUNNER="$fake" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -212,7 +212,7 @@ gate_commands:
   P3: "$fake_p3"
   P5: "pytest -q --tb=no"
 EOF
-    run env TEST_RUNNER="$fake_env" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake_env" TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -220,7 +220,7 @@ EOF
 @test "TDD.G4: no TASK_DIR → skip gate_commands read, fall back to TEST_RUNNER" {
     local fake
     fake=$(make_fake_pytest "2 failed, 5 passed" 1)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -235,7 +235,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
@@ -253,7 +253,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
@@ -268,7 +268,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
     [[ "$output" != *"classic red-light"* ]]
@@ -287,7 +287,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
@@ -304,7 +304,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -323,7 +323,7 @@ gate_commands:
   P3_formatter: "$abs_formatter"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -341,7 +341,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER PROJECT_MODULE="requests" TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER PROJECT_MODULE="requests" TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
@@ -359,7 +359,7 @@ gate_commands:
   project_module: "myapp"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
@@ -375,7 +375,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 2 ]
     [[ "$output" == *"no red-light"* ]]
 }
@@ -383,14 +383,14 @@ EOF
 @test "TDD.F7: TEST_RUNNER env var still works (backward compat, exit-code-only)" {
     local fake
     fake=$(make_fake_pytest "2 failed, 5 passed" 1)
-    run env -u TEST_RUNNER_FLAGS -u TEST_FAIL_PATTERN -u TEST_ERROR_PATTERN -u TEST_IMPORT_PATTERN TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER_FLAGS -u TEST_FAIL_PATTERN -u TEST_ERROR_PATTERN -u TEST_IMPORT_PATTERN TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
 
 @test "TDD.F8: no TEST_RUNNER, no gate_commands.P3, no pytest → exit 3" {
-    # Windows 上 env -u PATH 无法定位 bash → 用绝对 bash 路径（TAG0009）
-    run env -u PATH "$(command -v bash)" "$AGATE_SCRIPTS/check-tdd-red.sh"
+    # Windows 上 env -u PATH 无法定位 bash → 用绝对 $PYTHON 路径（TAG0009）
+    run env -u PATH "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 3 ]
 }
 
@@ -413,7 +413,7 @@ gate_commands:
   P3: "$fake"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     run cat "$sentinel"
     [[ "$output" != *"-q"* ]]
@@ -444,7 +444,7 @@ gate_commands:
   P3_js_formatter: "vitest.sh"
   P5: "pytest -q --tb=no"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
@@ -460,7 +460,7 @@ gate_commands:
   P3: "$fake"
   P3_formatter: "pytest.sh"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"断言"*"数据"* ]]
 }
@@ -476,7 +476,7 @@ exit 1
 EOF
     chmod +x "$BATS_TEST_TMPDIR/fake-slow-runner"
     TEST_RUNNER="$BATS_TEST_TMPDIR/fake-slow-runner" AGATE_TDD_TIMEOUT=2 \
-        run bash "$AGATE_SCRIPTS/check-tdd-red.sh" "$task_dir"
+        run "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py" "$task_dir"
     [ "$status" -eq 0 ]
     [[ "$output" == *"超时"* ]]
 }
@@ -568,25 +568,25 @@ EOF
 # ========== TAG0004 RM-AG0002 无 formatter A/B 判定（BDD-30/31） + TPV0090-M4 NameError B 类（BDD-35/36/37） ==========
 # 参照 TDD.F* 系列：gate_commands.P3 + P3_formatter + project_module 的写法。
 
-@test "bdd-30 check-tdd-red.sh 无 formatter + exit 1 + 编译/错误关键词 判 A 类（exit 1，RM-AG0002）" {
+@test "bdd-30 check-tdd-red.py 无 formatter + exit 1 + 编译/错误关键词 判 A 类（exit 1，RM-AG0002）" {
     local fake
     fake=$(make_fake_pytest "Traceback (most recent call last):
 SyntaxError: invalid syntax" 1)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     # 修复前：无 formatter 降级 exit-code-only → 编译失败被误判正确红灯（exit 0）；修复后：A 类 exit 1
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }
 
-@test "bdd-31 check-tdd-red.sh 无 formatter 普通断言失败仍判正确红灯（exit 0，RM-AG0002）" {
+@test "bdd-31 check-tdd-red.py 无 formatter 普通断言失败仍判正确红灯（exit 0，RM-AG0002）" {
     local fake
     fake=$(make_fake_pytest "2 failed, 5 passed" 1)
-    run env TEST_RUNNER="$fake" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env TEST_RUNNER="$fake" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"red-light"* ]]
 }
 
-@test "bdd-35 check-tdd-red.sh formatter 项目模块内 NameError 判 B 类红灯（exit 0，TPV0090-M4）" {
+@test "bdd-35 check-tdd-red.py formatter 项目模块内 NameError 判 B 类红灯（exit 0，TPV0090-M4）" {
     local fake
     fake=$(make_fake_pytest "1 error
 ERROR tests/test_x.py - NameError: name 'compute' is not defined" 2)
@@ -598,13 +598,13 @@ gate_commands:
   P3_formatter: "pytest.sh"
   project_module: "myapp"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     # 修复前：errors>0 一律判 A 类（exit 1）；修复后：项目内 NameError 归 B 类（exit 0）
     [ "$status" -eq 0 ]
     [[ "$output" == *"B-class"* ]]
 }
 
-@test "bdd-36 check-tdd-red.sh globals().get() 规避模式断言失败仍判 B 类（回归，TPV0090-M4）" {
+@test "bdd-36 check-tdd-red.py globals().get() 规避模式断言失败仍判 B 类（回归，TPV0090-M4）" {
     local fake
     fake=$(make_fake_pytest "2 failed, 5 passed
 FAILED tests/test_x.py::test_y - assert 1 == 2" 1)
@@ -616,12 +616,12 @@ gate_commands:
   P3_formatter: "pytest.sh"
   project_module: "myapp"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 0 ]
     [[ "$output" == *"classic red-light"* ]]
 }
 
-@test "bdd-37 check-tdd-red.sh 非未定义符号的真实测试 bug（TypeError）仍判 A 类（防过宽，TPV0090-M4）" {
+@test "bdd-37 check-tdd-red.py 非未定义符号的真实测试 bug（TypeError）仍判 A 类（防过宽，TPV0090-M4）" {
     local fake
     fake=$(make_fake_pytest "1 error
 ERROR tests/test_x.py - TypeError: unsupported operand type(s)" 2)
@@ -633,7 +633,7 @@ gate_commands:
   P3_formatter: "pytest.sh"
   project_module: "myapp"
 EOF
-    run env -u TEST_RUNNER TASK_DIR="$task_dir" bash "$AGATE_SCRIPTS/check-tdd-red.sh"
+    run env -u TEST_RUNNER TASK_DIR="$task_dir" "$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"
     [ "$status" -eq 1 ]
     [[ "$output" == *"A-class"* ]]
 }

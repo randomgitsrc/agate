@@ -561,3 +561,72 @@ implementation_dir: agate/scripts/
 > 1. new py 的 usage 消息脚本名后缀 .sh → .py（"用法: check-p6-provenance.py TASK_DIR"），与 batch 1a/1b/1c/2a/2b/2c/2d 同款先例一致；bats 无 no-arg 用例，无断言依赖。
 > 2. sh 版 `get_risk_level()` 定义但从未被调用（死代码）——未迁移，其余逐条等价。
 > 3. 审计 3 frontmatter pass/fail 非数字时 sh 侧 `$((PASS_FM + FAIL_FM))` 在 `set -e` 下硬失败（exit 1）；py 版显式捕获 ValueError 输出 GATE PROVENANCE 诊断后 exit 1（fail-closed 语义等价，无 bats 覆盖该畸形输入）。
+
+---
+
+# P4 实现记录 — 批次 2e（check-tdd-red py 化）
+
+## implementation_dir
+
+```
+implementation_dir: agate/scripts/
+```
+
+## 本批次改动清单
+
+### 新建 `agate/scripts/check-tdd-red.py`（迁移源 .sh 保留，未改动）
+
+| 新建 | 迁移源 | 依赖 |
+|------|--------|------|
+| `agate/scripts/check-tdd-red.py` | `check-tdd-red.sh`（216 行） | `agate_common.resolve_formatter / run_test_with_formatter`（try/except ImportError 兜底 exit 3）+ `agate-read-gate-commands.py`（env GATE_FILE，sys.executable subprocess） |
+
+- `#!/usr/bin/env python3` shebang；文件读写显式 `encoding="utf-8"`；Python 3.8+（无 match / str.removeprefix）
+- CLI 契约与 sh 版等价：exit 0（真红灯/B 类）/ 1（A 类）/ 2（绿灯）/ 3（无运行器）+ stdout/stderr 消息逐字节一致（已 12 场景手动 sh vs py diff 验证，见下）
+- 测试运行器探测链原样保留：`$TEST_RUNNER` → gate_commands.P3*（P2-design.md）→ which pytest → exit 3；`TEST_RUNNER` 优先于 gate_commands.P3（TDD.G3）；`PROJECT_MODULE` 覆盖 gate_commands.project_module（TDD.F12）；`AGATE_TDD_TIMEOUT` 超时语义（exit 124 → 红灯 exit 0，TDD.TIMEOUT）
+- `$(...)` 剥尾换行 → `json.loads`（agate-read-gate-commands.py stdout 直接 parse，空 JSON `"{}"`/ValueError → 空命令回退）
+- **`run_test_with_formatter` / `resolve_formatter` 直接 import agate_common**（P2 批次 0 公共库，原 sh source gate-result.sh）——不重新实现；formatter 仍是 bash 脚本 → `bash <fmt_path> <exit_code>` subprocess 保留在公共库内
+- `command -v pytest` → `shutil.which("pytest")`（无 PATH 时 None → exit 3，TD.1b/TDD.F8 语义保持）
+- JSON 字段提取不再逐字段子进程调 agate-json-get.py，改为 `json.loads` 内联等价（get / len / count_prefix 语义逐一对应，见偏离点）
+- 无 formatter 的 A/B 判定（RM-AG0002/TPV0090-M4）：exit 1 + raw_output 编译/import 关键词（Traceback|SyntaxError|ImportError|ModuleNotFoundError）→ A 类；import/name_errors 前缀匹配 `project_module` → B 类；syntax/errors>0 → A 类；failed>0 → classic red-light（TDD.F1/F3/F4/F5/F11/F12/bdd-30/31/35/36/37）
+
+### 修改 `agate/tests/unit/check-tdd-red.bats`（调用点 .sh → .py，@test 数 43 不变）
+
+- 37 处 `run env ... bash "$AGATE_SCRIPTS/check-tdd-red.sh"` → `"$PYTHON" "$AGATE_SCRIPTS/check-tdd-red.py"`（fixtures.bash `$PYTHON`，不裸写 python3）；含 `bash -c` 无、`env -u PATH` 两处、`TEST_RUNNER=... AGATE_TDD_TIMEOUT=2 run ... "$task_dir"` 位置参数一处
+- TD.1b/TDD.F8 的 `env -u PATH "$(command -v bash)" ...sh` → `env -u PATH "$PYTHON" ...py`（$PYTHON 为绝对解释器路径，env -u PATH 下仍可定位，语义不变）+ 注释同步（"脚本内 shutil.which pytest 仍失败"）
+- @test 名内脚本名 `.sh` → `.py`（TD.1/1b/2-8、TDD.N1-N4、TDD.G1-G5、TDD.F1-F12、bdd-30/31/35/36/37）
+- `check-tdd-red-formatter.bats`（13 用例）**无改动**：其全部调用点是 formatter 脚本本身（`bash "$FORMATTER_DIR/xxx.sh"`，仍是 sh、非本批次迁移对象），全文无 check-tdd-red 调用点
+
+### 其他引用核查（确认无需改动）
+
+- `unit/check-gate.bats` L454/470：断言的是 `check-gate.sh` P3 分支输出含 "check-tdd-red.sh" 字符串——check-gate.sh 未迁移（批次 3），输出不变 → 不改
+- `unit/ci-gate-backstop.bats` L112-143：通过 `AGATE_TDD_RED_SCRIPT` env 指向 mock bash 脚本测试 `ci-gate-backstop.py` 的 P3 兜底分支——ci-gate-backstop.py 未迁移（批次 4）、默认仍指向 scripts/check-tdd-red.sh（.sh 保留存在），mock 语义不变 → 不改
+- `agate/scripts/ci-gate-backstop.py` L176 默认值 `scripts/check-tdd-red.sh`、`agate-summary.sh` L62 / `agate-summary.py` L33 `_DRIFT_SCRIPTS`、`check-protocol-consistency.py` L572 锚点表：sh 侧调用点/汇总清单，批次 3/4 迁移对象 → 不改
+- `agate/tests/README.md` L43 覆盖度表格（check-tdd-red.sh 43）：留待批次 4 文档引用同步（表 B）处理（batch 1b/1c/2a/2b/2c/2d 同款先例）
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- `py_compile`：check-tdd-red.py 编译通过
+- 手动 sh vs py 输出 diff（12 场景，exit code + stdout/stderr 逐字节一致）：
+  - 绿灯（"5 passed" exit 0）→ exit 2 + "no red-light"；经典红灯（无 formatter "2 failed, 5 passed" exit 1）→ exit 0 + "red-light (unexpected test failure)"
+  - 无 formatter exit 1 + SyntaxError/Traceback → exit 1 + A-class（RM-AG0002 bdd-30）；无 formatter 普通断言 → exit 0（bdd-31）
+  - 运行器不存在（exit 127）→ exit 1 + "test runner failed with exit code 127"（TD.1）
+  - 无 TEST_RUNNER + 无 TASK_DIR + 无 pytest（env -u PATH）→ exit 3 + "no test runner found"（TD.1b/TDD.F8）
+  - 无 formatter ImportError 启发式 → exit 0（TD.4-8 语义）
+  - gate_commands.P3 自动读取（TDD.G1）+ formatter pytest.sh classic red-light（TDD.F1，含 abs 路径 formatter TDD.F11）+ 提示行 stderr 内容逐字节一致
+  - 多栈 P3 + P3_js（pytest.sh + vitest.sh）→ 2 条 classic red-light + exit 0（TDD.F10）
+  - 超时（AGATE_TDD_TIMEOUT=1 + sleep 3）→ exit 0 + 两条"超时"消息（run_test_with_formatter + judge 各一条）（TDD.TIMEOUT）
+  - formatter NameError 项目内 → exit 0 + B-class；TypeError → exit 1 + A-class（bdd-35/37）
+  - gate_commands 读取失败 / P2 无 gate_commands → 回退 TEST_RUNNER / pytest 链（TDD.G2/G4）
+
+## 偏离点
+
+[DEVIATION: check-tdd-red.py 不再 subprocess 调 `agate-json-get.py`（sh 版 judge_result/collect_commands 共 10+ 处 `echo "$json" | python3 agate-json-get.py get/len/index/count_prefix`），改为 `json.loads` 内联等价——get(key, default) → `data.get(key, default)`（default 原样）、len(key) → `len(data.get(key, []))`、count_prefix(module) → `sum(1 for e in ... if e.get("module","").startswith(prefix))`。行为逐场景实测与 sh 一致；batch 2c agate-capture-env-baseline.py 同款先例]
+
+[DEVIATION: check-tdd-red.py 的 `from agate_common import ...` 失败（独立目录缺公共库）→ stderr 提示 + exit 3——sh 版 source gate-result.sh 失败会在 set -e 下 exit 1。语义差异仅在"复制单脚本到独立目录且缺 agate_common.py"场景，bats 无覆盖；check-debt.py（batch 2a）同款处理先例]
+
+> 实现说明（非 DEVIATION）：py 版 judge_result 的 classic red-light 提示行（stderr）与 TDD_CHECK 主消息（stdout）的**顺序**可能因流缓冲与 sh 不同（终端 2>&1 下 stderr 先显示）——bats 的 `$output` 合并两流、断言均为子串判定，顺序无关；两流各自内容逐字节一致。
+
+[SCOPE+]: `unit/check-tdd-red.bats` 的 `setup()` python3 shim（TAG0009 BDD-16/17）在 py 版下已无作用——脚本经 `$PYTHON` 直调 + 内部 `sys.executable`，不再裸调 python3。按最小实现原则保留不动（batch 2b check-state-transition.bats / 2a check-retrospective.bats 同款先例），记录供后续清理]
+
+> 范围说明：批次 2e 派发指引原列 check-tdd-red.bats + check-tdd-red-formatter.bats 两个测试文件，formatter 文件实际无 check-tdd-red 调用点（纯 formatter 直测），故未改动（见上）。
