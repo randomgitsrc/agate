@@ -1,0 +1,395 @@
+# agate/tests/conftest.py — pytest 全局 fixture 体系（TAG0011 批次 0）
+# 替代 tests/helpers/{load,fixtures,git-helper}.bash。
+# 行为等价约定（P2-design.md §3.1 / P3-test-cases.md §5.1）：
+#   * CommandResult.output = stdout + stderr 合并流（等价 bats $output，BLOCKER-1）
+#   * 所有文本 I/O 显式 encoding="utf-8"（BDD-7）
+#   * fixture 内容运行时构造，不写字面命中行（BDD-5）
+
+import base64
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+
+import pytest
+
+
+class CommandResult:
+    """subprocess 运行结果，等价 bats `run` 的 $status/$output/$stderr。
+
+    .output 为 stdout + stderr 合并流（bats $output 语义，P2 BLOCKER-1）。
+    """
+
+    def __init__(self, returncode, stdout, stderr):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+    @property
+    def output(self):
+        return self.stdout + self.stderr
+
+
+DEFAULT_PHASES = ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+
+
+def _resolve_agate_root(start):
+    """load.bash `_resolve_agate_root` 等价：从 start 上溯找最近含 scripts/+assets/ 的目录。"""
+    d = Path(start).resolve()
+    while True:
+        if (d / "scripts").is_dir() and (d / "assets").is_dir():
+            return d
+        parent = d.parent
+        if parent == d:
+            return None
+        d = parent
+
+
+def _write_utf8(path, text):
+    path.write_text(text, encoding="utf-8")
+
+
+def _run_cli_impl(*args, cwd=None, input=None, env=None):
+    """等价 bats `run`：subprocess 封装，返回 CommandResult。
+
+    参数：cwd=（等价 bats `cd`）、input=（等价 stdin 管道）、env=（附加环境变量）。
+    """
+    cmd = [str(a) for a in args]
+    full_env = os.environ.copy()
+    if env:
+        full_env.update(env)
+    proc = subprocess.run(
+        cmd,
+        cwd=str(cwd) if cwd is not None else None,
+        input=input,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=full_env,
+    )
+    return CommandResult(proc.returncode, proc.stdout, proc.stderr)
+
+
+def create_task_dir(
+    base_dir,
+    phases=None,
+    risk_level="medium",
+    with_evidence=False,
+    no_state_yaml=False,
+    legacy_fields=False,
+):
+    """fixtures.bash create_task_dir 等价，返回 base_dir 下新建的任务目录。"""
+    if phases is None:
+        phases = list(DEFAULT_PHASES)
+    base = Path(base_dir)
+    base.mkdir(parents=True, exist_ok=True)
+    task_dir = Path(tempfile.mkdtemp(prefix="task-", dir=str(base)))
+
+    if not no_state_yaml:
+        first_phase = phases[0] if phases else "P1"
+        _write_utf8(
+            task_dir / ".state.yaml",
+            f"task_id: T001\nphase: {first_phase}\nstatus: active\nretries: {{}}\n",
+        )
+
+    _write_utf8(
+        task_dir / "P0-brief.md",
+        'task: "test task"\n'
+        "known_risks: []\n"
+        "executor_env:\n"
+        '  platform: "opencode"\n'
+        "  has_task_tool: true\n"
+        "  has_local_runtime: true\n"
+        '  network: "full"\n'
+        "env_constraints:\n"
+        '  debug_env: "echo debug"\n',
+    )
+
+    phases_csv = ",".join(phases)
+    p1_body = (
+        "### 主流程\n\n"
+        "#### BDD-1: test\n"
+        "- Given test precondition\n"
+        "- When test action\n"
+        "- Then test result\n"
+    )
+    if legacy_fields:
+        p1 = f"---\nagent: test\n---\nrisk_level: {risk_level}\nphases: [{phases_csv}]\n\n{p1_body}"
+    else:
+        p1 = (
+            f"---\nagent: test\nrisk_level: {risk_level}\nphases: [{phases_csv}]\n---\n\n"
+            f"{p1_body}"
+        )
+    _write_utf8(task_dir / "P1-requirements.md", p1)
+
+    for p in phases:
+        if p == "P2":
+            (task_dir / "P2-design.md").touch()
+        elif p == "P3":
+            (task_dir / "P3-test-design.md").touch()
+        elif p == "P4":
+            (task_dir / "P4-implementation.md").touch()
+        elif p == "P5":
+            (task_dir / "P5-verification.md").touch()
+        elif p == "P6":
+            _write_utf8(task_dir / "P6-acceptance.md", "---\nagent: test\n---\n")
+        elif p == "P7":
+            (task_dir / "P7-consistency.md").touch()
+        elif p == "P8":
+            (task_dir / "P8-release.md").touch()
+
+    for f in sorted(task_dir.glob("P[1-8]-*.md")):
+        if not f.is_file():
+            continue
+        head = f.read_text(encoding="utf-8").splitlines()[:3]
+        if any(line == "---" for line in head):
+            continue
+        _write_utf8(f, "---\nagent: test\n---\n\n" + f.read_text(encoding="utf-8"))
+
+    if with_evidence:
+        (task_dir / "P6-evidence").mkdir(parents=True, exist_ok=True)
+
+    return task_dir
+
+
+def add_agent_field(file_path):
+    """给 .md 文件加 frontmatter `agent: test`（如果没有）。"""
+    p = Path(file_path)
+    if p.is_file():
+        head = p.read_text(encoding="utf-8").splitlines()[:3]
+        if not any(line == "---" for line in head):
+            _write_utf8(p, "---\nagent: test\n---\n\n" + p.read_text(encoding="utf-8"))
+
+
+def add_given_line(file_path):
+    """在 P1 加一个 Given 行（如果还没有）。"""
+    p = Path(file_path)
+    text = p.read_text(encoding="utf-8")
+    if not re.search(r"^\s*-\s*Given\b", text, re.M):
+        _write_utf8(p, text + "- Given test precondition\n")
+
+
+def add_frontmatter_field(file_path, field, value):
+    """在文件的 frontmatter 块内插入/更新一个顶层 key（v2.0 流 A）。"""
+    p = Path(file_path)
+    line = f"{field}: {value}"
+    if not p.exists():
+        _write_utf8(p, f"---\n{line}\n---\n")
+        return
+    text = p.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    if lines and lines[0] == "---":
+        end_idx = None
+        for i in range(1, len(lines)):
+            if lines[i] == "---":
+                end_idx = i
+                break
+        if end_idx is not None and end_idx > 1:
+            pattern = re.compile(rf"^{re.escape(field)}:")
+            replaced = False
+            for i in range(1, end_idx):
+                if pattern.match(lines[i]):
+                    lines[i] = line
+                    replaced = True
+            if not replaced:
+                lines.insert(end_idx, line)
+            _write_utf8(p, "\n".join(lines) + "\n")
+            return
+    _write_utf8(p, f"---\n{line}\n---\n{text}")
+
+
+def add_pruning_excuse(task_dir, phase, reason, risk):
+    """声明裁剪某阶段 + 写裁剪理由 + 跳过风险。"""
+    p1 = Path(task_dir) / "P1-requirements.md"
+    text = p1.read_text(encoding="utf-8")
+    text = text.replace(phase + ",", "").replace("," + phase, "").replace(phase, "")
+    text += f"\n裁剪 {phase}: {reason}\n跳过风险: {risk}\n"
+    _write_utf8(p1, text)
+
+
+def add_p1_field(task_dir, field, value):
+    """在 P1-requirements.md 的 frontmatter 块加/改顶层字段。"""
+    add_frontmatter_field(Path(task_dir) / "P1-requirements.md", field, value)
+
+
+def add_p2_candidate_count(task_dir, count):
+    """在 P2-design.md 的 frontmatter 块加/改 candidate_count 字段。"""
+    add_frontmatter_field(Path(task_dir) / "P2-design.md", "candidate_count", str(count))
+
+
+def add_p2_review(task_dir, status="approved", agent="reviewer-subagent"):
+    """创建一个合规的 P2-review.md。"""
+    p = Path(task_dir) / "P2-review.md"
+    _write_utf8(p, f"---\nstatus: {status}\nagent: {agent}\n---\nP2 review approved.\n")
+
+
+def add_evidence_file(task_dir, rel_path, content, size=None):
+    """在 P6-evidence/ 放文件，可指定大小（用于空 png 测试）。"""
+    full = Path(task_dir) / "P6-evidence" / rel_path
+    full.parent.mkdir(parents=True, exist_ok=True)
+    if size is not None:
+        data = base64.b64encode(os.urandom(int(size))).decode("ascii")[: int(size)]
+        _write_utf8(full, data)
+    else:
+        _write_utf8(full, content)
+
+
+def add_p6_pass(task_dir, bdd_id, evidence_ref):
+    with open(Path(task_dir) / "P6-acceptance.md", "a", encoding="utf-8") as fh:
+        fh.write(f"- PASS {bdd_id} ({evidence_ref})\n")
+
+
+def add_p6_fail(task_dir, bdd_id, evidence_ref=None):
+    with open(Path(task_dir) / "P6-acceptance.md", "a", encoding="utf-8") as fh:
+        line = f"- FAIL {bdd_id}" if evidence_ref is None else f"- FAIL {bdd_id} ({evidence_ref})"
+        fh.write(line + "\n")
+
+
+def add_p6_need_confirm(task_dir, bdd_id):
+    with open(Path(task_dir) / "P6-acceptance.md", "a", encoding="utf-8") as fh:
+        fh.write(f"- NEED_CONFIRM {bdd_id}\n")
+
+
+def add_p1_bdd(task_dir, desc="test"):
+    """在 P1-requirements.md 末尾追加 `#### BDD-NN:` 标题行，NN 为当前最大编号 +1。"""
+    p1 = Path(task_dir) / "P1-requirements.md"
+    text = p1.read_text(encoding="utf-8")
+    n = len(re.findall(r"^#### BDD-[0-9]", text, re.M))
+    _write_utf8(p1, text + f"#### BDD-{n + 1}: {desc}\n")
+
+
+class GitRepo:
+    """git-helper.bash git_init/git_commit/git_stage/git_staged_diff/git_staged_files 等价封装。"""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self.path.mkdir(parents=True, exist_ok=True)
+        self._git("init", "-q")
+        self._git("config", "user.email", "test@test.local")
+        self._git("config", "user.name", "Test")
+        self._git("config", "commit.gpgsign", "false")
+
+    def _git(self, *args):
+        return subprocess.run(
+            ["git", "-C", str(self.path)] + [str(a) for a in args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+
+    def git(self, *args):
+        """运行任意 git 命令，返回 CommandResult 等价对象。"""
+        return self._git(*args)
+
+    def commit(self, message, files=None):
+        if files:
+            for f in files:
+                self.stage(f)
+        else:
+            self._git("add", "-A")
+        self._git("commit", "-q", "-m", message)
+
+    def stage(self, path):
+        self._git("add", str(path))
+
+    def staged_diff(self):
+        return self._git("diff", "--cached").stdout
+
+    def staged_files(self):
+        return self._git("diff", "--cached", "--name-only").stdout
+
+
+@pytest.fixture(scope="session")
+def agate_root():
+    """AGATE_ROOT 解析：AGATE_ROOT env 覆盖优先，否则从 tests/ 上溯反推；失败 fail-closed。"""
+    env_root = os.environ.get("AGATE_ROOT")
+    root = Path(env_root).resolve() if env_root else _resolve_agate_root(Path(__file__).resolve().parent)
+    if root is None or not (root / "scripts").is_dir() or not (root / "assets").is_dir():
+        pytest.fail(f"FATAL: AGATE_ROOT={root} 下找不到 scripts/ 或 assets/")
+    return root
+
+
+@pytest.fixture(scope="session")
+def agate_scripts(agate_root):
+    return agate_root / "scripts"
+
+
+@pytest.fixture(scope="session")
+def agate_assets(agate_root):
+    return agate_root / "assets"
+
+
+@pytest.fixture(scope="session")
+def python_exe():
+    """python3 → python 回退探测（等价 detect_python/probe_python）；无则 fail-closed。"""
+    for name in ("python3", "python"):
+        found = shutil.which(name)
+        if found:
+            return found
+    pytest.fail("找不到 python3/python 解释器")
+
+
+@pytest.fixture
+def run_cli():
+    """run_cli fixture：测试请求该 fixture 后以 run_cli(python_exe, ...) 调用。"""
+    return _run_cli_impl
+
+
+@pytest.fixture
+def task_dir(tmp_path):
+    """create_task_dir 等价 factory，默认全阶段 P0-P8 + .state.yaml。"""
+
+    def _make(
+        phases=None,
+        risk_level="medium",
+        with_evidence=False,
+        no_state_yaml=False,
+        legacy_fields=False,
+    ):
+        return create_task_dir(
+            tmp_path,
+            phases=phases,
+            risk_level=risk_level,
+            with_evidence=with_evidence,
+            no_state_yaml=no_state_yaml,
+            legacy_fields=legacy_fields,
+        )
+
+    return _make
+
+
+@pytest.fixture
+def git_repo(tmp_path):
+    return GitRepo(tmp_path)
+
+
+@pytest.fixture(scope="session")
+def load_fixture(agate_root):
+    """静态夹具加载：load_fixture(name) → agate_root/tests/fixtures/name 绝对路径。"""
+
+    def _load(name):
+        return agate_root / "tests" / "fixtures" / name
+
+    return _load
+
+
+@pytest.fixture
+def py_path():
+    """路径转换：Windows 下 cygpath -m，Linux 恒等返回。"""
+
+    def _convert(path):
+        cygpath = shutil.which("cygpath")
+        if cygpath:
+            result = subprocess.run(
+                [cygpath, "-m", str(path)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            converted = result.stdout.strip()
+            return converted or str(path)
+        return str(path)
+
+    return _convert
