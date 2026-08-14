@@ -52,10 +52,19 @@
 - [x] 2f（3547b62）：check-gate → py（P0-P8 全分支 + 187 处调用点）；修 bdd-5 read_text 误判自定义函数
 - 每批全量 bats 全绿 + count-tests 727 + consistency 0 ERROR
 
-## 批次 3（hook 链 4 个）— 待办
+## 批次 3（hook 链 4 个）— 完成
 
-- [ ] pre-commit-gate / commit-msg-self-gate / pre-push-gate 薄壳化 + install-hook.sh → install-hook.py
+- [x] 3a（3547b62 前部分）：pre-commit-gate.py 主程序（526 行，调度/PROD_TOUCHED/dispatch-context hash/write_gate_result）
+- [x] 3b：commit-msg-self-gate.py + pre-push-gate.py + install-hook.py
+- [x] 3d：3 个 hook sh 薄壳化（20/20/21 行）
+- [x] 3e：修 2 个薄壳化过时测试（pre-commit-hook #42 / dispatch-context-warning #25）
+- [x] 3f：锚点表 check-frontmatter 条目同步 py（0 ERROR，1 coverage WARNING 属批次 4 中间态）
+- 批次 3 专项 85/85 绿 + 全量 733 绿 + count-tests 727 + consistency 0 ERROR
 
 ## 批次 4（收尾）— 待办
 
-- [ ] consistency 锚点表 + 文档引用同步 + SETUP pyyaml 强制化 + UPGRADING + scripts/README.md + CI
+- [ ] consistency 锚点表剩余 15 条涉 sh → py
+- [ ] 文档引用同步（表 B：SETUP/UPGRADING/README/scripts/README.md/tests/README.md）
+- [ ] SETUP pyyaml 强制化 + UPGRADING 新章节
+- [ ] scripts/README.md 重写 + pyproject.toml ruff 规则集落地
+- [ ] CI 同步（shellcheck→ruff、check-platform-assumptions.py 扫描）
