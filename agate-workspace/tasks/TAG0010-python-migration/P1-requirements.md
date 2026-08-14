@@ -297,7 +297,9 @@ requires_minimal_validation: true
 #### BDD-9: hook 薄壳保留复制模式恢复且 exec 失败回退
 - Given hook 经 install-hook.py 以复制模式安装（Windows 无符号链接，写入 `.agate-root`）
 - When 运行 `.git/hooks/pre-commit`（sh 薄壳）
-- Then 薄壳读取 `.agate-root` 恢复 AGATE_ROOT 并成功 exec py 主程序；且 python 不可探测/exec 失败时回退到保留的 sh 逻辑而非静默放行
+- Then 薄壳读取 `.agate-root` 恢复 AGATE_ROOT 并成功 exec py 主程序；且 python 不可探测/exec 失败时 **fail-closed 阻断**（输出明确 GATE ERROR + exit 非 0），绝不静默放行
+
+[BASELINE_CHANGE: 主 Agent 2026-08-14 批准——BDD-9 Then 语义从"回退到保留的 sh 逻辑"改为"fail-closed 阻断（exit 非 0）"。理由：①P0-brief 已确认 pyyaml 从可选变强制依赖——python 是硬前提，Windows 无 python 环境本就无法运行 gate；②"保留 sh 逻辑 fallback"要求双份维护 gate 判定逻辑，违背本任务"逻辑全部 py 化"的宗旨（分析报告 §3.1）；③fail-closed（阻断 commit + 明确错误）是安全默认，静默放行才是被禁止的（原句"而非静默放行"语义保留）。影响面：Windows 无 python 用户的 commit 被阻断——UPGRADING 明示 python3+pyyaml 为强制安装项。]
 
 #### BDD-10: CLI 输出契约与既有数据兼容
 - Given 既有任务数据（`.state.yaml`、`P{n}-*.md`、`active-tasks.md`）与既有调用方（pre-commit hook、ci-gate-backstop）
