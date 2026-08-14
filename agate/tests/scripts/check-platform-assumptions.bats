@@ -1,20 +1,20 @@
 #!/usr/bin/env bats
-# tests/scripts/check-platform-assumptions.bats — 平台假设静态扫描器行为测试（TAG0009 BDD-1~9）
-# 被测对象：agate/scripts/check-platform-assumptions.sh（P4 创建；本文件为 TDD 红灯目标，红灯 = 命令不存在）
+# tests/scripts/check-platform-assumptions.bats — 平台假设静态扫描器行为测试（TAG0009 BDD-1~9；TAG0010 py 化）
+# 被测对象：agate/scripts/check-platform-assumptions.py（TAG0010 自 check-platform-assumptions.sh 迁移；TDD 红灯目标 = 命令不存在）
 #
 # 扫描器契约（P4 实现须满足，P2-design §2.1）：
-#   用法：check-platform-assumptions.sh [target...]
-#     - target 为文件或目录；目录 target 递归扫描 *.bats / *.bash / *.sh（扩展名过滤）
+#   用法：check-platform-assumptions.py [target...]
+#     - target 为文件或目录；目录 target 递归扫描 *.bats / *.bash / *.sh / *.py（扩展名过滤）
 #     - 无参数时默认扫描 agate/tests/
 #   规则：
 #     R1 硬编码 PATH（/usr 或 /bin 字面赋值）
-#     R2 命令位置裸 python3（豁免 command -v 探测、env 形式、shebang、行首 @test 标题、行首注释行）
+#     R2 命令位置裸 python3（豁免 command -v 探测、env 形式、shebang、行首 @test 标题、行首注释行、docstring 块）
 #     R3 方括号形式 -L 单平台 symlink 断言
-#     R4 临时目录字面量（豁免 BATS_TEST_TMPDIR 变量名与含 # scan-exempt: 标记的行）
+#     R4 临时目录字面量（豁免 BATS_TEST_TMPDIR 变量行与含 # scan-exempt: 标记的行）
 #     R5 命令位置裸外部工具（bc 为已登记项；模式集可扩充 seq/timeout 等）
 #   输出：命中行形如 `R{n} <file>:<line> <摘要>`（含规则号与命中文件路径）；无命中无输出
-#   退出：0 = 无命中；1 = 有命中
-#   平台无关：仅用 POSIX 工具与 POSIX ERE，禁用 grep -P / --perl-regexp 等 GNU 专用特性（BDD-1）
+#   退出：0 = 无命中；1 = 有命中；2 = 目标不存在
+#   平台无关：仅用 Python 标准库纯 re 引擎，不调用外部 grep，禁用 --perl-regexp 等 GNU 专用特性（BDD-1）
 #
 # 本测试文件自身必须保持"干净"：fixture 内容全部在运行时用 fragment 拼接法构造，
 # 源码任何一行都不出现 R1-R5 的字面命中（含注释），确保扫描器对全树扫描时本文件 0 命中。
@@ -37,18 +37,19 @@ make_fixture() {
 assert_hit() {
     local fx="$1"
     local rule="$2"
-    run bash "$AGATE_SCRIPTS/check-platform-assumptions.sh" "$fx"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$fx"
     [ "$status" -eq 1 ]
     [[ "$output" == *"$rule"* ]]
     [[ "$output" == *"$fx"* ]]
 }
 
 @test "test_bdd_1_scanner_script_exists_platform_neutral" {
-    # 扫描器本体存在且无 GNU 专用特性（POSIX ERE，无 grep -P / --perl-regexp）——BDD-1
-    [ -f "$AGATE_SCRIPTS/check-platform-assumptions.sh" ]
-    run grep -n -- '--perl-regexp' "$AGATE_SCRIPTS/check-platform-assumptions.sh"
+    # 扫描器本体存在且无 GNU 专用特性（纯 re 引擎，无外部命令调用 / 无 --perl-regexp）——BDD-1
+    [ -f "$AGATE_SCRIPTS/check-platform-assumptions.py" ]
+    # py 版逐行扫描仅用标准库、不调用外部命令（无 subprocess/os.system/os.popen 入口）
+    run grep -nE 'subprocess|os\.system|os\.popen' "$AGATE_SCRIPTS/check-platform-assumptions.py"
     [ "$status" -eq 1 ]
-    run grep -nE '(^|[[:space:]])-P([[:space:]]|$)' "$AGATE_SCRIPTS/check-platform-assumptions.sh"
+    run grep -n -- '--perl-regexp' "$AGATE_SCRIPTS/check-platform-assumptions.py"
     [ "$status" -eq 1 ]
 }
 
@@ -106,7 +107,7 @@ assert_hit() {
 
 @test "test_bdd_8_clean_tree_zero_detection" {
     # 修复完成后 agate/tests/ 全树扫描 0 命中（同类扫描闭环；P3 红灯 = 命令不存在）——BDD-8
-    run bash "$AGATE_SCRIPTS/check-platform-assumptions.sh" "$AGATE_ROOT/tests"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$AGATE_ROOT/tests"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -132,7 +133,7 @@ assert_hit() {
     local l5="echo 1 | ${bc}"
     local fx
     fx=$(make_fixture "$l1" "$l2" "$l3" "$l4" "$l5")
-    run bash "$AGATE_SCRIPTS/check-platform-assumptions.sh" "$fx"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$fx"
     [ "$status" -eq 1 ]
     [[ "$output" == *"R1"* ]]
     [[ "$output" == *"R2"* ]]
@@ -160,13 +161,13 @@ assert_hit() {
     local line6='clean_dir=$BATS_TEST_TMPDIR/demo'
     local fx
     fx=$(make_fixture "$line1" "$line2" "$line3" "$line4" "$line5" "$line6")
-    run bash "$AGATE_SCRIPTS/check-platform-assumptions.sh" "$fx"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$fx"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
 
 @test "test_bdd_9_directory_scan_respects_shell_extension_filter" {
-    # 目录目标：递归扫 *.bats/*.bash/*.sh，忽略其他扩展名——BDD-8/9（目录扫描契约）
+    # 目录目标：递归扫 *.bats/*.bash/*.sh/*.py，忽略其他扩展名——BDD-8/9（目录扫描契约）
     local dir
     dir=$(mktemp -d "$BATS_TEST_TMPDIR/scan-dir-XXXXXX")
     local lead='PATH="'
@@ -175,10 +176,12 @@ assert_hit() {
     local dirty="${lead}${mid}${tail}"
     printf '%s\n' "$dirty" > "$dir/ignored.txt"
     printf '%s\n' "$dirty" > "$dir/dirty.bats"
-    run bash "$AGATE_SCRIPTS/check-platform-assumptions.sh" "$dir"
+    printf '%s\n' "$dirty" > "$dir/dirty.py"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$dir"
     [ "$status" -eq 1 ]
     [[ "$output" == *"R1"* ]]
     [[ "$output" == *"dirty.bats"* ]]
+    [[ "$output" == *"dirty.py"* ]]
     [[ "$output" != *"ignored.txt"* ]]
 }
 
@@ -190,7 +193,7 @@ assert_hit() {
     local line="echo imported from ${p}/demo/fixture.txt # scan-exempt: mock 输出样例文本（非路径假设）"
     local fx
     fx=$(make_fixture "$line")
-    run bash "$AGATE_SCRIPTS/check-platform-assumptions.sh" "$fx"
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$fx"
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
@@ -224,4 +227,36 @@ assert_hit() {
     local fx
     fx=$(make_fixture "$line")
     assert_hit "$fx" "R3"
+}
+
+@test "test_bdd_9_docstring_exempts_r2_python_sample" {
+    # 正向：docstring 块内 python3（文档非可执行代码，与 # 注释同类豁免）→ 零命中——BLOCKER-1（TAG0010 py 化新增）
+    local q='"""'
+    local py='python'
+    local ver='3'
+    local line1="${q}"
+    local line2="    ${py}${ver} -c 'print(1)'"
+    local line3="${q}"
+    local fx
+    fx=$(make_fixture "$line1" "$line2" "$line3")
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$fx"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "test_bdd_9_docstring_exemption_does_not_cover_bare_python3" {
+    # 负向：docstring 块外裸 python3（块外示例代码非 docstring）→ 仍命中 R2——BLOCKER-1（TAG0010 py 化新增）
+    local q='"""'
+    local py='python'
+    local ver='3'
+    local line1="${q}"
+    local line2="    ${py}${ver} -c 'print(1)'"
+    local line3="${q}"
+    local line4="${py}${ver} -c 'print(2)'"
+    local fx
+    fx=$(make_fixture "$line1" "$line2" "$line3" "$line4")
+    run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" "$fx"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"R2"* ]]
+    [[ "$output" == *"$fx"* ]]
 }

@@ -238,3 +238,41 @@ implementation_dir: agate/scripts/
 [SCOPE+]: `agate/tests/README.md` L32/33 仍引用 2 个脚本的 .sh 名（覆盖度表格）——按派发指引"README 文档引用不擅自改"，留待批次 4 文档引用同步（表 B）处理]
 
 > 实现说明（非 DESIGN_GAP）：agate-render-dispatch-prompt.py 对 sed `s` 替换采用 str.replace 字面替换——esc_repl 在 sh 中只为防止 `&`/`|`/`/`/`\` 被 sed 当替换元字符解释，字面替换下无此问题，行为等价（bdd-20 的 `&` 目录路径实测逐字节一致）。`_range` 的 END 从 START 之后一行开始查找复刻了 GNU sed 实测语义（START 行自身匹配 END 模式时范围仍延伸到下一处 END），P2 §3.2 无额外约束。
+
+# P4 实现记录 — 批次 1e（check-platform-assumptions bats 改造对接 py 扫描器）
+
+## implementation_dir
+
+```
+implementation_dir: agate/tests/scripts/check-platform-assumptions.bats
+```
+
+## 本批次改动清单
+
+> 本轮只改 bats 测试文件（py 扫描器 `agate/scripts/check-platform-assumptions.py` 已由前一轮完成并提交）。未跑任何 bats（主 Agent 验证）。
+
+### 改造 `scripts/check-platform-assumptions.bats`（14 → 16 用例，只增不减）
+
+1. **调用点 .sh → .py**：6 处 `run bash .../check-platform-assumptions.sh <target>` → `run "$PYTHON" "$AGATE_SCRIPTS/check-platform-assumptions.py" <target>`——其中 assert_hit 函数内 1 处（被 BDD-2/3/4/5/6 与 3 条 scan-exempt 负向复用）+ BDD-8 全树、BDD-9 dirty、BDD-9 clean、目录扫描、scan-exempt-R4 各 1 处。用 fixtures.bash 的 `$PYTHON`（探测 python3|python），不裸写 python3
+2. **test_bdd_1 断言改 py 语义**：被测对象文件 `.sh` → `.py`；原"无 `-P` / `--perl-regexp`"（POSIX ERE）改为"纯 re 引擎、无外部命令调用"——新增 `grep -nE 'subprocess|os\.system|os\.popen'` exit 1（py 逐行扫描仅标准库）；`--perl-regexp` 断言保留
+3. **test_bdd_9_directory_scan 扩展名过滤断言加 .py**：新增 `dirty.py` fixture（同含 R1 命中文本）→ 断言输出含 `dirty.py`；`dirty.bats` 命中、`ignored.txt` 忽略断言保留
+4. **新增 2 条 docstring 豁免用例**（P2 BLOCKER-1）：
+   - `test_bdd_9_docstring_exempts_r2_python_sample`：docstring 块（`"""` 三行）内 python3 示例 → exit 0 零命中（docstring 与 # 注释同类豁免）
+   - `test_bdd_9_docstring_exemption_does_not_cover_bare_python3`：docstring 块 + 块外一行裸 python3 → exit 1 且输出含 R2
+   - ⚠️ 两条 fixture 文本均用 fragment 拼接（`local q='"""'` / `py='python'` / `ver='3'` / `"${py}${ver}"`），测试文件自身任何一行不出现 R1-R5 字面命中（含注释用全角括号规避 R2）
+5. **头注释同步**：L2/L3 被测对象标 TAG0010 py 化；用法/扩展名过滤（*.bats/*.bash/*.sh/*.py）与 R2 docstring 豁免、退出码 2（目标不存在）契约描述同步
+
+## 自查结果（自查 ≠ P5 gate）
+
+- 未跑任何 bats（按派发指引，由主 Agent 验证）
+- 用 py 扫描器直扫全部 fixture 场景核对断言：docstring 块内 → exit 0 零命中；块外裸 python3 → exit 1 含 R2；干净 fixture（shebang/command -v/env/@test 标题/注释行/BATS_TEST_TMPDIR）→ exit 0；scan-exempt R4 豁免 / R1、R2、R3 不豁免 → 全部符合断言
+- 目录扫描直扫验证：dirty.bats + dirty.py 命中 R1、ignored.txt 忽略
+- 全树自扫 `check-platform-assumptions.py agate/tests` → exit 0（0 命中），保证 BDD-8 干净树断言成立（py 版扩展名过滤含 *.py 后仍成立）
+- 本 bats 文件自身直扫 → 0 命中（保持"干净"约束）
+- 结构校验：16 条 @test 定义、花括号配平（bash -n 对 bats `@test "name" {` 语法本就报错，原始文件同样如此，非本次回归；真实验证以主 Agent 的 bats 运行为准）
+
+## 偏离点
+
+[DEVIATION]: 派发指引 test_bdd_1 建议的断言"`grep -n -- 'grep' <py>` → exit 1"与 py 实际内容不符——py 源码 docstring（L6 "不依赖 grep/find 子进程"）与注释（L95 "等价 sh 的 grep 2>/dev/null"）含字面 `grep`，该 grep 会 exit 0。改为断言真实语义"纯 re 引擎、不调用外部命令"（`grep -nE 'subprocess|os\.system|os\.popen'` → exit 1），覆盖并强化了原意图（py 不依赖外部 grep）。`--perl-regexp` 断言保留]
+
+> 实现说明（非 DEVIATION）：docstring 用例的 fixture 用 make_fixture 逐行写入——`"""` 行（`local q='"""'` 变量）直接传参，块内示例行含缩进（`"    ${py}${ver} ..."`），与 py `_docstring_state` 的 `"""` 奇偶次切换语义逐行核对。测试文件自注释用"块内 python3（文档非可执行代码…）"全角括号收尾，规避 R2 正则对 ASCII 空格后续字符的匹配（沿用原文件 L11/L67 同款写法）。
