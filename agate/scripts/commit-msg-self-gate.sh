@@ -9,7 +9,7 @@ COMMIT_MSG_FILE="${1:?用法: commit-msg-self-gate.sh COMMIT_MSG_FILE}"
 
 # 检查暂存区是否含 self-gate 触发文件
 SELF_GATE_TRIGGERED=false
-STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
+STAGED_FILES=$(git diff --cached --name-only 2>/dev/null | tr -d '\r' || true)
 if echo "$STAGED_FILES" | grep -qE '^(agate/scripts/.*\.(sh|py)|agate/[^/]+\.md|agate/.+/.*\.md|SELF-GATE\.md)$'; then
     SELF_GATE_TRIGGERED=true
 fi

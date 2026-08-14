@@ -75,6 +75,7 @@ if ! echo "$PHASES_DECLARED" | grep -qw 'P7'; then
         TASKS_BASE_REL=$(realpath --relative-to="$REPO_ROOT" "$(dirname "$TASK_DIR")" 2>/dev/null || echo "")
     fi
     SOURCE_FILE_COUNT=$(git diff --cached --name-only 2>/dev/null \
+        | tr -d '\r' \
         | grep -cvE "^docs/tasks/|^${TASKS_BASE_REL}/|\.state\.yaml$|/P[0-8]-.*\.md$|^\.|CHANGELOG" || echo 0)
     SOURCE_FILE_COUNT=$(echo "$SOURCE_FILE_COUNT" | tail -1)
 
