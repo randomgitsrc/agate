@@ -16,6 +16,7 @@ agate 协议结构一致性检查 (P3-1)
    CHECK 7  README version badge 与最新 git tag 一致
    CHECK 8  v0.6 关键词存在性（DESIGN_GAP / design_trivial / model_tier / --cached）
    CHECK 9  协议-脚本结构对齐（锚点表：文档声明的规则 vs 脚本关键词存在性）
+  CHECK 10  协议文档脚本名引用漂移（白名单形状对照 agate/scripts/ 实际文件）
 
  退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
@@ -62,7 +63,7 @@ PROTOCOL_FILES = {
     "agate/orchestrator-template.md",
     "agate/SETUP.md",
 }
-PROTOCOL_DIRS = ("agate/assets/",)  # 角色定义与模板也算协议文件
+PROTOCOL_DIRS = ("agate/assets/", "agate/phase-cards/", "agate/rules/")  # 角色/模板/阶段卡/状态机规则均属协议文件
 
 # 「叙事文件」= 历史评审 / 计划 / 决策记录。它们经常**引述**别处的旧问题
 # （含已修复的行号引用），不应被当作活引用严格检查。仅做 YAML 解析等无害检查。
@@ -760,6 +761,102 @@ def check_anchor_coverage(root: Path, rep: Report) -> None:
                      loc=script)
 
 
+# ── CHECK 10: 协议文档脚本名引用漂移 ─────────────────────────────────────
+# 扫描协议文档面的脚本名引用（裸名 / scripts/ 前缀 / agate/scripts/·~/.agate/scripts/ 全路径），
+# 对照 agate/scripts/ 实际文件报"引用了不存在的脚本"漂移。防止脚本改名/退役后协议文档漏检
+# （REF_RE 只匹配 docs/assets/scripts 前缀，phase-cards/rules 的裸名引用完全漏检）。
+# 白名单形状：check-* / agate-*（连字符与下划线两形，覆盖库文件 agate_common.py）/ 3 hook 薄壳 /
+#   install-hook / count-tests.sh / ci-gate-backstop.py。formatters 名（pytest.sh 等）天然不匹配 → 豁免②。
+
+SCRIPT_REF_RE = re.compile(
+    r"\b(check-[a-z0-9-]+\.(?:py|sh)|agate-[a-z0-9-]+\.(?:py|sh)|agate_[a-z0-9-]+\.(?:py|sh)|"
+    r"install-hook\.(?:py|sh)|pre-commit-gate\.(?:py|sh)|commit-msg-self-gate\.(?:py|sh)|"
+    r"pre-push-gate\.(?:py|sh)|count-tests\.sh|ci-gate-backstop\.py)\b"
+)
+
+# 扫描面 = 协议文档面：PROTOCOL_FILES + 根级 README/AGENTS + agate 侧入口文档 + scripts 索引。
+# 不含 docs/ 与 agate-workspace/（项目开发资料/任务产出，非协议文件，不扫 = 无 ERROR）。
+SCRIPT_REF_SCAN_FILES = PROTOCOL_FILES | {
+    "AGENTS.md",
+    "agate/AGENTS.md",
+    "agate/CONTEXT.md",
+    "agate/UPGRADING.md",
+    "agate/scripts/README.md",
+}
+SCRIPT_REF_SCAN_DIRS = PROTOCOL_DIRS  # 复用扩展后的协议目录（assets/ phase-cards/ rules/）
+
+# 豁免③：3 个 hook 薄壳（防未来薄壳改型）；豁免⑤：scripts/README.md 退役名（历史说明）
+HOOK_SHELL_NAMES = {"pre-commit-gate.sh", "commit-msg-self-gate.sh", "pre-push-gate.sh"}
+SCRIPTS_README_RETIRED_NAMES = {"gate-result.sh", "agate-workspace-resolve.sh", "check-windows-smoke.sh"}
+
+
+def _iter_script_ref_scan_files(root: Path):
+    """CHECK 10 扫描面迭代：显式文件集 + 协议目录 rglob（rel 统一正斜杠）。
+    CHANGELOG.md 单独加入作叙事文件（降级为聚合 WARNING，防历史名刷屏）。"""
+    seen = set()
+    for relpath in sorted(SCRIPT_REF_SCAN_FILES | {"CHANGELOG.md"}):
+        if relpath in seen:
+            continue
+        seen.add(relpath)
+        p = root / relpath
+        if p.is_file():
+            yield relpath, p
+    for scan_dir in SCRIPT_REF_SCAN_DIRS:
+        d = root / scan_dir
+        if not d.is_dir():
+            continue
+        for p in sorted(d.rglob("*.md")):
+            relpath = rel(root, p)
+            if relpath in seen:
+                continue
+            seen.add(relpath)
+            yield relpath, p
+
+
+def check_script_name_refs(root: Path, rep: Report) -> None:
+    """CHECK 10：协议文档面脚本名引用漂移检查。豁免①-⑤ + 叙事文件聚合 WARNING。"""
+    scripts_dir = root / "agate" / "scripts"
+    actual_names = (
+        {p.name for p in scripts_dir.iterdir() if p.is_file()} if scripts_dir.is_dir() else set()
+    )
+    formatters_dir = root / "agate" / "assets" / "formatters"
+    formatter_names = (
+        {p.name for p in formatters_dir.iterdir() if p.is_file()} if formatters_dir.is_dir() else set()
+    )
+    count_tests_sh = root / "agate" / "tests" / "scripts" / "count-tests.sh"
+
+    errors = 0
+    narrative_warned = set()
+    for relpath, p in _iter_script_ref_scan_files(root):
+        if relpath == "agate/UPGRADING.md":
+            continue  # 豁免①：UPGRADING 整文件（历史迁移文档，对照表行 + 散文行旧名无检查意义）
+        text = p.read_text(encoding="utf-8")
+        for lineno, line in enumerate(text.splitlines(), 1):
+            for m in SCRIPT_REF_RE.finditer(line):
+                token = m.group(0)
+                if token in actual_names:
+                    continue
+                if token == "count-tests.sh" and count_tests_sh.exists():
+                    continue  # 豁免④：同名不同目录（真实位置 agate/tests/scripts/）
+                if token in HOOK_SHELL_NAMES:
+                    continue  # 豁免③：hook 薄壳
+                if token in formatter_names:
+                    continue  # 豁免②：formatters 名（forward-defense——formatter 名天然不匹配白名单，当前不可达）
+                if relpath == "agate/scripts/README.md" and token in SCRIPTS_README_RETIRED_NAMES:
+                    continue  # 豁免⑤：scripts/README 退役名
+                loc = f"{relpath}:{lineno}"
+                if is_narrative_file(relpath):
+                    if relpath not in narrative_warned:
+                        narrative_warned.add(relpath)
+                        rep.warn("CHECK10-scriptref",
+                                 f"叙事文件含无法解析的脚本名引用（聚合提醒）: {token}", loc)
+                else:
+                    errors += 1
+                    rep.error("CHECK10-scriptref", f"引用了不存在的脚本: {token}", loc)
+    if errors == 0 and not narrative_warned:
+        rep.ok("CHECK10-scriptref")
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
 
 def run_all_checks(root: Path, rep: Report) -> None:
@@ -779,6 +876,7 @@ CHECKS = [
     ("CHECK 7  version badge 与 git tag", check_version_badge),
     ("CHECK 8  v0.6 关键词存在性", check_v06_keywords),
     ("CHECK 9  协议-脚本结构对齐", check_script_alignment),
+    ("CHECK 10 协议文档脚本名引用漂移", check_script_name_refs),
 ]
 
 
@@ -810,9 +908,11 @@ def main() -> int:
         for title, _ in CHECKS:
             key = "CHECK" + title.split()[1]
             status = "✅ PASS"
-            if any(e["check"].startswith(key) for e in rep.errors):
+            # report id 形如 CHECK1-yaml / CHECK9-align / CHECK10-scriptref；用 "-" 切分精确匹配，
+            # 避免 startswith 前缀碰撞（"CHECK10-scriptref".startswith("CHECK1") 为 True）
+            if any(e["check"].split("-")[0] == key for e in rep.errors):
                 status = "❌ FAIL"
-            elif any(w["check"].startswith(key) for w in rep.warnings):
+            elif any(w["check"].split("-")[0] == key for w in rep.warnings):
                 status = "⚠️  WARN"
             print(f"  {status}  {title}")
         print("-" * 64)

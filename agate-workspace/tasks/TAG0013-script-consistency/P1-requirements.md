@@ -330,3 +330,5 @@ stderr 输出 `GATE RETRO: 建议复盘...`（L89-93），exit 0 不拦截。主
 ## 8. SCOPE+ 预留
 
 > 活基线预留节。后续阶段发现新隐含需求时由主 Agent 增补并标 `[SCOPE+ from Pn]`；P7 一致性审查后登记 `[SCOPE_RESOLVED: ...]`。
+
+- [SCOPE+ from P4] 既有集成测试 `test_csg_1_non_trigger_no_warning`（`agate/tests/integration/test_commit_msg_self_gate_integration.py`）断言 README.md 变更不触发 self-gate WARNING——这是 RM-AG0017 要修复的旧行为（BDD-6 要求 README.md 触发）。实现后该用例转红，属测试断言过时而非新需求；需更新断言为「README.md 变更触发 self-gate WARNING」。

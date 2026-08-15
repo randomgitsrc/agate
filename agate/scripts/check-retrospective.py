@@ -91,6 +91,7 @@ def main():
         for w in warnings:
             sys.stderr.write(f"  - {w}\n")
         sys.stderr.write("  请在版本 bump 前写简版复盘（docs/releases/v{version}-retrospective.md）\n")
+        sys.stderr.write("  复盘发现的新缺口请登记 DEBT/roadmap（技术债清单 / 路线图）\n")
 
     sys.exit(0)
 
