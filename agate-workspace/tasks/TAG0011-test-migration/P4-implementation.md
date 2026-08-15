@@ -1353,3 +1353,78 @@ python3 -m pytest agate/tests/unit/ -k "formatter or dispatch or consistency" -q
   - dispatch 的 git 操作走 `git_repo` fixture（GitRepo 类，git_init/commit/stage 等价），
     fake 根复制清单与 bats `cp` 清单逐项一致（25 脚本 + assets 树，不含 agate-next-card.py）。
   - consistency 的 py_path / `sys.path.insert` 不再需要（模块纯 stdlib + pytest 进程内加载）。
+
+## 批次 11 — 回归套件（6 文件 / 17 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `regression/v040-dotarchived-exclusion.bats` | `regression/test_v040_dotarchived_exclusion.py` | 2 |
+| `regression/v060-design-gap.bats` | `regression/test_v060_design_gap.py` | 4 |
+| `regression/v060-p8-cached.bats` | `regression/test_v060_p8_cached.py` | 3 |
+| `regression/v060-p8-internal-only.bats` | `regression/test_v060_p8_internal_only.py` | 3 |
+| `regression/v060-r4-cached.bats` | `regression/test_v060_r4_cached.py` | 2 |
+| `regression/v060-yaml-indent.bats` | `regression/test_v060_yaml_indent.py` | 3 |
+
+### 关键实现点
+
+- **v040-dotarchived-exclusion（2，纯函数测试，无 run_cli）**：bats 经 `$PYTHON -c` +
+  importlib 加载 check-protocol-consistency.py 后调 `iter_md_files(Path(tmp))` → pytest 用
+  `importlib.util.spec_from_file_location` 进程内加载等价（模块纯 stdlib + yaml，同批次 10b
+  consistency 口径）；**py_path 转换不再需要**（pytest 在 Windows 原生运行时 Path 已是本机格式，
+  bats 因 Windows 原生 python 无法解析 MSYS `/c/...` 路径才用 py_path）。tmp 树用 tmp_path 构造。
+- **v060-design-gap（4，check-gate.py P7）**：与批次 8e G7 同形态——`task_dir()` + write_text
+  覆写 P7-consistency.md / P4-implementation.md（等价 bats heredoc）；`_run_gate` 等价
+  `'$PYTHON' '$AGATE_SCRIPTS/check-gate.py' P7 "$dir"`。P7 frontmatter 块用 `_P7_FM_HEAD` 常量 +
+  f-string/拼接（ruff UP032 无触发），R2.3 断言 `P4`/`DESIGN_GAP`/`P7` 三关键词于合并流
+  （`GATE P7: P4 声明了 1 条 [DESIGN_GAP]...architect 遗漏转抄` 消息含全部三词）。
+- **v060-p8-cached（3，check-gate.py P8，git repo）**：与批次 8f G8 同形态——`_init_p8_repo`
+  （git_repo init commit README + copytree task + stage files）等价 bats `git_init/git_commit/
+  cp -r/git add`，`run_cli(..., cwd=repo)` 等价 `cd "$repo" && ...`；断言 `脚本化检查通过` /
+  `WARNING`+`version` / `CHANGELOG` 于合并流（`GATE P8 / GATE P8 WARNING` 写 stderr，P2 §3.2）。
+- **v060-p8-internal-only（3，check-pruning.py）**：`task_dir(phases=P0-P7)`（P8 裁剪）+
+  `add_p1_field`（internal_only / internal_only_reason 写 frontmatter，T001 v2.0 流 A）+
+  `add_pruning_excuse`；R4.2 的 `grep -qE '^---$'` / `grep -q '^internal_only: true$'` → 读
+  P1-requirements.md 后 `any(line == ...)` 行级锚定断言。`GATE PRUNING` 写 stderr → 合并流。
+- **v060-r4-cached（2，check-pruning.py + git）**：与批次 6b P2.6a/6b 同形态——git_repo
+  init commit 后建 task_dir（避免被 `add -A` 卷入 init commit）+ copytree 到 repo/task +
+  `git_repo.stage("src_*.py")`（git pathspec glob）；R3.1 断言 `裁剪 P7 需源码文件数`
+  （`_staged_source_count` 6 个 staged src 超限，tasks_base_rel="." 下 src_*.py 不命中排除）。
+- **v060-yaml-indent（3，读 task-files.md）**：agate_root fixture + `read_text(encoding="utf-8")`
+  等价 bats `$AGATE_ROOT/assets/templates/task-files.md` 的 awk/grep/sed 管道；R1.1 的 awk range
+  `/^executor_env:/,/^[a-z_]+:/`（**首行即同时匹配起止 → 块 = 单行 `executor_env:`**）用同语义
+  循环复刻后 `yaml.safe_load`；R1.2 `^ executor_env:` 行断言；R1.3 `executor_env:` 后 5 行
+  逐个断言 `^  [a-z_]+:`（2 空格缩进）。
+- windows_smoke 打标（每文件第 1 用例）：`test_rd_a_1` / `test_r2_1` / `test_r5_1` /
+  `test_r4_1` / `test_r3_1` / `test_r1_1`——共 6 处（本批无平台关键词用例，P3 §5.2 表 W 未列）。
+- 流语义（P2 BLOCKER-1）：本批全部输出断言（`GATE P7/P8/PRUNING` 等 stderr 源）统一用合并流
+  `result.output`，未映射 `.stdout`。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 11 验证命令统一跑）。
+> 已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/regression/test_v040_dotarchived_exclusion.py agate/tests/regression/test_v060_design_gap.py agate/tests/regression/test_v060_p8_cached.py agate/tests/regression/test_v060_p8_internal_only.py agate/tests/regression/test_v060_r4_cached.py agate/tests/regression/test_v060_yaml_indent.py
+# SYNTAX-OK
+/home/kity/.venvs/agate-dev/bin/ruff check <6 个新文件>
+# All checks passed（exit 0）
+# 待主 Agent 执行：python3 -m pytest agate/tests/regression/ + bats agate/tests/regression/ + consistency
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - v040-dotarchived 从 bats 的 subprocess `$PYTHON -c` 改为 pytest 进程内 importlib 加载
+    （同批次 10b consistency 口径，py_path 不再需要）；`iter_md_files` 被以独立 tmp 树调用，
+    与主程序 `main()` 的 `PROTOCOL_DIRS` 遍历无关。
+  - v060-design-gap 的 R2.1/R2.2/R2.3b 会触发 gate_p7 N3「DESIGN_GAP_REVIEWED 缺跨文件引用」
+    WARNING（P7 正文无 P1/P2/P4 引用关键词）——WARNING 写 stderr 不阻断 exit 0，与 bats
+    双跑对照一致（bats 同样只断言 exit code）。
+  - v060-r4-cached R3.1 未加 `coupling_checklist`，故除「裁剪 P7 需源码文件数」外还会报
+    「裁剪 P7 需 coupling_checklist」；两错误均写 stderr，exit 1 + 「源码文件数」关键词断言
+    与 bats 等价（bats 只断言 `裁剪 P7 需源码文件数` 于合并流）。
