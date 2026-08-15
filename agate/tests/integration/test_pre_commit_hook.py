@@ -1,16 +1,22 @@
 # tests/integration/test_pre_commit_hook.py — pre-commit hook 集成测试
-# （integration/pre-commit-hook.bats 迁移，TAG0011 批次 13a / 13b 子批）
+# （integration/pre-commit-hook.bats 迁移，TAG0011 批次 13a / 13b / 13c 子批）
 # 13a 覆盖 IT_PT_BINARY.1-7 / IT_PT_MENTION.1 / IT_PT_T6.1-4（12 个）；
 # 13b 追加 IT_PHASE_SPAN.1-5 / IT_P6_CODE.1-5 / IT_RETREAT.1-2 /
 #      IT_CHANGELOG_P54/P54b / IT.9 / IT.9b（17 个）；
-# 后续子批 13c（其余）在此文件追加。
+# 13c 追加 IT.1-8 / IT.10-11 / IT_GATE_REAL.1 / HOOK_EVIDENCE_WARNING /
+#      AGATE_ROOT 自定位 / bdd-1/2/3/4/17/19（19 个，合计 48 覆盖 pre-commit-hook.bats 全量）；
 # 被测：pre-commit-gate.sh 薄壳 + pre-commit-gate.py 真 hook 行为（BDD-11）——
 # git commit 经 .git/hooks/pre-commit 软链触发（等价 bats setup `ln -sf`）。
 # 合并流：run_cli .output = stdout + stderr（等价 bats $output，P2 §3.2 BLOCKER-1）。
 
 import os
+import shlex
 import shutil
+import struct
 import sys
+import zlib
+
+import pytest
 
 
 def _install_pre_commit_hook(repo, agate_scripts):
@@ -877,3 +883,493 @@ def test_it9b_pruning_skip_medium_blocked(
     result = _git_commit(run_cli, agate_root, repo, "-m", "T001 P2 medium skip P3")
     assert result.returncode != 0
     assert _in_order(result.output, "P3 不可裁剪", "仅 low")
+
+
+# ============================================================
+# TAG0011 批次 13c：IT.1-8 / IT.10-11 / IT_GATE_REAL.1 /
+# HOOK_EVIDENCE_WARNING / AGATE_ROOT 自定位 / bdd-1/2/3/4/17/19
+# （pre-commit-hook.bats 迁移收尾，48 @test 全覆盖）
+# ============================================================
+
+
+def _write_root_state_yaml(repo, task_id, phase):
+    """等价 bats 根级 `.state.yaml`（repo_root，task_id 指向任务）。"""
+    (repo / ".state.yaml").write_text(
+        f"task_id: {task_id}\nphase: {phase}\nstatus: active\nretries: {{}}\n",
+        encoding="utf-8",
+    )
+
+
+def _write_p1_review(task_dir, bdd_note="- BDD-1: PASS + 覆盖维度：数据✓"):
+    (task_dir / "P1-review.md").write_text(
+        "---\nphase: P1\ntask_id: TXX0001\nstatus: approved\nagent: requirements-review\n---\n"
+        "## BDD 评审\n"
+        + bdd_note
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_low_variance_png(path):
+    """等价 bats `$PYTHON -c` struct/zlib 生成的 100x100 全白 PNG（方差 0）。"""
+    w, h = 100, 100
+    raw = b"\x00" + b"\xff\xff\xff" * w
+    raw = raw * h
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
+    idat = zlib.compress(raw)
+
+    def chunk(typ, data):
+        return (
+            struct.pack(">I", len(data))
+            + typ
+            + data
+            + struct.pack(">I", zlib.crc32(typ + data) & 0xFFFFFFFF)
+        )
+
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", idat)
+        + chunk(b"IEND", b"")
+    )
+    path.write_bytes(png)
+
+
+@pytest.mark.windows_smoke
+def test_it1_no_state_yaml_change_no_trigger(git_repo, agate_root, agate_scripts, run_cli):
+    """IT.1：无 .state.yaml 变更（仅 README 首次 commit）→ hook 不触发。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    (repo / "README.md").write_text("init\n", encoding="utf-8")
+    git_repo.stage("README.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "init")
+    assert result.returncode == 0
+
+
+def test_it2_root_state_phase_change_gate_passes(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """IT.2：根 .state.yaml phase 变更 → 合法 P1 全流程 commit 通过。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    _write_root_state_yaml(repo, "TXX0001", "P1")
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_p1_requirements(task_dir)
+    _write_p1_review(task_dir)
+    git_repo.stage(".state.yaml")
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _write_min_valid_dispatch_context(
+        run_cli, python_exe, agate_scripts, agate_root, task_dir, "P1", "analyst"
+    )
+    git_repo.stage("agate-workspace/tasks/T001/P1-dispatch-context-analyst.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "phase change to P1")
+    assert result.returncode == 0
+
+
+def test_it3_inline_prod_touched_mention_not_blocked(
+    git_repo, agate_root, agate_scripts, run_cli
+):
+    """IT.3：P5 产出句中提及 [PROD_TOUCHED]（非行首声明）→ 不中止（T090）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "P5-verification.md").write_text(
+        "do something to production [PROD_TOUCHED]\n", encoding="utf-8"
+    )
+    _write_state_yaml(task_dir, "TXX0001", "P5")
+    git_repo.stage("agate-workspace/tasks/T001/P5-verification.md")
+    git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "mention not declaration")
+    assert result.returncode == 0
+
+
+def test_it4_bad_state_yaml_format_blocked(git_repo, agate_root, agate_scripts, run_cli):
+    """IT.4：根 .state.yaml task_id 格式错误 → state-yaml 校验拦截。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    (repo / ".state.yaml").write_text("task_id: T001a\nphase: P1\n", encoding="utf-8")
+    git_repo.stage(".state.yaml")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "bad state yaml")
+    assert result.returncode != 0
+    assert "task_id 格式错误" in result.output
+
+
+def test_it5_state_yaml_format_check_passes(git_repo, agate_root, agate_scripts, run_cli):
+    """IT.5：任意 .state.yaml 变更都触发格式校验；格式正确 → commit 通过。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    _write_root_state_yaml(repo, "TXX0001", "P1")
+    git_repo.stage(".state.yaml")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "state format check")
+    assert result.returncode == 0
+
+
+def test_it6_task_level_state_p1_output_commits(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """IT.6：多任务——任务级 .state.yaml + P1 产出 → 正常 commit。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P1")
+    _write_p1_requirements(task_dir)
+    _write_p1_review(task_dir)
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _write_min_valid_dispatch_context(
+        run_cli, python_exe, agate_scripts, agate_root, task_dir, "P1", "analyst"
+    )
+    git_repo.stage("agate-workspace/tasks/T001/P1-dispatch-context-analyst.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "T001 P1")
+    assert result.returncode == 0
+
+
+def test_it7_p4_output_phase_p3_warning_not_blocked(
+    git_repo, agate_root, agate_scripts, run_cli
+):
+    """IT.7：P4 产出但 phase 仍 P3 → WARNING 不拦截（产出了但忘改 phase）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "T001", "P3")
+    _write_p1_requirements(task_dir)
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _git_commit(run_cli, agate_root, repo, "--no-verify", "-q", "-m", "T001 P3")
+
+    (task_dir / "P4-implementation.md").write_text("implementation\n", encoding="utf-8")
+    git_repo.stage("agate-workspace/tasks/T001/P4-implementation.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "T001 P4 output only")
+    assert result.returncode == 0
+    assert ("WARNING" in result.output) or ("phase" in result.output)
+
+
+def test_it8_phase_p2_missing_design_blocked(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """IT.8：phase 变更到 P2 但无 P2-design.md → 拦截。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P1")
+    _write_p1_requirements(task_dir)
+    _write_p1_review(task_dir)
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _write_min_valid_dispatch_context(
+        run_cli, python_exe, agate_scripts, agate_root, task_dir, "P1", "analyst"
+    )
+    git_repo.stage("agate-workspace/tasks/T001/P1-dispatch-context-analyst.md")
+    _git_commit(run_cli, agate_root, repo, "-q", "-m", "T001 P1")
+
+    _write_state_yaml(task_dir, "TXX0001", "P2")
+    git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "T001 phase P2")
+    assert result.returncode != 0
+    assert ("P2-design.md 不存在" in result.output) or ("P2 不可裁剪" in result.output)
+
+
+def test_it10_root_state_backward_compat(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """IT.10：向后兼容——根 .state.yaml 仍工作。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    _write_root_state_yaml(repo, "TXX0001", "P1")
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_p1_requirements(task_dir)
+    _write_p1_review(task_dir)
+    git_repo.stage(".state.yaml")
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _write_min_valid_dispatch_context(
+        run_cli, python_exe, agate_scripts, agate_root, task_dir, "P1", "analyst"
+    )
+    git_repo.stage("agate-workspace/tasks/T001/P1-dispatch-context-analyst.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "root state P1")
+    assert result.returncode == 0
+
+
+def test_it11_p2_code_file_warning(git_repo, agate_root, agate_scripts, run_cli):
+    """IT.11：P2 阶段暂存代码文件 → WARNING（非实现阶段直接改代码）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P2")
+    _write_p1_requirements(task_dir)
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _git_commit(run_cli, agate_root, repo, "--no-verify", "-q", "-m", "T001 P2 setup")
+
+    (repo / "hack.py").write_text("print('hello')\n", encoding="utf-8")
+    (task_dir / ".state.yaml").write_text(
+        "task_id: TXX0001\nphase: P2\nstatus: active\n"
+        "retries:\n  P2:\n    - round: 1\n      failure_mode: test\n",
+        encoding="utf-8",
+    )
+    git_repo.stage("hack.py")
+    git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
+    result = run_cli(
+        "bash",
+        str(agate_scripts / "pre-commit-gate.sh"),
+        cwd=str(repo),
+        env={"AGATE_ROOT": str(agate_root)},
+    )
+    assert "代码文件" in result.output
+
+
+def test_gate_real_1_writes_gate_result_json(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """IT_GATE_REAL.1：hook 跑真 check-gate 并写入真实 .gate-result.json。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P2")
+    (task_dir / "P2-design.md").write_text(
+        "# P2 design\n### 候选方案 A：方案一\n### 候选方案 B：方案二\n## 权衡\n"
+        "A 更简单，B 更稳健。\ncandidate_count: 2\npackages: [pkg-a]\n"
+        "domains: [backend]\nui_affected: false\ngate_commands: {}\n",
+        encoding="utf-8",
+    )
+    (task_dir / "P2-review.md").write_text(
+        "---\nagent: test\nstatus: approved\n---\n通过。\n", encoding="utf-8"
+    )
+    card = run_cli(
+        python_exe,
+        str(agate_scripts / "agate-next-card.py"),
+        "P2",
+        cwd=str(task_dir),
+        env={"AGATE_ROOT": str(agate_root)},
+    )
+    (task_dir / "P2-dispatch-context-architect.md").write_text(
+        "---\nagent: test\n---\n## 任务\n设计 P2\n\n<!-- AGATE_CARD_START -->\n"
+        + card.stdout.rstrip("\n")
+        + "\n<!-- AGATE_CARD_END -->\n",
+        encoding="utf-8",
+    )
+    git_repo.stage("agate-workspace/tasks/T001/")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "P2")
+    assert result.returncode == 0
+    assert (repo / ".gate-result.json").is_file()
+    assert "pre-commit-hook" in (repo / ".gate-result.json").read_text(encoding="utf-8")
+
+
+def test_hook_evidence_warning_low_variance_not_blocked(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """HOOK_EVIDENCE_WARNING：P6 低方差截图 → WARNING 不拦截 commit（T086）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T086"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0086", "P6")
+    (task_dir / "P6-acceptance.md").write_text(
+        "---\nagent: test\n---\n- PASS BDD-1 (screenshots/test.png)\n",
+        encoding="utf-8",
+    )
+    (task_dir / "P2-design.md").write_text(
+        "---\nagent: test\n---\nui_affected: true\n", encoding="utf-8"
+    )
+    screenshots = task_dir / "P6-evidence" / "screenshots"
+    screenshots.mkdir(parents=True, exist_ok=True)
+    _write_low_variance_png(screenshots / "test.png")
+    (task_dir / "P6-dispatch-context-verifier.md").write_text(
+        "---\nphase: P6\ngenerated_by: agate-next-card.sh + 主 Agent\n"
+        "task_id: TXX0086\nrole: verifier\n---\n\n"
+        "<!-- AGATE_CARD_START -->\n<!-- AGATE_CARD_END -->\n",
+        encoding="utf-8",
+    )
+    run_cli(
+        python_exe,
+        str(agate_scripts / "agate-inject-card.py"),
+        "P6",
+        str(task_dir),
+        cwd=str(repo),
+        env={"AGATE_ROOT": str(agate_root)},
+    )
+    git_repo.stage("agate-workspace/tasks/T086/")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "T086 evidence warning test")
+    assert result.returncode == 0
+    assert "WARNING" in result.output
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Windows 无 POSIX 软链，软链 hook 自定位场景无法验证",
+)
+def test_agate_root_self_locate_worktree(git_repo, agate_root, tmp_path, run_cli):
+    """AGATE_ROOT 未设时自定位到脚本自身本体（worktree 软链，T086）。"""
+    repo = git_repo.path
+    workflow_root = tmp_path / "workflow-root"
+    (workflow_root / "scripts").mkdir(parents=True)
+    shutil.copy2(
+        str(agate_root / "scripts" / "pre-commit-gate.sh"),
+        str(workflow_root / "scripts" / "pre-commit-gate.sh"),
+    )
+    (workflow_root / "scripts" / "pre-commit-gate.sh").chmod(0o755)
+    (workflow_root / "scripts" / "pre-commit-gate.py").write_text(
+        "#!/usr/bin/env python3\nprint(\"WORKTREE_SOURCED\")\n", encoding="utf-8"
+    )
+    os.symlink(
+        str(workflow_root / "scripts" / "pre-commit-gate.sh"),
+        str(repo / ".git" / "hooks" / "pre-commit"),
+    )
+    hook = repo / ".git" / "hooks" / "pre-commit"
+    result = run_cli(
+        "bash",
+        "-c",
+        f"unset AGATE_ROOT; cd {shlex.quote(str(repo))} && bash {shlex.quote(str(hook))}",
+        cwd=str(repo),
+    )
+    assert "WORKTREE_SOURCED" in result.output
+
+
+def test_bdd_1_space_path_gate_fail(git_repo, agate_root, agate_scripts, run_cli):
+    """bdd-1：空格路径任务 gate 实际不通过时拦截（S1 fail-open 修复）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "Task Space"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P1")
+    git_repo.stage("agate-workspace/tasks/Task Space/.state.yaml")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "space path gate fail")
+    assert result.returncode == 1
+
+
+def test_bdd_2_space_path_multiple_state_yaml(
+    git_repo, agate_root, agate_scripts, run_cli
+):
+    """bdd-2：多个 .state.yaml 含空格路径逐个处理（不因切词丢失文件）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    t1 = repo / "agate-workspace" / "tasks" / "T001"
+    t1.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(t1, "TXX0001", "P0")
+    git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
+
+    ts = repo / "agate-workspace" / "tasks" / "Task Space"
+    ts.mkdir(parents=True, exist_ok=True)
+    (ts / ".state.yaml").write_text(
+        "task_id: T001a\nphase: P0\nstatus: active\nretries: {}\n", encoding="utf-8"
+    )
+    git_repo.stage("agate-workspace/tasks/Task Space/.state.yaml")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "space state invalid")
+    assert result.returncode == 1
+
+
+def test_bdd_3_space_dir_gate_runs(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """bdd-3：空格目录 PROCESSED_DIRS 不拆段，gate 正常执行（输出含 GATE P1）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "Task Space"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P1")
+    _write_p1_requirements(task_dir)
+    _write_p1_review(task_dir, bdd_note="- BDD-1: PASS")
+    git_repo.stage("agate-workspace/tasks/Task Space/")
+    _write_min_valid_dispatch_context(
+        run_cli, python_exe, agate_scripts, agate_root, task_dir, "P1", "analyst"
+    )
+    git_repo.stage("agate-workspace/tasks/Task Space/P1-dispatch-context-analyst.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "space valid P1")
+    assert result.returncode == 0
+    assert "GATE P1" in result.output
+
+
+def test_bdd_4_no_space_single_task_regression(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """bdd-4：无空格路径单任务 gate 行为不变（Linux 回归）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P1")
+    _write_p1_requirements(task_dir)
+    _write_p1_review(task_dir, bdd_note="- BDD-1: PASS")
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _write_min_valid_dispatch_context(
+        run_cli, python_exe, agate_scripts, agate_root, task_dir, "P1", "analyst"
+    )
+    git_repo.stage("agate-workspace/tasks/T001/P1-dispatch-context-analyst.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "normal P1")
+    assert result.returncode == 0
+    assert "GATE P1" in result.output
+
+
+def test_bdd_17_metachar_dir_prod_touched(git_repo, agate_root, agate_scripts, run_cli):
+    """bdd-17：任务目录含 [ 元字符时 PROD_TOUCHED 检测不静默绕过（M9）。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T[1]"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P5")
+    (task_dir / "P5-verification.md").write_text(
+        "[PROD_TOUCHED] 生产环境被接触\n", encoding="utf-8"
+    )
+    git_repo.stage("agate-workspace/tasks/T[1]/")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "metachar prod touched")
+    assert result.returncode == 1
+
+
+@pytest.mark.windows_smoke
+def test_bdd_19_copy_mode_agate_root(git_repo, agate_root, agate_scripts, run_cli):
+    """bdd-19：复制模式 hook 经 .agate-root 标记正确解析 AGATE_ROOT。"""
+    repo = git_repo.path
+    hook = repo / ".git" / "hooks" / "pre-commit"
+    shutil.copy2(str(agate_scripts / "pre-commit-gate.sh"), str(hook))
+    hook.chmod(0o755)
+    (repo / ".git" / "hooks" / ".agate-root").write_text(
+        str(agate_root) + "\n", encoding="utf-8"
+    )
+    (repo / "README.md").write_text("init\n", encoding="utf-8")
+    git_repo.stage("README.md")
+    _git_commit(run_cli, agate_root, repo, "-q", "-m", "init")
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P0")
+    git_repo.stage("agate-workspace/tasks/T001/")
+    result = run_cli(
+        "bash",
+        "-c",
+        f"cd {shlex.quote(str(repo))} && env -u AGATE_ROOT git commit -m 'copy mode hook'",
+        cwd=str(repo),
+    )
+    assert result.returncode == 0

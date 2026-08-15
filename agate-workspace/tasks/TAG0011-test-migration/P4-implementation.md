@@ -1638,3 +1638,86 @@ python3 -m py_compile agate/tests/integration/test_pre_commit_hook.py
   - IT.9/IT.9b 的 legacy P1 字段格式（risk_level/phases 在正文）是 bats 原文样式，
     直接复刻 heredoc，未改用 conftest `task_dir` factory（v2.0 frontmatter 流 A）。
 
+---
+
+## 批次 13c — pre-commit hook 专项收尾 + dispatch-context 卡片（2 文件 / 27 @test，子批 3/3）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `integration/pre-commit-hook.bats`（IT.1-8 / IT.10-11 / IT_GATE_REAL.1 / HOOK_EVIDENCE_WARNING / AGATE_ROOT 自定位 / bdd-1/2/3/4/17/19） | `integration/test_pre_commit_hook.py`（追加） | 19 |
+| `integration/dispatch-context-card.bats`（DC.1-7 / DC.multi） | **新建** `integration/test_dispatch_context_card.py` | 8 |
+
+> 本子批完成后 `test_pre_commit_hook.py` 累计 **48 用例**，覆盖 pre-commit-hook.bats 全部
+> 48 @test；`test_dispatch_context_card.py` 8 用例覆盖 dispatch-context-card.bats 全部 8 @test。
+> 13c 子批验证命令 `-k "dispatch or card"`（P3 §6）——dispatch-context 模块名含
+> "dispatch"/"card" 命中；pre-commit-hook.bats 的 IT./bdd- 用例不在该 `-k` 契约内，
+> 由批次 13 整文件运行兜底（N1 非穷举分区口径，同 13b）。
+
+### 关键实现点
+
+- **IT.1-8 / IT.10-11（前段 + 中段遗留）**：全部复用 13a/13b 既有 helper
+  （`_install_pre_commit_hook` / `_git_commit` / `_init_commit` / `_write_state_yaml` /
+  `_write_min_valid_dispatch_context` / `_write_p1_requirements`），新增 `_write_root_state_yaml`
+  （根级 .state.yaml）与 `_write_p1_review`（P1-review.md）。行为等价要点：
+  - IT.1 首次 commit 无 .state.yaml → hook 不触发；IT.2/IT.10 用**根 .state.yaml**
+    （repo_root，task_id 指向任务）；IT.4/IT.5 根 state 格式校验（`task_id 格式错误` 拦截 /
+    合法放行）；IT.6/IT.8 任务级 state；IT.7 先 `--no-verify` 提交 P3 state 再暂存
+    P4-implementation.md → 阶段不符 WARNING 不拦截。
+- **IT_GATE_REAL.1（真实 .gate-result.json）**：P2-design.md 为 legacy 无 frontmatter 样式
+  （candidate_count 在正文），dispatch-context 嵌入 agate-next-card.py P2 真卡片；断言
+  `repo/.gate-result.json` 存在且含 `pre-commit-hook`（write_gate_result runner 字段）。
+- **HOOK_EVIDENCE_WARNING（P6 低方差 WARNING 不拦截，T086）**：`_write_low_variance_png`
+  用 struct+zlib 复刻 bats `$PYTHON -c` 生成的 100x100 全白 PNG（方差 0）；dispatch-context
+  先写空 AGATE_CARD 块，再调 `agate-inject-card.py P6 task_dir` 注入真卡片（等价 bats）；
+  断言 returncode 0 + 输出含 `WARNING`。
+- **AGATE_ROOT 自定位（worktree 软链）**：POSIX 专属（Windows 无软链语义，bats 原文
+  MINGW/MSYS skip）→ `@pytest.mark.skipif(sys.platform == "win32")`；隔离 workflow-root 拷贝
+  薄壳 + 假 pre-commit-gate.py（打印 WORKTREE_SOURCED），软链 hook，`bash -c` 内
+  `unset AGATE_ROOT` 后触发 hook → 断言自定位 exec 假主程序。
+- **bdd-1/2/3/4/17/19（S1/M9/复制模式回归）**：空格路径任务 gate 实际拦截（bdd-1/2）、
+  空格目录 PROCESSED_DIRS 不拆段（bdd-3，断言输出含 `GATE P1`）、无空格单任务回归（bdd-4）、
+  目录含 `[` 元字符 PROD_TOUCHED 不静默绕过（bdd-17，M9）、复制模式 hook 经 `.agate-root`
+  标记恢复 AGATE_ROOT（bdd-19，`env -u AGATE_ROOT git commit`）。
+- **test_dispatch_context_card.py（新建，8 用例）**：task 目录在 repo 根 `task/`（等价 bats
+  `$REPO/task`，非 agate-workspace/tasks 下），`.state.yaml` 任务级（task_id TXX0999,
+  status in_progress）；`_create_dispatch_context` 复刻 bats `_create_dispatch_context`——
+  写 frontmatter + dispatch_guide + AGATE_CARD_START/END + 嵌入 agate-next-card.py 真卡片；
+  DC.1 有效卡片 hash 通过 / DC.2 篡改（AGATE_CARD_END 前插 `_TAMPERED_`）→ hash mismatch /
+  DC.3 空卡片块 → hash mismatch / DC.4-7 派发阶段产出缺 dispatch-context → 拦截
+  （输出含 `dispatch-context`）/ DC.multi 同阶段多卡片逐个校验。
+- windows_smoke 打标（P3 §5.2）：pre-commit-hook.bats 平台关键词 1 处（bdd-19 复制模式）
+  + 文件首 @test IT.1；dispatch-context-card.bats 文件首 @test DC.1。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 13 验证命令
+> 整文件 + `-k "dispatch or card"` 统一跑）。已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/integration/test_pre_commit_hook.py agate/tests/integration/test_dispatch_context_card.py
+# SYNTAX-OK（两文件）
+/home/kity/.venvs/agate-dev/bin/ruff check agate/tests/integration/test_pre_commit_hook.py agate/tests/integration/test_dispatch_context_card.py
+# All checks passed!
+# 累计用例数：test_pre_commit_hook.py 48（grep -c '^def test_'）/ test_dispatch_context_card.py 8
+# 待主 Agent 执行：python3 -m pytest agate/tests/integration/test_pre_commit_hook.py agate/tests/integration/test_dispatch_context_card.py
+#   + 原 2 bats + consistency
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - IT_GATE_REAL.1 的 P2-design.md 用 bats 原文 legacy 无 frontmatter 样式（candidate_count
+    等字段在正文），未改用 conftest `task_dir` factory。
+  - bdd-19 复制模式用 `env -u AGATE_ROOT git commit`（bash -c 包装，等价 bats `env -u
+    AGATE_ROOT git commit`），断言 returncode 0；未安装 hook 的普通 commit 路径。
+  - AGATE_ROOT 自定位用 `unset AGATE_ROOT`（bash -c 内），等价 bats `run bash -c
+    "unset AGATE_ROOT; ..."`；run_cli 的 env= 是覆盖而非 unset，故在命令串内 unset。
+  - HOOK_EVIDENCE_WARNING 的 PNG 用 `_write_low_variance_png` 复刻（struct+zlib），
+    agate-inject-card.py 注入路径与 bats 完全一致。
+  - DC 系列任务目录在 repo 根 `task/`（bats 原文 `$REPO/task`），未放 agate-workspace/tasks
+    下——hook 2e 反推 task_dir=state_dir 可直接命中，行为等价。
+
