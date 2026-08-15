@@ -1,0 +1,5 @@
+# P5 fail-list — TAG0014-dispatch-orchestration
+# pytest 全量 780 passed, 2 skipped, 0 failed → 无失败
+# consistency --strict: 0 ERROR（279 WARNING 为既有叙事文件引用基线，非失败）
+# count-tests: 782 用例，≥749 目标达标
+无失败
