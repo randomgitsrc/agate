@@ -2,7 +2,8 @@
 # （check-gate.bats 124 用例迁移，TAG0011 批次 8a：G0 / G1 / G3 / G4 / G_OTHER，11 用例；
 #   批次 8b：G2 系列 + G_BDD1.1/9.1/10.1 + G_CMD_EXEC.1/2，29 用例；
 #   批次 8c：G5 / G5.1 / G5_CMD.1-5，7 用例；
-#   批次 8d：G6 系列 + G_BDD16.1 + test_bdd_1..8（TAG0002 refactor 口径），20 用例）
+#   批次 8d：G6 系列 + G_BDD16.1 + test_bdd_1..8（TAG0002 refactor 口径），20 用例；
+#   批次 8e：G7.1-9 + G_DG_ANCHOR.1/2 + bdd-11（TAG0004 M4 全角冒号），12 用例）
 # 被测：agate/scripts/check-gate.py（PHASE TASK_DIR [OLD_PHASE]；exit 0 = 通过 / exit 1 = 未通过 /
 #   exit 2 = 主 Agent 自判）。
 # G0/G1/G3/G_OTHER 用 task_dir factory（create_task_dir 等价）；G4 系列需要 git_repo
@@ -22,7 +23,7 @@ import pytest
 from conftest import add_p1_field, add_p2_candidate_count, add_p2_review
 
 
-def _run_gate(agate_scripts, python_exe, run_cli, phase, task_arg, cwd=None):
+def _run_gate(agate_scripts, python_exe, run_cli, phase, task_arg, cwd=None, env=None):
     """bats `'$PYTHON' '$AGATE_SCRIPTS/check-gate.py' PHASE TASK_DIR` 等价。"""
     return run_cli(
         python_exe,
@@ -30,6 +31,7 @@ def _run_gate(agate_scripts, python_exe, run_cli, phase, task_arg, cwd=None):
         phase,
         task_arg,
         cwd=cwd,
+        env=env,
     )
 
 
@@ -1166,3 +1168,140 @@ def test_bdd_5_p6_card_docs_forbid_fake_bdd(agate_root):
 def test_bdd_8_p3_card_docs_regression_test_port(agate_root):
     content = (agate_root / "phase-cards" / "P3-tdd.md").read_text(encoding="utf-8")
     assert "回归测试口径" in content
+
+
+# ========== 8e: gate_p7 分支（G7.1-9 + G_DG_ANCHOR.1/2 + bdd-11，12 用例） ==========
+# P7-consistency.md 用 write_text 覆写（等价 bats heredoc）。gate_p7 输出
+# （GATE P7: ... / GATE P7 WARNING / WARNING P7）一律 sys.stderr.write → 断言合并流
+# result.output（P2 §3.2 流语义规则，BLOCKER-1）。
+# bdd-11 需 env LC_ALL=C LANG=（M4 全角冒号总结行），经 _run_gate env= 透传 run_cli。
+
+
+def _write_p7(td, body):
+    (td / "P7-consistency.md").write_text(body, encoding="utf-8")
+
+
+def test_g7_1_blocker_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p7(td, "- [BLOCKER] arch flaw\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "BLOCKER=" in result.output
+
+
+def test_g7_2_deviation_critical_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p7(td, "- [DEVIATION-CRITICAL] ui break\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "DEVIATION-CRITICAL=" in result.output
+
+
+def test_g7_3_design_gap_unpaired_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p7(td, "- [DESIGN_GAP: P2 未指定错误处理]\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "DESIGN_GAP" in result.output
+    assert "未配对" in result.output
+
+
+def test_g7_4_design_gap_paired_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p7(td, "- [DESIGN_GAP: P2 未指定错误处理]\n- [DESIGN_GAP_REVIEWED: 已确认]\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 0
+
+
+def test_g7_5_two_gaps_one_reviewed_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p7(td, "- [DESIGN_GAP: A]\n- [DESIGN_GAP: B]\n- [DESIGN_GAP_REVIEWED: A 已确认]\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+
+
+def test_g7_6_empty_file_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p7(td, "")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 0
+
+
+def test_g7_7_p4_gap_not_copied_to_p7_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    (td / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n- [DESIGN_GAP: P2 未指定错误处理]\n",
+        encoding="utf-8",
+    )
+    _write_p7(td, "---\nagent: test\n---\n一致性检查完成。\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "P4" in result.output
+    assert "DESIGN_GAP" in result.output
+    assert "P7" in result.output
+
+
+def test_g7_8_blocker_zero_declared_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p7(td, "- [BLOCKER]: 0 条\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 0
+
+
+def test_g7_9_blocker_zero_plus_real_blocker_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p7(td, "- [BLOCKER]: 0 条\n- [BLOCKER] arch flaw\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "BLOCKER=" in result.output
+
+
+def test_dg_anchor_1_inline_gap_not_counted_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p7(td, "# P7 一致性检查\n检查了 [DESIGN_GAP: xxx] 的引用\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 0
+
+
+def test_dg_anchor_2_bol_gap_counted_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p7(td, "# P7 一致性检查\n- [DESIGN_GAP: xxx] 未配对\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "DESIGN_GAP" in result.output
+
+
+def test_bdd_11_fullwidth_colon_blocker_summary_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p7(td, "- [BLOCKER]：3 条\n")
+
+    result = _run_gate(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        "P7",
+        str(td),
+        env={"LC_ALL": "C", "LANG": ""},
+    )
+    assert result.returncode == 0

@@ -736,3 +736,57 @@ python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
 - 无 `[DESIGN_GAP]` / `[SCOPE+]`。
 - 实现细节（非偏离，记录供后续批次参照）：本子批用例数 20，与 P2 §5 子批表 8d 预估 ~20 一致。
 
+## 批次 8e — check-gate 子批 e（1 文件 / 12 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（G7.1-9 / G_DG_ANCHOR.1-2 / bdd-11） | `unit/test_check_gate.py` | 12 |
+
+> 按 P2 §5 子批表 8e 范围追加（`-k "g7 or dg_anchor or bdd_11"`）。
+> 覆盖：G7.1 / G7.2 / G7.3 / G7.4 / G7.5 / G7.6 / G7.7 / G7.8 / G7.9（9）+
+> G_DG_ANCHOR.1 / G_DG_ANCHOR.2（2）+ bdd-11（1）——共 12 个（P2 预估 ~14，实计 12，见偏离点）。
+
+### 关键实现点
+
+- **gate_p7 分支 task_dir 驱动**（无 git）：P7-consistency.md 用 `_write_p7` helper
+  （write_text 覆写，等价 bats heredoc）。
+- **G7.3 / G7.7 多关键词断言**：bats `*"DESIGN_GAP"*"未配对"*` / `*"P4"*"DESIGN_GAP"*"P7"*`
+  展开为多个 `in result.output` 子断言（合并流；顺序由输出文本天然满足）。
+- **G7.8 / G7.9 计数行排除**：`[BLOCKER]: 0 条` 总结行不误计（`(:|：)?` alternation），
+  G7.8 单总结行 exit 0，G7.9 加真实 `[BLOCKER]` 后 exit 1——复刻 gate_p7 的
+  `if not re.search(...)` 排除逻辑（同 bdd-11 的 M4 语义）。
+- **bdd-11（M4 全角冒号）**：`env={"LC_ALL": "C", "LANG": ""}` 经 `_run_gate` 新增的 `env=`
+  参数透传 run_cli（等价 bats `run env LC_ALL=C LANG= ...`）；`task_dir(no_state_yaml=True)`
+  等价 `create_task_dir --no-state-yaml`。断言仅 exit 0（不误计全角冒号总结行为 BLOCKER）。
+- **G_DG_ANCHOR 行首锚点**：G_DG_ANCHOR.1 句中 `[DESIGN_GAP: xxx]`（非行首）不计入 GAP
+  → exit 0；G_DG_ANCHOR.2 行首 `- [DESIGN_GAP: xxx]` 计入 → exit 1（断言 `DESIGN_GAP`）。
+- **流语义（P2 BLOCKER-1）**：gate_p7 的 `GATE P7: ...` / `GATE P7 WARNING` / `WARNING P7`
+  一律 `sys.stderr.write` → 断言一律用合并流 `result.output`（`BLOCKER=` /
+  `DEVIATION-CRITICAL=` / `未配对` 等），未映射 `.stdout`。
+- 函数命名 `test_g7_N_...` / `test_dg_anchor_N_...` / `test_bdd_11_...`，匹配 P2 §5 子批 8e
+  验证命令 `-k "g7 or dg_anchor or bdd_11"`。
+- windows_smoke 打标：本子批无新增（8e 用例名无平台关键词；每文件第 1 用例标记已在 8a
+  `test_g0_...`，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "g7 or dg_anchor or bdd_11" -q   # P2 §5 子批 8e 验证命令
+# 12 passed, 67 deselected
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 79 passed in 6.90s（8a 11 + 8b 29 + 8c 7 + 8d 20 + 8e 12，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 79 tests collected（BDD-1 计数递增）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：本子批用例数 12，P2 §5 子批表 8e 预估 ~14；
+  实际 check-gate.bats 中 G7 前缀用例共 9（G7.1-9）+ G_DG_ANCHOR 2 + bdd-11 1 = 12，
+  P2 预估为近似值，以 bats 实计为准。
+
+
