@@ -875,7 +875,7 @@ setTimeout(() => {
 - 短期（本方案）：若项目有 CI 流水线，优先要求 verifier 引用 CI 产出（如 pytest 结果路径）而非自带证据文件。⚠️ 安全收益为零（provenance 1a 只验引用存在性不验来源）
 - 中期：CI 独立重新生成证据，agent 产出若与 CI 不一致则暴露伪造
 - 长期：P6 证据产出完全由 CI 驱动，agent 只写引用
-- 测试类证据（pytest/bats 结果）：CI 天然可行
+- 测试类证据（pytest 结果）：CI 天然可行
 - UI 类证据（截图 + vision YAML）：依赖项目有 e2e 流水线，无流水线时退化为"尽量锚 + 明标残余风险"
 
 **verification_env 条件化**：verification_env（运行环境描述：debug server URL、测试数据库、临时端口等）仅在以下条件之一满足时需要写入 P5/P6 dispatch-context：
