@@ -56,7 +56,7 @@
 
 **check-gate P1 标记反引号包裹识别盲区**
 
-- **问题**：check-gate.sh P1 NEED_CONFIRM 检查用行首正则 `^\s*-?\s*\[SUGGEST:` / `^\s*-?\s*\[NO_NEED_CONFIRM\]` 计数。当标记被反引号包住（`` `[SUGGEST: ...]` `` / `` `[NO_NEED_CONFIRM]` ``）时，行首不匹配 → 计数 0；typo 兜底（`grep '\[SUGGEST'` && ! `grep '\[SUGGEST:'`）也不触发（冒号子串仍存在）→ 落入「未检测到 NEED_CONFIRM 声明」WARNING，**不阻断**。
+- **问题**：check-gate.py P1 NEED_CONFIRM 检查用行首正则 `^\s*-?\s*\[SUGGEST:` / `^\s*-?\s*\[NO_NEED_CONFIRM\]` 计数。当标记被反引号包住（`` `[SUGGEST: ...]` `` / `` `[NO_NEED_CONFIRM]` ``）时，行首不匹配 → 计数 0；typo 兜底（`grep '\[SUGGEST'` && ! `grep '\[SUGGEST:'`）也不触发（冒号子串仍存在）→ 落入「未检测到 NEED_CONFIRM 声明」WARNING，**不阻断**。
 - **影响**：主 Agent 若用反引号包裹标记（markdown 代码样式），P1 gate 静默降级为 WARNING，NEED_CONFIRM 声明形同虚设。中低风险（只影响该标记的强制力，非数据/安全）。
 - **建议修复方向**：typo 兜底扩展为「子串存在 + 行首正则不匹配」也报错（类似现有 L121-124 逻辑，改为"有子串但计数为 0"），使反引号包裹被明确拦截而非静默 WARNING。契约格式已在 analyst.md:138-152 / P1-card:78 / task-files.md:186 讲清，无需改文档。
 - **验证口径**：新增回归测试——反引号包住 `[SUGGEST: ...]` / `[NO_NEED_CONFIRM]` 时 gate exit 1（而非 WARNING）；合规写法仍通过。
@@ -138,7 +138,7 @@
 **P2 gate 与 C8 映射表契约矛盾（TPV0090 复盘 M1）**
 
 - **问题**：三层契约不一致——
-  - `check-gate.sh` P2 L155-159：**无条件**硬性要求 `P2-review.md` 存在且 status=approved（"P2 评审不可裁剪，必须派发独立 subagent 产出"）
+  - `check-gate.py` P2 L155-159：**无条件**硬性要求 `P2-review.md` 存在且 status=approved（"P2 评审不可裁剪，必须派发独立 subagent 产出"）
   - `role-system.md` C8 表（L52-56）：backend 域 = "review（P4 后）"，**P2 无触发评审角色**（只有 frontend→plan-design-review、high→plan-eng-review、NEED_CONFIRM→plan-ceo-review 触发）
   - `phase-cards/P2-design.md` L91-96 C8 表：同样 backend 域无 P2 评审
 - **后果**：backend 域（low/medium 风险）任务 P2 时，按 C8 表不派评审 → 无 P2-review.md → check-gate exit 1 拦截 → 主 Agent 被迫"自造评审派发"补文件（TPV0090 实测踩坑）
@@ -146,7 +146,7 @@
 - **建议修复方向（二选一，需设计）**：
   1. C8 表补一句"backend 域 P2 也派 review"（消除契约差，但增加评审开销）
   2. check-gate 对无 C8 触发角色的任务豁免 P2-review 硬性要求（但要保证 P2 评审不裁的原则不破——需定义"无角色时评审退化为 self-review 还是必须派通用 review"）
-- **归属**：独立任务（机制契约一致性，涉及 check-gate.sh + role-system.md + P2 卡片三层同步）。与 Q2（卡片 phase 契约，TAG0004 内）同类但独立
+- **归属**：独立任务（机制契约一致性，涉及 check-gate.py + role-system.md + P2 卡片三层同步）。与 Q2（卡片 phase 契约，TAG0004 内）同类但独立
 
 ---
 
@@ -154,7 +154,7 @@
 
 **check-gate P5 gate_commands 计数语义模糊（TPV0090 复盘 M2）**
 
-- **问题**：`check-gate.sh` L247-253，`P5*` 前缀命令都计入 P5 命令数，WARNING "P2 声明了 N 个 gate_commands.P5 命令，请确认已全部执行"。当 P2 声明 `P5/P5_cli_remote/P5_serial` 时计数 3，但实际是"1 主 + 2 辅助"——WARNING 语义模糊，易误解。
+- **问题**：`check-gate.py` L247-253，`P5*` 前缀命令都计入 P5 命令数，WARNING "P2 声明了 N 个 gate_commands.P5 命令，请确认已全部执行"。当 P2 声明 `P5/P5_cli_remote/P5_serial` 时计数 3，但实际是"1 主 + 2 辅助"——WARNING 语义模糊，易误解。
 - **影响**：轻微（WARNING 不阻断，全执行就通过），但理解成本高，可能误导主 Agent。
 - **建议修复方向**：脚本区分"主命令"与"辅助命令"（如 `P5_*` 后缀为辅助），WARNING 文案区分"N 个 P5 命令"与"M 个辅助命令"。
 - **归属**：可随 RM-AG0010 或攒批小任务。
@@ -167,7 +167,7 @@
 
 - **背景**：评估"自定义角色机制是否好用"时实测发现——机制本身可用（模板完整、render 脚本支持 execution-roles/ 与 review-roles/、方法 B 稳妥），但有两个瑕疵：
 - **瑕疵 1（模板）**：`agate/assets/templates/dispatch-prompt.md` L10-13 无条件注入"Review 角色特别指令"（产出文件 Header `status:` draft → approved/rejected/needs-revision）。该指令对**评审角色**是必需的，但对**执行角色**（implementer/analyst/test-designer 等）也被注入——执行角色不产评审文件，status 字段语义混乱。实测：render db-specialist（执行角色）后产物含"Review 角色特别指令"。修复方向：按角色类型条件注入（type: review 才注入 status 指令）。
-- **瑕疵 2（脚本）**：`agate-render-dispatch-prompt.sh` L63-67 角色文件不存在时报错到 stderr，但 **exit 0**（实测 `nonexist-role` → 报错但 exit 0）。主 Agent 可能忽略 stderr 继续走 → 派发失败无声。修复方向：角色文件不存在时 exit 非零（如 exit 2），与"渲染成功"区分。
+- **瑕疵 2（脚本）**：`agate-render-dispatch-prompt.py` L63-67 角色文件不存在时报错到 stderr，但 **exit 0**（实测 `nonexist-role` → 报错但 exit 0）。主 Agent 可能忽略 stderr 继续走 → 派发失败无声。修复方向：角色文件不存在时 exit 非零（如 exit 2），与"渲染成功"区分。
 - **归属**：攒批小任务（模板条件注入 + 脚本 exit code，单点低风险）。
 
 ---
@@ -176,7 +176,7 @@
 
 **阶段卡缺"同类扫描/影响面梳理"机制层要求（阶段提示词核查，2026-08-13）**
 
-- **背景**：核查 P0-P8 阶段提示词（phase-cards/*.md）时发现——所有阶段卡均无"同类扫描/全仓 grep/影响面梳理/联动"要求。agate 历史多次栽在"修一处漏同类"（M4/M5 的 `[:：]` 只修 check-p6-format.sh:84 一处、Q2 只修 P5 卡、TPV0090 backend 域反复踩 P2 契约）。
+- **背景**：核查 P0-P8 阶段提示词（phase-cards/*.md）时发现——所有阶段卡均无"同类扫描/全仓 grep/影响面梳理/联动"要求。agate 历史多次栽在"修一处漏同类"（M4/M5 的 `[:：]` 只修 check-p6-format.py:84 一处、Q2 只修 P5 卡、TPV0090 backend 域反复踩 P2 契约）。
 - **现状**："同类扫描强制要求"只存在于 TAG0005/0006/0007 三个 task 的 P0-brief 里（局部、一次性），**机制层（阶段卡）缺失**——未来其他任务不会有此要求。
 - **建议修复方向**：
   1. **P0 卡片**：加"同类/影响面预判"——写 P0-brief 时识别"这个改动会牵动哪些同类/联动处"
