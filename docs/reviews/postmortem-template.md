@@ -39,6 +39,7 @@
 | dispatch-context.md | 是/否/— | ✅/❌/— | | |
 | pre-commit hook（gate / 状态转移 / 裁剪） | 是/否/— | ✅/❌/— | | |
 | CI backstop | 是/否/— | ✅/❌/— | | |
+| **技术债登记** | 是/否/— | ✅/❌/— | | |
 
 ## 机制说明
 
@@ -66,3 +67,4 @@
 | dispatch-context.md | 主 Agent 派发前查证的客观信息落盘 | dispatch-protocol.md |
 | pre-commit hook | git commit 时自动跑 gate / 状态转移 / 裁剪检查 | pre-commit-gate.sh |
 | CI backstop | push 后 GitHub Actions 重跑 gate，捕获 --no-verify 绕过 | ci-gate-backstop.py |
+| 技术债登记 | 复盘/评审发现缺陷或缺口（影响验收真实性 或 让未来变更更贵）→ 登记 DEBT（tech-debt-template，source: review/retrospective）或 roadmap backlog，二选一注明去向。**未登记 = 机制缺口**（DEBT0001 教训：复盘发现 CHECK 10 缺口但零登记） | tech-debt-template.md + check-debt.py |

@@ -20,8 +20,13 @@
 | RM-AG0010 | P2 gate 与 C8 映射表契约矛盾：backend 域 P2 无评审角色但 check-gate 硬拦 P2-review.md | done | TPV0090 复盘 M1（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-15 |
 | RM-AG0011 | check-gate P5 gate_commands 计数语义模糊（P5* 前缀全算，WARNING 误解主/辅命令）| done | TPV0090 复盘 M2（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-15 |
 | RM-AG0012 | 自定义角色机制两瑕疵：dispatch-prompt 无条件注入评审指令到执行角色 + render 脚本角色不存在时 exit 0 | done | 角色体系验证（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-15 |
-| RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | backlog | 阶段提示词核查（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
-| RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | backlog | TAG0005/0009 复盘核实（2026-08-14）| — | 2026-08-13 | 2026-08-14 |
+| RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | scheduled | 阶段提示词核查（2026-08-13）| TAG0012 | 2026-08-13 | 2026-08-15 |
+| RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | scheduled | TAG0005/0009 复盘核实（2026-08-14）| TAG0012 | 2026-08-13 | 2026-08-15 |
+| RM-AG0015 | 文档脚本名引用漂移无 gate 兜底：CHECK 2 只捕获 `scripts/` 前缀引用，裸脚本名（phase-cards/rules 全是）完全漏检 + phase-cards/rules 不在 PROTOCOL_FILES（引用检查降级 WARNING）| scheduled | TAG0010/0011 复盘（2026-08-15）+ 实测验证 | TAG0013 | 2026-08-15 | 2026-08-15 |
+| RM-AG0016 | subagent 派发编排机制（全阶段）：工作量评估 + 五模式编排（单发/静态拆批/并行/先理解后拆/串行链）+ 并行规则统一；P1/P2 补空白、P3-P6 统一现有分散"按包并行" | scheduled | TAG0010/0011 复盘（2026-08-15）+ 用户需求扩展（全阶段）| TAG0014 | 2026-08-15 | 2026-08-15 |
+| RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| scheduled | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
+| RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | scheduled | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
+| RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | scheduled | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-15 |
 
 ## 状态标识
 
@@ -199,3 +204,99 @@
   2. **补 verification_env 的失败处理协议**：本地无法验证的项，P1 声明时同时列"可验证清单 vs 不可验证清单"；设定每轮 CI 验证多假设的批处理要求；设止损轮次（如 3 轮未收敛必须升级汇报）；定义 READY 后暴露外部问题的归属（补丁 vs 新任务）
   3. **CI 轮次预算进 P1**：risk_level 或专门字段记录"预计外部验证轮次"，让主 Agent 和用户对总时长有预期
 - **归属**：独立任务（协议机制增强：dispatch-protocol + P1 卡片 + analyst 角色），与 RM-AG0013（阶段卡同类扫描）同属"协议机制增强"簇。
+
+---
+
+## RM-AG0015 详情
+
+**文档脚本名引用漂移无 gate 兜底（TAG0010/0011 复盘 + 实测验证，2026-08-15）**
+
+- **问题**：`check-protocol-consistency.py` 的 CHECK 2 引用存在性检查用 `REF_RE = (?<![\w/])((?:docs|assets|scripts)/[A-Za-z0-9_./\-]+\.(?:md|sh|ya?ml|py))`（L238）——**只匹配带 `docs/` `assets/` `scripts/` 前缀的相对路径引用**。协议文档（phase-cards/rules/assets）里大量使用**裸脚本名**（`check-gate.py`、`check-tdd-red.py`，无前缀），实测 `'check-tdd-red.py 确认'` → 正则匹配 `[]` → **完全不被捕获**。脚本被删/改名后文档漂移，consistency 0 ERROR 照过。v0.46.0 的 phase-cards 26 处过时 .sh 引用就是实锤（已修但无 gate 防复发）。
+- **问题 2（同批）**：`PROTOCOL_FILES`（L52-64）只含 11 个文件 + `agate/assets/` 目录，**不含 `agate/phase-cards/`、`agate/rules/`** → 这些必读卡引用不存在文件时按"非协议文件"宽松降级 WARNING 而非 ERROR。
+- **建议修复方向**：
+  1. **新增 CHECK 10**：扫描协议文件中的脚本名引用（裸名 + 相对路径），对照 `agate/scripts/` 实际文件，漂移报 ERROR。豁免：UPGRADING 迁移对照表（旧→新命令对照写旧名是有意保留）、assets/formatters/（仍为 sh）、3 个 hook 薄壳（pre-commit-gate.sh 等）、count-tests.sh
+  2. **phase-cards/rules 入 PROTOCOL_DIRS**：把 `agate/phase-cards/`、`agate/rules/` 加入协议目录，享受严格引用检查
+- **验证口径**：新增一致性测试——协议文件引用已删脚本名 → ERROR；引用现存脚本 → 通过；UPGRADING/formatters/薄壳豁免路径不误报
+- **归属**：独立任务（协议机制增强），与 RM-AG0013/0014 同簇。
+
+---
+
+## RM-AG0016 详情
+
+**subagent 派发编排机制（全阶段，TAG0010/0011 复盘 + 用户扩展，2026-08-15）**
+
+- **背景**：TAG0010 批次 0 卡死（agate_common 整库 + ci-gate-backstop + 3 bats 一次派发，用户中止）；TAG0011 拆 19 批后零卡死。复盘 §3.1 称"P2 批次设计有效"，但**协议本身没有任何批次粒度机制**——"表 E 批次设计"是任务内部临时产物，非协议要求。工作量高的形态不限于 P4——P1/P2 单发 architect/analyst 扛整任务、P3-P6 分散的"按包并行"（P3/P4/P5/P6 卡片各写各的）、多包 P8 releaser 单发，都可能过载。
+- **根因**：「任务粒度指引」只存在于 `dispatch-protocol.md` L639-663（产出 ≤3 文件 / 输入 ≤3 个），**无任何其他文件引用它**（P2-design.md / architect.md / 派发模板均无）。且只覆盖"数量上限"，**无工作量评估方法、无编排模式定义、无并行规则**（上限/失败处理/共享文件）。P2 architect 设计批次时看不到粒度约束，主 Agent 派发时靠记忆——渐进披露下不一定读到 dispatch-protocol。
+- **现状核查**（全阶段）：
+  - P3/P4/P5/P6 有"按包拆分并行"（各卡片独立定义，非统一机制）
+  - P7 明确不拆分（一致性需跨文件对照）
+  - **P1/P2 无任何拆分/编排机制**——P2 恰是最需要"先理解后拆"的阶段（architect 要先读 P1 全貌才能规划后续批次）
+  - 并行规则分散且缺：无并行上限（平台并发 + 主 Agent 上下文）、无并行失败处理（失败批单独 retry vs 全批重跑）、无共享文件统一约束（仅 P4 有）
+- **建议修复方向**（统一机制，全阶段适用）：
+  1. **工作量评估**：复杂度 = 产出规模/输入规模/改动性质/耦合度/认知负荷 五维评级 → low/medium/high
+  2. **五模式编排**：
+     - 模式 1 单发（low）：一个 subagent 直接做
+     - 模式 2 静态拆批（medium）：批次表（P2 预设计 或 本阶段派发前设计），按批执行
+     - 模式 3 并行（无依赖且 ≤medium）：多 subagent 并行 + 共享文件后处理
+     - 模式 4 先理解后拆（high/结构不明）：侦察 subagent 读全貌产出拆分方案 → 按方案派执行（并行/串行）→ 合并（轻量拼装由主 Agent/单 subagent；重量整合派整合 subagent）
+     - 模式 5 串行链（有依赖）：分批串行
+  3. **并行规则统一**：并行上限默认 3（可配置）；失败批单独计 `retries[Pn]` 不重跑成功批；各批只改自己范围、共享文件由主 Agent 统一后处理（P4 约束推广到全阶段）
+  4. **落地位置**（单一权威源）：dispatch-protocol.md 新增「派发编排机制」节（升级扩充现有任务粒度指引）；P2-design.md 新增 `dispatch_plan:` 机器字段；各阶段卡片加"编排模式"引用（指向权威节，不重复定义）；dispatch-prompt.md 内联"产出>3 或输入>5 必须分批或说明"兜底
+- **验证口径**：`dispatch_plan:` 字段可被 gate 校验（复杂度/模式/并行上限一致性）；派发模板约束主 Agent 每轮可见；模式 4 流程有测试覆盖（侦察→执行→合并 三阶段）
+- **参考实施计划（2026-08-15）**：`agate-workspace/plans/agate-dispatch-orchestration-20260815.md`（已通过 plan-eng-review 三轮评审，approved，2026-08-15）——含字段契约（frontmatter 单行 flow YAML + op `dispatch_plan` 子进程读取 + JSON 输出 + 不入 frontmatter-check schema）、6 个 Task（TDD 驱动）、验收标准。实施本条目时作为**参考输入**，不是替代。
+- **⚠️ 阶段完整性声明**：**有实施计划 ≠ 裁剪 agate 阶段**。本条目作为任务执行时，仍须走完整 agate 流程（P0 立项 → P1 需求基线 + BDD → P2 设计 → … → P8 发布），P1/P2 须对照本 roadmap 详情 + 参考计划重新产出当前任务自己的需求基线与设计（可引用计划内容，不可跳过阶段）。计划文档只提供"做什么、怎么落地"的既有分析，不豁免本任务的质量 gate。同理适用于其他含参考计划/设计文档的条目。
+- **归属**：独立任务（协议机制增强：dispatch-protocol + P2-design.md + 各阶段卡片 + 派发模板 + 角色文件），与 RM-AG0013/0014/0015 同簇，工作量最大，建议单独立项。
+
+---
+
+## RM-AG0017 详情
+
+**self-gate 触发面缺仓库根级文档（TAG0010/0011 复盘，2026-08-15）**
+
+- **问题**：`commit-msg-self-gate.py` 的 `_SELF_GATE_RE`（L38-40）覆盖 `agate/scripts/*.sh|*.py`、`agate/*.md`、`agate/*/*.md`、`SELF-GATE.md`——**不含仓库根级文档**：README.md / AGENTS.md / CHANGELOG.md。
+- **影响**：改仓库根级协议文档（README 门面、AGENTS 开发指引）不触发 self-gate WARNING，绕过语义审查。本次文档体系更新（README/AGENTS 重写）即未走独立评审。
+- **注意**：复盘原文称"SELF-GATE.md 不在触发面"是**错误**（实测正则包含它）——本条目只补 README/AGENTS，CHANGELOG 变动频繁且非协议语义，豁免。
+- **建议修复方向**：`_SELF_GATE_RE` 扩展匹配 `README.md`、`AGENTS.md`（CHANGELOG.md 豁免，理由：频繁变动 + 非协议语义）。SELF-GATE.md 已覆盖，不加。
+- **验证口径**：新增测试——staged 含 README.md/AGENTS.md → self-gate WARNING 触发；CHANGELOG.md → 不触发
+- **归属**：独立任务（脚本 + 测试），低优先级，可与 RM-AG0015/0016 攒批。
+
+---
+
+## RM-AG0018 详情
+
+**复盘/评审发现未接 tech-debt 登记触发点（独立观察 + DEBT0001 破冰，2026-08-15）**
+
+- **背景**：TAG0001 技术债闭环（v0.43.0）建成后，`agate-workspace/debt/tech-debt.md` **零登记**（目录都不存在）。复盘/评审发现的缺陷只写进复盘文档或 roadmap backlog，从不走 DEBT 路径。独立观察者指出：复盘自己发现"文档脚本名引用漂移无 gate 兜底"（CHECK 10 缺口）并建议修复，但没登记进刚建好的技术债系统——机制建好了，发现渠道没接上。
+- **根因**：tech-debt 只有 **retreat 回退**一个自动触发渠道（`check-debt.py --retreat-coverage` 强制登记 source: retreat）。**review / retrospective 来源无登记钩子**——发现者直接把缺口写进复盘/roadmap 就完事，tech-debt 无感知。这不是"习惯问题"，是**机制缺触发点**（review/retrospective 无法机器检测，设计上就没强制，但可在模板层加要求）。
+- **本次处置（已落地，2026-08-15）**：
+  1. **DEBT0001 登记**：`agate-workspace/debt/tech-debt.md` 首条真账（CHECK 10 缺口，source: retrospective，task_id: RM-AG0015 关联），`check-debt.py` 校验通过——tech-debt 从零破冰，验证系统真实可用
+  2. **postmortem-template.md 加"技术债登记"核对行 + 机制说明**：复盘/评审发现缺陷或缺口（影响验收真实性或让未来变更更贵）→ 必须登记 DEBT 或 roadmap backlog，二选一注明去向；未登记 = 机制缺口（引用 DEBT0001 教训）
+- **建议修复方向**：
+  1. **模板层触发**（已做）：postmortem-template 核对清单加"技术债登记"行——复盘时强制核对"本次发现是否登记了"
+  2. **可选增强**：`check-retrospective.py`（P2.12）输出加一行提醒"复盘发现的新缺口请登记 DEBT/roadmap"（纯提醒不拦截，与 P2.12 精神一致）——是否做可评估
+  3. **克制原则**：不做"发现必须登记 DEBT"的硬 gate——tech-debt-template 三分法明确"不影响验收也不影响未来成本的不登记"是合法出口，硬登记会让登记簿变垃圾场
+- **归属**：本条目主体（模板层 + 提醒）已随本次处置落地，**剩余可选增强**（check-retrospective 提醒）低优先级，可与 RM-AG0017 攒批。
+
+---
+
+## RM-AG0019 详情
+
+**P0-brief 时效性验证缺失（用户提问，2026-08-15）**
+
+- **问题**：P0-brief 是**立项时点的快照**（task/known_risks/executor_env/env_constraints 反映当时状态），状态机把它当恒真前提——P0 完成即锁死，之后任何阶段不再回头校验。任务立项后搁置再启动时（如 TAG0008：8-13 立项写 .sh 路线，8-15 启动时 TAG0010 已全量 Python 化），P0-brief 前提可能已与最新项目状态漂移。若直接按错误 P0 推进实施，产出是**放大版且错误的 task**。
+- **现状核查**（无此机制）：
+  - P0 卡片「环境自检」（P0-orchestrator.md L29-34）：只查 debug 环境/测试框架/浏览器**运行时可用**，不查 P0-brief 内容是否过时
+  - P0 推进条件（L42-44）：四字段齐全 + 环境自检 + 看板行——全是"是否做了"，无"前提是否仍成立"
+  - P1 输入校验（P1-requirements.md L30/35）：P0-brief 完成 + 作为输入——**P1 在过时基础上工作**
+  - state-machine L77：`P0 --[P0-brief 完成，四字段自查通过]--> P1`——无时效维度
+  - 现有 `env_state` 环境一致性验证（state-machine L300-306）只覆盖**运行时资源**（URL/端口），不覆盖**立项前提**（技术路线/依赖/风险）
+- **问题分层**：
+  1. **检测缺失**：无环节检测"P0-brief 前提 vs 当前状态"是否漂移
+  2. **更新缺失**：检测到漂移后，无流程定义"如何更新 P0-brief 并重新进入决策"（轻更新 vs 重新立项/可行性分析）
+- **建议修复方向**：
+  1. **P0 → P1 前提校验**：启动（含搁置后启动）时，主 Agent 对照当前项目状态核对 P0-brief 四字段前提（技术路线/依赖/风险/环境）是否仍成立；有漂移 → 更新 P0-brief（标注更新日期 + 变更点）
+  2. **重启动判断**：漂移严重（技术路线全变/前置任务完成改变依赖）→ 需重新立项分析/可行性分析，而非直接 P1
+  3. **P1 analyst 职责扩展**：需求质疑前先校验 P0-brief 前提，发现过时标记 `[P0_STALE]` 交主 Agent
+  4. **落点**：P0 卡片加"前提时效性自检" + state-machine P0→P1 转移条件加"前提验证" + P1 卡片加"P0-brief 前提校验"
+- **验证口径**：搁置后启动的任务，P0-brief 前提漂移被检测 → 更新或重立项；P1 在验证过的 P0-brief 基础上工作
+- **归属**：**并入 TAG0012**（2026-08-15 决策）——改动域与 TAG0012 高度重叠（P0/P1 卡片 + analyst + dispatch-protocol/state-machine），且与 RM-AG0014 同类（声明有时效处理无）；分开做会两轮改同文件。实施时 P1 须按"哪些卡/哪些节"组织 BDD，与 RM-AG0013/0014 一并规划。
