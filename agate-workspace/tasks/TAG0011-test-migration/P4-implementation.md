@@ -1141,3 +1141,70 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
   同样不适用于本批——check-p6-provenance.bats 全 36 用例自建 task_dir + heredoc（无 load_fixture
   引用），与 9a check-p6-evidence.bats 同形态；fixtures/ 静态夹具实际由批次 9c agate-vision-blocker.bats
   使用。PV_BDD19.1 / PV_BDD20.1 两例为 check-gate.py P7 集成用例（bats 同文件放置，按原样迁移）。
+
+## 批次 9c — vision-blocker + ci-gate-backstop（2 文件 / 13 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/agate-vision-blocker.bats` | `unit/test_agate_vision_blocker.py` | 2 |
+| `unit/ci-gate-backstop.bats` | `unit/test_ci_gate_backstop.py` | 11 |
+
+### 关键实现点
+
+- **backstop `bash -c "... 2>&1 || true"` 显式合并（P2 §3.2 映射行）**：bats 的
+  `run bash -c "$PYTHON $BACKSTOP_PY 2>&1 || true"` → pytest 直接 `run_cli(python_exe,
+  py_path(str(agate_scripts / "ci-gate-backstop.py")), cwd=repo, env=env)`——subprocess 捕获
+  天然含两流，断言一律用合并流 `result.output`（stdout+stderr），无需再显式 `2>&1`；`|| true`
+  无需保留（subprocess 不因非零 exit 抛异常）。
+- **平台探测（git + windows_smoke 4 处）**：CI 平台变量（GITEA/GITLAB/GITHUB）经 run_cli env
+  显式控制——`_ci_env()` 默认把三变量置 `""`（等价 bats `unset`，防御测试机本身在 CI 中被注入
+  GITHUB_ACTIONS 等导致平台误判），再逐用例 override；git 用 `git_repo` fixture（等价
+  `git_init`，cwd=repo 等价 `cd "$repo"`）。windows_smoke 打标（P3 §5.2 表 W 4 处）：
+  `test_detect_ci_platform_gitea_priority` / `..._gitlab` / `..._no_platform_skip`
+  （函数名含 "platform" 关键词）+ `test_backstop_p3_cp1252`（含 "cp1252"）——共 4 处。
+- **P3 兜底结构（`_setup_p3_base` 等价 setup_git_repo_p3）**：git init + 根 `.state.yaml`
+  （phase P3, task T001, retries {}）+ `agate-workspace/tasks/T001/P3-test-cases.md` +
+  commit；mock TDD 运行器经 `AGATE_TDD_RED_SCRIPT` env 指向可执行 bash 脚本
+  （`_write_mock` 写 `#!/bin/bash\nexit N` + chmod 0o755，等价 bats echo heredoc + chmod +x），
+  退出码 0/1/2/3 分别对应真红灯 PASS / 假红灯 FAIL / 绿灯 FAIL / 无运行器 WARN。
+- **refactor 感知（TAG0002 [SCOPE+]）**：`test_backstop_p3_refactor_skip` 复刻 P1-requirements.md
+  frontmatter `change_type: refactor`（write_text 覆写 heredoc，frontmatter 块写入）→ backstop 读
+  agate-md-field-get 判定 refactor → SKIP 不 FAIL；`test_backstop_p3_body_mention_not_skip` 仅正文
+  散文提及 `change_type: refactor`、frontmatter 无 → 不 SKIP 走 TDD 兜底（FAIL + 绿灯）。
+- **cp1252 双段 run 单用例（BDD-23/26）**：① `_ci_env(PYTHONIOENCODING="cp1252", ...)` →
+  断言 `UnicodeEncodeError` in merged output（中文 print 崩溃）；② 文件级 `PYTHONIOENCODING=utf-8`
+  （`_ci_env` 默认值）→ 无崩溃 + `真红灯` 命中（等价 bats setup() 文件级 export）。
+- **精确等值注意（P2 §3.2）**：vision-blocker 的 `[[ "$output" == "2" ]]` / `== "-1"` → subprocess
+  保留尾部换行，`result.output.strip()` 后比较（bats `$output` 剥离尾部换行）。
+- **函数命名**：`test_vb_N_...` / `test_detect_ci_platform_...` / `test_backstop_p3_...`，
+  匹配 P2 §5 子批 9c 验证命令 `-k "vision_blocker or backstop"`（module 名 + function 名双命中）。
+- **encoding 守卫（BDD-7）**：全部文本 I/O 显式 `encoding="utf-8"`；mock 脚本内容经
+  `mock.write_text(..., encoding="utf-8")`（写入测试临时目录，非 /tmp 字面，R4 零命中）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_agate_vision_blocker.py agate/tests/unit/test_ci_gate_backstop.py -q
+# 13 passed in 0.92s（2 + 11，全绿）
+python3 -m pytest agate/tests/unit/ -k "vision_blocker or backstop" -q   # P2 §5 子批 9c 验证命令
+# 14 passed, 529 deselected（13 本批 + 批次 9b test_pv_13_vision_blocker_* 函数名含 vision_blocker 重叠，无害）
+python3 -m pytest agate/tests/unit/test_agate_vision_blocker.py agate/tests/unit/test_ci_gate_backstop.py --collect-only -q
+# 13 tests collected（BDD-1 计数递增：累计 30+36+13 = 79/79 批次 9 全量）
+ruff check agate/tests/unit/test_agate_vision_blocker.py agate/tests/unit/test_ci_gate_backstop.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <两文件>
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本批文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：P3 §4 备注「vision-blocker 用 fixtures/ 静态夹具」
+  不适用——agate-vision-blocker.bats 两用例均自建 vision.yaml（heredoc / echo），无 load_fixture
+  引用，pytest 用 tmp_path 写文件等价构造（与 9a/9b 同形态）。`_ci_env` 把 CI 平台变量默认置 `""`
+  是相对 bats 的**防御性增强**（bats 靠 unset/export 依赖测试机无注入），断言语义不变。
