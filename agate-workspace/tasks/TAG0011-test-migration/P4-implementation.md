@@ -2037,3 +2037,55 @@ grep -n "windows_smoke\|check-windows-smoke\|pytest" .github/workflows/protocol-
   - count-tests.sh 的 `set -euo pipefail` 下管道空输出由 `|| true` + `${count:-0}` 兜底（输出 0），
     与 P2 §3.5 设计一致；无 python 时 fail-closed（exit 1 + stderr 报错）。
 
+## 批次 18 — bats 退役删档（退役批，60 .bats / 3 helpers 删除）
+
+> P1 §4 批次 18（bats 退役删档）+ P2 §3.5 D1。60 个 `.bats` 源文件已全部迁移为 pytest
+> （749 @test → pytest 750 collected 全绿），helpers 三文件由 `conftest.py` fixture 体系承接。
+> BDD-13 落地：agate/tests/ 下无 `.bats` 文件、无 `helpers/` 目录。
+
+### 改动清单
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `agate/tests/**/*.bats`（60 个） | **删除**（git rm） | bats 源文件退役（60 个中 check-windows-smoke.bats 已于批次 17 删除，本批删余 59 个迁移源 + helpers-python.bats 1 个，合计 60） |
+| `agate/tests/helpers/load.bash` | **删除**（git rm） | 退役，`conftest.py` fixture 承接（`_resolve_agate_root` 等价） |
+| `agate/tests/helpers/fixtures.bash` | **删除**（git rm） | 退役，`conftest.py` `create_task_dir` 等 fixture 承接 |
+| `agate/tests/helpers/git-helper.bash` | **删除**（git rm） | 退役，`conftest.py` `git_init/git_commit/...` 等价封装承接 |
+| `agate/tests/helpers/` 目录 | **删除** | 三文件清空后空目录移除 |
+
+### 关键实现点
+
+- **只删 .bats + helpers 三文件**：`find agate/tests -name "*.bats"` 逐个 `git rm`（保留删除历史，
+  不 commit，主 Agent 验证后提交）；`git rm agate/tests/helpers/{load,fixtures,git-helper}.bash`；
+  helpers/ 目录清空后删除。所有 `conftest.py` / `test_*.py` 保留不动。
+- **残留 .bats 引用核查（grep -rn "\.bats" agate/，判断为无需同步）**：
+  - `agate/UPGRADING.md`（L94/L100/L101/L106）：迁移历史记录 + 旧 bats 命令 → 新 pytest 命令对照表，
+    按 P1 §5 表 E「历史记录保留不重写」口径保留，非待退役引用。
+  - `agate/scripts/check-platform-assumptions.py`（L15/L97/L103）：平台假设静态扫描器仍把 `.bats`
+    列为扫描扩展名之一——扫描器对扩展名是通用枚举（`.bats/.bash/.sh/.py`），bats 文件删除后自然
+    零命中，保留 `.bats` 扩展名不影响功能，不需改（改反而破坏扫描器通用性）。
+  - `agate/scripts/README.md`（L38）：描述扫描器覆盖扩展名，同上保留。
+  - `agate/tests/**/test_*.py` 与 `agate/tests/scripts/count-tests.sh` 中 `.bats` 字样：全部为
+    迁移 provenance 注释（「xxx.bats 迁移」历史说明）或 count-tests 口径注记，非功能性引用，保留。
+  - `agate/tests/README.md`、`agate/AGENTS.md`：批次 15 已更新，`grep` 零命中，无遗漏。
+
+### 自查结果
+
+```bash
+find agate/tests -name "*.bats" | wc -l        # 0（全部删除）
+ls agate/tests/helpers 2>&1                     # 目录不存在（已删除）
+git status --short | grep '^D' | wc -l           # 63 = 60 .bats + 3 helpers（不含批次 17 已提交的 check-windows-smoke.bats）
+git diff --cached --name-only | grep '^agate/tests'  # 仅删除操作，无其他文件改动
+```
+
+- 用例数：0（退役删档批，BDD-1 收集数不受影响，count-tests 目标仍 ≥ 749 = pytest 750）。
+- encoding 守卫：本批无新增 .py 文件，零违规。
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - 派发说明「60 个中 check-windows-smoke.bats 已删，剩 59 个」实际删除 60 个 `.bats`——`helpers-python.bats`
+    （3 个 @test，测 fixtures.bash 的 python 探测机制）也在删除清单内，与 59 个迁移源文件合计 60，任务口径
+    「全部 .bats」一致（helpers-python 用例已迁移为批次 1 的 test_helpers_python.py，P2 §4.1 映射）。
+
