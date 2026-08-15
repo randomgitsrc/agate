@@ -1562,3 +1562,79 @@ python3 agate/scripts/check-platform-assumptions.py agate/tests/integration/test
   - T6.1 的 dispatch-context 模板中 `task_id: T001` / `- agate-workspace/tasks/
     T001/P0-brief.md` 为 bats helper 硬编码值，原样保留。
 
+## 批次 13b — pre-commit hook 专项中段（1 文件 / 17 @test 追加，子批 2/3）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `integration/pre-commit-hook.bats`（IT_PHASE_SPAN.1-5 / IT_P6_CODE.1-5 / IT_RETREAT.1-2 / IT_CHANGELOG_P54 + P54b / IT.9 + IT.9b） | `integration/test_pre_commit_hook.py` | 17 |
+
+> 按 P2 §5 批次 13 子批表 13b 范围追加（`-k "phase_span or retreat or changelog or p6_code"`）。
+> 本子批与 13a 同一文件追加；函数命名 `test_phase_span_N_*` / `test_retreat_N_*` /
+> `test_changelog_N_*` / `test_p6_code_N_*` + IT.9/IT.9b（`test_it9_*` / `test_it9b_*`）。
+
+### 关键实现点
+
+- **复合 glob 有序断言（bats `*"A"*"B"*` 语义）**：IT_PHASE_SPAN 系列断言
+  `[[ "$output" == *"WARNING"*"P1"* ]]` 是**有序**复合 glob（WARNING 后接 P1），
+  P2 §3.2 映射表只覆盖单段 `*"X"*` —— 新增 `_in_order(output, *parts)` helper
+  （`str.find` 顺序扫描，等价 glob 前缀顺序匹配）。SPAN.1 反向断言
+  `!= *"WARNING"*"P1"*` → `assert not _in_order(...)`。
+- **流语义（P2 BLOCKER-1）**：phase-span WARNING / P6 代码拦截 / CHANGELOG 警告
+  均由 pre-commit-gate.py `sys.stderr.write`（L276/445/402）→ 一律用合并流
+  `result.output`，未映射 `.stdout`；`_git_commit` 的 run_cli 合并流等价 bats `$output`。
+- **PAUSED phase 不崩溃（SPAN.5）**：`.state.yaml` phase=PAUSED + P1 产出暂存 →
+  hook 2f 的 `phase_num` 数字比较走 isdigit 守卫（不 crash），2g 直接 continue；
+  断言 `integer expression expected` 不在输出（bats 原文，sh 时代崩溃回归）。
+- **P6 代码直改拦截（P6_CODE 系列）**：复用 13a 的 `_write_min_valid_dispatch_context`
+  （P6 卡片注入，hook 2p hash 校验通过）——P6-evidence/ 与 evidences/ 下截图例外
+  （`_NON_MD_YAML_RE` + 证据前缀白名单 L436-439），`src/app.py` 非证据 → P6 硬拦截 /
+  P4/P5 放行 / P2 仅 WARNING（`是否在非实现阶段直接改代码`）。
+- **IT_RETREAT 集成（真实 hook）**：`_retreat_setup` 复用 13a helper 建 P6 任务 +
+  dispatch-context 后**真实 commit**（`setup P6 state` 走 hook，验证 P6 证据 gate 通过）；
+  `agate-retreat-to.py` 经 `run_cli(python_exe, .../agate-retreat-to.py, "agate-workspace/tasks/T001",
+  "P4", reason, cwd=repo, env={"AGATE_ROOT": ...})`（等价 bats `cd '$repo' && '$PYTHON' ...`）；
+  retreat 内部 `git commit` 触发真 hook（P1 §"hook 薄壳真环境行为"）；git log 断言经
+  `git_repo.git("log", "--oneline").stdout`（等价 bats `run git log --oneline`）。
+  - RETREAT.1：retreat-to 每步 commit 均过 hook（P6→P5→P4 共 2 步，`共 2 步`）；
+    断言 `retreat: P6 -> P5` / `retreat: P5 -> P4` 在 log 中。
+  - RETREAT.2：note.md 行首 `[PROD_TOUCHED]` 真声明 → 第一步 commit 被 hook 拦截 →
+    `未通过 pre-commit hook 校验` + `已停在 P6` + 无 `retreat:` commit 落地。
+- **IT_CHANGELOG（P2.54 限制到 P8）**：CHANGELOG 检查只在 P8 phase 触发——
+  P54 用 P4 phase（无 CHANGELOG 警告）、P54b 用 P8 phase（有警告）；**不装 hook**，
+  直接 `run_cli("bash", str(agate_scripts/"pre-commit-gate.sh"), cwd=repo,
+  env={"AGATE_ROOT": ...})` 跑真薄壳（等价 bats `cd '$repo' && bash '$AGATE_ROOT/scripts/
+  pre-commit-gate.sh'`）；git init 用 `git_repo.git("commit", "-q", "--allow-empty", "-m", "init")`
+  （等价 bats `git commit -q --allow-empty -m "init"`）。
+- **IT.9 / IT.9b 裁剪跳阶**：P1-requirements 用 legacy 字段格式（`risk_level` / `phases`
+  在正文非 frontmatter，T001 v1.0 样式）——IT.9 low 风险裁 P3 → 跳 P2→P5 放行；
+  IT.9b medium 风险裁 P3 → `P3 不可裁剪` + `仅 low`（`_in_order` 有序断言，bats 复合 glob）。
+- 函数命名匹配 P2 §5 子批 13b 验证命令 `-k "phase_span or retreat or changelog or p6_code"`
+  （`test_it9_*` / `test_it9b_*` 不在 -k 契约内，由整文件运行兜底，N1 非穷举分区口径）。
+- windows_smoke 打标：本子批无新增（无平台关键词用例；文件首 @test IT.1 归 13c 打标，
+  P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 13 验证命令
+> `-k "phase_span or retreat or changelog or p6_code"` 统一跑）。已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/integration/test_pre_commit_hook.py
+# SYNTAX-OK
+# 待主 Agent 执行：python3 -m pytest agate/tests/ -k "phase_span or retreat or changelog or p6_code" + 原 bats 对应子集 + consistency
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - IT_PHASE_SPAN 复合 glob `*"A"*"B"*` 用新增 `_in_order` helper（P2 §3.2 映射表未列
+    复合 glob 情形，按 glob 语义顺序匹配实现，双跑对照等价）。
+  - IT_CHANGELOG 用 git_repo fixture 而非 13a 的 `_install_pre_commit_hook`（该两用例
+    bats 原文不装 hook、直接跑薄壳，git init 后立即 commit `--allow-empty`）。
+  - IT.9/IT.9b 的 legacy P1 字段格式（risk_level/phases 在正文）是 bats 原文样式，
+    直接复刻 heredoc，未改用 conftest `task_dir` factory（v2.0 frontmatter 流 A）。
+
