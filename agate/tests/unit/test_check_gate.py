@@ -6,7 +6,8 @@
 #   批次 8e：G7.1-9 + G_DG_ANCHOR.1/2 + bdd-11（TAG0004 M4 全角冒号），12 用例；
 #   批次 8f：G8.1-10（gate_p8 分支），10 用例；
 #   批次 8g：G_RETREAT.1-6 + G_NC_BINARY.1/2/3/5/6 + G_SUGGEST.1-4，15 用例；
-#   批次 8h：D-drift-1/2/4/4b/5/6 + G-drift-1/2/3 + TAG0005 BDD-1/2/9/12/13/14/15，16 用例）
+#   批次 8h：D-drift-1/2/4/4b/5/6 + G-drift-1/2/3 + TAG0005 BDD-1/2/9/12/13/14/15，16 用例；
+#   批次 8 补遗：PG.P2REVIEW / bdd-14 / bdd-28 / bdd-29，4 用例）
 # 被测：agate/scripts/check-gate.py（PHASE TASK_DIR [OLD_PHASE]；exit 0 = 通过 / exit 1 = 未通过 /
 #   exit 2 = 主 Agent 自判）。
 # G0/G1/G3/G_OTHER 用 task_dir factory（create_task_dir 等价）；G4 系列需要 git_repo
@@ -1833,3 +1834,74 @@ def test_tag0005_bdd_15_scripts_stderr_exit0_only_skip_semantics(agate_root):
         for line in _read_text(sh).splitlines():
             if pattern.search(line):
                 assert "跳过" in line
+
+
+# ========== 批次 8 补遗：PG.P2REVIEW / bdd-14 / bdd-28 / bdd-29（4 用例） ==========
+# 8a-8h 按 P2 §5 子批表非穷举分区（`-k`）迁移后整文件核对，check-gate.bats 剩余 4 个
+# @test（PG.P2REVIEW / bdd-14 / bdd-28 / bdd-29）此前未入 pytest（8h 偏离点已记录）。
+# 本补遗补齐：PG.P2REVIEW = P2-review.md 不存在（exit 1，与 G2.13 差异在断言子串
+# "P2-review.md 不存在"）；bdd-14 = P1 CRLF 行尾 frontmatter 提取（M6，exit 2，bats
+# printf 写 CRLF 文本）；bdd-28/bdd-29 = 反引号包裹 [SUGGEST:]/[NEED_CONFIRM] 标记
+# 仍被识别（RM-AG0001）。复用 8b `_P2_TWO_CAND_BODY` / `add_p2_candidate_count` 与
+# 8g `_P1_MARKER_HEAD` / `_P1_MARKER_REVIEW` / `_write_p1_marker_task`。
+# bdd-14 名称含平台关键词 CRLF → 按 P2 §5.2 加 @pytest.mark.windows_smoke（Windows
+# checkout 的 CRLF review 文件是该用例验证的机制本身）。
+
+
+def test_pg_p2review_not_found_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p2_design(td, _P2_TWO_CAND_BODY)
+    add_p2_candidate_count(td, 2)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
+    assert result.returncode == 1
+    assert "P2-review.md 不存在" in result.output
+
+
+@pytest.mark.windows_smoke
+def test_bdd14_crlf_review_frontmatter_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    (td / "P1-review.md").write_text(
+        "---\r\nphase: P1\r\ntask_id: T001-test\r\nstatus: approved\r\n"
+        "agent: requirements-review\r\n---\r\n## BDD 评审\r\n- BDD-1: PASS\r\n",
+        encoding="utf-8",
+    )
+    (td / "P1-requirements.md").write_text(
+        "---\r\nagent: test\r\nrisk_level: medium\r\n"
+        "phases: [P1,P2,P3,P4,P5,P6,P7,P8]\r\n---\r\n- [NO_NEED_CONFIRM]\r\n",
+        encoding="utf-8",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+
+
+def test_bdd28_backtick_suggest_warning_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(
+        td,
+        _P1_MARKER_HEAD
+        + "- [NO_NEED_CONFIRM]\n"
+        + "- `[SUGGEST: 推荐 X，理由 Y]`\n",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+    assert "SUGGEST" in result.output
+
+
+def test_bdd29_backtick_need_confirm_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(
+        td, _P1_MARKER_HEAD + "- `[NEED_CONFIRM]` z 的边界条件需确认\n"
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1
+    assert "未解决的 NEED_CONFIRM" in result.output

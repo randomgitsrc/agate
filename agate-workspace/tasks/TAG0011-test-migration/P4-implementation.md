@@ -954,9 +954,61 @@ ruff check agate/tests/unit/test_check_gate.py
   实际 D-drift（6）+ G-drift（3）+ TAG0005 BDD（7）= 16 个全部迁移（1 @test → 1 test
   函数，P1 约束）。子批完成后的整文件覆盖确认：test_check_gate.py 累计 120 用例，
   check-gate.bats 全部 124 用例中的剩余 4 个（PG.P2REVIEW / bdd-14 / bdd-28 / bdd-29）
-  按 P2 §5 N1 备注属 `-k` 非穷举分区，由「8 子批完成后整文件跑」兜底，不在 8h 范围内；
+  按 P2 §5 N1 备注属 `-k` 非穷举分区，由「8 子批完成后整文件跑」兜底，不在 8h 范围内，
+  后续由「批次 8 补遗」补齐（见下节）；
   8a-8h 合计 120 用例（104 + 16），check-gate-p1-review / check-gate-p5-diff 两文件
   另覆盖各自 bats 源。
+
+## 批次 8 补遗 — check-gate 子批补遗（1 文件 / 4 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（PG.P2REVIEW / bdd-14 / bdd-28 / bdd-29） | `unit/test_check_gate.py` | 4 |
+
+> 8a-8h 整文件核对后补齐 check-gate.bats 剩余 4 个 @test（8h 偏离点已记录，当时按
+> P2 §5 N1 备注属 `-k` 非穷举分区未迁移）。补遗后 test_check_gate.py 累计 124 用例 =
+> check-gate.bats 124 @test，check-gate.bats 全部用例迁完。
+
+### 关键实现点
+
+- **PG.P2REVIEW**（P2-review.md not found → exit 1）：与已迁移 G2.13 同形态（task_dir +
+  `_P2_TWO_CAND_BODY` + `add_p2_candidate_count(td, 2)` + P2 gate），差异仅在断言子串
+  ——bats `[[ "$output" == *"P2-review.md 不存在"* ]]` → `assert "P2-review.md 不存在"
+  in result.output`（G2.13 只断言 `"P2-review.md"`）。8b 已在 8h 前的整文件核对中发现
+  该区分，本补遗复用 8b 既有 helper。
+- **bdd-14**（P1 CRLF 行尾 frontmatter 提取不失效，M6 → exit 2）：bats `printf` 写 CRLF
+  文件 → pytest `write_text("\r\n"...)` 逐字等价（显式 encoding="utf-8"，BDD-7）；
+  task_dir(no_state_yaml=True) 后覆写 P1-review.md / P1-requirements.md 两个 CRLF 文件
+  （内容逐字节对照 bats printf 串）。函数名含平台关键词 CRLF → 按 P2 §5.2 加
+  `@pytest.mark.windows_smoke`（Windows checkout 的 CRLF review 文件正是该用例验证的机制）。
+- **bdd-28 / bdd-29**（反引号包裹 [SUGGEST:]/[NEED_CONFIRM]，RM-AG0001）：与 8g
+  G_NC_BINARY / G_SUGGEST 同形态——复用 `_P1_MARKER_HEAD` / `_P1_MARKER_REVIEW` /
+  `_write_p1_marker_task`（P1 frontmatter 与 review heredoc 逐字节一致）；
+  bdd-28 断言 `"SUGGEST"` 在输出（WARNING 不阻塞，exit 2）；bdd-29 断言
+  `"未解决的 NEED_CONFIRM"`（阻塞，exit 1）。
+- **GATE P1 输出流语义**：`sys.stderr.write` → 断言一律合并流 result.output（P2 §3.2
+  BLOCKER-1，与 8g 同口径）。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按批次验证命令统一跑）。
+> 已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/unit/test_check_gate.py
+# SYNTAX-OK
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - `test_bdd14_*` 复用 8g `_write_p1_marker_task` 不适用（CRLF 覆写两文件），改为直接
+    write_text；bdd-28/29 则完整复用 8g helper（bats heredoc 与 `_P1_MARKER_*` 常量
+    逐字节一致）。
 
 ## 批次 8i — check-gate-p1-review / check-gate-p5-diff（2 文件 / 22 @test）
 
