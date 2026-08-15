@@ -13,7 +13,7 @@
     输入：P1-requirements.md
     产出：P1-review.md（agent≠main，含 BDD 编号引用 + 覆盖维度标注）
     review 不通过 → analyst 修改 → 再 review → … → approved（⑩迭代循环）
-3. 预跑 check-gate.sh P1（exit 2，主 Agent 自判）
+3. 预跑 check-gate.py P1（exit 2，主 Agent 自判）
 4. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
    ⚠️ 此时 .state.yaml 的 phase 保持 P1，不要提前写 P2——phase = 本 commit 的产出阶段
 5. git commit -m "wf({Txxx}-P1): {摘要}"（phase=P1，P1 产出含 P1-requirements.md + P1-review.md）
@@ -81,7 +81,7 @@ domains: [backend, frontend]  # list，必填
 
 ## gate 规则
 
-check-gate.sh P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式为 `#### BDD-NN:`）；缺 P1-review.md / agent=main / 无锚点 → exit 1
+check-gate.py P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式为 `#### BDD-NN:`）；缺 P1-review.md / agent=main / 无锚点 → exit 1
 P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 ## 推进条件（全部满足才写 phase: P2）

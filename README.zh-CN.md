@@ -29,7 +29,7 @@ LLM Agent 在长任务上强大但不可靠：上下文被污染、subagent 漂�
    curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
    ```
 2. **注册编排 Agent。** 将 `orchestrator-template.md` 符号链接到你的平台 Agent 目录，并安装 git hooks（`python3 ~/.agate/scripts/install-hook.py`）。平台相关步骤——OpenCode、Claude Code、Windows 降级方案——见 [`agate/SETUP.md`](agate/SETUP.md)。
-3. **运行你的第一个任务。** 用编排 Agent 开启一个会话。工作区（`agate-workspace/`）在首次运行时自动创建——无需手动配置。
+3. **运行你的第一个任务。** 用编排 Agent 开启一个会话。工作区（`agate-workspace/`）在编排 Agent 首次运行时自动初始化；一次性接入步骤见 [`agate/SETUP.md`](agate/SETUP.md)。
 
 ## How it works
 
@@ -89,7 +89,7 @@ Gate 按"被评判的产物由谁产出"分为两类信任级别：
 
 自写 gate 只能缓解、无法根治，依靠证据存在性检查、客观 provenance 审计、BDD 计数对照来提升造假成本并留下审计线索。见 [`agate/LIMITATIONS.md`](agate/LIMITATIONS.md) 中的局限 3。
 
-采用是渐进式的。在 P1 需求中设定 `risk_level`，后面的阶段会自动裁剪：低风险任务可跳过 P7 一致性（以及可选的 P3 TDD），中风险任务走标准流程且 P3 TDD 强制，高风险任务跑完整 P0-P8 并附带人工最终评审。
+采用是渐进式的。裁剪由 P1 判定，不是自动的：分析师按"复杂度 × 风险"矩阵对任务分类，为每个跳过的阶段写明理由，由主 Agent 确认。小改动单点任务走裁剪流程（P1 + P3 + P4 + P5）——P3 测试先行默认保留，仅在有明确理由时才跳过（配置类改动，或 ≤3 行且已有回归测试覆盖的改动）；P7 一致性在低/中风险任务中可裁剪，高风险（安全/数据/权限）任务必须保留。中改动走完整 P1-P8；高风险任务强制保留验收与一致性，并建议人工最终评审。P6 验收不可裁剪。
 
 ## Known limitations
 

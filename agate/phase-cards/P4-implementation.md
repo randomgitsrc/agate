@@ -1,18 +1,18 @@
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
-> 裁剪跳阶 → 确认 P1 phases 不含 P4 且有合规理由（check-pruning.sh 已检查）→ 跳过，读 P5 卡片
+> 裁剪跳阶 → 确认 P1 phases 不含 P4 且有合规理由（check-pruning.py 已检查）→ 跳过，读 P5 卡片
 
 ## 如果是首次进入本阶段
 
-0. 跑 `agate-capture-env-baseline.sh $TASK_DIR`（自动捕获环境基线）。
+0. 跑 `agate-capture-env-baseline.py $TASK_DIR`（自动捕获环境基线）。
    该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
    无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
 1. 派发 implementer subagent → 产出代码文件
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
 3. 按 C8 映射表派发评审（见下方）
-4. 预跑 check-gate.sh P4（确认暂存区有代码文件）
+4. 预跑 check-gate.py P4（确认暂存区有代码文件）
 5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/ + 代码文件（含 .state.yaml，若 .gitignore 忽略需 git add -f）
    ⚠️ 此时 .state.yaml 的 phase 保持 P4，不要提前写 P5——phase = 本 commit 的产出阶段
 6. git commit -m "wf({Txxx}-P4): {摘要}"（phase=P4，P4 产出含 P4-implementation.md + 代码文件）
@@ -32,7 +32,7 @@
 - [ ] P2-design.md 存在且 files_to_read 字段完整（导航清单）
 - [ ] P2-review.md status: approved（P2 不可裁剪）
 - [ ] P3-test-cases.md 存在（测试已设计）
-- [ ] check-tdd-red.sh 确认红灯（测试先于实现）
+- [ ] check-tdd-red.py 确认红灯（测试先于实现）
 - [ ] 未跳过 P4（如有裁剪理由，见上方裁剪跳阶）
 
 ## 派发
@@ -84,7 +84,7 @@ P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验
    > 平台会并行执行多个 task，全部返回后再进入下一步（派发组长汇总）。
 2. 每个评审 subagent 各写一个 dispatch-context + 各自产出文件
 3. 所有评审返回后，派发组长汇总 subagent（角色：review + 指定为「专家组组长」）
-4. 组长产出：P4-review.md。**agent 字段必须非 main**（与 P2 评审同规则，check-gate.sh 在 P2 分支硬拦截 agent=main 的 approved）
+4. 组长产出：P4-review.md。**agent 字段必须非 main**（与 P2 评审同规则，check-gate.py 在 P2 分支硬拦截 agent=main 的 approved）
 5. 组长规则：不发表新意见，只汇总；任何 BLOCKER → rejected；分歧 → 交人工；全票无 BLOCKER → approved
 
 **单评审角色时**：直接派发，无需组长汇总，产出直接写 P4-review.md。
@@ -116,10 +116,10 @@ review 不通过 → implementer 修改代码 → 再 review → … → approve
 
 主 Agent 在并行派发前**必须**为每个 subagent 的 dispatch-context 分配上述隔离参数。当前无 gate 脚本检查（已知缺口），但未分配导致运行时冲突（端口占用/数据库锁）时计为重试，不算环境问题。
 
-## gate 规则（check-gate.sh 会跑）
+## gate 规则（check-gate.py 会跑）
 
 ```bash
-check-gate.sh P4 $TASK_DIR
+check-gate.py P4 $TASK_DIR
 ```
 
 - **exit 0**：暂存区含非 md/yaml 代码文件（git diff --cached --name-only）

@@ -10,7 +10,7 @@
    1.1 写 P7-dispatch-context-consistency-reviewer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 对照 P1-P6 产出做跨文件一致性审查
 3. 产出 P7-consistency.md
-4. 预跑 check-gate.sh P7
+4. 预跑 check-gate.py P7
 5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
    ⚠️ 此时 .state.yaml 的 phase 保持 P7，不要提前写 P8——phase = 本 commit 的产出阶段
 6. git commit -m "wf({Txxx}-P7): {摘要}"（phase=P7，P7 产出含 P7-consistency.md）
@@ -76,7 +76,7 @@ design_gap_reviewed_count: 0       # int ≥0
 ## gate 规则
 
 ```bash
-check-gate.sh P7 $TASK_DIR
+check-gate.py P7 $TASK_DIR
 ```
 
 - [BLOCKER] 存在 → exit 1

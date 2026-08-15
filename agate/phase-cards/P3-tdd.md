@@ -5,11 +5,11 @@
 
 ## 如果是首次进入本阶段
 
-0. 跑 `agate-capture-env-baseline.sh $TASK_DIR`（自动捕获环境基线）。**必须执行**。
+0. 跑 `agate-capture-env-baseline.py $TASK_DIR`（自动捕获环境基线）。**必须执行**。
    该步骤不阻塞流程——脚本的 stderr 输出（含 WARNING）均可忽略，执行完直接继续步骤 1。
 1. 派发 test-designer subagent → 产出 P3-test-cases.md + 测试代码目录
    1.1 写 P3-dispatch-context-test-designer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
-2. 主 Agent 跑 check-tdd-red.sh 确认红灯
+2. 主 Agent 跑 check-tdd-red.py 确认红灯
 3. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
    ⚠️ 此时 .state.yaml 的 phase 保持 P3，不要提前写 P4——phase = 本 commit 的产出阶段
 4. git commit -m "wf({Txxx}-P3): {摘要}"（phase=P3，P3 产出含 P3-test-cases.md + 测试代码）
@@ -50,14 +50,14 @@ refactor 任务无新增功能行为可断言，P3 测试设计改用**回归测
 
 ## gate 规则
 
-**check-gate.sh P3**（hook + 主 Agent 预跑，秒级文件检查）：
+**check-gate.py P3**（hook + 主 Agent 预跑，秒级文件检查）：
 - exit 1：P3-test-cases.md 不存在
-- exit 2：P3-test-cases.md 存在（TDD 红灯由 check-tdd-red.sh 独立确认）
+- exit 2：P3-test-cases.md 存在（TDD 红灯由 check-tdd-red.py 独立确认）
 
-**check-tdd-red.sh**（主 Agent 手动确认红灯 + CI backstop P3 兜底）：
+**check-tdd-red.py**（主 Agent 手动确认红灯 + CI backstop P3 兜底）：
 
 ```bash
-check-tdd-red.sh $TASK_DIR
+check-tdd-red.py $TASK_DIR
 ```
 
 - **exit 0**：真红灯（assertion 失败 / 项目内 import 失败 = B类错误）— 测试正确但因实现未写而失败
@@ -65,7 +65,7 @@ check-tdd-red.sh $TASK_DIR
 - **exit 2**：绿了 — 实现先于测试，违反 TDD
 - **exit 3**：无可用测试运行器
 
-**技术栈无关**：check-tdd-red.sh 通过 formatter 将测试输出标准化为 JSON，不直接解析任何框架的输出格式。formatter 在 gate_commands.P3_formatter 中声明（可选）。不提供 formatter 时退化为 exit-code-only（所有红灯 = 可推进）。
+**技术栈无关**：check-tdd-red.py 通过 formatter 将测试输出标准化为 JSON，不直接解析任何框架的输出格式。formatter 在 gate_commands.P3_formatter 中声明（可选）。不提供 formatter 时退化为 exit-code-only（所有红灯 = 可推进）。
 
 **探测链**：`$TEST_RUNNER` 环境变量 → `gate_commands.P3`（P2-design.md 声明）→ `which pytest` → exit 3。`$TEST_RUNNER` 始终优先（退化为 exit-code-only，无 formatter）。
 
@@ -91,7 +91,7 @@ check-tdd-red.sh $TASK_DIR
 
 ## 推进条件（全部满足才写 phase: P4）
 
-- [ ] check-tdd-red.sh exit 0（真红灯确认）
+- [ ] check-tdd-red.py exit 0（真红灯确认）
 - [ ] P3-test-cases.md 存在且含 test_code_dir
 - [ ] 测试代码目录存在
 - [ ] UI 任务：Playwright/E2E 用例存在

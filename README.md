@@ -29,7 +29,7 @@ LLM agents are powerful but unreliable on long tasks: context gets polluted, sub
    curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
    ```
 2. **Register the orchestrator.** Symbolically link `orchestrator-template.md` into your platform's agent directory and install the git hooks (`python3 ~/.agate/scripts/install-hook.py`). Platform-specific steps — OpenCode, Claude Code, and Windows fallbacks — are in [`agate/SETUP.md`](agate/SETUP.md).
-3. **Run your first task.** Start a session with the orchestrator agent. The workspace (`agate-workspace/`) is created automatically on first run — no manual setup.
+3. **Run your first task.** Start a session with the orchestrator agent. The workspace (`agate-workspace/`) is initialized automatically on the orchestrator's first run; see [`agate/SETUP.md`](agate/SETUP.md) for the one-time setup.
 
 ## How it works
 
@@ -89,7 +89,7 @@ Gates fall into two trust classes, based on who produces the judged artifact:
 
 Self-authored gates are mitigated, never cured, by evidence-existence checks, objective provenance audits, and BDD count cross-checks — raising the cost of fabrication and leaving an audit trail. See [Limitation 3 in `agate/LIMITATIONS.md`](agate/LIMITATIONS.md).
 
-Adoption is progressive. Set `risk_level` in the P1 requirements and later phases are pruned automatically: low-risk tasks may skip P7 consistency (and optionally P3 TDD), medium-risk tasks follow the standard flow with P3 TDD mandatory, and high-risk tasks run the full P0-P8 with a manual final review.
+Adoption is progressive. Pruning is decided in P1, not automatic: the analyst classifies the task on a complexity × risk matrix, writes a reason for every skipped phase, and the orchestrator confirms the plan. Small single-point changes run a pruned flow (P1 + P3 + P4 + P5) — P3 test-first is kept by default and skipped only with an explicit justification (config-only changes, or a ≤3-line change already covered by a regression test), while P7 consistency is dropped for low/medium-risk changes but mandatory for high-risk (security/data/permission) ones. Medium changes run the full P1-P8; high-risk tasks keep acceptance and consistency mandatory and warrant a final human review. P6 acceptance is never pruned.
 
 ## Known limitations
 
