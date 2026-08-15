@@ -371,7 +371,7 @@ def gate_p3(task_dir):
     if not os.path.isfile(p3_cases):
         sys.stderr.write("GATE P3: P3-test-cases.md 不存在——P3 产出文件缺失\n")
         return 1
-    sys.stderr.write("GATE P3: P3-test-cases.md 存在。TDD 红灯由主 Agent 手动跑 check-tdd-red.sh 确认 + CI backstop P3 兜底。\n")
+    sys.stderr.write("GATE P3: P3-test-cases.md 存在。TDD 红灯由主 Agent 手动跑 check-tdd-red.py 确认 + CI backstop P3 兜底。\n")
     return 2
 
 
@@ -527,7 +527,7 @@ def gate_p6(task_dir):
         return 1
 
     sys.stderr.write(
-        f"GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL={total}。BDD 总数对照由 check-p6-provenance.sh 审计 3 自动执行。\n"
+        f"GATE P6: 证据目录非空，FAIL=0，NC=0，P6_TOTAL={total}。BDD 总数对照由 check-p6-provenance.py 审计 3 自动执行。\n"
     )
     return 2
 

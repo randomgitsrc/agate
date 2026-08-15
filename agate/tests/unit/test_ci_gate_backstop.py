@@ -46,7 +46,10 @@ def _setup_p3_base(git_repo):
 
 def _write_mock(repo, name, exit_code):
     mock = repo / name
-    mock.write_text(f"#!/bin/bash\nexit {exit_code}\n", encoding="utf-8")
+    mock.write_text(
+        f"#!/usr/bin/env python3\nimport sys\nsys.exit({exit_code})\n",
+        encoding="utf-8",
+    )
     mock.chmod(0o755)
     return mock
 
@@ -195,3 +198,29 @@ def test_backstop_p3_cp1252(
     )
     assert "UnicodeEncodeError" not in ok.output
     assert "真红灯" in ok.output
+
+
+def test_backstop_p5_py_gate_pass(
+    git_repo, agate_scripts, python_exe, run_cli, py_path
+):
+    """M1 回归锁：run_gate 调 check-gate.py（非已删 .sh），P5 场景 exit 一致 → PASS。
+
+    历史：v0.47.0 ci-gate-backstop.py 仍调已删 check-gate.sh → 合法项目恒
+    "check-gate.sh not found" exit 2 → .gate-result.json 对照必 FAIL（CI backstop 失效）。
+    P5 gate 返回 2（需主 Agent 自判），.gate-result.json exit_code=2 应一致 PASS。
+    """
+    repo = git_repo.path
+    tasks = repo / "agate-workspace" / "tasks" / "T001"
+    tasks.mkdir(parents=True)
+    (repo / ".state.yaml").write_text(
+        "task_id: T001\nphase: P5\nstatus: active\nretries: {}\n", encoding="utf-8"
+    )
+    (repo / ".gate-result.json").write_text(
+        '{"phase": "P5", "exit_code": 2, "timestamp": ""}\n', encoding="utf-8"
+    )
+    git_repo.commit("p5")
+    env = _ci_env(GITHUB_ACTIONS="true")
+    result = _run_backstop(python_exe, run_cli, py_path, agate_scripts, repo, env)
+    assert "check-gate.sh not found" not in result.output
+    assert "PASS" in result.output
+    assert "FAIL" not in result.output
