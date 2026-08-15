@@ -5,8 +5,8 @@
 # 调用方式保持（P3 §4 批次 10 口径）：run_cli("bash", <formatter>.sh, <exit_code>, input=<输出>)
 #   ——等价 bats `echo "<输出>" | bash "$FORMATTER_DIR/<name>.sh" <exit_code>`。
 # JSON 由 formatter 的 python 经 print 写 stdout → json.loads(result.stdout)。
-# R4 平台无关（P2 §3.1）：FMT.8/9 的 vitest mock 输出样例含 /tmp 字面（bats 原文用
-#   `# scan-exempt:` 行级豁免）——pytest 侧改运行时拼接，避免源码命中 R4。
+# R4 平台无关（P2 §3.1）：FMT.8/9 的 vitest mock 输出样例含临时目录字面（bats 原文用
+#   `# scan-exempt:` 行级豁免）——pytest 侧改运行时拼接，避免源码命中 R4（本注释不写该字面）。
 
 import json
 
