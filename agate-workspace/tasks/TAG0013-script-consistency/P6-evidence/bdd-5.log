@@ -1,0 +1,7 @@
+=== BDD-5: 叙事文件至多 WARNING；docs/ 非扫描面无输出 ===
+构造: docs/superpowers/guide.md + archived/old.md 含 check-gate.sh 旧名; CHANGELOG.md 含 check-gate.sh
+命令: python3 agate/scripts/check-protocol-consistency.py --root /tmp/p6-bdd5 --json
+CHECK10 errors: 0
+CHECK10 warnings: 1（仅 CHANGELOG.md:1 聚合 WARNING，叙事降级）
+docs/ 与 archived/ 均无 CHECK10 输出
+EXIT_CODE: 0

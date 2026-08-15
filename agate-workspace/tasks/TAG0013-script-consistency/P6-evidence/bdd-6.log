@@ -1,0 +1,6 @@
+=== BDD-6: 暂存 README.md 变更触发 self-gate WARNING ===
+临时 git 仓库 /tmp/p6-bdd678，git add README.md，commit msg 无 review/skip
+命令: bash agate/scripts/commit-msg-self-gate.sh msg.txt（AGATE_ROOT=worktree/agate）
+stderr 含 'GATE SELF-GATE:' + 'README.md / AGENTS.md' 文案，'self-gate' 命中 5 次
+exit code: 0（只提醒不阻断）
+EXIT_CODE: 0

@@ -1,0 +1,10 @@
+=== BDD-10: 有异常模式输出 DEBT/roadmap 登记提醒 ===
+构造: .state.yaml P2 重试 3 次（超限）
+命令: python3 agate/scripts/check-retrospective.py /tmp/p6-bdd10 /tmp/p6-bdd10/.state.yaml
+stderr 含 '复盘发现的新缺口请登记 DEBT/roadmap'；DEBT 命中 1 / roadmap 命中 1
+exit code: 0
+GATE RETRO: 建议复盘 — 检测到异常模式：
+  - gate 重试超限（P2=3 (MAX=3)）
+  请在版本 bump 前写简版复盘（docs/releases/v{version}-retrospective.md）
+  复盘发现的新缺口请登记 DEBT/roadmap（技术债清单 / 路线图）
+EXIT_CODE: 0

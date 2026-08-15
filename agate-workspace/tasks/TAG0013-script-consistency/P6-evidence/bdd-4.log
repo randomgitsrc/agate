@@ -1,0 +1,6 @@
+=== BDD-4: PROTOCOL_DIRS 纳入 phase-cards/rules ===
+PROTOCOL_DIRS = ('agate/assets/', 'agate/phase-cards/', 'agate/rules/')
+CHECK 2 errors: 0（phase-cards/rules 无死链）
+CHECK 3 errors: 0（phase-cards/rules 无行号引用）
+errors touching phase-cards/rules: 0
+EXIT_CODE: 0

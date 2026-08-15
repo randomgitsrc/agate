@@ -1,0 +1,5 @@
+=== BDD-9: 既有 self-gate 触发面不回归 ===
+命令: python3 -m pytest agate/tests/unit/test_commit_msg_self_gate.py agate/tests/integration/test_commit_msg_self_gate_integration.py -q
+结果: 14 passed（既有 4 用例 + 新增 README/AGENTS/CHANGELOG 用例 + integration）
+exit code: 0
+EXIT_CODE: 0

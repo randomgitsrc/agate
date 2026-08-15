@@ -1,0 +1,6 @@
+=== BDD-8: 暂存 CHANGELOG.md 变更不触发 self-gate ===
+git add CHANGELOG.md，commit msg 无标记
+命令: bash agate/scripts/commit-msg-self-gate.sh msg.txt
+stdout bytes: 0 / stderr bytes: 0（CHANGELOG 豁免，无输出）
+exit code: 0
+EXIT_CODE: 0
