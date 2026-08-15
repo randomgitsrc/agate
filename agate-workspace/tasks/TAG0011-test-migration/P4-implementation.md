@@ -70,3 +70,55 @@ encoding 守卫（bdd-5 逻辑）
   与 `[tool.ruff] src` 扩展 `["agate/scripts", "agate/tests"]`（P2 §2 影响域要求）。
 - helpers-python.bats（3 用例）不在本批迁移（P4 批次 0 派发范围仅 3 文件）；`python_exe` fixture 已按
   P2/P3 交付其语义，`test_helpers_python.py` 留待对应批次。
+
+## 批次 1 — 纯工具无 git（5 文件 / 11 @test + 1 回归锁 + helpers-python 3）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/agate-changelog-unreleased.bats` | `unit/test_agate_changelog_unreleased.py` | 2 |
+| `unit/agate-card-inject.bats` | `unit/test_agate_card_inject.py` | 2 |
+| `unit/agate-evidence-consistency.bats` | `unit/test_agate_evidence_consistency.py` | 2 |
+| `unit/agate-gate-missing-cmds.bats` | `unit/test_agate_gate_missing_cmds.py` | 2 |
+| `unit/agate-gate-p5-count.bats` | `unit/test_agate_gate_p5_count.py` | 3 + 1 流语义回归锁 |
+| `unit/helpers-python.bats` | `unit/test_helpers_python.py` | 3（P4 review 跟踪项） |
+
+### 关键实现点
+
+- **合并流（P2 BLOCKER-1）**：3 处 `[ -z "$output" ]`（CL.2 / EC.2 / GMC.2）→ `assert result.output == ""`；
+  `[[ "$output" == *"X"* ]]` → `assert "X" in result.output`；精确等值（GPC 的 `"1 2"` 等）→ `.strip()`
+  后再比较（`$(...)` 剥尾部换行 vs subprocess 保留，P2 §3.2 精确等值注意）。
+- **流语义回归锁**（`test_stream_lock_stderr_hits_merged_output`）：无占位符时 agate-card-inject.py 写
+  `注入失败` 到 **stderr** 并 exit 1 —— 先断言 `"注入失败" in result.stderr`（流归属）+ `not in result.stdout`，
+  再断言 `"注入失败" in result.output`（合并流命中），等价 EB.8 的"stderr WARNING + $output 合并流断言"。
+- **helpers-python**：`create_python_shim_bin` 退役（P2 §3.1）——bdd-13 改用 `python_exe` fixture 语义
+  （探测到 + `--version` 可执行，输出含 "Python"）；bdd-15/17 直接测产品代码 `agate_common.probe_python`
+  （python3→python 回退 + 无 python 返回空 fail-closed），fakebin 目录跨平台构造（Windows 复制为
+  `python.exe` / Linux 复制为 `python`，`shutil.copyfile` + `os.chmod`）。
+- run_cli 全部走 conftest fixture（`agate_scripts` / `python_exe` / `run_cli` / `tmp_path`），
+  env 经 `run_cli(..., env=...)` 传入（等价 bats `KEY=value $PYTHON ...` 前缀）。
+- windows_smoke 打标（P3 §5.2 表 W + 每文件第 1 用例）：`test_cl_1` / `test_ic_1` / `test_ec_1` /
+  `test_gmc_1` / `test_gpc_1` / `test_bdd_13`（每文件第 1）+ `test_bdd_15`（平台关键词"无 python3"）——共 7 处。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_agate_changelog_unreleased.py agate/tests/unit/test_agate_card_inject.py agate/tests/unit/test_agate_evidence_consistency.py agate/tests/unit/test_agate_gate_missing_cmds.py agate/tests/unit/test_agate_gate_p5_count.py agate/tests/unit/test_helpers_python.py -q
+# 15 passed in 0.42s（2+2+2+2+4+3，全绿）
+python3 -m pytest agate/tests/unit/ -k "changelog or card or evidence or gate_missing or gate_p5" -q   # P3 §6 批次 1 验证命令
+# 12 passed, 13 deselected（helpers_python 不在该 -k 契约内，属预期）
+/home/kity/.venvs/agate-dev/bin/ruff check <6 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <6 个新文件>
+# exit 0（R1-R5 零命中）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：bdd-15（bats 测已退役的 `fixtures.bash detect_python`）在
+  pytest 迁移中直接测产品代码 `agate_common.probe_python`（当前唯一的探测实现，P3 §4 批次 0 口径），
+  与 bdd-17 的 PATH 回退场景部分重叠，但 bdd-15 焦点为"回退解析"、bdd-17 焦点为"无 python fail-closed"，
+  各自独立成立。
