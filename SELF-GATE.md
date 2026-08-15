@@ -1,18 +1,18 @@
 # agate 自身变更的 gate（self-gate）
 
 > agate 改自己的协议文档或脚本时，必须走本流程。
-> 和项目侧 agate 流程对等：项目用 check-gate.sh + P2 评审；agate 自身用 CHECK 9 + LLM 语义审查。
+> 和项目侧 agate 流程对等：项目用 check-gate.py + P2 评审；agate 自身用 CHECK 9 + LLM 语义审查。
 
 ## 强制力边界
 
 **本机制目前有 commit-msg hook 辅助提醒**：暂存区含 self-gate 触发文件时，commit message 须含 `self-gate-review:` 路径（或 `self-gate-skip:` 理由），否则 WARNING。
 
-但 WARNING 不拦截——遵循 hook 鲁棒性优先原则。主 Agent 仍可忽略 WARNING 直接 commit。真正的强制力依赖主 Agent 自觉 + CI 兜底（待实现）。详见 issue #002。
+但 WARNING 不拦截——遵循 hook 鲁棒性优先原则。主 Agent 仍可忽略 WARNING 直接 commit。真正的强制力依赖主 Agent 自觉 + CI 兜底（gate-backstop job 已接入，push 后重跑 gate；self-gate 语义审查的强制力仍依赖主 Agent 自觉）。详见 issue #002。
 
 ## 触发条件
 
 以下任一文件有改动并准备 commit 时：
-  - `agate/scripts/*.sh`
+  - `agate/scripts/*.sh`（现仅 3 个 hook 薄壳：pre-commit-gate.sh / commit-msg-self-gate.sh / pre-push-gate.sh；保留防御性列举）
   - `agate/scripts/*.py`
 - `agate/*.md`（协议文档：WORKFLOW.md / state-machine.md / dispatch-protocol.md 等）
 - `agate/**/*.md`（角色文件、模板文件等子目录）
@@ -23,7 +23,7 @@
 1. **跑 check-protocol-consistency.py** — 确认 CHECK 1-9 无 ERROR
 2. **派发 protocol-alignment-review subagent** — 语义对齐审查（派发模板见下文，角色定义见 `agate/assets/review-roles/protocol-alignment-review.md`）
 3. **读审查报告** — MISALIGNED 必须修复，NEEDS_HUMAN_REVIEW 需附 `[HUMAN_CONFIRMED: ...]` 标记
-4. **跑全量 bats** — 确认无退化
+4. **跑全量 pytest** — 确认无退化（`python3 -m pytest agate/tests/`）
 5. **如果改了 gate 逻辑** — 确认下游项目（如 PeekView）的 gate 仍能跑通
 
 ## Layer 0：CHECK 9（脚本结构兜底，自动）
@@ -102,9 +102,9 @@ python3 agate/scripts/check-protocol-consistency.py
   - agate/WORKFLOW.md（风险矩阵、阶段总览）
 
 ## 配套文件提示
-- 如果变更涉及 gate 检查逻辑（check-gate.sh），同时读对应的角色文件
+- 如果变更涉及 gate 检查逻辑（check-gate.py），同时读对应的角色文件
   （implementer.md / architect.md / verifier.md）
-- 如果变更涉及文件格式/字段（check-pruning.sh / check-state-yaml.sh），
+- 如果变更涉及文件格式/字段（check-pruning.py / check-state-yaml.py），
   同时读 assets/templates/task-files.md
 - 如果变更涉及 P6 证据格式，同时读 verifier.md 和 vision-analyst.md
 
@@ -219,4 +219,4 @@ docs/reviews/agate-alignment-review-{date}.md
 如果 self-gate 尚未实现（如还在 plan 阶段），实施者至少手动执行等价检查：
 1. 跑现有 check-protocol-consistency.py
 2. 人工逐项核对"文档描述的规则 vs 脚本实现"是否一致（对照 A1-A7）
-3. 跑全量 bats
+3. 跑全量 pytest
