@@ -438,3 +438,69 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
   - ST 系 `.state.yaml` 的 retries 多行段用 `_write_state` 的 `retries_block` 参数注入
     （等价 bats heredoc 原文），简单形态默认 `retries: {}`。
 
+## 批次 7 — check 基础 gate（5 文件 / 57 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-changelog.bats` | `unit/test_check_changelog.py` | 8 |
+| `unit/check-frontmatter.bats` | `unit/test_check_frontmatter.py` | 14 |
+| `unit/check-state-yaml.bats` | `unit/test_check_state_yaml.py` | 9 |
+| `unit/check-retrospective.bats` | `unit/test_check_retrospective.py` | 10 |
+| `unit/check-p6-format.bats` | `unit/test_check_p6_format.py` | 16 |
+
+### 关键实现点
+
+- **合并流（P2 BLOCKER-1）**：5 处 `[ -z "$output" ]`（CF.11 / CF.14 合法校验零输出、
+  RT.1 / RT.6 / RT.7 复盘无异常零输出）→ `assert result.output == ""`（合并流 `.output`，
+  未映射 `.stdout`）；错误路径断言（`GATE CHANGELOG` / `GATE STATE-YAML` / `GATE RETRO` 及
+  frontmatter 校验错误 print）一律 `in result.output`。frontmatter 校验器错误经 **stdout**
+  print（agate-frontmatter-check.py:197 注释确认），但按派发约束「GATE 前缀断言（stderr）→
+  合并流」统一用 `.output`，双跑对照不漂移。
+- **git_repo fixture**：check-changelog 全 8 例用 `git_repo`（bats `git_init` + `cd "$repo"`），
+  `run_cli(..., cwd=str(repo))` 等价；CHANGELOG.md 写 repo 根，脚本默认读 cwd 下 `CHANGELOG.md`。
+- **run_cli env 传参**：CF 全系（14 例）用 `run_cli(python_exe, str(agate_scripts/"agate-frontmatter-check.py"),
+  env={"FILE": str(file)})` 等价 bats `FILE='...' $PYTHON '.../agate-frontmatter-check.py'`；
+  CF.10 用 check-frontmatter.py 薄壳（FILE 位置参数）。F13 / bdd-12 / bdd-13 用
+  `env={"LC_ALL": "POSIX", "LANG": ""}` 等价 bats `env LC_ALL=POSIX LANG=` 前缀。
+- **check-gate 集成用例**：RT_BDD21.1（check-gate.py P1 need_confirm_resolved 结构化匹配，
+  exit 2）+ F_BDD18.1（check-gate.py P6 总结行不计入逐条计数 → 缺 P6-evidence 目录 exit 1）——
+  用 `task_dir`（RT_BDD21.1 用 `no_state_yaml=True` 等价 `--no-state-yaml`）+ 复刻 bats heredoc。
+- **P6 --fix 文件回写断言**：F3/F9/F10/F12/F13/F_P6FMFIX.* 全部直接
+  `(td/"P6-acceptance.md").read_text(encoding="utf-8")` 断言（等价 bats `grep -q`）；
+  F_P6FMFIX.1/2 的 inline `$PYTHON -c "import yaml..."` 校验改写为测试内 `yaml.safe_load`
+  等价断言（frontmatter 切分 `text[:end]`，`data['pass']`/`data['fail']` 数值断言）。
+- **RT.4 override 插入**：`_insert_override_after_phases` 等价 bats
+  `sed -i '/^phases:/a override: P2 retained'`（逐行找 `phases:` 后插一行）。
+- **RT.2/RT.5/RT.6 retries 多行段**：复刻 bats heredoc 原文（P2: 3 次触发 / P3: 2 次触发 /
+  P3: 1 次不触发），`.state.yaml` 整体覆盖写。
+- windows_smoke 打标（每文件第 1 用例）：`test_cl_1` / `test_cf_1` / `test_sy_1` / `test_rt_1` /
+  `test_f1`——共 5 处（本批无平台关键词用例，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_changelog.py agate/tests/unit/test_check_frontmatter.py agate/tests/unit/test_check_state_yaml.py agate/tests/unit/test_check_retrospective.py agate/tests/unit/test_check_p6_format.py -q
+# 57 passed in 2.28s（8+14+9+10+16，全绿）
+python3 -m pytest agate/tests/unit/ -k "changelog or frontmatter or state_yaml or retrospective or p6_format" -q   # P3 §6 批次 7 验证命令
+# 73 passed, 249 deselected（57 本批 + 批次 1/2 的 changelog/gate_p5 等关联命中，重叠无害）
+python3 -m pytest agate/tests/unit/test_check_changelog.py agate/tests/unit/test_check_frontmatter.py agate/tests/unit/test_check_state_yaml.py agate/tests/unit/test_check_retrospective.py agate/tests/unit/test_check_p6_format.py --collect-only -q
+# 57 tests collected（BDD-1 计数不变）
+/home/kity/.venvs/agate-dev/bin/ruff check <5 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <5 个新文件>
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本批文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：F_P6FMFIX.1/2 的 yaml 校验从 bats inline
+  `$PYTHON -c` 改写为测试内 `import yaml` 直读（断言语义等价：frontmatter 仍合法 + pass/fail
+  数值不变）；frontmatter 校验器错误虽确认写 stdout，仍按派发约束统一走合并流 `.output`
+  （与 bats `$output` 逐位一致，避免双跑对照漂移）。
+
