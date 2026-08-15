@@ -8,6 +8,29 @@
 
 ---
 
+## [0.47.0] - 2026-08-15
+
+### 破坏性变更（TAG0011 测试框架迁移：Bats → pytest）
+
+- **`agate/tests/` 下 60 个 `.bats` 文件（749 @test）迁移为 `test_*.py` pytest 用例并退役删档**：46 unit + 6 regression + 6 integration + sanity + scripts 扫描器，`.bats` 文件 0 残留；`count-tests.sh` 改写为 pytest 收集计数
+- **`agate/tests/helpers/` 三文件（load.bash / fixtures.bash / git-helper.bash）退役**：职责并入 `agate/tests/conftest.py` fixture 体系（含合并流 `.output` 复刻 bats `$output` 语义）
+- **`check-windows-smoke.sh` / `.bats` 退役**：Windows 冒烟由 `@pytest.mark.windows_smoke` marker（78 用例）承接
+- **测试依赖变更**：Bats + shellcheck → pytest + pyyaml（仅 3 个 hook 薄壳仍需 sh/shellcheck）
+- **CI 变更**：`protocol-tests.yml` 的 bats job → pytest job（job 名变更影响分支保护 checks）；ruff 覆盖扩展至 `agate/`
+
+### 新增
+
+- **`agate/tests/conftest.py`**：pytest fixture 体系（run_cli/CommandResult 合并流、task_dir、git_repo、add_* 纯函数、python_exe、agate_root 解析）
+- **`windows_smoke` marker**：78 个代表用例（每文件第 1 个 + 平台关键词）供 Windows CI 冒烟
+- **`pyproject.toml` pytest 配置**：`[tool.pytest.ini_options]`（testpaths + markers 注册）
+
+### 变更
+
+- 12 条 BDD 全 PASS（pytest 750 collected / 748 passed / 2 skipped + consistency 0 ERROR + ruff 0 error）
+- UPGRADING.md v0.47.0 迁移章节（破坏性变更逐条 + 迁移命令）
+
+---
+
 ## [0.46.0] - 2026-08-15
 
 ### 破坏性变更（TAG0010 agate 产品逻辑 Python 化：30 个脚本跨语言迁移）
