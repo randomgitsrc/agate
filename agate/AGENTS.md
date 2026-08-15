@@ -8,25 +8,30 @@
 
 ## 这是什么
 
-`docs/`（仓库根的）目录存放 agate **项目的开发资料**——设计文档、评审记录、路线图、复盘。这些都是仓库维护者（author）写的，**使用者无需阅读**。
+仓库根的 `docs/` 目录存放 agate **项目的开发资料**——设计文档、评审记录、路线图、复盘。这些都是仓库维护者（author）写的，**使用者无需阅读**。
 
 你看到 `agate/` 这一层，是**协议本体**——里面是一组编排协议文件，告诉 AI Agent 怎么用 agate 完成一个软件工程任务。**你（使用者）从这里开始**：
+
+## 入口导航
+
+按你的动作找对应文档：
 
 | 你要做什么 | 看这里 |
 |------|------|
 | 第一次接入 agate 到我的项目（把 orchestrator 注册成可调用的 agent）| `SETUP.md`（平台相关的具体步骤，从这里开始）|
+| 理解 P0-P8 阶段流程与裁剪规则 | `WORKFLOW.md`（主流程，主入口） |
 | 理解 orchestrator-template.md 本身该怎么用 | `orchestrator-template.md`（对所有项目内容完全一致，符号链接，不拷贝——项目特定信息写 `assets/templates/project.md`）|
-| 理解 P0-P8 阶段流程 | `WORKFLOW.md`（主流程，主入口） |
 | 派发 subagent 的细节 | `dispatch-protocol.md` |
 | 状态机/转移规则/重试上限 | `state-machine.md` |
 | 角色体系（双层角色） | `role-system.md` |
 | 用 git 持久化状态 | `git-integration.md` |
 | /loop 自动编排 | `loop-orchestration.md` |
-| 不同平台适配（OpenCode/Claude Code） | `platform-notes.md` |
+| 不同平台适配（OpenCode/Claude Code/Windows）| `platform-notes.md` |
 | 已知局限 | `LIMITATIONS.md`（使用前建议先读） |
-| 架构决策记录 | `adr.md`（A7 审查锚点） |
 | 术语表 + 上下文 | `CONTEXT.md`（Ubiquitous Language） |
-| 改 agate 协议本体并跑测试（maintainer） | `tests/README.md` |
+| 架构决策记录 | `adr.md`（A7 审查锚点） |
+| 存量项目升级（破坏性变更）| `UPGRADING.md` |
+| 改 agate 协议本体并跑测试（maintainer）| `tests/README.md` |
 
 ## 给 Agent 的快速指令
 
@@ -43,7 +48,7 @@
 2. **按 mapping 表加载当前阶段卡片**（`phase-cards/P{N}-*.md`）——不必全读 8 个协议文件
 3. 阶段卡片自包含（前置条件 / 派发 / 产出 / gate / 推进 / 常见错误 / 下游影响）
 4. 跨阶段规则（retry / 转移 / 评审映射）在 `rules/` 下按需查阅
-5. 卡片查不到的信息，回退到完整协议文件（下方 reference）
+5. 卡片查不到的信息，回退到完整协议文件
 
 角色文件清单：
 
@@ -77,7 +82,9 @@ assets/review-roles/
 cd <你克隆 agate 的目录> && git pull
 ```
 
-下次 commit 自动用新版本协议。pre-commit/commit-msg/pre-push 三个 hook 均为 `install-hook.sh` 以 `ln -sf` 软链方式安装，自动指向最新代码、随协议升级自动跟随，**无需重装**。（Windows 无符号链接权限时以复制模式安装，升级后需重跑 `install-hook.sh`，见 `platform-notes.md`「Windows 原生」章节。）
+**已有 agate 项目升级，先读 `UPGRADING.md`**——它讲清楚旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，避免踩到破坏性变更。
+
+下次 commit 自动用新版本协议。pre-commit/commit-msg/pre-push 三个 hook 均为 `python3 ~/.agate/scripts/install-hook.py` 以 `ln -sf` 软链方式安装，自动指向最新代码、随协议升级自动跟随，**无需重装**。（Windows 无符号链接权限时以复制模式安装，升级后需重跑 `python3 ~/.agate/scripts/install-hook.py`，见 `platform-notes.md`「Windows 原生」章节。）
 
 ## 卸载
 
@@ -88,7 +95,7 @@ rm -rf <你克隆 agate 的目录>          # 删仓库
 
 ## 更多
 
-仓库根的 `README.md` 有面向**新用户**的接入指南；本目录是面向**深入使用者和 Agent** 的协议本体入口。
+仓库根的 `README.md`（英文）与 `README.zh-CN.md`（中文镜像）是面向**新用户**的接入门面；本目录是面向**深入使用者和 Agent** 的协议本体入口。维护 agate 本体：`python3 -m pytest agate/tests/`（详见 `tests/README.md`）。
 
 有问题看 `LIMITATIONS.md`，别在文档没覆盖的地方反复猜。
 
