@@ -567,3 +567,66 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
   P4-review.md heredoc 用 f-string 注入（ruff UP032 要求）；G4 系列 task 目录统一
   `_init_repo_with_task` helper（init commit + copytree），避免逐用例重复样板。
 
+## 批次 8b — check-gate 子批 b（1 文件 / 29 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（G2 系列 24 + G_BDD1.1 / G_BDD9.1 / G_BDD10.1 / G_CMD_EXEC.1-2） | `unit/test_check_gate.py` | 29 |
+
+> 按 P2 §5 子批表 8b 范围追加（`-k "g2 or bdd1 or bdd9 or bdd10 or cmd_exec"`）。
+> check-gate.bats 中 G2 前缀 @test 全部归本子批：G2.1-4 / G2.5 / G2.7-9 / G2.9a-b / G2.10 / G2.10a /
+> G2.11 / G2.13 / G2.14 / G2.17-21 / G2.24-27，共 24；加 BDD 锚点 3（BDD1.1/9.1/10.1）+ CMD_EXEC 2 = 29。
+
+### 关键实现点
+
+- **gate_p2 分支纯 task_dir 驱动**（无 git）：全部 29 例用 `task_dir` factory + `_write_p2_design`
+  helper（复刻 bats heredoc 原文覆写 P2-design.md）+ `add_p2_candidate_count` / `add_p2_review` /
+  `add_p1_field`（conftest 纯函数，frontmatter 块写入，T001 v2.0 流 A）。
+- **G2.9a/b 单候选豁免**：`add_p1_field(td, "design_trivial", "true")` /
+  `add_p1_field(td, "follows_existing_pattern", "[src/foo.py]")` 把豁免字段写进 P1-requirements.md
+  frontmatter，check-gate.py 按行正则 `^(design_trivial|follows_existing_pattern):\s*\S` 命中 →
+  min_candidates=1 → candidate_count=1 即可 exit 2（等价 bats `add_p1_field`）。
+- **自定义 P2-review.md**（G2.10/10a/11、G_CMD_EXEC.1/2、G2.18/19/20）：bats heredoc 直接覆写
+  P2-review.md（含 status:rejected / agent:subagent / agent:main / 缺 agent 等变体），pytest 用
+  `write_text` 等价覆写，不走 `add_p2_review` 默认值。
+- **G_BDD10.1 frontmatter 优先**：正文末行 `candidate_count: 1` + `add_p2_candidate_count(td, 2)`
+  frontmatter 声明 2 → 判定与 frontmatter 一致（exit 2），证明不再走正文正则回退。
+- **G_BDD1.1 四字段进 frontmatter**：packages/domains/ui_affected 写 frontmatter 块 + gate_commands
+  写正文，gate 正确读取判定（exit 2），等价 bats T001 v2.0 流 A。
+- **G_CMD_EXEC.1/2 命令可执行性 WARNING**：P3 命令 `definitely-nonexistent-cmd`（WARNING 不阻断
+  exit 2）vs `true`（无 WARNING）；断言合并流含/不含命令 token。
+- **流语义（P2 BLOCKER-1）**：gate_p2 的 `GATE P2: ...` 消息一律 `sys.stderr.write` → 断言一律用合并流
+  `result.output`（`需至少 2 个候选方案` / `P2-design.md` / `权衡` / `非 approved` / `candidate_count` /
+  `agent=main` 等），未映射 `.stdout`。
+- 函数命名 `test_g2_N_...` / `test_bdd1_1_...` / `test_bdd9_1_...` / `test_bdd10_1_...` /
+  `test_cmd_exec_N_...`，匹配 P2 §5 子批 8b 验证命令 `-k "g2 or bdd1 or bdd9 or bdd10 or cmd_exec"`。
+- windows_smoke 打标：本子批无新增（每文件第 1 用例标记已在 8a `test_g0_...`；本子批无平台关键词用例，
+  P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 40 passed in 2.42s（8a 11 + 8b 29，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "g2 or bdd1 or bdd9 or bdd10 or cmd_exec" -q   # P2 §5 子批 8b 验证命令
+# 29 passed, 11 deselected
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 40 tests collected（BDD-1 计数不变）
+/home/kity/.venvs/agate-dev/bin/ruff check agate/tests/unit/test_check_gate.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/unit/test_check_gate.py
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：本子批用例数 29（P2 §5 子批表预估 ~32 有出入，以
+  check-gate.bats 实际 @test 数为准：G2 系列 24 + BDD 锚点 3 + CMD_EXEC 2 恰 29 个）；8b 的 `-k`
+  会连带命中 8d 的 `test_bdd_1_*` 前缀用例（N2 已知重叠，本文件 40 用例中无该前缀，deselected 不涉及）。
+
