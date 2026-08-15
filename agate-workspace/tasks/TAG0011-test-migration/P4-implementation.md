@@ -504,3 +504,66 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
   数值不变）；frontmatter 校验器错误虽确认写 stdout，仍按派发约束统一走合并流 `.output`
   （与 bats `$output` 逐位一致，避免双跑对照漂移）。
 
+## 批次 8a — check-gate 子批 a（1 文件 / 11 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（G0 / G1 / G3 / G4 / G_OTHER） | `unit/test_check_gate.py` | 11 |
+
+> 按 P2 §5 批次 8 子批表 8a 范围迁移（G0/G1/G3/G4/G_OTHER，`-k "g0 or g1 or g3 or g4 or other"`）。
+> 本子批新建 `test_check_gate.py`（check-gate.bats 124 用例迁移的目标文件），后续子批 8b-8h 继续追加。
+
+### 关键实现点
+
+- **run_cli 调 check-gate.py**（P2 §3.2）：`_run_gate = run_cli(python_exe, str(agate_scripts/"check-gate.py"), PHASE, TASK_DIR, cwd=...)` 等价 bats
+  `'$PYTHON' '$AGATE_SCRIPTS/check-gate.py' PHASE "$dir"`；G4 系列用 `cwd=str(repo)` 等价 bats
+  `bash -c "cd '$repo' && ..."`。
+- **GATE 前缀合并流（P2 BLOCKER-1）**：check-gate.py 的 `GATE P0/P1/P3/P4:` 消息一律 `sys.stderr.write`
+  （含 `P1-review.md 不存在` / `P3-test-cases.md 不存在` / `非 approved` / `agent=main` / `未知阶段`）——
+  断言一律用合并流 `result.output`（与 bats `$output` 逐位一致），未映射 `.stdout`。
+- **G0 反向断言**：bats `[[ "$output" != *"未知"* ]]` → `assert "未知" not in result.output`（合并流）。
+- **G3 双段 run 单用例**：无 P3-test-cases.md → exit 1（`P3-test-cases.md 不存在`）+ 有 → exit 2
+  （`check-tdd-red.sh`）两段 run 在单个 test 函数内（bats 单 @test 双 run，SY.1 同款）。
+- **G4 系列 git_repo + copytree 样板**（复用批次 6 P2.6a/6b 模式）：`git_repo` fixture（init commit README）
+  → `shutil.copytree(td, repo/"task")` → 按用例写 P4-review.md / src.py / config.yaml →
+  `git_repo.stage(...)`（等价 `git -C "$repo" add ...`；G4.3 用 `stage(".")` 等价 `git add .`）→
+  `_run_gate(..., "P4", "task", cwd=str(repo))`。
+  - G4.1 只 stage `task/P4-implementation.md`（命中 `_STAGED_EXCLUDE_RE` 的 `P[0-8]-.*\.md$`）→ exit 1；
+    G4.2/G4.4 stage `src.py` + `task/P4-review.md`（src.py 不在排除列表）→ exit 0；
+    G4.3 stage `.`（含 src.py + config.yaml）→ exit 0；
+    G4.5 无 P4-review.md → exit 1（`P4-review.md`）；G4.6 status rejected → exit 1（`非 approved`）；
+    G4.7 agent=main → exit 1（`agent=main`）。
+- **G_OTHER**：未知阶段 P9 → exit 2（`未知阶段`），`_run_gate(..., "P9", ...)`。
+- 函数命名 `test_g0_...` / `test_g1_...` / `test_g3_...` / `test_g4_N_...` / `test_other_...`，匹配
+  P2 §5 子批 8a 验证命令 `-k "g0 or g1 or g3 or g4 or other"`。
+- windows_smoke 打标（每文件第 1 用例）：`test_g0_p0_no_unknown_exit_2`——共 1 处（本子批无平台
+  关键词用例，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 11 passed in 0.68s（G0+G1+G3+G4.1-7+G_OTHER，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "g0 or g1 or g3 or g4 or other" -q   # P2 §5 子批 8a 验证命令
+# 11 passed in 0.71s
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 11 tests collected（BDD-1 计数不变）
+/home/kity/.venvs/agate-dev/bin/ruff check agate/tests/unit/test_check_gate.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/unit/test_check_gate.py
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：本子批用例数 11（P2 §5 子批表预估 ~13 有出入，以
+  check-gate.bats 实际 @test 数为准：G0/G1/G3/G4.1-7/G_OTHER 恰 11 个）；`_write_p4_review` 的
+  P4-review.md heredoc 用 f-string 注入（ruff UP032 要求）；G4 系列 task 目录统一
+  `_init_repo_with_task` helper（init commit + copytree），避免逐用例重复样板。
+
