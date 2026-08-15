@@ -3,8 +3,8 @@ name: Protocol Tests
 on: [push, pull_request]
 
 jobs:
-  bats:
-    name: bats
+  pytest:
+    name: pytest
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -21,54 +21,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install dependencies (Linux)
+      - name: Install dependencies
+        run: pip install pyyaml pytest
+      - name: Run Full Test Suite (Linux, 全量)
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y bats
-          pip install pyyaml
-      - name: Install bats (Windows)
+        run: python3 -m pytest agate/tests/
+        env:
+          PYTHONIOENCODING: utf-8
+      - name: Run Windows Smoke (marker 代表子集)
         if: runner.os == 'Windows'
         run: |
-          git clone --depth 1 --branch v1.10.0 https://github.com/bats-core/bats-core.git bats
-          echo "$GITHUB_WORKSPACE/bats/bin" >> $GITHUB_PATH
-      - name: Install pyyaml (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          pip install pyyaml
-      - name: Run Unit Tests (Linux, serial)
-        if: runner.os == 'Linux'
-        run: bats agate/tests/unit/
-        env:
-          PYTHONIOENCODING: utf-8
-      - name: Run Scanner Behavior Tests (Linux, 全量)
-        if: runner.os == 'Linux'
-        run: bats agate/tests/scripts/check-platform-assumptions.bats
-        env:
-          PYTHONIOENCODING: utf-8
-      - name: Run Regression Tests (Linux, 全量)
-        if: runner.os == 'Linux'
-        run: bats agate/tests/regression/
-        env:
-          PYTHONIOENCODING: utf-8
-      - name: Run Integration Tests (Linux, 全量)
-        if: runner.os == 'Linux'
-        run: bats agate/tests/integration/
-        env:
-          PYTHONIOENCODING: utf-8
-      - name: Self-check framework (Linux)
-        if: runner.os == 'Linux'
-        run: bats agate/tests/sanity.bats
-        env:
-          PYTHONIOENCODING: utf-8
-      - name: Run Windows Smoke (技术路线代表子集, parallel)
-        if: runner.os == 'Windows'
-        run: |
-          # TAG0009 v0.45 决策：Windows bats 从全量（747 用例 ~11.5 分钟，线性增长阻塞 CI）
-          # 降级为"技术路线冒烟"——check-windows-smoke.sh 对每个 .bats 文件选第 1 个用例 +
-          # 名称含平台敏感关键词的用例（约 60 文件代表子集，xargs -P 4 并行，~2 分钟）。
-          # 功能正确性由 Linux 全量 bats 保证；Windows 只验证每条平台敏感机制
-          # （py_path/shim/cp1252/CRLF/symlink/盘符路径等）代表用例跑通 → 技术路线成立。
-          bash agate/tests/scripts/check-windows-smoke.sh
+          # TAG0011 决策：check-windows-smoke.sh 退役（v0.47.0，P1 §6.2），Windows 冒烟改由
+          # @pytest.mark.windows_smoke marker 承接——平台敏感用例（cp1252/CRLF/symlink/py_path/
+          # 复制模式/编码/无bc/ln 退化等）逐用例打标，代表集即清单。
+          # 功能正确性由 Linux 全量 pytest 保证；Windows 只验证每条平台敏感机制代表用例跑通。
+          python -m pytest agate/tests/ -m windows_smoke
         env:
           PYTHONIOENCODING: utf-8
 
@@ -129,8 +96,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Run ruff check (agate/scripts, 项目根 pyproject.toml)
-        run: pip install ruff && ruff check agate/scripts/
+      - name: Run ruff check (agate/, 项目根 pyproject.toml)
+        run: pip install ruff && ruff check agate/
 
   consistency:
     name: consistency

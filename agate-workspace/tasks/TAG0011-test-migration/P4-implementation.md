@@ -1964,5 +1964,76 @@ python3 agate/scripts/check-platform-assumptions.py agate/tests/scripts/test_che
   - fixture fragment 常量化（`_PATH_LEAD`/`_PY`/`_BRACKET_OPEN` 等模块级），bats 的 `local` 局部
     变量等价；`_BC_FULL` 由 `_BC_FIRST`+`"c"` 拼接避免源码含 `bc` 字面。
   - bdd-9 scan-exempt R3 负向用例的 `]]# scan-exempt:`（无空格）与 bats 一致，R3 命中行含标记
-    仍应被检出。
+  仍应被检出。
+
+## 批次 17 — Windows 冒烟机制退役 + count-tests 改写（退役批，0 文件 / 0 @test）
+
+> P1 §4 批次 17（退役批）+ §6.2 决策 + P2 §1.4 D1 / §3.5 / §3.6。BDD-12 落地：
+> tests/ 下无 check-windows-smoke.sh；Windows CI 冒烟引用 `-m windows_smoke`。
+
+### 改动清单
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `agate/tests/scripts/check-windows-smoke.sh` | **删除**（git rm） | 退役（P1 §6.2 DECIDED，冒烟由 `@pytest.mark.windows_smoke` marker 承接） |
+| `agate/tests/scripts/check-windows-smoke.bats` | **删除**（git rm） | 退役（7 用例不迁移，测的是被退役脚本自身的代表选取行为） |
+| `agate/tests/scripts/count-tests.sh` | **改写** | grep -c '^@test' → `pytest --collect-only -q` 提取收集数（P2 §3.5 D1 逐行采纳） |
+| `.github/workflows/protocol-tests.yml` | **改写** | `bats` job → `pytest` job（P2 §3.6）；Windows 冒烟 `python -m pytest agate/tests/ -m windows_smoke`；ruff job 目标 `agate/scripts/` → `agate/` |
+
+### 关键实现点
+
+- **count-tests.sh（P2 §3.5 D1 逐行采纳，CLI 契约保持）**：探测 `python3\|python`（`command -v` 顺序回退，
+  空则 fail-closed 报错 exit 1）；`"$PY" -m pytest --collect-only -q "$TESTS_DIR"`（显式传 `agate/tests/`
+  绝对路径，不依赖 cwd/testpaths 相对 rootdir 解析，N3）；提取用
+  `grep -oE '[0-9]+ tests? collected' | tail -1 | grep -oE '[0-9]+'`（pytest 9.0.3 末行
+  `N tests collected in X.XXs`，P2 §4.4 minimal_validation 实测可提取；`|| true` 兜底管道空输出
+  → `${count:-0}` 输出 0）。输出行保持派发约定的 CLI 契约前缀「总计：N 个测试用例」
+  （追加 `（pytest collect-only 口径）` 注记），脚本路径与引用（AGENTS.md / handoff-template /
+  UPGRADING / tests/README.md）不变。
+- **protocol-tests.yml（P2 §3.6 CI 同步，批次 15 注「CI job 名改动由收尾批次处理」= 本批）**：
+  - `bats` job → `pytest` job（保留 ubuntu/windows 双 matrix）；**删除 bats 安装步骤**
+    （Linux apt bats / Windows git clone bats-core）；`Install dependencies` 改 `pip install pyyaml pytest`。
+  - Linux：`python3 -m pytest agate/tests/` 全量（原 unit/scanner/regression/integration/sanity 五个
+    bats 步骤合并为一次全量跑，等价覆盖，P2 §3.6）。
+  - Windows：`python -m pytest agate/tests/ -m windows_smoke`（`PYTHONIOENCODING: utf-8` 保留；
+    原 check-windows-smoke.sh 调用与注释删除，改用 marker 说明）。
+  - ruff job：`ruff check agate/scripts/` → `ruff check agate/`（含 tests，BDD-3，P2 §3.6）。
+  - platform-scan / shellcheck / consistency / gate-backstop job 不变。
+- **文档引用同步（grep 找全，批次 15 已提前完成 prose）**：`agate/UPGRADING.md`（L105「退役」+
+  L153「已退役」）、`agate/scripts/README.md`（L3「已退役」）在批次 15 已改写为退役/改写表述；
+  `docs/reviews/*`、`CHANGELOG.md`（L54）为历史记录按 P1 §5 表 E 保留不重写。**无遗留待同步项**。
+- **count-tests 步骤**：protocol-tests.yml 现行无 count-tests 步骤，P1 表 E「count-tests 步骤（若有）」
+  语义下该项 no-op（不新增步骤）。
+
+### 自查结果
+
+> 本批派发范围仅改文件（不运行 pytest/bats，主 Agent 按 P2 §5 批次 17 验证命令
+> `python3 agate/scripts/check-protocol-consistency.py --strict` + grep tests/ 下无 check-windows-smoke.sh
+> 统一跑）。已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+git ls-files agate/tests/scripts/ | grep check-windows-smoke   # 空（两脚本已 git rm）
+grep -rn "check-windows-smoke" agate/ .github/ 2>/dev/null | grep -v agate-workspace
+# 仅剩 UPGRADING.md L105/L153 与 scripts/README.md L3 的「退役」表述（预期保留，非待退役引用）
+bash -n agate/tests/scripts/count-tests.sh                       # 语法 OK
+grep -n "windows_smoke\|check-windows-smoke\|pytest" .github/workflows/protocol-tests.yml
+# pytest job / -m windows_smoke 就位；check-windows-smoke 引用已清除
+```
+
+- 用例数：0（退役批，P1 §4 批次 17 口径；BDD-1 收集数不受影响，count-tests 目标仍 ≥ 749）。
+- encoding 守卫：本批无新增 .py 文件，零违规。
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - 派发范围表对 protocol-tests.yml 只列「Windows 冒烟 + count-tests」，但本批按 P2 §3.6 完整 CI 同步
+    一并处理（bats job → pytest job + ruff 目标扩展）：批次 15 已明示「CI job 名改动由收尾批次处理」，
+    bats 退役后 Linux 分支若仍跑 bats 会在 .bats 文件删除时断裂，收尾批次一次性同步。
+  - count-tests.sh 输出行在 P2 §3.5 样例「总计：N 个 pytest 用例（collect-only）」基础上改为
+    「总计：N 个测试用例（pytest collect-only 口径）」——保持派发约束的 CLI 契约「总计：N 个测试用例」
+    前缀，口径注记保留（同数字，表述对齐契约）。
+  - count-tests.sh 的 `set -euo pipefail` 下管道空输出由 `|| true` + `${count:-0}` 兜底（输出 0），
+    与 P2 §3.5 设计一致；无 python 时 fail-closed（exit 1 + stderr 报错）。
 
