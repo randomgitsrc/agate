@@ -1500,3 +1500,65 @@ python3 agate/scripts/check-platform-assumptions.py <4 个新文件>
   - install-hook 复制模式用例的 fake agate_root 用 `shutil.copy2` 复制三个 hook 薄壳
     （pre-commit / commit-msg / pre-push-gate.sh，同 bats cp 清单）。
 
+## 批次 13a — pre-commit hook 专项（1 文件 / 12 @test，子批 1/3）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `integration/pre-commit-hook.bats`（IT_PT_BINARY.1-7 / IT_PT_MENTION.1 / IT_PT_T6.1-4） | `integration/test_pre_commit_hook.py` | 12 |
+
+> 本子批只写 `test_pre_commit_hook.py` 前 12 个用例；后续子批 13b（IT_PHASE_SPAN /
+> IT_RETREAT / IT.9 / IT_CHANGELOG / IT_P6_CODE）与 13c（其余）追加到同一文件。
+
+### 关键实现点
+
+- **hook 薄壳 subprocess 调 bash（P3 §5.3 / BDD-11）**：`_install_pre_commit_hook` 把
+  `pre-commit-gate.sh` 软链到 `.git/hooks/pre-commit` + chmod（等价 bats setup
+  `ln -sf`）；测试用 `git commit` 真触发 hook，断言对象仍是薄壳 + py 主程序的 exit
+  行为（P1 §"hook 测试是 shell 薄壳在真环境的行为测试，不需要 bats"）。
+- **AGATE_ROOT 经 run_cli `env=` 显式传入**：bats 由 load.bash export 继承给 git →
+  hook；pytest 在 `_git_commit` 统一传 `env={"AGATE_ROOT": ...}`（薄壳
+  `${AGATE_ROOT:-readlink}` 优先用 env，软链自定位为兜底）。
+- **合并流（P2 §3.2 BLOCKER-1）**：所有断言基于 `result.output`（`_git_commit` 的
+  run_cli 合并 stdout+stderr，等价 bats `$output`）——PROD_TOUCHED 拦截 / WARNING
+  文本均写 stderr，经合并流命中。
+- **`_write_min_valid_dispatch_context`（T6.1）**：等价 bats helper——写
+  dispatch-context 模板 + `run_cli(python_exe, agate-next-card.py, phase)` 注入卡片
+  （`card.stdout.rstrip("\n")` 后夹于 AGATE_CARD_START/END，与 bats `>> file` 追加
+  + sed 替换占位符语义一致；卡片 sha256 校验只依赖块内容，模板头字段不影响）。
+- **平台分支（P3 §5.2）**：Linux 用 `os.symlink`（POSIX ln 语义）；Windows
+  （Git Bash ln 退化）用 `shutil.copy2` 复制薄壳。13a 用例不打 windows_smoke 标
+  ——12 个 @test 无平台关键词用例，且非文件首 @test（首 @test IT.1 归 13c 打标），
+  软链语义由 Linux 全量覆盖。
+- **`--no-verify`（BINARY.3 setup）**：setup commit 先暂存行首 `[PROD_TOUCHED]` 旧
+  内容，须 `--no-verify` 绕过 hook 落库；随后只改 P5-verification.md 并仅暂存该文件，
+  验证删除行（`-` 行）不被扫描。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 13 验证命令
+> `-k "binary or mention or t6"` 统一跑）。已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/integration/test_pre_commit_hook.py
+# SYNTAX-OK
+/home/kity/.venvs/agate-dev/bin/ruff check agate/tests/integration/test_pre_commit_hook.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/integration/test_pre_commit_hook.py
+# exit 0（R1-R5 零命中）
+# 待主 Agent 执行：python3 -m pytest agate/tests/ -k "binary or mention or t6" + 原 bats 对应子集 + consistency
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - `_git_commit` 的 `git commit` 用 run_cli 多 `-m` 参数传递（等价 bats `-m`
+    连续段）；init 用 `-q -m "init"`（等价 bats `-qm "init"`）。
+  - BINARY.6 的 `[[ "$output" != *"WARNING"* ]]` → `assert "WARNING" not in
+    result.output`（合并流，P2 §3.2 反向断言补行）。
+  - T6.1 的 dispatch-context 模板中 `task_id: T001` / `- agate-workspace/tasks/
+    T001/P0-brief.md` 为 bats helper 硬编码值，原样保留。
+
