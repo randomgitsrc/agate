@@ -9,7 +9,6 @@ push 时重跑 gate，与 .gate-result.json 对照。
 
 import json
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,42 +16,16 @@ from pathlib import Path
 _AGATE_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _find_bash() -> str:
-    """探测可用的 bash（Windows 上避开 WSL bash——subprocess 按 Windows PATH 解析 'bash'
-    可能命中 WSL 的 bash.exe 导致 'Windows Subsystem for Linux has no installed distributions'）。
-
-    优先级：AGATE_BASH 环境变量 → Git Bash 常见路径 → shutil.which（排除 WSL/WindowsApps）。
-    """
-    env_bash = os.environ.get("AGATE_BASH", "").strip()
-    if env_bash:
-        return env_bash
-    candidates = [
-        r"C:\Program Files\Git\bin\bash.exe",
-        r"C:\Program Files (x86)\Git\bin\bash.exe",
-        "/usr/bin/bash",
-        "/bin/bash",
-    ]
-    for c in candidates:
-        if os.path.exists(c):
-            return c
-    which = shutil.which("bash")
-    if which:
-        low = which.lower()
-        if "windowsapps" not in low and "wsl" not in low:
-            return which
-    return "bash"
-
-
-def _bash_cmd(args: list) -> list:
-    return [_find_bash(), *args]
+def _run_python(args: list) -> list:
+    return [sys.executable, *args]
 
 
 def run_gate(phase: str, task_dir: str) -> tuple[int, str]:
-    script = _AGATE_ROOT / "scripts/check-gate.sh"
+    script = _AGATE_ROOT / "scripts/check-gate.py"
     if not script.exists():
-        return 2, "check-gate.sh not found"
+        return 2, "check-gate.py not found"
     result = subprocess.run(
-        _bash_cmd([str(script), phase, task_dir]),
+        _run_python([str(script), phase, task_dir]),
         capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     return result.returncode, result.stderr + result.stdout
@@ -158,7 +131,7 @@ def main() -> int:
     ci_exit, _ci_output = run_gate(phase, task_dir)
 
     if phase == "P3":
-        # P3 红灯检查独立跑（check-gate.sh P3 只检查文件存在）
+        # P3 红灯检查独立跑（check-gate.py P3 只检查文件存在）
         # 必须在 .gate-result.json 存在性判断之前执行——
         # --no-verify 场景（无 .gate-result.json）正是 P3 兜底要覆盖的核心场景
         # TAG0002 [SCOPE+]: refactor 任务跳过 TDD 红灯（P2-design.md §3.4）——
@@ -168,33 +141,33 @@ def main() -> int:
         if is_refactor:
             print("SKIP: refactor 任务，TDD 红灯不适用（回归口径由 P5/P6 全量回归兜底）")
             return 0
-        # check-tdd-red.sh exit 语义：
+        # check-tdd-red.py exit 语义：
         #   0 = 真红灯（符合 TDD）→ 通过
         #   1 = 假红灯（测试代码自身 bug）→ FAIL
         #   2 = 绿灯（实现先于测试，违反 TDD）→ FAIL
         #   3 = 无测试运行器 → WARN（CI 环境可能未装测试框架，主 Agent 已手动确认过红灯）
-        tdd_script = Path(os.environ.get("AGATE_TDD_RED_SCRIPT", str(_AGATE_ROOT / "scripts/check-tdd-red.sh")))
+        tdd_script = Path(os.environ.get("AGATE_TDD_RED_SCRIPT", str(_AGATE_ROOT / "scripts/check-tdd-red.py")))
         if tdd_script.exists():
             tdd_result = subprocess.run(
-                _bash_cmd([str(tdd_script), task_dir]),
+                _run_python([str(tdd_script), task_dir]),
                 capture_output=True, text=True, encoding="utf-8", errors="replace"
             )
             tdd_exit = tdd_result.returncode
             tdd_output = tdd_result.stderr + tdd_result.stdout
             if tdd_exit == 0:
-                print("OK: P3 check-tdd-red.sh exit=0（真红灯，符合 TDD）")
+                print("OK: P3 check-tdd-red.py exit=0（真红灯，符合 TDD）")
             elif tdd_exit == 2:
-                print("FAIL: P3 check-tdd-red.sh exit=2（绿灯，实现先于测试，违反 TDD）")
+                print("FAIL: P3 check-tdd-red.py exit=2（绿灯，实现先于测试，违反 TDD）")
                 print(tdd_output)
                 return 1
             elif tdd_exit == 1:
-                print("FAIL: P3 check-tdd-red.sh exit=1（假红灯，测试代码自身有 bug）")
+                print("FAIL: P3 check-tdd-red.py exit=1（假红灯，测试代码自身有 bug）")
                 print(tdd_output)
                 return 1
             else:
-                print(f"WARN: P3 check-tdd-red.sh exit={tdd_exit}（无测试运行器，CI 环境可能未装测试框架——主 Agent 已手动确认过红灯）")
+                print(f"WARN: P3 check-tdd-red.py exit={tdd_exit}（无测试运行器，CI 环境可能未装测试框架——主 Agent 已手动确认过红灯）")
         else:
-            print("WARN: check-tdd-red.sh 不存在，P3 红灯检查跳过")
+            print("WARN: check-tdd-red.py 不存在，P3 红灯检查跳过")
 
     if not gate_result.exists():
         if ci_exit == 1:
@@ -259,14 +232,14 @@ def main() -> int:
                 print(f"WARN: P6 git blame 审计无法完成（{e}）")
 
     # provenance 审计兜底（--no-verify 绕过 hook 时，backstop 层补跑）
-    provenance_script = _AGATE_ROOT / "scripts/check-p6-provenance.sh"
+    provenance_script = _AGATE_ROOT / "scripts/check-p6-provenance.py"
     if task_dir and provenance_script.exists() and Path(task_dir, "P6-acceptance.md").exists():
         prov_result = subprocess.run(
-            _bash_cmd([str(provenance_script), task_dir]),
+            _run_python([str(provenance_script), task_dir]),
             capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         if prov_result.returncode == 1:
-            print(f"FAIL: check-p6-provenance.sh 重跑未通过：\n{prov_result.stdout}{prov_result.stderr}")
+            print(f"FAIL: check-p6-provenance.py 重跑未通过：\n{prov_result.stdout}{prov_result.stderr}")
             return 1
         print("PASS: provenance 审计 CI 层重跑通过")
 

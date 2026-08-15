@@ -94,8 +94,8 @@ def test_csg_4_trigger_with_skip_no_warning(git_repo, agate_scripts, agate_root,
 
 def test_csg_5_scripts_sh_triggers(git_repo, agate_scripts, agate_root, run_cli):
     repo = _setup_hook(git_repo, agate_scripts)
-    (repo / "agate" / "scripts" / "check-gate.sh").write_text("# change\n", encoding="utf-8")
-    git_repo.stage("agate/scripts/check-gate.sh")
+    (repo / "agate" / "scripts" / "pre-commit-gate.sh").write_text("# change\n", encoding="utf-8")
+    git_repo.stage("agate/scripts/pre-commit-gate.sh")
 
     result = _commit(run_cli, repo, agate_root, "-m", "update gate script")
     assert result.returncode == 0

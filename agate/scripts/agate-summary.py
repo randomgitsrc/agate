@@ -19,18 +19,18 @@ import subprocess
 import sys
 
 _GUARD_SCRIPTS = [
-    "check-state-yaml.sh",
-    "check-gate.sh",
-    "check-changelog.sh",
-    "check-p6-evidence.sh",
-    "check-p6-provenance.sh",
-    "check-state-transition.sh",
-    "check-pruning.sh",
-    "check-scope-resolved.sh",
-    "check-retrospective.sh",
+    "check-state-yaml.py",
+    "check-gate.py",
+    "check-changelog.py",
+    "check-p6-evidence.py",
+    "check-p6-provenance.py",
+    "check-state-transition.py",
+    "check-pruning.py",
+    "check-scope-resolved.py",
+    "check-retrospective.py",
 ]
 
-_DRIFT_SCRIPTS = ["check-tdd-red.sh", "check-gate.sh", "check-pruning.sh"]
+_DRIFT_SCRIPTS = ["check-tdd-red.py", "check-gate.py", "check-pruning.py"]
 
 
 def _find_git_root(start):
@@ -144,10 +144,10 @@ def main():
         "防护机制（pre-commit + CI）：",
         guards,
         "",
-        "快速版本对比：bash ~/.agate/scripts/agate-changes.sh [since-tag]",
+        "快速版本对比：python3 ~/.agate/scripts/agate-changes.py [since-tag]",
         "默认输出自上一个 tag 起的 commit + 受影响的协议文件。",
-        f"例：bash ~/.agate/scripts/agate-changes.sh {current_tag}",
-        "查远端更新：bash ~/.agate/scripts/agate-changes.sh --check-upstream",
+        f"例：python3 ~/.agate/scripts/agate-changes.py {current_tag}",
+        "查远端更新：python3 ~/.agate/scripts/agate-changes.py --check-upstream",
         "",
         "=== 启动时建议 ===",
         "",

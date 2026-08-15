@@ -86,7 +86,7 @@ def test_g3_p3_checks_test_cases_md(task_dir, agate_scripts, python_exe, run_cli
     (td / "P3-test-cases.md").write_text("## P3 test cases\n", encoding="utf-8")
     result = _run_gate(agate_scripts, python_exe, run_cli, "P3", str(td))
     assert result.returncode == 2
-    assert "check-tdd-red.sh" in result.output
+    assert "check-tdd-red.py" in result.output
 
 
 def test_g4_1_staged_only_md_exit_1(
