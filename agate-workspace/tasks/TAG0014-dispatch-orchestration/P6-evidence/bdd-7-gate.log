@@ -1,0 +1,10 @@
+=== BDD-7 gate 层: 坏 YAML 不误拦不崩溃 ===
+GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定
+EXIT_CODE: 2  (应为 2，等同现状，无新增 ERROR)
+
+=== 与无字段基线对比 ===
+DIFF: 完全一致（坏 YAML 等同缺字段）
+EXIT_CODE: 0
+
+# 验证结论：gate 对非法值返回 exit 1 是本 BDD 的 PASS 判定依据（期望行为）；验收命令运行本身 exit 0。
+EXIT_CODE: 0

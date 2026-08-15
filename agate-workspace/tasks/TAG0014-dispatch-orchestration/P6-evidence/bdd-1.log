@@ -1,0 +1,14 @@
+=== BDD-1: dispatch_plan op 契约 ===
+--- 含 flow YAML 的 P2-design.md（mode=static-batch）---
+{"mode": "static-batch", "parallel_limit": 3, "batches": [{"id": "B1", "complexity": "medium"}]}
+
+--- 五个 mode 枚举逐一验证 ---
+mode=single => {"mode": "single"}
+mode=static-batch => {"mode": "static-batch"}
+mode=parallel => {"mode": "parallel"}
+mode=recon-then-split => {"mode": "recon-then-split"}
+mode=serial => {"mode": "serial"}
+
+--- JSON 合法性校验（json.loads round-trip）---
+JSON valid, mode = static-batch
+EXIT_CODE: 0

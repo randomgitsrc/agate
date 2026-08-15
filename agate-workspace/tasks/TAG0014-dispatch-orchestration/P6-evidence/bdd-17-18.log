@@ -1,0 +1,14 @@
+=== BDD-17: architect.md 含批次设计强制节 ===
+139:## 批次设计（强制节，TAG0014）
+141:P2 方案含多个独立子任务（多包 / 多模块 / 高复杂度）时，**必须在 P2-design.md 输出 `dispatch_plan:` 机器字段**（frontmatter 单行 flow YAML，见 P2 卡片「dispatch_plan 机器字段」），声明后续阶段的编排方案：
+148:- **high 复杂度必须拆分**——工作量评估任一维度 high → 必须设计拆批（模式 2/3/4/5），不允许单发
+153:**检查方式**：写完 P2-design.md 后，核对 frontmatter 的 `dispatch_plan:`（若适用）——`mode` 枚举合法、批数 ≤ parallel_limit、每批含 id + complexity。缺字段时 P2 gate 跳过（可选字段），但 high 复杂度不拆批会被 P7 一致性检查捕获为 DEVIATION。
+
+=== BDD-18: dispatch-prompt.md 粒度兜底 + 协议权威源同步 ===
+--- dispatch-prompt.md 粒度兜底 ---
+4:> 本模板与 dispatch-protocol.md「派发 prompt 模板」节保持同步，协议文件为权威来源
+40:产出文件 >3 个或输入文件 >5 个时，必须分批派发或在本节明确说明为何不分批
+--- dispatch-protocol「派发 prompt 模板」内联节同步 ---
+471:## 任务粒度兜底
+472:产出文件 >3 个或输入文件 >5 个时，必须分批派发或在本节明确说明为何不分批
+EXIT_CODE: 0

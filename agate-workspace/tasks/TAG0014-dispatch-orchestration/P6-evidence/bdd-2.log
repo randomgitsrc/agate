@@ -1,0 +1,15 @@
+=== BDD-2: 无 dispatch_plan 字段时行为完全等同现状 ===
+--- gate 输出：含合法 dispatch_plan（parallel, limit 2）---
+GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定
+with EXIT_CODE: 2
+
+--- gate 输出：无 dispatch_plan 字段 ---
+GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定
+without EXIT_CODE: 2
+
+--- 逐行对比（应完全一致，无新增 ERROR/WARNING）---
+DIFF: 完全一致（等同现状）
+EXIT_CODE: 0
+
+# 验证结论：gate 对非法值返回 exit 1 是本 BDD 的 PASS 判定依据（期望行为）；验收命令运行本身 exit 0。
+EXIT_CODE: 0

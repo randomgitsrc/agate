@@ -1,0 +1,15 @@
+=== BDD-19: test_dispatch_orchestration.py 全部用例 ===
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_required_fields PASSED [ 10%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_mode_valid PASSED [ 20%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_batch_granularity PASSED [ 30%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_parallel_limit PASSED [ 40%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_optional PASSED [ 50%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_malformed_yaml PASSED [ 60%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_parallel_limit_zero PASSED [ 70%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_batch_missing_complexity PASSED [ 80%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_mode_non_string PASSED [ 90%]
+agate/tests/unit/test_dispatch_orchestration.py::test_dispatch_plan_complexity_invalid PASSED [100%]
+
+..........                                                               [100%]
+10 passed in 1.02s
+EXIT_CODE: 0

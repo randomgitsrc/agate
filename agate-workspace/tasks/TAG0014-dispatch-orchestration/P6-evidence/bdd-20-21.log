@@ -1,0 +1,16 @@
+=== BDD-20: 全量 pytest + count-tests ===
+........................................................................ [ 92%]
+..............................................................           [100%]
+780 passed, 2 skipped in 65.85s (0:01:05)
+pytest EXIT_CODE: 0
+
+如果此数字与 docs/plans/agate-test-plan-2026-07-01.md 附录 A 的口径不一致
+→ 文档漂移，需要更新（附录 A 已归档，口径以 BDD-1 749 为准）。
+count EXIT_CODE: 0
+=== 目标判定: count ≥ 基线 770 + 10 = 780 ===
+
+=== BDD-21: consistency 0 ERROR ===
+  仅有 280 个 WARNING，无 ERROR。
+
+consistency EXIT_CODE: 0 (默认模式：WARNING 不阻断，0 ERROR 即 PASS)
+EXIT_CODE: 0

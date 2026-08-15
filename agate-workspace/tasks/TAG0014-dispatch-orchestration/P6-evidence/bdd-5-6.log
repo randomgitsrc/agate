@@ -1,0 +1,14 @@
+=== BDD-5 子场景①: batch 缺 complexity（batches: [{id: B1}]）===
+GATE P2 ERROR: dispatch_plan batch 'B1' 的 complexity 非法（当前: None），须 ∈ low/medium/high
+EXIT_CODE: 1
+
+=== BDD-5 子场景②: complexity 非法值（complexity: invalid）===
+GATE P2 ERROR: dispatch_plan batch 'B1' 的 complexity 非法（当前: 'invalid'），须 ∈ low/medium/high
+EXIT_CODE: 1
+
+=== BDD-6: batch 数超过 parallel_limit（4 批 > 3）===
+GATE P2 ERROR: dispatch_plan 批次数（4）超过 parallel_limit（3）
+EXIT_CODE: 1
+
+# 验证结论：gate 对非法值返回 exit 1 是本 BDD 的 PASS 判定依据（期望行为）；验收命令运行本身 exit 0。
+EXIT_CODE: 0
