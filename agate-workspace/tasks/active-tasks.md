@@ -10,7 +10,6 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0013 | agate 脚本一致性批：CHECK 10 文档引用漂移 gate（RM-AG0015）+ self-gate 触发面补 README/AGENTS（RM-AG0017）+ tech-debt 登记提醒（RM-AG0018 剩余）| 🔄 | P7 | 高 | — | 2026-08-15 | 2026-08-16 |
 
 ### 待开始
 
@@ -35,6 +34,7 @@
 | TAG0009 | agate 测试套件平台无关化：78 个 Windows bats 失败根治（静态扫描器 gate + 批量修正 + Linux 模拟覆盖 Windows 分支）→ v0.45.0 | ✅✅ | READY | 高 | 2026-08-14 |
 | TAG0010 | agate 产品逻辑 Python 化（阶段一）：30 个 sh → py（hook 保留 sh 薄壳），消解 bash 在 Windows 模拟层问题；TAG0008 依赖本任务 → v0.46.0 | ✅✅ | READY | 高 | 2026-08-15 |
 | TAG0011 | agate 测试框架迁移（阶段二）：60 个 .bats → pytest + 协议文档全量重写 + CI 同步（达成全 Python）→ v0.47.0 | ✅✅ | READY | 高 | 2026-08-15 |
+| TAG0013 | agate 脚本一致性批：CHECK 10 文档引用漂移 gate（RM-AG0015）+ self-gate 触发面补 README/AGENTS（RM-AG0017）+ tech-debt 登记提醒（RM-AG0018 剩余）→ v0.48.0 | ✅✅ | READY | 高 | 2026-08-16 |
 
 ---
 
