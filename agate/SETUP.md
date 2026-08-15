@@ -88,7 +88,7 @@ cp ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 
 ### Windows 环境适配要点（无 WSL，Git for Windows）
 
-> agate 的 gate 脚本依赖 bash + GNU coreutils，Windows 原生无 bash，但 **Git for Windows** 安装时自带 MSYS2 bash。以下是 Windows 上跑通 agate 的环境要点（详见 `platform-notes.md`「Windows 原生」章节），**所有命令都在 Git Bash 里执行**，不要在 `cmd`/PowerShell 里跑 bash 脚本。
+> agate 的 gate 脚本已全部 Python 化（`.py`），不再依赖 bash + GNU coreutils（TAG0010 起**无 bash 环境也成为可行选项**）；仅 3 个 git hook 入口保留 `.sh` 薄壳，需要 **Git for Windows** 自带的 sh 执行。以下是 Windows 上跑通 agate 的环境要点（详见 `platform-notes.md`「Windows 原生」章节），**hook 相关命令在 Git Bash 里执行**，不要在 `cmd`/PowerShell 里跑 `.sh` 薄壳。
 
 **1. AGATE_ROOT 用 Unix 风格路径**：协议本体路径在 Git Bash 里写成 `/c/Users/<你>/agate/agate`（或 `C:/Users/<你>/agate/agate`），**不要写反斜杠 `C:\...`**——反斜杠在 bash 里是转义符，且 `agate-next-card.py` 的前缀剥离在盘符/反斜杠下失效（Q1 修复覆盖了归一化，但环境变量里直接写反斜杠仍会被 bash 吃掉）。设 `~/.agate` 软链接用 `ln -s`（Git Bash 里 `~` 是 `C:\Users\<你>`）；无符号链接权限时改用系统环境变量 `AGATE_ROOT=/c/Users/<你>/agate/agate`。
 
