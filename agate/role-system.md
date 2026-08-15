@@ -57,7 +57,7 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 | frontend | 任意 | design-review（P4 后）+ plan-design-review（P2）|
 | mcp | 任意 | review + 关注 MCP 接口契约（T005 教训：MCP 改动需专项评审）|
 | security | 任意 | cso（P4 后）|
-| 任意 | **high** | **plan-eng-review 必须派发**（P2.1 硬规则，check-gate.sh 对 agent=main 硬拦截 exit 1）|
+| 任意 | **high** | **plan-eng-review 必须派发**（P2.1 硬规则，check-gate.py 对 agent=main 硬拦截 exit 1）|
 | P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review（P1 后 / P2）|
 
 **去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。
