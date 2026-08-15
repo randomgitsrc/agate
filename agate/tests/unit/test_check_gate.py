@@ -1,7 +1,8 @@
 # tests/unit/test_check_gate.py — check-gate.py 阶段 gate 总闸
 # （check-gate.bats 124 用例迁移，TAG0011 批次 8a：G0 / G1 / G3 / G4 / G_OTHER，11 用例；
 #   批次 8b：G2 系列 + G_BDD1.1/9.1/10.1 + G_CMD_EXEC.1/2，29 用例；
-#   批次 8c：G5 / G5.1 / G5_CMD.1-5，7 用例）
+#   批次 8c：G5 / G5.1 / G5_CMD.1-5，7 用例；
+#   批次 8d：G6 系列 + G_BDD16.1 + test_bdd_1..8（TAG0002 refactor 口径），20 用例）
 # 被测：agate/scripts/check-gate.py（PHASE TASK_DIR [OLD_PHASE]；exit 0 = 通过 / exit 1 = 未通过 /
 #   exit 2 = 主 Agent 自判）。
 # G0/G1/G3/G_OTHER 用 task_dir factory（create_task_dir 等价）；G4 系列需要 git_repo
@@ -13,6 +14,7 @@
 #   本文件断言一律用合并流 result.output（与 bats $output 等价，BLOCKER-1）。
 # create_python_shim_bin 退役（P2 §3.1）：pytest 直跑解释器，无需 harness shim。
 
+import re
 import shutil
 
 import pytest
@@ -848,3 +850,319 @@ def test_g5_cmd_5_no_trailing_newline(task_dir, agate_scripts, python_exe, run_c
     assert result.returncode == 2
     assert "1 个主命令 + 1 个辅助命令" in result.output
     assert "共 2 条" in result.output
+
+
+# ========== 8d: gate_p6 分支（G6 系列 + G_BDD16.1）+ TAG0002 refactor 口径（test_bdd_1..8） ==========
+# P6-acceptance.md 用 write_text 覆写（等价 bats heredoc）；P6-evidence/ 目录存在性
+# 由 gate_p6 判定（G6.4 断言其缺失）。refactor 系列用 add_p1_field 写 P1 frontmatter
+# change_type（NO_FALLBACK_STRING_FIELDS，仅 frontmatter 生效）。
+
+
+def _write_p6_acceptance(td, body):
+    (td / "P6-acceptance.md").write_text(body, encoding="utf-8")
+
+
+def _add_p6_evidence(td, filename, content="log\n"):
+    (td / "P6-evidence").mkdir(parents=True, exist_ok=True)
+    (td / "P6-evidence" / filename).write_text(content, encoding="utf-8")
+
+
+_P6_REGRESSION_BODY = (
+    "---\n"
+    "phase: P6\n"
+    "task_id: TAG0002\n"
+    "agent: verifier\n"
+    "pass: 1\n"
+    "fail: 0\n"
+    "ui_affected: false\n"
+    "regression_pass: true\n"
+    "---\n"
+    "- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)\n"
+)
+
+
+def test_g6_1_fail_line_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1\n- FAIL BDD-2\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 1
+    assert "FAIL=" in result.output
+
+
+def test_g6_3_all_pass_no_bdd_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6_acceptance(td, "无 BDD 条目\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 1
+    assert "TOTAL=0" in result.output
+
+
+def test_g6_4_no_evidence_dir_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1\n- PASS BDD-2\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 1
+    assert "P6-evidence" in result.output
+
+
+def test_g6_5_evidence_nonempty_exit_2(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1\n- PASS BDD-2\n")
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_g6_10_need_confirm_not_blocking_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1\n- [NEED_CONFIRM] some text\n")
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_g6_11_no_need_confirm_no_warning_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1 (result.log)\n")
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+    assert "NEED_CONFIRM" not in result.output
+
+
+def test_g6_7_lowercase_fail_counted_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1\n- fail: BDD-2 broken\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 1
+    assert "FAIL=1" in result.output
+
+
+def test_bdd16_1_frontmatter_summary_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p6_acceptance(
+        td,
+        "---\n"
+        "phase: P6\n"
+        "task_id: T001\n"
+        "agent: verifier\n"
+        "pass: 1\n"
+        "fail: 0\n"
+        "ui_affected: false\n"
+        "---\n"
+        "逐条结果见 P6-evidence/ 详细记录（本文件正文不复述逐条 PASS/FAIL 行）。\n",
+    )
+    _add_p6_evidence(td, "result.json")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_g6_9_failure_not_counted_exit_2(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1\n- failure mode detected\n")
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+    assert "FAIL=0" in result.output
+
+
+def test_bdd_1_p1_gate_accepts_refactor_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    (td / "P1-review.md").write_text(
+        "---\n"
+        "status: approved\n"
+        "agent: requirements-review\n"
+        "---\n"
+        "## BDD 评审\n"
+        "- BDD-1: PASS\n",
+        encoding="utf-8",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+    assert "change_type" not in result.output
+
+
+def test_bdd_2_p6_default_no_change_type_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p6_acceptance(td, "- PASS BDD-1\n- PASS BDD-2\n")
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_bdd_2b_p6_body_mentions_change_type_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    with open(td / "P1-requirements.md", "a", encoding="utf-8") as fh:
+        fh.write(
+            "\nchange_type: refactor 是可选字段，缺省为功能任务（本文档仅作说明，本任务不采用 refactor 口径）\n"
+        )
+    _write_p6_acceptance(td, "- PASS BDD-1\n- PASS BDD-2\n")
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_bdd_3_p6_refactor_with_regression_evidence_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    _write_p6_acceptance(td, _P6_REGRESSION_BODY)
+    _add_p6_evidence(td, "regression.log", "bats ... 0 failures\nEXIT_CODE: 0\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_bdd_4_p6_refactor_missing_regression_log_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    _write_p6_acceptance(td, _P6_REGRESSION_BODY)
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 1
+    assert "regression.log" in result.output
+
+
+def test_bdd_4b_p6_refactor_missing_regression_pass_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    _write_p6_acceptance(
+        td,
+        "---\n"
+        "phase: P6\n"
+        "task_id: TAG0002\n"
+        "agent: verifier\n"
+        "pass: 1\n"
+        "fail: 0\n"
+        "ui_affected: false\n"
+        "---\n"
+        "- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)\n",
+    )
+    _add_p6_evidence(td, "regression.log", "bats ... 0 failures\nEXIT_CODE: 0\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 1
+    assert "regression_pass" in result.output
+
+
+def test_bdd_6_p6_no_behavior_change_not_waived_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    with open(td / "P1-requirements.md", "a", encoding="utf-8") as fh:
+        fh.write("\nno_behavior_change: 预期无行为变更\n")
+    _write_p6_acceptance(td, _P6_REGRESSION_BODY)
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 1
+
+
+def test_bdd_6b_p6_no_behavior_change_with_evidence_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    with open(td / "P1-requirements.md", "a", encoding="utf-8") as fh:
+        fh.write("\nno_behavior_change: 预期无行为变更\n")
+    _write_p6_acceptance(td, _P6_REGRESSION_BODY)
+    _add_p6_evidence(td, "regression.log", "bats ... 0 failures\nEXIT_CODE: 0\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_bdd_7_refactor_backfill_walk_p1_p3_p6(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    with open(td / "P1-requirements.md", "a", encoding="utf-8") as fh:
+        fh.write(
+            "\n#### BDD-2: 关键路径行为不变\n"
+            "- Given 重构后的协议状态\n"
+            "- When 执行关键路径\n"
+            "- Then 行为与重构前一致\n"
+        )
+    (td / "P1-review.md").write_text(
+        "---\n"
+        "status: approved\n"
+        "agent: requirements-review\n"
+        "---\n"
+        "## BDD 评审\n"
+        "- BDD-1: PASS\n"
+        "- BDD-2: PASS\n",
+        encoding="utf-8",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+
+    (td / "P3-test-cases.md").write_text(
+        "## P3 test cases（回归测试口径，不新增功能行为断言）\n", encoding="utf-8"
+    )
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P3", str(td))
+    assert result.returncode == 2
+
+    _write_p6_acceptance(
+        td,
+        "---\n"
+        "phase: P6\n"
+        "task_id: TAG0002\n"
+        "agent: verifier\n"
+        "pass: 2\n"
+        "fail: 0\n"
+        "ui_affected: false\n"
+        "regression_pass: true\n"
+        "---\n"
+        "- PASS BDD-1: 全量回归全绿（重构后完整测试套件 0 失败）(P6-evidence/regression.log)\n"
+        "- PASS BDD-2: 关键路径行为不变（重构前后关键路径结果一致）(P6-evidence/regression.log)\n",
+    )
+    _add_p6_evidence(td, "regression.log", "bats ... 0 failures\nEXIT_CODE: 0\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2
+
+
+def test_bdd_5_p6_card_docs_forbid_fake_bdd(agate_root):
+    content = (agate_root / "phase-cards" / "P6-acceptance.md").read_text(encoding="utf-8")
+    assert re.search(r"禁止.*伪造", content)
+
+
+def test_bdd_8_p3_card_docs_regression_test_port(agate_root):
+    content = (agate_root / "phase-cards" / "P3-tdd.md").read_text(encoding="utf-8")
+    assert "回归测试口径" in content

@@ -684,3 +684,55 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
 - 实现细节（非偏离，记录供后续批次参照）：本子批用例数 7（P2 §5 子批表预估 ~10 有出入，以
   check-gate.bats 实际 @test 数为准：G5 / G5.1 / G5_CMD.1-5 恰 7 个，P2 表 8c 列「~10」含估余量）。
 
+## 批次 8d — check-gate 子批 d（1 文件 / 20 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（G6 系列 / G_BDD16.1 / test_bdd_1..8） | `unit/test_check_gate.py` | 20 |
+
+> 按 P2 §5 子批表 8d 范围追加（`-k "g6 or bdd16 or bdd_1 or bdd_2 or bdd_3 or bdd_4 or bdd_5 or
+> bdd_6 or bdd_7 or bdd_8"`）。
+> 覆盖：G6.1 / G6.3 / G6.4 / G6.5 / G6.7 / G6.9 / G6.10 / G6.11（8）+ G_BDD16.1（1）+
+> test_bdd_1 / 2 / 2b / 3 / 4 / 4b / 5 / 6 / 6b / 7 / 8（11）——共 20 个。
+> test_bdd_5 / 8 是文档锚点用例（grep 协议 phase-cards 文件），非 gate 行为用例。
+
+### 关键实现点
+
+- **gate_p6 分支 task_dir 驱动**（无 git）：P6-acceptance.md 用 `_write_p6_acceptance` helper
+  （write_text 覆写，等价 bats heredoc）；P6-evidence/ 目录 + 证据文件用 `_add_p6_evidence` helper。
+- **G6.4 无证据目录**：bats「不建 P6-evidence/」等价为不调 `_add_p6_evidence`，gate_p6 走
+  `P6-evidence/ 目录不存在或为空` → exit 1，断言 `P6-evidence` 于合并流。
+- **refactor 口径（test_bdd_1..7）**：`add_p1_field(td, "change_type", "refactor")` 写 P1 frontmatter
+  （NO_FALLBACK_STRING_FIELDS，正文散文提及不算）；P6 frontmatter pass/fail/regression_pass 原文复刻。
+  test_bdd_4 / 4b 分别缺 regression.log / regression_pass → 断言 `regression.log` / `regression_pass`。
+- **test_bdd_7 三段走查**：同 task_dir 依次跑 P1→P3→P6 三阶段 gate（bats 同测试多 `run` 等价），
+  各阶段独立断言 exit 2。
+- **test_bdd_5 / 8 文档锚点**：`re.search(r"禁止.*伪造", (agate_root/"phase-cards"/"P6-acceptance.md")
+  .read_text(...))` / `"回归测试口径" in ... P3-tdd.md`——bats `grep -q` 等价（agate_root fixture）。
+- **流语义（P2 BLOCKER-1）**：gate_p6 的 `GATE P6: ...` / `GATE P1: ...` 一律 `sys.stderr.write` →
+  断言一律用合并流 `result.output`（`FAIL=` / `TOTAL=0` / `P6-evidence` / `FAIL=1` / `FAIL=0` 等），
+  未映射 `.stdout`。
+- 函数命名 `test_g6_N_...` / `test_bdd16_1_...` / `test_bdd_N[_N b]_...`，匹配 P2 §5 子批 8d 验证命令
+  `-k "g6 or bdd16 or bdd_1 ... bdd_8"`（`test_bdd_2b_...` 等含 `bdd_2` 子串，`-k` 子串命中）。
+- windows_smoke 打标：本子批无新增（8d 用例名无平台关键词；每文件第 1 用例标记已在 8a
+  `test_g0_...`，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "g6 or bdd16 or bdd_1 or bdd_2 or bdd_3 or bdd_4 or bdd_5 or bdd_6 or bdd_7 or bdd_8" -q   # P2 §5 子批 8d 验证命令
+# 20 passed, 47 deselected
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 67 passed in 5.19s（8a 11 + 8b 29 + 8c 7 + 8d 20，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 67 tests collected（BDD-1 计数不变）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：本子批用例数 20，与 P2 §5 子批表 8d 预估 ~20 一致。
+
