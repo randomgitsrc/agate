@@ -3,7 +3,8 @@
 #   批次 8b：G2 系列 + G_BDD1.1/9.1/10.1 + G_CMD_EXEC.1/2，29 用例；
 #   批次 8c：G5 / G5.1 / G5_CMD.1-5，7 用例；
 #   批次 8d：G6 系列 + G_BDD16.1 + test_bdd_1..8（TAG0002 refactor 口径），20 用例；
-#   批次 8e：G7.1-9 + G_DG_ANCHOR.1/2 + bdd-11（TAG0004 M4 全角冒号），12 用例）
+#   批次 8e：G7.1-9 + G_DG_ANCHOR.1/2 + bdd-11（TAG0004 M4 全角冒号），12 用例；
+#   批次 8f：G8.1-10（gate_p8 分支），10 用例）
 # 被测：agate/scripts/check-gate.py（PHASE TASK_DIR [OLD_PHASE]；exit 0 = 通过 / exit 1 = 未通过 /
 #   exit 2 = 主 Agent 自判）。
 # G0/G1/G3/G_OTHER 用 task_dir factory（create_task_dir 等价）；G4 系列需要 git_repo
@@ -1305,3 +1306,192 @@ def test_bdd_11_fullwidth_colon_blocker_summary_exit_0(
         env={"LC_ALL": "C", "LANG": ""},
     )
     assert result.returncode == 0
+
+
+# ========== 8f: gate_p8 分支（G8.1-10，10 用例） ==========
+# P8 检查在 git repo 内进行：_init_repo_with_task 复制 task 目录后，写
+# version/CHANGELOG 文件并 stage（bats `git -C "$repo" add ...` 等价），
+# run_cli(..., cwd=repo) 等价 bats `cd '$repo' && ...`。P8 输出（GATE P8: /
+# GATE P8 WARNING:）一律 sys.stderr.write → 断言合并流 result.output
+# （P2 §3.2 流语义规则，BLOCKER-1）。G8.5 无 P8 文件分支不需要 git repo
+# （bump_type 缺失提前 return 1，gate_p8 不触达 git 检查）。
+# G8.6 用 env CHANGELOG_FILE=HISTORY.md 覆盖默认 CHANGELOG.md（bats
+# `CHANGELOG_FILE="HISTORY.md" run bash -c ...` 等价）。
+
+
+def _write_p8_release(td, body):
+    (td / "P8-release.md").write_text(body, encoding="utf-8")
+
+
+def _init_p8_repo(git_repo, td, files=None, tag=None):
+    """bats G8 系列 git 前置等价：init + README commit + cp task + 写/暂存文件 + 可选 tag。"""
+    repo = git_repo.path
+    _init_repo_with_task(git_repo, td)
+    for name, content in (files or {}).items():
+        (repo / name).write_text(content, encoding="utf-8")
+        git_repo.stage(name)
+    if tag:
+        git_repo.git("tag", tag)
+    return repo
+
+
+_P8_COMPLIANT = "bump_type: minor\ndebt_check: none\n"
+_P8_UNRELEASED = "## [Unreleased]\n"
+_P8_CHANGELOG_TAGGED = "## [Unreleased]\n\n## [0.2.0] - 2026-07-20\n"
+
+
+def test_g8_1_missing_bump_type_exit_1(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, "无 bump_type\n")
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 1
+    assert "bump_type" in result.output
+
+
+def test_g8_2_no_version_change_warning_exit_2(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"some.md": "doc\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+    assert "WARNING" in result.output
+    assert "version" in result.output
+
+
+def test_g8_3_version_changed_no_changelog_exit_2(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo, td, files={"package.json": "v0.1.0\n"}
+    )  # CHANGELOG 没改 → WARNING
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+    assert "CHANGELOG" in result.output
+
+
+def test_g8_4_full_compliance_exit_2(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+
+
+def test_g8_5_missing_p8_file_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir(phases=["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7"])  # P8 不在
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", str(td))
+    assert result.returncode == 1
+
+
+def test_g8_6_changelog_file_env_override(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "HISTORY.md": _P8_UNRELEASED},
+    )
+
+    result = _run_gate(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        "P8",
+        "task",
+        cwd=str(repo),
+        env={"CHANGELOG_FILE": "HISTORY.md"},
+    )
+    assert result.returncode == 2
+
+
+def test_g8_7_tag_missing_warning_exit_2(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_CHANGELOG_TAGGED},
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+    assert "tag v0.2.0 不存在" in result.output
+
+
+def test_g8_8_tag_exists_no_warning(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.2.0\n", "CHANGELOG.md": _P8_CHANGELOG_TAGGED},
+        tag="v0.2.0",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+    assert "tag v0.2.0 不存在" not in result.output
+
+
+def test_g8_9_missing_debt_check_exit_1(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, "bump_type: minor\n")
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 1
+    assert "debt_check" in result.output
+
+
+def test_g8_10_debt_check_any_content_exit_2(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+    assert "debt_check" not in result.output

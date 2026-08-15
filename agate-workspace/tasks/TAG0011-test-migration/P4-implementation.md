@@ -789,4 +789,56 @@ python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
   实际 check-gate.bats 中 G7 前缀用例共 9（G7.1-9）+ G_DG_ANCHOR 2 + bdd-11 1 = 12，
   P2 预估为近似值，以 bats 实计为准。
 
+## 批次 8f — check-gate 子批 f（1 文件 / 10 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（G8.1-10） | `unit/test_check_gate.py` | 10 |
+
+> 按 P2 §5 子批表 8f 范围追加（`-k "g8"`）。
+> 覆盖：G8.1 / G8.2 / G8.3 / G8.4 / G8.5 / G8.6 / G8.7 / G8.8 / G8.9 / G8.10——共 10 个
+> （P2 预估 ~12，实计 10，见偏离点）。
+
+### 关键实现点
+
+- **gate_p8 分支 git repo 驱动**：P8 检查基于 `git diff --cached`（暂存区，不用 HEAD~1）——
+  新增 `_init_p8_repo` helper（`_init_repo_with_task` + 逐文件 write_text + `git_repo.stage`
+  等价 bats `git -C "$repo" add ...` + 可选 `git_repo.git("tag", ...)`），
+  `run_cli(..., cwd=repo)` 等价 bats `cd '$repo' && ...`。
+- **G8.5 无 P8 文件不需要 git**：P8-release.md 缺失 → `_read_text` 空串 → bump_type 缺失提前
+  return 1（gate_p8 不触达 git 检查），直接 `_run_gate` 无 cwd/repo。
+- **G8.6 CHANGELOG_FILE 环境变量覆盖**：`env={"CHANGELOG_FILE": "HISTORY.md"}`
+  （等价 bats `CHANGELOG_FILE="HISTORY.md" run bash -c ...`），HISTORY.md 替代默认 CHANGELOG.md。
+- **G8.7 / G8.8 tag 存在性**：CHANGELOG 暂存 diff 含 `[0.2.0]` → tag_version=0.2.0 →
+  `git tag -l v0.2.0` 空则 WARNING（G8.7 断言 `tag v0.2.0 不存在`）／有 tag 则无 WARNING
+  （G8.8 反向断言 `not in result.output`）。
+- **G8.2 / G8.3 WARNING 语义**：无 version 变更 → `GATE P8 WARNING: ...version...`；
+  有 version 但 CHANGELOG 无变更 → `...CHANGELOG...`——均 WARNING 不阻断 exit 2。
+- **流语义（P2 BLOCKER-1）**：`GATE P8: ...` / `GATE P8 WARNING: ...` 一律 `sys.stderr.write`
+  → 断言一律用合并流 `result.output`（`bump_type` / `debt_check` / `version` / `CHANGELOG` /
+  `tag v0.2.0 不存在`），未映射 `.stdout`。
+- 函数命名 `test_g8_N_...`，匹配 P2 §5 子批 8f 验证命令 `-k "g8"`。
+- windows_smoke 打标：本子批无新增（8f 用例名无平台关键词；每文件第 1 用例标记已在 8a
+  `test_g0_...`，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "g8" -q   # P2 §5 子批 8f 验证命令
+# 10 passed, 79 deselected
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 89 passed in 8.04s（8a 11 + 8b 29 + 8c 7 + 8d 20 + 8e 12 + 8f 10，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 89 tests collected（BDD-1 计数递增）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：本子批用例数 10，P2 §5 子批表 8f 预估 ~12；
+  实际 check-gate.bats 中 G8 前缀用例共 10（G8.1-10），P2 预估为近似值，以 bats 实计为准。
+
 
