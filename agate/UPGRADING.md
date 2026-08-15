@@ -178,6 +178,14 @@ python3 ~/.agate/scripts/install-hook.py
 
 **⑤ 无 bash 环境（纯 cmd/PowerShell）成为可行选项**：gate 脚本已全部 Python 化，`python3` 可直接运行（P0-P8 全程可执行）；唯一受限是 git hook 入口薄壳仍需 sh（Git for Windows）。详见 `platform-notes.md`「Windows 原生」。
 
+### v0.49.0 — 派发编排机制（无破坏性变更）
+
+**本版本无破坏性变更，无需迁移动作。**
+
+- 新增 `dispatch_plan:` **可选**机器字段（P2-design.md frontmatter 单行 flow YAML，mode/batches/parallel_limit）——缺字段 / 坏 YAML 时 P2 gate 跳过校验，既有任务行为与改造前完全一致（向后兼容）。
+- `dispatch-protocol.md`「任务粒度指引」节升级为「派发编排机制」权威节（五维工作量评估 + 五模式编排 + 模式 4 流程 + 并行规则 + 全阶段适用表）；既有引用点（L118/L132/L211 + task-files.md）措辞同步更新，锚点位置不变，一致性 CHECK 3 零漂移。
+- 已有项目升级：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS 符号链接模式自动跟随，不放心可重跑确认；Windows 复制模式必须重跑）。
+
 ### v0.48.0 — 脚本一致性 gate（无破坏性变更）
 
 **本版本无破坏性变更，无需迁移动作。**

@@ -22,6 +22,7 @@ P0-P8 全部分支均已实现（2f-2 补齐 P5-P8），与 sh 版 check-gate.sh
 步骤 5 变更时必须同步更新本脚本。一致性检查脚本覆盖本文件。
 """
 
+import json
 import os
 import re
 import shutil
@@ -288,6 +289,51 @@ def gate_p1(task_dir):
     return 2
 
 
+# TAG0014（P2-design.md §3.1，BDD-2~7）：P2 门 dispatch_plan 字段校验。
+# 契约：
+#   * op 输出空（无字段 / 坏 YAML）→ 跳过，等同现状（BDD-2/7）
+#   * 非空 → json.loads 解析；解析失败同样跳过（不误拦不崩溃，BDD-7）
+#   * mode ∈ {single, static-batch, parallel, recon-then-split, serial}（BDD-3）
+#   * parallel_limit 存在且 ≥1（BDD-4）
+#   * mode ∈ {static-batch, parallel} 时校验 batches：每批含 id + complexity ∈ {low, medium, high}（BDD-5）
+#   * batch 数 ≤ parallel_limit（缺省 3）（BDD-6）
+# 返回 None = 校验通过（或无需校验）；返回非 None = ERROR 描述（调用方负责 return 1）。
+def _gate_p2_dispatch_plan(p2_file):
+    raw = _md_field_get("dispatch_plan", p2_file)
+    if not raw:
+        return None
+    try:
+        plan = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(plan, dict):
+        return None
+
+    valid_modes = frozenset({"single", "static-batch", "parallel", "recon-then-split", "serial"})
+    mode = plan.get("mode")
+    if not isinstance(mode, str) or mode not in valid_modes:
+        return f"dispatch_plan.mode 非法（当前: {mode!r}），须 ∈ {sorted(valid_modes)}"
+
+    parallel_limit = plan.get("parallel_limit")
+    if parallel_limit is not None and (not isinstance(parallel_limit, int) or parallel_limit < 1):
+        return f"dispatch_plan.parallel_limit 非法（当前: {parallel_limit!r}），须为 ≥1 的整数"
+
+    if mode in ("static-batch", "parallel"):
+        batches = plan.get("batches", [])
+        if not isinstance(batches, list):
+            return f"dispatch_plan.batches 须为列表（当前: {type(batches).__name__}）"
+        limit = parallel_limit if parallel_limit is not None else 3
+        if len(batches) > limit:
+            return f"dispatch_plan 批次数（{len(batches)}）超过 parallel_limit（{limit}）"
+        for batch in batches:
+            if not isinstance(batch, dict) or "id" not in batch:
+                return "dispatch_plan.batches 每批须含 id"
+            complexity = batch.get("complexity")
+            if complexity not in ("low", "medium", "high"):
+                return f"dispatch_plan batch {batch.get('id')!r} 的 complexity 非法（当前: {complexity!r}），须 ∈ low/medium/high"
+    return None
+
+
 def gate_p2(task_dir):
     p2_file = os.path.join(task_dir, "P2-design.md")
     if not os.path.isfile(p2_file):
@@ -361,6 +407,13 @@ def gate_p2(task_dir):
             sys.stderr.write(
                 f"GATE P2 WARNING: gate_commands.{key} 命令 '{token}' 不存在于当前环境——请确认使用完整路径（如 .venv/bin/pytest）或安装依赖。T075 教训：python 不存在导致 P3 gate exit 127\n"
             )
+
+    # TAG0014（dispatch_plan 字段契约，P2-design.md §3.1）：op 输出空（无字段/坏 YAML）→ 跳过，
+    # 行为等同现状（BDD-2/7 向后兼容）；非空 → json.loads 校验 mode / parallel_limit / batches。
+    _dispatch_error = _gate_p2_dispatch_plan(p2_file)
+    if _dispatch_error:
+        sys.stderr.write(f"GATE P2 ERROR: {_dispatch_error}\n")
+        return 1
 
     sys.stderr.write("GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定\n")
     return 2

@@ -74,6 +74,7 @@ check-tdd-red.py $TASK_DIR
 ## 按包拆分并行（条件触发，非强制）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
 
 当 P2 声明多个 packages 且包间无数据依赖时，P3 可拆分并行：
 
@@ -82,7 +83,7 @@ check-tdd-red.py $TASK_DIR
 3. 各自返回路径 + 摘要
 4. 主 Agent 汇总后统一 commit
 
-拆分判据：
+拆分判据（本阶段特定）：
 - P2 packages > 1 且包间无数据依赖 → 可并行
 - 单包或包间有依赖 → 串行（不拆分）
 - P2 未声明 packages → 串行

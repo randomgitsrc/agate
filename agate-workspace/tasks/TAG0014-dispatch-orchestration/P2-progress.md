@@ -27,3 +27,11 @@
 - 新发现（非阻塞）：P2-design.md files_to_read 块 L256 `why: ... self-gate-review: + ...` 冒号后跟空格 → YAML 解析失败，consistency 现报 1 ERROR（与 minimal_validation ⑥ "0 ERROR 实测"不符）；agate/scripts/README.md L102 op 清单（20 个）未纳入改动面；gate 层缺非 dict JSON 守卫
 - 覆盖核对：22 BDD 全覆盖映射；N1-N7 修复全落地；模式 4/P8 合并/P7 归类正确；self-gate（BDD-22）§3.6 覆盖
 - 结论：0 阻塞 → status: approved（非阻塞 3 项 + 测试缺口 1 项）
+
+## architect 修复轮 (P4) 进度
+
+- [x] 读取 dispatch-context：修复点唯一 L256 `why:` 值裸冒号导致 YAML 解析失败
+- [x] 读取 P2-design.md L250-262 确认上下文（L256 值内含 `self-gate-review:` 裸冒号）
+- [x] 修复 L256：`why:` 值加双引号
+- [x] 验证：check-protocol-consistency 无 ERROR（CHECK 1 YAML 代码块可解析 PASS），TAG0014 P2-design.md 无任何 error/warning
+- [x] 未改动协议文件/其他文件（PROD_NOT_TOUCHED）

@@ -77,7 +77,7 @@ P0-brief 是主 Agent 作为 PM 在派发任何 subagent 之前写的判断文�
 
 ```yaml
 ## P0-brief.md
-task: "一句话描述任务（工程视角，不是产品语言）。若写不出一句话 → 任务太大，考虑拆分（见 dispatch-protocol.md「任务粒度指引」）"
+task: "一句话描述任务（工程视角，不是产品语言）。若写不出一句话 → 任务太大，考虑拆分（见 dispatch-protocol.md「派发编排机制」）"
 
 known_risks:
   - "涉及数据 schema 变更（需要在测试环境充分验证迁移逻辑）"

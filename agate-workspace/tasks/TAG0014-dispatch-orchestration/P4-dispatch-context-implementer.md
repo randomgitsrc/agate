@@ -1,3 +1,54 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0014
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+修复轮（P4 review rejected）：修复 P4-review.md 发现的 1 个 CRITICAL + 采纳建议，使实现通过 review。
+
+### 约束
+
+- **增量模式**：引用上轮 P4 派发约束（P4-dispatch-context-implementer.md 的既有版本已包含完整改文件清单与实现约束——本轮不重写，只列修复点；若文件已被修复轮覆盖，以上轮实现完成后的实际代码状态为准）。
+- **修复点（P4-review.md 结论节）**：
+  1. **[CRITICAL 必修] check-gate.py:314** — `mode` 非 str（list/dict）时 `frozenset` 成员测试 TypeError，gate 崩溃且无 "GATE P2 ERROR" 输出。修复：`if not isinstance(mode, str) or mode not in valid_modes:` 一行（isinstance str 前置）。
+  2. **[建议，随 CRITICAL 一并做] 补 1 条负向用例**：`{mode: [single]}` → P2 gate exit 1 + stderr 含 "GATE P2"（闭环 CRITICAL + 消掉覆盖缺口）。
+  3. **[建议，一并做] 补 1 条负向用例**：`complexity: invalid`（BDD-5 子场景②）→ P2 gate exit 1 + ERROR。
+  4. **[建议，一并做] P4-implementation.md stale 声明对齐**：§2.2/§3/§4 与当前全绿状态一致（README badge 已还原 v0.48.0、3 条"预期失败"已修复为全绿、consistency 0 ERROR）。补修复轮后最终状态说明。
+  5. **[可选] parallel_limit 用 `type(x) is int` 排除 bool**（YAML `parallel_limit: true` 目前被当作 1 通过）。
+- **新增测试放哪**：追加到 agate/tests/unit/test_dispatch_orchestration.py（保持既有 8 条不动，追加新用例）。
+- **不改 P1 基线 / P2 设计**：发现新问题标 [SCOPE+]/[DESIGN_GAP]，不直接改需求。
+- **验证要求**：修复后自跑 `python3 -m pytest agate/tests/ -q --tb=no` 全量回归（T027 教训：修复可能引入回归）+ `python3 agate/scripts/check-protocol-consistency.py --root /home/kity/oclab/agate/.worktrees/agate-TAG0014` 0 ERROR。
+- **输出路径硬约束**：
+  - 代码修复 → worktree 实际文件（agate/scripts/check-gate.py）
+  - 测试追加 → agate/tests/unit/test_dispatch_orchestration.py
+  - 实现记录更新 → {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P4-implementation.md
+
+### 上游关联
+
+- P4-review.md：1 CRITICAL（mode 非 str 崩溃）+ 3 INFORMATIONAL（覆盖缺口 / stale 声明 / bool parallel_limit）
+- 上轮实现：op + gate + 文档改造完成，10 条测试全绿，全量 778 passed + consistency 0 ERROR
+
+### 输入文件
+
+- {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P4-review.md（评审意见——修复依据）
+- {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P4-implementation.md（实现记录，需更新）
+- {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P2-design.md（方案）
+- {project_root}/agate/scripts/check-gate.py（修复对象）
+- {project_root}/agate/tests/unit/test_dispatch_orchestration.py（测试追加）
+- {project_root}/agate/tests/unit/test_check_gate.py（既有 P2 测试 fixture 参照）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -94,7 +145,6 @@ review 不通过 → implementer 修改代码 → 再 review → … → approve
 ## 按包拆分并行（条件触发，需额外约束）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
-> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
 
 当 P2 声明多个 packages 且包间无数据依赖时，P4 可拆分并行，但**有额外约束**：
 
@@ -150,3 +200,14 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 评审结论：P4-review.md status rejected，1 CRITICAL（check-gate.py:314 mode 非 str TypeError）
+- 复现：`dispatch_plan: {mode: [single]}` → hash(list) TypeError，gate traceback 崩溃
+- 修复建议（review 原文）：`mode = plan.get("mode"); if not isinstance(mode, str) or mode not in valid_modes: return ERROR`
+- 当前状态：全量 778 passed + 2 skipped；consistency 0 ERROR（279 WARNING 既有）；count 780；README badge 已还原 v0.48.0
+- 测试追加注意：保持既有 8 条不动，新增用例用 conftest fixtures（agate_scripts / python_exe / run_cli / tmp_path），平台无关
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

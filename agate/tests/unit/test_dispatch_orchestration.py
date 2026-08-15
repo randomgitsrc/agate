@@ -8,7 +8,7 @@
 #   * mode ∈ {single, static-batch, parallel, recon-then-split, serial}
 #   * 缺字段 / YAML 解析失败 → 行为等同现状（向后兼容，不误拦不崩溃）
 #   * P2 gate 对非法 mode / parallel_limit<1 / batch 缺 complexity / 批数超限 报 GATE P2 ERROR + exit 1
-# 测试设计：正向 5 + 负向 3，对应 P1 BDD-19（覆盖 BDD-1~7）。
+# 测试设计：正向 5 + 负向 5，对应 P1 BDD-19（覆盖 BDD-1~7）+ 修复轮负向补强（mode 非 str / complexity 非法值）。
 # 平台无关：conftest fixtures（python_exe 探测不裸 python3）、tmp_path 不用 /tmp。
 
 import json
@@ -181,3 +181,26 @@ def test_dispatch_plan_batch_missing_complexity(task_dir, agate_scripts, python_
     result = _run_gate(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 1
     assert "GATE P2" in result.output
+
+
+def test_dispatch_plan_mode_non_string(task_dir, agate_scripts, python_exe, run_cli):
+    """修复轮负向④/CRITICAL：mode 为非字符串（list）→ P2 gate 干净报 GATE P2 ERROR + exit 1，不崩溃。"""
+    td = task_dir()
+    _write_p2_design(td, "{mode: [single]}")
+    add_p2_review(td)
+    result = _run_gate(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "GATE P2 ERROR" in result.output
+
+
+def test_dispatch_plan_complexity_invalid(task_dir, agate_scripts, python_exe, run_cli):
+    """修复轮负向⑤/BDD-5 子场景②：complexity 为非法值 → P2 gate 报 GATE P2 ERROR + exit 1。"""
+    td = task_dir()
+    _write_p2_design(
+        td,
+        "{mode: static-batch, parallel_limit: 3, batches: [{id: B1, complexity: invalid}]}",
+    )
+    add_p2_review(td)
+    result = _run_gate(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "GATE P2 ERROR" in result.output

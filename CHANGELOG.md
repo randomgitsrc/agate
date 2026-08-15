@@ -8,6 +8,27 @@
 
 ---
 
+## [0.49.0] - 2026-08-16
+
+### 新增（RM-AG0016：派发编排机制）
+
+- **`dispatch-protocol.md`「任务粒度指引」节升级为「派发编排机制」权威节**：新增工作量评估五维评级表（产出规模/输入规模/改动性质/耦合度/认知负荷）、五模式编排（单发/静态拆批/并行/先理解后拆/串行链）、模式 4 三步流程（侦察→执行→合并，含 BDD 全局编号 + 包归属去重合并语义）、并行规则三要素（上限默认 3 / retry 与 retries[Pn] 对齐整组计 1 次 / 共享文件统一后处理 + P6 例外）、P1-P8 全阶段适用表；既有有效规则（输入/产出上限、拆分判据、T016/T026 教训、P7 例外、状态机不变）原位保留
+- **P2-design.md 新增可选 `dispatch_plan:` 机器字段**：frontmatter 单行 flow YAML（mode/batches/parallel_limit），由 `agate-md-field-get.py` 新增 `dispatch_plan` op 输出 JSON（`json.dumps` ensure_ascii=False），check-gate.py P2 分支校验（mode 枚举 / parallel_limit≥1 / batch id+complexity / 批数≤上限），缺字段/坏 YAML 跳过不误拦（向后兼容）
+- **`architect.md` 新增"批次设计"强制节**：high 复杂度必须拆批；批次粒度受工作量评估约束
+- **`dispatch-prompt.md` + 协议内联节新增任务粒度兜底**：产出 >3 或输入 >5 须分批派发或说明理由
+
+### 变更（阶段卡片统一引用权威节）
+
+- **P3/P4/P5/P6 卡片「按包拆分并行」节改为引用权威节并行规则**，阶段特定约束原样保留（P3 拆分判据 / P4 共享文件后处理 + 基础设施隔离 + 串行默认值 / P5 端口/数据库/临时输出/E2E 隔离 / P6 证据并行 + 汇总 verifier）
+- **P7 卡片表述更新**：输入数量豁免为"模式 1 单发 + 输入数量豁免特例"（保留跨文件一致性理由）
+- **P1 卡片新增复杂需求编排（模式 4）**：侦察 subagent + 合并语义（BDD 全局编号、包归属去重）
+- **P8 卡片新增多包发布拆批**：多 releaser 并行各写 P8-release-{pkg}.md → 合并 subagent 整合唯一 P8-release.md
+
+### 测试
+
+- 10 条新增用例（test_dispatch_orchestration.py 8 条 + test_agate_md_field_get.py +2），11 条 BDD 全 PASS；全量 pytest 全绿；consistency 0 ERROR；ruff 通过
+- 本版本**无破坏性变更**：dispatch_plan 为可选字段，缺字段任务行为等同现状
+
 ## [0.48.0] - 2026-08-16
 
 ### 新增（RM-AG0015：CHECK 10 文档脚本名引用漂移 gate）

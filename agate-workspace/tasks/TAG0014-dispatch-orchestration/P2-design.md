@@ -253,7 +253,7 @@ files_to_read:
   - path: agate/phase-cards/P4-implementation.md:94-117
     why: 卡片引用改写样板（共享文件/隔离全组/串行默认值的完整保留清单）
   - path: agate/SELF-GATE.md
-    why: self-gate 派发模板（commit message self-gate-review: + protocol-alignment-review）
+    why: "self-gate 派发模板（commit message self-gate-review: + protocol-alignment-review）"
   # P6 verifier 的 BDD-13 逐卡片 grep 锚点清单（S3）：
   #   P3-tdd.md「按包拆分并行」节 → grep "派发编排机制" + "拆分判据"
   #   P4-implementation.md → grep "派发编排机制" + "共享文件" + "基础设施隔离" + "串行"

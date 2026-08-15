@@ -1,3 +1,59 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0014
+role: review
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+评审 P4 implementer 的实现代码（agate-md-field-get.py + check-gate.py 改动 + 协议文档改造），产出 P4-review.md，status 判定（approved / rejected / needs-revision）。C8 映射：risk=high → P4 实现评审不可省；domains=[docs,scripts,tests] 无 backend/frontend/mcp/security，单评审角色直接产出 P4-review.md。
+
+### 约束
+
+- **评审对象**：
+  1. `agate/scripts/agate-md-field-get.py` — dispatch_plan op（JSON_FIELDS / json.dumps 分支 / KNOWN_OPS 注册 / frontmatter-only 无回退）
+  2. `agate/scripts/check-gate.py` — gate_p2 分支 dispatch_plan 校验（mode 枚举 / parallel_limit≥1 / batch id+complexity / 批数≤上限；缺字段/坏 YAML 跳过）
+  3. `agate/dispatch-protocol.md` — 「派发编排机制」权威节（五小节）
+  4. 8 个阶段卡（P1-P8）+ architect.md + dispatch-prompt.md 文档改动
+- **评审重点**：
+  - 数据安全与正确性（Pass 1）：dispatch_plan 校验逻辑是否有漏洞（如 json.loads 异常未捕获、mode 校验缺失导致误放行、batch 校验短路）；op 读取是否有 TOCTOU/路径问题
+  - 代码健康（Pass 2）：JSON 序列化分支是否与其他 op 冲突；KNOWN_OPS 注册是否完整；向后兼容是否真正成立（无 dispatch_plan 字段的任务是否行为等同现状）
+  - 协议契约核对：dispatch_plan 契约与 P2-design §3.1 / approved plan Task 1-2 是否一致
+  - 文档正确性：阶段卡改引用后阶段特定约束是否完整保留（N7 清单：P4 隔离全组 L111-117 / P5 端口/数据库/环境变量/临时文件 / P6 证据并行+汇总 verifier）
+- **只审不写**：不直接改代码，只产出 P4-review.md。发现的问题「说怎么改」，修复由主 Agent 回派 implementer。
+- **测试验证**：实现已通过全量测试（778 passed + consistency 0 ERROR + count 780）。评审应抽查测试是否真正覆盖校验路径（test_dispatch_orchestration.py 8 条）。
+- **输出路径硬约束**：产出必须写入 {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P4-review.md。
+
+### 上游关联
+
+- P4-implementation.md：implementer 实现记录（含 implementation_dir: agate/ + 改动清单）
+- P2-design.md §3：方案设计（op/gate 精确实现步骤）
+- P1-requirements.md：22 条 BDD
+- 修复轮记录：P2-design.md YAML L256 修复 + README badge 还原（版本 bump 归 P8）
+
+### 输入文件
+
+- {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P4-implementation.md（实现记录）
+- {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P2-design.md（方案）
+- {AGATE_WORKSPACE}/tasks/TAG0014-dispatch-orchestration/P1-requirements.md（需求基线）
+- {project_root}/agate/scripts/agate-md-field-get.py（评审对象）
+- {project_root}/agate/scripts/check-gate.py（评审对象）
+- {project_root}/agate/dispatch-protocol.md（评审对象）
+- {project_root}/agate/phase-cards/P{1..8}-*.md（评审对象）
+- {project_root}/agate/tests/unit/test_dispatch_orchestration.py（测试抽查）
+- {project_root}/AGENTS.md（脚本约定）
+- {project_root}/agate/assets/review-roles/review.md（角色定义）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -94,7 +150,6 @@ review 不通过 → implementer 修改代码 → 再 review → … → approve
 ## 按包拆分并行（条件触发，需额外约束）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
-> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
 
 当 P2 声明多个 packages 且包间无数据依赖时，P4 可拆分并行，但**有额外约束**：
 
@@ -150,3 +205,13 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 实现状态：全量 778 passed（含新增 10 条）；consistency 0 ERROR（279 WARNING 既有）；count-tests 780（= 基线 770 + 10）
+- 修复轮已完成：P2-design.md L256 YAML 加引号；README badge 还原 v0.48.0（P8 再 bump）
+- 脚本约定（AGENTS.md）：set -euo pipefail、os.environ 读环境变量、printf '%b'、grep -c || echo 0 后 tail -1
+- dispatch_plan 契约（P2-design §3.1）：JSON_FIELDS frozenset、_format_value 前插 JSON 分支、_get 无回退集合并入、KNOWN_OPS 并入；check-gate 复用 _md_field_get 子进程，校验在 return 2 之前，ERROR return 1
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。
