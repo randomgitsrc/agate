@@ -842,3 +842,59 @@ python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
   实际 check-gate.bats 中 G8 前缀用例共 10（G8.1-10），P2 预估为近似值，以 bats 实计为准。
 
 
+## 批次 8g — check-gate 子批 g（1 文件 / 15 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（G_RETREAT.1-6 + G_NC_BINARY.1/2/3/5/6 + G_SUGGEST.1-4） | `unit/test_check_gate.py` | 15 |
+
+> 按 P2 §5 子批表 8g 范围追加（`-k "retreat or nc_binary or suggest"`）。
+> 覆盖：G_RETREAT.1-6（回退抵达检测）、G_NC_BINARY.1/2/3/5/6（P1 NEED_CONFIRM
+> 三值分级）、G_SUGGEST.1-4（SUGGEST 不阻塞 + typo 兜底）——共 15 个（P2 预估 ~15，实计 15）。
+
+### 关键实现点
+
+- **`_run_gate` 扩展 OLD_PHASE 第 3 参数**：main() 回退抵达检测用 `sys.argv[3]`（可选）——
+  给 `_run_gate` 增 `old_phase=None`，非 None 时追加为第 4 个命令参数
+  （等价 bats `check-gate.py P1 "$dir" P2`）。既有 8a-8f 调用不受影响（默认 None）。
+- **G_RETREAT 用空目录**：bats 是 `mkdir -p "$BATS_TEST_TMPDIR/g_retreatN"`（非
+  create_task_dir）→ pytest 用 `tmp_path / "g_retreatN"` + `mkdir`（空任务目录）。
+  - G_RETREAT.1/2/4/6：P1/P6 空目录直跑（P1-review.md / 证据目录缺失在回退分支
+    不触达，回退时先 `sys.exit(2)`）；G_RETREAT.3 用 P4+OLD_PHASE=P6。
+  - G_RETREAT.5 正常推进方向（P4 ← P3，非回退）：需 git repo 且空暂存区 → exit 1
+    → pytest 用 `git_repo` + `run_cli(..., cwd=repo)`（gate_p4 查 `git diff --cached`）。
+- **G_NC_BINARY / G_SUGGEST 用 `task_dir(no_state_yaml=True)`**：bats 是
+  `create_task_dir --no-state-yaml` + heredoc 覆写 P1-requirements.md / P1-review.md
+  → pytest 用 `task_dir(no_state_yaml=True)` + `_write_p1_marker_task` helper
+  （write_text 覆写两文件，等价 heredoc；P1-review.md status: approved +
+  agent: requirements-review + BDD-1: PASS）。
+- **流语义（P2 BLOCKER-1）**：`GATE P1: ...` / `GATE P1 WARNING: ...` 一律
+  `sys.stderr.write` → 断言一律用合并流 `result.output`（`NEED_CONFIRM` / `不合规` /
+  `WARNING` / `SUGGEST` / `阻塞` / `重命名为` / `SUGGEST 格式不符` / `回退抵达`），
+  未映射 `.stdout`。
+- 函数命名 `test_g_retreat_N_...` / `test_g_nc_binary_N_...` / `test_g_suggest_N_...`，
+  匹配 P2 §5 子批 8g 验证命令 `-k "retreat or nc_binary or suggest"`。
+- windows_smoke 打标：本子批无新增（8g 用例名无平台关键词；每文件第 1 用例标记已在
+  8a `test_g0_...`，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "retreat or nc_binary or suggest" -q   # P2 §5 子批 8g 验证命令
+# 15 passed, 89 deselected
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 104 passed in 8.43s（8a 11 + 8b 29 + 8c 7 + 8d 20 + 8e 12 + 8f 10 + 8g 15，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 104 tests collected（BDD-1 计数递增）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离）：G_NC_BINARY.4 在 check-gate.bats 中不存在（编号 1/2/3/5/6），
+  按 bats 实计迁移 5 个；G_RETREAT/G_NC_BINARY/G_SUGGEST 三组共 15 个与 P2 预估一致。
+
+

@@ -4,7 +4,8 @@
 #   批次 8c：G5 / G5.1 / G5_CMD.1-5，7 用例；
 #   批次 8d：G6 系列 + G_BDD16.1 + test_bdd_1..8（TAG0002 refactor 口径），20 用例；
 #   批次 8e：G7.1-9 + G_DG_ANCHOR.1/2 + bdd-11（TAG0004 M4 全角冒号），12 用例；
-#   批次 8f：G8.1-10（gate_p8 分支），10 用例）
+#   批次 8f：G8.1-10（gate_p8 分支），10 用例；
+#   批次 8g：G_RETREAT.1-6 + G_NC_BINARY.1/2/3/5/6 + G_SUGGEST.1-4，15 用例）
 # 被测：agate/scripts/check-gate.py（PHASE TASK_DIR [OLD_PHASE]；exit 0 = 通过 / exit 1 = 未通过 /
 #   exit 2 = 主 Agent 自判）。
 # G0/G1/G3/G_OTHER 用 task_dir factory（create_task_dir 等价）；G4 系列需要 git_repo
@@ -24,16 +25,20 @@ import pytest
 from conftest import add_p1_field, add_p2_candidate_count, add_p2_review
 
 
-def _run_gate(agate_scripts, python_exe, run_cli, phase, task_arg, cwd=None, env=None):
-    """bats `'$PYTHON' '$AGATE_SCRIPTS/check-gate.py' PHASE TASK_DIR` 等价。"""
-    return run_cli(
+def _run_gate(agate_scripts, python_exe, run_cli, phase, task_arg, cwd=None, env=None, old_phase=None):
+    """bats `'$PYTHON' '$AGATE_SCRIPTS/check-gate.py' PHASE TASK_DIR [OLD_PHASE]` 等价。
+
+    old_phase 对应 bats 可选第 3 参数（G_RETREAT 系列，回退抵达检测）。
+    """
+    cmd = [
         python_exe,
         str(agate_scripts / "check-gate.py"),
         phase,
         task_arg,
-        cwd=cwd,
-        env=env,
-    )
+    ]
+    if old_phase is not None:
+        cmd.append(old_phase)
+    return run_cli(*cmd, cwd=cwd, env=env)
 
 
 def _init_repo_with_task(git_repo, td):
@@ -1495,3 +1500,224 @@ def test_g8_10_debt_check_any_content_exit_2(
     result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
     assert result.returncode == 2
     assert "debt_check" not in result.output
+
+
+# ========== 8g: G_RETREAT / G_NC_BINARY / G_SUGGEST（15 用例） ==========
+# 子批 8g 覆盖 check-gate.bats 的 G_RETREAT.1-6（回退抵达检测，main() 可选第 3 参数
+# OLD_PHASE）、G_NC_BINARY.1/2/3/5/6（P1 NEED_CONFIRM 三值分级）与 G_SUGGEST.1-4
+# （SUGGEST 不阻塞 / typo 兜底）。
+# G_RETREAT 系列：bats 用 `mkdir -p "$BATS_TEST_TMPDIR/g_retreatN"` 建空目录（非
+# create_task_dir）→ pytest 用 tmp_path 建空目录；G_RETREAT.5 额外 git init + cwd
+# （gate_p4 检查暂存区代码文件，空暂存区 exit 1）。
+# G_NC_BINARY / G_SUGGEST 系列：bats 用 create_task_dir --no-state-yaml + heredoc
+# 覆写 P1-requirements.md / P1-review.md → pytest 用 task_dir(no_state_yaml=True) +
+# write_text 覆写。GATE P1 输出一律 sys.stderr.write → 断言合并流 result.output
+# （P2 §3.2 流语义规则，BLOCKER-1）。
+
+
+def test_g_retreat_1_no_old_phase_exit_1(tmp_path, agate_scripts, python_exe, run_cli):
+    td = tmp_path / "g_retreat1"
+    td.mkdir()
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1
+
+
+def test_g_retreat_2_old_phase_p2_exit_2(tmp_path, agate_scripts, python_exe, run_cli):
+    td = tmp_path / "g_retreat2"
+    td.mkdir()
+
+    result = _run_gate(
+        agate_scripts, python_exe, run_cli, "P1", str(td), old_phase="P2"
+    )
+    assert result.returncode == 2
+    assert "回退抵达" in result.output
+
+
+def test_g_retreat_3_old_phase_p6_exit_2(tmp_path, agate_scripts, python_exe, run_cli):
+    td = tmp_path / "g_retreat3"
+    td.mkdir()
+
+    result = _run_gate(
+        agate_scripts, python_exe, run_cli, "P4", str(td), old_phase="P6"
+    )
+    assert result.returncode == 2
+    assert "回退抵达" in result.output
+
+
+def test_g_retreat_4_old_phase_p7_exit_2(tmp_path, agate_scripts, python_exe, run_cli):
+    td = tmp_path / "g_retreat4"
+    td.mkdir()
+
+    result = _run_gate(
+        agate_scripts, python_exe, run_cli, "P6", str(td), old_phase="P7"
+    )
+    assert result.returncode == 2
+
+
+def test_g_retreat_5_old_phase_p3_forward_exit_1(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    # 正常推进方向（P4 ← P3，非回退）：暂存区无代码文件 → 仍 exit 1
+    repo = git_repo.path
+
+    result = _run_gate(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        "P4",
+        str(repo),
+        cwd=str(repo),
+        old_phase="P3",
+    )
+    assert result.returncode == 1
+
+
+def test_g_retreat_6_same_phase_not_retreat_exit_1(
+    tmp_path, agate_scripts, python_exe, run_cli
+):
+    td = tmp_path / "g_retreat6"
+    td.mkdir()
+
+    result = _run_gate(
+        agate_scripts, python_exe, run_cli, "P1", str(td), old_phase="P1"
+    )
+    assert result.returncode == 1
+    assert "回退抵达" not in result.output
+
+
+_P1_MARKER_HEAD = (
+    "---\n"
+    "phase: P1\n"
+    "task_id: T001-test\n"
+    "status: draft\n"
+    "agent: analyst\n"
+    "---\n"
+    "# Requirements\n"
+    "- Given x When y Then z\n"
+)
+
+_P1_MARKER_REVIEW = (
+    "---\n"
+    "phase: P1\n"
+    "task_id: T001-test\n"
+    "status: approved\n"
+    "agent: requirements-review\n"
+    "---\n"
+    "## BDD 评审\n"
+    "- BDD-1: PASS\n"
+)
+
+
+def _write_p1_marker_task(td, req_body):
+    (td / "P1-requirements.md").write_text(req_body, encoding="utf-8")
+    (td / "P1-review.md").write_text(_P1_MARKER_REVIEW, encoding="utf-8")
+
+
+def test_g_nc_binary_1_no_need_confirm_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(td, _P1_MARKER_HEAD + "- [NO_NEED_CONFIRM]\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+
+
+def test_g_nc_binary_2_need_confirm_bol_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(
+        td, _P1_MARKER_HEAD + "- [NEED_CONFIRM] z 的边界条件需确认\n"
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1
+    assert "NEED_CONFIRM" in result.output
+
+
+def test_g_nc_binary_3_inline_ref_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(td, _P1_MARKER_HEAD + "无 [NEED_CONFIRM] 需要确认\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1
+    assert "不合规" in result.output
+
+
+def test_g_nc_binary_5_no_declaration_warning_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(td, _P1_MARKER_HEAD)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+    assert "WARNING" in result.output
+
+
+def test_g_nc_binary_6_no_need_confirm_with_desc_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(
+        td, _P1_MARKER_HEAD + "- [NO_NEED_CONFIRM] 确认无不可逆操作\n"
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+
+
+def test_g_suggest_1_suggest_no_blocker_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(
+        td, _P1_MARKER_HEAD + "- [SUGGEST: 推荐方案 A，理由是更安全]\n"
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2
+    assert "SUGGEST" in result.output
+    assert "未解决的 NEED_CONFIRM 项（阻塞）" not in result.output
+
+
+def test_g_suggest_2_suggest_plus_need_confirm_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(
+        td,
+        _P1_MARKER_HEAD
+        + "- [SUGGEST: 推荐方案 A，理由是更安全]\n"
+        + "- [NEED_CONFIRM] 需用户决策的方向\n",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1
+    assert "阻塞" in result.output
+
+
+def test_g_suggest_3_old_marker_rename_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(td, _P1_MARKER_HEAD + "- [NEED_CONFIRM倾向: 推荐方案 A]\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1
+    assert "重命名为" in result.output
+
+
+def test_g_suggest_4_missing_colon_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(td, _P1_MARKER_HEAD + "- [SUGGEST xxx]\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1
+    assert "SUGGEST 格式不符" in result.output
