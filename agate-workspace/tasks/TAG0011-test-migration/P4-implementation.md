@@ -177,3 +177,58 @@ python3 agate/scripts/check-platform-assumptions.py <6 个新文件>
   `result.output == ""`——因被测脚本空值路径多走 `print("")`（stdout 为 `"\n"`），bats `$output` 剥尾部
   换行后为空，`.strip()` 才与 bats 语义逐位一致（批次 1 的 GMC.2 空路径是零 print，`== ""` 恰好等价，
   本批 STGET.2 / MDF.8/10/11/12 / JGET.2 必须 strip，统一口径更稳）。
+
+## 批次 3 — 内容生成工具（3 文件 / 53 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/agate-next-card.bats` | `unit/test_agate_next_card.py` | 22（9 个 sha256 字节稳定性断言） |
+| `unit/agate-inject-card.bats` | `unit/test_agate_inject_card.py` | 11 |
+| `unit/agate-render-dispatch-prompt.bats` | `unit/test_agate_render_dispatch_prompt.py` | 20 |
+
+### 关键实现点
+
+- **sha256 字节稳定性（next-card 9 处 P0-P8）**：CLI body sha256 == 卡片文件 sha256——body 提取用
+  `splitlines(keepends=True)` 按行保留字节（等价 `tail -n +5 | sha256sum`，不丢尾部换行），与
+  `card_file.read_bytes()` 的 sha256 逐位比对（P2 §3.2 精确等值注意）；字节稳定性/跨 checkout 用全量
+  hash（`_full_sha256`）。
+- **合并流（P2 BLOCKER-1）**：失败路径的 `GATE: ...` 消息（`需要 1 个参数` / `不在 P0-P8 范围内` /
+  `不存在` / `角色文件不存在` / agate-card-inject 占位符错误）由脚本写 **stderr**，bats `$output` 合并流
+  断言 → 一律 `in result.output`；`未找到/占位符` 双关键词用 `or`（bats 的 `[[ ... ]] || [[ ... ]]`）。
+- **文件写入断言用 read_text 对照**（P2 §3.2）：inject 的块 sha256 / 内容不变 / grep 旧 / RP.11 渲染产物
+  header → 直接读文件断言，等价 bats `sed` 管道 + `run cat`。
+- **IC_IDEMPOTENT.2 临时改写真实卡片**：备份 `phase-cards/P3-tdd.md` 字节 → 追加两行 → 重注入 → `finally`
+  写回备份（等价 bats `cp` 备份 + 恢复；实测 git diff 无残留，pytest 串行执行无竞态）。
+- **平台分支（AGENTS.md 测试约定）**：next-card symlink / 跨 checkout 用例按平台构造链接（Linux
+  `os.symlink`；Windows 复制模式 `shutil.copyfile` + 显式 `AGATE_ROOT` env 兜底，等价 Git Bash `ln -sf`
+  退化为复制）；bdd-21（Windows 盘符）在 Windows 上 `pytest.skip`（bats 同名 skip 语义），Linux 用字面
+  反斜杠目录 `C:\proj\agate` 全覆盖。
+- windows_smoke 打标（P3 §5.2 表 W + 每文件第 1 用例）：`test_nc_p0_...` / `test_nc_symlink_...` /
+  `test_bdd_21`（表 W 的 2 个平台关键词 = symlink + Windows 盘符，加第 1 用例共 3）、`test_icb_1`、
+  `test_rp_1`——共 5 处。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_agate_next_card.py agate/tests/unit/test_agate_inject_card.py agate/tests/unit/test_agate_render_dispatch_prompt.py -q
+# 53 passed in 2.10s（22+11+20，全绿）
+python3 -m pytest agate/tests/unit/ -k "next_card or inject_card or render_dispatch" -q   # P3 §6 批次 3 验证命令
+# 54 passed, 63 deselected（-k 契约命中 3 文件全数 + 批次 1/2 的 card/gate_p5 关联命中，重叠无害）
+/home/kity/.venvs/agate-dev/bin/ruff check <3 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <3 个新文件>
+# exit 0（R1-R5 零命中）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - next-card 9 个 P0-P8 sha256 @test 各写独立 test 函数（1 @test → 1 test 函数，P0 独立打标
+    windows_smoke），共用 `_assert_body_matches` helper。
+  - IC_IDEMPOTENT.2 的 first_hash/second_hash 用 `_between_markers` 的 join（无尾部换行）与 bats 的
+    sed 管道（带尾部换行）数值不同，但断言是**相对不等**（first != second），双跑对照语义等价。
+  - inject 块 sha256 断言对 `\r` 归一化（`replace("\r","")`，等价 `tr -d '\r'`）后再哈希。
