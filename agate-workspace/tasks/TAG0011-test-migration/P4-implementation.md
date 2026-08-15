@@ -958,4 +958,65 @@ ruff check agate/tests/unit/test_check_gate.py
   8a-8h 合计 120 用例（104 + 16），check-gate-p1-review / check-gate-p5-diff 两文件
   另覆盖各自 bats 源。
 
+## 批次 8i — check-gate-p1-review / check-gate-p5-diff（2 文件 / 22 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate-p1-review.bats` | `unit/test_check_gate_p1_review.py` | 9 |
+| `unit/check-gate-p5-diff.bats` | `unit/test_check_gate_p5_diff.py` | 13 |
+
+> 按 P2 §5 批次 8 备注「`test_check_gate_p1_review.py` / `test_check_gate_p5_diff.py`
+> 各自独立文件」迁移。p1-review = P1-review.md 独立评审流程（BDD-21 流 C，NEED_CONFIRM
+> 阻塞判定 + frontmatter status/agent 校验），p5-diff = P5 gate 的 pre-task-baseline.md
+> vs fail-list.txt 机械 diff 分支（PG.1-PG.12 + PG.9a）。
+
+### 关键实现点
+
+- **p1-review 分支**（9 用例，`test_pg_p1review_N_*`）：
+  - 等价映射：bats `create_task_dir --no-state-yaml` + heredoc 覆写 P1-requirements.md /
+    P1-review.md → `task_dir(no_state_yaml=True)` + `write_text` 覆写（bats 源文件仅留
+    P0-brief，但 gate_p1 只读 P1-requirements.md / P1-review.md，无影响）。
+  - 断言对象：`GATE P1` 消息一律 `sys.stderr.write` → 合并流 `result.output`
+    （P2 §3.2 流语义规则，BLOCKER-1）。
+  - `_P1_REQ_BODY` 共享常量（frontmatter + Given 行），case 8 追加
+    `- [NEED_CONFIRM] z 的边界条件需确认` 验证流 C 未结构化解决仍阻塞。
+  - case 3 反向锚点断言 `"BDD" in output or "锚点" in output`（bats `[[ ... == *"BDD"* ]] ||
+    [[ ... == *"锚点"* ]]` 等价）。
+- **p5-diff 分支**（13 用例，`test_pg_N_*` 与 bats PG.N 一一对应）：
+  - `_make_baseline` / `_make_post_fails` 纯函数等价 bats 同名 helper
+    （captured_at_commit 头 + ```fail-list 块 / P5-test-results/fail-list.txt 逐行写）。
+  - `_write_known_failures` 用 `_KNOWN_FAILURES_HEAD` + 行参数拼接（与 bats heredoc 表格结构
+    逐行对照，登记条目数由 `^\|\s*[0-9]+\s*\|` 行计数，PG.9/9a 差分验证）。
+  - 全部走 `task_dir()` 默认态（P0-P8 文件存在，P2-design.md touch 空文件 →
+    `_gate_p5_count` 回退 (0,0) 无 WARNING，等价 bats `create_task_dir`）。
+- **windows_smoke 打标**：两文件各打第 1 用例（`test_pg_p1review_1` / `test_pg_1`），
+  符合 P2 §3.4「每文件第 1 个 @test 打标」约定；无平台关键词用例。
+- **函数命名**：`test_pg_p1review_N_*` / `test_pg_N_*`（PG 前缀，与 P2 §5 8a-8h
+  的 PG.P2REVIEW 同族命名一致）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate_p1_review.py agate/tests/unit/test_check_gate_p5_diff.py -q
+# 22 passed in 1.32s（9 + 13，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate_p1_review.py agate/tests/unit/test_check_gate_p5_diff.py --collect-only -q
+# 22 tests collected（BDD-1 计数递增：test_check_gate.py 120 + 本批 22 = 142/749）
+ruff check agate/tests/unit/test_check_gate_p1_review.py agate/tests/unit/test_check_gate_p5_diff.py
+# All checks passed!
+python3 agate/scripts/check-platform-assumptions.py <两文件>
+# exit 0（R1-R5 零命中）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- **函数名前缀选择 `pg`**：两文件与 P2 §5 子批表 8a-8h（全部落在 test_check_gate.py）
+  无 `-k` 交叉验证需求，`pg` 前缀不与既有任何子批 `-k` 关键字冲突；与 check-gate.bats
+  的 PG.P2REVIEW 系列命名（`test_pg_p2review_*`）同族，便于 P6 BDD 对照。
+- p1-review 源 bats 文件名无版本号锚点，本批按 P2 §3.3 module 名契约
+  `test_check_gate_p1_review.py` / `test_check_gate_p5_diff.py` 命名。
+
 
