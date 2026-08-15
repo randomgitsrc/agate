@@ -22,10 +22,10 @@
 | RM-AG0012 | 自定义角色机制两瑕疵：dispatch-prompt 无条件注入评审指令到执行角色 + render 脚本角色不存在时 exit 0 | done | 角色体系验证（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-15 |
 | RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | scheduled | 阶段提示词核查（2026-08-13）| TAG0012 | 2026-08-13 | 2026-08-15 |
 | RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | scheduled | TAG0005/0009 复盘核实（2026-08-14）| TAG0012 | 2026-08-13 | 2026-08-15 |
-| RM-AG0015 | 文档脚本名引用漂移无 gate 兜底：CHECK 2 只捕获 `scripts/` 前缀引用，裸脚本名（phase-cards/rules 全是）完全漏检 + phase-cards/rules 不在 PROTOCOL_FILES（引用检查降级 WARNING）| scheduled | TAG0010/0011 复盘（2026-08-15）+ 实测验证 | TAG0013 | 2026-08-15 | 2026-08-15 |
+| RM-AG0015 | 文档脚本名引用漂移无 gate 兜底：CHECK 2 只捕获 `scripts/` 前缀引用，裸脚本名（phase-cards/rules 全是）完全漏检 + phase-cards/rules 不在 PROTOCOL_FILES（引用检查降级 WARNING）| done | TAG0010/0011 复盘（2026-08-15）+ 实测验证 | TAG0013 | 2026-08-15 | 2026-08-16 |
 | RM-AG0016 | subagent 派发编排机制（全阶段）：工作量评估 + 五模式编排（单发/静态拆批/并行/先理解后拆/串行链）+ 并行规则统一；P1/P2 补空白、P3-P6 统一现有分散"按包并行" | scheduled | TAG0010/0011 复盘（2026-08-15）+ 用户需求扩展（全阶段）| TAG0014 | 2026-08-15 | 2026-08-15 |
-| RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| scheduled | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
-| RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | scheduled | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
+| RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| done | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-16 |
+| RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | done | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-16 |
 | RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | scheduled | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-15 |
 
 ## 状态标识
@@ -221,6 +221,7 @@
   4. **进行中 task 动态分类**（并入 CHECK 10 实现，2026-08-15 用户确认）：CHECK 2 扫描 `tasks/` 时读 `{task}/.state.yaml` 的 phase——phase ∈ {READY, DONE} 宽松，否则严格。进行中 task 引用已删脚本/归档路径 = 前提漂移 → ERROR 暴露（复用 agate-state-get.py 读取，TAG0013 的 .sh 引用实测会被抓）
 - **验证口径**：新增一致性测试——协议文件引用已删脚本名 → ERROR；引用现存脚本 → 通过；UPGRADING/formatters/薄壳豁免路径不误报
 - **归属**：独立任务（协议机制增强），与 RM-AG0013/0014 同簇。
+- **实现结果（TAG0013 → v0.48.0，2026-08-16）**：✅ 新增 CHECK 10「协议文档脚本名引用漂移」（内联 check-protocol-consistency.py，扫描协议文档面，漂移报 ERROR，豁免 5 类：UPGRADING 整文件/formatters/3 hook 薄壳/count-tests.sh/scripts-README 退役名，CHANGELOG 历史名聚合单条 WARNING）；✅ phase-cards/rules 入 PROTOCOL_DIRS（引用检查升级严格，实测无新 ERROR）；✅ main() CHECK 状态匹配 `split("-")[0]` 修复（CHECK1/CHECK10 前缀碰撞）；NARRATIVE_DIRS 按文件性质重组 + 进行中 task 动态分类（方向 3/4）**评估后本任务不做**——进行中 task 在 agate-workspace/ 非协议面，不在 CHECK 10 扫描范围，其漂移由协议面 ERROR 兜底（P2-design 决策记录）。验证：P6 BDD-1/2/3/4/5 实测（0 漂移通过 / 漂移 ERROR / 5 类豁免 / PROTOCOL_DIRS / CHANGELOG 聚合 WARNING）；DEBT0001 关闭。
 
 ---
 
@@ -262,6 +263,7 @@
 - **建议修复方向**：`_SELF_GATE_RE` 扩展匹配 `README.md`、`AGENTS.md`（CHANGELOG.md 豁免，理由：频繁变动 + 非协议语义）。SELF-GATE.md 已覆盖，不加。
 - **验证口径**：新增测试——staged 含 README.md/AGENTS.md → self-gate WARNING 触发；CHANGELOG.md → 不触发
 - **归属**：独立任务（脚本 + 测试），低优先级，可与 RM-AG0015/0016 攒批。
+- **实现结果（TAG0013 → v0.48.0，2026-08-16）**：✅ `_SELF_GATE_RE` 追加 `|README\.md|AGENTS\.md`（根级精确名锚定，CHANGELOG 天然豁免），stderr 提示文案同步；✅ 新增 3 测试用例（README 触发 / AGENTS 触发 / CHANGELOG 豁免）+ 既有 integration 断言更新（test_csg_1 → readme_triggers_warning）。验证：P6 BDD-6/7/8/9 实测（README/AGENTS 触发、CHANGELOG 零输出、既有 4 用例不回归）。
 
 ---
 
@@ -279,6 +281,7 @@
   2. **可选增强**：`check-retrospective.py`（P2.12）输出加一行提醒"复盘发现的新缺口请登记 DEBT/roadmap"（纯提醒不拦截，与 P2.12 精神一致）——是否做可评估
   3. **克制原则**：不做"发现必须登记 DEBT"的硬 gate——tech-debt-template 三分法明确"不影响验收也不影响未来成本的不登记"是合法出口，硬登记会让登记簿变垃圾场
 - **归属**：本条目主体（模板层 + 提醒）已随本次处置落地，**剩余可选增强**（check-retrospective 提醒）低优先级，可与 RM-AG0017 攒批。
+- **实现结果（TAG0013 → v0.48.0，2026-08-16）**：✅ 剩余可选增强落地——`check-retrospective.py` warnings 块追加「复盘发现的新缺口请登记 DEBT/roadmap」提醒行（纯提醒不拦截，仅 warnings 存在时输出，RT.1 空输出不回归）；✅ DEBT0001 已登记（2026-08-15）并于本任务关闭（closure_criteria 3 条全满足，evidence 引用 P6 bdd-1/2/4.log）。验证：P6 BDD-10/11 实测（有异常 → DEBT+roadmap 提醒 / 无异常 → 空输出 exit 0）。
 
 ---
 
