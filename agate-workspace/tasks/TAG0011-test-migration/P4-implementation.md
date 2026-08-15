@@ -286,3 +286,78 @@ python3 agate/scripts/check-platform-assumptions.py <4 个新文件>
 - 实现细节（非偏离，记录供后续批次参照）：RETREAT 的 `_init_task_repo` 等价 bats setup 的目录 +
   git commit 结构，`retries_yaml` 用 f-string 注入（ruff UP032 要求）；MW.8 外部工作区目录建在
   `tmp_path` 之外（repo 外才触发 git mv 失败 fallback），命名加 `tmp_path.name` 后缀防跨测试冲突。
+
+## 批次 5 — 环境/债务/编码守卫（4 文件 / 42 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/agate-capture-env-baseline.bats` | `unit/test_agate_capture_env_baseline.py` | 15 |
+| `unit/agate-debt-check.bats` | `unit/test_agate_debt_check.py` | 21 |
+| `unit/agate-image-check.bats` | `unit/test_agate_image_check.py` | 4 |
+| `unit/agate-scripts-encoding.bats` | `unit/test_agate_scripts_encoding.py` | 2 |
+
+### 关键实现点
+
+- **ENV_BASELINE 流归属先判流（P2 §3.2）**：capture-env-baseline 的 `ENV_BASELINE:` / `已捕获` /
+  `复用缓存` / `本身崩溃` / `不一致` / `无 formatter` / `非 git 仓库` 等消息一律 `sys.stderr.write` →
+  断言用 `result.stderr`；EB.1 no-op 零输出用合并流 `result.output`（BLOCKER-1）。
+- **GATE DEBT WARNING 先判流**（dispatch 约束）：check-debt.py 的错误行 / `GATE DEBT WARNING` /
+  `缺少 agate_common` 均写 stderr → 用 `result.stderr`。
+- **5 处 `[ -z "$output" ]` 合并流**（bdd_5 / bdd_10 三子场景 / bdd_11 成功零输出）→
+  `assert result.output == ""`（合并流 `.output`，BLOCKER-1；成功路径 stdout+stderr 均空）。
+- **fake runner 机制**：`_write_fake_runner` / `_write_recording_runner` 在 tmp_path 写可执行 bash
+  脚本（cat heredoc 输出 + exit code），P2-design.md 的 P5 命令指向该脚本，等价 bats
+  make_fake_runner / make_recording_runner；`run_test_with_formatter` 的 `bash` shell=True 执行路径
+  复用 agate/assets/formatters/{pytest,vitest}.sh 原样解析。
+- **git_repo fixture**：capture-env 的 EB.4-15 全部走 git_repo（git init + P2-design.md commit +
+  `git log`/`rev-parse` 断言）；EB.5 缓存命中用 recording runner 的 sentinel 文件（rm 后断言不再出现）；
+  EB.6 commit 变化 / EB.7 命令集合变化 → 缓存 miss。
+- **EB.11 非 git 模拟**：`env={"GIT_DIR": <tmp_path 下不存在 .git>}` 等价 bats `GIT_DIR=/nonexistent/.git`，
+  git rev-parse 失败 → `非 git 仓库`。
+- **debt-check schema 用例**：bdd_5..bdd_11 逐条复制 bats heredoc 的 yaml fenced 块（open 无 task_id /
+  closed 含 task_id+P5/P6 证据 / 三态 / 向后兼容纯正文 / T001 回填 T1-T4+A5），断言 returncode + stderr 字段。
+- **debt retreat-coverage**：bdd_13-15 用 git_repo + `--allow-empty` retreat 提交（消息格式含
+  `retreat: P5 -> P4（诊断：...）`），evidence 引用 rev-parse --short 哈希；bdd_16 复制 check-debt.py
+  到隔离目录模拟缺 agate_common → exit 2。
+- **Pillow 可选**：模块级 `try: from PIL import Image` 探测 HAS_PIL；IMG.1/IMG.3（无 Pillow 分支）用
+  `@pytest.mark.skipif(HAS_PIL)`，IMG.4（需 Pillow 造图）用 `@pytest.mark.skipif(not HAS_PIL)`，
+  IMG.2 恒跑（-1 或 SKIP_NO_PILLOW 双值皆可）；运行时造图用 tmp_path（`os.urandom`/`write_bytes`，
+  不写字面命中行）；收集数 4 不受影响（本机 Pillow 已装 → 2 pass + 2 skip）。
+- **encoding 守卫（bdd-5）**：扫描目标随迁移改为 `agate/tests/**/*.py`（P3 批次 5 口径，BDD-7）——
+  本文件及全部 test_*.py 自身受检；守卫正则复刻 bats（`(?<!Image\.)\bopen\(` 豁免 Image.open、
+  `"rb"`/`"wb"` 豁免二进制、注释/三引号行跳过）。**本文件 assert 消息改为 `"text I/O 缺 encoding"`
+  避免自命中字面 `open(`（bats 时代只扫 scripts/*.py 不扫自身，pytest 时代全树受检，这是迁移触发的
+  必要改写，语义不变）。** bdd-8 为 agate-state-get.py ASCII .state.yaml 读取回归（STATE_FILE env）。
+- windows_smoke 打标（每文件第 1 用例）：`test_eb_1` / `test_bdd_1` / `test_img_1` / `test_bdd_5`——
+  共 4 处（本批无平台关键词用例，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_agate_capture_env_baseline.py agate/tests/unit/test_agate_debt_check.py agate/tests/unit/test_agate_image_check.py agate/tests/unit/test_agate_scripts_encoding.py -q
+# 40 passed, 2 skipped in 2.77s（42 collected；skip 为 IMG.1/IMG.3 无 Pillow 分支——本机 Pillow 已装）
+python3 -m pytest agate/tests/unit/ -k "capture_env or debt or image or encoding" -q   # P3 §6 批次 5 验证命令
+# 40 passed, 2 skipped, 154 deselected（-k 契约命中 4 文件全数）
+python3 -m pytest agate/tests/unit/test_agate_capture_env_baseline.py agate/tests/unit/test_agate_debt_check.py agate/tests/unit/test_agate_image_check.py agate/tests/unit/test_agate_scripts_encoding.py --collect-only -q
+# 42 tests collected（BDD-1 计数不变）
+/home/kity/.venvs/agate-dev/bin/ruff check <4 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <4 个新文件>
+# exit 0（R1-R5 零命中）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - encoding 守卫 assert 消息从 `open()/read_text() 缺 encoding` 改为 `text I/O 缺 encoding`——迁移后
+    bdd-5 扫 `agate/tests/**/*.py`（含本文件自身），消息字面 `open(` 会被守卫自命中；bats 时代守卫只扫
+    `scripts/*.py` 不扫测试文件故未暴露。断言语义（violations 非空即失败 + 前 30 条拼接）不变。
+  - EB.11 非 git 模拟用 tmp_path 下不存在路径而非 bats 的 `/nonexistent/.git` 字面（平台无关纪律，
+    R4 只查 `/tmp` 不查 `/nonexistent`，此处为主动保守）。
+  - IMG.1/IMG.3 的 skip 条件与 bats 相反方向呈现：bats 在 PIL 已装时 skip，pytest 用
+    `skipif(HAS_PIL)` 等价；IMG.4 用 `skipif(not HAS_PIL)`（bats 在无 PIL 时 skip）。收集数 4 不受影响。
+
