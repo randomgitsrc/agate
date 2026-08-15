@@ -8,6 +8,28 @@
 
 ---
 
+## [0.48.0] - 2026-08-16
+
+### 新增（RM-AG0015：CHECK 10 文档脚本名引用漂移 gate）
+
+- **`check-protocol-consistency.py` 新增 CHECK 10「协议文档脚本名引用漂移」**：扫描协议文档面（`PROTOCOL_FILES` + `PROTOCOL_DIRS` + 根级 README/AGENTS + `agate/UPGRADING.md` + `agate/scripts/README.md` + `CHANGELOG.md`）中的脚本名引用（裸名 + `scripts/` 前缀 + `agate/scripts/` 全路径），对照 `agate/scripts/` 实际文件，漂移报 ERROR——脚本删/改名后文档漂移不再无人拦截（DEBT0001 关闭）
+- **豁免 5 类**：UPGRADING.md 整文件（历史迁移对照）/ formatters 名（`agate/assets/formatters/`）/ 3 个 hook 薄壳（`pre-commit-gate.sh` / `commit-msg-self-gate.sh` / `pre-push-gate.sh`）/ `count-tests.sh`（同名不同目录）/ scripts/README.md 退役名
+- **`agate/phase-cards/` 与 `agate/rules/` 纳入 `PROTOCOL_DIRS`**：必读卡的引用检查升级为严格（CHECK 2/3 对它们按协议文件检查，实测无新 ERROR）
+- **main() CHECK 状态匹配修复**：`startswith(key)` → `split("-")[0] == key`（修复 CHECK 1/CHECK 10 前缀碰撞导致的状态行误标）
+
+### 变更（RM-AG0017：self-gate 触发面）
+
+- **`commit-msg-self-gate.py` 触发面补 `README.md` / `AGENTS.md`**（根级精确名锚定；`CHANGELOG.md` 天然豁免，频繁变动不触发噪音），stderr 提示文案同步
+
+### 变更（RM-AG0018 剩余：复盘登记提醒）
+
+- **`check-retrospective.py` warnings 块追加「新缺口请登记 DEBT/roadmap」提醒行**（纯提醒不拦截；无异常模式时输出为空，RT.1 不回归）
+
+### 测试
+
+- 19 条新增用例（count-tests 770 = 基线 751 + 19），11 条 BDD 全 PASS；全量 pytest 768 passed / 2 skipped / 0 failed；consistency 0 ERROR；ruff 通过
+- 本版本**无破坏性变更**：CHECK 10 为增量检查（当前 0 漂移），self-gate 触发面扩展与复盘提醒均为内部行为，用户可见协议语义不变
+
 ## [0.47.0] - 2026-08-15
 
 ### 破坏性变更（TAG0011 测试框架迁移：Bats → pytest）
