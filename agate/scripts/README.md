@@ -1,6 +1,6 @@
 # agate scripts 目录
 
-agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）：`check-*.py / agate-*.py` 是各检查脚本，`agate_common.py` 是公共函数库，`agate-summary.py / agate-changes.py` 是版本发现工具。仅 3 个 git hook 入口保留 `.sh` 薄壳（定位 AGATE_ROOT + python 探测 + exec 对应 `.py` 主程序 + 失败 fail-closed 阻断）。`agate/tests/scripts/` 下的 `count-tests.sh` / `check-windows-smoke.sh` 不在迁移范围，保持 sh。
+agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）：`check-*.py / agate-*.py` 是各检查脚本，`agate_common.py` 是公共函数库，`agate-summary.py / agate-changes.py` 是版本发现工具。仅 3 个 git hook 入口保留 `.sh` 薄壳（定位 AGATE_ROOT + python 探测 + exec 对应 `.py` 主程序 + 失败 fail-closed 阻断）。`agate/tests/scripts/` 下的 `count-tests.sh` 已改写为 pytest 收集计数（TAG0011）；`check-windows-smoke.sh` 已退役（TAG0011，Windows 冒烟由 `@pytest.mark.windows_smoke` 承接）。
 
 > **Windows 用户**：agate 的 gate 脚本已全部 Python 化，不再依赖 bash + GNU coreutils。仅 3 个 hook 薄壳需要 sh 执行（Git for Windows 自带）。脚本可直接 `python3 ~/.agate/scripts/xxx.py` 运行。详见 `agate/platform-notes.md`「Windows 原生」章节。
 
@@ -78,7 +78,7 @@ agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）�
 - 1：参数缺失或过多
 - 2：phase 不在 P0-P8 范围
 
-**字节稳定性保证**：`agate/tests/unit/agate-next-card.bats` 的 9 个 sha256 测试断言 CLI 输出 body（去掉前 4 行固定头）的 sha256 等于 `cat ${PHASE}-*.md` 的 sha256。这是 step 3 hook 校验的前提。
+**字节稳定性保证**：`agate/tests/unit/test_agate_next_card.py` 的 9 个 sha256 测试断言 CLI 输出 body（去掉前 4 行固定头）的 sha256 等于 `cat ${PHASE}-*.md` 的 sha256。这是 step 3 hook 校验的前提。
 
 ### 工作区工具
 

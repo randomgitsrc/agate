@@ -1783,3 +1783,84 @@ python3 -m py_compile agate/tests/integration/test_consistency.py agate/tests/in
   - SG.6 的 find 用 `glob` 三模式并集替代（bats 的 `find` 含隐式 `-print` + `| sort`），basename
     集合一致；未用 rglob（scripts/ 下无子目录含 gate 脚本）。
 
+## 批次 15 — 文档/CI 断言（1 文件 / 9 @test，随表 E 文档重写联动）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/env-adapt-docs.bats` | `unit/test_env_adapt_docs.py` | 9 |
+
+### 关键实现点
+
+- **断言目标随 pytest 化更新（P3 §5 批次 15，非新增断言，目标迁移）**：
+  - `test_bdd_32_pytest_collectible`：bats「可解析」（`bats -c`）→ pytest「可收集」
+    （`run_cli(python_exe, "-m", "pytest", "--collect-only", "-q", agate_root/"tests")` exit 0）。
+  - `test_bdd_34_shellcheck_three_hook_shells_and_ruff`：ruff 目标从 `agate/scripts/` 扩展到
+    `agate/`（含 tests，BDD-3）——`run_cli(ruff, "check", str(agate_root), cwd=agate_root.parent)`；
+    shellcheck 仍 3 个 hook 薄壳（`-S warning pre-commit-gate.sh commit-msg-self-gate.sh
+    pre-push-gate.sh`，cwd=scripts）；shellcheck 与 ruff 均未安装时 `pytest.skip`（等价 bats skip，
+    由独立 CI lint job 覆盖）。
+  - `test_bdd_33_ci_windows_latest_matrix`：断言 `agate_root.parent/.github/workflows/
+    protocol-tests.yml` 含 `windows-latest`（matrix 保留，不做 pytest 化改写——CI job 名改动由
+    收尾批次处理）。
+- **读文件断言（bdd-16/23/24/25/26/27 不变）**：按 P2 §3.2「run grep -q」映射为
+  `read_text(encoding="utf-8")` + substring/正则：
+  - bdd-23 对 7 张 phase-cards 逐个断言 `更新 .state.yaml phase=` **不在**文件中（反向断言）；
+  - bdd-16 `.gitattributes`（repo 根）存在 + 无 `^\s*[*]*\.md\s` 命中（强制 eol 规则）——
+    `re.search` 逐行收集 matched 后 `assert not matched`；
+  - bdd-25 一致性脚本显式 `--root agate_root.parent`（bats 以仓库根为 cwd 默认 `--root .`，
+    批次 14 test_consistency 同口径），断言 exit 0。
+- windows_smoke 打标（P3 §5.2：3 处平台关键词 + 每文件第 1 用例）：`test_bdd_23`（首 @test）+
+  `test_bdd_16`（CRLF）+ `test_bdd_26`（Windows）+ `test_bdd_33`（Windows）——共 4 处。
+
+### 表 E 文档重写联动（P3 §5 批次 15 联动项，同批实施）
+
+| 文档 | 改动 |
+|------|------|
+| `AGENTS.md`（仓库根） | 「依赖」Bats → pytest；「开发命令」bats 命令 → pytest（全量 `python3 -m pytest agate/tests/` + 单脚本）；「测试约定」Bats/BATS_TEST_TMPDIR/load.bash → pytest/tmp_path/conftest.py + windows_smoke marker；「CI」bats job → pytest；dogfooding 长命令分片 bats → pytest；「版本发布」bats 全过 → pytest 全过 |
+| `agate/tests/README.md` | 快速开始/覆盖度表/CI 章节/目录结构全量 .bats → test_*.py；R2.4 风险表更新为 pytest 文件路径；count-tests.sh 描述 → pytest 收集计数 |
+| `agate/SETUP.md` | 无 bats 引用（核对无改动） |
+| `agate/platform-notes.md` | 「前置条件」bats 行 → pytest；「已知限制」bats 安装麻烦 → pytest 需安装；CI matrix 描述 bats job → pytest job（-m windows_smoke） |
+| `agate/scripts/README.md` | 首段 count-tests.sh/check-windows-smoke.sh「不在迁移范围」→ 改写为 pytest 收集计数 + 退役；agate-next-card.bats → test_agate_next_card.py |
+| `agate/assets/templates/handoff-template.md` | 依赖/基线验证/验证命令（全量+单脚本）/TDD 策略/CI 检查/交接确认 bats → pytest |
+| `agate/assets/review-roles/protocol-alignment-review.md` | A4 测试覆盖 bats → pytest；反向传播路径 fixtures.bash/.bats → conftest.py/test_*.py |
+| `agate/UPGRADING.md` | 新增 **v0.47.0** 迁移章节（bats→pytest 破坏性变更逐条列：测试命令/依赖/Windows 冒烟 marker/目录/CI matrix/ruff 覆盖）；既有 v0.46.0/v0.45.0/v0.44.0 相关表述更新（count-tests.sh/check-windows-smoke.sh 不在迁移范围 → 改写/退役；bats job → pytest job） |
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 15 验证命令
+> `python3 -m pytest agate/tests/unit/test_env_adapt_docs.py` + 原 bats + consistency 统一跑）。
+> 已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/unit/test_env_adapt_docs.py
+# SYNTAX-OK
+/home/kity/.venvs/agate-dev/bin/ruff check agate/tests/unit/test_env_adapt_docs.py
+# All checks passed（exit 0；ruff --fix 处理 import 排序 I001）
+/home/kity/.venvs/agate-dev/bin/ruff check agate/
+# All checks passed（bdd-34 目标树全绿，含 tests）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/unit/test_env_adapt_docs.py
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_env_adapt_docs.py --collect-only -q
+# 9 tests collected
+python3 agate/scripts/check-protocol-consistency.py --strict
+# 🎉 全部检查通过（CHECK 1-9 PASS，0 ERROR 0 WARNING）
+```
+
+- 用例数：`test_env_adapt_docs.py` 9（bats 9 @test 全覆盖，1:1）。
+- encoding 守卫：所有 `read_text` 显式 `encoding="utf-8"`（无 `open(`/裸 read_text，零违规）。
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - `test_bdd_25` 用 `--root agate_root.parent` 显式指定仓库根（bats 依赖 cwd 默认 `--root .`，
+    行为等价，确定性更好）；`test_bdd_16` 的 grep 反向断言（`grep -E '^\s*[*]*\.md\s'`
+    exit != 0）映射为逐行 `re.search` 收集后 `assert not matched`（bats 的 `[ "$status" -ne 0 ]`）。
+  - `test_bdd_32` 的 `--collect-only` 目标是 `agate_root/"tests"`（等价 bats 遍历
+    tests/unit+regression+integration+sanity 全树解析）；运行时该用例自身也在收集范围
+    （pytest 子进程 --collect-only 不执行测试，无递归副作用）。
+  - 表 E 联动中 `agate/SETUP.md` 经核对无 bats 引用，未改动（P3 §5 联动项仍列名，实际 no-op）。
+

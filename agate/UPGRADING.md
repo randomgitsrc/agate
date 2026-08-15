@@ -89,6 +89,26 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.47.0 — 测试框架 bats → pytest 迁移（影响：跑 agate 测试的开发者 / CI 维护者）
+
+> 版本号已由 P8 确认（v0.47.0）。agate 测试套件从 Bats 全面迁移到 pytest（TAG0011）：`agate/tests/` 下 60 个 `.bats` 文件 / 749 @test 迁移为 `test_*.py` pytest 用例，`agate/tests/helpers/` 三文件（load.bash / fixtures.bash / git-helper.bash）退役，由 `agate/tests/conftest.py` fixture 体系承接。
+
+**① 测试命令变化（跑 agate 测试的开发者必须改命令）**：
+
+| 迁移前（bats） | 迁移后（pytest） |
+|----------------|------------------|
+| `bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/` | `python3 -m pytest agate/tests/` |
+| `bats agate/tests/unit/check-pruning.bats` | `python3 -m pytest agate/tests/unit/test_check_pruning.py` |
+| `bats -c` 收集计数 | `python3 -m pytest --collect-only -q`（`count-tests.sh` 已改写为 pytest 收集计数） |
+
+- 依赖从「Bats + shellcheck + python3-yaml」改为「**pytest + pyyaml**」；shellcheck 仍用于 3 个 hook 薄壳静态检查（CI `shellcheck` job 保留）
+- **Windows 冒烟机制变化**：`check-windows-smoke.sh` 退役，Windows CI 冒烟由 `@pytest.mark.windows_smoke` marker 承接（`python -m pytest agate/tests/ -m windows_smoke`）——平台敏感用例的打标清单即代表集，语义与退役脚本的「每文件第 1 个用例 + 平台关键词用例」一致
+- **目录变化**：`agate/tests/helpers/` 三文件退役；`agate/tests/` 下 `.bats` 与 `test_*.py` 在迁移期共存，TAG0011 收尾时 `.bats` 全部删除
+
+**② CI matrix（项目维护者）**：`.github/workflows/protocol-tests.yml` 的 `bats` job 改为 `pytest` job（ubuntu/windows 双 matrix 保留：Linux 全量 + Windows `-m windows_smoke` 冒烟）。若你 fork/自建 CI 参考了 agate 的 workflow，注意此点——分支保护 required checks 需更新为实际 job 名（`pytest` / `pytest (ubuntu-latest)` / `pytest (windows-latest)` 等，含平台后缀）。
+
+**③ ruff 覆盖范围（项目维护者）**：`ruff check agate/scripts/` 扩展为 `ruff check agate/`（含 tests，BDD-3）——测试代码也纳入 ruff 静态检查。
+
 ### v0.46.0 — 产品逻辑 Python 化（影响：所有已部署项目 + 直接调用脚本的用户）
 
 > 版本号已由 P8 确认（v0.46.0）。这是 agate 自建以来最大的一次脚本层破坏性变更：`agate/scripts/` 下全部 30 个 `.sh` 脚本的 bash 逻辑迁移为 Python（`.py`），仅 3 个 git hook 入口保留 `.sh` 薄壳。
@@ -130,7 +150,7 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 - **调用命令变化**：`bash ~/.agate/scripts/xxx.sh` → `python3 ~/.agate/scripts/xxx.py`（hook 薄壳仍由 git 经 sh 执行，无需手动调）
 - **新增 `agate_common.py`**：承载原 gate-result.sh + agate-workspace-resolve.sh 的函数库（`write_gate_result` / `read_state_phase` / `resolve_workspace` / `probe_python` / `run_git` / `MAX_RETRY_MAP` 等），执行模式输出 `AGATE_WORKSPACE=` / `AGATE_TASKS_DIR=` 两行（workspace-resolve 契约不变）
-- 3 个 hook 薄壳是**仅存的 `.sh`**；`agate/tests/scripts/count-tests.sh` / `check-windows-smoke.sh` 不在迁移范围（保持 sh）
+- 3 个 hook 薄壳是**仅存的 `.sh`**；`agate/tests/scripts/count-tests.sh` 已改写为 pytest 收集计数、`check-windows-smoke.sh` 已退役（TAG0011，Windows 冒烟由 pytest marker 承接）
 
 **② install-hook 迁移命令**：
 
@@ -147,7 +167,7 @@ python3 ~/.agate/scripts/install-hook.py
 
 - `shellcheck` 扫描面收敛到 3 个 hook 薄壳（`shellcheck -S warning agate/scripts/*.sh` 只覆盖它们）
 - Python 脚本改用 **ruff** 静态检查：`ruff check agate/scripts/`（规则集在仓库根 `pyproject.toml`，TAG0010 交付）——CI `ruff` job 独立运行
-- `bash agate/tests/scripts/count-tests.sh` 不受影响（保持 sh）
+- `bash agate/tests/scripts/count-tests.sh` 仍可用——已改写为 pytest 收集计数（TAG0011）
 
 **④ python3 + pyyaml 强制依赖（影响：所有已部署项目）**：
 
@@ -169,7 +189,7 @@ python3 ~/.agate/scripts/install-hook.py
 - 新增 `agate/scripts/check-platform-assumptions.py` 扫描 `agate/tests/` 全树 Unix 假设（硬编码 PATH / 裸 python3 / `[[ -L ]]` / /tmp / bc 等），CI `platform-scan` job 阻断。
 - **测试平台无关原则是硬要求**：写新测试不得硬编码单平台假设（AGENTS.md「测试约定」）；被扫描器检出的假设会导致 CI 失败。
 
-**③ bats job 增 windows-latest matrix（CI 维护者）**：bats job 改 matrix 后 job 名带平台后缀（如 `bats (windows-latest)`），分支保护 required checks 需更新。
+**③ bats job 增 windows-latest matrix（CI 维护者，TAG0011 后为 pytest job）**：bats job 改 matrix 后 job 名带平台后缀（如 `bats (windows-latest)`，TAG0011 起 pytest job 同名规则 `pytest (windows-latest)`），分支保护 required checks 需更新。
 
 **④ P5 gate_commands 计数语义**：check-gate.py P5 WARNING 文案改「X 个主命令 + Y 个辅助命令」——不影响判定逻辑，仅文案区分主/辅。
 
@@ -180,9 +200,9 @@ python3 ~/.agate/scripts/install-hook.py
 - 见 `SETUP.md`「Windows 原生」章节（AGATE_ROOT 用 Unix 风格路径 `/c/...`、`PYTHONUTF8=1`、`core.autocrlf` 与 CRLF）。
 - 若你的 hook 是复制模式安装（无符号链接权限），升级后**重跑 install-hook.py** 更新 hook。
 
-**② 非 Windows 用户**：本版本为修复型，Linux 行为不变（676→714 bats 全绿回归）。无需迁移动作。
+**② 非 Windows 用户**：本版本为修复型，Linux 行为不变（676→714 bats 全绿回归，bats 时代基线）。无需迁移动作。
 
-**③ CI matrix（项目维护者）**：`.github/workflows/protocol-tests.yml` 新增 `windows-latest` 平台矩阵（bats/shellcheck/consistency/gate-backstop）。分支保护 required checks 需更新为实际 job 名（含平台后缀，如 `shellcheck (ubuntu-latest)`）——若你 fork/自建 CI 参考了 agate 的 workflow，注意此点。
+**③ CI matrix（项目维护者）**：`.github/workflows/protocol-tests.yml` 新增 `windows-latest` 平台矩阵（bats/shellcheck/consistency/gate-backstop；TAG0011 起 bats job 改 pytest job）。分支保护 required checks 需更新为实际 job 名（含平台后缀，如 `shellcheck (ubuntu-latest)`）——若你 fork/自建 CI 参考了 agate 的 workflow，注意此点。
 
 **④ 路径含空格/特殊字符的项目**：`pre-commit-gate.sh` 内部数组化（S1 修复）——路径含空格/`[`/`]`/`*` 时 gate 不再静默绕过。行为更严格但更正确。
 

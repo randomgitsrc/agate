@@ -92,8 +92,8 @@ agate 的派发机制于 2026-06-12 在 OpenCode 上完成验证：
 | **Python 3.8+** | https://www.python.org/downloads/ | 安装时勾选「Add to PATH」。全部 gate 脚本需要，**pyyaml 为强制依赖**（`pip install pyyaml`）|
 | **pyyaml** | `pip install pyyaml` | **强制**。所有 py gate 脚本的 YAML 解析依赖（agate_common.py / 各状态读取工具），缺失时 fail-closed 阻断 |
 | **Pillow（可选）** | `pip install Pillow` | 仅 check-p6-evidence.py 的像素方差/ahash 检测需要。未装时自动跳过（WARNING 不阻断）|
-| **ruff（可选）** | `pip install ruff` | 仅开发者跑 `ruff check agate/scripts/` 时需要（替代 shellcheck）。使用者不需要 |
-| **bats（仅开发者）** | 手动 clone https://github.com/bats-core/bats-core 到任意目录并加 PATH | 使用者不需要跑测试 |
+| **ruff（可选）** | `pip install ruff` | 仅开发者跑 `ruff check agate/` 时需要（替代 shellcheck，含 tests）。使用者不需要 |
+| **pytest（仅开发者）** | `pip install pytest` | 使用者不需要跑测试；开发者跑 `python3 -m pytest agate/tests/`（Bats 已退役，TAG0011） |
 
 ### 安装步骤
 
@@ -142,8 +142,8 @@ agate 的派发机制于 2026-06-12 在 OpenCode 上完成验证：
 |------|------|------|
 | `ln -sf` 退化为复制 | hook 不随 agate 升级自动更新 | 升级 agate 后重跑 `python3 ~/.agate/scripts/install-hook.py`；或开 Windows「开发者模式」启用真符号链接 |
 | `core.autocrlf` CRLF 污染 | 3 个 hook 薄壳 `.sh` 报 `\r` 语法错；py 文件已显式 `encoding="utf-8"` 读写（免疫），仅卡片 sha256 校验受 hash 影响 | 仓库已含 `.gitattributes` 强制 LF；若 clone 旧版本无此文件，手动 `git config core.autocrlf false`。已 clone 且已物化 CRLF 的工作区需 `git add --renormalize .` 重规范化 |
-| bats 安装麻烦 | 开发者无法跑 `bats` 测试 | 手动 clone bats-core；或用 WSL 跑测试（使用不受影响） |
-| CI 仅 ubuntu | Windows 本地行为无 CI 兜底 | 靠本地验证；protocol-tests.yml 的 bats job 已加 `windows-latest` matrix（技术路线冒烟，见 AGENTS.md 测试约定） |
+| pytest 需安装 | 开发者无法跑 `python3 -m pytest` 测试 | `pip install pytest`（Windows 原生 python 直接可用）；或用 WSL 跑测试（使用不受影响） |
+| CI 仅 ubuntu | Windows 本地行为无 CI 兜底 | 靠本地验证；protocol-tests.yml 的 pytest job 已加 `windows-latest` matrix（`-m windows_smoke` 冒烟，见 AGENTS.md 测试约定） |
 | 路径分隔符 | MSYS2 自动转换 `/c/Users/` <-> `C:\Users\`，但极少数硬编码路径可能出问题 | 遇到时用 `cygpath -w` 转换 |
 
 ### 不支持的场景
