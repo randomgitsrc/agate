@@ -232,3 +232,57 @@ python3 agate/scripts/check-platform-assumptions.py <3 个新文件>
   - IC_IDEMPOTENT.2 的 first_hash/second_hash 用 `_between_markers` 的 join（无尾部换行）与 bats 的
     sed 管道（带尾部换行）数值不同，但断言是**相对不等**（first != second），双跑对照语义等价。
   - inject 块 sha256 断言对 `\r` 归一化（`replace("\r","")`，等价 `tr -d '\r'`）后再哈希。
+
+## 批次 4 — 上下文/归档/回退工具（4 文件 / 37 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/agate-extract-context.bats` | `unit/test_agate_extract_context.py` | 16 |
+| `unit/agate-archive-stale-outputs.bats` | `unit/test_agate_archive_stale_outputs.py` | 7 |
+| `unit/agate-migrate-workspace.bats` | `unit/test_agate_migrate_workspace.py` | 9 |
+| `unit/agate-retreat-to.bats` | `unit/test_agate_retreat_to.py` | 5 |
+
+### 关键实现点
+
+- **合并流（P2 BLOCKER-1）**：EC.9 `已追加到`（stdout print）/ MW.5 `迁移` / ARCH.2 `无需归档`
+  / RETREAT.1 `共 2 步` 等包含断言一律 `in result.output`；错误/超限消息（EC.2/3、RETREAT.2/3/4/5）
+  由脚本写 stderr——按 §3.2 先判流归属后用合并流 `.output` 断言（与 bats `$output` 等价，双跑对照不漂移）。
+- **ARCH.4 flaky（时间戳）**：归档目录名含秒级时间戳 `{YYYYmmdd-HHMMSS}-{PHASE}`——两次归档之间
+  `time.sleep(1)` 保证时间戳必然不同，隔离单跑必过语义保留（P2 §7.2 R2.4）。查归档目录用
+  `_archived_dirs()` glob 等价（`find .archived -name "*-P6"`）。
+- **git_repo fixture**：migrate-workspace（9 例）+ retreat-to（5 例）全部用 `git_repo`（git_init 等价），
+  `run_cli(..., cwd=str(git_repo.path))` 等价 bats `cd '$repo'`；git 断言经 `git_repo.git(...)`（`git -C` 等价），
+  MW.3/MW.9 的 `git log --follow` 用 `git_repo.git("log", "--follow", "--oneline", "--", path)`。
+- **MW.9 hook 集成**：`_install_pre_commit_hook()` 用 `os.symlink` + Windows 复制模式 fallback
+  （`shutil.copyfile`，等价 Git Bash `ln -sf` 退化）安装 pre-commit 钩子；hook-liveness probe 经
+  `git_repo.git("commit", ...)` 断言 returncode != 0（等价 bats `[ "$status" -ne 0 ]`）+ `reset -q`。
+- **RETREAT.3 计数**：`git log --oneline | wc -l` → `len([非空行 in git_repo.git("log","--oneline").stdout])`。
+- **MW.8 仓库外目标**：`--to` 外部工作区用 `tmp_path.parent / (tmp_path.name + "-ext-ws")`（repo 之外），
+  git mv 失败 exit 128 → fallback 普通 mv + `WARNING` 断言。
+- **EC.16 无 bc 模拟**：fakebin 前置 `bc` stub（exit 1）+ `env={"PATH": fakebin + os.pathsep + 原 PATH}`
+  （等价 bats `env PATH="$fakebin:$PATH"`）；断言 P6 failed 求和仍为 3。
+- windows_smoke 打标（P3 §5.2 表 W + 每文件第 1 用例）：`test_ec_1`（第 1）+ `test_ec_16`（平台关键词
+  "无bc"）、`test_arch_1`、`test_mw_1`、`test_retreat_1`——共 5 处。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_agate_extract_context.py agate/tests/unit/test_agate_archive_stale_outputs.py agate/tests/unit/test_agate_migrate_workspace.py agate/tests/unit/test_agate_retreat_to.py -q
+# 37 passed in 4.03s（16+7+9+5，全绿）
+python3 -m pytest agate/tests/unit/ -k "extract or archive or migrate or retreat" -q   # P3 §6 批次 4 验证命令
+# 43 passed, 111 deselected（37 本批 + 6 retreat_state 关联命中，重叠无害）
+/home/kity/.venvs/agate-dev/bin/ruff check <4 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <4 个新文件>
+# exit 0（R1-R5 零命中）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：RETREAT 的 `_init_task_repo` 等价 bats setup 的目录 +
+  git commit 结构，`retries_yaml` 用 f-string 注入（ruff UP032 要求）；MW.8 外部工作区目录建在
+  `tmp_path` 之外（repo 外才触发 git mv 失败 fallback），命名加 `tmp_path.name` 后缀防跨测试冲突。
