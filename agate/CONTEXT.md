@@ -18,12 +18,15 @@
 | SCOPE_GAP | 主 Agent 派发 prompt 漏了 P2 已声明的改动，subagent 标注 | dispatch-protocol.md |
 | C8 域 | role-system.md 定义的协作域，命中时触发 P2/P4 评审 | role-system.md |
 | agent 字段 | 阶段产出文件 Header 的角色标识（如 `agent: verifier`），`agent=main` 表示自审 | orchestrator-template.md |
-| gate exit code | 0=通过，1=不通过，2=需人工判断 | check-gate.sh |
+| gate exit code | 0=通过，1=不通过，2=需人工判断 | check-gate.py |
 | PAUSED | 任务暂停状态，需人工介入后才能继续。不是失败，是正确路由 | state-machine.md |
 | READY | 任务完成所有 gate、准备发布的状态。实际发布由人手动触发 | state-machine.md |
 | dispatch-context | 派发前主 Agent 写的核心信息源，含派发指引（目标/约束/上游关联/输入文件）+ 阶段卡片 + 客观查证信息。文件名 P{N}-dispatch-context-{role}.md，每个 subagent 一个。禁止含 PASS/FAIL 预判 | dispatch-protocol.md |
 | PROD_TOUCHED | subagent 意外接触生产环境时标注的标记（二值格式：触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`），触发 PAUSED | dispatch-protocol.md |
 | DESIGN_GAP | P4 实现中发现的设计偏差声明，须在 P7 被转抄 + 配对 DESIGN_GAP_REVIEWED | state-machine.md |
-| 自审 | agent=main 的评审，被 check-gate.sh 硬拦截（exit 1） | orchestrator-template.md |
+| 自审 | agent=main 的评审，被 check-gate.py 硬拦截（exit 1） | orchestrator-template.md |
 | 裁剪说明 | P1-requirements.md 中声明跳过阶段及理由的节 | WORKFLOW.md §可裁剪的阶段 |
 | 风险等级 | P1 声明的 risk_level 字段（low/medium/high），影响裁剪和评审触发 | WORKFLOW.md §裁剪风险维度 |
+| pytest | agate 测试框架（≥7）。开发者在 Linux 全量 `python3 -m pytest agate/tests/`，Windows 只跑冒烟 | AGENTS.md §测试约定 |
+| windows_smoke marker | `@pytest.mark.windows_smoke`，Windows CI 冒烟代表（每文件第 1 个用例 + 平台敏感关键词用例），Linux 全量覆盖、Windows 只验证平台敏感机制成立 | AGENTS.md §测试约定 |
+| conftest | agate/tests/conftest.py，全局 fixture（agate_root / task_dir / git_repo / run_cli / py_path），根目录自动加载，test_*.py 无需 load 语句 | tests/README.md |
