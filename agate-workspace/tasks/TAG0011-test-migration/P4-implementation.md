@@ -1721,3 +1721,65 @@ python3 -m py_compile agate/tests/integration/test_pre_commit_hook.py agate/test
   - DC 系列任务目录在 repo 根 `task/`（bats 原文 `$REPO/task`），未放 agate-workspace/tasks
     下——hook 2e 反推 task_dir=state_dir 可直接命中，行为等价。
 
+## 批次 14 — 一致性/self-gate 集成（2 文件 / 19 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `integration/consistency.bats`（CON.1-12，11 @test） | `integration/test_consistency.py` | 11 |
+| `integration/protocol-alignment-review.bats`（SG.1-8，8 @test） | `integration/test_protocol_alignment_review.py` | 8 |
+
+> 13c 之后批次 14 独立新建 2 个文件（无追加），合计 19 用例，覆盖两个 bats 全部 @test。
+
+### 关键实现点
+
+- **test_consistency.py**：bats `setup()` 每测试跑一次
+  `$PYTHON "$AGATE_ROOT/scripts/check-protocol-consistency.py"` → pytest 用 **module 级 fixture
+  `consistency_result`** 跑一次（结果确定性，行为等价）；`--root` 显式指向仓库根（`agate_root.parent`，
+  等价 bats 以仓库根为 cwd 的默认 `--root .`）。断言：
+  - CON.1-6/CON.8/CON.10 基于合并流 `.output`（bats `$output` 语义，BLOCKER-1）——
+    `"PASS  CHECK N"` / `"FAIL  CHECK N"` / `"WARN  CHECK N"` 前缀匹配（PASS/FAIL/WARN 后两个空格，
+    与脚本 `print(f"  {status}  {title}")` 输出格式一致）；CON.1 `"ERROR ("` 反向断言；CON.8
+    PASS 或 WARN 且非 FAIL。
+  - CON.9 / CON.11 / CON.12 为**读文件断言**：`read_text(encoding="utf-8")` 后 substring 检查
+    （`_md5_entries`+`md5sum` in check-p6-evidence.py；`PROD_NOT_TOUCHED` in pre-commit-gate.sh；
+    `NO_NEED_CONFIRM`+`SUGGEST` in check-gate.py）。
+  - windows_smoke 打标（P3 §5.2）：consistency.bats 平台关键词 1 处（CON.3 名称含"编码"）
+    + 文件首 @test CON.1。
+- **test_protocol_alignment_review.py**：读协议文件断言（P2 §3.2「读文件断言」映射）。
+  - `_role_file` = `agate_root/assets/review-roles/protocol-alignment-review.md`（等价
+    `$AGATE_ASSETS/review-roles/...`）；`_selfgate_file` = `agate_root.parent/SELF-GATE.md`
+    （等价 bats `$BATS_TEST_DIRNAME/../../../SELF-GATE.md`，上溯 3 级到仓库根）。
+  - SG.1 frontmatter 用 `re.search(r"^...", text, re.MULTILINE)`（等价 `grep -q '^role_id: ...'`
+    行首锚定）；SG.6 用 `glob("check-*.py")` + `glob("pre-commit-gate.sh")` +
+    `glob("pre-commit-gate.py")` 汇总去重排序（等价 `find ... | sort` + `basename`），逐个断言
+    basename 在 consistency 脚本锚点表文本中；SG.7 用 `os.access(..., os.X_OK)`（等价 `[ -x ]`）。
+  - windows_smoke 打标：文件首 @test SG.1（P3 §5.2 每文件第 1 用例规则）。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 14 验证命令
+> `python3 -m pytest agate/tests/integration/ -k "consistency or alignment"` + 原 2 bats + consistency
+> 统一跑）。已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/integration/test_consistency.py agate/tests/integration/test_protocol_alignment_review.py
+# SYNTAX-OK（两文件）
+# 用例数：test_consistency.py 11（grep -c '^def test_'）/ test_protocol_alignment_review.py 8
+# 待主 Agent 执行：python3 -m pytest agate/tests/integration/ -k "consistency or alignment"
+#   + 原 2 bats + consistency
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - 一致性脚本用 `--root agate_root.parent` 显式传仓库根，而非依赖 pytest cwd——bats 以仓库根
+    为 cwd 默认 `--root .`，两者行为等价（脚本内 `(root / "agate" / "WORKFLOW.md")` 存在性判定一致）。
+  - bats `setup()` 每测试重跑脚本，pytest 用 module 级 fixture 跑一次——脚本输出确定性（协议文件
+    静态），行为等价。
+  - SG.6 的 find 用 `glob` 三模式并集替代（bats 的 `find` 含隐式 `-print` + `| sort`），basename
+    集合一致；未用 rglob（scripts/ 下无子目录含 gate 脚本）。
+
