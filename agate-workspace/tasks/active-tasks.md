@@ -17,7 +17,10 @@
 |------|----------|------|------|--------|------|----------|----------|
 | TAG0006 | agate UI/UX 验收质量机制：UX 需求/评审/验收（RM-0007）/ 视觉验收能力边界（RM-0004）/ GUI 框架评估（RM-0006）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
 | TAG0007 | agate 项目结构管理：0→1 骨架（RM-0008）/ code-map + 架构演进（RM-0009）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
-| TAG0008 | agate 版本管理机制（v1）：多版本共存 + 项目锁定 + 程序化安装/升级（agate-install / agate-resolve / hook 解析入口 / summary 版本显示）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-15 |
+| TAG0008 | agate 版本管理机制（v1）：多版本共存 + 项目锁定 + 程序化安装/升级（agate-install / agate-resolve / hook 解析入口 / summary 版本显示）——P0-brief 已更新至 Python 化后状态（2026-08-15）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-15 |
+| TAG0012 | agate 协议机制增强批：阶段卡同类扫描（RM-AG0013）+ verification_env 边界（RM-AG0014）+ P0-brief 时效验证（RM-AG0019）| ⬜ | P0 | 高 | — | 2026-08-15 | 2026-08-15 |
+| TAG0013 | agate 脚本一致性批：CHECK 10 文档引用漂移 gate（RM-AG0015）+ self-gate 触发面补 README/AGENTS（RM-AG0017）+ tech-debt 登记提醒（RM-AG0018 剩余）| ⬜ | P0 | 高 | — | 2026-08-15 | 2026-08-15 |
+| TAG0014 | agate 派发编排机制（全阶段，RM-AG0016）：工作量评估 + 五模式编排 + 并行规则统一（有 approved plan：agate-workspace/plans/agate-dispatch-orchestration-20260815.md）| ⬜ | P0 | 高 | — | 2026-08-15 | 2026-08-15 |
 
 ### 已完成
 
