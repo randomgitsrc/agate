@@ -178,6 +178,13 @@ python3 ~/.agate/scripts/install-hook.py
 
 **⑤ 无 bash 环境（纯 cmd/PowerShell）成为可行选项**：gate 脚本已全部 Python 化，`python3` 可直接运行（P0-P8 全程可执行）；唯一受限是 git hook 入口薄壳仍需 sh（Git for Windows）。详见 `platform-notes.md`「Windows 原生」。
 
+### v0.48.0 — 脚本一致性 gate（无破坏性变更）
+
+**本版本无破坏性变更，无需迁移动作。**
+
+- 新增 CHECK 10「协议文档脚本名引用漂移」一致性检查（增量，当前 0 漂移），self-gate 触发面补 README/AGENTS（内部行为），check-retrospective 追加登记提醒行（纯提醒）——用户可见协议语义不变。
+- 已有项目升级：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS 符号链接模式自动跟随，不放心可重跑确认；Windows 复制模式必须重跑）。
+
 ### v0.45.0 — backend 域 P2 评审触发 + 平台假设扫描器（影响：所有已部署项目）
 
 **① backend 域任务 P2 现强制派发方案评审（plan-eng-review）**（RM-AG0010）：

@@ -1,0 +1,6 @@
+=== BDD-11: 无异常模式输出为空 ===
+构造: .state.yaml phase=P4 无异常; P1-requirements.md 无 SCOPE+/override
+命令: python3 agate/scripts/check-retrospective.py /tmp/p6-bdd11 /tmp/p6-bdd11/.state.yaml
+stdout bytes: 0 / stderr bytes: 0（RT.1 空输出不回归）
+exit code: 0
+EXIT_CODE: 0

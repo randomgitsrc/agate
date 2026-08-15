@@ -77,3 +77,62 @@ def test_cmsg_4_review_path_clears_warning(
     )
     result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
     assert result.returncode == 0
+
+
+# ── self-gate 触发面扩展用例（README/AGENTS/CHANGELOG），TAG0013（追加，不改既有） ──
+
+def test_bdd_6_readme_triggers_self_gate_warning(
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
+):
+    repo = git_repo.path
+    (repo / "README.md").write_text("# agate\n", encoding="utf-8")
+    git_repo.stage("README.md")
+
+    commit_msg = tmp_path / "commit-msg"
+    commit_msg.write_text("feat: test\n", encoding="utf-8")
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
+    assert result.returncode == 0
+    assert "self-gate" in result.output
+
+
+def test_bdd_7_agents_triggers_self_gate_warning(
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
+):
+    repo = git_repo.path
+    (repo / "AGENTS.md").write_text("# agents\n", encoding="utf-8")
+    git_repo.stage("AGENTS.md")
+
+    commit_msg = tmp_path / "commit-msg"
+    commit_msg.write_text("feat: test\n", encoding="utf-8")
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
+    assert result.returncode == 0
+    assert "self-gate" in result.output
+
+
+def test_bdd_8_changelog_exempt_no_output(
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
+):
+    repo = git_repo.path
+    (repo / "CHANGELOG.md").write_text("# changelog\n", encoding="utf-8")
+    git_repo.stage("CHANGELOG.md")
+
+    commit_msg = tmp_path / "commit-msg"
+    commit_msg.write_text("feat: test\n", encoding="utf-8")
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
+    assert result.returncode == 0
+    assert result.output == ""
+
+
+def test_bdd_9_agate_md_trigger_not_regressed(
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
+):
+    repo = git_repo.path
+    (repo / "agate").mkdir(parents=True)
+    (repo / "agate" / "WORKFLOW.md").write_text("# workflow\n", encoding="utf-8")
+    git_repo.stage("agate/WORKFLOW.md")
+
+    commit_msg = tmp_path / "commit-msg"
+    commit_msg.write_text("feat: test\n", encoding="utf-8")
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
+    assert result.returncode == 0
+    assert "self-gate" in result.output

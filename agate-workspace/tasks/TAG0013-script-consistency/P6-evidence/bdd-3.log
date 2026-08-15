@@ -1,0 +1,6 @@
+=== BDD-3: 豁免清单 5 类（假协议树） ===
+构造 5 类豁免引用: ①UPGRADING 整文件(check-gate.sh/check-tdd-red.sh) ②formatters(pytest.sh) ③hook 薄壳(pre-commit-gate.sh) ④count-tests.sh(agate/tests/scripts) ⑤scripts/README 退役名(gate-result.sh/agate-workspace-resolve.sh/check-windows-smoke.sh)
+命令: python3 agate/scripts/check-protocol-consistency.py --root /tmp/p6-bdd3 --json
+CHECK10 errors: 0 / warnings: 0 / passed: True
+exit code（CHECK10 角度）: 无 CHECK10 漂移
+EXIT_CODE: 0

@@ -1,0 +1,6 @@
+=== BDD-7: 暂存 AGENTS.md 变更触发 self-gate WARNING ===
+git add AGENTS.md，commit msg 无标记
+命令: bash agate/scripts/commit-msg-self-gate.sh msg.txt
+stderr 含 'GATE SELF-GATE:'，'self-gate' 命中 5 次
+exit code: 0
+EXIT_CODE: 0

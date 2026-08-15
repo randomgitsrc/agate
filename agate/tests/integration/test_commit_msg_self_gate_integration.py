@@ -44,14 +44,14 @@ def _commit(run_cli, repo, agate_root, *args):
 
 
 @pytest.mark.windows_smoke
-def test_csg_1_non_trigger_no_warning(git_repo, agate_scripts, agate_root, run_cli):
+def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_cli):
     repo = _setup_hook(git_repo, agate_scripts)
     (repo / "README.md").write_text("change\n", encoding="utf-8")
     git_repo.stage("README.md")
 
     result = _commit(run_cli, repo, agate_root, "-m", "update readme")
     assert result.returncode == 0
-    assert "self-gate-review" not in result.output
+    assert "self-gate-review" in result.output
 
 
 def test_csg_2_trigger_no_review_warning(git_repo, agate_scripts, agate_root, run_cli):

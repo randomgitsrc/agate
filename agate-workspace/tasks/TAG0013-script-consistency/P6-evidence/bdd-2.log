@@ -1,0 +1,10 @@
+=== BDD-2: 假协议树含 check-nonexistent-script.py 漂移引用 ===
+构造: /tmp/p6-bdd2/agate/phase-cards/P3-tdd.md 含 '派发 check-nonexistent-script.py'
+命令: python3 agate/scripts/check-protocol-consistency.py --root /tmp/p6-bdd2 --json
+验证目标: 脚本正确检测到漂移并报 ERROR、exit 1（此 exit 1 是被测脚本的预期行为）
+实际输出: CHECK10 errors: 1
+  msg: 引用了不存在的脚本: check-nonexistent-script.py
+  loc: agate/phase-cards/P3-tdd.md:1
+被测脚本 exit code: 1（预期，漂移检测成立）
+验证运行（本日志）: 检测到预期 ERROR 与 exit 1，验收判定 PASS
+EXIT_CODE: 0

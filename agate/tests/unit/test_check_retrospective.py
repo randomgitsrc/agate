@@ -208,3 +208,35 @@ def test_retro_scope_card_1_agate_card_block_excluded_from_scope_scan(
     result = _run_retro(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 0
     assert "SCOPE+" not in result.output
+
+
+# ── DEBT/roadmap 登记提醒行用例，TAG0013（追加，不改既有） ───────────────────
+
+def test_bdd_10_debt_roadmap_reminder_on_anomaly(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    (td / ".state.yaml").write_text(
+        "task_id: T001\n"
+        "phase: PAUSED\n"
+        "status: active\n"
+        "retries:\n"
+        "  P2:\n"
+        "    - attempt: 1\n"
+        "    - attempt: 2\n"
+        "    - attempt: 3\n",
+        encoding="utf-8",
+    )
+
+    result = _run_retro(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "DEBT" in result.output
+    assert "roadmap" in result.output
+
+
+def test_bdd_11_no_anomaly_empty_output(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+
+    result = _run_retro(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert result.output == ""

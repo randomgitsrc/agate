@@ -1,4 +1,4 @@
 task_id: TAG0013
-phase: P0
-status: pending
+phase: READY
+status: in_progress
 retries: {}

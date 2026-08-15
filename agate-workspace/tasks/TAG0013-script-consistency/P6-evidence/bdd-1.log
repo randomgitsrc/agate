@@ -1,0 +1,6 @@
+=== BDD-1: worktree check-protocol-consistency.py 实跑（BDD-1/4/5 共享） ===
+命令: python3 agate/scripts/check-protocol-consistency.py（worktree 自己）
+CHECK 10: 0 ERROR / 1 WARNING（CHANGELOG.md:17 叙事聚合，BDD-5 设计内）
+总 ERROR: 0 / WARNING: 279 / exit 0
+CHECK10-scriptref passed 标记: False（因叙事 WARNING 存在，按设计不置 ok）
+EXIT_CODE: 0
