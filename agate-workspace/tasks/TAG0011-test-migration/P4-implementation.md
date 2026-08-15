@@ -630,3 +630,57 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
   check-gate.bats 实际 @test 数为准：G2 系列 24 + BDD 锚点 3 + CMD_EXEC 2 恰 29 个）；8b 的 `-k`
   会连带命中 8d 的 `test_bdd_1_*` 前缀用例（N2 已知重叠，本文件 40 用例中无该前缀，deselected 不涉及）。
 
+## 批次 8c — check-gate 子批 c（1 文件 / 7 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（G5 / G5.1 / G5_CMD.1-5） | `unit/test_check_gate.py` | 7 |
+
+> 按 P2 §5 子批表 8c 范围追加（`-k "g5"`）。
+> check-gate.bats 中 G5 前缀 @test 全部归本子批：G5（P5 恒 exit 2）+ G5.1（T060 多命令 WARNING）+
+> G5_CMD.1（1 主 + 1 辅共 2 条，非 22）+ G5_CMD.2（单 P5 键无 WARNING）+ G5_CMD.3（无 gate_commands
+> 块无 WARNING）+ G5_CMD.4（P6 不算 P5 命令）+ G5_CMD.5（无尾随换行仍计数 2 条）——共 7 个。
+
+### 关键实现点
+
+- **gate_p5 分支纯 task_dir 驱动**（无 git）：全部 7 例用 `task_dir` factory + `_write_p2_design`
+  helper 复刻 bats heredoc 原文覆写 P2-design.md。
+- **G5_CMD.1/2 多 bullet 生成**：bats `for i in $(seq 1 20/10)` 等价为 Python 字符串拼接
+  `"".join(f"- 要点 {i}\n" for i in range(...))`，避免字面量逐行硬编码。
+- **G5_CMD.5 无尾随换行**：`printf 'gate_commands:\n  P5: ...'` 等价为 `write_text` 不带尾部 `\n`
+  （`.write_text(content, encoding="utf-8")`），验证 agate-gate-p5-count.py 的
+  `if not content.endswith(chr(10)): content += chr(10)` 边界。
+- **流语义（P2 BLOCKER-1）**：gate_p5 的 `GATE P5: ...` / `GATE P5 WARNING: ...` 一律
+  `sys.stderr.write` → 断言一律用合并流 `result.output`（`1 个主命令 + 1 个辅助命令` / `共 2 条` /
+  `gate_commands.P5 命令` 等），未映射 `.stdout`。
+- 函数命名 `test_g5_p5_...` / `test_g5_1_...` / `test_g5_cmd_N_...`，匹配 P2 §5 子批 8c 验证命令
+  `-k "g5"`。
+- windows_smoke 打标：本子批无新增（每文件第 1 用例标记已在 8a `test_g0_...`；本子批无平台关键词用例，
+  P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "g5" -q   # P2 §5 子批 8c 验证命令
+# 7 passed, 40 deselected
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 47 passed in 2.83s（8a 11 + 8b 29 + 8c 7，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 47 tests collected（BDD-1 计数不变）
+/home/kity/.venvs/agate-dev/bin/ruff check agate/tests/unit/test_check_gate.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/unit/test_check_gate.py
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：本子批用例数 7（P2 §5 子批表预估 ~10 有出入，以
+  check-gate.bats 实际 @test 数为准：G5 / G5.1 / G5_CMD.1-5 恰 7 个，P2 表 8c 列「~10」含估余量）。
+

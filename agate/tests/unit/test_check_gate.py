@@ -1,6 +1,7 @@
 # tests/unit/test_check_gate.py — check-gate.py 阶段 gate 总闸
 # （check-gate.bats 124 用例迁移，TAG0011 批次 8a：G0 / G1 / G3 / G4 / G_OTHER，11 用例；
-#   批次 8b：G2 系列 + G_BDD1.1/9.1/10.1 + G_CMD_EXEC.1/2，29 用例）
+#   批次 8b：G2 系列 + G_BDD1.1/9.1/10.1 + G_CMD_EXEC.1/2，29 用例；
+#   批次 8c：G5 / G5.1 / G5_CMD.1-5，7 用例）
 # 被测：agate/scripts/check-gate.py（PHASE TASK_DIR [OLD_PHASE]；exit 0 = 通过 / exit 1 = 未通过 /
 #   exit 2 = 主 Agent 自判）。
 # G0/G1/G3/G_OTHER 用 task_dir factory（create_task_dir 等价）；G4 系列需要 git_repo
@@ -726,3 +727,124 @@ def test_g2_24_numeric_candidates_exit_2(task_dir, agate_scripts, python_exe, ru
 
     result = _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
     assert result.returncode == 2
+
+
+# ========== 8c: gate_p5 分支（G5 / G5.1 / G5_CMD.1-5） ==========
+
+def test_g5_p5_exit_2(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P5", str(td))
+    assert result.returncode == 2
+
+
+def test_g5_1_multi_cmd_warning(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p2_design(
+        td,
+        "---\n"
+        "phase: P2\n"
+        "task_id: T001\n"
+        "agent: architect\n"
+        "---\n"
+        "\n"
+        "gate_commands:\n"
+        '  P5: "pytest -q --tb=no"\n'
+        '  P5_e2e: "playwright test --reporter=line tests/e2e/"\n',
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P5", str(td))
+    assert result.returncode == 2
+    assert (
+        "gate_commands.P5" in result.output
+        or "子集" in result.output
+        or "全量" in result.output
+    )
+
+
+def test_g5_cmd_1_p5_plus_e2e_counted(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    bullets = "".join(f"- 要点 {i}\n" for i in range(1, 21))
+    _write_p2_design(
+        td,
+        "---\n"
+        "phase: P2\n"
+        "---\n"
+        "\n"
+        "候选方案：\n"
+        f"{bullets}"
+        "\n"
+        "gate_commands:\n"
+        '  P5: "pytest -q"\n'
+        '  P5_e2e: "playwright test"\n',
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P5", str(td))
+    assert result.returncode == 2
+    assert "1 个主命令 + 1 个辅助命令" in result.output
+    assert "共 2 条" in result.output
+    assert "22 个" not in result.output
+
+
+def test_g5_cmd_2_single_p5_no_warning(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    bullets = "".join(f"- 要点 {i}\n" for i in range(1, 11))
+    _write_p2_design(
+        td,
+        "---\n"
+        "phase: P2\n"
+        "---\n"
+        "\n"
+        f"{bullets}"
+        "\n"
+        "gate_commands:\n"
+        '  P5: "pytest -q"\n',
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P5", str(td))
+    assert result.returncode == 2
+    assert "gate_commands.P5 命令" not in result.output
+
+
+def test_g5_cmd_3_no_gate_commands_no_warning(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p2_design(
+        td,
+        "---\n" "phase: P2\n" "---\n" "候选方案：无 gate_commands 声明\n",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P5", str(td))
+    assert result.returncode == 2
+    assert "gate_commands.P5 命令" not in result.output
+
+
+def test_g5_cmd_4_p6_not_counted_as_p5(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p2_design(
+        td,
+        "---\n"
+        "phase: P2\n"
+        "---\n"
+        "gate_commands:\n"
+        '  P5: "pytest -q"\n'
+        '  P6: "pytest tests/acceptance"\n',
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P5", str(td))
+    assert result.returncode == 2
+    assert "gate_commands.P5 命令" not in result.output
+
+
+def test_g5_cmd_5_no_trailing_newline(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    (td / "P2-design.md").write_text(
+        'gate_commands:\n  P5: "pytest"\n  P5_e2e: "playwright"',
+        encoding="utf-8",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P5", str(td))
+    assert result.returncode == 2
+    assert "1 个主命令 + 1 个辅助命令" in result.output
+    assert "共 2 条" in result.output
