@@ -1283,3 +1283,73 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
 - 实现细节（非偏离，记录供后续批次参照）：TDD.N3/N4 的 vitest mock 输出用运行时拼接
   `"/t" + "mp/..."` 替代 bats 的 `# scan-exempt:` 行级豁免——R4 只扫源码字面，运行时构造的
   字符串不命中（P2 §3.1 纪律要求 fixture 内容运行时构造，这是比注释豁免更严格的落实方式）。
+
+## 批次 10b — formatter 归一 + dispatch WARNING + 一致性锚点（3 文件 / 17 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-tdd-red-formatter.bats` | `unit/test_check_tdd_red_formatter.py` | 13（FMT.1-12 + bdd-35f） |
+| `unit/dispatch-context-warning.bats` | `unit/test_dispatch_context_warning.py` | 1 |
+| `unit/check-protocol-consistency.bats` | `unit/test_check_protocol_consistency.py` | 3（CHECK 9 锚点） |
+
+> 按 P2 §5 批次 10 子批表 10b（formatter + dispatch_warning + consistency）范围迁移，
+> `-k "formatter or dispatch or consistency"`（module 名 `test_check_tdd_red_formatter` /
+> `test_dispatch_context_warning` / `test_check_protocol_consistency` 各命中）。
+
+### 关键实现点
+
+- **formatter 调用方式保持（P3 §4 批次 10 约束）**：pytest.sh / vitest.sh / go-test.sh /
+  generic-tap.sh / generic-junit-xml.sh / generic-exit-only.sh 仍为 sh 薄壳——一律
+  `run_cli("bash", str(agate_assets/"formatters"/<name>.sh), str(exit_code), input=<输出>)`，
+  等价 bats `echo "<输出>" | bash "$FORMATTER_DIR/<name>.sh" <exit_code>`；formatter 内部
+  `python3` heredoc 归一是产品脚本行为，不作修改。
+- **JSON 解析**：formatter 的 JSON 经 `print` 写 stdout → `json.loads(result.stdout)`
+  （等价 bats `assert_json_field` / `assert_json_contains` 的 `$PYTHON -c` 解析）；
+  字段断言直接比类型化值（`d["exit_code"] == 1` / `len(d["failed_tests"]) == 2` /
+  `import_errors[0]["module"] == "myapp.foo"`），`contains` 语义用
+  `any("..." in str(x) for x in d["failed_tests"])`。
+- **R4 平台无关（P2 §3.1）**：FMT.8/9 的 vitest mock 输出样例含 `/tmp` 字面（bats 原文
+  `# scan-exempt:` 豁免）→ 运行时拼接 `"/t" + "mp/test/foo.test.ts"`（同 10a TDD.N3/N4 口径）。
+- **dispatch B3 WARNING（AGATE_ROOT_FAKE 场景保留，P3 §4 批次 10 约束）**：`git_repo` fixture
+  （init commit README）→ 任务目录 `repo/agate-workspace/tasks/TAG0001`（P2-design.md +
+  `.state.yaml`，task_id 合法格式 fail-closed）→ `git_repo.stage("agate-workspace")` 暂存产出 →
+  fake 根复制 **25 个 scripts 脚本（薄壳 + 被调 py + transitive 依赖，bats cp 清单原样）+ assets
+  整树 `shutil.copytree`**，唯独**不复制 agate-next-card.py**（pre-commit-gate.py:414-432 仅当
+  next-card 不可用才走 B3 WARNING 分支）→ `run_cli("bash", <fake>/scripts/pre-commit-gate.sh,
+  cwd=repo, env={"AGATE_ROOT": fake})` → 合并流断言 `"dispatch-context" in result.output`
+  （等价 bats `[[ "$output" == *"dispatch-context"* ]]`；`2>&1` 合并在 `.output` 语义下无额外作用）。
+- **consistency CHECK 9 锚点**：模块仅依赖 stdlib（argparse/json/os/re/sys/pathlib）→ 测试进程内
+  `importlib.util.spec_from_file_location` 加载（等价 bats `$PYTHON -c` 独立进程加载）；
+  **py_path 转换不再需要**（bats 因 Windows 原生 python 无法解析 MSYS `/c/...` 路径才用
+  `py_path`，pytest 在 Windows 原生运行时 Path 已是本机格式）。三个断言 = EXIT_CODE 锚点 ≥2 /
+  AGATE_ALIGNMENT_REVIEW_THRESHOLD 锚点 ≥1 / ci-gate-backstop.py 锚点 ≥1。
+- 函数命名 `test_fmt_N_...` / `test_bdd_35f_...` / `test_b3_warning_...` /
+  `test_check_9_...`，匹配 P2 §3.3 前缀命名约定。
+- windows_smoke 打标（每文件第 1 用例）：`test_fmt_1_...` / `test_b3_warning_...` /
+  `test_check_9_exit_code_anchor_exists`——共 3 处（三个 bats 源文件均无平台关键词用例，
+  P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+> 本子批不单跑 pytest（与 10a 同口径，P3 §6 批次 10 验证命令由主 Agent 在 10a+10b 全部完成后
+> 统一跑）。代码已过 `py_compile` 静态语法检查；ruff / 扫描器 / encoding 守卫随批次 10 统一验证。
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+ruff check agate/tests/unit/test_check_tdd_red_formatter.py agate/tests/unit/test_dispatch_context_warning.py agate/tests/unit/test_check_protocol_consistency.py
+python3 agate/scripts/check-platform-assumptions.py <3 个新文件>
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本批文件受检）
+python3 -m pytest agate/tests/unit/ -k "formatter or dispatch or consistency" -q   # P3 §6 批次 10b 子批验证
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - FMT.8/9 的 `/tmp` 字面用运行时拼接替代 bats 的 `# scan-exempt:` 行级豁免（同 10a 口径，
+    比注释豁免更严格的 R4 落实）。
+  - dispatch 的 git 操作走 `git_repo` fixture（GitRepo 类，git_init/commit/stage 等价），
+    fake 根复制清单与 bats `cp` 清单逐项一致（25 脚本 + assets 树，不含 agate-next-card.py）。
+  - consistency 的 py_path / `sys.path.insert` 不再需要（模块纯 stdlib + pytest 进程内加载）。
