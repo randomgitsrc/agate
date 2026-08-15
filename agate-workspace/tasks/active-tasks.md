@@ -15,12 +15,9 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0004 | agate 脚本环境适配（Windows 原生兼容 + Linux 基线回归）：pre-commit-gate 空格静默绕过 / 13 py 缺 encoding / P6 证据 ASCII 正则 / 全角冒号 locale 残留 / CRLF / 路径正则元字符 | ✅✅ | READY | 高 | — | 2026-08-13 | 2026-08-13 |
-| TAG0005 | agate 机制修复批：P2 gate vs C8 契约（RM-0010）/ P5 计数语义（RM-0011）/ 自定义角色两瑕疵（RM-0012）/ 短命会话重试（RM-0003）| ✅✅ | READY | 高 | — | 2026-08-13 | 2026-08-13 |
 | TAG0006 | agate UI/UX 验收质量机制：UX 需求/评审/验收（RM-0007）/ 视觉验收能力边界（RM-0004）/ GUI 框架评估（RM-0006）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
 | TAG0007 | agate 项目结构管理：0→1 骨架（RM-0008）/ code-map + 架构演进（RM-0009）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
-| TAG0008 | agate 版本管理机制（v1）：多版本共存 + 项目锁定 + 程序化安装/升级（agate-install / agate-resolve / hook 解析入口 / summary 版本显示）| ⏸️ | P0 | 高 | TAG0010 | 2026-08-13 | 2026-08-14 |
-| TAG0009 | agate 测试套件平台无关化：78 个 Windows bats 失败根治（静态扫描器 gate + 批量修正 + Linux 模拟覆盖 Windows 分支）| ✅✅ | READY | 高 | TAG0004 | 2026-08-13 | 2026-08-14 |
+| TAG0008 | agate 版本管理机制（v1）：多版本共存 + 项目锁定 + 程序化安装/升级（agate-install / agate-resolve / hook 解析入口 / summary 版本显示）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-15 |
 
 ### 已完成
 
@@ -31,6 +28,8 @@
 | TAG0002 | 重构一等任务（Phase A：change_type: refactor + P6 重构验收口径 + gate 分流）→ v0.42.0 | ✅✅ | READY | 高 | 2026-08-12 |
 | TAG0001 | agate 技术债登记闭环（Phase 1-3：模板+schema 校验+回退强制+P8 确认+回填验证 + debt/ 归类修正）→ v0.43.0 | ✅✅ | READY | 高 | 2026-08-12 |
 | TAG0004 | agate 脚本环境适配（Windows 原生兼容 + Linux 基线回归）：S1 空格路径 fail-open / S3 encoding / S2 中文证据 / M4M5 全角冒号 / M6 CRLF / M9 元字符 / Q1 路径归一化 / Q2 卡片 / Q5 文档 / RM-AG0001 / RM-AG0002+TPV0090-M4 / CI windows matrix → v0.44.0 | ✅✅ | READY | 高 | 2026-08-13 |
+| TAG0005 | agate 机制修复批：P2 gate vs C8 契约（RM-AG0010）/ P5 计数语义（RM-AG0011）/ 自定义角色两瑕疵（RM-AG0012）/ 短命会话重试（RM-AG0003）→ v0.45.0 | ✅✅ | READY | 高 | 2026-08-13 |
+| TAG0009 | agate 测试套件平台无关化：78 个 Windows bats 失败根治（静态扫描器 gate + 批量修正 + Linux 模拟覆盖 Windows 分支）→ v0.45.0 | ✅✅ | READY | 高 | 2026-08-14 |
 | TAG0010 | agate 产品逻辑 Python 化（阶段一）：30 个 sh → py（hook 保留 sh 薄壳），消解 bash 在 Windows 模拟层问题；TAG0008 依赖本任务 → v0.46.0 | ✅✅ | READY | 高 | 2026-08-15 |
 | TAG0011 | agate 测试框架迁移（阶段二）：60 个 .bats → pytest + 协议文档全量重写 + CI 同步（达成全 Python）→ v0.47.0 | ✅✅ | READY | 高 | 2026-08-15 |
 
