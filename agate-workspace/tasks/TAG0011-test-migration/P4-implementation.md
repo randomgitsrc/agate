@@ -1019,4 +1019,60 @@ python3 agate/scripts/check-platform-assumptions.py <两文件>
 - p1-review 源 bats 文件名无版本号锚点，本批按 P2 §3.3 module 名契约
   `test_check_gate_p1_review.py` / `test_check_gate_p5_diff.py` 命名。
 
+## 批次 9a — P6 证据链（1 文件 / 30 @test）
 
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-p6-evidence.bats` | `unit/test_check_p6_evidence.py` | 30 |
+
+### 关键实现点
+
+- **流语义（P2 BLOCKER-1）**：check-p6-evidence.py 的 `GATE P6-EVIDENCE:` 消息一律
+  `sys.stderr.write` → 断言一律用合并流 `result.output`（`无 BDD 条目` / `缺文件证据引用` /
+  `P6-evidence` / `screenshots` / `1KB` / `全是纯文本` 等），未映射 `.stdout`。
+- **Pillow 无关（P3 §4 备注的"Pillow 可选 skipif"不适用）**：check-p6-evidence.py 调
+  agate-image-check.py variance/ahash，缺 Pillow 时返回 `SKIP_NO_PILLOW` 走 WARNING 分支
+  （`break` / 不阻断），本批 30 用例的 exit code 判定全部不随 Pillow 安装状态变化（E.9/E.10/
+  E.12/E.13/EVIDENCE_* 均已实测双态等价），故无 skipif——与 bats 原文（无 skip）一致。
+- **随机字节文件**：bats `head -c N /dev/urandom` → `os.urandom(N)` + `write_bytes`
+  （E.9 100B / E.10/E.13 5000B）；md5 重复用例（E.12 / EVIDENCE_MD5_DETAIL.1/2）用
+  `base64.b64encode(os.urandom(5000)).decode("ascii")` 同一内容写两文件（等价
+  `head -c 5000 /dev/urandom | base64`，逐字节相同 → md5 相同）。
+- **ui_affected 读取（T001 v2.0 流 A）**：UI 用例复刻 bats heredoc 覆写 P2-design.md
+  （`---\nagent: test\n---\nui_affected: true|false` 正文），check-p6-evidence.py 经
+  agate-md-field-get.py 正则回退读到 "true"/"false"（frontmatter 无该字段）。
+- **P6-evidence/screenshots 目录**：E.8 只建 P6-evidence/（含 result.json）不建 screenshots/
+  → `screenshots` 断言；E.9/E.10/E.12/E.13/EVIDENCE_* 建 screenshots/ 子目录（等价
+  `mkdir -p`）；E.15-17 只建 P6-evidence/（纯文本/混合证据类型判定）。
+- **函数命名**：`test_e_N_...` / `test_evid_ext_N_...` / `test_evidence_{no_ref,empty,md5}_detail_N_...`
+  / `test_bdd_9_...` / `test_bdd_10_...`，匹配 P2 §5 子批 9a 验证命令 `-k "p6_evidence"`。
+- **windows_smoke 打标**：每文件第 1 用例 `test_e_1_no_p6_file_exit_2`——共 1 处
+  （本批无平台关键词用例，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_p6_evidence.py -q
+# 30 passed in 2.50s（全绿）
+python3 -m pytest agate/tests/unit/ -k "p6_evidence" -q   # P2 §5 子批 9a 验证命令
+# 31 passed, 463 deselected（30 本批 + test_agate_archive_stale_outputs.py::test_arch_3_p6_evidence_* 函数名含 p6_evidence 重叠，无害）
+python3 -m pytest agate/tests/unit/test_check_p6_evidence.py --collect-only -q
+# 30 tests collected（BDD-1 计数不变）
+ruff check agate/tests/unit/test_check_p6_evidence.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/unit/test_check_p6_evidence.py
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：本批未使用 fixtures/ 静态夹具——check-p6-evidence.bats
+  全部 30 用例都自建 task_dir + heredoc（无 load_fixture 引用），pytest 用 `task_dir` factory +
+  write_text 等价构造；P3 §4「fixtures/ 静态夹具（full-task P6-evidence/）」备注不适用于本批
+  （full-task/P6-evidence 由批次 9b check-p6-provenance.bats 使用，届时用 load_fixture）。
