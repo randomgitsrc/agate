@@ -116,6 +116,7 @@ def test_pt_binary_1_line_start_prod_touched_blocks(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text(
         "[PROD_TOUCHED] 接触了生产环境：修改了线上配置\n", encoding="utf-8"
     )
@@ -136,6 +137,7 @@ def test_pt_binary_2_prod_not_touched_passes(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text("[PROD_NOT_TOUCHED]\n", encoding="utf-8")
     _write_state_yaml(task_dir, "TXX0001", "P5")
     git_repo.stage("agate-workspace/tasks/T001/P5-verification.md")
@@ -153,6 +155,7 @@ def test_pt_binary_3_deleted_line_not_scanned(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text(
         "[PROD_TOUCHED] 旧内容\n", encoding="utf-8"
     )
@@ -183,6 +186,7 @@ def test_pt_binary_4_inline_mention_passes(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text(
         "无 [PROD_TOUCHED] 需要报告\n", encoding="utf-8"
     )
@@ -202,6 +206,7 @@ def test_pt_binary_5_inline_mention_passes_variant(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text(
         "检查了 [PROD_TOUCHED] 标记\n", encoding="utf-8"
     )
@@ -221,6 +226,7 @@ def test_pt_binary_6_no_marker_no_warning(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text(
         "normal content without any marker\n", encoding="utf-8"
     )
@@ -241,6 +247,7 @@ def test_pt_binary_7_prod_not_touched_with_desc_passes(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text(
         "[PROD_NOT_TOUCHED] 确认未接触\n", encoding="utf-8"
     )
@@ -260,6 +267,7 @@ def test_pt_mention_1_body_mention_not_declaration(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "P5-verification.md").write_text(
         "说明：本任务无生产接触，不需要写 [PROD_TOUCHED] 声明\n", encoding="utf-8"
     )
@@ -279,6 +287,7 @@ def test_t6_1_p8_card_injection_no_false_flag(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     _write_min_valid_dispatch_context(
         run_cli, python_exe, agate_scripts, agate_root, task_dir, "P8", "releaser"
     )
@@ -298,6 +307,7 @@ def test_t6_2_note_inline_mention_passes(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "note.md").write_text(
         "记录：曾经不小心碰到了 [PROD_TOUCHED] 生产环境\n", encoding="utf-8"
     )
@@ -316,6 +326,7 @@ def test_t6_3_note_line_start_declaration_blocked(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "note.md").write_text(
         "[PROD_TOUCHED] 意外接触生产环境\n", encoding="utf-8"
     )
@@ -335,6 +346,7 @@ def test_t6_4_note_prod_not_touched_passes(
     _init_commit(run_cli, agate_root, git_repo, repo)
 
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "note.md").write_text(
         "[PROD_NOT_TOUCHED] 未接触生产环境\n", encoding="utf-8"
     )
