@@ -4,6 +4,8 @@
 # 语义：frontmatter 优先 + 无 key 正则回退（T001 v2.0 流 A）；change_type / regression_pass
 #       为 frontmatter-only（TAG0002）。空/精确等值断言统一 .strip()（bats $output 剥尾部换行）。
 
+import json
+
 import pytest
 
 
@@ -149,3 +151,40 @@ def test_bdd_15_lf_ascii_behavior_unchanged(agate_scripts, python_exe, run_cli, 
     result = _run_mdf(agate_scripts, python_exe, run_cli, "risk_level", md_file)
     assert result.returncode == 0
     assert result.output.strip() == "medium"
+
+
+# ===== TAG0014 dispatch_plan op 契约（S2，P1 BDD-1/7；plan N9） =====
+# 现状红灯基础：dispatch_plan 未注册 KNOWN_OPS → exit 2 "unknown op"；dict 值走 str() repr 非 JSON。
+
+def test_mdf_16_dispatch_plan_frontmatter_json(agate_scripts, python_exe, run_cli, tmp_path):
+    """BDD-1 op 层：dispatch_plan 对含 flow YAML 的 P2 文件输出合法 JSON（含 mode）。"""
+    md_file = tmp_path / "P2.md"
+    md_file.write_text(
+        "---\nagent: test\n"
+        "dispatch_plan: {mode: static-batch, parallel_limit: 3, batches: [{id: B1, complexity: medium}]}\n"
+        "---\nbody\n",
+        encoding="utf-8",
+    )
+    result = _run_mdf(agate_scripts, python_exe, run_cli, "dispatch_plan", md_file)
+    assert result.returncode == 0
+    plan = json.loads(result.output.strip())
+    assert plan["mode"] == "static-batch"
+    assert plan["parallel_limit"] == 3
+
+
+def test_mdf_17_dispatch_plan_dict_json_output(agate_scripts, python_exe, run_cli, tmp_path):
+    """BDD-1/7 op 层（I4）：dict → json.dumps 输出合法 JSON（非 Python repr 单引号）。"""
+    md_file = tmp_path / "P2.md"
+    md_file.write_text(
+        "---\nagent: test\n"
+        "dispatch_plan: {mode: single}\n"
+        "---\nbody\n",
+        encoding="utf-8",
+    )
+    result = _run_mdf(agate_scripts, python_exe, run_cli, "dispatch_plan", md_file)
+    assert result.returncode == 0
+    output = result.output.strip()
+    plan = json.loads(output)
+    assert isinstance(plan, dict)
+    assert plan["mode"] == "single"
+    assert "'" not in output

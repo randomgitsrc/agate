@@ -1,0 +1,21 @@
+== P3 test-designer 启动 2026年 08月 16日 星期日 06:49:45 CST ==
+- [x] 读取 P3-dispatch-context-test-designer.md + 角色定义 test-designer.md
+- 派发指引要点：新建 test_dispatch_orchestration.py 8 条 + 追加 test_agate_md_field_get.py 2 条；P3-test-cases.md 声明 test_code_dir；自跑确认红灯
+- [x] 读取 P0-brief.md（env_constraints：Linux；test_cmd python3 -m pytest agate/tests/）
+- [x] 读取 P1-requirements.md：BDD-19 = 8 条契约测试（5正向+3负向）；BDD-1~7 覆盖；op 层 BDD-1
+- [x] 读取 P2-design.md：§3.1 字段契约实现（op 层 5 步 + gate 层 4 步）；§3.1 测试层 8 条 + op 2 条；gate_commands.P3 命令已确认
+- P2 测试层引用 fixture：conftest (agate_scripts/python_exe/run_cli/tmp_path)；platform 无关要求已明确
+- [x] 读取 plan agate-dispatch-orchestration-20260815.md：Task 1 测试清单（8 条逐字定义）；字段契约（flow YAML / mode 枚举 / op dispatch_plan / JSON 输出 / 不入 schema）
+- [x] 读取 conftest.py：fixture 全景（agate_root/agate_scripts/python_exe/run_cli/task_dir/git_repo/py_path；add_p2_candidate_count L218-221 / add_p2_review L223-227 / add_frontmatter_field L175-201）
+- [x] 读取 test_agate_md_field_get.py：14 例；_run_mdf 封装 L10-16（env FILE + op）
+- [x] 读取 test_check_gate.py：_run_gate 封装 L30-43；_write_p2_design L220-221；P2 用例模式（task_dir + add_p2_candidate_count + add_p2_review）
+- [x] 读取 agate-md-field-get.py：KNOWN_OPS L194-198 未含 dispatch_plan；_format_value L129-142 对 dict 走 str()（非 JSON）；main() L201-207 unknown op exit 2
+- [x] 读取 check-gate.py：gate_p2 L291-366（candidate_count→P2-review→四字段→权衡→WARNING→return 2）；_md_field_get L115-129（op 失败回退空）
+- [x] 读取 check-tdd-red.py：exit 0=真红灯（assertion 失败）、exit 2=全绿；exit-code-only 模式 raw_output 无 Traceback 即 classic red-light
+- 红灯设计：op 层用例（required_fields/batch_granularity/parallel_limit/optional/malformed 的 op 断言 + mdf 2 条）→ op 未注册 exit 2；gate 负向（mode_valid/parallel_limit_zero/batch_missing_complexity）→ gate 不校验 return 2≠1
+- [x] 实测确认红灯基础：op dispatch_plan → exit 2 'unknown op'；gate P2 含 dispatch_plan 合法 plan → exit 2（不校验）；malformed YAML → yaml ParserError（_read_frontmatter 返回 None）→ op exit 2 / gate exit 2 不崩溃
+- 开始写测试代码
+- [x] 测试代码落盘 + 自跑确认红灯：10 failed / 14 passed（14 为既有 mdf 用例）。红灯原因分类：7 个 assert 2==0（op exit 2 'unknown op' 未注册）+ 3 个 assert 2==1（gate P2 不校验 dispatch_plan return 2）。全部为'功能未实现'，无测试自身 bug。ruff check 0 问题
+- git status：仅新增/修改测试文件 + task 目录文件，未触碰实现/协议文件 [PROD_NOT_TOUCHED]
+- [x] 自检完成：8 条 test_dispatch_plan_* + 2 条 test_mdf_16/17 落盘确认；test_code_dir 声明确认；最后实跑 10 failed / 14 passed（红灯确认）
+- git status 复核：仅 M agate/tests/unit/test_agate_md_field_get.py + ?? test_dispatch_orchestration.py + ?? task 目录文件；未改任何实现/协议文件
