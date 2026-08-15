@@ -1208,3 +1208,78 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
   不适用——agate-vision-blocker.bats 两用例均自建 vision.yaml（heredoc / echo），无 load_fixture
   引用，pytest 用 tmp_path 写文件等价构造（与 9a/9b 同形态）。`_ci_env` 把 CI 平台变量默认置 `""`
   是相对 bats 的**防御性增强**（bats 靠 unset/export 依赖测试机无注入），断言语义不变。
+
+## 批次 10a — TDD 红灯链（1 文件 / 43 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-tdd-red.bats` | `unit/test_check_tdd_red.py` | 43 |
+
+> 按 P2 §5 批次 10 子批表 10a（tdd_red）范围迁移，`-k "tdd"`（module 名 `test_check_tdd_red`
+> 命中 `tdd`；函数名 `test_td_*` / `test_tdd_*` / `test_pyx_*` / `test_bdd_*` 均含 `tdd` 或对应前缀）。
+> check-tdd-red.py 是 P3 gate 红灯判定的被测对象——TD/TDD/F 系列断言对象按 P3 §4 批次 10 口径
+> 保持 pytest 输出解析（formatter pytest.sh / vitest.sh 归一），mock 用 TEST_RUNNER 环境变量指向
+> tmp_path 下可执行 bash 脚本（等价 bats make_fake_pytest / make_args_recording_runner）。
+
+### 关键实现点
+
+- **流语义（P2 BLOCKER-1）**：check-tdd-red.py 的 `TDD_CHECK: ...` 结论走 stdout `print`，
+  错误/用法（`no test runner found`）与 classic red-light 的「断言与数据矛盾」提示走 stderr——
+  断言一律用合并流 `result.output`（与 bats `$output` 等价，P2 §3.2 先判流归属 → 不确定统一 `.output`）。
+- **TEST_RUNNER 语义（P2 §5 批次 10 重点）**：mock 用 `TEST_RUNNER` 环境变量指向 tmp_path 下
+  `cat <<'OUT'` heredoc + `exit N` 的 bash 脚本（等价 bats make_fake_pytest）；`TDD.N1` / `TDD.F9`
+  用 args-recording runner（`printf '%s\n' "$@" > sentinel`，等价 make_args_recording_runner），
+  断言 `-q` 不在 sentinel 中——验证无 formatter 时不给运行器加 `-q`。
+- **gate_commands.P3 读取路径（T001 v2.0 流 A）**：G1-G5 / F1-F12 / bdd-35/36/37 全部用
+  `TASK_DIR` env 指向 tmp_path 下写 `gate_commands:` 正文块的 P2-design.md（**不迁移 frontmatter**，
+  BDD-15 回归），`TEST_RUNNER=""` 等价 bats `env -u TEST_RUNNER`；G2 验证 P3 缺失时 TEST_RUNNER
+  回退、G3 验证 TEST_RUNNER 优先级高于 P3、G4 验证无 TASK_DIR 回退 TEST_RUNNER、G5/F5 验证
+  双引号值剥引号。
+- **formatter 归一（P3 §4 批次 10）**：F1/F3/F4/F5/F6/F12/bdd-35/36/37 用 `P3_formatter: "pytest.sh"`
+  （resolve_formatter 在 task_dir/.agate/formatters → agate_root/assets/formatters 解析，实测命中
+  后者）；F10 多栈 `P3` + `P3_js`（pytest.sh + vitest.sh 各归一，combined worst_exit）；F11 绝对路径
+  formatter 指向 `agate_root/assets/formatters/pytest.sh`（等价 bats `cp` 到 BATS_TEST_TMPDIR）。
+- **A/B 类判定语义**：TD.4-8 为 DEPRECATED 模式匹配用例（无 formatter → exit-code-only），按 bats
+  原文断言 exit 0（fallback JSON 无 failed/errors 字段 → 走 unexpected red-light）；F3 项目内
+  import（B 类 exit 0）、F4/F5 SyntaxError / 非项目 import（A 类 exit 1）、F12 PROJECT_MODULE env
+  覆盖 gate_commands project_module、bdd-35 NameError 项目内（B 类）、bdd-37 TypeError（A 类防过宽）。
+- **PYX.1-6 直接测 agate-read-gate-commands.py**：`run_cli(python_exe, .../agate-read-gate-commands.py,
+  env={"GATE_FILE": str(p2)})`（等价 bats `bash -c "GATE_FILE=... $PYTHON ..."`）；PYX.5 无尾随换行
+  用 `write_text` 不带 `\n`；PYX.6 GATE_FILE 指向不存在的 tmp_path 下路径 → 非零退出（bats 用
+  `/nonexistent/P2.md` 字面，pytest 侧改用 tmp_path 保平台无关，语义等价）。
+- **TD.1b / TD.F8 无 pytest 判定**：`env={"PATH": ""}` 等价 bats `env -u PATH`（脚本内
+  `shutil.which("pytest")` 找不到 → exit 3）；TD.1b 允许 exit 3 或 1（bats 原文 `-eq 3 || -eq 1`）。
+- **超时用例（TDD.TIMEOUT）**：fake-slow-runner `sleep 5` + `AGATE_TDD_TIMEOUT=2` → subprocess
+  timeout → exit 124 → 判为可推进红灯（exit 0）+ 超时提示；TASK_DIR 经位置参数传入
+  `_run_red(..., str(td))`（等价 bats `"$PYTHON" .../check-tdd-red.py "$task_dir"`）。
+- **R4 平台无关（P2 §3.1）**：TDD.N3/N4 的 vitest mock 输出样例含临时目录路径字面
+  （bats 原文 `# scan-exempt:` 注释豁免）——pytest 侧改运行时拼接 `"/t" + "mp/..."` 避免源码命中。
+- 函数命名 `test_td_1_...` / `test_td_1b_...` / `test_tdd_n1..n4` / `test_tdd_g1..g5` /
+  `test_tdd_f1..f12` / `test_td_fail_hint_...` / `test_tdd_timeout_...` / `test_pyx_1..6` /
+  `test_bdd_30/31/35/36/37_...`，匹配 P2 §3.3 前缀命名约定。
+- windows_smoke 打标（P3 §5.2：check-tdd-red.bats 无平台关键词用例，仅每文件第 1 用例）：
+  `test_td_1_nonexistent_test_runner_exit_1`——共 1 处。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+ruff check agate/tests/unit/test_check_tdd_red.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/unit/test_check_tdd_red.py
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本文件受检）
+# 2 passed
+```
+
+> 注：P3 §6 批次 10 验证命令（`python3 -m pytest agate/tests/unit/ -k "tdd or formatter or dispatch or
+> consistency"`）由主 Agent 在 10a+10b 全部完成后统一跑（本批为 10a，不单跑 pytest）。
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：TDD.N3/N4 的 vitest mock 输出用运行时拼接
+  `"/t" + "mp/..."` 替代 bats 的 `# scan-exempt:` 行级豁免——R4 只扫源码字面，运行时构造的
+  字符串不命中（P2 §3.1 纪律要求 fixture 内容运行时构造，这是比注释豁免更严格的落实方式）。
