@@ -897,4 +897,65 @@ python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
 - 实现细节（非偏离）：G_NC_BINARY.4 在 check-gate.bats 中不存在（编号 1/2/3/5/6），
   按 bats 实计迁移 5 个；G_RETREAT/G_NC_BINARY/G_SUGGEST 三组共 15 个与 P2 预估一致。
 
+## 批次 8h — check-gate 子批 h（1 文件 / 16 @test 追加）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（追加） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-gate.bats`（D-drift-1/2/4/4b/5/6 + G-drift-1/2/3 + TAG0005 BDD-1/2/9/12/13/14/15） | `unit/test_check_gate.py` | 16 |
+
+> 按 P2 §5 子批表 8h 范围追加（`-k "drift or tag0005"`）。
+> 覆盖：D-drift-1/2/4/4b/5/6（dispatch 模板关键词守护）、G-drift-1/2/3
+> （dispatch-protocol 关键词 + implementer/verifier 反例）、TAG0005 BDD-1/2/9/12/13/14/15
+> （role-system / check-gate.py / dispatch-protocol 文档锚点 + scripts 扫描）——共 16 个
+> （P2 预估 ~10，实计 16，差异见偏离点）。
+
+### 关键实现点
+
+- **纯文件内容断言，无 run_cli / task_dir / git_repo 依赖**：8h 全部是 bats `grep -q`
+  等价（读 `$AGATE_ROOT` 下文件后断言子串），非 `run check-gate.py`。pytest 用
+  `agate_root` fixture + `read_text(encoding="utf-8")`（BDD-7）。
+- **等价映射**（P2 §3.2 逐断言对照）：
+  - `grep -q 'X' FILE` → `assert "X" in text`。
+  - `! grep -q 'X' FILE`（G-drift-2/3）→ `assert "X" not in text`（N5 反向断言）。
+  - `grep -qE '^\| backend \|.*plan-eng-review'`（TAG0005 BDD-1）→ `re.search(..., re.M)`，
+    三文件（role-system.md / rules/review-mapping.md / phase-cards/P2-design.md）。
+  - `grep -rl 'Review 角色特别指令' --include='*.md'` + 单文件断言（TAG0005 BDD-9）→
+    `agate_root.rglob("*.md")` 收集命中 + `assert len(hits) == 1` + 命中路径为
+    `assets/templates/dispatch-prompt.md`（等价 `wc -l == 1` + `grep -q` 路径）。
+  - `grep -rnE '>&2;\s*exit 0' scripts/*.sh` + 每命中行须含「跳过」（TAG0005 BDD-15）→
+    `(agate_root / "scripts").glob("*.sh")` 逐行正则 + 命中行断言含「跳过」；bats 用
+    `while read` 循环逐命中行判定，pytest 同语义。
+- **函数命名** `test_drift_N_...` / `test_drift_gN_...` / `test_tag0005_bdd_N_...`，
+  匹配 P2 §5 子批 8h 验证命令 `-k "drift or tag0005"`。
+- **windows_smoke 打标**：本子批无新增（8h 用例名无平台关键词；每文件第 1 用例标记已在
+  8a `test_g0_...`）。
+- **`_read_text` helper**：`path.read_text(encoding="utf-8")` 薄封装，8h 全部内容断言复用。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_gate.py -k "drift or tag0005" -q   # P2 §5 子批 8h 验证命令
+# 16 passed, 104 deselected
+python3 -m pytest agate/tests/unit/test_check_gate.py -q
+# 120 passed in 8.33s（8a 11 + 8b 29 + 8c 7 + 8d 20 + 8e 12 + 8f 10 + 8g 15 + 8h 16，全绿）
+python3 -m pytest agate/tests/unit/test_check_gate.py --collect-only -q
+# 120 tests collected（BDD-1 计数递增）
+ruff check agate/tests/unit/test_check_gate.py
+# All checks passed!
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- **8h 实计 16 用例 vs P2 预估 ~10**：P2 §5 子批表 8h 标注「~10」，但按 check-gate.bats
+  实际 D-drift（6）+ G-drift（3）+ TAG0005 BDD（7）= 16 个全部迁移（1 @test → 1 test
+  函数，P1 约束）。子批完成后的整文件覆盖确认：test_check_gate.py 累计 120 用例，
+  check-gate.bats 全部 124 用例中的剩余 4 个（PG.P2REVIEW / bdd-14 / bdd-28 / bdd-29）
+  按 P2 §5 N1 备注属 `-k` 非穷举分区，由「8 子批完成后整文件跑」兜底，不在 8h 范围内；
+  8a-8h 合计 120 用例（104 + 16），check-gate-p1-review / check-gate-p5-diff 两文件
+  另覆盖各自 bats 源。
+
 

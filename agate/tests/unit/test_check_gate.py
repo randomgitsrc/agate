@@ -5,7 +5,8 @@
 #   批次 8d：G6 系列 + G_BDD16.1 + test_bdd_1..8（TAG0002 refactor 口径），20 用例；
 #   批次 8e：G7.1-9 + G_DG_ANCHOR.1/2 + bdd-11（TAG0004 M4 全角冒号），12 用例；
 #   批次 8f：G8.1-10（gate_p8 分支），10 用例；
-#   批次 8g：G_RETREAT.1-6 + G_NC_BINARY.1/2/3/5/6 + G_SUGGEST.1-4，15 用例）
+#   批次 8g：G_RETREAT.1-6 + G_NC_BINARY.1/2/3/5/6 + G_SUGGEST.1-4，15 用例；
+#   批次 8h：D-drift-1/2/4/4b/5/6 + G-drift-1/2/3 + TAG0005 BDD-1/2/9/12/13/14/15，16 用例）
 # 被测：agate/scripts/check-gate.py（PHASE TASK_DIR [OLD_PHASE]；exit 0 = 通过 / exit 1 = 未通过 /
 #   exit 2 = 主 Agent 自判）。
 # G0/G1/G3/G_OTHER 用 task_dir factory（create_task_dir 等价）；G4 系列需要 git_repo
@@ -1721,3 +1722,114 @@ def test_g_suggest_4_missing_colon_exit_1(
     result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
     assert result.returncode == 1
     assert "SUGGEST 格式不符" in result.output
+
+
+# ========== 8h: D-drift / G-drift / TAG0005 BDD（16 用例） ==========
+# 子批 8h 覆盖 check-gate.bats 的文档/协议漂移守护用例（bats `grep -q ...` 等价，
+# 非 run_cli）：D-drift-1/2/4/4b/5/6（dispatch 模板关键词）+ G-drift-1/2/3
+# （dispatch-protocol 关键词 + implementer/verifier 反例）+ TAG0005 BDD-1/2/9/12/13/14/15
+# （role-system / check-gate.py / dispatch-protocol 文档锚点 + scripts 扫描）。
+# 等价映射：grep -q 'X' FILE → 读文件 text + `assert "X" in text`；`! grep -q` →
+# `assert "X" not in text`；`grep -rl ... --include='*.md'` → rglob 收集 + 单文件断言；
+# `grep -rnE '>&2;\s*exit 0' scripts/*.sh` → 逐行正则 + 每命中行必须含「跳过」。
+# 全走 agate_root fixture（等价 $AGATE_ROOT），所有 read_text 显式 encoding="utf-8"
+# （BDD-7）。此批无 create_task_dir / git_repo 依赖，纯文件内容断言。
+
+
+def _read_text(path):
+    return path.read_text(encoding="utf-8")
+
+
+def test_drift_1_dispatch_prompt_contains_return_self_check(agate_root):
+    content = _read_text(agate_root / "assets/templates/dispatch-prompt.md")
+    assert "返回前自检" in content
+
+
+def test_drift_2_dispatch_prompt_contains_files_modified(agate_root):
+    content = _read_text(agate_root / "assets/templates/dispatch-prompt.md")
+    assert "files_modified" in content
+
+
+def test_drift_4_dispatch_context_xml_guide_sections(agate_root):
+    content = _read_text(agate_root / "assets/templates/dispatch-context.md")
+    assert "<dispatch_guide>" in content
+    assert "### 目标" in content
+    assert "### 约束" in content
+
+
+def test_drift_4b_dispatch_context_xml_markers(agate_root):
+    content = _read_text(agate_root / "assets/templates/dispatch-context.md")
+    assert "<dispatch_guide>" in content
+    assert "<objective_info>" in content
+
+
+def test_drift_5_dispatch_prompt_contains_p3_self_check(agate_root):
+    content = _read_text(agate_root / "assets/templates/dispatch-prompt.md")
+    assert "P3 自检" in content
+
+
+def test_drift_6_dispatch_prompt_contains_fix_round_dispatch(agate_root):
+    content = _read_text(agate_root / "assets/templates/dispatch-prompt.md")
+    assert "修复轮派发追加" in content
+
+
+def test_drift_g1_dispatch_protocol_self_check_neq_gate(agate_root):
+    content = _read_text(agate_root / "dispatch-protocol.md")
+    assert "自查≠gate" in content
+
+
+def test_drift_g2_implementer_no_write_run_separation(agate_root):
+    content = _read_text(agate_root / "assets/execution-roles/implementer.md")
+    assert "写跑分离" not in content
+
+
+def test_drift_g3_verifier_no_write_run_separation(agate_root):
+    content = _read_text(agate_root / "assets/execution-roles/verifier.md")
+    assert "写跑分离" not in content
+
+
+def test_tag0005_bdd_1_backend_rows_plan_eng_review(agate_root):
+    for rel in ("role-system.md", "rules/review-mapping.md", "phase-cards/P2-design.md"):
+        content = _read_text(agate_root / rel)
+        assert re.search(r"^\| backend \|.*plan-eng-review", content, re.M)
+
+
+def test_tag0005_bdd_2_p2_review_unconditional_gate(agate_root):
+    content = _read_text(agate_root / "scripts/check-gate.py")
+    assert "P2-review.md 不存在（P2 评审不可裁剪" in content
+    assert "P2-review.md frontmatter status 非 approved" in content
+
+
+def test_tag0005_bdd_9_review_role_instruction_single_file(agate_root):
+    hits = [
+        p
+        for p in agate_root.rglob("*.md")
+        if "Review 角色特别指令" in _read_text(p)
+    ]
+    assert len(hits) == 1
+    assert "assets/templates/dispatch-prompt.md" in str(hits[0])
+
+
+def test_tag0005_bdd_12_empty_return_auto_retry_once(agate_root):
+    content = _read_text(agate_root / "dispatch-protocol.md")
+    assert "自动重试一次" in content
+
+
+def test_tag0005_bdd_13_short_session_warning(agate_root):
+    content = _read_text(agate_root / "dispatch-protocol.md")
+    assert "会话时长异常短" in content
+    assert "<1min" in content
+
+
+def test_tag0005_bdd_14_retry_paused_unchanged(agate_root):
+    content = _read_text(agate_root / "dispatch-protocol.md")
+    assert "MAX_RETRY" in content
+    assert "PAUSED 报告人工" in content
+
+
+def test_tag0005_bdd_15_scripts_stderr_exit0_only_skip_semantics(agate_root):
+    pattern = re.compile(r">&2;\s*exit 0")
+    for sh in (agate_root / "scripts").glob("*.sh"):
+        for line in _read_text(sh).splitlines():
+            if pattern.search(line):
+                assert "跳过" in line
