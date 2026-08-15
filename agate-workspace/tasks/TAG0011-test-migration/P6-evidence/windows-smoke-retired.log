@@ -1,0 +1,7 @@
+# check-windows-smoke.sh 退役检查（BDD-12）
+check-windows-smoke.sh files found (repo, excl .git/.agate-workspace): 0
+check-windows-smoke.bats found: 0
+.bats files repo-wide (excl .git/agate-workspace): 0
+CI Windows smoke command: python -m pytest agate/tests/ -m windows_smoke (protocol-tests.yml line 38)
+bats binary refs in agate/scripts/*.sh: 0
+EXIT_CODE: 0

@@ -1,0 +1,5 @@
+command: python3 -c 'ast.parse(feature_version=(3,8))' over agate/tests + agate/scripts
+files checked: 108
+py38 syntax violations: 0
+complement: pyproject.toml [tool.ruff] target-version = "py38"
+EXIT_CODE: 0
