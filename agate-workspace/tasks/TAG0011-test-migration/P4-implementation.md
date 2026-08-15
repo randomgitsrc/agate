@@ -1076,3 +1076,68 @@ python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encodin
   全部 30 用例都自建 task_dir + heredoc（无 load_fixture 引用），pytest 用 `task_dir` factory +
   write_text 等价构造；P3 §4「fixtures/ 静态夹具（full-task P6-evidence/）」备注不适用于本批
   （full-task/P6-evidence 由批次 9b check-p6-provenance.bats 使用，届时用 load_fixture）。
+
+## 批次 9b — P6 验收链 provenance（1 文件 / 36 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-p6-provenance.bats` | `unit/test_check_p6_provenance.py` | 36 |
+
+### 关键实现点
+
+- **流语义（P2 BLOCKER-1）**：check-p6-provenance.py 的 `GATE PROVENANCE: ...` 消息（`证据文件不存在` /
+  `未被` / `P6-dispatch-context` / `挑验` / `未使用标准` / `缺 vision` / `vision YAML 引用的文件不存在` /
+  `blocker_count=` / `矛盾` / `跳过` / `evidence JSON 与 P6-acceptance.md 声明不一致`）一律
+  `sys.stderr.write` → 断言一律用合并流 `result.output`（与 bats `$output` 逐位一致），未映射 `.stdout`。
+- **task_dir 覆写/追加双形态**：bats `cat >`（整文件覆写）→ `_write_p6`（write_text），bats `cat >>`
+  （追加到 create_task_dir 默认 P6-acceptance.md 的 `---\nagent: test\n---\n` 之后）→ `_append_p6`
+  （open 追加模式，encoding="utf-8"）。
+- **随机字节证据文件**：bats `head -c N /dev/urandom` → `_add_evidence` helper（`os.urandom(N)` +
+  `write_bytes`）；仅校验文件存在/被引用，无字节内容断言（与 check-p6-evidence.bats 的 md5/尺寸
+  校验不同属，本批无）。文本证据文件（"log"/"x"/"filler"/`.gitkeep`）用 write_text / touch。
+- **P1 BDD 计数用例**：`add_p1_bdd`（conftest 纯函数，`from conftest import`）等价 bats 同名 helper；
+  PV_BDD_COUNT.1 连加 2 条（BDD-2/3）后 P6 3 条 PASS 配 a/b/c.json；PV_BDD_COUNT.4 Examples 表
+  追加不增计数；PV_BDD_COUNT.5 有间隔编号（BDD-1 + BDD-3）按标题计数。
+- **PV.10 去 BDD 标题**：bats `sed -i '/^#### BDD-/d'` → 读 P1 → splitlines 过滤 `^#### BDD-` 行 →
+  `"\n".join(kept) + "\n"` 回写（等价 sed 删除整行含换行）。
+- **check-gate.py P7 集成用例**：PV_BDD19.1 / PV_BDD20.1 是 bats 同文件内的 check-gate.py P7 用例
+  （BDD-19/20 frontmatter 结构化计数），迁移用 `_run_gate_p7` = `run_cli(python_exe,
+  agate_scripts/"check-gate.py", "P7", td)`；P7-consistency.md 用 write_text 覆写 heredoc 原文。
+- **PV.DP1 反向断言**：bats `[[ "$output" != *"dispatch-prompt"* ]]` → `assert "dispatch-prompt"
+  not in result.output`（N5 反向断言，合并流）。
+- **双关键词 OR 断言**：bats `[[ ... == *"X"* ]] || [[ ... == *"Y"* ]]`（PV.21 `EXIT_CODE`/`矛盾`、
+  PV.23 `EXIT_CODE`/`跳过`）→ `assert ("X" in result.output) or ("Y" in result.output)`。
+- **函数命名**：`test_pv_N_...` / `test_pv_bdd{N}_...` / `test_prov_multi_N_...` /
+  `test_pv_dp1_...`，匹配 P2 §5 子批 9b 验证命令 `-k "p6_provenance"`（module 名命中）。
+- **windows_smoke 打标**：每文件第 1 用例 `test_pv_1_no_p6_file_exit_0`——共 1 处
+  （本批无平台关键词用例，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_p6_provenance.py -q
+# 36 passed in 4.05s（全绿）
+python3 -m pytest agate/tests/unit/ -k "p6_provenance" -q   # P2 §5 子批 9b 验证命令
+# 36 passed, 494 deselected
+python3 -m pytest agate/tests/unit/ -k "p6 or vision or backstop" -q   # P3 §6 批次 9 验证命令
+# 108 passed, 422 deselected（30 evidence + 36 provenance + 其他 p6/vision/backstop 关联命中）
+python3 -m pytest agate/tests/unit/test_check_p6_provenance.py --collect-only -q
+# 36 tests collected（BDD-1 计数不变）
+ruff check agate/tests/unit/test_check_p6_provenance.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/unit/test_check_p6_provenance.py
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：P3 §4「fixtures/ 静态夹具（full-task P6-evidence/）」备注
+  同样不适用于本批——check-p6-provenance.bats 全 36 用例自建 task_dir + heredoc（无 load_fixture
+  引用），与 9a check-p6-evidence.bats 同形态；fixtures/ 静态夹具实际由批次 9c agate-vision-blocker.bats
+  使用。PV_BDD19.1 / PV_BDD20.1 两例为 check-gate.py P7 集成用例（bats 同文件放置，按原样迁移）。

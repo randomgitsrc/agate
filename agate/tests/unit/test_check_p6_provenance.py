@@ -1,0 +1,500 @@
+# tests/unit/test_check_p6_provenance.py — P6 验收客观行为审计（check-p6-provenance.py）
+# （check-p6-provenance.bats 36 用例迁移，TAG0011 批次 9b）
+# 被测：agate/scripts/check-p6-provenance.py TASK_DIR（exit 0 = 通过 / exit 1 = 审计不通过 /
+#   exit 2 = WARNING 不阻塞）。
+# 流语义（P2 BLOCKER-1）：GATE PROVENANCE 消息一律 sys.stderr.write → 断言一律用合并流
+#   result.output（等价 bats $output），未映射 .stdout。
+# 依赖：conftest task_dir factory（create_task_dir 等价）+ add_p1_bdd（conftest 纯函数）。
+#   P3 §4「fixtures/ 静态夹具」备注不适用本批——check-p6-provenance.bats 全 36 用例自建
+#   task_dir + heredoc，无 load_fixture 引用（与 9a check-p6-evidence.bats 同形态）。
+# PV_BDD19.1 / PV_BDD20.1 是 check-gate.py P7 集成用例（bats 同文件放置，迁移保留，
+#   以 _run_gate_p7 调用）。
+# 随机字节证据文件用 os.urandom + write_bytes（平台无关，不写字面命中行，BDD-5）。
+
+import os
+import re
+
+import pytest
+
+from conftest import add_p1_bdd
+
+
+def _run_prov(agate_scripts, python_exe, run_cli, td):
+    return run_cli(python_exe, str(agate_scripts / "check-p6-provenance.py"), str(td))
+
+
+def _run_gate_p7(agate_scripts, python_exe, run_cli, td):
+    return run_cli(python_exe, str(agate_scripts / "check-gate.py"), "P7", str(td))
+
+
+def _write_p6(td, text):
+    (td / "P6-acceptance.md").write_text(text, encoding="utf-8")
+
+
+def _append_p6(td, text):
+    with (td / "P6-acceptance.md").open("a", encoding="utf-8") as fh:
+        fh.write(text)
+
+
+def _add_evidence(td, rel_path, size=5000):
+    full = td / "P6-evidence" / rel_path
+    full.parent.mkdir(parents=True, exist_ok=True)
+    full.write_bytes(os.urandom(size))
+
+
+@pytest.mark.windows_smoke
+def test_pv_1_no_p6_file_exit_0(tmp_path, agate_scripts, python_exe, run_cli):
+    td = tmp_path / "task"
+    td.mkdir()
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_2_missing_ref_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "- PASS BDD-1 (ghost.png)\n")
+    (td / "P6-evidence").mkdir()
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "证据文件不存在" in result.output
+
+
+def test_pv_3_vision_stripped_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    (td / "P2-design.md").write_text("---\nagent: test\n---\nui_affected: true\n", encoding="utf-8")
+    (td / "vision.yaml").write_text("vision_analysis:\n  summary:\n    blocker_count: 0\n", encoding="utf-8")
+    _append_p6(td, "- PASS BDD-1 (screenshots/login.png) (vision: vision.yaml)\n")
+    _add_evidence(td, "screenshots/login.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_4_last_paren_taken_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (a.png) (b.png)\n")
+    _add_evidence(td, "b.png", 1000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_4b_all_missing_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (a.png) (b.png)\n")
+    (td / "P6-evidence").mkdir()
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+
+
+def test_pv_bdd19_1_gate_p7_blocker_count_zero_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    (td / "P7-consistency.md").write_text(
+        "---\n"
+        "phase: P7\n"
+        "task_id: T001\n"
+        "agent: consistency-reviewer\n"
+        "blocker_count: 0\n"
+        "deviation_count: 0\n"
+        "deviation_critical_count: 0\n"
+        "design_gap_count: 0\n"
+        "design_gap_reviewed_count: 0\n"
+        "---\n"
+        "- [BLOCKER] 历史记录：早期草案曾有架构缺陷，已在本轮修订中解决，frontmatter blocker_count 已归零\n",
+        encoding="utf-8",
+    )
+    result = _run_gate_p7(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_5b_shared_evidence_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    lines = "".join(f"- PASS BDD-{i} (e{1 + (i - 1) % 8}.json)\n" for i in range(1, 15))
+    _write_p6(td, "---\nagent: test\n---\n" + lines)
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    for i in range(1, 9):
+        (ev / f"e{i}.json").write_text("log\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_6_unreferenced_evidence_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "- PASS BDD-1 (r1.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "r1.json").write_text("log\n", encoding="utf-8")
+    (ev / "extra.json").write_text("filler\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "未被" in result.output
+
+
+def test_pv_7_gitkeep_hidden_excluded_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _append_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / ".gitkeep").touch()
+    (ev / "result.json").write_text("log\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_8_dispatch_context_prejudged_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    (td / "P6-dispatch-context-subtask.md").write_text("- PASS BDD-1 pre-judged\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "P6-dispatch-context" in result.output
+
+
+def test_pv_9_bdd_count_gt_p6_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    add_p1_bdd(td, "second scenario")
+    _write_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text("log\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "挑验" in result.output
+
+
+def test_pv_10_no_standard_bdd_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    p1 = td / "P1-requirements.md"
+    text = p1.read_text(encoding="utf-8")
+    kept = [line for line in text.splitlines() if not re.match(r"^#### BDD-", line)]
+    p1.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    _write_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text("log\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "未使用标准" in result.output
+
+
+def test_pv_bdd_count_1_three_bdd_three_pass_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_bdd(td, "second")
+    add_p1_bdd(td, "third")
+    _append_p6(td, "- PASS BDD-1 (a.json)\n- PASS BDD-2 (b.json)\n- PASS BDD-3 (c.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    for name in ("a.json", "b.json", "c.json"):
+        (ev / name).write_text("x\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_bdd_count_4_examples_table_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    with (td / "P1-requirements.md").open("a", encoding="utf-8") as fh:
+        fh.write("\n| existing | result |\n|----------|--------|\n| 0        | 201    |\n| 5        | 400    |\n")
+    _append_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text("x\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_bdd_count_5_gap_numbering_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    with (td / "P1-requirements.md").open("a", encoding="utf-8") as fh:
+        fh.write("\n#### BDD-3: third (skipped BDD-2 numbering on purpose)\n- Given x\n- When y\n- Then z\n")
+    _append_p6(td, "- PASS BDD-1 (a.json)\n- PASS BDD-3 (b.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "a.json").write_text("x\n", encoding="utf-8")
+    (ev / "b.json").write_text("x\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_11_ui_missing_vision_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    (td / "P2-design.md").write_text("ui_affected: true\n", encoding="utf-8")
+    _write_p6(td, "- PASS BDD-1 (screenshots/login.png)\n")
+    _add_evidence(td, "screenshots/login.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "缺 vision" in result.output
+
+
+def test_pv_12_vision_yaml_missing_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    (td / "P2-design.md").write_text("ui_affected: true\n", encoding="utf-8")
+    _write_p6(td, "- PASS BDD-1 (screenshots/login.png) (vision: vision/missing.yaml)\n")
+    _add_evidence(td, "screenshots/login.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "vision YAML 引用的文件不存在" in result.output
+
+
+def test_pv_13_vision_blocker_nonzero_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    (td / "P2-design.md").write_text("ui_affected: true\n", encoding="utf-8")
+    (td / "vision.yaml").write_text("vision_analysis:\n  summary:\n    blocker_count: 1\n", encoding="utf-8")
+    _write_p6(td, "- PASS BDD-1 (screenshots/login.png) (vision: vision.yaml)\n")
+    _add_evidence(td, "screenshots/login.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "blocker_count=" in result.output
+
+
+def test_pv_14_missing_agent_exit_2(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text("log\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 2
+
+
+def test_pv_15_high_risk_p2_review_main_agent_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(risk_level="high")
+    (td / "P2-review.md").write_text("---\nagent: main\n---\nreview done\n", encoding="utf-8")
+    _append_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text("log\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_17_dispatch_context_task_section_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir(risk_level="high")
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1: verified (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text("log\n", encoding="utf-8")
+    (td / "P6-dispatch-context-subtask.md").write_text(
+        "## 客观信息（主 Agent 已查证）\n"
+        "- 环境状态：debug server 运行中\n"
+        "\n"
+        "## 任务上下文（主 Agent 从 P0-brief + gate + 摘要积累）\n"
+        "- 目标：逐条 BDD 验收\n"
+        "- 关注点：P2 声明 ui_affected: true\n"
+        "- 上游关键决策：architect 选择了方案 B\n"
+        "- 上游结构化字段：\n"
+        "  - packages: [pkg-a]\n"
+        "  - ui_affected: true\n",
+        encoding="utf-8",
+    )
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_18_nested_parens_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (screenshots/b07.png — element: .katex nth(1))\n")
+    _add_evidence(td, "screenshots/b07.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_19_nested_parens_vision_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    (td / "P2-design.md").write_text("---\nagent: test\n---\nui_affected: true\n", encoding="utf-8")
+    (td / "vision.yaml").write_text("vision_analysis:\n  summary:\n    blocker_count: 0\n", encoding="utf-8")
+    _write_p6(
+        td,
+        "---\nagent: test\n---\n- PASS BDD-1 (screenshots/b07.png — element: .katex nth(1)) (vision: vision.yaml)\n",
+    )
+    _add_evidence(td, "screenshots/b07.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_20_nested_parens_missing_path_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (screenshots/missing.png — element: .katex nth(1))\n")
+    (td / "P6-evidence" / "screenshots").mkdir(parents=True)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "证据文件不存在" in result.output
+    assert "screenshots/missing.png" in result.output
+
+
+def test_pv_21_log_exit_code_1_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (logs/test.log)\n")
+    log = td / "P6-evidence" / "logs" / "test.log"
+    log.parent.mkdir(parents=True)
+    log.write_text("=== Test Results ===\ntotal: 3, passed: 2, failed: 1\nEXIT_CODE: 1\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert ("EXIT_CODE" in result.output) or ("矛盾" in result.output)
+
+
+def test_pv_22_log_exit_code_0_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (logs/test.log)\n")
+    log = td / "P6-evidence" / "logs" / "test.log"
+    log.parent.mkdir(parents=True)
+    log.write_text("=== Test Results ===\ntotal: 3, passed: 3, failed: 0\nEXIT_CODE: 0\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_23_log_no_exit_code_warning_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (logs/test.log)\n")
+    log = td / "P6-evidence" / "logs" / "test.log"
+    log.parent.mkdir(parents=True)
+    log.write_text("=== Test Results ===\ntotal: 3, passed: 3, failed: 0\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert ("EXIT_CODE" in result.output) or ("跳过" in result.output)
+
+
+def test_prov_multi_1_two_files_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1: works (screenshots/file1.png, screenshots/file2.png)\n")
+    _add_evidence(td, "screenshots/file1.png", 5000)
+    _add_evidence(td, "screenshots/file2.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_prov_multi_2_one_missing_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1: works (screenshots/file1.png, screenshots/file2.png)\n")
+    _add_evidence(td, "screenshots/file1.png", 5000)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "证据文件不存在" in result.output
+    assert "screenshots/file2.png" in result.output
+
+
+def test_pv_bdd20_1_gate_p7_design_gap_unpaired_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    (td / "P7-consistency.md").write_text(
+        "---\n"
+        "phase: P7\n"
+        "task_id: T001\n"
+        "agent: consistency-reviewer\n"
+        "blocker_count: 0\n"
+        "deviation_count: 0\n"
+        "deviation_critical_count: 0\n"
+        "design_gap_count: 2\n"
+        "design_gap_reviewed_count: 1\n"
+        "---\n"
+        "- [DESIGN_GAP_REVIEWED: 其中一项已确认]\n",
+        encoding="utf-8",
+    )
+    result = _run_gate_p7(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "DESIGN_GAP" in result.output
+
+
+def test_pv_dp1_dispatch_prompt_excluded_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(
+        td,
+        "---\n"
+        "phase: P6\n"
+        "task_id: T001-test\n"
+        "type: acceptance\n"
+        "parent: P5-test-results.md\n"
+        "trace_id: T001-test-P6-20260725\n"
+        "status: draft\n"
+        "created: 2026-07-25\n"
+        "agent: verifier\n"
+        "---\n"
+        "- PASS BDD-1: works (result.json)\n",
+    )
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text("log\n", encoding="utf-8")
+    (td / "P4-dispatch-prompt-implementer.md").write_text(
+        "> render product\n你是 P4 阶段的 implementer 子 Agent。\n", encoding="utf-8"
+    )
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "dispatch-prompt" not in result.output
+
+
+def test_pv_24_evidence_json_fail_vs_pass_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text(
+        '{\n  "bdd_results": [\n    {"id": "BDD-1", "status": "fail"}\n  ]\n}\n',
+        encoding="utf-8",
+    )
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "evidence JSON 与 P6-acceptance.md 声明不一致" in result.output
+
+
+def test_pv_25_evidence_json_all_pass_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text(
+        '{\n  "bdd_results": [\n    {"id": "BDD-1", "status": "pass"}\n  ]\n}\n',
+        encoding="utf-8",
+    )
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_26_evidence_json_non_standard_skip_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text('{\n  "some_other_field": "value"\n}\n', encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_27_p6_fail_matches_json_fail_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    td = task_dir()
+    add_p1_bdd(td, "second scenario")
+    _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (result.json)\n- FAIL BDD-2 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text(
+        '{\n  "bdd_results": [\n'
+        '    {"id": "BDD-1", "status": "pass"},\n'
+        '    {"id": "BDD-2", "status": "fail"}\n'
+        "  ]\n}\n",
+        encoding="utf-8",
+    )
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_pv_28_missing_agent_not_short_circuit_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text(
+        '{\n  "bdd_results": [\n    {"id": "BDD-1", "status": "fail"}\n  ]\n}\n',
+        encoding="utf-8",
+    )
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "evidence JSON 与 P6-acceptance.md 声明不一致" in result.output
