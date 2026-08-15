@@ -1,0 +1,3 @@
+# P5 失败清单 — TAG0013-script-consistency
+# 全量 pytest（python3 -m pytest agate/tests/ -q --tb=no）：768 passed, 2 skipped, 0 failed
+# 无失败测试，本文件为空。
