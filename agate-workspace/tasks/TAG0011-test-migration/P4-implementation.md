@@ -361,3 +361,80 @@ python3 agate/scripts/check-platform-assumptions.py <4 个新文件>
   - IMG.1/IMG.3 的 skip 条件与 bats 相反方向呈现：bats 在 PIL 已装时 skip，pytest 用
     `skipif(HAS_PIL)` 等价；IMG.4 用 `skipif(not HAS_PIL)`（bats 在无 PIL 时 skip）。收集数 4 不受影响。
 
+## 批次 6 — check 状态/裁剪/scope（3 文件 / 69 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/check-state-transition.bats` | `unit/test_check_state_transition.py` | 30 |
+| `unit/check-pruning.bats` | `unit/test_check_pruning.py` | 29 |
+| `unit/check-scope-resolved.bats` | `unit/test_check_scope_resolved.py` | 10 |
+
+### 关键实现点
+
+- **流语义（P2 §3.2 / 派发约束，BLOCKER-1）**：check-state-transition / check-pruning 的 gate 失败内容
+  （`GATE STATE` / `GATE PRUNING` / `缺 risk_level` / `P2 不可裁剪` / `隐式耦合` 等）由脚本写
+  **stderr** → 断言一律用合并流 `result.output`（与 bats `$output` 等价），未映射 `.stdout`。
+- **state-transition cwd + subprocess 样板**（派发约束）：`_run_state` = `run_cli(python_exe,
+  str(agate_scripts / "check-state-transition.py"), state_arg, cwd=str(repo))` 等价 bats
+  `cd '$repo' && '$PYTHON' '$AGATE_SCRIPTS/check-state-transition.py' <state>`；`git_repo` fixture
+  承接 git init/commit/stage（`git_commit` → `.commit()`，`git_stage` → `.stage()`，`git add -A` 语义一致）。
+- **git show HEAD 断言依赖**：脚本经 `git ls-files --full-name` + `git show HEAD:` 取旧 phase——
+  ST 全系必须真实 git 仓库，逐用例按 bats 序列复刻（写 .state.yaml → commit → 改写 phase → stage → run）。
+- **ST.2 静态夹具**：`load_fixture("full-task/.state.yaml")` + `shutil.copyfile`（等价
+  `cp "$AGATE_ROOT/tests/fixtures/full-task/.state.yaml"`）。
+- **ST.15 双 commit**：P3 → commit → PAUSED → 再 commit → P4 staged（old_num=0 守卫：PAUSED→Pn
+  恢复不被检查 1 误拦）。
+- **ST.20 回退被拦截**：P3→P1 差 2 被检查 1 拦截（exit 1 PAUSED），只断言输出不含 commit gate
+  消息（`产出必须已 commit` / `尚未 commit`），不断言 exit code（bats 原文如此）。
+- **ST_ARCHIVE.5 P1→P0**：new_num=0 → `new_num > 0` 守卫为假 → 归档检查（检查 4）不触发，exit 0
+  （与 bats 注释一致，P0 起始阶段豁免）。
+- **pruning task_dir 复用**：P2.1-P2.14 用 `task_dir` factory（create_task_dir 等价）+ `add_p1_field` /
+  `add_pruning_excuse`（`from conftest import ...`，frontmatter 块写入，T001 v2.0 流 A）。
+- **P2.6a/6b git 源码文件数**：`git_repo` 先 commit init（README/src_*.py）再 `shutil.copytree` task 目录
+  到 repo/`task` + `git_repo.stage("src_*.py")`（git pathspec glob）——避免 task 目录被 `add -A`
+  卷入 init commit（bats 用 repo 外 mktemp 天然隔离，pytest 的 task_dir 建在 repo 根下，故必须在
+  commit 之后创建）；`_staged_source_count` 的 `os.path.relpath` 在 cwd=repo 下 tasks_base_rel="."
+  → src_*.py 不命中排除模式，6 个 → 超限。
+- **P2.5 legacy_fields**：`task_dir(..., risk_level="high", legacy_fields=True)` 等价
+  `--legacy-fields`（risk_level 在正文非 frontmatter，走 agate-md-field-get 正则回退）。
+- **P2.52/52b YAML 块式 phases**：整文件覆盖 `_YAML_LIST_P1` 常量（复刻 bats heredoc 原文）——
+  `phases` 块式列表经 agate-md-field-get `_regex_list` 块式分支解析为 "P1 P2 P4 P5 P6 P8"；
+  断言只 exit 0（bats 原文）。
+- **scope 排除文件名**：`P2-progress.md` / `P4-dispatch-prompt-implementer.md` /
+  `P4-dispatch-context-implementer.md` 命中 `SKIP_NAME_RE`（`progress|dispatch-prompt|dispatch-context`）
+  → 不触发检查，exit 0；SC.7 句中 `[SCOPE+]`（非行首）不命中 `SCOPE_PLUS_RE`。
+- **SC.1/SC.3 无 task 目录/无 P1**：tmp_path 下裸目录（等价 `mktemp -d`）→ exit 2 / 有 SCOPE+ 无 P1
+  → exit 1（`无 P1-requirements.md`）。
+- windows_smoke 打标（每文件第 1 用例）：`test_st_1` / `test_p2_1` / `test_sc_1`——共 3 处
+  （本批无平台关键词用例，P3 §5.2 表 W 未列）。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_check_state_transition.py agate/tests/unit/test_check_pruning.py agate/tests/unit/test_check_scope_resolved.py -q
+# 69 passed in 6.67s（30+29+10，全绿）
+python3 -m pytest agate/tests/unit/ -k "state_transition or pruning or scope" -q   # P3 §6 批次 6 验证命令
+# 70 passed, 195 deselected（69 本批 + test_agate_debt_check.py::test_bdd_4_..._scope_... 函数名含 scope 重叠，无害）
+python3 -m pytest agate/tests/unit/test_check_state_transition.py agate/tests/unit/test_check_pruning.py agate/tests/unit/test_check_scope_resolved.py --collect-only -q
+# 69 tests collected（BDD-1 计数不变）
+/home/kity/.venvs/agate-dev/bin/ruff check <3 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <3 个新文件>
+# exit 0（R1-R5 零命中）
+python3 -m pytest agate/tests/unit/test_agate_scripts_encoding.py -q   # encoding 守卫（BDD-7，本批文件受检）
+# 2 passed
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - P2.6a/6b 的 task 目录用 `task_dir` factory 建在 git repo 根下（bats 是 repo 外 `mktemp -d`），
+    因此在 `git_repo.commit("init")` **之后**创建再 `copytree`，避免被 `add -A` 卷入 init commit；
+    `git add src_*.py` 用 `git_repo.stage("src_*.py")`（git pathspec glob 等价 shell 展开）。
+  - ST 系 `.state.yaml` 的 retries 多行段用 `_write_state` 的 `retries_block` 参数注入
+    （等价 bats heredoc 原文），简单形态默认 `retries: {}`。
+
