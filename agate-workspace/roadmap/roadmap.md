@@ -213,9 +213,12 @@
 
 - **问题**：`check-protocol-consistency.py` 的 CHECK 2 引用存在性检查用 `REF_RE = (?<![\w/])((?:docs|assets|scripts)/[A-Za-z0-9_./\-]+\.(?:md|sh|ya?ml|py))`（L238）——**只匹配带 `docs/` `assets/` `scripts/` 前缀的相对路径引用**。协议文档（phase-cards/rules/assets）里大量使用**裸脚本名**（`check-gate.py`、`check-tdd-red.py`，无前缀），实测 `'check-tdd-red.py 确认'` → 正则匹配 `[]` → **完全不被捕获**。脚本被删/改名后文档漂移，consistency 0 ERROR 照过。v0.46.0 的 phase-cards 26 处过时 .sh 引用就是实锤（已修但无 gate 防复发）。
 - **问题 2（同批）**：`PROTOCOL_FILES`（L52-64）只含 11 个文件 + `agate/assets/` 目录，**不含 `agate/phase-cards/`、`agate/rules/`** → 这些必读卡引用不存在文件时按"非协议文件"宽松降级 WARNING 而非 ERROR。
+- **问题 3（同批，2026-08-15 补充，经数据核查修正）**：`NARRATIVE_DIRS`（L74）按**目录**粗分，未按**文件性质**分——导致两类误配：① 历史目录（`archived/` 62.7% 引用漂移、已完成 task 42.7% 漂移）若严格 = 误报海啸；② 活文档（`roadmap.md`/`active-tasks.md`/`debt/`/进行中 task）若宽松 = 漂移漏网（实测：审查报告引用已归档 `archived/docs-2026-08/plans/agate-test-plan-2026-07-01.md` 的原路径触发 ERROR，改归档路径才通过；进行中 task 引用已删脚本不会被抓）。**按文件性质分类**：严格（活文档，引用必须真实）= roadmap.md / active-tasks.md / debt/ / 进行中 task（phase 非 READY/DONE）；宽松（历史/参考，漂移是常态）= archived/ / reviews/ / plans/ / 已完成 task（phase = READY/DONE）。
 - **建议修复方向**：
   1. **新增 CHECK 10**：扫描协议文件中的脚本名引用（裸名 + 相对路径），对照 `agate/scripts/` 实际文件，漂移报 ERROR。豁免：UPGRADING 迁移对照表（旧→新命令对照写旧名是有意保留）、assets/formatters/（仍为 sh）、3 个 hook 薄壳（pre-commit-gate.sh 等）、count-tests.sh
   2. **phase-cards/rules 入 PROTOCOL_DIRS**：把 `agate/phase-cards/`、`agate/rules/` 加入协议目录，享受严格引用检查
+  3. **NARRATIVE_DIRS 按文件性质重组**：`agate-workspace/debt/` 移出宽松（evidence 应指向真实路径，债的证据不能是死的）；`archived/ reviews/ plans/` 保持宽松（历史/参考，漂移是常态，实测 62.7% 漂移严格=误报海啸）；`roadmap.md`/`active-tasks.md` 保持严格（活看板，引用应真实）。基线已确认（2026-08-15 0 ERROR）
+  4. **进行中 task 动态分类**（并入 CHECK 10 实现，2026-08-15 用户确认）：CHECK 2 扫描 `tasks/` 时读 `{task}/.state.yaml` 的 phase——phase ∈ {READY, DONE} 宽松，否则严格。进行中 task 引用已删脚本/归档路径 = 前提漂移 → ERROR 暴露（复用 agate-state-get.py 读取，TAG0013 的 .sh 引用实测会被抓）
 - **验证口径**：新增一致性测试——协议文件引用已删脚本名 → ERROR；引用现存脚本 → 通过；UPGRADING/formatters/薄壳豁免路径不误报
 - **归属**：独立任务（协议机制增强），与 RM-AG0013/0014 同簇。
 
