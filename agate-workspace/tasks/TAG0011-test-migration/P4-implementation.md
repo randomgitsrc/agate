@@ -1864,3 +1864,53 @@ python3 agate/scripts/check-protocol-consistency.py --strict
     （pytest 子进程 --collect-only 不执行测试，无递归副作用）。
   - 表 E 联动中 `agate/SETUP.md` 经核对无 bats 引用，未改动（P3 §5 联动项仍列名，实际 no-op）。
 
+## 批次 16 — 扫描器行为（1 文件 / 16 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `scripts/check-platform-assumptions.bats` | `scripts/test_check_platform_assumptions.py` | 16 |
+
+### 关键实现点
+
+- **make_fixture/assert_hit 模式迁移（tmp_path）**：`_make_fixture(tmp_path, lines)` 运行时
+  write_text（显式 `encoding="utf-8"`），`_assert_hit(...)` 断言 exit 1 + 输出含规则号与文件路径；
+  fixture 内容全部 fragment 拼接（复用 bats `make_fixture` 模式，字符串分段拼装避免源码字面命中）。
+- **4 处 `[ -z "$output" ]` → 合并流 `.output`**（P2 §3.2 BLOCKER-1）：bdd-8 干净树 / bdd-9
+  干净 fixture / bdd-9 scan-exempt R4 豁免 / bdd-9 docstring 豁免——均 `assert result.output == ""`。
+- **bdd-1 无 GNU 专用特性**：`grep -nE 'subprocess|os\.system|os\.popen'`（无命中）+ `--perl-regexp`
+  （无命中）→ 映射为 `read_text(encoding="utf-8")` 后 `re.search` 反向断言（P2 §3.2「run grep 读文件断言」）。
+- **bdd-8 干净树**：目标 `agate_root/tests`（P3 红灯 = 命令不存在）；本文件自身经扫描器 0 命中，
+  不会破坏干净树契约。
+- windows_smoke 打标（P3 §5.2：3 处平台关键词）：`test_bdd_1`（platform）+ `test_bdd_4`（symlink）
+  + `test_bdd_9_scan_exempt_does_not_exempt_r3_symlink`（symlink）——共 3 处（每文件第 1 用例 bdd-1 已含）。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 16 验证命令
+> `python3 -m pytest agate/tests/scripts/test_check_platform_assumptions.py` + 原 bats + consistency
+> 统一跑）。已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/scripts/test_check_platform_assumptions.py
+# SYNTAX-OK
+/home/kity/.venvs/agate-dev/bin/ruff check agate/tests/scripts/test_check_platform_assumptions.py
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py agate/tests/scripts/test_check_platform_assumptions.py
+# exit 0（R1-R5 零命中，干净树契约不破）
+```
+
+- 用例数：`test_check_platform_assumptions.py` 16（bats 16 @test 全覆盖，1:1）。
+- encoding 守卫：所有 `write_text`/`read_text` 显式 `encoding="utf-8"`（零违规）。
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - fixture fragment 常量化（`_PATH_LEAD`/`_PY`/`_BRACKET_OPEN` 等模块级），bats 的 `local` 局部
+    变量等价；`_BC_FULL` 由 `_BC_FIRST`+`"c"` 拼接避免源码含 `bc` 字面。
+  - bdd-9 scan-exempt R3 负向用例的 `]]# scan-exempt:`（无空格）与 bats 一致，R3 命中行含标记
+    仍应被检出。
+
