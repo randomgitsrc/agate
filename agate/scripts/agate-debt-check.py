@@ -88,7 +88,7 @@ def check_entry(basename, eid, data, errors):
     """逐条目校验，错误行追加到 errors。"""
     for f in REQUIRED:
         if f not in data or data[f] is None:
-            errors.append("{}:{}: 缺必填字段 {}".format(basename, eid, f))
+            errors.append(f"{basename}:{eid}: 缺必填字段 {f}")
 
     for f, allowed in ENUMS.items():
         if f in data and data[f] is not None and data[f] not in allowed:
@@ -100,30 +100,26 @@ def check_entry(basename, eid, data, errors):
             # created_at 允许 yaml.safe_load 解析出的 date/datetime（如 2026-08-12 未加引号）
             if f == "created_at" and isinstance(data[f], (datetime.date, datetime.datetime)):
                 continue
-            errors.append("{}:{}: 类型错误（{} 应为 str，实际 {}）".format(
-                basename, eid, f, type(data[f]).__name__))
+            errors.append(f"{basename}:{eid}: 类型错误（{f} 应为 str，实际 {type(data[f]).__name__}）")
 
     for f in LIST_FIELDS:
         if f in data and data[f] is not None:
             if not isinstance(data[f], list):
-                errors.append("{}:{}: 类型错误（{} 应为 list，实际 {}）".format(
-                    basename, eid, f, type(data[f]).__name__))
+                errors.append(f"{basename}:{eid}: 类型错误（{f} 应为 list，实际 {type(data[f]).__name__}）")
             elif not data[f]:
-                errors.append("{}:{}: {} 不能为空".format(basename, eid, f))
+                errors.append(f"{basename}:{eid}: {f} 不能为空")
 
     task_id = data.get("task_id")
     if task_id is not None and not isinstance(task_id, str):
-        errors.append("{}:{}: 类型错误（task_id 应为 str 或 null，实际 {}）".format(
-            basename, eid, type(task_id).__name__))
+        errors.append(f"{basename}:{eid}: 类型错误（task_id 应为 str 或 null，实际 {type(task_id).__name__}）")
 
     if data.get("status") == "closed":
         if not task_id:
-            errors.append("{}:{}: closed 条目必须含 task_id".format(basename, eid))
+            errors.append(f"{basename}:{eid}: closed 条目必须含 task_id")
         else:
             ev = serialize_evidence(data.get("evidence"))
             if task_id not in ev or not re.search(r"P[56]", ev):
-                errors.append("{}:{}: closed 条目 evidence 须引用 task_id 与 P5/P6 证据".format(
-                    basename, eid))
+                errors.append(f"{basename}:{eid}: closed 条目 evidence 须引用 task_id 与 P5/P6 证据")
 
 
 def main():
@@ -161,7 +157,7 @@ def main():
     except FileNotFoundError:
         return  # 文件不存在 → no-op（check-debt.sh 已先处理，双保险）
     except Exception as e:
-        print("{}: 读取失败（{}）".format(basename, e))
+        print(f"{basename}: 读取失败（{e}）")
         return
 
     blocks = extract_yaml_blocks(text)
@@ -175,17 +171,16 @@ def main():
             data = yaml.safe_load(block)
         except yaml.YAMLError as e:
             first = str(e).splitlines()[0] if str(e) else "yaml 解析失败"
-            errors.append("{}: 条目{}: YAML 解析失败（{}）".format(basename, i, first[:100]))
+            errors.append(f"{basename}: 条目{i}: YAML 解析失败（{first[:100]}）")
             continue
         if data is None:
             continue  # 空块 → 跳过
         if not isinstance(data, dict):
-            errors.append("{}: 条目{} 的 YAML 块必须为 key: value 映射（当前解析为 {}）".format(
-                basename, i, type(data).__name__))
+            errors.append(f"{basename}: 条目{i} 的 YAML 块必须为 key: value 映射（当前解析为 {type(data).__name__}）")
             continue
-        eid = data.get("id") if isinstance(data.get("id"), str) else "条目{}".format(i)
+        eid = data.get("id") if isinstance(data.get("id"), str) else f"条目{i}"
         if eid in seen_ids:
-            errors.append("{}:{}: id 重复（登记簿 id 必须唯一）".format(basename, eid))
+            errors.append(f"{basename}:{eid}: id 重复（登记簿 id 必须唯一）")
         seen_ids.add(eid)
         check_entry(basename, eid, data, errors)
 

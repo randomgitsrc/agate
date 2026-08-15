@@ -244,7 +244,7 @@ v4 层级约定：主 Agent（L0）→ 执行/评审 subagent（L1），不依�
 - hook exit 1 + 修复 3 次仍失败 → PAUSED
 - 任何 hook 指出"该阶段不该裁剪"（check-pruning 不满足条件）→ PAUSED 报告主 Agent
 - P6 evidence 缺失 + 3 次提醒 subagent 补充仍无 → PAUSED
-- `risk=high` + `agent=main` 自审 → check-gate.sh 硬拦截（exit 1，不可自行批准评审）
+- `risk=high` + `agent=main` 自审 → check-gate.py 硬拦截（exit 1，不可自行批准评审）
 
 **禁止行为**：
 - ❌ `/loop` 推进时 `--no-verify` 跳过 hook（CI 兜底会抓到）

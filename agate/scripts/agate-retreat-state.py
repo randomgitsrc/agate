@@ -49,7 +49,7 @@ def main():
         with open(state_file, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
     else:
-        sys.stderr.write("agate-retreat-state: unknown op {}\n".format(op))
+        sys.stderr.write(f"agate-retreat-state: unknown op {op}\n")
         sys.exit(2)
 
 

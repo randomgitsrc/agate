@@ -316,7 +316,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 ```markdown
 ---
 phase: {P1-P8}
-generated_by: agate-inject-card.sh + 主 Agent
+generated_by: agate-inject-card.py + 主 Agent
 task_id: {Txxx}
 role: {角色名，如 analyst / requirements-review / implementer}
 ---
@@ -341,7 +341,7 @@ role: {角色名，如 analyst / requirements-review / implementer}
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->
-{由 agate-inject-card.sh 注入，禁止手写}
+{由 agate-inject-card.py 注入，禁止手写}
 <!-- AGATE_CARD_END -->
 
 <objective_info>
@@ -350,10 +350,10 @@ role: {角色名，如 analyst / requirements-review / implementer}
 - 查证结果：{grep/命令输出摘要}
 </objective_info>
 
-> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.sh` 审计失败。
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。
 ```
 
-**AGATE_CARD 注入**：主 Agent 用 `agate-inject-card.sh P{N} TASK_DIR` 注入卡片内容到 dispatch-context 的 `<!-- AGATE_CARD_START -->` / `<!-- AGATE_CARD_END -->` 块，**禁止手写 AGATE_CARD 内容**。
+**AGATE_CARD 注入**：主 Agent 用 `agate-inject-card.py P{N} TASK_DIR` 注入卡片内容到 dispatch-context 的 `<!-- AGATE_CARD_START -->` / `<!-- AGATE_CARD_END -->` 块，**禁止手写 AGATE_CARD 内容**。
 
 **主 Agent 写 dispatch-context 的信息来源**：
 
@@ -403,7 +403,7 @@ trigger: gate_fail
 
 **诊断格式禁令（N2）**：
 
-`gate-diagnosis.md` 和 `dispatch-context` 上游关联节引用 gate-diagnosis.md 路径**禁止使用 `^\s*- (PASS|FAIL)` 行首格式**列失败项。理由：`check-p6-provenance.sh` 审计 2 grep `^\s*- (PASS|FAIL)\b` 于 dispatch-context 文件，命中即判为"验收结论预判" exit 1。诊断中的失败项是**事后诊断**不是预判，但审计 2 分不出两者。
+`gate-diagnosis.md` 和 `dispatch-context` 上游关联节引用 gate-diagnosis.md 路径**禁止使用 `^\s*- (PASS|FAIL)` 行首格式**列失败项。理由：`check-p6-provenance.py` 审计 2 grep `^\s*- (PASS|FAIL)\b` 于 dispatch-context 文件，命中即判为"验收结论预判" exit 1。诊断中的失败项是**事后诊断**不是预判，但审计 2 分不出两者。
 
 **允许的格式**（不触审计 2）：
 - `失败项：BDD-3, BDD-7`（内联，非列表行首）
@@ -571,7 +571,7 @@ P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P
 ## P6 BDD 结果格式
 每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。
 不要用表格格式（`| BDD-1 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
-**大小写敏感**：必须大写 PASS/FAIL。主 Agent 在 verifier 返回后、跑 gate 前运行 `check-p6-format.sh --fix` 自动归一化（①）。
+**大小写敏感**：必须大写 PASS/FAIL。主 Agent 在 verifier 返回后、跑 gate 前运行 `check-p6-format.py --fix` 自动归一化（①）。
 除正文逐条结果外，P6-acceptance.md **还必须**在文件头 frontmatter 声明 `pass:`/`fail:`/`ui_affected:` 三个机器汇总字段（int/int/bool），gate 优先读取该汇总、正文格式仅作旧格式回退——样例见 `agate/assets/execution-roles/verifier.md`。
 示例：
 - PASS BDD-1: 用户可以创建分享链接
@@ -593,13 +593,13 @@ P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由�
 关键约束：P6-evidence/ 必须有执行产出，不接受空目录。
 ## 自查≠gate
 写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
-P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.sh P6 + check-p6-evidence.sh + check-p6-provenance.sh），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
+P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.py P6 + check-p6-evidence.py + check-p6-provenance.py），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
 不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
 ## refactor 任务（P1 change_type: refactor）：P6 回归验收口径
 P6 验收换用回归口径（换口径 ≠ 裁 P6，P6 仍不可裁剪）——三段式：① 行为不变声明（禁止伪造功能 BDD）；
 ② 全量回归全绿（以一条关键路径 BDD 的 PASS 行呈现，引用 P6-evidence/regression.log，尾行 EXIT_CODE: 0）；
 ③ 关键路径行为不变断言 BDD 逐条 PASS/FAIL。frontmatter 额外声明 `regression_pass: true`；
-回归双证（regression_pass + regression.log）是 check-gate.sh P6 硬校验，任一缺失 → gate exit 1；
+回归双证（regression_pass + regression.log）是 check-gate.py P6 硬校验，任一缺失 → gate exit 1；
 regression.log 必须被 PASS 行引用；禁止新增非 BDD 编号 PASS 行；no_behavior_change 不豁免回归双证。
 ```
 
@@ -835,14 +835,14 @@ setTimeout(() => {
 
 | 阶段 | 门槛 | 怎么判定（主 Agent 亲自执行）|
 |------|------|--------------------------|
-| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式为 `#### BDD-NN:`）+ `grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' P1-requirements.md → =0`（仅计算阻塞项，倾向项 `[SUGGEST:]` 不计）+ `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点（check-gate.sh P1 检查）|
-| P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由\|取舍\|考量\|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）+ 候选方案 ≥2（`scripts/check-gate.sh P2` 脚本化部分）|
-| P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.sh` exit 0（UI 任务额外确认 Playwright 用例存在）|
+| P1→P2 | 需求基线建立 | P1-requirements.md 存在 + 有 Header + 含 ≥1 条 BDD 条件（BDD 编号格式为 `#### BDD-NN:`）+ `grep -cE '^\s*-?\s*\[NEED_CONFIRM\]' P1-requirements.md → =0`（仅计算阻塞项，倾向项 `[SUGGEST:]` 不计）+ `grep -cE 'status:.*GAP\b' P1-requirements.md → =0`（仅匹配 status: GAP，不匹配 supplementable）+ `grep -qE 'risk_level:\s*(low|medium|high)' P1-requirements.md → 命中` + P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点（check-gate.py P1 检查）|
+| P2→P3 | 方案已批准 | `grep 'status: approved' P2-review.md` → 命中 + `grep -cE '^(packages\|domains\|ui_affected\|gate_commands):' P2-design.md → ≥4` + `grep -qE '权衡\|选择理由\|取舍\|考量\|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）+ 候选方案 ≥2（`scripts/check-gate.py P2` 脚本化部分）|
+| P3→P4 | TDD 真红灯 | `scripts/check-tdd-red.py` exit 0（UI 任务额外确认 Playwright 用例存在）|
 | P4→P5 | 实现完成 | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5→P6 | 技术验证通过 | 从 P2-design.md `gate_commands.P5` 读取命令执行 → exit 0 AND failed==0 + N5 最小校验（grep -cE '^(PASSED|FAILED|passed|failed|ok|not ok)' P5-test-results/unit.md → 计数 >0）+ 行首锚点扫描（主 Agent 参照 pre-commit 三步逻辑手动判断：正向→PAUSED / 不合规→修正 / 缺失→静默通过）+ 若 ui_affected：从 gate_commands.P5 读取 E2E 命令执行 → exit 0 |
-| P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.sh P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.sh` → exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 `grep -cE '^\s*- (PASS|FAIL)'` 结果数不符时 exit 1 硬阻 + UI vision YAML 审计 [R1b hook 化]）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
+| P6→P7 | BDD 验收通过 ⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） | `scripts/check-gate.py P6` → exit 2（FAIL=0/NC=0/证据非空已验）+ `scripts/check-p6-evidence.py` UI 截图 > 1KB（R1a 客观证据 barrier）+ `scripts/check-p6-provenance.py` → exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 `grep -cE '^\s*- (PASS|FAIL)'` 结果数不符时 exit 1 硬阻 + UI vision YAML 审计 [R1b hook 化]）（UI 条件须截图 + vision-analyst YAML 引用 + `summary.blocker_count → =0`）。**截图质量标准**：操作类 BDD 截图必须互不相同（md5 去重，hook 强制），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。任何 BDD 标 FAIL → gate 不通过 → 回 P4 |
 | P7→P8 | 一致性通过（consistency-reviewer subagent 产出） | `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0 + 同理 `[DEVIATION-CRITICAL]` → =0（声明行如 `[BLOCKER]: 0 条` 被排除，不计为实际 BLOCKER）（已知限制：定性分析，P5 回归测试兜底）|
-| P8→READY | 发布准备完成（bump-version + commit + tag 由主 Agent 在 gate 验证后亲自执行） | `scripts/check-gate.sh P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + 从 P2 `packages` 验证 version 文件路径变更 + `grep -q 'bump_type:' P8-release.md` → 命中 + version 文件双路径检查（暂存区或最近 5 commit，WARNING 级）+ CHANGELOG 双路径检查（`git diff --cached` + `git diff HEAD~5..HEAD`，WARNING 级，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）|
+| P8→READY | 发布准备完成（bump-version + commit + tag 由主 Agent 在 gate 验证后亲自执行） | `scripts/check-gate.py P8` → 脚本化部分通过（exit 2）+ 从 P2-design.md `gate_commands` 逐包读取发布检查命令执行 → 全部 exit 0 + bump-version 后重跑 P5 gate（`gate_commands.P5` exit 0 AND failed==0）+ `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 条目 → 无遗漏 + 从 P2 `packages` 验证 version 文件路径变更 + `grep -q 'bump_type:' P8-release.md` → 命中 + version 文件双路径检查（暂存区或最近 5 commit，WARNING 级）+ CHANGELOG 双路径检查（`git diff --cached` + `git diff HEAD~5..HEAD`，WARNING 级，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）|
 
 **反例（禁止用作门槛）：**
 - ❌ "unit.md 里 failed: 0"（信 subagent 写的数字）
@@ -875,7 +875,7 @@ setTimeout(() => {
 - 短期（本方案）：若项目有 CI 流水线，优先要求 verifier 引用 CI 产出（如 pytest 结果路径）而非自带证据文件。⚠️ 安全收益为零（provenance 1a 只验引用存在性不验来源）
 - 中期：CI 独立重新生成证据，agent 产出若与 CI 不一致则暴露伪造
 - 长期：P6 证据产出完全由 CI 驱动，agent 只写引用
-- 测试类证据（pytest/bats 结果）：CI 天然可行
+- 测试类证据（pytest 结果）：CI 天然可行
 - UI 类证据（截图 + vision YAML）：依赖项目有 e2e 流水线，无流水线时退化为"尽量锚 + 明标残余风险"
 
 **verification_env 条件化**：verification_env（运行环境描述：debug server URL、测试数据库、临时端口等）仅在以下条件之一满足时需要写入 P5/P6 dispatch-context：
@@ -894,7 +894,7 @@ setTimeout(() => {
 
 **SCOPE+ / SCOPE_GAP 扫描**：每次 subagent 返回后，主 Agent 扫描产出是否含 `[SCOPE+]`（新隐含需求 → 增补 P1 基线 + 定向回补）或 `[SCOPE_GAP]`（prompt 漏了 P2 已声明的改动 → 修正 prompt 重派）。行首声明格式（`^\s*-?\s*\[SCOPE+\]`）。
 
-**SCOPE+ 处理追踪（P2.11）**：产出含 [SCOPE+] 时，主 Agent 必须在 P1-requirements.md 增补对应条目并标记 [SCOPE_RESOLVED: 来源文件]。未标记 [SCOPE_RESOLVED] 的 [SCOPE+] → gate 不通过（scripts/check-scope-resolved.sh）。
+**SCOPE+ 处理追踪（P2.11）**：产出含 [SCOPE+] 时，主 Agent 必须在 P1-requirements.md 增补对应条目并标记 [SCOPE_RESOLVED: 来源文件]。未标记 [SCOPE_RESOLVED] 的 [SCOPE+] → gate 不通过（scripts/check-scope-resolved.py）。
 
 格式：
 [SCOPE_RESOLVED: from P4-implementation.md] 新需求已增补为 AC-N，影响范围已评估
@@ -927,7 +927,7 @@ P5 subagent 化后，主 Agent 验 gate 的方式：
 **红灯处理优先级**：
 1. 诊断：本步抖动还是上游输入问题？
 2. 本步抖动 → 重试一次（仅一次，避免在被污染的输入上打转）
-3. 上游问题 → 退回源头那一步（见 state-machine.md 逐步溯源）。退回前须先归档被跨过阶段的自撰产出（`agate-archive-stale-outputs.sh`，仅 P1/P2/P6/P7 需要，check-state-transition.sh 会强制检查）；若诊断已确定源头在 2 阶之外，用 `agate-retreat-to.sh {TASK_DIR} {目标阶段} "{诊断原因}"` 自动化执行多步单向回退（每一步仍是独立、真实、受 gate 校验的 commit，不改变 diff≥2 强制 PAUSED 的安全网本身）
+3. 上游问题 → 退回源头那一步（见 state-machine.md 逐步溯源）。退回前须先归档被跨过阶段的自撰产出（`agate-archive-stale-outputs.py`，仅 P1/P2/P6/P7 需要，check-state-transition.py 会强制检查）；若诊断已确定源头在 2 阶之外，用 `agate-retreat-to.py {TASK_DIR} {目标阶段} "{诊断原因}"` 自动化执行多步单向回退（每一步仍是独立、真实、受 gate 校验的 commit，不改变 diff≥2 强制 PAUSED 的安全网本身）
 4. 退到 P0 仍无解 / 外部阻塞 → PAUSED 问人类（正确路由，非认输）
 
 ```
@@ -966,7 +966,7 @@ gate 失败后，主 Agent 按以下步骤处理回退：
 
 1. **诊断**：分析 gate 失败根因，确定问题源头在哪一阶段，落盘 `P{N}-gate-diagnosis.md`（含：失败现象、根因分析、目标阶段、诊断依据）
 2. **跳转**：直接设置 .state.yaml phase 到目标阶段
-3. **PAUSED**（diff≥2 时）：check-state-transition.sh 拦截 → 主 Agent 在 PAUSED resolution 中写明诊断和目标 → 人工批准
+3. **PAUSED**（diff≥2 时）：check-state-transition.py 拦截 → 主 Agent 在 PAUSED resolution 中写明诊断和目标 → 人工批准
 4. **恢复到目标**：修完后从目标往下逐阶段重跑
 5. **不在中间阶段停留**：诊断已确认问题在源头，中间阶段不需要重做
 

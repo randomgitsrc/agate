@@ -6,85 +6,100 @@
 
 ```bash
 # 安装依赖
-sudo apt-get install bats shellcheck python3-yaml
+pip install pytest pyyaml     # 测试框架 + gate 依赖（shellcheck 可选，仅 3 个 hook 薄壳）
+sudo apt-get install shellcheck
 
 # 跑全部测试
-bats agate/tests/unit/         # 单元测试
-bats agate/tests/regression/   # 回归测试
-bats agate/tests/integration/  # 集成测试
-bats agate/tests/sanity.bats   # 框架自检
+python3 -m pytest agate/tests/unit/         # 单元测试
+python3 -m pytest agate/tests/regression/   # 回归测试
+python3 -m pytest agate/tests/integration/  # 集成测试
+python3 -m pytest agate/tests/test_sanity.py  # 框架自检
 
 # 一次性全跑
-bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
+python3 -m pytest agate/tests/
 ```
 
 ## 覆盖度
 
 ```bash
-# 自动生成（从 .bats 文件 @test 数量统计）
+# 自动生成（pytest --collect-only 收集计数）
 bash agate/tests/scripts/count-tests.sh
 ```
 
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
-| check-pruning.sh | unit/check-pruning.bats | 29 |
-| check-gate.sh | unit/check-gate.bats | 124 |
-| agate-next-card.sh | unit/agate-next-card.bats | 22 |
-| agate-render-dispatch-prompt.sh | unit/agate-render-dispatch-prompt.bats | 20 |
-| check-p6-evidence.sh | unit/check-p6-evidence.bats | 30 |
-| check-p6-format.sh | unit/check-p6-format.bats | 16 |
-| check-p6-provenance.sh | unit/check-p6-provenance.bats | 36 |
-| check-scope-resolved.sh | unit/check-scope-resolved.bats | 10 |
-| check-frontmatter.sh | unit/check-frontmatter.bats | 14 |
-| check-state-yaml.sh | unit/check-state-yaml.bats | 9 |
-| check-state-transition.sh | unit/check-state-transition.bats | 30 |
-| check-changelog.sh | unit/check-changelog.bats | 8 |
-| check-retrospective.sh | unit/check-retrospective.bats | 10 |
-| check-tdd-red.sh | unit/check-tdd-red.bats | 43 |
-| formatters | unit/check-tdd-red-formatter.bats | 13 |
-| ci-gate-backstop.py | unit/ci-gate-backstop.bats | 11 |
-| agate-json-get.py | unit/agate-json-get.bats | 8 |
-| agate-read-p5-commands.py | unit/agate-read-p5-commands.bats | 4 |
-| agate-state-get.py | unit/agate-state-get.bats | 6 |
-| agate-retreat-state.py | unit/agate-retreat-state.bats | 4 |
-| agate-md-field-get.py | unit/agate-md-field-get.bats | 14 |
-| agate-state-yaml-check.py | unit/agate-state-yaml-check.bats | 3 |
-| agate-changelog-unreleased.py | unit/agate-changelog-unreleased.bats | 2 |
-| agate-card-inject.py | unit/agate-card-inject.bats | 2 |
-| agate-vision-blocker.py | unit/agate-vision-blocker.bats | 2 |
-| agate-evidence-consistency.py | unit/agate-evidence-consistency.bats | 2 |
-| agate-image-check.py | unit/agate-image-check.bats | 4 |
-| agate-gate-missing-cmds.py | unit/agate-gate-missing-cmds.bats | 2 |
-| agate-gate-p5-count.py | unit/agate-gate-p5-count.bats | 3 |
-| agate-extract-context.sh | unit/agate-extract-context.bats | 16 |
-| install-hook.sh | unit/install-hook.bats | 6 |
-| 测试 helper（PYTHON 探测 + shim）| unit/helpers-python.bats | 3 |
-| check-platform-assumptions.sh | scripts/check-platform-assumptions.bats | 14 |
-| Windows 冒烟选取器 | `check-windows-smoke.bats`（tests/scripts/ 下） | 7 |
+| check-pruning.py | unit/test_check_pruning.py | 29 |
+| check-gate.py | unit/test_check_gate.py | 124 |
+| check-gate.py 集成锚点 | unit/test_check_gate_p1_review.py | 9 |
+| check-gate.py P5 命令 diff | unit/test_check_gate_p5_diff.py | 13 |
+| agate-next-card.py | unit/test_agate_next_card.py | 22 |
+| agate-render-dispatch-prompt.py | unit/test_agate_render_dispatch_prompt.py | 20 |
+| check-p6-evidence.py | unit/test_check_p6_evidence.py | 30 |
+| check-p6-format.py | unit/test_check_p6_format.py | 16 |
+| check-p6-provenance.py | unit/test_check_p6_provenance.py | 36 |
+| check-scope-resolved.py | unit/test_check_scope_resolved.py | 10 |
+| check-frontmatter.py | unit/test_check_frontmatter.py | 14 |
+| check-state-yaml.py | unit/test_check_state_yaml.py | 9 |
+| check-state-transition.py | unit/test_check_state_transition.py | 30 |
+| check-changelog.py | unit/test_check_changelog.py | 8 |
+| check-retrospective.py | unit/test_check_retrospective.py | 10 |
+| check-tdd-red.py | unit/test_check_tdd_red.py | 43 |
+| formatters | unit/test_check_tdd_red_formatter.py | 13 |
+| ci-gate-backstop.py | unit/test_ci_gate_backstop.py | 11 |
+| agate-json-get.py | unit/test_agate_json_get.py | 8 |
+| agate-read-p5-commands.py | unit/test_agate_read_p5_commands.py | 4 |
+| agate-state-get.py | unit/test_agate_state_get.py | 6 |
+| agate-retreat-state.py | unit/test_agate_retreat_state.py | 4 |
+| agate-md-field-get.py | unit/test_agate_md_field_get.py | 14 |
+| agate-state-yaml-check.py | unit/test_agate_state_yaml_check.py | 3 |
+| agate-changelog-unreleased.py | unit/test_agate_changelog_unreleased.py | 2 |
+| agate-card-inject.py | unit/test_agate_card_inject.py | 2 |
+| agate-vision-blocker.py | unit/test_agate_vision_blocker.py | 2 |
+| agate-evidence-consistency.py | unit/test_agate_evidence_consistency.py | 2 |
+| agate-image-check.py | unit/test_agate_image_check.py | 4 |
+| agate-gate-missing-cmds.py | unit/test_agate_gate_missing_cmds.py | 2 |
+| agate-gate-p5-count.py | unit/test_agate_gate_p5_count.py | 3 |
+| agate-extract-context.py | unit/test_agate_extract_context.py | 16 |
+| agate-migrate-workspace.py | unit/test_agate_migrate_workspace.py | 9 |
+| agate-retreat-to.py | unit/test_agate_retreat_to.py | 5 |
+| agate-archive-stale-outputs.py | unit/test_agate_archive_stale_outputs.py | 7 |
+| agate-capture-env-baseline.py | unit/test_agate_capture_env_baseline.py | 15 |
+| agate-debt-check.py | unit/test_agate_debt_check.py | 21 |
+| agate-scripts-encoding.py（守卫）| unit/test_agate_scripts_encoding.py | 2 |
+| agate-workspace-resolve.py | unit/test_agate_workspace_resolve.py | 10 |
+| dispatch-context warning | unit/test_dispatch_context_warning.py | 1 |
+| 测试 helper（PYTHON 探测）| unit/test_helpers_python.py | 3 |
+| check-platform-assumptions.py | agate/tests/scripts/test_check_platform_assumptions.py | 16 |
+| 文档/CI 断言（shellcheck/ruff/matrix）| unit/test_env_adapt_docs.py | 9 |
 | 回归 (R1-R5) | regression/ | 17 |
-| pre-commit-hook | integration/pre-commit-hook.bats | 48 |
-| pre-push-hook | integration/pre-push-hook.bats | 4 |
-| 协议一致性 | integration/consistency.bats | 11 |
-| self-gate | integration/protocol-alignment-review.bats | 8 |
-| 框架自检 | sanity.bats | 6 |
+| commit-msg-self-gate | unit/test_commit_msg_self_gate.py | 4 |
+| commit-msg-self-gate（集成）| integration/test_commit_msg_self_gate_integration.py | 6 |
+| pre-commit-hook | integration/test_pre_commit_hook.py | 48 |
+| dispatch-context card | integration/test_dispatch_context_card.py | 8 |
+| pre-push-hook | integration/test_pre_push_hook.py | 4 |
+| install-hook | unit/test_install_hook.py | 6 |
+| 协议一致性 | integration/test_consistency.py | 11 |
+| self-gate | integration/test_protocol_alignment_review.py | 8 |
+| 框架自检 | test_sanity.py | 6 |
 | **总计** | | **以 `count-tests.sh` 输出为准** |
 
-> 注：`count-tests.sh` 统计不含 sanity.bats 的 6 用例，加上框架自检 6 = 实际 bats 总数。以 `count-tests.sh` 输出为准。
+> 注：迁移基线为 TAG0011 的 749 用例（BDD-1，`--collect-only` 口径）。`count-tests.sh` 统计全树 pytest 用例（unit/regression/integration/sanity/scripts），以 `count-tests.sh` 输出为准。
 
 ## CI
 
 GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
-- `bats` job（ubuntu-latest）：单元 + 回归 + 集成 + 框架自检 + 扫描器行为测试——**功能正确性全量保证**
-- `bats` job（windows-latest）：只跑**技术路线冒烟**（`agate/tests/scripts/check-windows-smoke.sh`，每文件第 1 个用例 + 名称含平台敏感关键词的用例）——Windows 验证"平台敏感机制在 Windows 成立"，不重复验证功能（功能由 Linux 全量保证）
+- `pytest` job（ubuntu + windows 双 matrix）：Linux 全量 `python3 -m pytest agate/tests/`——**功能正确性全量保证**；Windows 只跑**技术路线冒烟**（`-m windows_smoke`，`@pytest.mark.windows_smoke` 标注每文件第 1 个用例 + 名称含平台敏感关键词的用例）——Windows 验证"平台敏感机制在 Windows 成立"，不重复验证功能（功能由 Linux 全量保证）
+- `ruff` job：`ruff check agate/`（含 tests）——静态检查
 - `platform-scan` job：平台假设静态扫描（Linux 阻断 / Windows 等价性证明）
-- `shellcheck` job：静态分析
+- `shellcheck` job：3 个 hook 薄壳静态分析
 - `consistency` job：协议一致性检查
+- `gate-backstop` job：push 后重跑 gate + P6 git blame 单 author WARNING
 
 ## 何时更新
 
 - 改 gate 规则 → **必须先加失败测试，再改脚本**
 - 发现新 bug → **修脚本前先写回归测试**（regression/）
-- 协议文档声明新规则 → **必须新增对应 .bats 用例**
+- 协议文档声明新规则 → **必须新增对应 test_*.py 用例**
 - 章节标题数字漂移 → 跑 `count-tests.sh` 同步
 - 发现平台假设（`PATH="/usr/bin:/bin"`/裸 `python3`/`[[ -L ]]` 单平台断言/`/tmp`）→ **修测试为平台无关**（探测或按平台分支），并在 Linux 上用模拟环境覆盖 Windows 分支——测试套件目标是平台无关（原则见 AGENTS.md「测试约定」）
 
@@ -93,27 +108,25 @@ GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
 | 编号 | 风险 | 兜底 | 状态 |
 |------|------|------|------|
 | R2.3 | ~~DESIGN_GAP 在 P4 但 architect 忘记转抄 P7 → 静默放过~~ | P4/P7 交叉核对 | 已关闭（v0.6 hardening R2.3） |
-| R2.4 | `agate-archive-stale-outputs.bats` 的 `ARCH.4`（同一任务对 P6 归档两次）偶发因归档目录名用秒级时间戳（`agate-archive-stale-outputs.sh` 的 `TS=$(date +%Y%m%d-%H%M%S)`）而在快速连续执行/系统负载较高时撞名，导致该用例单独失败 | 隔离单跑必过（非逻辑错误，纯计时窗口问题）；全量重跑一次可确认是否为此 flaky，而非真实回归 | 已知不修复——功能正确性不受影响（仅影响测试稳定性），根治需把时间戳粒度提到毫秒级或加序号后缀，评估后判定当前收益不足以覆盖改动风险；v0.35 起即存在，非 v0.40.0 引入，v0.40.0（T001）改造过程中多次复现并确认，见 `docs/reviews/agate-alignment-review-final-2026-08-10.md` |
+| R2.4 | `unit/test_agate_archive_stale_outputs.py` 的 `test_arch_4`（同一任务对 P6 归档两次）偶发因归档目录名用秒级时间戳（`agate-archive-stale-outputs.py` 的时间戳）而在快速连续执行/系统负载较高时撞名，导致该用例单独失败 | 隔离单跑必过（非逻辑错误，纯计时窗口问题）；全量重跑一次可确认是否为此 flaky，而非真实回归 | 已知不修复——功能正确性不受影响（仅影响测试稳定性），根治需把时间戳粒度提到毫秒级或加序号后缀，评估后判定当前收益不足以覆盖改动风险；v0.35 起即存在，非 v0.40.0 引入，v0.40.0（T001）改造过程中多次复现并确认，见 `archived/docs-2026-08/reviews/agate-alignment-review-final-2026-08-10.md` |
 
 ## 目录
 
 ```
 agate/tests/
 ├── README.md               ← 你在这里
-├── sanity.bats             ← 框架自检
+├── test_sanity.py          ← 框架自检
+├── conftest.py             ← 全局 fixture（agate_root / task_dir / git_repo / run_cli / py_path）
 ├── scripts/
-│   └── count-tests.sh      ← 从 .bats 文件自动统计 @test 数量
-├── helpers/
-│   ├── load.bash           ← 全局 setup（AGATE_ROOT 解析）
-│   ├── fixtures.bash       ← create_task_dir / add_pruning_excuse 等
-│   └── git-helper.bash     ← git_init / git_commit / git_stage
+│   ├── count-tests.sh      ← pytest --collect-only 计数
+│   └── test_check_platform_assumptions.py  ← 平台假设扫描器行为测试
 ├── fixtures/               ← 静态夹具（Gold 任务）
 │   ├── full-task/          ← 全阶段未裁剪 Gold
 │   ├── ui-affected/        ← UI 任务 + vision YAML
 │   ├── vision-blocked/     ← vision YAML blocker_count != 0
 │   ├── high-risk/          ← risk_level=high
 │   └── paused-task/        ← retries 超限
-├── unit/                   ← 单元测试（按脚本分文件）
+├── unit/                   ← 单元测试（按脚本分文件 test_*.py）
 ├── regression/             ← 回归测试（按 bug 分文件）
 └── integration/            ← 集成测试
 ```

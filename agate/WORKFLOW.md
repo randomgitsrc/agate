@@ -76,7 +76,7 @@ agate 建立在两条主线上：
 
 ## 工作区目录规范（v2.0 起）
 
-agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPACE}` = 项目根下 `agate-workspace/`，可用 `.agate.env` 配置指向其他位置，解析见 `agate-workspace-resolve.sh`），不再散布在项目 `docs/` 下。工作区根下固定 9 个子目录：
+agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPACE}` = 项目根下 `agate-workspace/`，可用 `.agate.env` 配置指向其他位置，解析见 `agate_common.py`），不再散布在项目 `docs/` 下。工作区根下固定 9 个子目录：
 
 ```
 {AGATE_WORKSPACE}/                # 工作区根（默认 agate-workspace/）
@@ -259,13 +259,13 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks |
 | P1 | 需求基线 | analyst（需求质疑模式）| requirements-review（强制，不可裁，所有任务都走独立 review）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '^\s*-?\s*\[NEED_CONFIRM\]'` → =0（仅计算阻塞项；倾向项 `[SUGGEST:]` WARNING 不阻塞）+ 无 `status: GAP`（supplementable 不阻塞）；P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点 |
-| P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.sh 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；不可裁（design_trivial / follows_existing_pattern 可简化，不可省略）；强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时可只写 1 个） |
-| P3 | 测试设计 | test-designer | gate 自检（文件存在）+ TDD 红灯独立确认 | check-gate.sh P3 exit 2（文件存在）+ scripts/check-tdd-red.sh exit 0（主 Agent 手动 + CI backstop 兜底）|
+| P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.py 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；不可裁（design_trivial / follows_existing_pattern 可简化，不可省略）；强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时可只写 1 个） |
+| P3 | 测试设计 | test-designer | gate 自检（文件存在）+ TDD 红灯独立确认 | check-gate.py P3 exit 2（文件存在）+ scripts/check-tdd-red.py exit 0（主 Agent 手动 + CI backstop 兜底）|
 | P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5 | 技术验证 | verifier（P5 模式，subagent 派发）| gate 自检 + N5 最小校验（test runner 输出签名）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；行首锚点扫描（主 Agent 参照 pre-commit 三步逻辑手动判断：正向→PAUSED / 不合规→修正 / 缺失→静默通过） |
-| P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.sh P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.sh` UI 截图 > 1KB（R1a 客观证据 barrier）；`scripts/check-p6-provenance.sh` exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻 + UI vision YAML 审计 [R1b hook 化]）；UI 条件须 vision-analyst YAML `summary.blocker_count==0`（R1b 已 hook 化）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） |
+| P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.py P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.py` UI 截图 > 1KB（R1a 客观证据 barrier）；`scripts/check-p6-provenance.py` exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻 + UI vision YAML 审计 [R1b hook 化]）；UI 条件须 vision-analyst YAML `summary.blocker_count==0`（R1b 已 hook 化）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） |
 | P7 | 一致性检查 | consistency-reviewer（subagent 派发）| gate 自检 + N3⑨ 实质锚点（跨文件引用关键词）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
-| P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.sh P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；version 双路径检查（暂存区或最近 5 commit，WARNING）；CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）；`check-pruning.sh` 验证裁剪 P8 时有 `internal_only: true` 声明 |
+| P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.py P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；version 双路径检查（暂存区或最近 5 commit，WARNING）；CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）；`check-pruning.py` 验证裁剪 P8 时有 `internal_only: true` 声明 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
 
 **P1 与 P6 的关系**：P1 用 BDD（Given/When/Then）写下"做完之后应该表现成什么样"，P6 把这些条件逐条实际跑一遍、把结果翻译成人能看懂的行为描述。P1 是"约定"，P6 是"兑现验证"。
@@ -282,22 +282,22 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 | # | 检查脚本 | 触发条件 | 阶段/机制 | 行为 |
 |---|---------|---------|-----------|------|
-| 0 | `check-state-yaml.sh` | `.state.yaml` 暂存变更时（不依赖 phase 变）| 文件级 | 校验格式合法（必填字段、phase 取值、retries 结构）|
-| 1 | `check-gate.sh` | `.state.yaml` phase 变更或阶段产出文件变更 | 阶段级 | P1.1 gate 校验 |
+| 0 | `check-state-yaml.py` | `.state.yaml` 暂存变更时（不依赖 phase 变）| 文件级 | 校验格式合法（必填字段、phase 取值、retries 结构）|
+| 1 | `check-gate.py` | `.state.yaml` phase 变更或阶段产出文件变更 | 阶段级 | P1.1 gate 校验 |
 | 1.2 | — | 全局，任意阶段 | 全局级 | `[PROD_TOUCHED]` 标记三步检测（正向声明→中止 / 声明格式不合规→中止 / 缺失声明→静默通过）|
-| 1.6 | `check-changelog.sh` | P8 phase 且 gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6；P2.54：仅 P8 检查，P1-P7 不触发）|
-| 1.7 | `check-p6-evidence.sh` | 阶段 ∈ {P6, P7} | 阶段级 | P6-evidence/ 非空 + BDD 行数 ≥ 1 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）|
-| 2.1 | `check-p6-provenance.sh` | gate 通过后 | 阶段级 | 六道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照 + UI vision YAML 审计 [R1b] + EXIT_CODE 一致性 [审计5] + evidence JSON 与 PASS/FAIL 声明一致性 [审计6/P2.57]）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
-| 2.3 | `check-state-transition.sh` | gate 通过后 | 阶段级 | 状态转移合法性 + 重试上限（P2.3-P2.5）|
-| 2.7 | `check-pruning.sh` | gate 通过后 | 阶段级 | 裁剪条件与实际执行一致性 + override 校验（P2.7-P2.9）|
-| 2.11 | `check-scope-resolved.sh` | gate 通过后 | 阶段级 | `[SCOPE+]` 必须有 `[SCOPE_RESOLVED:...]` 标记（P2.11）|
-| 2.12 | `check-retrospective.sh` | gate 任何结果 | 阶段级 | 异常模式提醒（重试超限/SCOPE+/override）→ 写复盘；不阻塞 commit（P2.12）|
+| 1.6 | `check-changelog.py` | P8 phase 且 gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6；P2.54：仅 P8 检查，P1-P7 不触发）|
+| 1.7 | `check-p6-evidence.py` | 阶段 ∈ {P6, P7} | 阶段级 | P6-evidence/ 非空 + BDD 行数 ≥ 1 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）|
+| 2.1 | `check-p6-provenance.py` | gate 通过后 | 阶段级 | 六道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照 + UI vision YAML 审计 [R1b] + EXIT_CODE 一致性 [审计5] + evidence JSON 与 PASS/FAIL 声明一致性 [审计6/P2.57]）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
+| 2.3 | `check-state-transition.py` | gate 通过后 | 阶段级 | 状态转移合法性 + 重试上限（P2.3-P2.5）|
+| 2.7 | `check-pruning.py` | gate 通过后 | 阶段级 | 裁剪条件与实际执行一致性 + override 校验（P2.7-P2.9）|
+| 2.11 | `check-scope-resolved.py` | gate 通过后 | 阶段级 | `[SCOPE+]` 必须有 `[SCOPE_RESOLVED:...]` 标记（P2.11）|
+| 2.12 | `check-retrospective.py` | gate 任何结果 | 阶段级 | 异常模式提醒（重试超限/SCOPE+/override）→ 写复盘；不阻塞 commit（P2.12）|
 
 **关键设计原则**：
 
 - **0→1→1.6→1.7→2.* 顺序**：每个阶段有"关卡"——0 是格式关、1 是行为关、2.* 是合规/审计关。任何关卡失败 → 中止 commit。
-- **agent 字段协作规范（P2.1/P2.10 v2 协作层）**：所有阶段产出文件 Header 含 `agent: <角色>`，缺字段 WARNING 不阻塞（向后兼容），`agent=main`（自审）被 check-gate.sh 硬拦截 exit 1。
-- **CI backstop（P1.3）**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.sh` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的恶意提交；provenance 审计重跑（check-p6-provenance.sh）+ `P6-acceptance.md` 的 git blame 单 author WARNING 作为兜底审计。
+- **agent 字段协作规范（P2.1/P2.10 v2 协作层）**：所有阶段产出文件 Header 含 `agent: <角色>`，缺字段 WARNING 不阻塞（向后兼容），`agent=main`（自审）被 check-gate.py 硬拦截 exit 1。
+- **CI backstop（P1.3）**：push 后 CI 平台（GitHub Actions / GitLab CI / Gitea Actions）重跑 `check-gate.py` + `ci-gate-backstop.py`，捕获 `--no-verify` 绕过 hook 的恶意提交；provenance 审计重跑（check-p6-provenance.py）+ `P6-acceptance.md` 的 git blame 单 author WARNING 作为兜底审计。
 - **降级方案**（Phase 3 平台接口未实现前的最优方案）：证据-结论对应是**客观行为审计**——造假 N 个证据文件的成本远高于填写一行 `agent: verifier` 自报字段。详见 `LIMITATIONS.md` 局限 3。
 
 **多任务适配**：`pre-commit-gate.sh` 扫描暂存区中所有变更的 `.state.yaml`（根目录 + `{AGATE_WORKSPACE}/tasks/{Txxx}/`），对每个文件独立跑格式校验 + 状态转移 + gate。单任务架构（根 `.state.yaml`）向后兼容。

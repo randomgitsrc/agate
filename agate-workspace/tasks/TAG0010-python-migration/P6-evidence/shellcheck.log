@@ -1,0 +1,4 @@
+# shellcheck -S warning 3 个保留 hook 薄壳（BDD-4）
+受扫集合：pre-commit-gate.sh / commit-msg-self-gate.sh / pre-push-gate.sh（agate/scripts/*.sh 全部 == 3 薄壳）
+结果：0 违规（无输出），exit 0
+EXIT_CODE: 0

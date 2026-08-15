@@ -1,27 +1,48 @@
 # agate scripts 目录
 
-agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*.sh / .py` 是各检查脚本，`agate-summary.sh / agate-changes.sh` 是版本发现工具。
+agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）：`check-*.py / agate-*.py` 是各检查脚本，`agate_common.py` 是公共函数库，`agate-summary.py / agate-changes.py` 是版本发现工具。仅 3 个 git hook 入口保留 `.sh` 薄壳（定位 AGATE_ROOT + python 探测 + exec 对应 `.py` 主程序 + 失败 fail-closed 阻断）。`agate/tests/scripts/` 下的 `count-tests.sh` 已改写为 pytest 收集计数（TAG0011）；`check-windows-smoke.sh` 已退役（TAG0011，Windows 冒烟由 `@pytest.mark.windows_smoke` 承接）。
 
-> **Windows 用户**：agate 依赖 bash + GNU coreutils，Windows 原生无 bash。安装 **Git for Windows**（自带 MSYS2 bash + coreutils）即可在不用 WSL 的前提下运行。详见 `agate/platform-notes.md`「Windows 原生」章节。
+> **Windows 用户**：agate 的 gate 脚本已全部 Python 化，不再依赖 bash + GNU coreutils。仅 3 个 hook 薄壳需要 sh 执行（Git for Windows 自带）。脚本可直接 `python3 ~/.agate/scripts/xxx.py` 运行。详见 `agate/platform-notes.md`「Windows 原生」章节。
 
 ## 脚本清单
 
-### Gate 检查（pre-commit hook 触发）
+### Bash 薄壳（.sh — 仅 3 个 git hook 入口）
+
+> 薄壳只承担「定位 AGATE_ROOT（软链/复制模式 `.agate-root` 恢复）+ python 探测 + exec py 主程序 + 失败阻断」四件事，gate 判定逻辑全部在对应 `.py` 主程序单份维护。
+
+| 脚本 | 用途 |
+|------|------|
+| `pre-commit-gate.sh` | pre-commit hook 入口薄壳，exec `pre-commit-gate.py` |
+| `commit-msg-self-gate.sh` | commit-msg hook 入口薄壳，exec `commit-msg-self-gate.py` |
+| `pre-push-gate.sh` | pre-push hook 入口薄壳，exec `pre-push-gate.py`（含 `AGATE_ALIGNMENT_REVIEW_THRESHOLD` 锚点关键字）|
+
+### Gate 检查（pre-commit hook 触发，.py 主程序）
 
 | 脚本 | 用途 | 退出码语义 |
 |------|------|-----------|
-| `pre-commit-gate.sh` | hook 入口，按顺序调度 9 项检查 | 0=通过, 1=拦截, 2=WARNING |
-| `check-state-yaml.sh` (P2.15) | `.state.yaml` 格式校验 | 0=通过, 1=格式错, 2=无文件 |
-| `check-gate.sh` (P1.1) | 各阶段脚本化 gate | 0=通过, 1=未通过, 2=需自判 |
-| `check-changelog.sh` (P1.6) | `[Unreleased]` 含 task_id | 0=通过, 1=未记录 |
-| `check-p6-evidence.sh` (P1.7) | P6 证据目录非空 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）| 0=通过, 1=阻断, 2=WARNING |
-| `check-p6-provenance.sh` (P2.1/P2.10) | P6 客观行为审计（六道 + EXIT_CODE 一致性 + 协作规范）| 0=通过, 1=审计失败, 2=WARNING |
-| `check-state-transition.sh` (P2.3-P2.5) | 状态转移合法性 + 重试上限 | 0=通过, 1=非法转移 |
-| `check-pruning.sh` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
-| `check-scope-resolved.sh` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
-| `check-retrospective.sh` (P2.12) | 异常模式提醒（不阻塞）| 0=总是通过 |
-| `check-debt.sh` | 技术债登记校验：默认 FILE 模式=DEBT 条目 schema 校验（fail-closed）；`--retreat-coverage`=回退覆盖比对（git log `retreat:` 提交 vs `source: retreat` 条目，缺失 WARNING）| FILE 模式 0=通过, 1=校验失败；回退模式：依赖加载失败 exit 2（需主 Agent 自判），无 retreat 提交等有意跳过 exit 0 |
-| `gate-result.sh` | gate 结果工具函数库 | （被 source）|
+| `pre-commit-gate.py` | hook 主程序：按顺序调度 9 项检查 + PROD_TOUCHED 检测 + dispatch-context hash 校验 + write_gate_result | 0=通过, 1=拦截, 2=WARNING |
+| `commit-msg-self-gate.py` | commit-msg 主程序：self-gate 触发面检测 | 0=通过, 1=拦截 |
+| `pre-push-gate.py` | pre-push 主程序：alignment 审查阈值判定 | 0=通过, 1=拦截 |
+| `check-state-yaml.py` (P2.15) | `.state.yaml` 格式校验 | 0=通过, 1=格式错, 2=无文件 |
+| `check-gate.py` (P1.1) | 各阶段脚本化 gate | 0=通过, 1=未通过, 2=需自判 |
+| `check-changelog.py` (P1.6) | `[Unreleased]` 含 task_id | 0=通过, 1=未记录 |
+| `check-p6-evidence.py` (P1.7) | P6 证据目录非空 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）| 0=通过, 1=阻断, 2=WARNING |
+| `check-p6-provenance.py` (P2.1/P2.10) | P6 客观行为审计（六道 + EXIT_CODE 一致性 + 协作规范）| 0=通过, 1=审计失败, 2=WARNING |
+| `check-state-transition.py` (P2.3-P2.5) | 状态转移合法性 + 重试上限 | 0=通过, 1=非法转移 |
+| `check-pruning.py` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
+| `check-scope-resolved.py` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
+| `check-retrospective.py` (P2.12) | 异常模式提醒（不阻塞）| 0=总是通过 |
+| `check-frontmatter.py` | 阶段文件 frontmatter 校验 | 0=通过, 1=校验失败 |
+| `check-p6-format.py` | P6 验收结果格式 --check/--fix 归一化 | 0=通过, 1=格式错 |
+| `check-tdd-red.py` | TDD 红灯检查（读 gate_commands.P3 + formatter 判定 A/B 类）| 0=红灯/B 类, 1=A 类, 2=绿灯, 3=无运行器 |
+| `check-platform-assumptions.py` | 平台假设静态扫描器（R1-R5，扫描覆盖 .bats/.bash/.sh/.py）| 0=零命中, 1=有命中, 2=目标不存在 |
+| `check-debt.py` | 技术债登记校验：默认 FILE 模式=DEBT 条目 schema 校验（fail-closed）；`--retreat-coverage`=回退覆盖比对（`git log retreat:` 提交 vs `source: retreat` 条目，缺失 WARNING）| FILE 模式 0=通过, 1=校验失败；回退模式：依赖加载失败 exit 2（需主 Agent 自判），无 retreat 提交等有意跳过 exit 0 |
+
+### 公共库
+
+| 脚本 | 用途 |
+|------|------|
+| `agate_common.py` | 公共函数库（替代 `gate-result.sh` + `agate-workspace-resolve.sh`）：`write_gate_result` / `read_state_phase` / `read_state_task_id` / `has_staged_phase_change` / `resolve_formatter` / `run_test_with_formatter` / `resolve_workspace` / `probe_python` / `run_git` / `MAX_RETRY_MAP` 等。执行模式输出 `AGATE_WORKSPACE=` / `AGATE_TASKS_DIR=` 两行（workspace-resolve 契约）|
 
 ### CI 兜底
 
@@ -33,35 +54,47 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 
 | 脚本 | 用途 |
 |------|------|
-| `install-hook.sh` | 在项目仓库内安装 pre-commit + commit-msg + pre-push hook（接受 `AGATE_ROOT` 参数）|
+| `install-hook.py` | 在项目仓库内安装 pre-commit + commit-msg + pre-push hook（`ln -sf` 软链 / Windows 复制模式 + `.agate-root` 标记；接受 `AGATE_ROOT` 参数）|
 
 ### 版本发现（agent 快速掌握协议变化）
 
 | 脚本 | 用途 |
 |------|------|
-| `agate-summary.sh` | 输出当前版本 + 防护机制状态 + 启动建议 |
-| `agate-changes.sh` | 显示与指定 tag 之间的变更（commits + 受影响文件 + 重要性分类）|
+| `agate-summary.py` | 输出当前版本 + 防护机制状态 + 启动建议 |
+| `agate-changes.py` | 显示与指定 tag 之间的变更（commits + 受影响文件 + 重要性分类）|
 
-**典型场景**：agent 上次会话用 v0.4.0，现在 agate 升到 v0.5.0——跑 `agate-changes.sh v0.4.0` 快速看变化，决定重读哪些必读文件。
+**典型场景**：agent 上次会话用 v0.4.0，现在 agate 升到 v0.5.0——跑 `python3 ~/.agate/scripts/agate-changes.py v0.4.0` 快速看变化，决定重读哪些必读文件。
 
 ### 阶段卡片 CLI（Phase Card 渐进披露）
 
 | 脚本 | 用途 |
 |------|------|
-| `agate-next-card.sh` | 输出当前阶段卡片全文（PHASE 取值 P0-P8）|
+| `agate-next-card.py` | 输出当前阶段卡片全文（PHASE 取值 P0-P8）|
 
-**用途**：Phase Card 防漂移机制的权威卡片源。主 Agent 调 `agate-next-card.sh P{N}` 拿到对应阶段卡片全文，嵌入 `dispatch-context-{role}.md`。后续 step 3 hook 会用 sha256 校验嵌入的卡片是当前版本（防过期/防篡改）。
+**用途**：Phase Card 防漂移机制的权威卡片源。主 Agent 调 `python3 ~/.agate/scripts/agate-next-card.py P{N}` 拿到对应阶段卡片全文，嵌入 `dispatch-context-{role}.md`。后续 step 3 hook 会用 sha256 校验嵌入的卡片是当前版本（防过期/防篡改）。
 
 **退出码语义**：
 - 0：成功，stdout 输出卡片全文
 - 1：参数缺失或过多
 - 2：phase 不在 P0-P8 范围
 
-**字节稳定性保证**：`agate/tests/unit/agate-next-card.bats` 的 9 个 sha256 测试断言 CLI 输出 body（去掉前 4 行固定头）的 sha256 等于 `cat ${PHASE}-*.md` 的 sha256。这是 step 3 hook 校验的前提。
+**字节稳定性保证**：`agate/tests/unit/test_agate_next_card.py` 的 9 个 sha256 测试断言 CLI 输出 body（去掉前 4 行固定头）的 sha256 等于 `cat ${PHASE}-*.md` 的 sha256。这是 step 3 hook 校验的前提。
 
-### 检查逻辑工具（从 .sh 内联 python 抽离的独立 .py）
+### 工作区工具
 
-> 14 个 `.sh` 脚本里的内联 `python3 -c` 段（46 处）已抽离为以下独立 `.py` 工具，由 `.sh` 薄壳调用。行为等价，逻辑可独立测试复用。**复制单个 `.sh` 到项目时须连带复制其依赖的 `.py`（同目录）。**
+| 脚本 | 用途 |
+|------|------|
+| `agate-migrate-workspace.py` | 旧布局（docs/tasks → agate-workspace/）迁移工具（git mv 目录级，幂等）|
+| `agate-extract-context.py` | 提取任务上下文（BDD 计数 / implementation_dir / P5 失败参考）|
+| `agate-archive-stale-outputs.py` | 回退时归档旧阶段产出（`.archived/{ts}-{phase}` + breadcrumb）|
+| `agate-capture-env-baseline.py` | P5 环境基线捕获（gate_commands 结果快照 + fail-list）|
+| `agate-retreat-to.py` | 跨阶段回退（状态 + 产出归档 + retreat commit + retries 追加）|
+| `agate-inject-card.py` | 注入阶段卡片到 dispatch-context 的 AGATE_CARD 占位符 |
+| `agate-render-dispatch-prompt.py` | 按角色渲染 dispatch prompt（主块 + 阶段特定提示）|
+
+### 检查逻辑单点工具（纯 Python）
+
+> 各 gate 脚本依赖的纯 Python 单点工具。**复制单个脚本到项目时须连带复制其依赖的 `.py`（同目录，含 `agate_common.py`）。**
 
 | 工具 | 用途 | 依赖 |
 |------|------|------|
@@ -78,8 +111,9 @@ agate 的所有自动化脚本。`pre-commit-gate.sh` 是 hook 入口，`check-*
 | `agate-evidence-consistency.py` | evidence JSON 与 P6 一致性 | 无 |
 | `agate-image-check.py` | 截图方差 / average hash | Pillow（可选）|
 | `agate-gate-missing-cmds.py` | gate_commands 缺失命令检测 | 无 |
-| `agate-gate-p5-count.py` | 统计 P5 命令数 | 无 |
+| `agate-gate-p5-count.py` | 统计 P5 命令数（主/辅双值）| 无 |
 | `agate-debt-check.py` | DEBT 条目多块 schema 校验（` ```yaml ` fenced 块解析：必填/枚举/evidence 非空/closed 准入/id 唯一；`--covered-hashes`=回退覆盖哈希提取）| pyyaml |
+| `agate-frontmatter-check.py` | 阶段文件 frontmatter 校验（必需字段/顺序）| pyyaml |
 
 ---
 

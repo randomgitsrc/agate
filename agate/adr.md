@@ -90,7 +90,7 @@ agate 不硬编码测试框架/语言/部署方式，只定义流程骨架。技
 
 - 项目首次使用时需要在 P2 声明 `gate_commands`，有初始配置成本
 - agate 不能自动发现项目的测试/构建命令，依赖人工声明
-- `check-gate.sh` 的 P4 检查用通用模式（`grep -qvE '\.(md|yaml)$'`）而非语言特定规则
+- `check-gate.py` 的 P4 检查用通用模式（`grep -qvE '\.(md|yaml)$'`）而非语言特定规则
 
 ---
 
@@ -107,7 +107,7 @@ agate 的 gate 检查在多个时机执行：主 Agent 主动验、pre-commit ho
 ### 决策
 
 多层防线，任何单层失效不致命：
-1. 主 Agent 主动跑 `check-gate.sh`（主流程）
+1. 主 Agent 主动跑 `check-gate.py`（主流程）
 2. pre-commit hook 自动跑（兜底）
 3. CI backstop push 后重跑（最后防线）
 
@@ -174,7 +174,7 @@ v0.9.1 复盘证明"简单"判断本身是最高风险决策。Bug #3 看似"点
 
 ### 决策
 
-执行和评审由不同角色完成。评审角色 `agent≠main`，check-gate.sh 对 `agent=main` 硬拦截（exit 1）。
+执行和评审由不同角色完成。评审角色 `agent≠main`，check-gate.py 对 `agent=main` 硬拦截（exit 1）。
 
 ### 理由
 
@@ -244,7 +244,7 @@ agate 协议里散落在正文的机器读取字段（P1/P2/P6/P7 共约 40+ 个
 
 ### 权衡
 
-- Windows 无符号链接权限（无开发者模式/非管理员）时退化为复制，牺牲自动同步能力——`agate/SETUP.md` 已文档化此权衡和退化步骤，目前没有自动漂移检测（`agate-summary.sh` 现有的漂移检测只覆盖 `scripts/` 目录副本，不覆盖这个文件），是已知的手动步骤缺口
+- Windows 无符号链接权限（无开发者模式/非管理员）时退化为复制，牺牲自动同步能力——`agate/SETUP.md` 已文档化此权衡和退化步骤，目前没有自动漂移检测（`agate-summary.py` 现有的漂移检测只覆盖 `scripts/` 目录副本，不覆盖这个文件），是已知的手动步骤缺口
 - `permission`/`mode`/`color` 等 OpenCode 专属字段和 Claude Code 需要的 `name` 字段共存于同一份 frontmatter——经实测确认 Claude Code 会静默忽略不认识的字段（不报错），OpenCode 会把不认识的字段归入通用 `options` 桶保留（不报错），两边互不冲突；但 Claude Code 缺少必填的 `name` 字段会导致整个文件被静默跳过（无警告日志），是本次改造过程中发现的一个容易复发的坑，`orchestrator-template.md`/`agate/SETUP.md` 均已加提醒
 
 ### 后果

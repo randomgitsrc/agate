@@ -46,7 +46,7 @@
 | P0 | P0-brief.md | 主 Agent 亲自写，四字段非空 |
 | P1 | P1-requirements.md | ≥1 条 BDD + 无行首 [NEED_CONFIRM] + 无 CAPABILITY_GAP |
 | P2 | P2-design.md + P2-review.md | review.status=approved |
-| P3 | P3-test-design.md | TDD 红灯正确（`check-tdd-red.sh` exit 0） |
+| P3 | P3-test-design.md | TDD 红灯正确（`check-tdd-red.py` exit 0） |
 | P4 | P4-implementation.md | 文件非空 + gate 通过 |
 | P5 | P5-verification.md | 所有测试通过 |
 | P6 | P6-acceptance.md + P6-evidence/ | provenance 三道审计通过 |

@@ -14,7 +14,7 @@
 |------|------|---------|
 | **改全局约束（如 task_id 格式）前，排查所有下游依赖面**——T001 流 D 硬切编号，测试脚手架大量旧格式占位，33 个测试回归 | T001 复盘 T3 | 下次改全局约束时 |
 | **校验器应 fail-closed**：坏格式必须拦截（exit 1），不静默放行（fail-open）——T1 曾因只捕获 YAMLError 而放行 RecursionError | T001 复盘 T1 | 下次写/改校验器时 |
-| **check-p6-format.sh 的 POSIX locale 坑**：`[:：]` bracket expression 在非 UTF-8 locale 下匹配不到全角冒号，--fix 静默失效（exit 0 文件不变） | 2026-08-12 复核 | 下次碰 p6-format --fix 时 |
+| **check-p6-format.py 的 POSIX locale 坑**：`[:：]` bracket expression 在非 UTF-8 locale 下匹配不到全角冒号，--fix 静默失效（exit 0 文件不变） | 2026-08-12 复核 | 下次碰 p6-format --fix 时 |
 
 ---
 

@@ -44,4 +44,4 @@ for json_path in glob.glob(os.path.join(evidence_dir, "**/*.json"), recursive=Tr
 
 inconsistent = pass_bdds & fail_in_evidence
 for bdd in sorted(inconsistent):
-    print("{}: P6 标 PASS 但 evidence JSON 显示 FAIL".format(bdd))
+    print(f"{bdd}: P6 标 PASS 但 evidence JSON 显示 FAIL")

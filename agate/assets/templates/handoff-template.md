@@ -26,15 +26,15 @@
 - **⚠️ gate 工具 ≠ 检查对象（最容易搞混的点）**：
   - commit hook 的 gate **判定工具**用 `~/.agate`（稳定版）——它读 `~/.agate` 自己的脚本逻辑
   - 但 `check-protocol-consistency.py` **必须用 worktree 自己的**（`python3 agate/scripts/check-protocol-consistency.py`），因为检查对象是 **worktree 里的协议文件**。若误用 `~/.agate` 的 consistency 脚本，会扫到主 checkout 的文件而非 worktree 的改动
-  - 同理：`bash ~/.agate/scripts/agate-summary.sh` 在 worktree 里跑会显示**主 checkout 的上下文**（版本/分支/HEAD 是稳定版的），不代表 worktree 状态——worktree 自己的状态用 `git log`/`git status` 看
+  - 同理：`python3 ~/.agate/scripts/agate-summary.py` 在 worktree 里跑会显示**主 checkout 的上下文**（版本/分支/HEAD 是稳定版的），不代表 worktree 状态——worktree 自己的状态用 `git log`/`git status` 看
 - **hook 在共享 git 目录**：worktree 的 `.git` 是文件（指向主 checkout `.git`），hook 实际在主 checkout 的 `.git/hooks/`（pre-commit/commit-msg/pre-push 已软链安装）。worktree commit 时 hook 自动触发。
 
 **已完成的 setup（worktree 已可独立使用）**：
-- 依赖齐全：bash / python / pyyaml / bats / shellcheck
-- 基线验证：全量 bats 全绿 + consistency 0 ERROR（--strict）
+- 依赖齐全：bash / python / pyyaml / pytest / shellcheck
+- 基线验证：全量 pytest 全绿 + consistency 0 ERROR（--strict）
 - commit hook：指向 `~/.agate`（稳定版），worktree commit 自动触发
 - orchestrator 注册：`.opencode/agents/orchestrator.md` → `~/.agate/orchestrator-template.md`（符号链接，不拷贝）
-- 工作区解析：`agate-workspace-resolve.sh` 输出 worktree 自己的 `agate-workspace/`
+- 工作区解析：`agate_common.py` 输出 worktree 自己的 `agate-workspace/`
 - 任务数据：{Txxx} P0-brief + .state.yaml phase=P0 在 worktree 的 `agate-workspace/tasks/`
 
 ## 3. 任务范围（P0-brief 已锁定，P1 细化 BDD）
@@ -46,7 +46,7 @@
 - ...
 
 ### 核心约束（不可违反）
-1. **Linux 现状是基线**——现有 {N} bats 测试全绿是回归底线，每个修复都必须保持全绿
+1. **Linux 现状是基线**——现有 {N} pytest 测试全绿是回归底线，每个修复都必须保持全绿
 2. **Windows 兼容是增量**——本环境（Linux）无法实测 Windows，靠静态修复 + Linux 回归 + CI matrix 兜底。**不要宣称"已实测 Windows"**（若任务涉及跨平台）
 3. **不破坏已有协议语义**——{本任务改动的性质边界}
 4. **范围锁定**——若 P1 分析发现需改动超出 P0-brief 锁定范围，须先停下跟用户确认
@@ -57,7 +57,7 @@
 # 在 worktree 根执行：
 
 # 全量测试（必须全绿才算过）
-bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
+python3 -m pytest agate/tests/
 
 # 一致性（0 ERROR 才行；--strict 让 WARNING 也阻断）
 # ⚠️ 必须用 worktree 自己的脚本（检查对象是 worktree 里的协议文件），不要用 ~/.agate 的
@@ -70,14 +70,14 @@ shellcheck -S warning agate/scripts/*.sh
 bash agate/tests/scripts/count-tests.sh
 
 # 单脚本测试（改哪个跑哪个，TDD 先红后绿）
-bats agate/tests/unit/{具体测试文件}.bats
+python3 -m pytest agate/tests/unit/test_{具体测试文件}.py
 ```
 
 ## 5. 阶段推进纪律（T001 血泪教训）
 
 - **commit 时 phase = 本 commit 产出阶段**：P1 产出 → phase=P1 再 commit；推进 P2 随 P2 产出同 commit。**不要**先写 phase=P2 再 commit P1 产出（pre-commit 会用 P2 gate 检查，P2-design.md 不存在 → 拦截）
 - **改脚本走 TDD**：先写失败测试确认红 → 改脚本确认绿（AGENTS.md「改脚本的工作流」）
-- **批量机械改动的 TDD 策略**：这类改动每个都写单独测试边际成本高。建议——①先写一个"grep 断言审计"测试作为回归拦截；②批量改动后跑该断言 + 全量 bats 确认绿。不要为每个小改动单独写测试，也不要跳过测试直接改
+- **批量机械改动的 TDD 策略**：这类改动每个都写单独测试边际成本高。建议——①先写一个"grep 断言审计"测试作为回归拦截；②批量改动后跑该断言 + 全量 pytest 确认绿。不要为每个小改动单独写测试，也不要跳过测试直接改
 - **git 命令加 timeout**、单步串行（AGENTS.md 工具纪律）
 - **commit message 含 `wf({Txxx}-P{阶段}):`** 前缀
 - **改 `agate/*.md`、`agate/scripts/*.py/.sh`、`agate/phase-cards/*` 触发 SELF-GATE**：commit message 需含 `self-gate-review:` 或 `self-gate-skip:`（否则 commit-msg hook WARNING）。协议文档变更需跑 `check-protocol-consistency.py` 确认无 ERROR
@@ -98,13 +98,13 @@ bats agate/tests/unit/{具体测试文件}.bats
 ## 8. 完成后
 
 - P8 gate + READY → 提 PR 合并 main（PR 普通 merge 非 squash，tag 要求）
-- **合并前在 PR 里看 CI 结果**（跨平台任务看 matrix 双平台）——bats/shellcheck/consistency/gate-backstop 全绿才算过
+- **合并前在 PR 里看 CI 结果**（跨平台任务看 matrix 双平台）——pytest/shellcheck/consistency/gate-backstop 全绿才算过
 - roadmap 回写关联条目 → done
 - 复盘按 agate 自身变更流程归档（合并后在主 checkout 写复盘 + 更新 roadmap/版本）
 
 ## 9. 交接确认
 
-- worktree 基线全绿：{N} bats + consistency 0 ERROR（--strict）
+- worktree 基线全绿：{N} pytest + consistency 0 ERROR（--strict）
 - hooks 就位（指向 `~/.agate` 稳定版）、orchestrator 已注册、依赖齐全
 - 任务数据就绪：{Txxx} P0-brief + .state.yaml phase=P0
 - 交接单位置：`HANDOFF-{Txxx}.md`（worktree 根，已 commit）

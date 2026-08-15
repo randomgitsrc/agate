@@ -24,8 +24,8 @@
     │   ├── execution-roles/     # analyst / architect / test-designer / implementer / verifier / vision-analyst / consistency-reviewer
     │   ├── review-roles/        # review / design-review / cso / qa / investigate / protocol-alignment-review / requirements-review / plan-*-review
     │   └── templates/           # active-tasks、dispatch-prompt、dispatch-context、task-files 等模板
-    ├── scripts/                 # gate 逻辑：check-*.sh 是 pre-commit/pre-push 入口，.py 是 .sh 薄壳调用的实现
-    └── tests/                   # bats 套件（unit/regression/integration/sanity），见 agate/tests/README.md
+    ├── scripts/                 # gate 逻辑：*.py 是产品逻辑（check-*.py / agate-*.py + agate_common.py 公共函数库）；3 个 hook 保留 sh 薄壳（pre-commit-gate.sh 等，经 install-hook.py 软链安装）
+    └── tests/                   # pytest 套件（unit/regression/integration/sanity），见 agate/tests/README.md
 ```
 
 ## 编排模型
@@ -39,12 +39,12 @@
 
 ## Gate 脚本分层
 
-`scripts/*.sh` 是被 git hook（`pre-commit-gate.sh`、`pre-push-gate.sh`、`commit-msg-self-gate.sh`，经 `install-hook.sh` 以软链方式安装，升级自动生效）调用的薄壳；逻辑较重的检查抽离成独立的 `agate-*.py` 工具供 `.sh` 调用。`gate-result.sh` 是被 source 的函数库（`write_gate_result`、`read_state_phase`、`read_state_task_id` 等），从不直接执行。`check-gate.sh` 是主 Agent 每阶段调用的总闸检查。
+`scripts/*.py` 是产品逻辑，`scripts/agate_common.py` 是公共函数库（`write_gate_result`、`read_state_phase`、`read_state_task_id`、`resolve_workspace` 等）。3 个 hook（`pre-commit-gate.sh`、`commit-msg-self-gate.sh`、`pre-push-gate.sh`）保留 sh 薄壳，经 `install-hook.py` 以软链方式安装，升级自动生效；薄壳只做 AGATE_ROOT 自定位 + python 探测 + exec py 主程序（`pre-commit-gate.py` 等）。`check-gate.py` 是主 Agent 每阶段调用的总闸检查。
 
 ## 依赖
 
-- Bats ≥ 1.2.0（需要 `BATS_TEST_TMPDIR`）
-- Python 3.8+ + `pyyaml` + `Pillow`（`pip install pyyaml Pillow`，Pillow 可选）— 检查逻辑抽离为独立 `.py` 工具（`agate/scripts/agate-*.py`），由 `.sh` 薄壳调用。其中 state/vision 类工具（agate-state-get / agate-retreat-state / agate-state-yaml-check / agate-vision-blocker）依赖 pyyaml；agate-image-check 依赖 Pillow（可选，用于像素方差/average hash 检测）
+- pytest（需要 `pytest` ≥ 7；Bats 已退役，2026-08 TAG0011）
+- Python 3.8+ + `pyyaml` + `Pillow`（`pip install pyyaml Pillow`，Pillow 可选）— 检查逻辑抽离为独立 `.py` 工具（`agate/scripts/agate-*.py`）。其中 state/vision 类工具（agate-state-get / agate-retreat-state / agate-state-yaml-check / agate-vision-blocker）依赖 pyyaml；agate-image-check 依赖 Pillow（可选，用于像素方差/average hash 检测）
 - shellcheck
 - ruff（Python 化后替代 shellcheck 对 py 的检查——TAG0010 起生效；运行 agate 不需要，开发 agate 需要）
 
@@ -61,10 +61,10 @@
 
 ```bash
 # 跑全部测试（必须全过才能 commit）
-bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
+python3 -m pytest agate/tests/
 
 # 跑单个脚本的测试
-bats agate/tests/unit/check-pruning.bats
+python3 -m pytest agate/tests/unit/test_check_pruning.py
 
 # 一致性检查（0 ERROR 才行；--strict 让 WARNING 也阻断；--json 机器可读）
 python3 agate/scripts/check-protocol-consistency.py
@@ -91,32 +91,32 @@ bash agate/tests/scripts/count-tests.sh
 - **`printf '%b' "$VAR"`**，不用 `printf '%s'`（不解释 `\n`）也不用 `printf "$VAR"`（SC2059）
 - **Python 调用用 `os.environ`**，不用 `open('$VAR')`——shell 注入风险
 - **所有脚本 `set -euo pipefail`**
-- **`gate-result.sh` 是工具函数库**（被 source，不直接执行），提供 `write_gate_result`、`read_state_phase`、`read_state_task_id` 等
+- **`agate_common.py` 是工具函数库**（被 import，不直接执行），提供 `write_gate_result`、`read_state_phase`、`read_state_task_id`、`resolve_workspace` 等
 
 ## 测试约定
 
-- **测试平台无关原则（agate 测试的核心约束）**：测试**不得硬编码单平台假设**——不允许裸 `PATH="/usr/bin:/bin"`、不允许裸 `python3`（应探测 `python3|python`）、不允许假设 POSIX symlink 语义（Windows Git Bash 的 `ln -sf` 退化为复制，`[[ -L ]]` 判定不同）、不允许假设 `/tmp` 等 Unix-only 路径。平台差异场景**按平台分支断言**（Linux 断言软链，Windows 断言"复制模式 + WARNING"），或在 Linux 上用模拟环境（`PYTHONIOENCODING`/`ln` mock/PATH 探测）覆盖分支。**目标：测试套件平台无关，Linux 全量覆盖，Windows CI 只跑技术路线冒烟**（`agate/tests/scripts/check-windows-smoke.sh` 选每文件第 1 个用例 + 名称含平台敏感关键词的用例作代表——Windows 验证"平台敏感机制在 Windows 成立"，功能正确性由 Linux 全量保证）。违反此原则（新引入 Unix 假设）是测试缺陷，应在 review 拦截（TAG0009 起由静态扫描器 gate 兜底）
-- 测试框架：Bats ≥ 1.2.0（需要 `BATS_TEST_TMPDIR`）
-- 临时文件用 `$BATS_TEST_TMPDIR`，不用 `/tmp`
+- **测试平台无关原则（agate 测试的核心约束）**：测试**不得硬编码单平台假设**——不允许裸 `PATH="/usr/bin:/bin"`、不允许裸 `python3`（应探测 `python3|python`）、不允许假设 POSIX symlink 语义（Windows Git Bash 的 `ln -sf` 退化为复制，`[[ -L ]]` 判定不同）、不允许假设 `/tmp` 等 Unix-only 路径。平台差异场景**按平台分支断言**（Linux 断言软链，Windows 断言"复制模式 + WARNING"），或在 Linux 上用模拟环境（`PYTHONIOENCODING`/`ln` mock/PATH 探测）覆盖分支。**目标：测试套件平台无关，Linux 全量覆盖，Windows CI 只跑技术路线冒烟**（`@pytest.mark.windows_smoke` marker 标注每文件第 1 个用例 + 名称含平台敏感关键词的用例作代表——Windows 验证"平台敏感机制在 Windows 成立"，功能正确性由 Linux 全量保证）。违反此原则（新引入 Unix 假设）是测试缺陷，应在 review 拦截（TAG0009 起由静态扫描器 gate 兜底）
+- 测试框架：pytest ≥ 7（Bats 已退役，TAG0011）
+- 临时文件用 pytest `tmp_path` fixture，不用 `/tmp`
 - `create_task_dir` 默认写入 `agent: test` frontmatter + Given 行；`--no-state-yaml` 跳过 .state.yaml
 - mock pytest：`TEST_RUNNER` 环境变量指向 fake 脚本，无需真实 pytest
 - fixture `.state.yaml` 以 `.` 开头，`git add` 需 `-f` 才能暂存
-- helpers：`load.bash`（AGATE_ROOT 解析）→ `fixtures.bash`（create_task_dir 等）→ `git-helper.bash`（git_init / git_commit / git_stage）
-- 每个 .bats 文件第一行 `load "tests/helpers/load.bash"`
-- **CI 里 `~/.agate` 软链接不存在**——`load.bash` 通过 `BATS_TEST_DIRNAME` 反推 `AGATE_ROOT`，本地也可设 `AGATE_ROOT` 环境变量覆盖
+- helpers：`agate/tests/conftest.py`（`agate_root` 解析 + `task_dir` / `git_repo` / `run_cli` / `py_path` 等 fixture）
+- 每个 test_*.py 文件无需 load 语句——根 `conftest.py` 自动加载 fixture
+- **CI 里 `~/.agate` 软链接不存在**——conftest 通过 `_resolve_agate_root` 从 tests/ 上溯反推 `AGATE_ROOT`，本地也可设 `AGATE_ROOT` 环境变量覆盖
 
 ## 改 agate 协议本体的检查清单
 
 改协议文档或脚本时，遵循 **SELF-GATE.md**（agate 自身变更的 gate）。
 
-触发 self-gate 的文件：`agate/scripts/*.sh`、`agate/scripts/check-protocol-consistency.py`、`agate/*.md`、`agate/**/*.md`、`SELF-GATE.md`。
+触发 self-gate 的文件：`agate/scripts/*.sh`（仅 3 个 hook 薄壳）、`agate/scripts/*.py`、`agate/*.md`、`agate/**/*.md`、`SELF-GATE.md`。
 
 commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件时，commit message 须含 `self-gate-review:` 路径或 `self-gate-skip:` 理由，否则 WARNING（不拦截）。
 
 ## CI
 
 单一 workflow（`protocol-tests.yml`），push/PR 自动触发：
-- **bats**：unit + regression + integration + sanity
+- **pytest**：`python3 -m pytest agate/tests/`（Linux 全量 + Windows `-m windows_smoke` 冒烟）
 - **shellcheck**：`shellcheck -S warning agate/scripts/*.sh`
 - **consistency**：`python3 agate/scripts/check-protocol-consistency.py`
 - **gate-backstop**：`python3 agate/scripts/ci-gate-backstop.py`（push 后重跑 gate + P6 git blame 单 author WARNING）
@@ -130,13 +130,13 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 - **双工作区**（改造对象 = worktree `agate/`；开发工具 = `~/.agate` 稳定版，**勿动**）：跑 gate/读卡片用 `~/.agate`，改代码/跑测试在 worktree。主 checkout（`/home/kity/oclab/agate`）是协议本体，禁止改动。
 - **gate 工具 ≠ 检查对象**：commit hook 用 `~/.agate`（稳定版）判定；但 `check-protocol-consistency.py` 必须用 worktree 自己的（检查 worktree 里的协议文件）。
 - **工具稳定优先**：hook 指向 `~/.agate` 稳定版，不指向 worktree（避免"用未验证的新 gate 判自己"）。
-- **~/.agate 脚本在 worktree 跑显示主 checkout 上下文**：`agate-summary.sh` 显示稳定版 main/HEAD，不代表 worktree 状态。
+- **~/.agate 脚本在 worktree 跑显示主 checkout 上下文**：`agate-summary.py` 显示稳定版 main/HEAD，不代表 worktree 状态。
 - **工具纪律（T001/TAG0004 多次实战验证）**：
   - **bash 命令一律加 `timeout`**（外层 `timeout N cmd`，N 按命令预期耗时给 30-90s），工具 timeout 参数同步设。无 timeout 的 bash 在本环境多次被 abort/挂起。
   - **单步串行，不并行 bash**：一次只发一个 bash 调用；必须链多步时用 `&&` 且每步短。并行 bash 是 abort 高危。
   - **卡住就换路，不重试同一 bash**：bash 偶发长时间无响应。卡住后改用 read/grep/glob **工具**（它们不走 bash，独立通道）替代，不要反复重试同一条 bash。
   - **读文件/搜索优先用工具**：read（分段）、grep、glob 工具不占 bash 通道，能避开 bash 卡死。bash 只用于真正需要 shell 的操作（git/测试/gate）。
-  - **长命令分片 + 大 timeout**：全量 bats 分 unit/regression/integration 片跑，每片设大 timeout；gate/consistency 单跑。
+  - **长命令分片 + 大 timeout**：全量 pytest 分 unit/regression/integration 片跑，每片设大 timeout；gate/consistency 单跑。
   - **输出控制在几十行内**：避免大输出（grep -c 大文件、cat 长文件）——用 `grep -n` 精确匹配或 read 分段。
   - **先看全输出再分析**：不用 `tail` 截断关键输出（count-tests 教训：数字被 tail 吞掉导致误判）。
   - **commit 前检查 hook 会跑什么**：pre-commit 会按 .state.yaml phase 跑 check-gate。commit 时 phase 应与"本次产出所在阶段"一致（P1 产出 → phase=P1 再 commit，commit 后再推进），否则 hook 会因"下一阶段产出不存在"拦截（P2-design 未产出时 phase=P2 → GATE P2 未通过）。
@@ -144,7 +144,7 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 
 ## 版本发布
 
-1. 确认 bats 全过 + 0 consistency ERROR + 0 shellcheck error（用例数以 `count-tests.sh` 为准）
+1. 确认 pytest 全过 + 0 consistency ERROR + 0 shellcheck error（用例数以 `count-tests.sh` 为准）
 2. 更新 `README.md` version badge + `CHANGELOG.md` [Unreleased] → 新版本号
 3. **更新 `agate/UPGRADING.md` 新增本版本章节**（破坏性变更逐条列——v0.44.0 教训：漏更新；无自动检查，靠本清单 + P8 卡「主 Agent 必须亲自执行」兜底）
 4. `git tag vN.N.0 && git push origin vN.N.0`
@@ -152,4 +152,4 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 
 > 版本引用文件清单（agate 仓库自身特有，通用 P8 卡不覆盖）：README badge / CHANGELOG / version 文件 / UPGRADING 章节 / 稳定版引用（文档优先写"稳定版"不写死版本号）。**通用项目的版本清单**（version 文件 + CHANGELOG + 测试重跑 + git log 对照）见 `agate/phase-cards/P8-release.md`「主 Agent 必须亲自执行」。
 
-**release PR 必须用普通 merge（`--no-ff`），禁止 squash merge**：`agate-summary.sh` 用 `git describe --tags --abbrev=0` 探测版本，要求 tag 是 HEAD 的祖先。tag 打在 feature 分支头时，普通 merge 会让该提交成为 main 的祖先（tag 保持有效），而 squash merge 会生成一个内容相同但 SHA 不同的新提交，导致 tag 与 main 分叉、`describe` 回退到旧版本（v0.31.0 事故）。若确实用了 squash，合并后必须把 tag 重新指到 squash 后的 main 提交：`git tag -f vN.N.0 <main-commit> && git push origin vN.N.0 --force`。
+**release PR 必须用普通 merge（`--no-ff`），禁止 squash merge**：`agate-summary.py` 用 `git describe --tags --abbrev=0` 探测版本，要求 tag 是 HEAD 的祖先。tag 打在 feature 分支头时，普通 merge 会让该提交成为 main 的祖先（tag 保持有效），而 squash merge 会生成一个内容相同但 SHA 不同的新提交，导致 tag 与 main 分叉、`describe` 回退到旧版本（v0.31.0 事故）。若确实用了 squash，合并后必须把 tag 重新指到 squash 后的 main 提交：`git tag -f vN.N.0 <main-commit> && git push origin vN.N.0 --force`。

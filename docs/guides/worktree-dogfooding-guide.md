@@ -40,17 +40,17 @@ git worktree add .worktrees/agate-{Txxx} -b feat/{Txxx}-{slug}
 ### Step 2：依赖检查（worktree 内）
 
 ```bash
-bash --version && python3 --version && bats --version && \
+bash --version && python3 --version && pytest --version && \
 python3 -c "import yaml; print('pyyaml OK')" && command -v shellcheck
 ```
 
-缺什么补什么（bash/python/pyyaml/bats/shellcheck）。
+缺什么补什么（bash/python/pyyaml/pytest/shellcheck）。
 
 ### Step 3：基线验证（Step 4 of skill——确保干净起点）
 
 ```bash
 cd .worktrees/agate-{Txxx}
-bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/
+python3 -m pytest agate/tests/
 python3 agate/scripts/check-protocol-consistency.py --strict
 ```
 
@@ -78,8 +78,8 @@ ln -sf ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 ### Step 6：验证工作区解析
 
 ```bash
-bash agate/scripts/agate-workspace-resolve.sh
-# 预期输出 worktree 自己的 agate-workspace/（不是主 checkout 的）
+python3 agate/scripts/agate_common.py
+# 预期输出 AGATE_WORKSPACE=/AGATE_TASKS_DIR= 指向 worktree 自己的 agate-workspace/（不是主 checkout 的）
 ```
 
 ### Step 7：确认任务数据就位
@@ -123,7 +123,7 @@ git log --oneline -3   # 确认交接单已提交
 | 主 checkout 禁止改动 | 它是稳定版来源 + hook 的 AGATE_ROOT |
 | `~/.agate` 禁止改动 | 稳定版（当前发布 tag），跑 gate / 读卡片用它 |
 | gate 工具 ≠ 检查对象 | commit hook 用 `~/.agate` 判定；但 `check-protocol-consistency.py` 必须用 worktree 自己的（检查 worktree 里的文件） |
-| `~/.agate` 脚本显示主 checkout 上下文 | `agate-summary.sh` 在 worktree 跑显示稳定版 main/HEAD，不代表 worktree 状态 |
+| `~/.agate` 脚本显示主 checkout 上下文 | `agate-summary.py` 在 worktree 跑显示稳定版 main/HEAD，不代表 worktree 状态 |
 | 工具稳定优先 | hook 指向稳定版，不指向 worktree（避免"用未验证的新 gate 判自己"）——用户已确认此哲学 |
 | commit 时 phase = 本 commit 产出阶段 | 防 pre-commit 用下一阶段 gate 拦截 |
 

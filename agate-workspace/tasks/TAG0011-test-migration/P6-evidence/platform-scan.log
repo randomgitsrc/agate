@@ -1,0 +1,6 @@
+# check-platform-assumptions.py scan (agate/tests/ 全树)
+# exit 0 = 干净树（无 R1-R5 Unix 假设命中）
+command: python3 agate/scripts/check-platform-assumptions.py
+exit: 0
+hits: 0 (空输出，干净树)
+EXIT_CODE: 0

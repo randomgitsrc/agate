@@ -1,28 +1,21 @@
 #!/usr/bin/env bash
-# pre-push-gate.sh — pre-push hook：协议文件（agate/*.md）大改动自动提示 alignment-review
-# 由 install-hook.sh 以软链方式安装到 .git/hooks/pre-push
-# git 以仓库根为 cwd 执行（与 pre-commit-gate.sh 相同），stdin 收 local_ref/local_sha/remote_ref/remote_sha
-# exit 0 = 不阻断 push；仅提示。
-
-set -euo pipefail
-
-THRESHOLD="${AGATE_ALIGNMENT_REVIEW_THRESHOLD:-20}"
-ZERO_SHA="0000000000000000000000000000000000000000"
-
-# shellcheck disable=SC2034  # remote_ref 为 pre-push stdin 格式占位，未使用
-while read -r local_ref local_sha remote_ref remote_sha; do
-    [ -z "$local_sha" ] && continue
-    if [ "$remote_sha" = "$ZERO_SHA" ]; then
-        echo "ℹ️  新分支首次推送，跳过 agate/*.md 改动量检测（无远端基线可比较）"
-        continue
-    fi
-    CHANGED_LINES=$(git diff "$remote_sha".."$local_sha" -- 'agate/*.md' 2>/dev/null | grep -cE '^[+-]' || true)
-    CHANGED_LINES="${CHANGED_LINES:-0}"
-    if [ "$CHANGED_LINES" -gt "$THRESHOLD" ]; then
-        echo "⚠️  本次 push（${local_ref}）对 agate/*.md 的改动达 ${CHANGED_LINES} 行（阈值 ${THRESHOLD}）"
-        echo "    建议先派发一次 protocol-alignment-review，确认改动未破坏协议文件间的语义一致性。"
-        echo "    忽略本提示继续 push：git push --no-verify"
-    fi
-done
-
-exit 0
+# pre-push-gate.sh — pre-push hook 薄壳（逻辑在 pre-push-gate.py 单份维护）
+# AGATE_ALIGNMENT_REVIEW_THRESHOLD 阈值在 pre-push-gate.py 内维护
+set -u
+# 1. AGATE_ROOT 自定位（软链→本体；复制模式 .agate-root 恢复）
+AGATE_ROOT="${AGATE_ROOT:-$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")}"
+if [ ! -d "$AGATE_ROOT/scripts" ] \
+    && [ -f "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root" ]; then
+    AGATE_ROOT=$(tr -d '\r' < "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root")
+fi
+# 2. python 探测：python3 → python
+PY=""
+for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { PY="$c"; break; }; done
+# 3. exec python 主程序
+if [ -n "$PY" ] && [ -f "$AGATE_ROOT/scripts/pre-push-gate.py" ]; then
+    exec "$PY" "$AGATE_ROOT/scripts/pre-push-gate.py" "$@"
+fi
+# 4. exec 失败 → fail-closed 阻断（不运行 sh 兜底逻辑）
+echo "GATE ERROR: 无法启动 python gate（python3/python 均不可用或脚本缺失）" >&2
+echo "  agate/*.md 改动量 alignment-review 提示无法执行，push 中止——请安装 python3 + pyyaml" >&2
+exit 1

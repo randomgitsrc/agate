@@ -54,7 +54,7 @@ P8-release.md 必须包含：
 ## gate 规则
 
 ```bash
-check-gate.sh P8 $TASK_DIR
+check-gate.py P8 $TASK_DIR
 ```
 
 - bump_type 字段存在

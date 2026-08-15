@@ -1,0 +1,14 @@
+# BDD-8 py38 兼容性验证（2026-08-15）
+
+pyproject.toml `target-version = "py38"`（第 2 行）。
+
+直接验证：对含 3.10+ `match` 语法的样例跑 `ruff check --config <worktree>/pyproject.toml`，
+ruff 报 `invalid-syntax: Cannot use match statement on Python 3.8 (syntax was added in Python 3.10)`，
+exit 1——静态拒绝 3.10+ 专属语法，`target-version=py38` 生效。
+
+P2 minimal_validation §7（ruff target-version=py38 拒绝 3.10+ 语法）实测结论 confirmed；
+`str.removeprefix` 属运行期方法非语法（局限，靠 code review + 单测覆盖）。
+
+全部迁移后 py 在 ruff check（project pyproject.toml，py38 target）下 0 error——见 `ruff-check.log`。
+
+EXIT_CODE: 0

@@ -9,7 +9,7 @@
    1.1 写 P2-dispatch-context-architect.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 C8 映射表派评审（见下方）
 3. 评审通过 → P2-review.md status: approved
-4. 预跑 check-gate.sh P2（脚本化检查）
+4. 预跑 check-gate.py P2（脚本化检查）
 5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
    ⚠️ 此时 .state.yaml 的 phase 保持 P2，不要提前写 P3——phase = 本 commit 的产出阶段
 6. git commit -m "wf({Txxx}-P2): {摘要}"（phase=P2，P2 产出含 P2-design.md + P2-review.md）
@@ -81,7 +81,7 @@ gate_commands 在 P2 固化，后续阶段按此执行：
 
 ```yaml
 gate_commands:
-  P3: "pytest"                  # 可选：测试运行器（verbose 输出，供 check-tdd-red.sh 自动读取）
+  P3: "pytest"                  # 可选：测试运行器（verbose 输出，供 check-tdd-red.py 自动读取）
   P5: "pytest -q --tb=no"       # 紧凑输出模式
   P5_e2e: "playwright test --reporter=line tests/e2e/"  # ui_affected: true 时必填
 ```
@@ -114,7 +114,7 @@ gate_commands:
    - cso → P2-review-cso.md
 3. 所有评审返回后，派发组长汇总 subagent（角色：review + 指定为「专家组组长」）
 4. 组长输入：所有评审文件路径
-5. 组长产出：P2-review.md（统一 status: approved / rejected）。**组长 subagent 产出的 P2-review.md 的 Header agent 字段必须是组长角色名（非 main）——check-gate.sh P2 硬拦截 agent=main 的 approved**
+5. 组长产出：P2-review.md（统一 status: approved / rejected）。**组长 subagent 产出的 P2-review.md 的 Header agent 字段必须是组长角色名（非 main）——check-gate.py P2 硬拦截 agent=main 的 approved**
 6. 组长规则：
    - 不发表新意见，只汇总
    - 任何专家标 BLOCKER → status: rejected
@@ -130,13 +130,13 @@ review 不通过 → architect 修改方案 → 再 review → … → approved�
 ## gate 规则
 
 ```bash
-check-gate.sh P2 $TASK_DIR
+check-gate.py P2 $TASK_DIR
 ```
 
 - 候选方案数 ≥2（design_trivial / follows_existing_pattern 时可只写 1 个）
 - P2-review.md 存在且 status: approved（agent≠main）— 不存在 → gate exit 1
 - 四字段齐全（packages/domains/ui_affected/gate_commands）
-- gate_commands.P3 可选（非 pytest 项目建议声明，供 check-tdd-red.sh 自动读取测试运行器）
+- gate_commands.P3 可选（非 pytest 项目建议声明，供 check-tdd-red.py 自动读取测试运行器）
 - 候选方案 ≥2 时含权衡/选择理由
 
 ## 推进条件（全部满足才写 phase: P3）

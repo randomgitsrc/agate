@@ -70,7 +70,7 @@ agent: architect
       P5_e2e: "playwright test --reporter=line tests/e2e/"
       project_module: "myapp"
     ```
-    **P3/P5 formatter 说明**（可选）：声明后 check-tdd-red.sh 和 agate-capture-env-baseline.sh 通过 formatter 将测试输出标准化为 JSON，不再依赖特定框架的输出格式。formatter 速查表见 `assets/formatters/README.md`。不声明 formatter 时退化为 exit-code-only（所有红灯 = 可推进，精度降低但不会阻断）。
+    **P3/P5 formatter 说明**（可选）：声明后 check-tdd-red.py 和 agate-capture-env-baseline.py 通过 formatter 将测试输出标准化为 JSON，不再依赖特定框架的输出格式。formatter 速查表见 `assets/formatters/README.md`。不声明 formatter 时退化为 exit-code-only（所有红灯 = 可推进，精度降低但不会阻断）。
     **project_module**（可选）：项目模块前缀，用于 B 类 import 错误检测。pytest 项目填包名（如 `myapp`），vitest 项目填源码路径前缀（如 `src/`）。
     **gate 命令必须用紧凑输出模式**（主 Agent 跑 gate 只判断「过没过」，完整诊断留给修复 subagent）：
     - 优先用工具自带的汇总/安静模式，保留通过/失败汇总和失败项清单，去掉逐项详细诊断（traceback/堆栈全文）
@@ -130,7 +130,7 @@ DEVIATION 标注必须注明"涉及 P2 哪个设计目标"：
 - DEVIATION 涉及命名风格/行数预算等非核心 → 标 `[DEVIATION]`（保持，不阻塞）
 
 **v0.6 DESIGN_GAP 捕获**：若 implementer 在实现中因 P2 设计歧义/缺口而自主做了决策并标了 `[DESIGN_GAP: xxx]`，P7 必须逐条审查：
-- **对每条 [DESIGN_GAP: xxx]（在 P4-implementation.md 中），必须在 P7-consistency.md 中写入原始标记行 + 你的 REVIEWED 标记行**。check-gate.sh 只扫描 P7-consistency.md——不把原始 GAP 写入 P7-consistency.md 会导致 hook 静默放过
+- **对每条 [DESIGN_GAP: xxx]（在 P4-implementation.md 中），必须在 P7-consistency.md 中写入原始标记行 + 你的 REVIEWED 标记行**。check-gate.py 只扫描 P7-consistency.md——不把原始 GAP 写入 P7-consistency.md 会导致 hook 静默放过
 - 决策是否合理（如果是 → 标 `[DESIGN_GAP_REVIEWED: 已确认]`）
 - 是否需要回 P2 补充设计（如果是 → 标 `[DESIGN_GAP_REVIEWED: 已打回 P2]`）
 

@@ -26,6 +26,7 @@ agate 协议结构一致性检查 (P3-1)
 """
 
 from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -70,7 +71,7 @@ PROTOCOL_DIRS = ("agate/assets/",)  # 角色定义与模板也算协议文件
 # 是编排状态而非协议本体——与 docs/plans|reviews 同待遇，宽松检查。
 # v0.43.0（TAG0001）：工作区迁移后任务产物位于 {AGATE_WORKSPACE}/tasks/，
 # 若此处不豁免，CI（干净 checkout，路径不含 .worktrees）会误扫任务产出触发 CHECK 1/2 误报。
-NARRATIVE_DIRS = ("docs/plans/", "docs/reviews/", "docs/design-notes/", "docs/tasks/", "archived/", "agate-workspace/tasks/")
+NARRATIVE_DIRS = ("docs/plans/", "docs/reviews/", "docs/design-notes/", "docs/tasks/", "archived/", "agate-workspace/tasks/", "CHANGELOG.md")
 
 # 引用扫描中要忽略的占位 / 示例 / 运行时生成路径（非仓库实文件）。
 PATH_IGNORE_SUBSTRINGS = (
@@ -92,7 +93,7 @@ PATH_IGNORE_SUBSTRINGS = (
 # 历史锚点：
 #   - orchestrator-template.md 期望 8 文件列表
 #   - state-machine.md 期望 8 文件列表
-# 两个锚点都基于"必读清单"假设——这个清单已降级为 reference，不再是协议不变量。 
+# 两个锚点都基于"必读清单"假设——这个清单已降级为 reference，不再是协议不变量。
 
 # ── 工具函数 ──────────────────────────────────────────────────────────────
 
@@ -114,18 +115,22 @@ class Report:
 
 def iter_md_files(root: Path):
     for p in sorted(root.rglob("*.md")):
-        if ".git" in p.parts:
+        # 用相对 root 的路径判断排除项——绝对路径判断在 worktree 开发场景会把
+        # worktree 自身（路径含 .worktrees/）的所有文件误排除，导致 consistency 空转
+        # （本地 0 ERROR ≠ CI 0 ERROR，TAG0010/0011 实战暴露）
+        rel_parts = p.relative_to(root).parts
+        if ".git" in rel_parts:
             continue
-        if "archived" in p.parts or ".archived" in p.parts:
+        if "archived" in rel_parts or ".archived" in rel_parts:
             continue
-        if ".worktrees" in p.parts:
+        if ".worktrees" in rel_parts:
             continue
-        if ".opencode" in p.parts or ".claude" in p.parts:
+        if ".opencode" in rel_parts or ".claude" in rel_parts:
             continue
-        if "node_modules" in p.parts:
+        if "node_modules" in rel_parts:
             continue
         # bats 框架自身（CI 克隆到仓库根的 bats/ 目录，含自带 docs/README 引用非 agate 文件）
-        if "bats" in p.parts:
+        if "bats" in rel_parts:
             continue
         yield p
 
@@ -189,9 +194,7 @@ def _is_yaml_fragment(code: str) -> bool:
         break
     if first_effective is None:
         return True
-    if first_effective[:1] in (" ", "\t"):
-        return True
-    return False
+    return first_effective[:1] in (" ", "\t")
 
 
 def check_yaml_parseable(root: Path, rep: Report) -> None:
@@ -442,12 +445,12 @@ def check_version_badge(root: Path, rep: Report) -> None:
 V06_KEYWORD_ASSERTIONS = [
     ("DESIGN_GAP", "agate/assets/execution-roles/implementer.md", "implementer 角色文件"),
     ("DESIGN_GAP", "agate/assets/execution-roles/architect.md", "architect 角色文件"),
-    ("DESIGN_GAP", "agate/scripts/check-gate.sh", "P7 gate 脚本"),
-    ("P2 不可裁剪", "agate/scripts/check-pruning.sh", "裁剪检查脚本"),
+    ("DESIGN_GAP", "agate/scripts/check-gate.py", "P7 gate 脚本"),
+    ("P2 不可裁剪", "agate/scripts/check-pruning.py", "裁剪检查脚本"),
     ("P2 不可裁剪", "agate/state-machine.md", "状态机文档"),
     ("model_tier", "agate/assets/templates/task-files.md", "任务文件模板"),
-    ("--cached", "agate/scripts/check-gate.sh", "P4/P8 gate 脚本"),
-    ("--cached", "agate/scripts/check-pruning.sh", "裁剪检查脚本"),
+    ("--cached", "agate/scripts/check-gate.py", "P4/P8 gate 脚本"),
+    ("--cached", "agate/scripts/check-pruning.py", "裁剪检查脚本"),
 ]
 
 
@@ -474,42 +477,42 @@ def check_v06_keywords(root: Path, rep: Report) -> None:
 SCRIPT_ALIGNMENT_ANCHORS = [
     {
         "desc": "P2 不可裁剪（design_trivial / follows_existing_pattern 可简化不可省略）",
-        "script": "agate/scripts/check-pruning.sh",
+        "script": "agate/scripts/check-pruning.py",
         "keywords": ["P2 不可裁剪"],
     },
     {
         "desc": "裁剪 P3 条件（risk_level）",
-        "script": "agate/scripts/check-pruning.sh",
+        "script": "agate/scripts/check-pruning.py",
         "keywords": ["risk_level"],
     },
     {
         "desc": "P6 不可裁剪（no_behavior_change 可简化不可省略）",
-        "script": "agate/scripts/check-pruning.sh",
+        "script": "agate/scripts/check-pruning.py",
         "keywords": ["P6 不可裁剪"],
     },
     {
         "desc": "裁剪 P7 coupling_checklist 声明",
-        "script": "agate/scripts/check-pruning.sh",
+        "script": "agate/scripts/check-pruning.py",
         "keywords": ["coupling_checklist"],
     },
     {
         "desc": "裁剪 P7 条件（源码文件数）",
-        "script": "agate/scripts/check-pruning.sh",
-        "keywords": ["SOURCE_FILE_COUNT"],
+        "script": "agate/scripts/check-pruning.py",
+        "keywords": ["源码文件数"],
     },
     {
         "desc": "裁剪 P8 条件（internal_only）",
-        "script": "agate/scripts/check-pruning.sh",
+        "script": "agate/scripts/check-pruning.py",
         "keywords": ["internal_only"],
     },
     {
         "desc": "重试上限检查（MAX_RETRY）",
-        "script": "agate/scripts/check-state-transition.sh",
+        "script": "agate/scripts/check-state-transition.py",
         "keywords": ["MAX_RETRY"],
     },
     {
         "desc": "回退跳变检测",
-        "script": "agate/scripts/check-state-transition.sh",
+        "script": "agate/scripts/check-state-transition.py",
         "keywords": ["diff", "phase_num"],
     },
     {
@@ -519,47 +522,47 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "NEED_CONFIRM 三值声明",
-        "script": "agate/scripts/check-gate.sh",
+        "script": "agate/scripts/check-gate.py",
         "keywords": ["NEED_CONFIRM", "NO_NEED_CONFIRM", "SUGGEST"],
     },
     {
         "desc": "SCOPE+ 追踪",
-        "script": "agate/scripts/check-scope-resolved.sh",
+        "script": "agate/scripts/check-scope-resolved.py",
         "keywords": ["SCOPE_RESOLVED"],
     },
     {
         "desc": "DESIGN_GAP 配对",
-        "script": "agate/scripts/check-gate.sh",
+        "script": "agate/scripts/check-gate.py",
         "keywords": ["DESIGN_GAP"],
     },
     {
         "desc": "P6 evidence UI 检查",
-        "script": "agate/scripts/check-p6-evidence.sh",
+        "script": "agate/scripts/check-p6-evidence.py",
         "keywords": ["ui_affected"],
     },
     {
         "desc": "P6 截图去重（md5）",
-        "script": "agate/scripts/check-p6-evidence.sh",
+        "script": "agate/scripts/check-p6-evidence.py",
         "keywords": ["md5", "去重"],
     },
     {
         "desc": "P6 provenance 审计",
-        "script": "agate/scripts/check-p6-provenance.sh",
+        "script": "agate/scripts/check-p6-provenance.py",
         "keywords": ["EVIDENCE_DIR"],
     },
     {
         "desc": "复盘提醒",
-        "script": "agate/scripts/check-retrospective.sh",
+        "script": "agate/scripts/check-retrospective.py",
         "keywords": ["retries"],
     },
     {
         "desc": "P8 CHANGELOG 检查",
-        "script": "agate/scripts/check-changelog.sh",
+        "script": "agate/scripts/check-changelog.py",
         "keywords": ["CHANGELOG"],
     },
     {
-        "desc": "state.yaml 格式校验（.sh 入口）",
-        "script": "agate/scripts/check-state-yaml.sh",
+        "desc": "state.yaml 格式校验（py 入口）",
+        "script": "agate/scripts/check-state-yaml.py",
         "keywords": ["state.yaml"],
     },
     {
@@ -569,22 +572,22 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "TDD 红灯检查",
-        "script": "agate/scripts/check-tdd-red.sh",
+        "script": "agate/scripts/check-tdd-red.py",
         "keywords": ["formatter", "pytest"],
     },
     {
         "desc": "P2 agent=main 硬拦截",
-        "script": "agate/scripts/check-gate.sh",
+        "script": "agate/scripts/check-gate.py",
         "keywords": ["agent=main"],
     },
     {
         "desc": "P1 review agent≠main 检查",
-        "script": "agate/scripts/check-gate.sh",
+        "script": "agate/scripts/check-gate.py",
         "keywords": ["P1", "agent=main"],
     },
     {
         "desc": "P7 consistency-reviewer 实质锚点",
-        "script": "agate/scripts/check-gate.sh",
+        "script": "agate/scripts/check-gate.py",
         "keywords": ["DESIGN_GAP_REVIEWED"],
     },
     {
@@ -594,7 +597,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "dispatch-context provenance 审计引用",
-        "script": "agate/scripts/check-p6-provenance.sh",
+        "script": "agate/scripts/check-p6-provenance.py",
         "keywords": ["dispatch-context"],
     },
     {
@@ -619,9 +622,9 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "P6 格式自动修复",
-        "script": "agate/scripts/check-p6-format.sh",
+        "script": "agate/scripts/check-p6-format.py",
         "keywords": ["--fix", "--check"],
-        "callers": ["agate/phase-cards/P6-acceptance.md", "agate/dispatch-protocol.md", "agate/scripts/pre-commit-gate.sh"],
+        "callers": ["agate/phase-cards/P6-acceptance.md", "agate/dispatch-protocol.md", "agate/scripts/pre-commit-gate.py"],
     },
     {
         "desc": "证据日志 EXIT_CODE 格式约定（文档侧）",
@@ -630,7 +633,7 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "证据日志 EXIT_CODE 一致性检测（脚本侧）",
-        "script": "agate/scripts/check-p6-provenance.sh",
+        "script": "agate/scripts/check-p6-provenance.py",
         "keywords": ["EXIT_CODE"],
     },
     {
@@ -646,33 +649,33 @@ SCRIPT_ALIGNMENT_ANCHORS = [
     },
     {
         "desc": "截图像素方差检测（M3.1）",
-        "script": "agate/scripts/check-p6-evidence.sh",
-        "keywords": ["VARIANCE_WARNING", "AGATE_SKIP_IMAGE_CHECKS"],
+        "script": "agate/scripts/check-p6-evidence.py",
+        "keywords": ["variance_warning", "AGATE_SKIP_IMAGE_CHECKS"],
     },
     {
         "desc": "截图 average hash 相似度检测（M3.2）",
-        "script": "agate/scripts/check-p6-evidence.sh",
-        "keywords": ["AHASH_LIST", "AHASH_DUPES"],
+        "script": "agate/scripts/check-p6-evidence.py",
+        "keywords": ["ahash_list", "ahash_dupes"],
     },
     {
         "desc": "P1 BDD 编号格式检查（标准 #### BDD-NN: 格式）",
-        "script": "agate/scripts/check-gate.sh",
+        "script": "agate/scripts/check-gate.py",
         "keywords": ["BDD-[0-9]"],
     },
     {
         "desc": "frontmatter schema 校验",
-        "script": "agate/scripts/check-frontmatter.sh",
+        "script": "agate/scripts/check-frontmatter.py",
         "keywords": ["frontmatter"],
-        "callers": ["agate/scripts/pre-commit-gate.sh"],
+        "callers": ["agate/scripts/pre-commit-gate.py"],
     },
     {
         "desc": "tech-debt schema 校验 + 回退覆盖比对（DEBT 条目）",
-        "script": "agate/scripts/check-debt.sh",
+        "script": "agate/scripts/check-debt.py",
         "keywords": ["debt", "retreat"],
     },
     {
         "desc": "平台假设静态扫描器（TAG0009：Unix 假设检出 + CI 阻断）",
-        "script": "agate/scripts/check-platform-assumptions.sh",
+        "script": "agate/scripts/check-platform-assumptions.py",
         "keywords": ["平台假设", "R1", "R2"],
     },
 ]
@@ -716,18 +719,15 @@ def check_script_alignment(root: Path, rep: Report) -> None:
 
 # 工具类脚本白名单——无 gate 逻辑，不需要锚点
 GATE_SCRIPT_EXEMPT = {
-    "agate/scripts/gate-result.sh",  # 无 gate 逻辑 + formatter 公共函数（受调用方测试覆盖），不需要锚点
-    "agate/scripts/install-hook.sh",
-    "agate/scripts/agate-changes.sh",
-    "agate/scripts/agate-summary.sh",
-    "agate/scripts/agate-init.sh",
+    "agate/scripts/check-protocol-consistency.py",  # 自身无锚点，但命中 check-*.py glob，必须豁免（否则 CHECK9-coverage WARNING）
+    "agate/scripts/pre-commit-gate.py",  # 调度编排脚本，不承载单一 gate 判定逻辑，不需要锚点
 }
 
 
 def check_anchor_coverage(root: Path, rep: Report) -> None:
-    """反向检查：每个 gate 脚本（check-*.sh + pre-commit-gate.sh）至少在一条锚点里被引用。
+    """反向检查：每个 gate 脚本（check-*.py + pre-commit-gate.{sh,py} + ci-gate-backstop.py）至少在一条锚点里被引用。
 
-    锚点表本身可能漏——有人加了 check-newrule.sh 忘了加锚点，
+    锚点表本身可能漏——有人加了 check-newrule.py 忘了加锚点，
     正向检查（CHECK 9 主逻辑）只能盯死锚点表里有的，无法发现"该有但没列"。
     本检查做反向兜底：遍历 gate 脚本目录，确认每个都在锚点表里有对应锚点。
     """
@@ -736,12 +736,15 @@ def check_anchor_coverage(root: Path, rep: Report) -> None:
         return
     gate_scripts = sorted(
         str(p.relative_to(root))
-        for p in scripts_dir.glob("check-*.sh")
+        for p in scripts_dir.glob("check-*.py")
         if p.is_file()
     )
     pre_commit = root / "agate" / "scripts" / "pre-commit-gate.sh"
     if pre_commit.exists():
         gate_scripts.append("agate/scripts/pre-commit-gate.sh")
+    pre_commit_py = root / "agate" / "scripts" / "pre-commit-gate.py"
+    if pre_commit_py.exists():
+        gate_scripts.append("agate/scripts/pre-commit-gate.py")
     ci_backstop = root / "agate" / "scripts" / "ci-gate-backstop.py"
     if ci_backstop.exists():
         gate_scripts.append("agate/scripts/ci-gate-backstop.py")

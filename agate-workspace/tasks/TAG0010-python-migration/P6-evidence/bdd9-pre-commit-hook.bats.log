@@ -1,0 +1,50 @@
+1..48
+ok 1 IT.1 pre-commit-hook 无 .state.yaml 变更 不触发
+ok 2 IT.2 pre-commit-hook phase 变更 + gate 通过
+ok 3 IT.3 pre-commit-hook 句中提及 [PROD_TOUCHED]（非行首声明）→ 不中止（T090 修复）
+ok 4 IT.4 pre-commit-hook .state.yaml phase 变更触发 state-yaml 校验
+ok 5 IT.5 pre-commit-hook .state.yaml 格式校验（任何变更都触发）
+ok 6 IT.6 pre-commit-hook 多任务：任务级 .state.yaml + P1 产出 → 正常 commit
+ok 7 IT.7 pre-commit-hook 多任务：P4 产出但 phase 仍 P3 → WARNING 不拦截
+ok 8 IT.8 pre-commit-hook 多任务：phase 变更到 P2 但无 P2-design.md → 拦截
+ok 9 IT.9 pre-commit-hook 多任务：裁剪跳阶 P2→P5 无 P3 产出（low 风险）→ 不拦截
+ok 10 IT.9b pre-commit-hook 裁剪跳阶 P3 medium 风险 → 拦截（P1-8: 仅 low 可裁 P3）
+ok 11 IT.10 pre-commit-hook 向后兼容：根 .state.yaml 仍工作
+ok 12 IT.11 pre-commit-hook P2 阶段暂存代码文件 → WARNING
+ok 13 IT_PT_BINARY.1 暂存 diff 含行首 [PROD_TOUCHED] 描述 → 中止 commit（步骤 1）
+ok 14 IT_PT_BINARY.2 暂存 diff 含 [PROD_NOT_TOUCHED] → 不中止
+ok 15 IT_PT_BINARY.3 暂存 diff 含删除行 [PROD_TOUCHED] → 不中止（只扫 ^+ 行）
+ok 16 IT_PT_BINARY.4 暂存 diff 含句中引用 [PROD_TOUCHED]（非行首声明）→ 不中止（T090 修复）
+ok 17 IT_PT_BINARY.5 暂存 diff 含句中引用 [PROD_TOUCHED]（非行首声明）→ 不中止（T090 修复）
+ok 18 IT_PT_BINARY.6 暂存 diff 既无正向也无负向 → 不中止 + 无 WARNING（步骤 3 静默通过）
+ok 19 IT_PHASE_SPAN.1 新增 P1/P2 产出文件 phase=P3（历史产出晚提交）→ 不报 WARNING
+ok 20 IT_PHASE_SPAN.2 已存在 P1 产出被重新暂存 phase=P3 → 报 WARNING（真实过期）
+ok 21 IT_PHASE_SPAN.3 新增 P4 产出文件 phase=P3（提前产出）→ 报 WARNING
+ok 22 IT_PHASE_SPAN.4 多任务场景：T001 历史产出晚提交不 WARNING / T002 已存在产出修改报 WARNING / T003 提前产出报 WARNING
+ok 23 IT_PHASE_SPAN.5 phase=PAUSED 暂存阶段号不符文件 → 不崩溃、报 WARNING、无 integer expression expected
+ok 24 IT_PT_BINARY.7 暂存 diff 含 [PROD_NOT_TOUCHED] 确认未接触（负向+描述）→ 不中止
+ok 25 IT_PT_MENTION.1 正文句中提及 [PROD_TOUCHED]（非行首声明）→ 不误报（T090 修复）
+ok 26 IT_P6_CODE.1 phase=P6，暂存 P6-evidence/ 下截图 → 不拦（证据文件例外）
+ok 27 IT_P6_CODE.1b phase=P6，暂存 evidences/ 下截图 → 不拦（T090 白名单修复）
+ok 28 IT_P6_CODE.2 phase=P6，暂存项目源码文件 → exit 1 硬拦截
+ok 29 IT_P6_CODE.3 phase=P4，暂存源码文件 → 不拦（回归）
+ok 30 IT_P6_CODE.4 phase=P5，暂存源码文件 → 不拦（回归）
+ok 31 IT_P6_CODE.5 phase=P2，暂存源码文件 → WARNING 而非硬拦截（回归，现有行为不变）
+ok 32 IT_RETREAT.1 agate-retreat-to.py 在装了真实 hook 的仓库里，每一步都真的过 hook 校验
+ok 33 IT_RETREAT.2 中途一步的 commit 被 hook 拒绝时，agate-retreat-to.py 明确报告停在哪步且不继续
+ok 34 IT_PT_T6.1 P8 dispatch-context 含 AGATE_CARD 注入块（[PROD_TOUCHED] 说明文本）→ 不误拦
+ok 35 IT_PT_T6.2 任务产出文件含句中 [PROD_TOUCHED]（非 AGATE_CARD 块内）→ 不拦截（T090 修复）
+ok 36 IT_PT_T6.3 任务产出文件含行首 [PROD_TOUCHED]（步骤1）→ 拦截（回归）
+ok 37 IT_PT_T6.4 任务产出文件含 [PROD_NOT_TOUCHED]（负向声明）→ 不拦截（回归）
+ok 38 IT_CHANGELOG_P54: P4 commit without CHANGELOG → no CHANGELOG WARNING
+ok 39 IT_CHANGELOG_P54b: P8 commit without CHANGELOG → CHANGELOG WARNING
+ok 40 IT_GATE_REAL.1: hook runs check-gate.sh and writes real .gate-result.json
+ok 41 HOOK_EVIDENCE_WARNING: P6 截图触发低方差 WARNING → commit 不应被拦截（T086 修复）
+ok 42 pre-commit hook: AGATE_ROOT 未设时自定位到脚本自身本体（worktree 支持，T086）
+ok 43 bdd-1 pre-commit-gate 空格路径任务 gate 实际不通过时拦截（S1 fail-open 修复）
+ok 44 bdd-2 pre-commit-gate 多个 .state.yaml 含空格路径逐个处理（不因切词丢失文件）
+ok 45 bdd-3 pre-commit-gate 空格目录 PROCESSED_DIRS 不拆段 gate 正常执行（输出含 GATE P1）
+ok 46 bdd-4 pre-commit-gate 无空格路径单任务 gate 行为不变（Linux 回归）
+ok 47 bdd-17 pre-commit-gate 任务目录含 [ 元字符时 PROD_TOUCHED 检测不静默绕过（M9）
+ok 48 bdd-19 pre-commit-gate 复制模式 hook 经 .agate-root 标记正确解析 AGATE_ROOT（其他-b）
+EXIT_CODE: 0

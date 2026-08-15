@@ -8,6 +8,57 @@
 
 ---
 
+## [0.47.0] - 2026-08-15
+
+### 破坏性变更（TAG0011 测试框架迁移：Bats → pytest）
+
+- **`agate/tests/` 下 60 个 `.bats` 文件（749 @test）迁移为 `test_*.py` pytest 用例并退役删档**：46 unit + 6 regression + 6 integration + sanity + scripts 扫描器，`.bats` 文件 0 残留；`count-tests.sh` 改写为 pytest 收集计数
+- **`agate/tests/helpers/` 三文件（load.bash / fixtures.bash / git-helper.bash）退役**：职责并入 `agate/tests/conftest.py` fixture 体系（含合并流 `.output` 复刻 bats `$output` 语义）
+- **`check-windows-smoke.sh` / `.bats` 退役**：Windows 冒烟由 `@pytest.mark.windows_smoke` marker（78 用例）承接
+- **测试依赖变更**：Bats + shellcheck → pytest + pyyaml（仅 3 个 hook 薄壳仍需 sh/shellcheck）
+- **CI 变更**：`protocol-tests.yml` 的 bats job → pytest job（job 名变更影响分支保护 checks）；ruff 覆盖扩展至 `agate/`
+
+### 新增
+
+- **`agate/tests/conftest.py`**：pytest fixture 体系（run_cli/CommandResult 合并流、task_dir、git_repo、add_* 纯函数、python_exe、agate_root 解析）
+- **`windows_smoke` marker**：78 个代表用例（每文件第 1 个 + 平台关键词）供 Windows CI 冒烟
+- **`pyproject.toml` pytest 配置**：`[tool.pytest.ini_options]`（testpaths + markers 注册）
+
+### 变更
+
+- 12 条 BDD 全 PASS（pytest 750 collected / 748 passed / 2 skipped + consistency 0 ERROR + ruff 0 error）
+- UPGRADING.md v0.47.0 迁移章节（破坏性变更逐条 + 迁移命令）
+
+---
+
+## [0.46.0] - 2026-08-15
+
+### 破坏性变更（TAG0010 agate 产品逻辑 Python 化：30 个脚本跨语言迁移）
+
+- **`agate/scripts/` 全部 30 个 `.sh` 的 bash 逻辑迁移为 Python（`.py`）**：24 个同名换后缀（check-changelog/check-frontmatter/check-state-yaml/check-p6-format/check-scope-resolved/agate-archive-stale-outputs/agate-extract-context/agate-next-card/agate-render-dispatch-prompt/agate-summary/agate-changes/agate-migrate-workspace/check-platform-assumptions/check-state-transition/check-retrospective/check-pruning/check-debt/check-tdd-red/check-gate/check-p6-evidence/check-p6-provenance/agate-capture-env-baseline/agate-retreat-to/agate-inject-card）+ `install-hook.sh` → `install-hook.py`；直接调用脚本的用户调用命令从 `bash xxx.sh` 改为 `python3 xxx.py`
+- **3 个 git hook 入口保留 `.sh` 薄壳**（pre-commit-gate / commit-msg-self-gate / pre-push-gate）：只做「AGATE_ROOT 自定位 + python 探测 + exec py 主程序」，失败 **fail-closed 阻断 commit**（无 sh 兜底逻辑）
+- **`gate-result.sh` + `agate-workspace-resolve.sh` 删档并入 `agate_common.py`**：函数库合并为单一公共模块，执行模式输出 `AGATE_WORKSPACE=`/`AGATE_TASKS_DIR=` 两行（契约不变）
+- **pyyaml 从「可选」变「强制依赖」**：缺失时 fail-closed exit 1；Pillow 仍为可选
+- **shellcheck → ruff**：shellcheck 扫描面收敛到 3 个 hook 薄壳；Python 脚本改用仓库根 `pyproject.toml` 规则集，CI 新增独立 ruff job
+- **无 bash 环境（纯 cmd/PowerShell）成为可行选项**：gate 脚本全部 Python 化可直接运行（仅 git hook 入口薄壳仍需 sh）
+- 已部署项目升级指引见 `agate/UPGRADING.md` v0.46.0 章节
+
+### 新增
+
+- **`agate_common.py` 公共库**：承载原 gate-result.sh + agate-workspace-resolve.sh 全部函数库；MAX_RETRY_MAP 单一数据源
+- **`install-hook.py`**：软链安装（Windows 复制模式 + 写 `.agate-root` 标记）+ chmod + 备份既有 hook + `.gitignore` 检测
+- **`pyproject.toml` ruff 规则集**：`target-version = "py38"` + select/ignore 组合使全部 py 0 违规
+- **hook 链 Python 化**：pre-commit-gate.py / commit-msg-self-gate.py / pre-push-gate.py 承载完整调度逻辑
+- **`check-platform-assumptions.py`** 扩展覆盖 `.py` 扩展名 + docstring 块豁免
+
+### 变更（实现细节，行为等价）
+
+- `ci-gate-backstop.py` `resolve_tasks_dir` 改调 `agate_common.resolve_workspace`
+- bats 机械调用面 sh→py 全量同步；5 个测试文件断言级调整（38→40 用例）
+- check-gate.py 拆 P0-P8 分支子任务实现
+
+---
+
 ## [0.45.0] - 2026-08-14
 
 ### 修复（TAG0005 agate 机制修复批：4 个已核实机制/契约缺陷）
