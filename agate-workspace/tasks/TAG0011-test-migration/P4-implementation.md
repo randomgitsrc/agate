@@ -1428,3 +1428,75 @@ python3 -m py_compile agate/tests/regression/test_v040_dotarchived_exclusion.py 
   - v060-r4-cached R3.1 未加 `coupling_checklist`，故除「裁剪 P7 需源码文件数」外还会报
     「裁剪 P7 需 coupling_checklist」；两错误均写 stderr，exit 1 + 「源码文件数」关键词断言
     与 bats 等价（bats 只断言 `裁剪 P7 需源码文件数` 于合并流）。
+
+## 批次 12 — hook 消息/推送/安装链（4 文件 / 20 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/commit-msg-self-gate.bats` | `unit/test_commit_msg_self_gate.py` | 4 |
+| `integration/commit-msg-self-gate.bats` | `integration/test_commit_msg_self_gate_integration.py` | 6 |
+| `integration/pre-push-hook.bats` | `integration/test_pre_push_hook.py` | 4 |
+| `unit/install-hook.bats` | `unit/test_install_hook.py` | 6 |
+
+### 关键实现点
+
+- **hook 薄壳 subprocess 调 bash（P3 §5.3）**：三个 hook 薄壳（commit-msg-self-gate.sh /
+  pre-push-gate.sh）仍是 sh——pytest 用 `run_cli("bash", str(agate_scripts/"xxx.sh"), ...)`
+  调真薄壳验证其真环境行为（BDD-11）；AGATE_ROOT 经 run_cli `env=` 显式传入（复制模式下
+  wrapper 的 readlink -f 定位到 .git/hooks 目录，须环境变量指向真实 agate 根，等价 bats
+  load.bash export）。
+- **git commit 真环境（integration CSG）**：`shutil.copy2` 复制 commit-msg-self-gate.sh 到
+  `.git/hooks/commit-msg` + chmod 0o755（等价 bats `cp` + `chmod +x`）；`run_cli("git", "-C",
+  repo, "commit", ...)` 触发真 hook。git commit 的 cwd 由 git 自身设为仓库根（`-C` 等价
+  bats `git -C "$REPO"`）。
+- **流语义（P2 BLOCKER-1）**：unit CSG.3 的 `[ -z "$output" ]`（本批唯一空断言）→
+  `assert result.output == ""`（合并流，勿映射 stdout——WARNING 写 stderr 时语义反转）；
+  `[[ "$output" == *"self-gate"* ]]` → `assert "self-gate" in result.output`（合并流命中
+  stderr 源 WARNING，P3 §3.2 流语义规则「GATE ...: 写 stderr」）。
+- **install-hook 复制模式**：`AGATE_HOOK_COPY_MODE=1` 经 run_cli `env=` 传入（py 版不调外部
+  ln，TAG0010 4d 已实现，替代 bats mock ln → cp 模拟 Windows 无符号链接权限）；复制模式
+  断言 `.git/hooks/.agate-root` 兜底标记内容 == fake agate_root（同 sh 版 L39 语义）。
+- **平台分支断言（P3 §5.2）**：Linux 断言软链语义 `os.readlink(pre-push) == pre-push-gate.sh`
+  （无 `-L` 字面，满足 R3 零命中）；Windows（`sys.platform == "win32"`，bats `uname -s`
+  MINGW/MSYS 的 pytest 映射）断言文件已安装。软链语义的完整覆盖由 Linux 分支 + 复制模式
+  用例共同承担。
+- **pre-push stdin 管道**：`echo 'LINE' | bash pre-push-gate.sh 2>&1 || true` → `run_cli(
+  "bash", script, input=line, cwd=repo)`（P3 §5.3，input= 等价 stdin 管道；cwd 等价 bats
+  `cd "$repo"`；gate 是提示型 exit 0，`|| true` 语义天然成立）。
+- **pre-push hook 安装真环境**：install-hook.py 真安装到 `.git/hooks/`（等价 bats
+  `( cd "$repo" && "$PYTHON" install-hook.py "$AGATE_ROOT" )`）；随后 git commit 用
+  `--no-gpg-sign --no-verify`（等价 bats，避免 pre-commit hook 干扰）。
+- windows_smoke 打标（P3 §5.2 表 W + 每文件第 1 用例）：`test_cmsg_1`（每文件第 1）、
+  `test_csg_1`（每文件第 1）、`test_pre_push_1`（每文件第 1）+ `test_pre_push_2`（复制模式
+  平台关键词）、`test_install_1`（每文件第 1）+ `test_install_5` / `test_install_6`
+  （ln 复制模式平台关键词）——共 7 处。
+
+### 自查结果
+
+> 本批派发范围仅写代码文件（不运行 pytest/bats，主 Agent 按 P3 §6 批次 12 验证命令统一跑）。
+> 已做非测试静态自查：
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m py_compile agate/tests/unit/test_commit_msg_self_gate.py agate/tests/integration/test_commit_msg_self_gate_integration.py agate/tests/integration/test_pre_push_hook.py agate/tests/unit/test_install_hook.py
+# SYNTAX-OK
+/home/kity/.venvs/agate-dev/bin/ruff check <4 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <4 个新文件>
+# exit 0（R1-R5 零命中）
+# 待主 Agent 执行：python3 -m pytest agate/tests/ -k "commit_msg or pre_push or install_hook" + 原 4 bats + consistency
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：
+  - pre-push integration 的平台分支用 `sys.platform == "win32"` 判定（bats 的
+    `uname -s == *MINGW*|*MSYS*`），Windows 分支断言文件存在、软链语义由 Linux 全量覆盖。
+  - CSG.3/CSG.4 的 commit message 用 run_cli 多 `-m` 参数传递（等价 bats `-m` 连续
+    段），`self-gate-review:` / `self-gate-skip:` 前缀行经 git 拼入消息文件。
+  - install-hook 复制模式用例的 fake agate_root 用 `shutil.copy2` 复制三个 hook 薄壳
+    （pre-commit / commit-msg / pre-push-gate.sh，同 bats cp 清单）。
+
