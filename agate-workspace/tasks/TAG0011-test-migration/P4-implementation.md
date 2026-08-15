@@ -122,3 +122,58 @@ python3 agate/scripts/check-platform-assumptions.py <6 个新文件>
   pytest 迁移中直接测产品代码 `agate_common.probe_python`（当前唯一的探测实现，P3 §4 批次 0 口径），
   与 bdd-17 的 PATH 回退场景部分重叠，但 bdd-15 焦点为"回退解析"、bdd-17 焦点为"无 python fail-closed"，
   各自独立成立。
+
+## 批次 2 — 共享工具（6 文件 / 39 @test）
+
+### 迁移清单
+
+| 迁移源（bats，只读保留） | 目标 pytest（新建） | 用例数 |
+|--------------------------|---------------------|--------|
+| `unit/agate-json-get.bats` | `unit/test_agate_json_get.py` | 8 |
+| `unit/agate-md-field-get.bats` | `unit/test_agate_md_field_get.py` | 14 |
+| `unit/agate-state-get.bats` | `unit/test_agate_state_get.py` | 6 |
+| `unit/agate-retreat-state.bats` | `unit/test_agate_retreat_state.py` | 4 |
+| `unit/agate-state-yaml-check.bats` | `unit/test_agate_state_yaml_check.py` | 3 |
+| `unit/agate-read-p5-commands.bats` | `unit/test_agate_read_p5_commands.py` | 4 |
+
+### 关键实现点
+
+- **合并流（P2 BLOCKER-1）**：7 处 `[ -z "$output" ]`（JGET.7 / STGET.2 / STGET.6 / RSTATE.2 / SY.1 合法态 /
+  P5C.2 / P5C.3）→ `assert result.output.strip() == ""`
+  （`.strip()` 兜底：bats `$output` 剥尾部换行，pytest subprocess 保留 `print("")` 产生的 `\n`）。
+- **精确等值**：bats `[[ "$output" == "2" ]]` 等（JGET.1/3/4/6、MDF 全字段、STGET.1/3/4、RSTATE.1）
+  → `assert result.output.strip() == "2"`（同上换行差，P2 §3.2 精确等值注意）；STGET.5 前缀断言
+  `"P1=3 (MAX=3)" in result.output`；JGET.5/7、SY.2/3、P5C.1/4 的包含断言直接 `in result.output`。
+- **stdin 管道**：JGET 全部 op + STGET.3 用 `run_cli(..., input=...)`（JGET.8 输入含真实换行
+  `'a"b\nc'`，断言 `'a\\"b' in result.output`）；bats `echo '...' | ...` 管道等价。
+- **env 传参**：JGET.5/6 `PROJECT_MODULE`、STGET/RSTATE/SY 的 `STATE_FILE`、RSTATE 的 `CUR/TGT/
+  NEW_PHASE/RETREAT_REASON`、MDF 的 `FILE`、P5C 的 `P2_DESIGN` 全部经 `run_cli(..., env=...)`
+  （等价 bats `KEY=value $PYTHON ...` 前缀）。
+- **多段 run 单用例**：SY.1（TAG0001 通过 + T001 拒绝两段 run 同 @test，P2-review FIND 要求）在单个
+  test 函数内写两次 `.state.yaml` + 两次 run_cli。
+- **文件回写断言**：RSTATE.3 / bdd-7（bats `run cat .state.yaml` 后断言合并流）→ 直接
+  `state_file.read_text(encoding="utf-8")` 断言内容（`phase: P3` / `attempt: 2` / 中文 reason）。
+- windows_smoke 打标（P3 §5.2：本批 6 文件无平台关键词用例，仅每文件第 1 用例）：
+  `test_jget_1` / `test_mdf_1` / `test_stget_1` / `test_rstate_1` / `test_sy_1` / `test_p5c_1`——共 6 处。
+
+### 自查结果
+
+```bash
+cd /home/kity/oclab/agate/.worktrees/agate-TAG0010
+python3 -m pytest agate/tests/unit/test_agate_json_get.py agate/tests/unit/test_agate_md_field_get.py agate/tests/unit/test_agate_state_get.py agate/tests/unit/test_agate_retreat_state.py agate/tests/unit/test_agate_state_yaml_check.py agate/tests/unit/test_agate_read_p5_commands.py -q
+# 39 passed in 1.13s（8+14+6+4+3+4，全绿）
+python3 -m pytest agate/tests/unit/ -k "json or md_field or state_get or retreat_state or state_yaml or read_p5" -q   # P3 §6 批次 2 验证命令
+# 39 passed, 25 deselected（-k 契约命中 6 文件全数）
+/home/kity/.venvs/agate-dev/bin/ruff check <6 个新文件>
+# All checks passed（exit 0）
+python3 agate/scripts/check-platform-assumptions.py <6 个新文件>
+# exit 0（R1-R5 零命中）
+```
+
+### 偏离点
+
+- 无 `[DESIGN_GAP]` / `[SCOPE+]`。
+- 实现细节（非偏离，记录供后续批次参照）：空断言统一 `result.output.strip() == ""` 而非设计表的
+  `result.output == ""`——因被测脚本空值路径多走 `print("")`（stdout 为 `"\n"`），bats `$output` 剥尾部
+  换行后为空，`.strip()` 才与 bats 语义逐位一致（批次 1 的 GMC.2 空路径是零 print，`== ""` 恰好等价，
+  本批 STGET.2 / MDF.8/10/11/12 / JGET.2 必须 strip，统一口径更稳）。
