@@ -44,7 +44,7 @@ def test_bdd_15_python_fallback_when_python3_missing(
         env={"PATH": str(fakebin), "PYTHONPATH": str(agate_scripts)},
     )
     assert result.returncode == 0
-    assert str(dest) in result.output
+    assert str(dest).lower() in result.output.lower()
 
 
 def test_bdd_17_probe_python_fail_closed(python_exe, run_cli, agate_scripts, tmp_path):
@@ -64,7 +64,7 @@ def test_bdd_17_probe_python_fail_closed(python_exe, run_cli, agate_scripts, tmp
         env={"PATH": str(fakebin), "PYTHONPATH": scripts_py},
     )
     assert result.returncode == 0
-    assert str(dest) in result.output
+    assert str(dest).lower() in result.output.lower()
 
     # ③ PATH 无任何 python → probe_python 返回空 → 输出 NONE（调用方 fail-closed 阻断）
     emptybin = tmp_path / "emptybin"

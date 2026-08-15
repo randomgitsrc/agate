@@ -67,7 +67,7 @@
 | 2 | 中（范围外） | agate/phase-cards/P1-requirements.md:16,84 / P2-design.md:12,117,133 / P3-tdd.md:53 / P4-implementation.md:4,8,87,119,122 / P5-verification.md:82 / P7-consistency.md:13,79 / P8-release.md:57 | 编排者每阶段必读的卡片仍写 `check-gate.sh`（P4 卡片另有 `check-pruning.sh`、`agate-capture-env-baseline.sh`）。脚本已不存在，卡片命令与实际产物脱节；这些文件不在本次评审清单内，但直接违背"无过时引用"目标 | 建议后续批次统一改 `check-gate.py` / `check-pruning.py` / `agate-capture-env-baseline.py`，并纳入 `check-protocol-consistency.py` 的引用扫描（若已覆盖则修复后自然清零） |
 | 3 | 轻 | agate/SETUP.md:101 | "历史 review 文件保持 CRLF，见 `agate/AGENTS.md`"——`agate/AGENTS.md` 无任何 CRLF 讨论；该说明实际在 `.gitattributes` 文件头注释里。交叉引用失效 | 改为"见仓库根 `.gitattributes` 文件头注释"（或删除该引用） |
 | 4 | 轻 | README.md:32（`README.zh-CN.md:32` 镜像） | "workspace is created automatically on first run — no manual setup" 与 SETUP.md 步骤 5 让用户手工 `mkdir -p {AGATE_WORKSPACE}/…` 存在轻微张力。orchestrator-template.md 接入段确认编排者首跑会自建（可辩护），但"no manual setup"仍略强 | 可改为"the workspace directory structure is created on first run；see `agate/SETUP.md` for the one-time setup"，与 SETUP 步骤 5 的自查语义对齐 |
-| 5 | 轻 | agate/UPGRADING.md:106 | "仅存 `test_*.py` pytest 用例"表述略宽——`agate/tests/` 下还含 `conftest.py`、`fixtures/`、`scripts/count-tests.sh` 等非 `test_*.py` 文件 | 改为"不再有 `.bats`，测试用例均为 `test_*.py` pytest 用例" |
+| 5 | 轻 | agate/UPGRADING.md:106 | "仅存 `test_*.py` pytest 用例"表述略宽——`agate/tests/` 下还含 `conftest.py`、`fixtures/`、`agate/tests/scripts/count-tests.sh` 等非 `test_*.py` 文件 | 改为"不再有 `.bats`，测试用例均为 `test_*.py` pytest 用例" |
 
 ## 4. 总体结论
 

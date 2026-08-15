@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -319,6 +320,39 @@ def agate_scripts(agate_root):
 @pytest.fixture(scope="session")
 def agate_assets(agate_root):
     return agate_root / "assets"
+
+
+_GIT_BASH_CANDIDATES = (
+    r"C:\Program Files\Git\bin\bash.exe",
+    r"C:\Program Files (x86)\Git\bin\bash.exe",
+)
+
+
+def _is_wsl_bash(path):
+    """System32 下的 bash.exe 是 WSL 入口（无分发版时输出 UTF-16 错误），必须排除。"""
+    system32 = os.path.normcase(
+        os.path.join(os.environ.get("SYSTEMROOT", r"C:\Windows"), "System32", "bash.exe")
+    )
+    return os.path.normcase(str(path)) == system32
+
+
+@pytest.fixture(scope="session")
+def bash():
+    """bash 解释器：Linux 返回 "bash"（不改变行为）；Windows 探测 Git Bash 完整路径。
+
+    Windows 上 PATH 里裸 "bash" 解析到 System32\\bash.exe（WSL 入口），无 WSL 分发版时
+    输出 UTF-16 错误导致测试误判——优先已知 Git Bash 安装位置，再 shutil.which 排除 System32。
+    """
+    if sys.platform != "win32":
+        return "bash"
+    for candidate in _GIT_BASH_CANDIDATES:
+        if os.path.isfile(candidate):
+            return candidate
+    for name in ("bash", "bash.exe"):
+        found = shutil.which(name)
+        if found and not _is_wsl_bash(found):
+            return found
+    pytest.fail("Windows 上找不到 Git Bash（System32 的 WSL bash 已排除）")
 
 
 @pytest.fixture(scope="session")

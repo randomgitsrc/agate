@@ -761,7 +761,7 @@ def test_retreat_2_midway_hook_rejected(
     assert "retreat:" not in log
 
 
-def test_changelog_1_p4_no_changelog_warning(git_repo, agate_root, agate_scripts, run_cli):
+def test_changelog_1_p4_no_changelog_warning(git_repo, agate_root, agate_scripts, run_cli, bash):
     repo = git_repo.path
     git_repo.git("commit", "-q", "--allow-empty", "-m", "init")
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
@@ -775,7 +775,7 @@ def test_changelog_1_p4_no_changelog_warning(git_repo, agate_root, agate_scripts
     git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
     git_repo.stage("agate-workspace/tasks/T001/P0-brief.md")
     result = run_cli(
-        "bash",
+        bash,
         str(agate_scripts / "pre-commit-gate.sh"),
         cwd=str(repo),
         env={"AGATE_ROOT": str(agate_root)},
@@ -783,7 +783,7 @@ def test_changelog_1_p4_no_changelog_warning(git_repo, agate_root, agate_scripts
     assert "CHANGELOG" not in result.output
 
 
-def test_changelog_2_p8_changelog_warning(git_repo, agate_root, agate_scripts, run_cli):
+def test_changelog_2_p8_changelog_warning(git_repo, agate_root, agate_scripts, run_cli, bash):
     repo = git_repo.path
     git_repo.git("commit", "-q", "--allow-empty", "-m", "init")
     task_dir = repo / "agate-workspace" / "tasks" / "T001"
@@ -797,7 +797,7 @@ def test_changelog_2_p8_changelog_warning(git_repo, agate_root, agate_scripts, r
     git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
     git_repo.stage("agate-workspace/tasks/T001/P0-brief.md")
     result = run_cli(
-        "bash",
+        bash,
         str(agate_scripts / "pre-commit-gate.sh"),
         cwd=str(repo),
         env={"AGATE_ROOT": str(agate_root)},
@@ -1108,7 +1108,7 @@ def test_it10_root_state_backward_compat(
     assert result.returncode == 0
 
 
-def test_it11_p2_code_file_warning(git_repo, agate_root, agate_scripts, run_cli):
+def test_it11_p2_code_file_warning(git_repo, agate_root, agate_scripts, run_cli, bash):
     """IT.11：P2 阶段暂存代码文件 → WARNING（非实现阶段直接改代码）。"""
     repo = git_repo.path
     _install_pre_commit_hook(repo, agate_scripts)
@@ -1130,7 +1130,7 @@ def test_it11_p2_code_file_warning(git_repo, agate_root, agate_scripts, run_cli)
     git_repo.stage("hack.py")
     git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
     result = run_cli(
-        "bash",
+        bash,
         str(agate_scripts / "pre-commit-gate.sh"),
         cwd=str(repo),
         env={"AGATE_ROOT": str(agate_root)},
@@ -1221,7 +1221,7 @@ def test_hook_evidence_warning_low_variance_not_blocked(
     sys.platform == "win32",
     reason="Windows 无 POSIX 软链，软链 hook 自定位场景无法验证",
 )
-def test_agate_root_self_locate_worktree(git_repo, agate_root, tmp_path, run_cli):
+def test_agate_root_self_locate_worktree(git_repo, agate_root, tmp_path, run_cli, bash):
     """AGATE_ROOT 未设时自定位到脚本自身本体（worktree 软链，T086）。"""
     repo = git_repo.path
     workflow_root = tmp_path / "workflow-root"
@@ -1240,7 +1240,7 @@ def test_agate_root_self_locate_worktree(git_repo, agate_root, tmp_path, run_cli
     )
     hook = repo / ".git" / "hooks" / "pre-commit"
     result = run_cli(
-        "bash",
+        bash,
         "-c",
         f"unset AGATE_ROOT; cd {shlex.quote(str(repo))} && bash {shlex.quote(str(hook))}",
         cwd=str(repo),
@@ -1349,7 +1349,9 @@ def test_bdd_17_metachar_dir_prod_touched(git_repo, agate_root, agate_scripts, r
 
 
 @pytest.mark.windows_smoke
-def test_bdd_19_copy_mode_agate_root(git_repo, agate_root, agate_scripts, run_cli):
+def test_bdd_19_copy_mode_agate_root(
+    git_repo, agate_root, agate_scripts, run_cli, bash
+):
     """bdd-19：复制模式 hook 经 .agate-root 标记正确解析 AGATE_ROOT。"""
     repo = git_repo.path
     hook = repo / ".git" / "hooks" / "pre-commit"
@@ -1367,7 +1369,7 @@ def test_bdd_19_copy_mode_agate_root(git_repo, agate_root, agate_scripts, run_cl
     _write_state_yaml(task_dir, "TXX0001", "P0")
     git_repo.stage("agate-workspace/tasks/T001/")
     result = run_cli(
-        "bash",
+        bash,
         "-c",
         f"cd {shlex.quote(str(repo))} && env -u AGATE_ROOT git commit -m 'copy mode hook'",
         cwd=str(repo),

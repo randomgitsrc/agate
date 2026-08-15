@@ -392,7 +392,7 @@ Layer 2: CI backstop（远程，防"故意绕过"）
 | evidence 类型检查 | check-p6-evidence.py: ui_affected=true 时 evidence 不能全是 .md/.txt（防源码分析充数）。E.15/E.16/E.17 测试 | 已实施 |
 | office-hours 角色清理 | 删除角色文件 + 清理 9 处引用 + 六问内化到 P0 卡片作为自检清单 | 已实施 |
 | Issue #002 | self-gate 递归触发缺乏终止机制 | 待设计 |
-| Task 派生机制 | P1/P2 声明 subtasks + agate-create-subtask.sh 自动生成 P0-brief 骨架 + active-tasks.md 依赖列真正使用。subtask 编号不预分配（subagent 声明时只写 name+reason+depends_on，主 Agent 创建时分配实际编号）。plan 需完善：BDD 提取范围、依赖列填充时机、subtask 间状态可见性 | 待论证（`docs/plans/agate-task-derivation-20260804.md`） |
+| Task 派生机制 | P1/P2 声明 subtasks + agate-create-subtask.sh 自动生成 P0-brief 骨架 + active-tasks.md 依赖列真正使用。subtask 编号不预分配（subagent 声明时只写 name+reason+depends_on，主 Agent 创建时分配实际编号）。plan 需完善：BDD 提取范围、依赖列填充时机、subtask 间状态可见性 | 待论证（`archived/docs-2026-08/plans/agate-task-derivation-20260804.md`） |
 | **T080 复盘 — gate 格式契约透明化** | verifier/consistency-reviewer/dispatch-context 三个文件追加精确正则模板。verifier 知道 PASS/FAIL 行、vision YAML 结构、引用括号格式；consistency-reviewer 知道 DESIGN_GAP 行首格式；dispatch-context 约束节避免行首 PASS/FAIL | 已实施 |
 | **T080 复盘 — P7 DESIGN_GAP_REVIEWED 行首格式** | 含在 gate 格式契约透明化中（consistency-reviewer 角色文件） | 已实施 |
 | **T080 复盘 — vision YAML 结构模板缺失** | 含在 gate 格式契约透明化中（verifier 角色文件） | 已实施 |

@@ -40,7 +40,9 @@ _FAKE_SCRIPTS = [
 
 
 @pytest.mark.windows_smoke
-def test_b3_warning_staged_missing_dispatch_context_warns(git_repo, agate_root, run_cli, tmp_path):
+def test_b3_warning_staged_missing_dispatch_context_warns(
+    git_repo, agate_root, run_cli, bash, tmp_path
+):
     repo = git_repo.path
     (repo / "README.md").write_text("init\n", encoding="utf-8")
     git_repo.commit("init")
@@ -61,7 +63,7 @@ def test_b3_warning_staged_missing_dispatch_context_warns(git_repo, agate_root, 
     shutil.copytree(agate_root / "assets", fake / "assets")
 
     result = run_cli(
-        "bash",
+        bash,
         str(fake_scripts / "pre-commit-gate.sh"),
         cwd=str(repo),
         env={"AGATE_ROOT": str(fake)},

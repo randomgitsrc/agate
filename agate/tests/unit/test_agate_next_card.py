@@ -36,7 +36,9 @@ def _run_card(agate_scripts, python_exe, run_cli, phase, cwd=None, env=None):
 
 
 def _file_sha256(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """阶段卡文件 sha256：Windows checkout 可能 CRLF（git autocrlf），归一化 \r\n → \n
+    与 CLI 输出（Python print 到管道 universal newlines 为 \n）对齐。"""
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def _body_sha256(cli_output, skip_lines=4):

@@ -31,13 +31,13 @@ def _assert_pre_push_installed(repo, agate_scripts):
         assert os.readlink(str(hook)) == str(agate_scripts / "pre-push-gate.sh")
 
 
-def _run_gate(run_cli, agate_scripts, agate_root, repo, line, env=None):
+def _run_gate(run_cli, bash, agate_scripts, agate_root, repo, line, env=None):
     """等价 `echo 'LINE' | bash pre-push-gate.sh 2>&1 || true`（2>&1 合并流由 run_cli 承接）。"""
     gate_env = {"AGATE_ROOT": str(agate_root)}
     if env:
         gate_env.update(env)
     return run_cli(
-        "bash",
+        bash,
         str(agate_scripts / "pre-push-gate.sh"),
         input=line,
         cwd=str(repo),
@@ -47,7 +47,7 @@ def _run_gate(run_cli, agate_scripts, agate_root, repo, line, env=None):
 
 @pytest.mark.windows_smoke
 def test_pre_push_1_new_branch_skips_check(
-    git_repo, agate_scripts, agate_root, python_exe, run_cli
+    git_repo, agate_scripts, agate_root, python_exe, run_cli, bash
 ):
     repo = git_repo.path
     _install(run_cli, python_exe, agate_scripts, repo, agate_root)
@@ -59,7 +59,7 @@ def test_pre_push_1_new_branch_skips_check(
     sha = git_repo.git("rev-parse", "HEAD").stdout.strip()
     line = f"refs/heads/main {sha} refs/heads/main {'0' * 40}"
 
-    result = _run_gate(run_cli, agate_scripts, agate_root, repo, line)
+    result = _run_gate(run_cli, bash, agate_scripts, agate_root, repo, line)
     assert "新分支" in result.output
 
 
@@ -85,7 +85,7 @@ def test_pre_push_2_copy_mode_install_hint(
 
 
 def test_pre_push_3_big_change_triggers_hint(
-    git_repo, agate_scripts, agate_root, python_exe, run_cli
+    git_repo, agate_scripts, agate_root, python_exe, run_cli, bash
 ):
     repo = git_repo.path
     _install(run_cli, python_exe, agate_scripts, repo, agate_root)
@@ -108,6 +108,7 @@ def test_pre_push_3_big_change_triggers_hint(
     line = f"refs/heads/main {current_sha} refs/heads/main {prev_sha}"
     result = _run_gate(
         run_cli,
+        bash,
         agate_scripts,
         agate_root,
         repo,
@@ -118,7 +119,7 @@ def test_pre_push_3_big_change_triggers_hint(
 
 
 def test_pre_push_4_zero_match_no_integer_error(
-    git_repo, agate_scripts, agate_root, python_exe, run_cli
+    git_repo, agate_scripts, agate_root, python_exe, run_cli, bash
 ):
     repo = git_repo.path
     _install(run_cli, python_exe, agate_scripts, repo, agate_root)
@@ -134,7 +135,7 @@ def test_pre_push_4_zero_match_no_integer_error(
     current_sha = git_repo.git("rev-parse", "HEAD").stdout.strip()
 
     line = f"refs/heads/main {current_sha} refs/heads/main {prev_sha}"
-    result = _run_gate(run_cli, agate_scripts, agate_root, repo, line)
+    result = _run_gate(run_cli, bash, agate_scripts, agate_root, repo, line)
     assert "整数表达式" not in result.output
     assert "integer expression" not in result.output
     assert result.returncode == 0

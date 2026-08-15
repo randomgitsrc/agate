@@ -71,7 +71,7 @@ PROTOCOL_DIRS = ("agate/assets/",)  # 角色定义与模板也算协议文件
 # 是编排状态而非协议本体——与 docs/plans|reviews 同待遇，宽松检查。
 # v0.43.0（TAG0001）：工作区迁移后任务产物位于 {AGATE_WORKSPACE}/tasks/，
 # 若此处不豁免，CI（干净 checkout，路径不含 .worktrees）会误扫任务产出触发 CHECK 1/2 误报。
-NARRATIVE_DIRS = ("docs/plans/", "docs/reviews/", "docs/design-notes/", "docs/tasks/", "archived/", "agate-workspace/tasks/")
+NARRATIVE_DIRS = ("docs/plans/", "docs/reviews/", "docs/design-notes/", "docs/tasks/", "archived/", "agate-workspace/tasks/", "CHANGELOG.md")
 
 # 引用扫描中要忽略的占位 / 示例 / 运行时生成路径（非仓库实文件）。
 PATH_IGNORE_SUBSTRINGS = (
@@ -115,18 +115,22 @@ class Report:
 
 def iter_md_files(root: Path):
     for p in sorted(root.rglob("*.md")):
-        if ".git" in p.parts:
+        # 用相对 root 的路径判断排除项——绝对路径判断在 worktree 开发场景会把
+        # worktree 自身（路径含 .worktrees/）的所有文件误排除，导致 consistency 空转
+        # （本地 0 ERROR ≠ CI 0 ERROR，TAG0010/0011 实战暴露）
+        rel_parts = p.relative_to(root).parts
+        if ".git" in rel_parts:
             continue
-        if "archived" in p.parts or ".archived" in p.parts:
+        if "archived" in rel_parts or ".archived" in rel_parts:
             continue
-        if ".worktrees" in p.parts:
+        if ".worktrees" in rel_parts:
             continue
-        if ".opencode" in p.parts or ".claude" in p.parts:
+        if ".opencode" in rel_parts or ".claude" in rel_parts:
             continue
-        if "node_modules" in p.parts:
+        if "node_modules" in rel_parts:
             continue
         # bats 框架自身（CI 克隆到仓库根的 bats/ 目录，含自带 docs/README 引用非 agate 文件）
-        if "bats" in p.parts:
+        if "bats" in rel_parts:
             continue
         yield p
 

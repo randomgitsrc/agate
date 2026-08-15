@@ -69,7 +69,7 @@ bash agate/tests/scripts/count-tests.sh
 | agate-workspace-resolve.py | unit/test_agate_workspace_resolve.py | 10 |
 | dispatch-context warning | unit/test_dispatch_context_warning.py | 1 |
 | 测试 helper（PYTHON 探测）| unit/test_helpers_python.py | 3 |
-| check-platform-assumptions.py | scripts/test_check_platform_assumptions.py | 16 |
+| check-platform-assumptions.py | agate/tests/scripts/test_check_platform_assumptions.py | 16 |
 | 文档/CI 断言（shellcheck/ruff/matrix）| unit/test_env_adapt_docs.py | 9 |
 | 回归 (R1-R5) | regression/ | 17 |
 | commit-msg-self-gate | unit/test_commit_msg_self_gate.py | 4 |
@@ -108,7 +108,7 @@ GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
 | 编号 | 风险 | 兜底 | 状态 |
 |------|------|------|------|
 | R2.3 | ~~DESIGN_GAP 在 P4 但 architect 忘记转抄 P7 → 静默放过~~ | P4/P7 交叉核对 | 已关闭（v0.6 hardening R2.3） |
-| R2.4 | `unit/test_agate_archive_stale_outputs.py` 的 `test_arch_4`（同一任务对 P6 归档两次）偶发因归档目录名用秒级时间戳（`agate-archive-stale-outputs.py` 的时间戳）而在快速连续执行/系统负载较高时撞名，导致该用例单独失败 | 隔离单跑必过（非逻辑错误，纯计时窗口问题）；全量重跑一次可确认是否为此 flaky，而非真实回归 | 已知不修复——功能正确性不受影响（仅影响测试稳定性），根治需把时间戳粒度提到毫秒级或加序号后缀，评估后判定当前收益不足以覆盖改动风险；v0.35 起即存在，非 v0.40.0 引入，v0.40.0（T001）改造过程中多次复现并确认，见 `docs/reviews/agate-alignment-review-final-2026-08-10.md` |
+| R2.4 | `unit/test_agate_archive_stale_outputs.py` 的 `test_arch_4`（同一任务对 P6 归档两次）偶发因归档目录名用秒级时间戳（`agate-archive-stale-outputs.py` 的时间戳）而在快速连续执行/系统负载较高时撞名，导致该用例单独失败 | 隔离单跑必过（非逻辑错误，纯计时窗口问题）；全量重跑一次可确认是否为此 flaky，而非真实回归 | 已知不修复——功能正确性不受影响（仅影响测试稳定性），根治需把时间戳粒度提到毫秒级或加序号后缀，评估后判定当前收益不足以覆盖改动风险；v0.35 起即存在，非 v0.40.0 引入，v0.40.0（T001）改造过程中多次复现并确认，见 `archived/docs-2026-08/reviews/agate-alignment-review-final-2026-08-10.md` |
 
 ## 目录
 

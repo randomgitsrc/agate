@@ -9,9 +9,9 @@
 import pytest
 
 
-def _run_csg(run_cli, agate_scripts, agate_root, commit_msg_file, repo):
+def _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg_file, repo):
     return run_cli(
-        "bash",
+        bash,
         str(agate_scripts / "commit-msg-self-gate.sh"),
         str(commit_msg_file),
         cwd=str(repo),
@@ -21,7 +21,7 @@ def _run_csg(run_cli, agate_scripts, agate_root, commit_msg_file, repo):
 
 @pytest.mark.windows_smoke
 def test_cmsg_1_sh_file_triggers_warning(
-    git_repo, agate_scripts, agate_root, run_cli, tmp_path
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
 ):
     repo = git_repo.path
     (repo / "agate" / "scripts").mkdir(parents=True)
@@ -30,12 +30,12 @@ def test_cmsg_1_sh_file_triggers_warning(
 
     commit_msg = tmp_path / "commit-msg"
     commit_msg.write_text("feat: test\n", encoding="utf-8")
-    result = _run_csg(run_cli, agate_scripts, agate_root, commit_msg, repo)
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
     assert "self-gate" in result.output
 
 
 def test_cmsg_2_py_file_triggers_warning(
-    git_repo, agate_scripts, agate_root, run_cli, tmp_path
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
 ):
     repo = git_repo.path
     (repo / "agate" / "scripts").mkdir(parents=True)
@@ -44,12 +44,12 @@ def test_cmsg_2_py_file_triggers_warning(
 
     commit_msg = tmp_path / "commit-msg"
     commit_msg.write_text("feat: test\n", encoding="utf-8")
-    result = _run_csg(run_cli, agate_scripts, agate_root, commit_msg, repo)
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
     assert "self-gate" in result.output
 
 
 def test_cmsg_3_non_agate_py_no_warning(
-    git_repo, agate_scripts, agate_root, run_cli, tmp_path
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
 ):
     repo = git_repo.path
     (repo / "other").mkdir(parents=True)
@@ -58,13 +58,13 @@ def test_cmsg_3_non_agate_py_no_warning(
 
     commit_msg = tmp_path / "commit-msg"
     commit_msg.write_text("feat: test\n", encoding="utf-8")
-    result = _run_csg(run_cli, agate_scripts, agate_root, commit_msg, repo)
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
     assert result.returncode == 0
     assert result.output == ""
 
 
 def test_cmsg_4_review_path_clears_warning(
-    git_repo, agate_scripts, agate_root, run_cli, tmp_path
+    git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path
 ):
     repo = git_repo.path
     (repo / "agate" / "scripts").mkdir(parents=True)
@@ -75,5 +75,5 @@ def test_cmsg_4_review_path_clears_warning(
     commit_msg.write_text(
         "feat: test\nself-gate-review: docs/reviews/test.md\n", encoding="utf-8"
     )
-    result = _run_csg(run_cli, agate_scripts, agate_root, commit_msg, repo)
+    result = _run_csg(run_cli, bash, agate_scripts, agate_root, commit_msg, repo)
     assert result.returncode == 0

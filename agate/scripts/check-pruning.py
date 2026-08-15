@@ -62,7 +62,10 @@ def _staged_source_count(task_dir):
         return 0
     repo_root = os.path.realpath(repo_root)
     parent = os.path.dirname(task_dir) or "."
-    tasks_base_rel = os.path.relpath(parent, repo_root).replace("\\", "/")
+    try:
+        tasks_base_rel = os.path.relpath(parent, repo_root).replace("\\", "/")
+    except ValueError:
+        return 0
     rc, out = run_git(["diff", "--cached", "--name-only"])
     if rc != 0:
         return 0

@@ -103,7 +103,7 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 - 依赖从「Bats + shellcheck + python3-yaml」改为「**pytest + pyyaml**」；shellcheck 仍用于 3 个 hook 薄壳静态检查（CI `shellcheck` job 保留）
 - **Windows 冒烟机制变化**：`check-windows-smoke.sh` 退役，Windows CI 冒烟由 `@pytest.mark.windows_smoke` marker 承接（`python3 -m pytest agate/tests/ -m windows_smoke`）——平台敏感用例的打标清单即代表集，语义与退役脚本的「每文件第 1 个用例 + 平台关键词用例」一致
-- **目录变化**：`agate/tests/helpers/` 三文件退役；`agate/tests/` 下 60 个 `.bats` 已全部删除（0 残留），不再有 `.bats`，测试用例均为 `test_*.py` pytest 用例（`conftest.py` fixture、`scripts/count-tests.sh` 等支持文件保留）
+- **目录变化**：`agate/tests/helpers/` 三文件退役；`agate/tests/` 下 60 个 `.bats` 已全部删除（0 残留），不再有 `.bats`，测试用例均为 `test_*.py` pytest 用例（`conftest.py` fixture、`agate/tests/scripts/count-tests.sh` 等支持文件保留）
 
 **② CI matrix（项目维护者）**：`.github/workflows/protocol-tests.yml` 的 `bats` job 改为 `pytest` job（ubuntu/windows 双 matrix 保留：Linux 全量 + Windows `-m windows_smoke` 冒烟）。若你 fork/自建 CI 参考了 agate 的 workflow，注意此点——分支保护 required checks 需更新为实际 job 名（`pytest` / `pytest (ubuntu-latest)` / `pytest (windows-latest)` 等，含平台后缀）。
 

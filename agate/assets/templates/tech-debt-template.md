@@ -50,7 +50,7 @@ title: 模块耦合
 status: open
 priority: high
 evidence:
-  - path: docs/reviews/review-20260812-1204.md
+  - path: archived/docs-2026-08/reviews/review-20260812-1204.md
 impact: 未来变更更贵
 recommendation: 拆分模块
 closure_criteria:
