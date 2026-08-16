@@ -6,8 +6,10 @@
 #   复制模式下 wrapper 的 readlink -f 定位到 .git/hooks 目录，须 env AGATE_ROOT 指向真实 agate 根。
 # 流语义（P2 BLOCKER-1）：hook WARNING 写 stderr，git 转发出现在合并流——断言用 result.output。
 
+import os
 import shlex
 import shutil
+import sys
 
 import pytest
 
@@ -46,12 +48,46 @@ def _commit(run_cli, bash, repo, agate_root, *args):
 
 
 @pytest.mark.windows_smoke
-def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_cli, bash):
+def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path):
     repo = _setup_hook(git_repo, agate_scripts)
     (repo / "README.md").write_text("change\n", encoding="utf-8")
     git_repo.stage("README.md")
 
+    # === TEMP DIAGNOSTIC rev3（CI 实证，确认根因后清理） ===
+    print(f"[DIAG-a] sys.platform={sys.platform!r}")
+    print(f"[DIAG-a] bash={bash!r}")
+    print(f"[DIAG-a] shutil.which('bash')={shutil.which('bash')!r}")
+    print(f"[DIAG-a] os.environ.get('PATH')={os.environ.get('PATH')!r}")
+    hook = repo / ".git" / "hooks" / "commit-msg"
+    print(f"[DIAG-b] hook.exists()={hook.exists()}")
+    print(f"[DIAG-b] os.access(hook, os.X_OK)={os.access(hook, os.X_OK)}")
+    print(f"[DIAG-b] mode={oct(hook.stat().st_mode) if hook.exists() else 'n/a'}")
+    gv = run_cli("git", "version")
+    print(f"[DIAG-c] git version rc={gv.returncode} out={gv.output!r}")
+    hp = run_cli("git", "-C", str(repo), "config", "core.hooksPath")
+    print(f"[DIAG-c] core.hooksPath rc={hp.returncode} out={hp.output!r}")
+    msg_file = tmp_path / "commit-msg"
+    msg_file.write_text("update readme\n", encoding="utf-8")
+    man = run_cli(
+        bash,
+        str(hook),
+        str(msg_file),
+        cwd=str(repo),
+        env={"AGATE_ROOT": str(agate_root)},
+    )
+    print(f"[DIAG-d] manual hook rc={man.returncode}")
+    print(f"[DIAG-d] manual hook stdout={man.stdout!r}")
+    print(f"[DIAG-d] manual hook stderr={man.stderr!r}")
+    man_noenv = run_cli(bash, str(hook), str(msg_file), cwd=str(repo))
+    print(f"[DIAG-d] manual hook(noenv) rc={man_noenv.returncode}")
+    print(f"[DIAG-d] manual hook(noenv) stdout={man_noenv.stdout!r}")
+    print(f"[DIAG-d] manual hook(noenv) stderr={man_noenv.stderr!r}")
+    # === END TEMP DIAGNOSTIC ===
+
     result = _commit(run_cli, bash, repo, agate_root, "-m", "update readme")
+    print(f"[DIAG-e] commit rc={result.returncode}")
+    print(f"[DIAG-e] commit stdout={result.stdout!r}")
+    print(f"[DIAG-e] commit stderr={result.stderr!r}")
     assert result.returncode == 0
     assert "self-gate-review" in result.output
 

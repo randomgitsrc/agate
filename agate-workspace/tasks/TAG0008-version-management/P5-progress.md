@@ -72,3 +72,22 @@
 - 已 commit 605a0cc + push origin feat/TAG0008-version-management（3500192..605a0cc）。CI 已触发，Windows 冒烟为最终裁判。
 - 自检：grep 确认 _commit 含 bash 包装（line 35-45），6 个 test_csg_* 均传 bash；薄壳/py 零改动。
 - 不做"Windows 已修复"声明——方法 B 是 dispatch-context 推荐假设，CI 结果由主 Agent 跟进。
+
+## implementer fix1 rev3 (诊断)
+- 读取 rev3 dispatch-context（前两轮证伪：shebang→/bin/bash 无效；bash 包装 git 也无效）+ implementer 角色 + 输入文件全部读完。
+- CI 证据确认（gh run view 31962129661 --log-failed）：
+  - rev2 push（436bbe6）后 Windows 仍失败：`AssertionError: assert 'self-gate-review' in '[master f67bede] update readme\n 1 file changed, 1 insertion(+), 1 deletion(-)\n'`
+  - returncode==0（commit 成功，hook 未 fail-closed 阻断）；output 无 WARNING 无 GATE ERROR 无 "cannot spawn"。
+  - 88 passed / 1 failed / 1 skipped / 735 deselected。
+- 已读 conftest：bash fixture Windows 探测 Git Bash 完整路径排除 System32 WSL；run_cli 用 subprocess.run（合并流 .output = stdout+stderr）。
+- 事实链确认：test_cmsg_1（bash 直调薄壳）Windows 通过 = 薄壳链可用；test_csg_1 唯一区别 = git 调 hook。分歧必在 git→hook 边界，但两轮修复未触达 → 本轮加诊断打印拿 Windows 真机证据。
+- 开始改 test_csg_1 加临时诊断打印（步骤 a-e）。
+- test_csg_1 已加临时诊断打印（a-e）：
+  - DIAG-a: sys.platform / bash / shutil.which('bash') / PATH
+  - DIAG-b: hook.exists() / os.access(hook, X_OK) / mode
+  - DIAG-c: git version / core.hooksPath config
+  - DIAG-d: 手动 bash 调 hook（带 AGATE_ROOT + 不带 env 两路）
+  - DIAG-e: commit 的 stdout/stderr 分离
+- 本地 Linux 验证语法正确 + 行为正常：DIAG-a which(bash)=/usr/bin/bash；DIAG-b hook 存在 + X_OK + 755；DIAG-d 手动 hook 带 env → stderr 出 WARNING（薄壳链可用）；DIAG-e commit rc=0，WARNING 在 stderr（合并流 .output 含 self-gate-review）。
+- integration 全文件 6 passed；新增 import os/sys（无 ruff 问题风险，lint 跑一下）。
+- 下一步：commit + push 分支 → CI 看 Windows 诊断输出。

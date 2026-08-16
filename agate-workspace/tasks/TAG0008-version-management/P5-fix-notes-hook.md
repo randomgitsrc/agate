@@ -128,3 +128,54 @@ def _commit(run_cli, bash, repo, agate_root, *args):
 - resolve-entry.py / commit-msg-self-gate.py
 
 [PROD_NOT_TOUCHED]
+
+---
+
+# rev3 — 修复轮 3（CI 实证诊断，不修复）
+
+## 前两轮被证伪
+
+| 轮 | 修复 | push | Windows CI 结果 |
+|---|---|---|---|
+| rev1（3500192） | 薄壳 shebang `#!/usr/bin/env bash` → `#!/bin/bash` | 3500192 | 仍失败 |
+| rev2（605a0cc/436bbe6） | 测试 `_commit` 改 bash 包装 git | 436bbe6 | 仍失败 |
+
+rev2 后 Windows 实际失败证据（gh run view 31962129661 --log-failed）：
+`AssertionError: assert 'self-gate-review' in '[master f67bede] update readme\n 1 file changed, 1 insertion(+), 1 deletion(-)\n'`
+returncode==0（commit 成功），output 无 WARNING、无 GATE ERROR、无 "cannot spawn" → **hook 静默未执行或输出全被吞**。
+
+## 本轮策略：CI 实证诊断（临时诊断打印 a-e）
+
+停止静态猜测。在 `test_csg_1` 加临时诊断打印，push 后从 Windows 真机拿证据：
+
+- **[DIAG-a]** `sys.platform` / `bash` fixture 值 / `shutil.which('bash')` / `os.environ['PATH']` → bash 是否在 PATH、conftest bash fixture 解析结果
+- **[DIAG-b]** `hook.exists()` / `os.access(hook, os.X_OK)` / mode → git `find_hook` 的 access(X_OK) 判定在 Windows 是否成立
+- **[DIAG-c]** `git version` / `git -C repo config core.hooksPath` → hook 路径配置状态
+- **[DIAG-d]** **手动执行 hook**：`bash <hook> <msgfile>`（带 AGATE_ROOT env + 不带 env 两路）→ 薄壳链在测试 repo 环境是否可用（对照 unit test_cmsg_1）
+- **[DIAG-e]** commit 的 stdout/stderr 分离 → WARNING 是否被 git 吞/重定向
+
+## 已收集证据（Linux 本地自查，非 Windows）
+
+| 项 | Linux 结果 | 说明 |
+|---|---|---|
+| DIAG-a | `bash='bash'`, `which(bash)=/usr/bin/bash`, PATH 含 bash | Linux 正常 |
+| DIAG-b | hook exists=True, access X_OK=True, mode 0o100755 | Linux 正常 |
+| DIAG-c | git 2.43.0, core.hooksPath 空（rc=1） | Linux 正常 |
+| DIAG-d 带 env | rc=0, stderr 出 GATE SELF-GATE WARNING | 薄壳链 Linux 可用 |
+| DIAG-d 不带 env | rc=1, stderr 出 GATE ERROR（resolve-entry 失败 fail-closed） | 印证 AGATE_ROOT env 必要性 |
+| DIAG-e | commit rc=0, WARNING 出现在 stderr，合并流含 self-gate-review | Linux 行为正确 |
+
+**Windows 真机证据 = push 后 CI 输出**（本表仅证明诊断代码语法正确 + Linux 行为基线）。
+
+## 待 push 决策（基于 CI 证据，分支判定）
+
+- 若 DIAG-d 带 env 有 WARNING、DIAG-e 无 WARNING → git→hook 边界问题（spawn/解析）
+- 若 DIAG-b X_OK False → find_hook 判定失败（chmod 语义）
+- 若 DIAG-a PATH 缺 bash → bash 包装 git 无效的原因浮现
+- 若 DIAG-d 也无 WARNING → 薄壳链在测试 repo 环境不可用（与 test_cmsg_1 对照差异定位）
+
+## 状态
+
+诊断打印已落盘 + 本地验证通过 + integration 6 passed + ruff 0 error。**push 后 CI 为裁判。**
+
+[PROD_NOT_TOUCHED]
