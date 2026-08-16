@@ -130,6 +130,55 @@ def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_
     print(f"[DIAG-g] trivial hook commit stdout={tres.stdout!r}")
     print(f"[DIAG-g] trivial hook commit stderr={tres.stderr!r}")
     print(f"[DIAG-g] marker exists={(repo / marker_name).exists()}")
+
+    # DIAG-i: probe hook = 真实薄壳链逐段 marker，定位 git 调用下断在哪段
+    probe_name = "probe-hook.marker"
+    probe = (
+        "#!/bin/bash\n"
+        "echo PROBE0-ENTER >> 'probe-hook.marker'\n"
+        "echo PROBE0-ENTER >&2\n"
+        "set -u\n"
+        "echo PROBE1-BASH_SOURCE=${BASH_SOURCE[0]:-$0} >> 'probe-hook.marker'\n"
+        "echo PROBE1-PWD=$(pwd) >> 'probe-hook.marker'\n"
+        "echo PROBE1-AGATE_ROOT=$AGATE_ROOT >> 'probe-hook.marker'\n"
+        "ENTRY_ROOT=\"${AGATE_ROOT:-$(dirname \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")\")}\"\n"
+        "echo PROBE2-ENTRY_ROOT=$ENTRY_ROOT >> 'probe-hook.marker'\n"
+        "if [ ! -d \"$ENTRY_ROOT/scripts\" ] "
+        "&& [ -f \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")/.agate-root\" ]; then\n"
+        "  echo PROBE3-AGATEROOT-MARKER-FOUND >> 'probe-hook.marker'\n"
+        "  ENTRY_ROOT=$(tr -d '\\r' < \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")/.agate-root\")\n"
+        "  echo PROBE3-ENTRY_ROOT=$ENTRY_ROOT >> 'probe-hook.marker'\n"
+        "fi\n"
+        "PY=\"\"\n"
+        "for c in python3 python; do command -v \"$c\" >/dev/null 2>&1 && { PY=\"$c\"; break; }; done\n"
+        "echo PROBE4-PY=$PY >> 'probe-hook.marker'\n"
+        "echo PROBE4-LS-SCRIPTS=$(ls \"$ENTRY_ROOT/scripts\" 2>&1 | head -3) >> 'probe-hook.marker'\n"
+        "if [ -n \"$PY\" ] && [ -f \"$ENTRY_ROOT/scripts/resolve-entry.py\" ]; then\n"
+        "  echo PROBE5-STAGE=$(git diff --cached --name-only 2>&1 | tr '\\n' '|') >> 'probe-hook.marker'\n"
+        "  echo PROBE5-EXEC >> 'probe-hook.marker'\n"
+        "  \"$PY\" \"$ENTRY_ROOT/scripts/resolve-entry.py\" commit-msg \"$@\" 2>>'probe-hook.marker'\n"
+        "  echo PROBE6-DONE-RC=$? >> 'probe-hook.marker'\n"
+        "  exit 0\n"
+        "fi\n"
+        "echo PROBE7-FAILCLOSED >> 'probe-hook.marker'\n"
+        "echo GATE ERROR PROBE-FAILED >&2\n"
+        "exit 1\n"
+    )
+    (repo / ".git" / "hooks" / "commit-msg").write_text(probe, encoding="utf-8")
+    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
+    (repo / probe_name).write_text("", encoding="utf-8")
+    ires = run_cli(
+        bash,
+        "-c",
+        f"cd {shlex.quote(str(repo))} && git commit --allow-empty -m 'probe hook test'",
+        cwd=str(repo),
+        env={"AGATE_ROOT": str(agate_root)},
+    )
+    print(f"[DIAG-i] probe hook commit rc={ires.returncode}")
+    print(f"[DIAG-i] probe hook commit stdout={ires.stdout!r}")
+    print(f"[DIAG-i] probe hook commit stderr={ires.stderr!r}")
+    probe_content = (repo / probe_name).read_text(encoding="utf-8") if (repo / probe_name).exists() else "<no probe>"
+    print(f"[DIAG-i] probe marker content={probe_content!r}")
     # === END TEMP DIAG-f/g/h ===
 
     assert result.returncode == 0

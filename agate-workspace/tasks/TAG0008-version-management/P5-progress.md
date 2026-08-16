@@ -114,3 +114,11 @@
   - DIAG-f: GIT_TRACE=1 git commit（看 run_command 是否出现 commit-msg hook）
   - DIAG-g: 换成 trivial `#!/bin/bash` marker hook（touch 文件 + echo TRIVIAL_HOOK_RAN）→ 若 marker 存在则 git 能执行 bash hook，根因在我们 hook 的 resolve 链；若 marker 缺失则 git 根本不执行
 - Linux 本地验证：DIAG-f GIT_TRACE 显示 `run_command: GIT_EDITOR=: GIT_INDEX_FILE=.git/index .git/hooks/commit-msg .git/COMMIT_EDITMSG`（git 调 hook）；DIAG-g trivial hook rc=0 + TRIVIAL_HOOK_RAN + marker 创建 → Linux 全链路正常，代码语法正确。
+### rev3-r2 CI 证据（具备决定性）
+- [DIAG-f] GIT_TRACE：`trace: run_command: GIT_EDITOR=: GIT_INDEX_FILE=.git/index .git/hooks/commit-msg .git/COMMIT_EDITMSG` + `trace: start_command: .git/hooks/commit-msg .git/COMMIT_EDITMSG` → **git 确实尝试执行 commit-msg hook**
+- [DIAG-g] 换成 trivial `#!/bin/bash` hook（`bash` 直连 + `bash -c "cd repo && git commit"` 包装）→ **rc=0, stderr='TRIVIAL_HOOK_RAN\n', marker exists=True** → **git for windows 完全能执行 `#!/bin/bash` hook**（git→bash→hook 全链正常）
+- **根因收敛**：git 机制 OK；真实 hook 被 git 调用时不产生输出且 rc=0（commit 成功 = 薄壳未 fail-closed 阻断）。区别只能在真实 hook 内部的 resolve 链（AGATE_ROOT 判定 / python 探测 / exec resolve-entry / py triggered 判定）。
+- 下一步：用 probe hook（= 真实薄壳逻辑 + 每阶段 echo marker）确认真实 hook 在 git 调用下走到哪一步（ENTRY_ROOT 解析？python 探测？exec resolve-entry？py 判定 triggered？）。
+- rev3-r2 关键结论：git CAN 跑 `#!/bin/bash` hook（DIAG-g TRIVIAL_HOOK_RAN+marker）；GIT_TRACE（DIAG-f）显示 git attempt `run_command` + `start_command` .git/hooks/commit-msg。真实 hook 被 git 调用时不输出且 rc=0 → 区别在 hook 内部 resolve 链。
+- 已加 DIAG-i probe hook（真实薄壳链逐段 marker + 捕获 resolve-entry→py 输出）：Linux 全链正常（PROBE0→PROBE5-EXEC→PROBE6-DONE-RC=0）。代码语法正确。
+- push f7b4e00（DIAG-f/g/h）+ 待 push DIAG-i → CI 看 Windows probe marker 断点。
