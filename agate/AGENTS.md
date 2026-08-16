@@ -1,8 +1,8 @@
 # agate 协议本体
 
 > 本目录是 **agate 协议的运行时本体**。
-> 软链接 `~/.agate` 默认指向这里（你克隆 agate 时指定的仓库根下的 `agate/` 子目录）。
-> 路径表述：协议文档内写 `{agate_root}/WORKFLOW.md` 等于 `本目录/WORKFLOW.md`。
+> 软链接 `~/.agate` 默认指向这里（你克隆 agate 时指定的仓库根下的 `agate/` 子目录）。TAG0008 起 `~/.agate` 可为**版本管理根目录**（`~/.agate/vX.Y.Z/` 版本目录 + `latest`/`current` 指针），本目录即某版本检出的协议本体；存量单软链布局（legacy）仍兼容，解析直接落到软链目标。
+> 路径表述：协议文档内写 `{agate_root}/WORKFLOW.md` 等于 `本目录/WORKFLOW.md`（`{agate_root}` 经项目版本解析得到，见 `agate-resolve.py`）。
 
 ---
 
@@ -84,13 +84,26 @@ cd <你克隆 agate 的目录> && git pull
 
 **已有 agate 项目升级，先读 `UPGRADING.md`**——它讲清楚旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，避免踩到破坏性变更。
 
-下次 commit 自动用新版本协议。pre-commit/commit-msg/pre-push 三个 hook 均为 `python3 ~/.agate/scripts/install-hook.py` 以 `ln -sf` 软链方式安装，自动指向最新代码、随协议升级自动跟随，**无需重装**。（Windows 无符号链接权限时以复制模式安装，升级后需重跑 `python3 ~/.agate/scripts/install-hook.py`，见 `platform-notes.md`「Windows 原生」章节。）
+下次 commit 自动用新版本协议。pre-commit/commit-msg/pre-push 三个 hook 经 `python3 ~/.agate/scripts/install-hook.py` 安装（`ln -sf` 软链 / Windows 复制模式），指向**固定解析入口** `resolve-entry.py`，运行时按项目 `.agate-version` 解析到对应版本目录——项目锁定旧版用旧版 gate、无声明用全局 current，切版本**无需重装 hook**。（Windows 无符号链接权限时以复制模式安装，升级后需重跑 `python3 ~/.agate/scripts/install-hook.py`，见 `platform-notes.md`「Windows 原生」章节。）
+
+版本管理形态（TAG0008 起）：
+```bash
+python3 ~/.agate/scripts/agate-install.py              # 装最新发布版（latest/current 指针就位）
+python3 ~/.agate/scripts/agate-install.py v0.48.0      # 装指定版本目录（幂等）
+python3 ~/.agate/scripts/agate-install.py --uninstall v0.43.0  # 卸载版本（含项目引用保护）
+python3 ~/.agate/scripts/agate-resolve.py              # 查看当前项目解析到的版本 + 原因
+```
 
 ## 卸载
 
 ```bash
+# 单软链布局（legacy）：删软链接 + 删仓库
 rm ~/.agate                          # 删软链接
 rm -rf <你克隆 agate 的目录>          # 删仓库
+
+# 版本管理布局（TAG0008 起）：卸载具体版本目录 + 清理指针
+python3 ~/.agate/scripts/agate-install.py --uninstall vX.Y.Z
+rm -rf ~/.agate                       # 卸载整个版本管理根（已装版本全删）
 ```
 
 ## 更多

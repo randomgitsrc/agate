@@ -2,7 +2,7 @@
 
 > An orchestration protocol that verifies AI agents the way a build system verifies a compiler.
 
-[![version](https://img.shields.io/badge/version-v0.49.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.50.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)
@@ -27,6 +27,12 @@ LLM agents are powerful but unreliable on long tasks: context gets polluted, sub
 1. **Install agate.** Clone the repository and point `~/.agate` at the protocol body (`agate/`), or use the one-shot installer:
    ```bash
    curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
+   ```
+   For **per-project version pinning**, use the version manager instead (installs versioned directories under `~/.agate/vX.Y.Z/`, keeps the legacy `~/.agate` symlink for backward compatibility):
+   ```bash
+   python3 ~/.agate/scripts/agate-install.py              # latest
+   python3 ~/.agate/scripts/agate-install.py v0.49.0      # a specific version
+   python3 ~/.agate/scripts/agate-install.py --check      # environment probe
    ```
 2. **Register the orchestrator.** Symbolically link `orchestrator-template.md` into your platform's agent directory and install the git hooks (`python3 ~/.agate/scripts/install-hook.py`). Platform-specific steps — OpenCode, Claude Code, and Windows fallbacks — are in [`agate/SETUP.md`](agate/SETUP.md).
 3. **Run your first task.** Start a session with the orchestrator agent. The workspace (`agate-workspace/`) is initialized automatically on the orchestrator's first run; see [`agate/SETUP.md`](agate/SETUP.md) for the one-time setup.

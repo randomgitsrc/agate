@@ -1,0 +1,6 @@
+✓ python3: /usr/bin/python3
+✓ pyyaml: 可用
+✓ git: /usr/bin/git
+✓ bash: /usr/bin/bash
+环境完整（python3 / pyyaml / git / bash 全部可用）
+EXIT_CODE: 0

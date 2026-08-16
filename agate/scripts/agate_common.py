@@ -10,6 +10,8 @@
 - 工作区解析函数（迁移自 agate-workspace-resolve.sh）：resolve_workspace
   （执行模式 main 输出 AGATE_WORKSPACE=/AGATE_TASKS_DIR= 两行，bats 直调契约）
 - hook 公共工具：resolve_agate_root / probe_python / run_git
+- 版本解析（TAG0008）：resolve_version_root（四层，agate-resolve/summary 用）/
+  resolve_hook_root（hook 入口用，返回 warnings）/ _find_project_declaration（.agate-version 向上查找）
 
 约定：所有文本读写显式 encoding="utf-8"；pyyaml 缺失时 fail-closed（同
 agate-state-get.py）。Python 3.8+（禁 match / str.removeprefix）。
@@ -73,15 +75,135 @@ def probe_python():
     return None
 
 
-def resolve_agate_root(script_path):
-    """解析 AGATE_ROOT：软链 readlink 解析 → 复制模式 .agate-root 标记恢复。
+# ---------- 版本解析（TAG0008，resolve-chain 批次） ----------
+# 四层解析语义（P2-design.md §4.1）：
+#   env 最高 → 项目声明（.agate-version，asdf 模式 cwd 向上）→ current/latest 指针链
+#   → legacy 软链兜底（或脚本路径上溯，视调用方）。current/latest 为文本指针
+#   （内容 = 目标名），Windows 复制模式指针形态；版本目录存在即视为已安装。
 
-    AGATE_ROOT 环境变量优先（hook 显式传入）。本体 scripts/ 缺失且标记文件存在时
-    读标记文件（utf-8 + CRLF 剥离）恢复。
+_AGATE_VERSION_RE = re.compile(r"^\s*agate\s*:\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$")
+
+
+def _find_project_declaration(start_dir=None):
+    """cwd 向上找 .agate-version（asdf 模式，BDD-10）。
+
+    返回 (status, version)：status ∈ {"none"（无文件）、"invalid"（文件格式非法）、
+    "ok"（合法声明）}；version 仅 ok 时非空。非法格式（含空文件/未知前缀）→ invalid
+    （BDD-14）。
+    """
+    d = os.path.abspath(start_dir) if start_dir else os.path.abspath(os.getcwd())
+    while True:
+        vf = os.path.join(d, ".agate-version")
+        if os.path.isfile(vf):
+            try:
+                with open(vf, encoding="utf-8") as f:
+                    content = f.read()
+            except OSError:
+                content = ""
+            m = _AGATE_VERSION_RE.match(content)
+            if m:
+                return "ok", m.group(1)
+            return "invalid", None
+        parent = os.path.dirname(d)
+        if parent == d:
+            return "none", None
+        d = parent
+
+
+def _resolve_pointer_chain(base, name, seen=None):
+    """current/latest 指针链解析：目录即根；软链 readlink 目标名继续追；文本指针内容=目标名继续追；防环。
+
+    兼容目录即版本根（无指针时的直接版本目录）、POSIX 软链指针（`os.symlink`）与
+    文本指针（Windows-safe）三种形态。先判 `os.path.islink` 再判 `os.path.isdir`——
+    软链指向版本目录时 `isdir` 恒为 True，若先判 isdir 会把软链路径自身当终态
+    （返回 "current"/"latest" 而非实际版本目录名），导致版本号解析/指针修复失效。
+    """
+    if seen is None:
+        seen = set()
+    if not name or name in seen:
+        return None
+    seen.add(name)
+    p = os.path.join(base, name)
+    if os.path.islink(p):
+        try:
+            target = os.readlink(p)
+        except OSError:
+            return None
+        if not target or target in seen:
+            return None
+        if os.path.isabs(target):
+            t = os.path.normpath(target)
+            if os.path.isdir(t):
+                return t
+            return _resolve_pointer_chain(base, t, seen)
+        return _resolve_pointer_chain(base, target, seen)
+    if os.path.isdir(p):
+        return p
+    if not os.path.isfile(p):
+        return None
+    try:
+        with open(p, encoding="utf-8") as f:
+            content = f.read().replace("\r", "").strip()
+    except OSError:
+        return None
+    if not content or content == name:
+        return None
+    return _resolve_pointer_chain(base, content, seen)
+
+
+def _resolve_version_info(start_dir=None, use_legacy=True):
+    """版本解析核心：env → 项目声明 → current 链 → legacy 软链兜底。
+
+    返回 dict {root, version, reason, warnings}。root 为 None = 终态失败（调用方须
+    fail-closed）。env 覆盖返回 env 原值（不 resolve，与既有契约一致，兼容字面盘符路径）。
+    声明未安装 / 格式非法 → warnings 加警告 + 回退 current（绝不静默禁用，BDD-13/14）。
     """
     env_root = os.environ.get("AGATE_ROOT", "")
     if env_root:
-        return env_root
+        return {"root": env_root, "version": "", "reason": "AGATE_ROOT 环境变量覆盖", "warnings": []}
+
+    base = os.path.expanduser("~/.agate")
+    warnings = []
+    status, declared = _find_project_declaration(start_dir)
+    if status == "ok":
+        vdir = os.path.join(base, declared)
+        if os.path.isdir(vdir):
+            return {"root": vdir, "version": declared, "reason": "引用 .agate-version", "warnings": warnings}
+        warnings.append(f"警告: .agate-version 声明的版本 {declared} 未安装，回退全局 current")
+    elif status == "invalid":
+        warnings.append("警告: .agate-version 格式非法（应为 agate: vX.Y.Z），回退全局 current")
+
+    cur = _resolve_pointer_chain(base, "current")
+    if cur:
+        return {"root": cur, "version": os.path.basename(cur), "reason": "全局 current", "warnings": warnings}
+
+    if use_legacy and os.path.islink(base):
+        return {"root": os.path.realpath(base), "version": "", "reason": "legacy 软链布局（无版本指针）", "warnings": warnings}
+
+    return {"root": None, "version": None, "reason": "无可用 AGATE_ROOT", "warnings": warnings}
+
+
+def resolve_version_root(start_dir=None):
+    """版本解析四层（env → 项目声明 → current 链 → legacy 软链兜底）。
+
+    供 agate-resolve.py / agate-summary.py 复用（P2 §4.1/§4.6）。root 为 None =
+    终态失败（调用方 fail-closed，exit 非 0）。
+    """
+    return _resolve_version_info(start_dir=start_dir, use_legacy=True)
+
+
+def resolve_hook_root(script_path):
+    """hook 解析入口（resolve-entry.py）用：env → 项目声明 → current 链 → 脚本路径上溯兜底。
+
+    返回 (root, warnings)。root 恒非空（脚本路径上溯 + 复制模式 .agate-root 标记恢复兜底，
+    兼容既有 hook 自定位契约），调用方再校验 gate 脚本存在（fail-closed）。
+    """
+    env_root = os.environ.get("AGATE_ROOT", "")
+    if env_root:
+        return env_root, []
+    info = _resolve_version_info(use_legacy=False)
+    if info["root"]:
+        return info["root"], info["warnings"]
     real = str(Path(script_path).resolve())
     agate_root = os.path.dirname(os.path.dirname(real))
     if not os.path.isdir(os.path.join(agate_root, "scripts")):
@@ -90,8 +212,19 @@ def resolve_agate_root(script_path):
             with open(marker, encoding="utf-8") as f:
                 content = f.read().replace("\r", "").strip()
             if content:
-                return content
-    return agate_root
+                return content, info["warnings"]
+    return agate_root, info["warnings"]
+
+
+def resolve_agate_root(script_path):
+    """解析 AGATE_ROOT：env 优先 → 项目版本解析（.agate-version / current 链）→
+    软链 readlink 上溯 → 复制模式 .agate-root 标记恢复。
+
+    AGATE_ROOT 环境变量优先（返回原值）。项目声明命中已安装版本或全局 current 指针链
+    命中时返回版本根；否则回退既有脚本路径上溯语义（做加法不改既有契约）。
+    """
+    root, _warnings = resolve_hook_root(script_path)
+    return root
 
 
 # ---------- 数据流函数（gate-result.sh 迁移） ----------

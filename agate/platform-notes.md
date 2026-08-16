@@ -56,7 +56,7 @@ hardening-roadmap 设计的核心 gate 机制（pre-commit hook + CI backstop）
 | `risk=high` 自审 WARNING | ✅ | ✅ | ✅ | hook 输出 exit 2 |
 | CI backstop（gate 重跑 + provenance 重跑 + git blame WARNING）| ⚠️ 自实现 | ⚠️ 自实现 | ⚠️ 自实现 | GitHub Actions / GitLab CI / Gitea Actions 提供开箱实现（⚠️ Gitea 未实测） |
 | 独立 git author 追踪（P2.10 根治）| ❌ | ❌ | ❌ | Phase 3 平台功能未实现 |
-| `~/.agate` 软链接 | ✅ | ✅ | ✅ | 文件系统级，无平台差异 |
+| `~/.agate` 软链接 / 版本目录 | ✅ | ✅ | ✅ | 文件系统级，无平台差异；TAG0008 起为版本管理根（软链或目录 + 指针），无符号链接权限时指针退化为文本文件 |
 
 **CI backstop 说明**：`.github/workflows/protocol-tests.yml` 的 `gate-backstop` job 用 GitHub Actions 实现。ci-gate-backstop.py 原生支持 GitHub Actions / GitLab CI / Gitea Actions（通过 `detect_ci_platform()` 自动检测）。在自建 CI（Jenkins/本地）跑 agate 时：
 - 需要等价实现：`git push` 后重跑 `scripts/check-gate.py` + `scripts/check-p6-provenance.py` + 调用 `ci-gate-backstop.py`
@@ -145,6 +145,10 @@ agate 的派发机制于 2026-06-12 在 OpenCode 上完成验证：
 | pytest 需安装 | 开发者无法跑 `python3 -m pytest` 测试 | `pip install pytest`（Windows 原生 python 直接可用）；或用 WSL 跑测试（使用不受影响） |
 | CI 仅 ubuntu | Windows 本地行为无 CI 兜底 | 靠本地验证；protocol-tests.yml 的 pytest job 已加 `windows-latest` matrix（`-m windows_smoke` 冒烟，见 AGENTS.md 测试约定） |
 | 路径分隔符 | MSYS2 自动转换 `/c/Users/` <-> `C:\Users\`，但极少数硬编码路径可能出问题 | 遇到时用 `cygpath -w` 转换 |
+
+### latest / current 指针在无符号链接权限时的形态（TAG0008 版本管理）
+
+`~/.agate` 版本管理根目录里的 `latest` / `current` 是**纯指针**：Linux/macOS 用 POSIX 软链（`latest → v0.48.0`），Windows 无符号链接权限（或 `AGATE_HOOK_COPY_MODE=1`）时**退化为文本指针文件**——文件内容为指向的版本目录名（如 `v0.48.0`），解析时按内容恢复目标路径（`agate_common.py` 的指针链解析兼容软链与文本两形）。`.agate-root` 标记先例沿用：复制模式下安装的 hook / orchestrator 副本写 `.agate-root` 记录安装根，解析入口（`resolve-entry.py`）据此恢复 AGATE_ROOT。行为与单软链时代一致：解析失败回退 current，绝不静默禁用 gate。
 
 ### 不支持的场景
 

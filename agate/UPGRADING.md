@@ -178,6 +178,48 @@ python3 ~/.agate/scripts/install-hook.py
 
 **⑤ 无 bash 环境（纯 cmd/PowerShell）成为可行选项**：gate 脚本已全部 Python 化，`python3` 可直接运行（P0-P8 全程可执行）；唯一受限是 git hook 入口薄壳仍需 sh（Git for Windows）。详见 `platform-notes.md`「Windows 原生」。
 
+### v0.50.0 — agate 版本管理机制（~/.agate 目录化 + .agate-version + hook 解析入口迁移，影响：所有已部署项目）
+
+> 版本号已由 P8 确认（v0.50.0）。TAG0008 交付 agate 版本管理机制 v1：`~/.agate` 从**单一软链**升级为**版本管理根目录**（`repo/` + `vX.Y.Z/` 版本目录 + `latest`/`current` 纯指针），新增 `agate-install` / `agate-resolve` / `agate-pack-offline` / `install-offline` 4 个工具，hook 从"指向具体版本脚本"改为"经固定解析入口 resolve-entry 按项目 `.agate-version` 解析版本"。
+
+**① `~/.agate` 布局变化（安装层，影响：管理 agate 本体的人）**：
+
+| 迁移前（≤ v0.49.0） | 迁移后（v0.50.0+） |
+|---------------------|---------------------|
+| `~/.agate` = 软链 → 仓库的 `agate/` 子目录 | `~/.agate/` = 版本管理根目录：`repo/`（唯一主仓库）+ `vX.Y.Z/`（worktree 检出 tag）+ `latest`/`current` 纯指针 + `scripts/`（版本管理工具） |
+| 升级 = `git pull` + hook 自动跟随 | 升级 = `python3 ~/.agate/scripts/agate-install.py`（装最新版，指针切到新版本目录） |
+| 卸载 = `rm ~/.agate` + 删仓库 | 卸载 = `python3 ~/.agate/scripts/agate-install.py --uninstall vX.Y.Z`（含引用保护：仍有项目锁定该版本时拒绝卸载） |
+
+- **存量单软链用户不跑新工具时行为不变（红线，BDD-30）**：`~/.agate` 仍是软链 → 旧 checkout 的 `agate/` 子目录，无版本目录/无指针时，resolve 直接把软链目标解析为 AGATE_ROOT，hook 照常按既有语义运行——**无迁移动作即可继续用**，gate 不静默禁用。
+- **`install.sh` 兼容保留**：单软链场景仍可用，不破坏存量升级路径。
+
+**② `.agate-version` 项目级版本锁定（新机制，可选）**：
+
+- 项目根放 `.agate-version`，内容 `agate: v0.43.0`（v1 只支持精确版本，asdf 模式 cwd 向上找）。
+- 声明版本后该项目 commit 用**该版本**的 gate 逻辑判定；改声明即生效，**不用重装 hook**。
+- 声明版本未安装 / 格式非法（含空文件）→ stderr 警告 + 回退 current（**绝不静默禁用 gate**）。
+- 不声明 = 用全局 `current`（默认 → latest = 最新发布版），与旧行为等价。
+
+**③ hook 解析入口迁移（机制内部，用户无需重装 hook）**：
+
+- `install-hook.py` 现在安装**固定解析入口** `resolve-entry.py`（不随版本变）到 `.git/hooks/`，运行时读项目 `.agate-version` → exec 对应版本 gate py。
+- **符号链接模式（Linux/macOS 标准）**：升级后 hook 自动跟随新解析入口，无需重装。
+- **复制模式（Windows 无符号链接权限）**：hook 是复制品，不自动跟随 → **必须重跑** `python3 ~/.agate/scripts/install-hook.py`（复制模式 + `.agate-root` 标记保留）。
+- AGATE_ROOT env 显式覆盖仍是最高优先级（既有契约未破坏）。
+
+**④ 新工具（可选使用）**：
+
+- `agate-install.py`：安装/卸载/环境探测（`--check` 输出 python3/pyyaml/git/bash 探测结果，exit code 可判 + 分平台修复指引）。
+- `agate-resolve.py`：解析项目实际使用的版本（输出 AGATE_ROOT/AGATE_VERSION/AGATE_REASON）。
+- `agate-pack-offline.py` + `install-offline.py`：外网打包 → 内网离线安装闭环（平台核对 + checksum 校验 + 版本目录 + hook 指向）。
+
+**⑤ agate-summary 语义变化（显示层，提示文案变更）**：`agate-summary.py` 不再显示仓库自身 tag，改为显示**当前项目解析到的版本 + 原因**（`.agate-version` 或全局 current）——排障时直接可见"项目用哪个版本、为什么"。
+
+**迁移动作小结**：
+- 存量单软链用户：无强制迁移（legacy 兜底，BDD-30）。
+- 想用版本隔离：跑 `python3 ~/.agate/scripts/agate-install.py` 装最新版 → 项目加 `.agate-version` → 重跑 `install-hook.py`（Windows 复制模式必须重跑）。
+- 已验证：31 条 BDD 全 PASS（含 BDD-30 存量软链不受破坏红线）。
+
 ### v0.49.0 — 派发编排机制（无破坏性变更）
 
 **本版本无破坏性变更，无需迁移动作。**

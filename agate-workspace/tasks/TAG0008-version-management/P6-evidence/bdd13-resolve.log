@@ -1,0 +1,5 @@
+警告: .agate-version 声明的版本 v0.99.0 未安装，回退全局 current
+AGATE_ROOT=/tmp/opencode/tag0008-p6/home-bdd13/.agate/v0.44.0
+AGATE_VERSION=v0.44.0
+AGATE_REASON=全局 current
+EXIT_CODE: 0

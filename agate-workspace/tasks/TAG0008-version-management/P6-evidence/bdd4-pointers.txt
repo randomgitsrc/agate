@@ -1,0 +1,5 @@
+current -> /tmp/opencode/tag0008-p6/home-bdd4/.agate/v0.48.0
+latest  -> /tmp/opencode/tag0008-p6/home-bdd4/.agate/v0.48.0
+current == latest: True
+basename: v0.48.0
+BDD-4 OK
