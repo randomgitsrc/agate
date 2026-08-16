@@ -1,4 +1,9 @@
 task_id: TAG0008
-phase: P0
-status: pending
-retries: {}
+phase: P1
+status: in_progress
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "requirements-review needs-revision → analyst rev2 修复 9 项 → 复核 approved"
