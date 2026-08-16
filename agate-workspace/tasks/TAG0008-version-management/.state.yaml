@@ -1,5 +1,5 @@
 task_id: TAG0008
-phase: P1
+phase: P2
 status: in_progress
 retries:
   P1:
@@ -7,3 +7,8 @@ retries:
       failure_mode: quality
       prompt_changed: true
       adjustment: "requirements-review needs-revision → analyst rev2 修复 9 项 → 复核 approved"
+  P2:
+    - round: 1
+      failure_mode: empty_return
+      prompt_changed: true
+      adjustment: "architect 两次空返回（调研+最小验证完成但 P2-design.md 未落盘，认知过载）；换新会话 + dispatch-context 内联已验证设计输入，降低'从零写大报告'推理复杂度"
