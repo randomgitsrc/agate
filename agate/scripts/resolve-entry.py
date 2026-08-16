@@ -51,6 +51,16 @@ def main():
         sys.stderr.write(f"resolve-entry: gate 脚本不存在 {gate_path}，gate 阻断\n")
         sys.exit(1)
 
+    if os.name == "nt":
+        # Windows：os.execv → _wexecv（CRT 模拟 spawn）不继承已重定向的 std 句柄，
+        # gate py 的 stdout/stderr 输出会静默丢失（rev3 CI：DIAG-j vs DIAG-k 实证）。
+        # 改用 subprocess 显式等待并透传 exit code（POSIX 保持真 exec，进程替换即输出直通）。
+        import subprocess
+
+        sys.exit(subprocess.run(
+            [sys.executable, gate_path, *sys.argv[2:]]
+        ).returncode)
+
     os.execv(sys.executable, [sys.executable, gate_path, *sys.argv[2:]])
 
 

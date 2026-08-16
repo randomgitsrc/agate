@@ -135,3 +135,16 @@
   - 已加 DIAG-k：直接调 commit-msg-self-gate.py（绕过 resolve-entry os.execv），把 stdout/stderr 分文件捕获。若 Windows 上 PK3-STDERR 含 WARNING → 证明问题在 resolve-entry 的 os.execv 输出丢失；若为空 → py 在 git 环境看不到触发。
 - Linux 全绿验证（DIAG-k PK3-STDERR=GATE SELF-GATE...）。
 - push DIAG-k → CI 决胜。
+### rev3-r5 CI（d23e42e）= 根因决定性证据
+- DIAG-j（真实场景 staged README + resolve-entry→os.execv）：PJ0-STAGED=README.md|、PJ2-EXEC、PJ3-DONE-RC=0，**但 WARNING 未出现在 marker**（Linux 同链路 WARNING 出现在 marker）
+- DIAG-k（真实场景 + **直接调 commit-msg-self-gate.py，绕 resolve-entry 的 os.execv**）：**PK3-STDERR=GATE SELF-GATE: 暂存区含... 完整 WARNING** + PK3-DONE-RC=0
+- **根因锁定**：`resolve-entry.py:54` 的 `os.execv(sys.executable, [.., gate_py, ..])` 在 Windows 上**丢失子进程 stderr**——CPython 的 os.execv 在 Windows 是 `_wexecv`（posixmodule.c:5813），模拟 spawn 而非真正 exec，重定向的 std 句柄不继承给新进程 → gate py 的 WARNING 写到了丢掉的句柄，git stderr 为空。
+  - 证据链：git CAN 执行 bash hook（DIAG-g）；find_hook OK；薄壳链 OK；gate py 直接调用 OK（DIAG-k）；唯一断点 = os.execv 的 stdio 继承。
+- **修复方向**：resolve-entry.py 在 Windows 用 subprocess 显式继承 stdio（`subprocess.run([py, gate, *rest])` + `sys.exit(rc)`），POSIX 保持 os.execv 真 exec。一个 shared 修复覆盖 commit-msg/pre-commit/pre-push 三 hook。
+- 下一步：落地修复 → 清理 test_csg_1 的诊断打印 → 本地验证 → push → CI 裁判。
+### rev3 根因落地 + 修复
+- 根因（CI 决定性证据）：resolve-entry.py 的 os.execv 在 Windows（_wexecv）不继承重定向 std 句柄 → gate py 的 GATE SELF-GATE WARNING 丢失（DIAG-j marker 无 WARNING vs DIAG-k 直接调 PK3-STDERR 完整）。
+- 修复落地：resolve-entry.py Windows 分支 subprocess.run + sys.exit(rc)，POSIX 保持 os.execv（真 exec）。测试文件恢复 rev2 干净版（诊断打印全删）。
+- 本地验证：integration 6 passed + resolve-entry unit 5 passed + 全量 823 passed/2 skipped + ruff 0 + consistency 0 ERROR + shellcheck 0。
+- 已更新 P5-fix-notes-hook.md rev3 结论（根因 + 证据表 + 修复 + 验证 + 回滚预案）。
+- 下一步：git add + commit + push → CI Windows 冒烟裁判。

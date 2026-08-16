@@ -174,8 +174,66 @@ returncode==0（commit 成功），output 无 WARNING、无 GATE ERROR、无 "ca
 - 若 DIAG-a PATH 缺 bash → bash 包装 git 无效的原因浮现
 - 若 DIAG-d 也无 WARNING → 薄壳链在测试 repo 环境不可用（与 test_cmsg_1 对照差异定位）
 
-## 状态
+## 状态（rev3 诊断两轮：a-e + f/g/h/i/j/k）
 
 诊断打印已落盘 + 本地验证通过 + integration 6 passed + ruff 0 error。**push 后 CI 为裁判。**
+
+---
+
+# rev3 结论 — 根因（CI 实证，决定性证据）
+
+## 诊断过程（多轮 CI 实证，从不猜）
+
+| 轮 | push | Windows 证据 | 排除的假设 |
+|---|---|---|---|
+| rev3-r1 (4443e76) | DIAG-a..e | bash 在 PATH（`C:\Program Files\Git\usr\bin\bash.EXE`）；hook exists + X_OK；git 2.55.0.windows.3；手动 `bash <hook> <msgfile>` 出 WARNING；**git commit stderr 空** | PATH 缺 bash ✗；hook 文件缺失 ✗；薄壳链不可用 ✗ |
+| rev3-r2 (f7b4e00) | DIAG-f/g/h | GIT_TRACE：git **确实 attempt** hook（`trace: start_command: .git/hooks/commit-msg`）；**trivial `#!/bin/bash` hook 经 git commit：TRIVIAL_HOOK_RAN + marker 创建成功** → git for windows 能执行 bash hook | "git 不能跑 .sh hook" ✗；"hook 未被执行" ✗（git 尝试+能跑）|
+| rev3-r3/r4 (76b7644/98205cd) | DIAG-i/j | probe（== 真实薄壳链）经 git 调用：PROBE0→PROBE5-EXEC→PROBE6-RC=0 全链可跑；真实场景 staged README：PJ0-STAGED=README.md（git diff --cached 能看到 staged）→ resolve-entry exec → RC=0 **但 WARNING 未出现在重定向的 marker**（Linux 同场景 WARNING 入 marker）| 薄壳 resolve 失败 ✗；py 看不到 staged ✗ |
+| rev3-r5 (d23e42e) | DIAG-k | **直接调 commit-msg-self-gate.py（绕过 resolve-entry）：PK3-STDERR=GATE SELF-GATE 完整 WARNING** + RC=0 | — |
+
+## 根因（实证收敛）
+
+```
+git 能跑 bash hook（DIAG-g）→ 薄壳链 Windows 可用（DIAG-i）
+→ 直接调 gate py 出 WARNING（DIAG-k：PK3-STDERR 完整）
+→ 但经 resolve-entry 的 os.execv → WARNING 丢失（DIAG-j：marker 无 WARNING）
+```
+
+**`resolve-entry.py` 的 `os.execv(sys.executable, [.., gate_py, ..])` 在 Windows 上不继承已重定向的 std 句柄**——CPython 的 `os.execv` 在 Windows 走 `_wexecv`（posixmodule.c:5813，模拟 spawn 而非真 exec），新进程的 stdout/stderr 不会接到调用方的重定向目标 → gate py 的 GATE SELF-GATE WARNING 写到丢失的句柄，git stderr 为空，test 断言失败。
+
+> 连带修复意义：pre-commit / pre-push 的 gate 输出（fail-closed 时 stderr）在 Windows 复制模式下同样经 resolve-entry → 同 bug。一个共享 fix 覆盖 3 个 hook。
+
+## 修复
+
+`agate/scripts/resolve-entry.py`：os.execv 仅在 POSIX 保留；Windows（`os.name == "nt"`）改用 `subprocess.run([py, gate, *rest])` + `sys.exit(rc)`：
+
+```python
+if os.name == "nt":
+    import subprocess
+    sys.exit(subprocess.run(
+        [sys.executable, gate_path, *sys.argv[2:]]).returncode)
+os.execv(sys.executable, [sys.executable, gate_path, *sys.argv[2:]])
+```
+
+- subprocess.run 默认继承父进程 stdout/stderr（未 capture_output）→ gate 输出直通 git。
+- `sys.exit(rc)` 透传 gate 退出码（pre-commit fail-closed `exit 1` 语义保持）。
+- **测试文件恢复 rev2 干净版本**（删光 4 轮临时诊断打印，`_commit` bash 包装 + AGATE_ROOT env 保留）。
+
+## 验证（本地 Linux）
+
+| 验证项 | 结果 |
+|---|---|
+| integration test_commit_msg_self_gate_integration.py | 6 passed |
+| resolve-entry unit test_hook_resolve_entry.py | 5 passed |
+| 全量 pytest | 823 passed, 2 skipped |
+| ruff（resolve-entry.py + 测试文件）| 0 error |
+| consistency | 0 ERROR |
+| shellcheck | 0 error |
+
+**Windows 真实验证 = push 后 CI 冒烟**（本地无 Windows，不宣称已修复）。
+
+## 回滚预案
+
+若 CI 仍失败 → resolve-entry 换回 os.execv（git revert resolve-entry 改动即可），诊断结论已完整落盘（rev3 各轮证据），主 Agent 可据证据决定后续方向。
 
 [PROD_NOT_TOUCHED]

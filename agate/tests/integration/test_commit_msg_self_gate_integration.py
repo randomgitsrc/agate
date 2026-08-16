@@ -6,10 +6,8 @@
 #   复制模式下 wrapper 的 readlink -f 定位到 .git/hooks 目录，须 env AGATE_ROOT 指向真实 agate 根。
 # 流语义（P2 BLOCKER-1）：hook WARNING 写 stderr，git 转发出现在合并流——断言用 result.output。
 
-import os
 import shlex
 import shutil
-import sys
 
 import pytest
 
@@ -48,206 +46,12 @@ def _commit(run_cli, bash, repo, agate_root, *args):
 
 
 @pytest.mark.windows_smoke
-def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_cli, bash, tmp_path):
+def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_cli, bash):
     repo = _setup_hook(git_repo, agate_scripts)
     (repo / "README.md").write_text("change\n", encoding="utf-8")
     git_repo.stage("README.md")
 
-    # === TEMP DIAGNOSTIC rev3（CI 实证，确认根因后清理） ===
-    print(f"[DIAG-a] sys.platform={sys.platform!r}")
-    print(f"[DIAG-a] bash={bash!r}")
-    print(f"[DIAG-a] shutil.which('bash')={shutil.which('bash')!r}")
-    print(f"[DIAG-a] os.environ.get('PATH')={os.environ.get('PATH')!r}")
-    hook = repo / ".git" / "hooks" / "commit-msg"
-    print(f"[DIAG-b] hook.exists()={hook.exists()}")
-    print(f"[DIAG-b] os.access(hook, os.X_OK)={os.access(hook, os.X_OK)}")
-    print(f"[DIAG-b] mode={oct(hook.stat().st_mode) if hook.exists() else 'n/a'}")
-    gv = run_cli("git", "version")
-    print(f"[DIAG-c] git version rc={gv.returncode} out={gv.output!r}")
-    hp = run_cli("git", "-C", str(repo), "config", "core.hooksPath")
-    print(f"[DIAG-c] core.hooksPath rc={hp.returncode} out={hp.output!r}")
-    msg_file = tmp_path / "commit-msg"
-    msg_file.write_text("update readme\n", encoding="utf-8")
-    man = run_cli(
-        bash,
-        str(hook),
-        str(msg_file),
-        cwd=str(repo),
-        env={"AGATE_ROOT": str(agate_root)},
-    )
-    print(f"[DIAG-d] manual hook rc={man.returncode}")
-    print(f"[DIAG-d] manual hook stdout={man.stdout!r}")
-    print(f"[DIAG-d] manual hook stderr={man.stderr!r}")
-    man_noenv = run_cli(bash, str(hook), str(msg_file), cwd=str(repo))
-    print(f"[DIAG-d] manual hook(noenv) rc={man_noenv.returncode}")
-    print(f"[DIAG-d] manual hook(noenv) stdout={man_noenv.stdout!r}")
-    print(f"[DIAG-d] manual hook(noenv) stderr={man_noenv.stderr!r}")
-    # === END TEMP DIAGNOSTIC ===
-
     result = _commit(run_cli, bash, repo, agate_root, "-m", "update readme")
-    print(f"[DIAG-e] commit rc={result.returncode}")
-    print(f"[DIAG-e] commit stdout={result.stdout!r}")
-    print(f"[DIAG-e] commit stderr={result.stderr!r}")
-
-    # === TEMP DIAG-f/g/h rev3-r2: 区分 find_hook/执行失败 vs 输出被吞（CI 实证后清理） ===
-    # DIAG-h: git 视角的 hooks 路径
-    hp2 = run_cli("git", "-C", str(repo), "rev-parse", "--git-path", "hooks")
-    print(f"[DIAG-h] git rev-parse --git-path hooks rc={hp2.returncode} out={hp2.output!r}")
-    hpf = run_cli("git", "-C", str(repo), "config", "--show-origin", "--get", "core.hooksPath")
-    print(f"[DIAG-h] config --show-origin core.hooksPath rc={hpf.returncode} out={hpf.output!r}")
-
-    # DIAG-f: GIT_TRACE 看 git 是否 attempt 跑 commit-msg hook
-    trace = run_cli(
-        bash,
-        "-c",
-        f"cd {shlex.quote(str(repo))} && git commit --allow-empty -m 'trace test'",
-        cwd=str(repo),
-        env={"AGATE_ROOT": str(agate_root), "GIT_TRACE": "1"},
-    )
-    print(f"[DIAG-f] GIT_TRACE commit rc={trace.returncode}")
-    for line in trace.stderr.splitlines():
-        if any(k in line.lower() for k in ("run_command", "hook", "prefix","exec")):
-            print(f"[DIAG-f] {line[:300]!r}")
-
-    # DIAG-g: 换成 trivial marker hook，验证 git 是否执行任何 #!/bin/bash hook
-    marker_name = "hook-executed.marker"
-    trivial = (
-        "#!/bin/bash\n"
-        "echo TRIVIAL_HOOK_RAN >&2\n"
-        f"touch '{marker_name}'\n"
-        "exit 0\n"
-    )
-    (repo / ".git" / "hooks" / "commit-msg").write_text(trivial, encoding="utf-8")
-    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
-    tres = run_cli(
-        bash,
-        "-c",
-        f"cd {shlex.quote(str(repo))} && git commit --allow-empty -m 'trivial hook test'",
-        cwd=str(repo),
-        env={"AGATE_ROOT": str(agate_root)},
-    )
-    print(f"[DIAG-g] trivial hook commit rc={tres.returncode}")
-    print(f"[DIAG-g] trivial hook commit stdout={tres.stdout!r}")
-    print(f"[DIAG-g] trivial hook commit stderr={tres.stderr!r}")
-    print(f"[DIAG-g] marker exists={(repo / marker_name).exists()}")
-
-    # DIAG-i: probe hook = 真实薄壳链逐段 marker，定位 git 调用下断在哪段
-    probe_name = "probe-hook.marker"
-    probe = (
-        "#!/bin/bash\n"
-        "echo PROBE0-ENTER >> 'probe-hook.marker'\n"
-        "echo PROBE0-ENTER >&2\n"
-        "set -u\n"
-        "echo PROBE1-BASH_SOURCE=${BASH_SOURCE[0]:-$0} >> 'probe-hook.marker'\n"
-        "echo PROBE1-PWD=$(pwd) >> 'probe-hook.marker'\n"
-        "echo PROBE1-AGATE_ROOT=$AGATE_ROOT >> 'probe-hook.marker'\n"
-        "ENTRY_ROOT=\"${AGATE_ROOT:-$(dirname \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")\")}\"\n"
-        "echo PROBE2-ENTRY_ROOT=$ENTRY_ROOT >> 'probe-hook.marker'\n"
-        "if [ ! -d \"$ENTRY_ROOT/scripts\" ] "
-        "&& [ -f \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")/.agate-root\" ]; then\n"
-        "  echo PROBE3-AGATEROOT-MARKER-FOUND >> 'probe-hook.marker'\n"
-        "  ENTRY_ROOT=$(tr -d '\\r' < \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")/.agate-root\")\n"
-        "  echo PROBE3-ENTRY_ROOT=$ENTRY_ROOT >> 'probe-hook.marker'\n"
-        "fi\n"
-        "PY=\"\"\n"
-        "for c in python3 python; do command -v \"$c\" >/dev/null 2>&1 && { PY=\"$c\"; break; }; done\n"
-        "echo PROBE4-PY=$PY >> 'probe-hook.marker'\n"
-        "echo PROBE4-LS-SCRIPTS=$(ls \"$ENTRY_ROOT/scripts\" 2>&1 | head -3) >> 'probe-hook.marker'\n"
-        "if [ -n \"$PY\" ] && [ -f \"$ENTRY_ROOT/scripts/resolve-entry.py\" ]; then\n"
-        "  echo PROBE5-STAGE=$(git diff --cached --name-only 2>&1 | tr '\\n' '|') >> 'probe-hook.marker'\n"
-        "  echo PROBE5-EXEC >> 'probe-hook.marker'\n"
-        "  \"$PY\" \"$ENTRY_ROOT/scripts/resolve-entry.py\" commit-msg \"$@\" 2>>'probe-hook.marker'\n"
-        "  echo PROBE6-DONE-RC=$? >> 'probe-hook.marker'\n"
-        "  exit 0\n"
-        "fi\n"
-        "echo PROBE7-FAILCLOSED >> 'probe-hook.marker'\n"
-        "echo GATE ERROR PROBE-FAILED >&2\n"
-        "exit 1\n"
-    )
-    (repo / ".git" / "hooks" / "commit-msg").write_text(probe, encoding="utf-8")
-    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
-    (repo / probe_name).write_text("", encoding="utf-8")
-    ires = run_cli(
-        bash,
-        "-c",
-        f"cd {shlex.quote(str(repo))} && git commit --allow-empty -m 'probe hook test'",
-        cwd=str(repo),
-        env={"AGATE_ROOT": str(agate_root)},
-    )
-    print(f"[DIAG-i] probe hook commit rc={ires.returncode}")
-    print(f"[DIAG-i] probe hook commit stdout={ires.stdout!r}")
-    print(f"[DIAG-i] probe hook commit stderr={ires.stderr!r}")
-    probe_content = (repo / probe_name).read_text(encoding="utf-8") if (repo / probe_name).exists() else "<no probe>"
-    print(f"[DIAG-i] probe marker content={probe_content!r}")
-
-    # DIAG-j: 真实场景（staged README + 真实 commit）过 probe 链，看重现失败时 py 是否看到 staged 文件
-    probe_j_name = "probe-j.marker"
-    probe_j = (
-        "#!/bin/bash\n"
-        "echo PJ0-ENTER >> 'probe-j.marker'\n"
-        "echo PJ0-STAGED=$(git diff --cached --name-only 2>&1 | tr '\\n' '|') >> 'probe-j.marker'\n"
-        "echo PJ0-MSGFILE=$1 >> 'probe-j.marker'\n"
-        "set -u\n"
-        "ENTRY_ROOT=\"${AGATE_ROOT:-$(dirname \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")\")}\"\n"
-        "PY=\"\"\n"
-        "for c in python3 python; do command -v \"$c\" >/dev/null 2>&1 && { PY=\"$c\"; break; }; done\n"
-        "echo PJ1-PY=$PY >> 'probe-j.marker'\n"
-        "if [ -n \"$PY\" ] && [ -f \"$ENTRY_ROOT/scripts/resolve-entry.py\" ]; then\n"
-        "  echo PJ2-EXEC >> 'probe-j.marker'\n"
-        "  \"$PY\" \"$ENTRY_ROOT/scripts/resolve-entry.py\" commit-msg \"$@\" 2>>'probe-j.marker'\n"
-        "  echo PJ3-DONE-RC=$? >> 'probe-j.marker'\n"
-        "  exit 0\n"
-        "fi\n"
-        "echo PJ4-FAILCLOSED >> 'probe-j.marker'\n"
-        "exit 1\n"
-    )
-    (repo / ".git" / "hooks" / "commit-msg").write_text(probe_j, encoding="utf-8")
-    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
-    (repo / "README.md").write_text("change-probe-j\n", encoding="utf-8")
-    git_repo.stage("README.md")
-    (repo / probe_j_name).write_text("", encoding="utf-8")
-    jres = _commit(run_cli, bash, repo, agate_root, "-m", "probe j real commit")
-    print(f"[DIAG-j] real-scenario probe commit rc={jres.returncode}")
-    print(f"[DIAG-j] real-scenario probe commit stdout={jres.stdout!r}")
-    print(f"[DIAG-j] real-scenario probe commit stderr={jres.stderr!r}")
-    j_content = (repo / probe_j_name).read_text(encoding="utf-8") if (repo / probe_j_name).exists() else "<no probe>"
-    print(f"[DIAG-j] probe-j marker content={j_content!r}")
-
-    # DIAG-k: 真实场景下直接调 commit-msg-self-gate.py（绕过 resolve-entry os.execv），
-    # 区分「execv 在 Windows 丢输出」 vs 「py 自身看不到 staged 触发」
-    probe_k_name = "probe-k.marker"
-    probe_k = (
-        "#!/bin/bash\n"
-        "echo PK0-ENTER >> 'probe-k.marker'\n"
-        "echo PK0-STAGED=$(git diff --cached --name-only 2>&1 | tr '\\n' '|') >> 'probe-k.marker'\n"
-        "set -u\n"
-        "ENTRY_ROOT=\"${AGATE_ROOT:-$(dirname \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")\")}\"\n"
-        "PY=\"\"\n"
-        "for c in python3 python; do command -v \"$c\" >/dev/null 2>&1 && { PY=\"$c\"; break; }; done\n"
-        "echo PK1-PY=$PY >> 'probe-k.marker'\n"
-        "if [ -n \"$PY\" ] && [ -f \"$ENTRY_ROOT/scripts/commit-msg-self-gate.py\" ]; then\n"
-        "  echo PK2-DIRECT-PY >> 'probe-k.marker'\n"
-        "  \"$PY\" \"$ENTRY_ROOT/scripts/commit-msg-self-gate.py\" \"$@\" >'probe-k.stdout' 2>'probe-k.stderr'\n"
-        "  echo PK3-DONE-RC=$? >> 'probe-k.marker'\n"
-        "  echo PK3-STDOUT=$(cat 'probe-k.stdout' | tr '\\n' '|') >> 'probe-k.marker'\n"
-        "  echo PK3-STDERR=$(cat 'probe-k.stderr' | tr '\\n' '|') >> 'probe-k.marker'\n"
-        "  exit 0\n"
-        "fi\n"
-        "echo PK4-FAILCLOSED >> 'probe-k.marker'\n"
-        "exit 1\n"
-    )
-    (repo / ".git" / "hooks" / "commit-msg").write_text(probe_k, encoding="utf-8")
-    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
-    (repo / "README.md").write_text("change-probe-k\n", encoding="utf-8")
-    git_repo.stage("README.md")
-    (repo / probe_k_name).write_text("", encoding="utf-8")
-    kres = _commit(run_cli, bash, repo, agate_root, "-m", "probe k direct py")
-    print(f"[DIAG-k] direct-py probe commit rc={kres.returncode}")
-    print(f"[DIAG-k] probe commit stderr={kres.stderr!r}")
-    k_content = (repo / probe_k_name).read_text(encoding="utf-8") if (repo / probe_k_name).exists() else "<no probe>"
-    print(f"[DIAG-k] probe-k marker content={k_content!r}")
-    # === END TEMP DIAG-f/g/h ===
-
     assert result.returncode == 0
     assert "self-gate-review" in result.output
 
