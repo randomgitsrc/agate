@@ -766,11 +766,13 @@ def check_anchor_coverage(root: Path, rep: Report) -> None:
 # 对照 agate/scripts/ 实际文件报"引用了不存在的脚本"漂移。防止脚本改名/退役后协议文档漏检
 # （REF_RE 只匹配 docs/assets/scripts 前缀，phase-cards/rules 的裸名引用完全漏检）。
 # 白名单形状：check-* / agate-*（连字符与下划线两形，覆盖库文件 agate_common.py）/ 3 hook 薄壳 /
-#   install-hook / count-tests.sh / ci-gate-backstop.py。formatters 名（pytest.sh 等）天然不匹配 → 豁免②。
+#   install-hook / install-offline / resolve-entry / count-tests.sh / ci-gate-backstop.py。
+#   formatters 名（pytest.sh 等）天然不匹配 → 豁免②。
 
 SCRIPT_REF_RE = re.compile(
     r"\b(check-[a-z0-9-]+\.(?:py|sh)|agate-[a-z0-9-]+\.(?:py|sh)|agate_[a-z0-9-]+\.(?:py|sh)|"
-    r"install-hook\.(?:py|sh)|pre-commit-gate\.(?:py|sh)|commit-msg-self-gate\.(?:py|sh)|"
+    r"install-hook\.(?:py|sh)|install-offline\.(?:py|sh)|resolve-entry\.(?:py|sh)|"
+    r"pre-commit-gate\.(?:py|sh)|commit-msg-self-gate\.(?:py|sh)|"
     r"pre-push-gate\.(?:py|sh)|count-tests\.sh|ci-gate-backstop\.py)\b"
 )
 

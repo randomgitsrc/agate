@@ -18,7 +18,7 @@
 |------|------|------|
 | `{worktree 路径}` | **本任务 worktree（改造对象）** | 在这里改代码、写阶段产出、跑测试、git commit |
 | `{主 checkout 路径}`（主 checkout） | 协议本体 + 任务数据 + `~/.agate` 指向 | **禁止改动**。它是稳定版来源，也是 hook 的 AGATE_ROOT |
-| `~/.agate`（软链 → 主 checkout/agate） | **稳定版（开发工具）** | **禁止改动**。跑 gate / 读卡片用它 |
+| `~/.agate`（软链 → 主 checkout/agate；TAG0008 起也可为版本管理目录，稳定版概念不变） | **稳定版（开发工具）** | **禁止改动**。跑 gate / 读卡片用它 |
 
 **核心原则（AGENTS.md T001 约定沿用）**：
 - **跑 gate 用 `~/.agate`**（稳定版），**改代码/跑测试在 worktree**。

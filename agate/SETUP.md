@@ -2,7 +2,7 @@
 
 > 面向**第一次把 agate 接入某个项目**的人。`README.md`「快速上手」讲的是"装 agate 本体"，这份文档讲的是下一步——怎么让 OpenCode / Claude Code 真的能调起 orchestrator，这一步是平台相关的，容易卡住，所以单独写。
 >
-> 前置：已完成 `README.md`「快速上手」第 1 步（`~/.agate` 软链接存在，指向协议本体）。没做完先去做那一步。
+> 前置：已完成 `README.md`「快速上手」第 1 步——`~/.agate` 指向协议本体。两种形态均可：**单软链**（`~/.agate` → 仓库 `agate/` 子目录，`install.sh` 装法）或**版本管理目录**（`~/.agate/vX.Y.Z/` 版本目录 + `latest`/`current` 指针，`agate-install.py` 装法，见下方「环境准备」）。没做完先去做那一步。
 >
 > 运行依赖：**Python 3.8+ 且 `pip install pyyaml`（强制）**——全部 gate 脚本已 Python 化（TAG0010），pyyaml 缺失时脚本 fail-closed 阻断。详见 `platform-notes.md`。
 
@@ -13,6 +13,47 @@
 - **只需要注册 orchestrator 这一个 agent**。P1-P8 的执行角色/评审角色不需要在平台层预注册——派发时是"派一个通用 subagent，把角色文件路径写进 prompt 让它自己读"，见 `role-system.md`「方法 B」。
 - `orchestrator-template.md` 对所有项目内容完全一致，**标准接入方式是符号链接直接指向它，不要拷贝**。这样 agate 升级模板，你项目里的 orchestrator 提示词自动跟着升级，不需要手动同步。
 - 项目特定信息（工作区规则、gate 命令、测试基线……）**只写进** `{AGATE_WORKSPACE}/agents/project.md`（可选文件，模板见 `assets/templates/project.md`），不要碰 orchestrator.md 本身。工作区默认在项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 指向其他位置（含项目外绝对路径），解析见 `scripts/agate_common.py`。
+
+---
+
+## 环境准备（agent 执行）
+
+> 面向 **Agent（而非人类）** 执行的环境自检与修复闭环：探测命令 exit code 可判，缺项时按平台指引修复，最后验证闭环。适合编排 Agent 在接入前跑一次 `agate-install.py --check` 确认环境，或用脚本化方式判断依赖就绪。
+
+**探测（exit code 可判）**：
+
+```bash
+python3 ~/.agate/scripts/agate-install.py --check
+# exit 0 = python3/pyyaml/git/bash 全部就绪
+# exit 非 0 = 存在缺失项，输出列出缺失项 + 分平台修复指引
+```
+
+逐项探测（agent 可读 exit code）：
+
+```bash
+command -v python3          # python3 存在（Windows 用 `command -v python`）
+python3 -c "import yaml"    # pyyaml 就绪（缺项 exit 非 0）
+command -v git              # git 存在
+command -v bash             # bash 存在（仅 3 个 hook 薄壳需要；Windows 用 Git for Windows 自带 sh）
+```
+
+**分平台修复**：
+
+| 缺失项 | Linux/macOS | Windows（Git for Windows） |
+|--------|-------------|---------------------------|
+| python3 | `sudo apt install python3` 或 `pip install python` | 从 python.org 安装并勾选「Add to PATH」 |
+| pyyaml | `pip install pyyaml` | `pip install pyyaml` |
+| git | `sudo apt install git` | 安装 Git for Windows |
+| bash | `sudo apt install bash` | Git for Windows 自带（`Git Bash`）|
+
+> Windows 额外：设置系统环境变量 `PYTHONUTF8=1`（让 python 以 UTF-8 模式读写协议文件）、`AGATE_ROOT` 用 Unix 风格路径（`/c/...`，不要反斜杠）。详见 `platform-notes.md`「Windows 原生」。
+
+**验证闭环**：
+
+```bash
+python3 ~/.agate/scripts/agate-summary.py   # 输出当前项目解析到的版本 + 原因，确认协议就绪
+python3 ~/.agate/scripts/agate_common.py    # 输出 AGATE_WORKSPACE / AGATE_TASKS_DIR 两行，确认工作区解析
+```
 
 ---
 

@@ -252,3 +252,43 @@ agate 协议里散落在正文的机器读取字段（P1/P2/P6/P7 共约 40+ 个
 - 新接入项目的操作从"拷贝+改字段"简化为"建两条符号链接命令"，`agate/SETUP.md` 是唯一权威步骤来源
 - 已部署项目（拷贝方式）升级到本版本需要手动迁移：删除旧拷贝，重新按 SETUP.md 建立符号链接，项目特定内容搬进新建的 project.md——这是一次性、破坏性变更，已在 CHANGELOG.md 标注迁移路径
 - `check-protocol-consistency.py` 的 `PROTOCOL_FILES` 加入 `agate/SETUP.md`，纳入 CHECK 2/3 结构性检查覆盖范围
+- **v0.50.0 论据复核**：ADR-008 的类比"和 `~/.agate` 软链让 gate 脚本自动跟随升级是同一套机制"在版本管理机制落地后改为——orchestrator 模板仍符号链接接入（文件级，机制不变），但 **gate 脚本的"自动跟随升级"改由 `resolve-entry.py` 固定解析入口 + 项目 `.agate-version` 解析承担**（而非软链自动跟随），语义等价（切版本/升级无需重装），见 ADR-009
+
+---
+
+## ADR-009: ~/.agate 版本管理根目录 + resolve-entry 固定解析入口（v0.50.0）
+
+### 状态
+
+已接受
+
+### 语境
+
+`~/.agate` 是单一软链 → 指向某 checkout 的 `agate/` 子目录。`git pull` 后所有用 `~/.agate` 的项目**全部被动升级**，进行中项目被打断；hook 通过软链自动跟随，无法按项目隔离版本。需求（TAG0008）：项目 A 锁旧版、项目 B 用新版互不干扰，切版本不用重装 hook，存量单软链用户不破坏。
+
+### 决策
+
+- `~/.agate` 升级为**版本管理根目录**：`repo/`（唯一主仓库，首次 clone）+ `vX.Y.Z/`（`git worktree add` 检出 tag）+ `latest`/`current` 纯指针（POSIX 软链 / Windows 文本指针）+ `scripts/`（版本管理工具本体）。
+- hook 从"指向具体版本脚本"改为装**固定解析入口** `resolve-entry.py`：运行时读项目 `.agate-version`（asdf 模式 cwd 向上找，`agate: vX.Y.Z` 精确版本）→ 解析版本目录 → exec 对应版本 gate py。解析优先级：AGATE_ROOT env 最高 → 项目声明 → current → legacy 软链兜底（无版本目录时软链目标本身 = AGATE_ROOT）。
+- 新增工具：`agate-install.py`（安装/卸载/环境探测）、`agate-resolve.py`（解析查询）、`agate-pack-offline.py` + `install-offline.py`（外网打包 → 内网离线安装，平台核对 + checksum 校验）。
+- `agate_common.resolve_agate_root` 扩展四层解析语义，作为全部 gate 脚本统一解析入口。
+
+### 理由
+
+1. **解析逻辑单一入口（DRY）**：3 个 hook 共用 resolve-entry，summary/其他脚本复用同一套解析，不散落三份（否决了"hook 直接内联解析"候选——重复实现 + 违反 Python 路线）。
+2. **向后兼容红线**：无 current/latest 指针的 legacy 单软链布局直接把软链目标解析为 AGATE_ROOT（BDD-30），存量用户不跑新工具行为不变。
+3. **resolve 失败回退稳**：任何解析失败回退 current 并 stderr 警告，绝不静默禁用 gate（hook fail-closed）。
+4. **离线闭环**：内网机器无网络也能装版本（bundle 复制目录 + 平台核对 + checksum 校验）。
+
+### 权衡
+
+- `~/.agate` 从单软链变目录，存量用户需要文档指引（UPGRADING v0.50.0 章节）；但 legacy 兜底使无迁移动作也可继续用。
+- Windows 无符号链接权限时 latest/current 指针退化为文本文件，解析器须兼容两形（复用 TAG0004 `.agate-root` 复制模式先例）。
+- `git worktree add` 重复添加同一路径 exit 128 → 幂等须程序先判存在（BDD-3 依赖预判）。
+
+### 后果
+
+- 项目可经 `.agate-version` 锁定版本，切版本不用重装 hook（BDD-18）。
+- `agate-summary.py` 语义迁移：显示项目解析到的版本 + 原因（而非仓库自身 tag）。
+- 3 个派发脚本（agate-inject-card / agate-next-card / agate-render-dispatch-prompt）内联解析统一归口 `agate_common.resolve_agate_root`。
+- 存量单软链用户无迁移动作（BDD-30 红线，31 条 BDD 全 PASS 验证）。

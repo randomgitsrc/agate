@@ -8,6 +8,32 @@
 
 ---
 
+## [0.50.0] - 2026-08-16
+
+### 新增（TAG0008：agate 版本管理机制 v1）
+
+- **`agate-install.py`（新，版本安装/卸载/环境探测）**：无参 = 装 latest 指针（最新发布版）；`agate-install v0.48.0` = 装指定版本（repo 单克隆 + `git worktree add` tag）；`--uninstall vX` = 删版本目录 + worktree remove + 清理/重指指针（含项目引用保护扫描，被引用版本拒绝卸载）；`--check` = 环境探测（python3/pyyaml/git/bash，exit code 可判 + 分平台修复指引）。重复安装幂等（版本目录已存在即跳过）。`~/.agate` 从单软链升级为版本管理根目录（`repo/` + `vX.Y.Z/` + `latest`/`current` 纯指针）
+- **`agate-resolve.py`（新，版本解析 CLI）**：cwd 向上找 `.agate-version`（asdf 模式，支持 `agate: vX.Y.Z` 精确版本）→ 映射版本目录 → 输出 AGATE_ROOT/AGATE_VERSION/AGATE_REASON；优先级 env 最高 → 项目声明 → current → legacy 软链兜底；解析失败回退 current 绝不静默禁用 gate
+- **`resolve-entry.py`（新，hook 固定解析入口）**：install-hook 安装固定入口而非具体版本脚本；运行时读项目 `.agate-version` → exec 对应版本 gate py。项目 A 锁旧版、项目 B 用新版互不干扰；切版本不用重装 hook
+- **`agate-pack-offline.py`（新，外网离线打包器）**：`agate-pack-offline.py vX.Y.Z [--platform linux-x86_64|windows-x86_64] [--include-python] [--include-pillow]` → 平台标签 bundle（tag 代码 + 目标平台 wheels（`pip download --platform`）+ 可选嵌入式 Python + manifest.json 含 sha256 checksum）；失败路径（tag 不存在/网络失败/wheel 缺失）非 0 退出不产坏包
+- **`install-offline.py`（新，内网一键安装器）**：读 manifest.json 核对平台（不匹配警告拒绝安装 fail-closed）+ 校验 checksum（不匹配拒绝）→ `pip install --no-index --find-links wheels/` → 建 `~/.agate/vX.Y.Z/` + hook/orchestrator 指向（Linux 软链 / Windows 复制模式）+ 验证闭环；`--skip-python`/`--skip-pillow` 覆盖勾选
+- **`agate-summary.py` 语义迁移**：从"仓库自身 tag"改为"项目解析到的版本 + 原因"（`.agate-version` 声明或全局 current）
+- **3 个内联解析脚本统一归口 `agate_common.resolve_agate_root`**：agate-inject-card / agate-next-card / agate-render-dispatch-prompt 不再各自内联解析，避免解析入口分叉
+- **`agate_common.py` 集成项目版本解析**：`resolve_agate_root` 扩展四层语义（env 最高 → 项目声明 → current → legacy 软链兜底），作为全部 gate 脚本统一解析入口
+
+### 变更（文档层联动）
+
+- **`agate/SETUP.md` 新增「环境准备（agent 执行）」节**：探测命令 exit code 可判 → 分平台修复 → 验证闭环
+- **`agate/UPGRADING.md` 新增本版本章节**：破坏性变更逐条列（~/.agate 目录化 / .agate-version 语法 / hook 解析入口迁移 / agate-install 新工具）
+- **`agate/scripts/README.md` 脚本清单补 4 新脚本 + resolve-entry** + 解析入口说明；`check-protocol-consistency.py` CHECK 10 白名单补 install-offline / resolve-entry（命名联动，判定逻辑未改）
+- **README / README.zh-CN / AGENTS / WORKFLOW / platform-notes / adr / project.md 模板 / install.sh**：版本目录与解析叙述联动
+- **install.sh 兼容保留**：单软链场景仍可用，作为 agate-install 的底层/替代入口
+
+### 测试
+
+- 6 个新测试文件（resolve 3 + install 1 + offline 2）+ test_install_hook / integration hook 测试修正，31 条 BDD 全 PASS；全量 pytest 823 passed + 新增 29 passed；consistency 0 ERROR；ruff 通过
+- **本版本破坏性变更（存量 `~/.agate` 单软链用户升级路径）**：见 `agate/UPGRADING.md` v0.50.0 章节——不跑新工具时 legacy 软链直接解析为 AGATE_ROOT（BDD-30 向后兼容红线），存量用户无感
+
 ## [0.49.0] - 2026-08-16
 
 ### 新增（RM-AG0016：派发编排机制）

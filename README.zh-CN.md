@@ -2,7 +2,7 @@
 
 > 一种编排协议，用构建系统验证编译器的方式验证 AI Agent。
 
-[![version](https://img.shields.io/badge/version-v0.48.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.50.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)
@@ -27,6 +27,12 @@ LLM Agent 在长任务上强大但不可靠：上下文被污染、subagent 漂�
 1. **安装 agate。** 克隆仓库并把 `~/.agate` 指向协议本体（`agate/`），或使用一键安装脚本：
    ```bash
    curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
+   ```
+   需要**按项目锁定版本**时，改用版本管理器（在 `~/.agate/vX.Y.Z/` 下安装版本目录，保留 `~/.agate` 软链向后兼容）：
+   ```bash
+   python3 ~/.agate/scripts/agate-install.py              # 装最新版
+   python3 ~/.agate/scripts/agate-install.py v0.49.0      # 装指定版本
+   python3 ~/.agate/scripts/agate-install.py --check      # 环境探测
    ```
 2. **注册编排 Agent。** 将 `orchestrator-template.md` 符号链接到你的平台 Agent 目录，并安装 git hooks（`python3 ~/.agate/scripts/install-hook.py`）。平台相关步骤——OpenCode、Claude Code、Windows 降级方案——见 [`agate/SETUP.md`](agate/SETUP.md)。
 3. **运行你的第一个任务。** 用编排 Agent 开启一个会话。工作区（`agate-workspace/`）在编排 Agent 首次运行时自动初始化；一次性接入步骤见 [`agate/SETUP.md`](agate/SETUP.md)。
