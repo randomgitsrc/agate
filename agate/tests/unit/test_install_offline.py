@@ -190,3 +190,114 @@ def test_bdd_29_skip_flags(tmp_path, agate_scripts, capsys):
     assert "--find-links" in last
     assert any("pyyaml" in a for a in last)
     assert not any("Pillow" in a for a in last)
+
+
+def test_bdd_29b_no_pillow_bundle_installs_pyyaml_only(tmp_path, agate_scripts, capsys):
+    """rev2 CRITICAL-2：无 Pillow bundle + 无 --skip-pillow → 只装 pyyaml，默认流成功。
+
+    回归用例：`install_wheels` 旧实现恒把 Pillow 塞进 pip 命令（仅由 skip 控制），
+    对无 Pillow wheel 的最小 bundle `--no-index` 下必失败。修复后安装清单从 manifest
+    `components` 推导——"pillow" 组件不存在则不装 Pillow（BDD-29 语义：skip 只过滤已包含项）。
+    """
+    module = _load_script_module(agate_scripts, "agate_install_offline", "install-offline.py")
+    bundle = _make_bundle(tmp_path, with_pillow=False)
+    dest = tmp_path / "dest"
+    pip_argv = []
+
+    def fake_run(argv, **kwargs):
+        if any(str(a) == "install" for a in argv):
+            pip_argv.append([str(a) for a in argv])
+        return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
+
+    with mock.patch("subprocess.run", side_effect=fake_run), mock.patch.object(
+        module, "get_current_platform", return_value="linux-x86_64"
+    ):
+        code = module.main([str(bundle), "--dest-root", str(dest)])
+
+    err = capsys.readouterr().err
+    assert code == 0
+    assert err.strip() == ""
+    assert pip_argv
+    last = pip_argv[-1]
+    assert "--no-index" in last
+    assert "--find-links" in last
+    assert any("pyyaml" in a for a in last)
+    assert not any("Pillow" in a for a in last)
+    assert (dest / "v0.48.0").is_dir()
+    assert (dest / "v0.48.0" / ".installed-version").read_text(encoding="utf-8").strip() == "v0.48.0"
+
+
+def test_manifest_version_traversal_rejected(tmp_path, agate_scripts, capsys):
+    """rev2 CRITICAL-3：恶意 manifest `version` 穿越（../../..）→ 拒绝安装，不写出 dest_root。
+
+    回归用例：旧实现 `version = manifest["version"]` 直接作 `dest / version` 目录名，
+    篡改后可把 bundle 复制到 dest_root 之外。修复后 version 套 vX.Y.Z 正则
+    （同 agate-install `_VERSION_RE`），非法即 fail-closed。
+    """
+    module = _load_script_module(agate_scripts, "agate_install_offline", "install-offline.py")
+    bundle = _make_bundle(tmp_path, version="v0.48.0")
+    mpath = bundle / "manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    manifest["version"] = "../../../../pwned"
+    mpath.write_text(json.dumps(manifest), encoding="utf-8")
+    dest = tmp_path / "dest"
+
+    with mock.patch.object(module, "get_current_platform", return_value="linux-x86_64"):
+        code = module.main([str(bundle), "--dest-root", str(dest)])
+
+    err = capsys.readouterr().err
+    assert code != 0
+    assert "version" in err
+    assert not (tmp_path / "pwned").exists()
+    assert not dest.exists()
+
+
+def test_manifest_component_path_traversal_rejected(tmp_path, agate_scripts, capsys):
+    """rev2 CRITICAL-3：恶意 manifest 组件 `path` 用 `..` 越界 → 拒绝安装（防越界读）。
+
+    回归用例：旧实现 `verify_checksums` 直接 `bundle / comp["path"]`，`..` 可越过 bundle
+    读取 bundle 外文件（哈希比对作可探测 oracle）。修复后组件 path 必须是 bundle 内相对路径
+    （拒绝绝对路径与 `..`，commonpath 断言），非法即 fail-closed。
+    """
+    module = _load_script_module(agate_scripts, "agate_install_offline", "install-offline.py")
+    bundle = _make_bundle(tmp_path)
+    mpath = bundle / "manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    secret = tmp_path / "secret.txt"
+    secret.write_text("sensitive", encoding="utf-8")
+    manifest["components"]["evil"] = {
+        "path": "../secret.txt",
+        "sha256": "0" * 64,
+    }
+    mpath.write_text(json.dumps(manifest), encoding="utf-8")
+    dest = tmp_path / "dest"
+
+    with mock.patch.object(module, "get_current_platform", return_value="linux-x86_64"):
+        code = module.main([str(bundle), "--dest-root", str(dest)])
+
+    err = capsys.readouterr().err
+    assert code != 0
+    assert "path" in err
+    assert not dest.exists()
+
+
+def test_manifest_absolute_path_rejected(tmp_path, agate_scripts, capsys):
+    """rev2 CRITICAL-3：恶意 manifest 组件 `path` 为绝对路径 → 拒绝安装。"""
+    module = _load_script_module(agate_scripts, "agate_install_offline", "install-offline.py")
+    bundle = _make_bundle(tmp_path)
+    mpath = bundle / "manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    manifest["components"]["evil"] = {
+        "path": "/etc/hostname",
+        "sha256": "0" * 64,
+    }
+    mpath.write_text(json.dumps(manifest), encoding="utf-8")
+    dest = tmp_path / "dest"
+
+    with mock.patch.object(module, "get_current_platform", return_value="linux-x86_64"):
+        code = module.main([str(bundle), "--dest-root", str(dest)])
+
+    err = capsys.readouterr().err
+    assert code != 0
+    assert "path" in err
+    assert not dest.exists()

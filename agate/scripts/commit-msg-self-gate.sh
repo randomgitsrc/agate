@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
-# commit-msg-self-gate.sh — commit-msg hook 薄壳（逻辑在 commit-msg-self-gate.py 单份维护）
+# commit-msg-self-gate.sh — commit-msg hook 薄壳（经 resolve-entry 解析版本后 exec 对应版本 py）
 set -u
-# 1. AGATE_ROOT 自定位（软链→本体；复制模式 .agate-root 恢复）
-AGATE_ROOT="${AGATE_ROOT:-$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")}"
-if [ ! -d "$AGATE_ROOT/scripts" ] \
+# 1. 入口根自定位（软链→本体；复制模式 .agate-root 恢复）——resolve-entry 所在安装根。
+#    不用 AGATE_ROOT 变量（避免经环境泄漏给 resolve-entry 而绕过项目版本解析，TAG0008）
+ENTRY_ROOT="${AGATE_ROOT:-$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")")}"
+if [ ! -d "$ENTRY_ROOT/scripts" ] \
     && [ -f "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root" ]; then
-    AGATE_ROOT=$(tr -d '\r' < "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root")
+    ENTRY_ROOT=$(tr -d '\r' < "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root")
 fi
 # 2. python 探测：python3 → python
 PY=""
 for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { PY="$c"; break; }; done
-# 3. exec python 主程序
-if [ -n "$PY" ] && [ -f "$AGATE_ROOT/scripts/commit-msg-self-gate.py" ]; then
-    exec "$PY" "$AGATE_ROOT/scripts/commit-msg-self-gate.py" "$@"
+# 3. exec 固定解析入口 resolve-entry（读项目 .agate-version → 对应版本 gate py，不随版本变）
+if [ -n "$PY" ] && [ -f "$ENTRY_ROOT/scripts/resolve-entry.py" ]; then
+    exec "$PY" "$ENTRY_ROOT/scripts/resolve-entry.py" commit-msg "$@"
 fi
 # 4. exec 失败 → fail-closed 阻断（不运行 sh 兜底逻辑）
-echo "GATE ERROR: 无法启动 python gate（python3/python 均不可用或脚本缺失）" >&2
+echo "GATE ERROR: 无法启动 resolve-entry（python3/python 均不可用或脚本缺失）" >&2
 echo "  self-gate 触发面检测无法执行，commit 中止——请安装 python3 + pyyaml" >&2
 exit 1

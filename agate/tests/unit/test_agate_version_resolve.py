@@ -2,7 +2,7 @@
 # 被测：agate/scripts/agate-resolve.py（TAG0008 新组件，P4 实现）。P3 阶段该模块不存在 → 全部红灯（B 类）。
 # BDD 映射：BDD-9~14（resolve 语义）+ BDD-30（legacy 软链兜底）+ P2-review 测试缺口 1（终态 fail-closed）。
 # 平台无关（AGENTS.md 测试约定）：
-#   * 假 HOME 经 HOME+USERPROFILE env 指向 tmp_path（不碰真实 ~/.agate，不假设 /tmp 路径）
+#   * 假 HOME 经 HOME+USERPROFILE env 指向 tmp_path（不碰真实 ~/.agate，不假设系统临时目录路径）
 #   * current/latest 用文本指针（内容 = 目标名），Windows 复制模式指针形态，不假设 POSIX symlink
 #   * BDD-30 的 legacy 软链场景：os.symlink 失败（Windows 无权限）→ pytest.skip 声明跳过
 # Given 契约（测试数据即 P4 实现的输入约束）：
@@ -88,6 +88,36 @@ def test_bdd_11_no_decl_fallback_current(run_cli, python_exe, agate_scripts, tmp
     assert expected_root in result.output
     assert "v0.44.0" in result.output
     assert "current" in result.output
+
+
+def test_bdd_11b_symlink_pointer_shows_actual_version(run_cli, python_exe, agate_scripts, tmp_path):
+    """rev2 CRITICAL-1：软链指针布局下解析必须落到实际版本目录名（BDD-11 current 回退语义）。
+
+    回归用例：`_resolve_pointer_chain` 先判 isdir 会把"软链→版本目录"短路，返回
+    current/latest 路径本身，`_resolve_version_info` 的 version=basename 变成
+    "current"/"latest" 而非实际版本号（agate-resolve 显示错误版本）。
+    """
+    home = tmp_path / "home"
+    for v in ("v0.43.0", "v0.44.0"):
+        (home / ".agate" / v).mkdir(parents=True, exist_ok=True)
+    try:
+        os.symlink("v0.44.0", str(home / ".agate" / "latest"))
+        os.symlink("latest", str(home / ".agate" / "current"))
+    except (OSError, NotImplementedError):
+        pytest.skip("当前平台无法创建软链，软链指针布局无法构建")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    result = run_cli(
+        python_exe,
+        str(agate_scripts / "agate-resolve.py"),
+        cwd=str(project),
+        env=_resolve_env(home),
+    )
+    expected_root = str((home / ".agate" / "v0.44.0").resolve())
+    assert result.returncode == 0
+    assert expected_root in result.output
+    assert "AGATE_VERSION=v0.44.0" in result.output, "软链布局下版本号应为实际版本，而非 current/latest"
 
 
 def test_bdd_12_env_override(run_cli, python_exe, agate_scripts, tmp_path):

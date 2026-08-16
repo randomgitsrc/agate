@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""install-hook.py — 安装 pre-commit / commit-msg / pre-push hook（TAG0010 批次 3b）
+"""install-hook.py — 安装 pre-commit / commit-msg / pre-push hook（TAG0010 批次 3b + TAG0008 批次 resolve-chain）
 
-迁移自 install-hook.sh（93 行）：把 agate 的三个 hook 脚本软链到当前 git 仓库的
+迁移自 install-hook.sh（93 行）：把 agate 的三个 hook 薄壳软链到当前 git 仓库的
 .git/hooks/ 下（Windows 无符号链接权限时退化为复制 + 写 .agate-root 兜底标记），
 并做 chmod +x、既有 hook 备份、.gitignore 对 .state.yaml 的忽略检测。
+
+TAG0008：hook 薄壳是固定解析入口（运行时经 resolve-entry.py 解析项目 .agate-version
+→ 对应版本 gate py），不直接安装具体版本脚本——切版本不用重装 hook（BDD-18）。
+安装时校验 resolve-entry.py 存在（缺失仅 WARNING，不阻断——复制模式 fake 根可无它）。
 
 用法：
   python3 install-hook.py                       # 默认 ~/.agate
@@ -104,6 +108,12 @@ def main():
 
     os.makedirs(hook_dir, exist_ok=True)
 
+    # 固定解析入口校验（TAG0008）：薄壳运行时经 resolve-entry 解析版本。缺失仅 WARNING
+    # 不阻断（兼容仅含薄壳的 fake 安装根测试场景；真安装缺失时 hook 运行时 fail-closed）。
+    resolve_entry = os.path.join(agate_root, "scripts", "resolve-entry.py")
+    if not os.path.isfile(resolve_entry):
+        print(f"⚠️  {resolve_entry} 不存在——hook 将无法经 resolve-entry 解析版本，请检查安装")
+
     _backup(hook_file, "pre-commit")
     _ln_sf(source, hook_file)
     _chmod_x(source)
@@ -115,7 +125,7 @@ def main():
         with open(os.path.join(hook_dir, ".agate-root"), "w", encoding="utf-8") as f:
             f.write(agate_root + "\n")
         print(f"pre-commit hook 已安装（复制模式，Windows 无符号链接权限）: {hook_file}")
-        print("  ⚠️  升级 agate 后需重跑 install-hook.sh（复制不自动跟随源文件）")
+        print("  ⚠️  升级 agate 后需重跑 python3 install-hook.py（复制不自动跟随源文件）")
 
     # 安装 commit-msg hook（self-gate 强制触发）
     commit_msg_hook = os.path.join(hook_dir, "commit-msg")

@@ -30,12 +30,16 @@ _STUB_GATE = 'import sys\nsys.stdout.write("{marker}\\n")\n'
 
 
 def _make_home(tmp_path, versions=("v0.43.0", "v0.44.0"), current="latest", latest="v0.44.0"):
-    """构造假 ~/.agate：版本目录（已装）+ 每版本一个 stub pre-commit gate + 文本指针。"""
+    """构造假 ~/.agate：版本目录（已装）+ 每版本一个 stub pre-commit gate + 文本指针。
+
+    marker = GATE-V + 主版本.次版本（去点），如 v0.43.0 → GATE-V043（与 P3-test-cases-resolve.md
+    声明的 GATE-V043/GATE-V044 标记一致；v.replace(".","") 会把 v0.43.0 算成 v0430 → 修正）。
+    """
     home = tmp_path / "home"
     for v in versions:
         vdir = home / ".agate" / v
         (vdir / "scripts").mkdir(parents=True, exist_ok=True)
-        marker = "GATE-V" + v.replace(".", "")
+        marker = "GATE-V" + v[1:].rsplit(".", 1)[0].replace(".", "")
         (vdir / "scripts" / "pre-commit-gate.py").write_text(
             _STUB_GATE.format(marker=marker), encoding="utf-8"
         )

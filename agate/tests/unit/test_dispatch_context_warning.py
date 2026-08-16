@@ -12,6 +12,7 @@ import pytest
 
 _FAKE_SCRIPTS = [
     "pre-commit-gate.sh",
+    "resolve-entry.py",  # TAG0008：hook 薄壳经 resolve-entry 解析版本后 exec 对应 gate
     "pre-commit-gate.py",
     "agate_common.py",
     "agate-state-get.py",

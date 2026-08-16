@@ -19,6 +19,23 @@ import re
 import sys
 from pathlib import Path
 
+try:
+    from agate_common import resolve_agate_root as _agate_common_resolve
+except (ImportError, SystemExit):
+    _agate_common_resolve = None
+
+
+def _resolve_agate_root():
+    """AGATE_ROOT 解析：归口 agate_common.resolve_agate_root（env → 项目声明 → current 链
+    → 脚本路径上溯）；agate_common 不可用时（独立副本场景）回退 env → 脚本真实路径上溯。"""
+    if _agate_common_resolve is not None:
+        return _agate_common_resolve(os.path.abspath(__file__))
+    env_root = os.environ.get("AGATE_ROOT", "")
+    if env_root:
+        return env_root
+    return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+
 _PHASE_CARDS = {
     "P0": "orchestrator",
     "P1": "requirements",
@@ -30,15 +47,6 @@ _PHASE_CARDS = {
     "P7": "consistency",
     "P8": "release",
 }
-
-
-def _resolve_agate_root():
-    """AGATE_ROOT 解析：env 优先，否则脚本真实路径上溯两级（readlink -f + dirname 等价）。"""
-    env_root = os.environ.get("AGATE_ROOT", "")
-    if env_root:
-        return env_root
-    script_real = os.path.realpath(__file__)
-    return os.path.dirname(os.path.dirname(script_real))
 
 
 def _lower_drive(p):

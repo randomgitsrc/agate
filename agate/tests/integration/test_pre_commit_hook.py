@@ -1230,6 +1230,13 @@ def test_agate_root_self_locate_worktree(git_repo, agate_root, tmp_path, run_cli
         str(agate_root / "scripts" / "pre-commit-gate.sh"),
         str(workflow_root / "scripts" / "pre-commit-gate.sh"),
     )
+    # TAG0008：hook 薄壳经 resolve-entry 解析版本后 exec 对应 gate——fake 安装根补齐
+    # 解析入口（resolve-entry.py + 其依赖 agate_common.py），否则薄壳 fail-closed 阻断。
+    for entry_name in ("resolve-entry.py", "agate_common.py"):
+        shutil.copy2(
+            str(agate_root / "scripts" / entry_name),
+            str(workflow_root / "scripts" / entry_name),
+        )
     (workflow_root / "scripts" / "pre-commit-gate.sh").chmod(0o755)
     (workflow_root / "scripts" / "pre-commit-gate.py").write_text(
         "#!/usr/bin/env python3\nprint(\"WORKTREE_SOURCED\")\n", encoding="utf-8"

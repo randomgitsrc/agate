@@ -1,22 +1,31 @@
 #!/usr/bin/env python3
-"""agate-summary.py — 输出当前 agate 版本 + 启动必读 + 防护状态
+"""agate-summary.py — 输出项目解析到的 agate 版本 + 原因 + 防护状态
 
-从 agate-summary.sh 迁移（TAG0010 批次 1d）。用法：
+TAG0008（批次 resolve-chain）语义迁移：从"仓库自身 git describe"→"项目解析到的版本 +
+原因"（.agate-version 声明或全局 current，P2 §4.6 / BDD-20/21）。复用
+agate_common.resolve_version_root，不重复实现。
+
+用法：
   python3 ~/.agate/scripts/agate-summary.py
 
-用途：agent 启动时快速知道当前用什么协议版本，是否需要升级等。
-exit 0：成功（输出到 stdout）；exit 1：无法解析脚本路径（stderr 报错）或
-找不到 agate git 仓库（sh 版 set -e 在命令替换处静默退出，此处等价静默）。
+用途：agent 启动时快速知道当前项目用什么协议版本，是否需要升级等。
+exit 0：成功（输出到 stdout）；解析警告写 stderr；终态无可用根时 stderr 提示但
+不退出（显示占位），版本解析失败不阻断启动信息。
 
-迁移说明：readlink -f → os.path.realpath；find .git 逐级上溯 → os.path 循环；
-git -C 调用 → subprocess.run(cwd=...)；sed 's/^/  /' → 行前缀 join；
-printf '%b' "$GUARDS" → 直接构造真实换行串；cmp -s → 逐字节比较；
-cat heredoc → 单串拼接 + stdout.buffer 写 UTF-8 字节（保证逐字节等价）。
+迁移说明：TAG0010 批次 1d 迁移保留防护机制/漂移检测；git-describe 版本显示被
+resolve_version_root 替换（worktree .git 是文件非目录时 _find_git_root 失效，
+新语义不再依赖 git repo）。
 """
 
 import os
-import subprocess
 import sys
+from pathlib import Path
+
+try:
+    from agate_common import resolve_version_root
+except (ImportError, SystemExit):
+    sys.stderr.write("agate-summary: agate_common 不可用（缺 pyyaml？），版本解析不可用\n")
+    sys.exit(1)
 
 _GUARD_SCRIPTS = [
     "check-state-yaml.py",
@@ -31,44 +40,6 @@ _GUARD_SCRIPTS = [
 ]
 
 _DRIFT_SCRIPTS = ["check-tdd-red.py", "check-gate.py", "check-pruning.py"]
-
-
-def _find_git_root(start):
-    """从 start 逐级向上找含 .git 的目录（等价 sh 的 _find_git_root，不含根目录本身）。"""
-    d = os.path.normpath(start)
-    while d != os.path.sep:
-        if os.path.isdir(os.path.join(d, ".git")):
-            return d
-        parent = os.path.dirname(d)
-        if parent == d:
-            break
-        d = parent
-    return ""
-
-
-def _git(repo, args, fallback=""):
-    """git -C 等价：cwd=repo 调 subprocess，stdout 剥尾换行，失败返回 fallback。"""
-    try:
-        proc = subprocess.run(
-            ["git", *args],
-            cwd=repo,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-    except OSError:
-        return fallback
-    if proc.returncode != 0:
-        return fallback
-    return (proc.stdout or "").rstrip("\n")
-
-
-def _indent_lines(text):
-    """sed 's/^/  /' 等价：每行前缀两空格。"""
-    if not text:
-        return ""
-    return "\n".join("  " + line for line in text.split("\n"))
 
 
 def _build_guards(script_dir):
@@ -119,41 +90,36 @@ def main():
         sys.stderr.write("GATE: 无法解析脚本路径（非 git 仓库或非标准安装？）\n")
         sys.exit(1)
 
-    agate_repo = _find_git_root(script_dir)
-    if not agate_repo:
-        sys.exit(1)
-
-    current_tag = _git(agate_repo, ["describe", "--tags", "--abbrev=0"], "untagged")
-    branch = _git(agate_repo, ["branch", "--show-current"], "?")
-    head_sha = _git(agate_repo, ["rev-parse", "--short", "HEAD"], "?")
-    recent_commits = _indent_lines(_git(agate_repo, ["log", "--oneline", "-3"]))
+    info = resolve_version_root()
+    for w in info["warnings"]:
+        sys.stderr.write(w + "\n")
 
     guards = _build_guards(script_dir)
     _check_copy_drift(script_dir)
 
+    version = info["version"] or "（未解析到版本）"
+    reason = info["reason"] or "（无原因）"
+    root = str(Path(info["root"]).resolve()) if info["root"] else "（无可用 AGATE_ROOT）"
+
     lines = [
         "=== agate 当前状态 ===",
         "",
-        f"版本：{current_tag}",
-        f"分支：{branch}",
-        f"HEAD：{head_sha}",
-        "",
-        "最近 3 commits：",
-        recent_commits,
+        f"版本：{version}",
+        f"原因：{reason}",
+        f"AGATE_ROOT：{root}",
         "",
         "防护机制（pre-commit + CI）：",
         guards,
         "",
         "快速版本对比：python3 ~/.agate/scripts/agate-changes.py [since-tag]",
         "默认输出自上一个 tag 起的 commit + 受影响的协议文件。",
-        f"例：python3 ~/.agate/scripts/agate-changes.py {current_tag}",
         "查远端更新：python3 ~/.agate/scripts/agate-changes.py --check-upstream",
         "",
         "=== 启动时建议 ===",
         "",
         "1. 第一行：上面这一段（确认协议版本 + 防护机制就位）",
         "2. 读 ~/.agate/AGENTS.md（协议本体入口指引）",
-        f"3. 读 ~/.agate/CHANGELOG.md（{current_tag} 段，了解自上次会话以来发生了什么）",
+        "3. 读 ~/.agate/CHANGELOG.md（了解自上次会话以来发生了什么）",
         "4. 按 orchestrator-template.md mapping 表读当前阶段卡片，按需查阅 Fallback reference 节",
         "",
     ]

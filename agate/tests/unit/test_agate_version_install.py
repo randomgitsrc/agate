@@ -189,6 +189,45 @@ def test_bdd_5_uninstall_removes_dir_and_clean_pointer(
             assert target.is_dir(), f"指针 {name} 悬挂指向不存在的目录"
 
 
+def test_bdd_5b_uninstall_pointed_version_repoints_symlink(
+    git_repo, python_exe, run_cli, agate_scripts, tmp_path, py_path
+):
+    """rev2 CRITICAL-1：软链布局下卸载被 latest/current 指向的版本必须触发指针修复（BDD-5 红线）。
+
+    回归用例：`_resolve_pointer` 先判 isdir 会对"软链→版本目录"短路，返回软链路径自身
+    （basename="latest"/"current"），使 `_repair_pointers` 的 `before != removed_version`
+    恒不匹配 → 卸载后指针悬空。本用例断言卸载后指针解析到剩余有效版本目录。
+    """
+    if os.name == "nt":
+        pytest.skip("POSIX 软链指针布局仅在非 Windows 平台成立")
+    _tag_upstream(git_repo)
+    home = tmp_path / "home"
+    url = py_path(git_repo.path)
+
+    latest_install = _run_install(run_cli, python_exe, agate_scripts, home, repo_url=url)
+    assert latest_install.returncode == 0
+    older = _run_install(run_cli, python_exe, agate_scripts, home, "v0.43.0", repo_url=url)
+    assert older.returncode == 0
+
+    agate_home = home / ".agate"
+    assert (agate_home / "latest").is_symlink()
+    assert (agate_home / "current").is_symlink()
+
+    result = _run_install(run_cli, python_exe, agate_scripts, home, "--uninstall", "v0.48.0")
+    assert result.returncode == 0
+    assert not (agate_home / "v0.48.0").exists()
+
+    git_exe = shutil.which("git")
+    assert git_exe
+    wt = _worktree_porcelain(git_exe, home / ".agate" / "repo")
+    assert os.path.normcase(str(home / ".agate" / "v0.48.0")) not in os.path.normcase(wt)
+
+    for name in ("latest", "current"):
+        target = _resolve_pointer(agate_home, name)
+        assert target.is_dir(), f"指针 {name} 悬挂指向不存在的目录"
+        assert target.name == "v0.43.0", f"指针 {name} 应重指到 v0.43.0，实际解析到 {target.name}"
+
+
 def test_bdd_6_uninstall_rejected_when_referenced(
     git_repo, python_exe, run_cli, agate_scripts, tmp_path, py_path
 ):

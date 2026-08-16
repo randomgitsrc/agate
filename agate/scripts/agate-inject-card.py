@@ -21,12 +21,20 @@ import subprocess
 import sys
 import tempfile
 
+try:
+    from agate_common import resolve_agate_root as _agate_common_resolve
+except (ImportError, SystemExit):
+    _agate_common_resolve = None
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CARD_INJECT = os.path.join(SCRIPT_DIR, "agate-card-inject.py")
 
 
 def _agate_root():
-    """AGATE_ROOT 解析：env 优先，否则脚本真实路径上溯两级（readlink -f + dirname 等价）。"""
+    """AGATE_ROOT 解析：归口 agate_common.resolve_agate_root（env → 项目声明 → current 链
+    → 脚本路径上溯）；agate_common 不可用时（独立副本场景）回退 env → 脚本真实路径上溯。"""
+    if _agate_common_resolve is not None:
+        return _agate_common_resolve(os.path.abspath(__file__))
     env_root = os.environ.get("AGATE_ROOT", "")
     if env_root:
         return env_root
