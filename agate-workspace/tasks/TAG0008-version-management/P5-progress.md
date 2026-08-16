@@ -129,3 +129,9 @@
   - 移除假设：git 不能执行 .sh hook（推翻）；hook 未执行（推翻）。分歧收敛到 py 的 `git diff --cached` 是否在 git hook 上下文看到 staged 文件 + WARNING 是否到达 git stderr。
 - 已加 DIAG-j：真实场景（staged README + 真实 commit）过 probe 链，把 `git diff --cached` 输出 + py stderr 捕获进 marker 文件（绕开 git stderr 可能被吞的问题）。Linux 全绿（PJ0-STAGED=README.md| + WARNING 入 marker）。
 - push DIAG-j → CI 看 Windows marker。
+- rev3-r4 CI（98205cd）Windows 证据（关键）：
+  - DIAG-j（真实场景 staged README + resolve-entry 链）：PJ0-STAGED=README.md| → git diff --cached 在 hook 上下文能看到 README；PJ2-EXEC；PJ3-DONE-RC=0 → **但 WARNING 没出现在 marker！**（Linux 同场景 WARNING 出现在 marker）。
+  - 推论：resolve-entry→os.execv(commit-msg-self-gate.py) 的 stderr 在 Windows 上丢失（execv 的进程替换语义），或 gate py 在 execv 后没继承 git 环境。
+  - 已加 DIAG-k：直接调 commit-msg-self-gate.py（绕过 resolve-entry os.execv），把 stdout/stderr 分文件捕获。若 Windows 上 PK3-STDERR 含 WARNING → 证明问题在 resolve-entry 的 os.execv 输出丢失；若为空 → py 在 git 环境看不到触发。
+- Linux 全绿验证（DIAG-k PK3-STDERR=GATE SELF-GATE...）。
+- push DIAG-k → CI 决胜。

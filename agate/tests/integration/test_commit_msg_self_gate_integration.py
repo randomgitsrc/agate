@@ -212,6 +212,40 @@ def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_
     print(f"[DIAG-j] real-scenario probe commit stderr={jres.stderr!r}")
     j_content = (repo / probe_j_name).read_text(encoding="utf-8") if (repo / probe_j_name).exists() else "<no probe>"
     print(f"[DIAG-j] probe-j marker content={j_content!r}")
+
+    # DIAG-k: 真实场景下直接调 commit-msg-self-gate.py（绕过 resolve-entry os.execv），
+    # 区分「execv 在 Windows 丢输出」 vs 「py 自身看不到 staged 触发」
+    probe_k_name = "probe-k.marker"
+    probe_k = (
+        "#!/bin/bash\n"
+        "echo PK0-ENTER >> 'probe-k.marker'\n"
+        "echo PK0-STAGED=$(git diff --cached --name-only 2>&1 | tr '\\n' '|') >> 'probe-k.marker'\n"
+        "set -u\n"
+        "ENTRY_ROOT=\"${AGATE_ROOT:-$(dirname \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")\")}\"\n"
+        "PY=\"\"\n"
+        "for c in python3 python; do command -v \"$c\" >/dev/null 2>&1 && { PY=\"$c\"; break; }; done\n"
+        "echo PK1-PY=$PY >> 'probe-k.marker'\n"
+        "if [ -n \"$PY\" ] && [ -f \"$ENTRY_ROOT/scripts/commit-msg-self-gate.py\" ]; then\n"
+        "  echo PK2-DIRECT-PY >> 'probe-k.marker'\n"
+        "  \"$PY\" \"$ENTRY_ROOT/scripts/commit-msg-self-gate.py\" \"$@\" >'probe-k.stdout' 2>'probe-k.stderr'\n"
+        "  echo PK3-DONE-RC=$? >> 'probe-k.marker'\n"
+        "  echo PK3-STDOUT=$(cat 'probe-k.stdout' | tr '\\n' '|') >> 'probe-k.marker'\n"
+        "  echo PK3-STDERR=$(cat 'probe-k.stderr' | tr '\\n' '|') >> 'probe-k.marker'\n"
+        "  exit 0\n"
+        "fi\n"
+        "echo PK4-FAILCLOSED >> 'probe-k.marker'\n"
+        "exit 1\n"
+    )
+    (repo / ".git" / "hooks" / "commit-msg").write_text(probe_k, encoding="utf-8")
+    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
+    (repo / "README.md").write_text("change-probe-k\n", encoding="utf-8")
+    git_repo.stage("README.md")
+    (repo / probe_k_name).write_text("", encoding="utf-8")
+    kres = _commit(run_cli, bash, repo, agate_root, "-m", "probe k direct py")
+    print(f"[DIAG-k] direct-py probe commit rc={kres.returncode}")
+    print(f"[DIAG-k] probe commit stderr={kres.stderr!r}")
+    k_content = (repo / probe_k_name).read_text(encoding="utf-8") if (repo / probe_k_name).exists() else "<no probe>"
+    print(f"[DIAG-k] probe-k marker content={k_content!r}")
     # === END TEMP DIAG-f/g/h ===
 
     assert result.returncode == 0
