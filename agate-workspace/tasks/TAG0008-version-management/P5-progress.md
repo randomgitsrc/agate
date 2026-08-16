@@ -67,3 +67,8 @@
 - 验证全绿：integration 6 passed；全量 823 passed + 2 skipped（无回归）；shellcheck 0 error；consistency 0 ERROR。
 - 已写 P5-fix-notes-hook.md rev2 节（新根因：git 进程 PATH 缺 bash → hook 静默跳过；修复：bash 包装 git；验证表；未触碰清单）。
 - 下一步：git push 分支触发 CI（Windows 冒烟最终裁判）。
+
+## implementer fix1 rev2 (push)
+- 已 commit 605a0cc + push origin feat/TAG0008-version-management（3500192..605a0cc）。CI 已触发，Windows 冒烟为最终裁判。
+- 自检：grep 确认 _commit 含 bash 包装（line 35-45），6 个 test_csg_* 均传 bash；薄壳/py 零改动。
+- 不做"Windows 已修复"声明——方法 B 是 dispatch-context 推荐假设，CI 结果由主 Agent 跟进。
