@@ -91,3 +91,26 @@
 - 本地 Linux 验证语法正确 + 行为正常：DIAG-a which(bash)=/usr/bin/bash；DIAG-b hook 存在 + X_OK + 755；DIAG-d 手动 hook 带 env → stderr 出 WARNING（薄壳链可用）；DIAG-e commit rc=0，WARNING 在 stderr（合并流 .output 含 self-gate-review）。
 - integration 全文件 6 passed；新增 import os/sys（无 ruff 问题风险，lint 跑一下）。
 - 下一步：commit + push 分支 → CI 看 Windows 诊断输出。
+### rev3 CI 证据（Windows 真机，gh run view 31962446350 --log-failed）
+- [DIAG-a] sys.platform='win32'；bash='C:\\Program Files\\Git\\bin\\bash.exe'；which('bash')='C:\\Program Files\\Git\\usr\\bin\\bash.EXE'；PATH 含 Git\bin + Git\usr\bin → **bash 在 PATH，PATH 假设证伪成立**
+- [DIAG-b] hook.exists()=True；os.access(hook,X_OK)=True；mode=0o100666（Windows chmod 语义）→ find_hook 应命中
+- [DIAG-c] git version 2.55.0.windows.3；core.hooksPath 未设（rc=1）→ 默认 .git/hooks
+- [DIAG-d] **手动 bash 调 hook（带 AGATE_ROOT）rc=0 + stderr 出 GATE SELF-GATE WARNING** → 薄壳链 Windows 完全可用（复现 unit test_cmsg_1）
+- [DIAG-d] 不带 env：rc=1 + GATE ERROR（fail-closed 正常）
+- [DIAG-e] **git commit rc=0，stdout 仅 commit 摘要，stderr=''（空）** → git 未执行 hook、未出任何 spawn 警告
+- **结论（证据明确）**：薄壳链 Windows 可用；git-for-windows 2.55 对 .sh hook 未执行且静默（连 "cannot spawn" / "hook ignored" 都没有）。分歧在 git→hook 边界的 spawn/解析机制。
+- 下一步：核实 git-for-windows 2.55 源码——parse_interpreter/shebang 处理是否还在（网上曾讨论移除 shebang 支持）。
+### rev3 分析（git 2.55 源码 + CI 证据收敛）
+- 已拉 git-for-windows v2.55.0.windows.3 源码（compat/mingw.c / run-command.c / hook.c / builtin/commit.c / commit.c）逐函数核对：
+  - find_hook(hook.c:26-63)：`access(path, X_OK)`；Windows mingw_access(hook `X_OK`) (mingw.c:1170-1179) 剥 X_OK → _waccess 判存在。hook 存在 → find_hook 应命中。
+  - pick_next_hook(hook.c:612-613)：traditional hook `cp->use_shell` 保持默认 false（仅 HOOK_CONFIGURED 置 true），cp->args=[hook_path, msgfile]。
+  - start_command → mingw_spawnvpe(hook_path, ...) (run-command.c:947)；pid<0 且非 silent → `error_errno("cannot spawn")` 到 stderr，非静默。
+  - mingw_spawnvpe (mingw.c:2432-2467)：prog=path_lookup(hook)（含分隔符→直接返回）；parse_interpreter(hook) 读 shebang `#!/bin/bash` → strrchr(buf+2,'/') 取最后段 → 返回 `bash`；iprog=path_lookup("bash",1) 找 bash.exe；spawnve_fd(iprog, argv=[hook,msgfile], prepend_cmd="bash") → CreateProcess bash.exe "bash" <hook> <msgfile>。
+  - DIAG-a 实证 PATH 含 Git\usr\bin（bash.EXE 在）→ path_lookup("bash") 应命中。
+- **矛盾点**：机制上 git 2.55 应能找到并 spawn bash 跑 hook（与 DIAG-d 手动一致），但 DIAG-e 实证 git commit stderr 为空、rc=0、无 WARNING。可能：①find_hook 返回 NULL（hook 路径判定失败）；②spawn 失败且被静默吞（silent_exec_failure / parallel 输出管道）；③hook 执行但输出被 git 重定向吞掉。
+- **下一轮诊断（区分①②③）**：加 DIAG-f（GIT_TRACE=1 git commit，看是否 attempt hook）、DIAG-g（hook 写 marker 文件 + 输出到文件，验证 git 是否真的执行 hook）、DIAG-h（git rev-parse --git-path hooks 确认 git 视角的 hooks 路径）。
+- 已加第二组诊断 DIAG-f/g/h（区分"git 未尝试 hook / spawn 失败" vs "git 执行了 hook 但输出被吞"）：
+  - DIAG-h: `git rev-parse --git-path hooks` + `config --show-origin core.hooksPath`（git 视角 hooks 路径）
+  - DIAG-f: GIT_TRACE=1 git commit（看 run_command 是否出现 commit-msg hook）
+  - DIAG-g: 换成 trivial `#!/bin/bash` marker hook（touch 文件 + echo TRIVIAL_HOOK_RAN）→ 若 marker 存在则 git 能执行 bash hook，根因在我们 hook 的 resolve 链；若 marker 缺失则 git 根本不执行
+- Linux 本地验证：DIAG-f GIT_TRACE 显示 `run_command: GIT_EDITOR=: GIT_INDEX_FILE=.git/index .git/hooks/commit-msg .git/COMMIT_EDITMSG`（git 调 hook）；DIAG-g trivial hook rc=0 + TRIVIAL_HOOK_RAN + marker 创建 → Linux 全链路正常，代码语法正确。

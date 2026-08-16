@@ -88,6 +88,50 @@ def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_
     print(f"[DIAG-e] commit rc={result.returncode}")
     print(f"[DIAG-e] commit stdout={result.stdout!r}")
     print(f"[DIAG-e] commit stderr={result.stderr!r}")
+
+    # === TEMP DIAG-f/g/h rev3-r2: 区分 find_hook/执行失败 vs 输出被吞（CI 实证后清理） ===
+    # DIAG-h: git 视角的 hooks 路径
+    hp2 = run_cli("git", "-C", str(repo), "rev-parse", "--git-path", "hooks")
+    print(f"[DIAG-h] git rev-parse --git-path hooks rc={hp2.returncode} out={hp2.output!r}")
+    hpf = run_cli("git", "-C", str(repo), "config", "--show-origin", "--get", "core.hooksPath")
+    print(f"[DIAG-h] config --show-origin core.hooksPath rc={hpf.returncode} out={hpf.output!r}")
+
+    # DIAG-f: GIT_TRACE 看 git 是否 attempt 跑 commit-msg hook
+    trace = run_cli(
+        bash,
+        "-c",
+        f"cd {shlex.quote(str(repo))} && git commit --allow-empty -m 'trace test'",
+        cwd=str(repo),
+        env={"AGATE_ROOT": str(agate_root), "GIT_TRACE": "1"},
+    )
+    print(f"[DIAG-f] GIT_TRACE commit rc={trace.returncode}")
+    for line in trace.stderr.splitlines():
+        if any(k in line.lower() for k in ("run_command", "hook", "prefix","exec")):
+            print(f"[DIAG-f] {line[:300]!r}")
+
+    # DIAG-g: 换成 trivial marker hook，验证 git 是否执行任何 #!/bin/bash hook
+    marker_name = "hook-executed.marker"
+    trivial = (
+        "#!/bin/bash\n"
+        "echo TRIVIAL_HOOK_RAN >&2\n"
+        f"touch '{marker_name}'\n"
+        "exit 0\n"
+    )
+    (repo / ".git" / "hooks" / "commit-msg").write_text(trivial, encoding="utf-8")
+    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
+    tres = run_cli(
+        bash,
+        "-c",
+        f"cd {shlex.quote(str(repo))} && git commit --allow-empty -m 'trivial hook test'",
+        cwd=str(repo),
+        env={"AGATE_ROOT": str(agate_root)},
+    )
+    print(f"[DIAG-g] trivial hook commit rc={tres.returncode}")
+    print(f"[DIAG-g] trivial hook commit stdout={tres.stdout!r}")
+    print(f"[DIAG-g] trivial hook commit stderr={tres.stderr!r}")
+    print(f"[DIAG-g] marker exists={(repo / marker_name).exists()}")
+    # === END TEMP DIAG-f/g/h ===
+
     assert result.returncode == 0
     assert "self-gate-review" in result.output
 
