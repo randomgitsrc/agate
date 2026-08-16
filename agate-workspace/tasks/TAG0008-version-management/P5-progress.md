@@ -148,3 +148,8 @@
 - 本地验证：integration 6 passed + resolve-entry unit 5 passed + 全量 823 passed/2 skipped + ruff 0 + consistency 0 ERROR + shellcheck 0。
 - 已更新 P5-fix-notes-hook.md rev3 结论（根因 + 证据表 + 修复 + 验证 + 回滚预案）。
 - 下一步：git add + commit + push → CI Windows 冒烟裁判。
+### rev3 CI 裁判结果（25ab797, run 31965495897）
+- **Windows 冒烟全绿**：`=============== 89 passed, 1 skipped, 735 deselected ================`（前一轮 88 passed/1 failed——失败 1 test_csg_1 已修复）
+- 全 CI job success：pytest(windows) / pytest(ubuntu) / consistency / ruff / shellcheck(win+linux) / platform-scan / gate-backstop
+- **根因修复确认**：resolve-entry.py Windows 分支 subprocess.run + sys.exit(rc) 透传 gate 输出 → test_csg_1 的 git→hook→gate WARNING 现可见
+- 结论：rev3 第三轮修复被 CI 证实（前两轮 shebang/bash 包装均证伪；rev3 靠 CI 实证诊断定位 os.execv stderr 丢失根因后修复成功）
