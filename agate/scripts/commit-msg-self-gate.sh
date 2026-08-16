@@ -1,5 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # commit-msg-self-gate.sh — commit-msg hook 薄壳（经 resolve-entry 解析版本后 exec 对应版本 py）
+# shebang 用 /bin/bash 而非 /usr/bin/env bash：git-for-windows 的 parse_interpreter 对
+# `#!/usr/bin/env bash` 会剥掉 `bash` 参数，以 `env <hook> <msgfile>` 执行（依赖 env.exe +
+# MSYS 嵌套 shebang 递归，Windows 上实测 hook 不执行）；`#!/bin/bash` 让 git 直连 bash。
 set -u
 # 1. 入口根自定位（软链→本体；复制模式 .agate-root 恢复）——resolve-entry 所在安装根。
 #    不用 AGATE_ROOT 变量（避免经环境泄漏给 resolve-entry 而绕过项目版本解析，TAG0008）

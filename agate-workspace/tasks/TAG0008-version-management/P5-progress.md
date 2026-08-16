@@ -1,26 +1,56 @@
-# P5 验证进度
+# P5 progress — implementer fix（Windows 冒烟 2 失败修复）
 
-## 2026-08-16 verifier 开始
+## implementer fix
+- 读取 dispatch-context、implementer 角色、FIX-WINDOWS-TAG0008.md 完成。
+- 读取两失败测试 + 实现 + resolve 对照 + CI 实际失败输出（gh run view）。
+- CI 实际输出确认：
+  - 失败 1 `test_csg_1_readme_triggers_warning`：returncode==0（commit 成功），output 仅 `[master d5620ee] update readme\n 1 file changed...`，无 self-gate-review WARNING。
+  - 失败 2 `test_bdd_1_latest_pointer_after_noarg_install`：`assert latest.exists()` False，路径 `.../test_bdd_1_latest_pointer_afte0/home/.agate/latest`。returncode==0（install 成功，但指针写到了真实用户目录）。
+- 失败 2 初步判断：`_run_install` helper（test_agate_version_install.py:21-27）只设 HOME 未设 USERPROFILE。Windows 上 os.path.expanduser 优先 USERPROFILE → _agate_home() 解析到真实 home（C:\Users\runneradmin\.agate）→ home/.agate/latest 不存在。对照 resolve 测试 _resolve_env 设了 HOME+USERPROFILE（正确实现）。
+- 失败 1 初步分析（待实证）：CI 显示 returncode==0（commit 成功）但 output 无 WARNING（仅 `[master d5620ee] update readme\n 1 file changed...`）。说明 hook 链要么完全没跑、要么跑了但 commit-msg-self-gate.py 未判定 triggered。薄壳 fail-closed 分支会 exit 1（阻断 commit）——与 CI returncode==0 矛盾，故薄壳若跑了且 resolve 失败应阻塞；未阻塞说明要么 hook 未执行、要么 exec 成功后 py 静默返回。AGATE_ROOT 反斜杠路径在 Git Bash 的 test -d/-f 行为需实证（Linux 模拟 + git for windows 知识）。已读 resolve-entry.py / commit-msg-self-gate.py / pre-commit-gate.sh / install-hook.py / conftest bash fixture / 对照 test_pre_commit_hook.test_bdd_19（copy 模式 .agate-root 标记路径，Windows 冒烟通过——但它只断言 returncode==0 不验证 WARNING）。
+- 深挖 git-for-windows hook 执行机制：
+  - mingw.c `mingw_access`：`_waccess(wfilename, mode & ~X_OK)` —— X_OK 被剥掉，文件存在即"可执行"（find_hook 会返回 hook 路径）。这解释了为什么 copy 模式 + chmod 也能被 git 执行。
+  - mingw.c `parse_interpreter`：读 hook 首行 shebang `#!/usr/bin/env bash`，`strrchr(buf+2,'/')` 取最后一段 + 剥空格后的选项 → interpreter = `env`（丢掉 `bash` 参数！）。然后 `path_lookup("env",1)` 在 PATH 找 env.exe。
+  - `mingw_spawnvpe` 用 interpreter 重新构造 argv 执行。
+  - 关键分歧：CI returncode==0（commit 成功）+ 无 WARNING 无 GATE ERROR → hook 要么没跑、要么跑了但 commit-msg-self-gate.py 判定 triggered=False 静默退出 0。fail-closed 分支（GATE ERROR + exit 1）会阻断 commit（returncode!=0），与 CI 矛盾 → 排除。
+- 决定性对照：unit 测试 test_cmsg_1（windows_smoke，**Windows 冒烟通过**）直接用 `bash commit-msg-self-gate.sh <msgfile>` + AGATE_ROOT env 跑同一薄壳链 → 证明薄壳+resolve-entry+commit-msg-self-gate.py 全链在 Windows 可用。test_csg_1 唯一区别是 **git 调用** hook（copy 到 .git/hooks/commit-msg）。失败点必然在 git→hook 边界。
+- git 机制分析结论（mingw.c / run-command.c / hook.c / commit.c / sequencer.c）：
+  - `find_hook` 用 access(X_OK)；Windows mingw_access 剥掉 X_OK → 仅判文件存在 → copy 模式 hook 也会被执行。
+  - git for windows 经 `mingw_spawnvpe` → parse_interpreter 读 shebang `#!/usr/bin/env bash` → interpreter 取 basename `env`（剥掉 `bash` 参数）→ path_lookup("env")。
+  - 关键：CI 失败是 returncode==0（commit 成功）+ output 无 WARNING 无 GATE ERROR → 薄壳 fail-closed（exit 1）未发生（否则阻断 commit）。只剩两种：hook 没跑 / 跑了但 commit-msg-self-gate.py 判定 triggered=False 静默退出。
+  - 对照：unit test test_cmsg_1（windows_smoke，Windows 冒烟通过）直接用 bash 跑同一薄壳链 + AGATE_ROOT env → 证明薄壳+resolve-entry+commit-msg-self-gate.py 全链在 Windows 可用。test_csg_1 唯一区别是 **git 调 hook**。
+  - 疑点收敛到 git→hook 边界的 Windows 行为。下一步：Linux 忠实复现（backslash AGATE_ROOT 目录 + copy hook + git commit）验证薄壳在 backslash 路径下的实际行为。
 
-输入已读：dispatch-context / verifier.md / P2-design gate_commands / P0-brief env_constraints
-环境确认：worktree git log f752c73 (P4 已 commit)；.state.yaml phase=P4（验证后由主 Agent 推进）
+## implementer fix2
+- 读取 dispatch-context（根因已实证：_run_install 漏 USERPROFILE）、implementer 角色、install/resolve 测试完成。
+- 确认对照 test_agate_version_resolve.py:17-19 _resolve_env 正确设置 HOME+USERPROFILE。
+- 已落地修复：test_agate_version_install.py:22 `env = {"HOME": str(home), "USERPROFILE": str(home)}`（与 resolve 测试一致）。
+- test_agate_version_install.py 全绿：9 passed（3.02s）。
+- 开始跑全量 pytest。
+- 全量 pytest：823 passed, 2 skipped（82.71s），基线一致无回归。
+- 已写 P5-fix-notes-userprofile.md（根因 + 修复 + 验证结果）。
+- 返回前自检：grep 确认 USERPROFILE 已落盘。
 
-## P5 全量 pytest
-- `python3 -m pytest -q --tb=no` → **823 passed, 2 skipped**, exit 0（与 P4 基线 823 passed 一致，无回归）
+## implementer fix1
+- 读取 dispatch-context（失败 1 派发指引：根因已收敛到 git→hook 边界，方向 a shebang 解析 / 方向 b 测试适配）、implementer 角色、test_commit_msg_self_gate_integration.py（_setup_hook 复制薄壳 + chmod 755，git commit 触发）、薄壳 commit-msg-self-gate.sh（shebang `#!/usr/bin/env bash`）、resolve-entry.py、commit-msg-self-gate.py、P5-progress.md（上轮分析完整）、conftest.py（run_cli/bash/git_repo fixtures）。
+- 关键矛盾梳理（上轮遗留）：若 hook 真跑了，AGATE_ROOT 反斜杠路径在 Git Bash 的 test -d/-f 大概率判存在（Windows stat 认 D:\ 为绝对路径）→ exec python3 resolve-entry → py 应打印 WARNING；若 fail-closed（resolve-entry 找不到）→ GATE ERROR + exit 1 阻断 commit。CI 两者都没有（returncode==0 + 无输出）→ 只有"hook 未执行"或"hook 执行但 py 静默返回"两种。unit test_cmsg_1 直接 bash 调薄壳全链可用 → 分歧必在 git→hook 边界。
+- 下一步：①核实 git-for-windows parse_interpreter/path_lookup 精确机制（拉 mingw.c 源码验证）②Linux 模拟候选方向。
 
-## P5_unit（新增单测）
-- `pytest -q --tb=no test_agate_version_install.py test_agate_version_resolve.py test_agate_summary.py test_install_hook.py` → **29 passed**, exit 0
+## implementer fix1 (续)
+- 拉取 git-for-windows mingw.c 源码验证 parse_interpreter/path_lookup/mingw_spawnvpe 精确机制：
+  - parse_interpreter 对 `#!/usr/bin/env bash`：strrchr(buf+2,'/') 取最后一段 + `strchr(p+1,' ')` 剥空格后选项 → 返回 `env`（**bash 参数被丢弃**，行 1868-1902 确认）。
+  - mingw_spawnvpe（行 2432-2467）：interpr 非空 → `path_lookup(interpr, 1)` 找 `env.exe`；找到则 `mingw_spawnve_fd(env.exe, argv=[hook,msgfile], prepend_cmd="env")` → CreateProcess 以 `env <hook> <msgfile>` 执行（无 bash）。找不到 → ENOENT + pid=-1。
+  - mingw_access：`_waccess(wfilename, mode & ~X_OK)` → X_OK 剥掉仅判存在（find_hook 返回 copy hook）。
+  - 结论确认：Windows 上 git 跑 copy 模式 hook = 以 `env <hook> <msgfile>` 执行，依赖 env.exe 在 PATH + MSYS 嵌套 shebang 递归；CI 实测该链不产生 hook 输出（returncode 0 无 WARNING 无 GATE ERROR 无 "cannot spawn"）→ hook 未真正执行。唯一对照 test_cmsg_1（bash 直调）Windows 通过 → 分歧在 git→hook 边界，方向 a（shebang）成立。
+- CI 全量日志确认：失败 1 output 精确值 `'[master d5620ee] update readme\n 1 file changed...'`，无任何 hook/err 输出；失败 2（test_bdd_1）已被另一任务修复。
+- 对照 test_pre_commit_hook.py / test_pre_push_hook.py：Windows 冒烟通过的 hook 用例**均不验证 git 触发后 hook 输出**（只断言 returncode / install 产物）→ 不构成"git 能执行 copy hook"的反证。test_csg_1 是唯一要求 git→hook 真实输出的用例。
+- 修复决策：**方向 a——3 个 hook 薄壳 shebang `#!/usr/bin/env bash` → `#!/bin/bash`**（parse_interpreter 对 `#!/bin/bash` 返回 `bash`，git 直连 `bash <hook> <msgfile>`，绕开 env 链）。bash.exe 在 GitHub windows runner PATH（usr/bin + bin 均在），Linux /bin/bash 恒在。改 3 个（同根因同模式，pre-commit/pre-push 复制模式同样受影响）。
 
-## P5_consistency
-- `python3 agate/scripts/check-protocol-consistency.py`（worktree 自己脚本）→ **0 ERROR**（279 WARNING 为既有叙事文件引用提醒，非新增），exit 0
-
-## P5_count
-- `bash agate/tests/scripts/count-tests.sh` → **825 用例**（collect-only 口径，目标 ≥749），exit 0（825 = 823 passed + 2 skipped 一致；较 P4 基线 818 提升，因本任务新增单测）
-
-## 产出落盘
-- P5-test-results/unit.md 已写：failed=0，含 4 条命令摘要 + 签名行（grep -c = 4 > 0 自检通过）
-- P5-test-results/fail-list.txt 已建（空，无失败项）
-- 自检：签名计数 4 > 0 ✓；fail-list.txt 存在 ✓
-[PROD_NOT_TOUCHED]
-[NO_NEED_CONFIRM]
-
+## implementer fix1 (修复落地 + 验证)
+- 已改 3 个 hook 薄壳 shebang `#!/usr/bin/env bash` → `#!/bin/bash`（commit-msg-self-gate.sh / pre-commit-gate.sh / pre-push-gate.sh，各加一行注释说明原因；同根因同模式，pre-commit/pre-push 复制模式同样受影响）。
+- Linux 模拟验证：
+  - 旧 shebang + git commit（copy hook）→ WARNING + rc=0（Linux 基线，正常）。
+  - env 重建（`env <hook> <msgfile>`）在 Linux 也能跑（内核 shebang）→ 证明失败是 Windows MSYS env 链特有，Linux 无法复现。
+  - 新 shebang + git commit（copy hook）→ WARNING + rc=0（无回归）。
+- 验证全绿：integration 6 passed；全量 823 passed + 2 skipped（基线一致）；shellcheck 3 个 hook 薄壳 + 全量 `agate/scripts/*.sh` 均 0 error；count-tests 825 无漂移；check-protocol-consistency 0 ERROR。
+- 产出 P5-fix-notes-hook.md。Windows CI 复跑为最终裁判。

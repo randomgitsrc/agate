@@ -19,7 +19,7 @@ import pytest
 
 
 def _run_install(run_cli, python_exe, agate_scripts, home, *args, repo_url=None, extra_env=None):
-    env = {"HOME": str(home)}
+    env = {"HOME": str(home), "USERPROFILE": str(home)}
     if repo_url is not None:
         env["AGATE_REPO_URL"] = str(repo_url)
     if extra_env:

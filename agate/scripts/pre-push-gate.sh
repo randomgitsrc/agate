@@ -1,5 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # pre-push-gate.sh — pre-push hook 薄壳（经 resolve-entry 解析版本后 exec 对应版本 py）
+# shebang 用 /bin/bash：git-for-windows 对 `#!/usr/bin/env bash` 剥掉 bash 参数后以
+# `env <hook>` 执行（依赖嵌套 shebang 递归，Windows 实测 hook 不执行）；/bin/bash 直连。
 # AGATE_ALIGNMENT_REVIEW_THRESHOLD 阈值在 pre-push-gate.py 内维护
 set -u
 # 1. 入口根自定位（软链→本体；复制模式 .agate-root 恢复）——resolve-entry 所在安装根。

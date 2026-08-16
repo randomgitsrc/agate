@@ -1,5 +1,5 @@
 task_id: TAG0008
-phase: READY
+phase: P5
 status: in_progress
 retries:
   P1:
@@ -17,3 +17,8 @@ retries:
       failure_mode: quality
       prompt_changed: true
       adjustment: "P4 评审 rejected（review 专家 3 CRITICAL：指针解析 isdir 短路 / install-offline 无 Pillow bundle 默认流失败 / manifest 路径穿越）；回派 implementer 修复 3 CRITICAL 后重新评审"
+  P5:
+    - round: 1
+      failure_mode: empty_return
+      prompt_changed: true
+      adjustment: "P5fix implementer 两次空返回（深度诊断完成但修复未落盘，认知过载——失败 1 的 git-for-windows 机制分析过深）；拆分两失败为独立小任务并行派发，降低单任务认知负担"
