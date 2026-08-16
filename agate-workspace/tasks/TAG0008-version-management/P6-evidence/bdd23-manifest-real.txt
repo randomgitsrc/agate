@@ -1,0 +1,15 @@
+=== bundle 内容 ===
+总计 20
+drwxrwxr-x 4 kity kity 4096  8月 16 12:48 .
+drwxrwxr-x 3 kity kity 4096  8月 16 12:48 ..
+drwxrwxr-x 3 kity kity 4096  8月 16 12:48 agate
+-rw-rw-r-- 1 kity kity  560  8月 16 12:48 manifest.json
+drwxrwxr-x 2 kity kity 4096  8月 16 12:48 wheels
+
+=== manifest.json ===
+platform: linux-x86_64
+version: v0.48.0
+agate path= agate sha256_len= 64 hex= True
+wheels path= wheels sha256_len= 64 hex= True
+pyyaml path= wheels/pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl sha256_len= 64 hex= True
+MANIFEST-OK

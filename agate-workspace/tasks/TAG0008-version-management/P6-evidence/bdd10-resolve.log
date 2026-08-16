@@ -1,0 +1,4 @@
+AGATE_ROOT=/tmp/opencode/tag0008-p6/home-bdd10/.agate/v0.43.0
+AGATE_VERSION=v0.43.0
+AGATE_REASON=引用 .agate-version
+EXIT_CODE: 0

@@ -1,0 +1,7 @@
+=== BDD-28 real install verification (venv + bundle) ===
+dest v0.48.0 dir: EXISTS
+agate code copied: EXISTS
+.installed-version: v0.48.0
+current -> /tmp/opencode/tag0008-p6/dest312/v0.48.0
+venv pyyaml: 6.0.3
+install-offline EXIT_CODE: 0 (bdd27-real-install.log)

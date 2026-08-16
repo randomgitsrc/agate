@@ -1,0 +1,4 @@
+AGATE_ROOT=/tmp/opencode/tag0008-p6/legacy-checkout/agate
+AGATE_VERSION=
+AGATE_REASON=legacy 软链布局（无版本指针）
+EXIT_CODE: 0

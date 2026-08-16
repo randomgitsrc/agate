@@ -1,0 +1,3 @@
+拒绝卸载: v0.43.0 仍被 1 个项目引用（.agate-version）：
+  - /tmp/opencode/tag0008-p6/home-bdd6/myproject
+先移除这些项目的 .agate-version 声明再重试。

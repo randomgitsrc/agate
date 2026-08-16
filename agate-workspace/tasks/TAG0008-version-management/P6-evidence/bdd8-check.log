@@ -1,0 +1,9 @@
+agate_common: 需要 pyyaml。pip install pyyaml
+✓ python3: /tmp/opencode/tag0008-p6/noyaml-venv/bin/python3
+✓ pyyaml: 缺失
+✓ git: /usr/bin/git
+✓ bash: /usr/bin/bash
+
+缺少: pyyaml
+修复指引:
+  运行: pip install pyyaml（或 python3 -m pip install pyyaml）

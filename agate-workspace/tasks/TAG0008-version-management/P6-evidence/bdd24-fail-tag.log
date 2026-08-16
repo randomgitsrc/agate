@@ -1,0 +1,1 @@
+agate-pack-offline: 版本 tag v0.99.0 检出失败: Command '['git', 'worktree', 'add', '/tmp/opencode/tag0008-p6/pack-fail/agate-v0.99.0-linux-x86_64/agate', 'v0.99.0']' returned non-zero exit status 128.

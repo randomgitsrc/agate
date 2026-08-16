@@ -1,0 +1,8 @@
+worktree /tmp/opencode/tag0008-p6/home-bdd2/.agate/repo
+HEAD a1dcce8365d021a2690d49259c43a9275189665c
+branch refs/heads/main
+
+worktree /tmp/opencode/tag0008-p6/home-bdd2/.agate/v0.48.0
+HEAD a1dcce8365d021a2690d49259c43a9275189665c
+detached
+

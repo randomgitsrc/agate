@@ -1,0 +1,30 @@
+=== agate 当前状态 ===
+
+版本：v0.44.0
+原因：全局 current
+AGATE_ROOT：/tmp/opencode/tag0008-p6/home-bdd21/.agate/v0.44.0
+
+防护机制（pre-commit + CI）：
+  ✓ check-state-yaml.py
+  ✓ check-gate.py
+  ✓ check-changelog.py
+  ✓ check-p6-evidence.py
+  ✓ check-p6-provenance.py
+  ✓ check-state-transition.py
+  ✓ check-pruning.py
+  ✓ check-scope-resolved.py
+  ✓ check-retrospective.py
+  ✓ pre-commit-gate.sh（hook 入口）
+
+快速版本对比：python3 ~/.agate/scripts/agate-changes.py [since-tag]
+默认输出自上一个 tag 起的 commit + 受影响的协议文件。
+查远端更新：python3 ~/.agate/scripts/agate-changes.py --check-upstream
+
+=== 启动时建议 ===
+
+1. 第一行：上面这一段（确认协议版本 + 防护机制就位）
+2. 读 ~/.agate/AGENTS.md（协议本体入口指引）
+3. 读 ~/.agate/CHANGELOG.md（了解自上次会话以来发生了什么）
+4. 按 orchestrator-template.md mapping 表读当前阶段卡片，按需查阅 Fallback reference 节
+
+EXIT_CODE: 0

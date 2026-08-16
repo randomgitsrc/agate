@@ -1,0 +1,4 @@
+AGATE_ROOT=/tmp/opencode/tag0008-p6/custom-agate
+AGATE_VERSION=
+AGATE_REASON=AGATE_ROOT 环境变量覆盖
+EXIT_CODE: 0
