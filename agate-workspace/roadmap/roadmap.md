@@ -23,13 +23,14 @@
 | RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | scheduled | 阶段提示词核查（2026-08-13）| TAG0012 | 2026-08-13 | 2026-08-15 |
 | RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | scheduled | TAG0005/0009 复盘核实（2026-08-14）| TAG0012 | 2026-08-13 | 2026-08-15 |
 | RM-AG0015 | 文档脚本名引用漂移无 gate 兜底：CHECK 2 只捕获 `scripts/` 前缀引用，裸脚本名（phase-cards/rules 全是）完全漏检 + phase-cards/rules 不在 PROTOCOL_FILES（引用检查降级 WARNING）| scheduled | TAG0010/0011 复盘（2026-08-15）+ 实测验证 | TAG0013 | 2026-08-15 | 2026-08-15 |
-| RM-AG0016 | subagent 派发编排机制（全阶段）：工作量评估 + 五模式编排（单发/静态拆批/并行/先理解后拆/串行链）+ 并行规则统一；P1/P2 补空白、P3-P6 统一现有分散"按包并行" | scheduled | TAG0010/0011 复盘（2026-08-15）+ 用户需求扩展（全阶段）| TAG0014 | 2026-08-15 | 2026-08-15 |
+| RM-AG0016 | subagent 派发编排机制（全阶段）：工作量评估 + 五模式编排（单发/静态拆批/并行/先理解后拆/串行链）+ 并行规则统一；P1/P2 补空白、P3-P6 统一现有分散"按包并行" | done | TAG0010/0011 复盘（2026-08-15）+ 用户需求扩展（全阶段）| TAG0014 | 2026-08-15 | 2026-08-17 |
 | RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| scheduled | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
 | RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | scheduled | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
 | RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | scheduled | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-15 |
 | RM-AG0020 | 复盘机制统一：模板缺正文结构（只有核对清单）、内容无价值标准、标的矛盾（异常触发 vs 所有任务）、路径矛盾（应放 tasks/{Txxx}/ 作 task 产物 vs 实际 docs/reviews/ vs check-retrospective 提示 docs/releases/，三处不一致）；分层归因 + 执行错误/机制缺口二分 + 措施可落地缺失 | scheduled | TAG0013/0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
 | RM-AG0021 | agate 跨项目反馈机制：复盘中的 agate 机制/执行问题回馈到 agate 项目组（结构化 agate 反馈节 + 匿名化 + 开关，只回传 agate 归因内容不涉项目敏感信息）| scheduled | TAG0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
 | RM-AG0022 | 协议规则结构化层（层 1）：把 agent 消费的协议规则从自由文本抽成结构化定义（phases.yaml/dispatch.yaml/roles.yaml + 一致性 gate），解决"agent 读 8000+ 行 md 理解规则"的摩擦；需先设计 yaml schema 方案再立项 | backlog | TAG0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
+| RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | scheduled | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-17 |
 
 ## 状态标识
 
@@ -206,6 +207,7 @@
   1. **明确 supplementable vs verification_env 边界**：P1 卡片 + analyst 角色加注——"能力缺失"用 supplementable，"环境依赖/需外部环境验证"用 verification_env；跨平台验证属后者
   2. **补 verification_env 的失败处理协议**：本地无法验证的项，P1 声明时同时列"可验证清单 vs 不可验证清单"；设定每轮 CI 验证多假设的批处理要求；设止损轮次（如 3 轮未收敛必须升级汇报）；定义 READY 后暴露外部问题的归属（补丁 vs 新任务）
   3. **CI 轮次预算进 P1**：risk_level 或专门字段记录"预计外部验证轮次"，让主 Agent 和用户对总时长有预期
+  4. **环境准备职责边界（TPV0093 回流，RM-AG0023，2026-08-17 补充）**：verification_env 定义"如何声明环境"，还要补"**谁负责准备环境**"——P5/P6 需运行环境（debug server/测试数据库）时：①主 Agent（P0-brief debug_env 声明，负责启动/维护/关停）还是 subagent（自启无防护 → 卡死）？②多个 subagent（前端+后端）各启各的 debug → 冲突/资源竞争？**建议：环境启动/维护/关停归主 Agent（或 P0-brief 明确单一方），subagent 只消费不启动**；多 subagent 需共享环境时主 Agent 统一启动 + dispatch-context 注入环境访问方式。落点：dispatch-protocol verification_env 节 + P5/P6 卡片
 - **归属**：独立任务（协议机制增强：dispatch-protocol + P1 卡片 + analyst 角色），与 RM-AG0013（阶段卡同类扫描）同属"协议机制增强"簇。
 
 ---
@@ -247,6 +249,7 @@
      - 模式 4 先理解后拆（high/结构不明）：侦察 subagent 读全貌产出拆分方案 → 按方案派执行（并行/串行）→ 合并（轻量拼装由主 Agent/单 subagent；重量整合派整合 subagent）
      - 模式 5 串行链（有依赖）：分批串行
   3. **并行规则统一**：并行上限默认 3（可配置）；失败批单独计 `retries[Pn]` 不重跑成功批；各批只改自己范围、共享文件由主 Agent 统一后处理（P4 约束推广到全阶段）
+  3.5 **运行时管控（TPV0093 回流，RM-AG0023）**：①**timeout_seconds 字段**——gate_commands/dispatch_plan 声明命令时同时声明预期时长（如 `P5_e2e.timeout: 600`），派发时硬编码到 subagent 命令；**阈值须合理**（pytest 全量 ~70s/CDP E2E 需更大，不能低到长命令误判失败）+ **执行留痕**（timeout 判定基于真实执行，不拍脑袋）；②**dispatch-prompt 超时兜底节**——"每个 bash 命令必须设 timeout（≤预期时长×1.5）；超时→停止+写 progress 返回；遇非预期失败→记录后返回主 Agent，禁止自行深入诊断"；③**资源密集型默认串行**——backend 全量 pytest（xdist）+ frontend 全量 vitest 属高资源命令，默认串行，需并行时评估 CPU/IO 竞争；④**progress 心跳扩展**——每个 bash 命令**前**写 progress（`[HH:MM] 开始执行: ...`），主 Agent 可判断 subagent 是否卡在命令中（TPV0093 实证：卡死时命令执行中不写 progress，心跳失效）
   4. **落地位置**（单一权威源）：dispatch-protocol.md 新增「派发编排机制」节（升级扩充现有任务粒度指引）；P2-design.md 新增 `dispatch_plan:` 机器字段；各阶段卡片加"编排模式"引用（指向权威节，不重复定义）；dispatch-prompt.md 内联"产出>3 或输入>5 必须分批或说明"兜底
 - **验证口径**：`dispatch_plan:` 字段可被 gate 校验（复杂度/模式/并行上限一致性）；派发模板约束主 Agent 每轮可见；模式 4 流程有测试覆盖（侦察→执行→合并 三阶段）
 - **参考实施计划（2026-08-15）**：`agate-workspace/plans/agate-dispatch-orchestration-20260815.md`（已通过 plan-eng-review 三轮评审，approved，2026-08-15）——含字段契约（frontmatter 单行 flow YAML + op `dispatch_plan` 子进程读取 + JSON 输出 + 不入 frontmatter-check schema）、6 个 Task（TDD 驱动）、验收标准。实施本条目时作为**参考输入**，不是替代。
@@ -325,6 +328,7 @@
   2. **标的定义**：①异常模式（retry 超限/SCOPE+/override）→ 强制 ②发现机制缺口（任何任务）→ 强制 ③高价值任务（大型/跨模块/首次新做法/用户要求）→ 建议。正常完成且无机制发现 → 可不复盘
   3. **路径统一到 task 产物**：复盘产出放 `{AGATE_WORKSPACE}/tasks/{Txxx}/retrospective.md`（复盘是绑定该 task 的产物，与任务内 P{n}-review.md 同类——2026-08-16 用户判断）；check-retrospective 输出同步；工作区顶层 `reviews/` 保留给跨任务评审（alignment-review/plan-review）；postmortem-template.md 保留在 docs/reviews/（模板描述流程规范，非流程产出）。已存在的 docs/reviews/retrospective-*.md 存量复盘迁移到 `tasks/{Txxx}/` 或标记旧布局
   4. **归因纪律 + 产出流向**：每条问题标"执行错误/机制缺口"；机制缺口 → 立 RM/DEBT；执行偏差 → 更新角色文件/派发模板/阶段卡
+  4.5 **项目资产沉淀（2026-08-17 用户补充）**：复盘"做得好的/可复用模式"节要**区分两类可复用资产并明确流向**——①agate 机制可复用 → 回馈 agate（RM-AG0021）；②**项目可复用资产**（临时命令/脚本如 make/run-e2e、经验教训如 xdist flaky/timeout 陷阱）→ **提炼到项目基础设施（Makefile/scripts/）+ 项目记忆（agents.md/project.md）**。复盘模板强制问："本次产生的临时命令/脚本/经验，哪些该沉淀为项目固定资产？沉淀到哪？"——解决"agent 很难自主发现可提炼资产"的盲区（TPV0093 复盘：run-e2e-tests.sh 无 timeout 是临时脚本，应提炼为项目基础设施并加防护；flaky 应记 agents.md）
   5. **事实依据三层（2026-08-16 补充，核心）**：复盘的机理分析（为什么这么做）不能只靠 git log（结果级）——因果链在主 Agent/subagent 的 session 里，session 会 compact 导致事实源丢失。按可靠性分层：
      - **L1 仓库落盘（永久）**：git log / 产出文件 / orchestrator-log / progress.md
      - **L2 会话 checkpoint（任务期间持续落盘，新增）**：防 compact 的核心保障——orchestrator-log 从"只记决策"扩展为"决策 + 依据"（每次派发记"给了哪些输入/为什么"、每次 gate 判定记"基于什么"）；每个阶段 gate 通过时落盘 `P{n}-checkpoint.md`（本阶段异常/关键判断/subagent 表现）；P8 完成时先落盘 `task-session-summary.md`（任务级过程摘要）
@@ -348,6 +352,7 @@
   3. **开关**：`.agate.env` 或配置文件 `AGATE_FEEDBACK=on/off`，**默认 off（opt-in，隐私优先）**；关闭时完全不提取不提交
   4. **回传通道**：提交到 agate 仓库（issue/PR）或结构化目录；agate 项目组收到后可直接立 RM/DEBT
 - **分阶段**：① 复盘模板加结构化反馈节（内容边界机制先建立）② `agate-feedback.py` 提取+匿名化（手动触发）③ 全自动遥测（价值验证后可选，需 opt-in 明确）
+- **⚠️ 触发方式（2026-08-17 修正）**：TPV0093 回流实证——回流是**用户主动要求外部项目写复盘**才触发，**非项目自发回馈**。RM-AG0021 的"回馈通道"（项目复盘→提取→提交）依赖外部项目**愿意做**，而外部项目通常不会主动为 agate 写复盘（无动机）。**设计修正**：反馈机制的触发源主要是**用户/agate 项目组推动**（要求外部项目复盘时提醒其登记 agate 反馈节），而非"项目自动回馈"假设。`agate-feedback.py` 的价值在"把复盘里散落的 agate 归因条目结构化提取"，降低回馈成本，但不解决"外部项目没动机复盘"的根因——后者靠用户推动 + 反馈节模板引导。
 - **验证口径**：复盘文档含可解析的"agate 反馈"节；`agate-feedback.py` 正确提取且不含项目敏感信息；AGATE_FEEDBACK=off 时不产生任何输出
 - **归属**：独立任务（协议机制增强：复盘模板 + 提取脚本 + 开关），与 RM-AG0020（复盘机制，反馈的内容来源）关联，依赖 AG0020 的复盘结构化产出。
 
@@ -366,3 +371,26 @@
 - **价值**：agent 读 yaml 快照而非全文 → 上下文开销从"读全文"降到"读 schema"；规则变更只改 yaml + 自动同步文档 → 消除双源漂移
 - **⚠️ 规模与风险**：改变 agate 根本形态（纯文档 → 文档 + 结构化定义），工作量大、需专门设计（yaml schema 方案、agent 消费方式、与现有 md 的关系）。**不在近期任务内做**；先由 RM-AG0021（复盘/反馈结构化，层 0 增量）落地验证"结构化产出"收益，再推进层 1。
 - **归属**：独立大方向（协议架构演进），需专门设计规划后立项，不拆入现有任务。
+
+---
+
+## RM-AG0023 详情
+
+**subagent 运行时管控（TPV0093 跨项目反馈回流，2026-08-16/17）**
+
+- **来源**：**用户主动要求 PeekView 项目组写 TPV0093 复盘**（非其自主识别）——复盘发现 3 次 subagent 卡死等 agate 机制缺口 → **经 RM-AG0021 跨项目反馈机制回流**（第一个回流案例）。**说明**：回流依赖外部项目愿意/被要求写复盘，非自动机制——RM-AG0021 的"主动回馈"设计仍需在反馈机制中明确（当前是用户推动，未形成项目自发的回馈通道）。复盘全文存外部（PeekView 侧），agate 侧记录结论与流向。
+- **问题**：TPV0093 执行中 3 次 subagent 卡死（`cat vitest.config.*` 一个 <1s 命令挂 3.1 小时、`make test-quick` 挂 188 分钟），根因：
+  - **P-1 subagent bash 命令无超时兜底**：命令挂起 = subagent 挂起 = 主 Agent 无感知（progress 心跳在命令执行中不写）
+  - **P-2 subagent 遇 flaky 偏离约束**：遇偶发失败倾向自由诊断而非按约束"报告"（dispatch-context 写了约束但面对 flaky 自然偏离）
+  - **P-3 并行未评估资源竞争**：pytest 16 workers + vitest 同时跑 → 双倍卡死风险
+  - **P-4 P5 测试与实现同源**：P3 测试没覆盖列表+is_starred 路径，P5 跑"自证"测试 → bug 漏到 P6
+- **建议修复方向**（TPV0093 §6.1 A-1~A-4 + 用户补充）：
+  1. **A-1 timeout_seconds 字段**：gate_commands 声明命令时同时声明预期时长（如 `P5_e2e.timeout: 600`），verifier 派发时从 P2 读取并硬编码到 subagent 命令 → **并入 RM-AG0016**（dispatch_plan 字段扩展）
+  2. **A-2 dispatch-prompt 超时兜底标准节**：模板级加入"每个 bash 命令必须设 timeout 参数（≤ 预期时长×1.5）；命令超时 → 立即停止写 progress 返回；遇非预期失败 → 记录后返回主 Agent 判定，禁止自行深入诊断" → **并入 RM-AG0016**（派发模板）
+  3. **A-3 资源密集型默认串行**：P5 卡片明确"backend 全量 pytest（xdist）+ frontend 全量 vitest 属高资源消耗命令，默认串行；需并行时评估 CPU/IO 竞争" → **并入 RM-AG0016**（并行规则）
+  4. **A-4 progress 心跳扩展**：分阶段落盘补"每个 bash 命令**前**写一条 progress（`[HH:MM] 开始执行: make test-quick`）"——主 Agent 可据 progress 时间戳判断 subagent 是否卡在命令中（当前只在命令后写，卡住时无信号）→ 独立小改进
+  5. **环境准备职责边界（用户补充）**：谁负责启动/维护/关停 debug 环境——P5/P6 需运行环境时，主 Agent（P0-brief debug_env 声明）还是 subagent（自启无防护 → 卡死）？多 subagent（前端+后端）各启各的 → 冲突/资源竞争。**并入 RM-AG0014**（verification_env 定义"如何声明"，补"谁负责准备"）
+  6. **timeout 合理阈值 + 执行留痕（用户补充）**：timeout 必须给合理时间——阈值不能低到长命令误判失败（pytest 全量 ~70s、CDP E2E 需更大）；执行命令要留痕（timeout 判定基于真实执行，不拍脑袋）。**并入 A-1/A-2**（timeout_seconds 设计核心约束）
+  7. **项目资产沉淀**（复盘时提炼临时命令到项目基础设施 + 经验记 agents.md）→ **已并入 RM-AG0020**（复盘模板"可复用模式"节扩展）
+- **验证口径**：dispatch-prompt 含超时兜底节；gate_commands 支持 timeout_seconds；P5 资源密集默认串行；progress 命令前写心跳；verification_env 定义环境准备职责
+- **归属**：跨条目反馈回流，已并入（2026-08-17）——A-1/A-2/A-3 + timeout 阈值 + A-4 progress 心跳 → **TAG0012**（协议机制批，因 TAG0014 已完成 v0.49.0 未含新增内容，运行时管控并入 TAG0012 的 dispatch-protocol/派发模板/P5 卡改动）；环境职责 → **TAG0012**（RM-0014 verification_env）；项目资产沉淀 → **TAG0015**（RM-0020 复盘模板）。**本条目作为反馈源头记录 + 分发标记，内容已并入上述 task 的 P0-brief**
