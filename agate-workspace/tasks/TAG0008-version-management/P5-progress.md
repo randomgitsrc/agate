@@ -122,3 +122,10 @@
 - rev3-r2 关键结论：git CAN 跑 `#!/bin/bash` hook（DIAG-g TRIVIAL_HOOK_RAN+marker）；GIT_TRACE（DIAG-f）显示 git attempt `run_command` + `start_command` .git/hooks/commit-msg。真实 hook 被 git 调用时不输出且 rc=0 → 区别在 hook 内部 resolve 链。
 - 已加 DIAG-i probe hook（真实薄壳链逐段 marker + 捕获 resolve-entry→py 输出）：Linux 全链正常（PROBE0→PROBE5-EXEC→PROBE6-DONE-RC=0）。代码语法正确。
 - push f7b4e00（DIAG-f/g/h）+ 待 push DIAG-i → CI 看 Windows probe marker 断点。
+- rev3-r3 CI（76b7644）Windows 证据：
+  - DIAG-f GIT_TRACE: git attempt `run_command` + `start_command: .git/hooks/commit-msg .git/COMMIT_EDITMSG`
+  - DIAG-g trivial `#!/bin/bash` hook: TRIVIAL_HOOK_RAN + marker=True → **git for windows 能执行 bash hook**
+  - DIAG-i probe（--allow-empty）: PROBE0→PROBE5-EXEC→PROBE6-DONE-RC=0 → **真实薄壳链（ENTRY_ROOT/python 探测/exec resolve-entry→py）在 git 调用下 Windows 可跑通且 rc=0**（无 staged → py 正确静默）
+  - 移除假设：git 不能执行 .sh hook（推翻）；hook 未执行（推翻）。分歧收敛到 py 的 `git diff --cached` 是否在 git hook 上下文看到 staged 文件 + WARNING 是否到达 git stderr。
+- 已加 DIAG-j：真实场景（staged README + 真实 commit）过 probe 链，把 `git diff --cached` 输出 + py stderr 捕获进 marker 文件（绕开 git stderr 可能被吞的问题）。Linux 全绿（PJ0-STAGED=README.md| + WARNING 入 marker）。
+- push DIAG-j → CI 看 Windows marker。

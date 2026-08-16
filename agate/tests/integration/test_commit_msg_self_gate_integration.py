@@ -179,6 +179,39 @@ def test_csg_1_readme_triggers_warning(git_repo, agate_scripts, agate_root, run_
     print(f"[DIAG-i] probe hook commit stderr={ires.stderr!r}")
     probe_content = (repo / probe_name).read_text(encoding="utf-8") if (repo / probe_name).exists() else "<no probe>"
     print(f"[DIAG-i] probe marker content={probe_content!r}")
+
+    # DIAG-j: 真实场景（staged README + 真实 commit）过 probe 链，看重现失败时 py 是否看到 staged 文件
+    probe_j_name = "probe-j.marker"
+    probe_j = (
+        "#!/bin/bash\n"
+        "echo PJ0-ENTER >> 'probe-j.marker'\n"
+        "echo PJ0-STAGED=$(git diff --cached --name-only 2>&1 | tr '\\n' '|') >> 'probe-j.marker'\n"
+        "echo PJ0-MSGFILE=$1 >> 'probe-j.marker'\n"
+        "set -u\n"
+        "ENTRY_ROOT=\"${AGATE_ROOT:-$(dirname \"$(dirname \"$(readlink -f \"${BASH_SOURCE[0]:-$0}\")\")\")}\"\n"
+        "PY=\"\"\n"
+        "for c in python3 python; do command -v \"$c\" >/dev/null 2>&1 && { PY=\"$c\"; break; }; done\n"
+        "echo PJ1-PY=$PY >> 'probe-j.marker'\n"
+        "if [ -n \"$PY\" ] && [ -f \"$ENTRY_ROOT/scripts/resolve-entry.py\" ]; then\n"
+        "  echo PJ2-EXEC >> 'probe-j.marker'\n"
+        "  \"$PY\" \"$ENTRY_ROOT/scripts/resolve-entry.py\" commit-msg \"$@\" 2>>'probe-j.marker'\n"
+        "  echo PJ3-DONE-RC=$? >> 'probe-j.marker'\n"
+        "  exit 0\n"
+        "fi\n"
+        "echo PJ4-FAILCLOSED >> 'probe-j.marker'\n"
+        "exit 1\n"
+    )
+    (repo / ".git" / "hooks" / "commit-msg").write_text(probe_j, encoding="utf-8")
+    (repo / ".git" / "hooks" / "commit-msg").chmod(0o755)
+    (repo / "README.md").write_text("change-probe-j\n", encoding="utf-8")
+    git_repo.stage("README.md")
+    (repo / probe_j_name).write_text("", encoding="utf-8")
+    jres = _commit(run_cli, bash, repo, agate_root, "-m", "probe j real commit")
+    print(f"[DIAG-j] real-scenario probe commit rc={jres.returncode}")
+    print(f"[DIAG-j] real-scenario probe commit stdout={jres.stdout!r}")
+    print(f"[DIAG-j] real-scenario probe commit stderr={jres.stderr!r}")
+    j_content = (repo / probe_j_name).read_text(encoding="utf-8") if (repo / probe_j_name).exists() else "<no probe>"
+    print(f"[DIAG-j] probe-j marker content={j_content!r}")
     # === END TEMP DIAG-f/g/h ===
 
     assert result.returncode == 0
