@@ -328,6 +328,6 @@
      - **L2 会话 checkpoint（任务期间持续落盘，新增）**：防 compact 的核心保障——orchestrator-log 从"只记决策"扩展为"决策 + 依据"（每次派发记"给了哪些输入/为什么"、每次 gate 判定记"基于什么"）；每个阶段 gate 通过时落盘 `P{n}-checkpoint.md`（本阶段异常/关键判断/subagent 表现）；P8 完成时先落盘 `task-session-summary.md`（任务级过程摘要）
      - **L3 平台 session 导出（补充，可能已 compact）**：OpenCode / Claude Code 会话历史可导出，作补充事实源，不作为依赖
   6. **复盘时机前置（2026-08-16 定稿）**：**过程摘要（L2）在任务完成时立即落盘（趁 session 完整）**，正式复盘在 PR merge main 后基于摘要写——防止 session compact 后事实源丢失。时机链条：`P8 完成 → 落盘 task-session-summary.md → PR merge main → 基于摘要写正式复盘 → 登记 RM/DEBT`
-  7. **平台导出工具书（2026-08-16 补充，可做）**：产出 `docs/reviews/session-export-guide.md`——各平台 session 存储位置/导出方法/如何定位某次 subagent 派发过程。找对方法即可用，不作协议硬依赖
+  7. **平台导出工具书（2026-08-16 补充，可做）**：产出平台 session 导出指南（各平台 session 存储位置/导出方法/如何定位某次 subagent 派发过程）。找对方法即可用，不作协议硬依赖
 - **验证口径**：复盘文档含"做得好的/发现的问题/改进措施"三节 + 每条问题标归因层面 + 措施写落点；check-retrospective 提示路径与实际一致；复盘文档"事实依据"节列出 L1/L2/L3 来源；长任务复盘能在 session compact 后仍写出完整因果链（L2 落盘生效）
 - **归属**：独立任务（协议机制增强：postmortem-template + check-retrospective.py + orchestrator-log 扩展 + checkpoint 落盘 + 复盘文档规范 + session-export-guide），与 RM-AG0018（tech-debt 登记触发点）同簇。
