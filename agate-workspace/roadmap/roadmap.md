@@ -27,7 +27,9 @@
 | RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| scheduled | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
 | RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | scheduled | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
 | RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | scheduled | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-15 |
-| RM-AG0020 | 复盘机制统一：模板缺正文结构（只有核对清单）、内容无价值标准、标的矛盾（异常触发 vs 所有任务）、路径矛盾（docs/releases vs docs/reviews）；分层归因 + 执行错误/机制缺口二分 + 措施可落地缺失 | backlog | TAG0013/0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
+| RM-AG0020 | 复盘机制统一：模板缺正文结构（只有核对清单）、内容无价值标准、标的矛盾（异常触发 vs 所有任务）、路径矛盾（应放 tasks/{Txxx}/ 作 task 产物 vs 实际 docs/reviews/ vs check-retrospective 提示 docs/releases/，三处不一致）；分层归因 + 执行错误/机制缺口二分 + 措施可落地缺失 | scheduled | TAG0013/0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
+| RM-AG0021 | agate 跨项目反馈机制：复盘中的 agate 机制/执行问题回馈到 agate 项目组（结构化 agate 反馈节 + 匿名化 + 开关，只回传 agate 归因内容不涉项目敏感信息）| scheduled | TAG0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
+| RM-AG0022 | 协议规则结构化层（层 1）：把 agent 消费的协议规则从自由文本抽成结构化定义（phases.yaml/dispatch.yaml/roles.yaml + 一致性 gate），解决"agent 读 8000+ 行 md 理解规则"的摩擦；需先设计 yaml schema 方案再立项 | backlog | TAG0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
 
 ## 状态标识
 
@@ -315,13 +317,13 @@
   1. **模板缺正文结构**：`docs/reviews/postmortem-template.md` 只有"机制触发核对清单"（retry/SCOPE+/gate 等是否触发），**无复盘正文结构**（做得好的/发现的问题/改进措施）——正文靠执行者临场拼（TAG0013 复盘 84 行是拼出来的，非模板定义）
   2. **内容无价值标准**：不定义"什么值得写"——易沦为流水账（复述 P1-P8 过程）/自我表扬（只写做得好的）；有价值的内容是"机制缺口 + 可复用模式 + 归因到可行动层面的问题"
   3. **标的矛盾**：`check-retrospective.py`（P2.12）只在**异常模式**（retry 超限/SCOPE+/override）时提醒复盘；但正常任务（TAG0013 无 retry）也写了复盘（因发现机制缺口）——无统一标的定义
-  4. **路径矛盾**：check-retrospective 提示 `docs/releases/v{version}-retrospective.md`，实际先例在 `docs/reviews/retrospective-tag00xx-*.md`——两处不一致
+  4. **路径矛盾（三处不一致）**：复盘是**该 task 的产物**（绑定具体 task，内容全是该 task 的事，与任务内 P{n}-review.md 同类）→ 应放 `{AGATE_WORKSPACE}/tasks/{Txxx}/`（如 `{Txxx}/retrospective.md`，与 P1-review.md 等并列）；但实际先例（TAG0013/0014）写在 `docs/reviews/retrospective-*.md`（老布局习惯），check-retrospective 又提示 `docs/releases/v{version}-retrospective.md`——三个位置互不一致。**区分**：工作区顶层 `{AGATE_WORKSPACE}/reviews/` 放**跨任务评审**（alignment-review / plan-review 等独立评审报告，非绑定具体 task）；task 内复盘与 P{n}-review.md 同类，归 `tasks/{Txxx}/`。postmortem-template.md 在 docs/reviews/ 合理（模板描述流程规范，非流程产出）
   5. **归因纪律缺失**：不区分"执行错误（agent 没遵守规则 → 修纪律）" vs "机制缺口（协议没定义 → 修协议）"——归因错层，措施落空（如把协议缺陷误判为执行粗心）
   6. **产出流向缺失**：复盘发现机制缺口 → 应流向 roadmap（RM 条目）或 DEBT 登记，但无强制/约定（check-retrospective 提醒行已加，TAG0018）
 - **建议修复方向**：
   1. **复盘正文结构模板**：事实基线（客观数据）/ 做得好的 + 可复用模式（问"该固化进协议吗"）/ 发现的问题（分层归因：管理/技术/agate 机制/agent 执行，标注"执行错误 vs 机制缺口"）/ 改进措施（落到文件/字段/gate）/ 核对清单（沿用 postmortem-template）
   2. **标的定义**：①异常模式（retry 超限/SCOPE+/override）→ 强制 ②发现机制缺口（任何任务）→ 强制 ③高价值任务（大型/跨模块/首次新做法/用户要求）→ 建议。正常完成且无机制发现 → 可不复盘
-  3. **路径统一**：`docs/reviews/retrospective-{task}-{date}.md`（对齐实际先例），check-retrospective 输出同步
+  3. **路径统一到 task 产物**：复盘产出放 `{AGATE_WORKSPACE}/tasks/{Txxx}/retrospective.md`（复盘是绑定该 task 的产物，与任务内 P{n}-review.md 同类——2026-08-16 用户判断）；check-retrospective 输出同步；工作区顶层 `reviews/` 保留给跨任务评审（alignment-review/plan-review）；postmortem-template.md 保留在 docs/reviews/（模板描述流程规范，非流程产出）。已存在的 docs/reviews/retrospective-*.md 存量复盘迁移到 `tasks/{Txxx}/` 或标记旧布局
   4. **归因纪律 + 产出流向**：每条问题标"执行错误/机制缺口"；机制缺口 → 立 RM/DEBT；执行偏差 → 更新角色文件/派发模板/阶段卡
   5. **事实依据三层（2026-08-16 补充，核心）**：复盘的机理分析（为什么这么做）不能只靠 git log（结果级）——因果链在主 Agent/subagent 的 session 里，session 会 compact 导致事实源丢失。按可靠性分层：
      - **L1 仓库落盘（永久）**：git log / 产出文件 / orchestrator-log / progress.md
@@ -331,3 +333,36 @@
   7. **平台导出工具书（2026-08-16 补充，可做）**：产出平台 session 导出指南（各平台 session 存储位置/导出方法/如何定位某次 subagent 派发过程）。找对方法即可用，不作协议硬依赖
 - **验证口径**：复盘文档含"做得好的/发现的问题/改进措施"三节 + 每条问题标归因层面 + 措施写落点；check-retrospective 提示路径与实际一致；复盘文档"事实依据"节列出 L1/L2/L3 来源；长任务复盘能在 session compact 后仍写出完整因果链（L2 落盘生效）
 - **归属**：独立任务（协议机制增强：postmortem-template + check-retrospective.py + orchestrator-log 扩展 + checkpoint 落盘 + 复盘文档规范 + session-export-guide），与 RM-AG0018（tech-debt 登记触发点）同簇。
+
+---
+
+## RM-AG0021 详情
+
+**agate 跨项目反馈机制（TAG0014 复盘讨论，2026-08-16）**
+
+- **问题**：其他项目用 agate 实施时的复盘，其中**归因到 agate 机制层/agent 执行层**的问题（如"CHECK 10 漏检裸名"、"主 Agent 未遵守粒度指引"）对 agate 项目组有直接价值（修复惠及所有项目），但**没有机制回馈**。协议无遥测/反馈（rg 确认零命中）。
+- **内容边界**（只回传 agate 相关，不涉项目敏感信息）：复盘文档的"发现的问题"已标归因层面——**归因含 agate（机制缺口/执行偏差）的条目才回馈**；归因到管理/技术层（项目自身，如"我们 DB 迁移写错了"）的不回馈。敏感/隐私保护 = 只回传 agate 归因条目，不传整个复盘。
+- **建议修复方向**：
+  1. **结构化 agate 反馈节**（层 0 产出结构化）：复盘文档加 frontmatter 机器字段（`mechanism_issues`/`execution_issues`/`feedback_ready`）+ `## agate 反馈` 结构化节（每条 = 一个候选立项：问题/归因/建议/涉及版本）——项目写这节时天然知道内容边界
+  2. **提取脚本 `agate-feedback.py`**：解析复盘文档的"agate 反馈"节 → 匿名化（去项目名/路径）→ 生成结构化 JSON → 提示提交（手动/半自动，如 gh issue / PR）
+  3. **开关**：`.agate.env` 或配置文件 `AGATE_FEEDBACK=on/off`，**默认 off（opt-in，隐私优先）**；关闭时完全不提取不提交
+  4. **回传通道**：提交到 agate 仓库（issue/PR）或结构化目录；agate 项目组收到后可直接立 RM/DEBT
+- **分阶段**：① 复盘模板加结构化反馈节（内容边界机制先建立）② `agate-feedback.py` 提取+匿名化（手动触发）③ 全自动遥测（价值验证后可选，需 opt-in 明确）
+- **验证口径**：复盘文档含可解析的"agate 反馈"节；`agate-feedback.py` 正确提取且不含项目敏感信息；AGATE_FEEDBACK=off 时不产生任何输出
+- **归属**：独立任务（协议机制增强：复盘模板 + 提取脚本 + 开关），与 RM-AG0020（复盘机制，反馈的内容来源）关联，依赖 AG0020 的复盘结构化产出。
+
+---
+
+## RM-AG0022 详情
+
+**协议规则结构化层（层 1，TAG0014 复盘讨论，2026-08-16）**
+
+- **问题**：agate 协议本体是自由文本（WORKFLOW/dispatch-protocol 等 8000+ 行 markdown），但**真正消费它的是 agent**——agent 每轮要"读全文 → 理解 → 提取规则"，上下文开销大、易歧义、理解漂移（同一规则不同段落表述不同）。用户痛点："受够了人类本身不太看的文档也用自由协议，导致 agent 摩擦过多"。gate 机器可判定性只做到了"gate 输出"，没做到"协议定义"。
+- **现状基础**（层 0 已有）：task 产出结构化已有（frontmatter schema + 20 个机器字段 op + dispatch_plan），证明"机器读结构化、人读自然语言"的分层可行。层 1 是把**协议规则本身**（非 task 产出）也结构化。
+- **建议方向**（需先设计 schema 方案再立项，**本条目仅为方向记录**）：
+  1. **规则抽离**：`phases.yaml`（P0-P8 阶段契约：gate 命令/产出文件/转移条件）、`dispatch.yaml`（派发模板结构/粒度上限/并行规则）、`roles.yaml`（角色→阶段→输入/产出映射）、`markers.yaml`（标记名/触发条件/gate 行为枚举）
+  2. **并存**：结构化定义 + 自然语言解释并存——机器读 yaml（规则快照，确定性），人读 markdown（叙事/理由/教训）；一致性由 gate 校验（扩展 check-protocol-consistency.py：yaml vs md 同步）
+  3. **定义生成（层 2，可选进阶）**：从 yaml 自动渲染文档/派发 prompt——根治"双源手动同步"（TAG0014 N6 修复的痛点）
+- **价值**：agent 读 yaml 快照而非全文 → 上下文开销从"读全文"降到"读 schema"；规则变更只改 yaml + 自动同步文档 → 消除双源漂移
+- **⚠️ 规模与风险**：改变 agate 根本形态（纯文档 → 文档 + 结构化定义），工作量大、需专门设计（yaml schema 方案、agent 消费方式、与现有 md 的关系）。**不在近期任务内做**；先由 RM-AG0021（复盘/反馈结构化，层 0 增量）落地验证"结构化产出"收益，再推进层 1。
+- **归属**：独立大方向（协议架构演进），需专门设计规划后立项，不拆入现有任务。
