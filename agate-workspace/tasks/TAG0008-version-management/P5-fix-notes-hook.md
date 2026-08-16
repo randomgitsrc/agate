@@ -55,3 +55,76 @@ Windows CI 复跑为最终裁判（bash 直连路径），未在本机验证（�
 - 测试文件未改（保留"git 调用 hook → WARNING"验证意图）。
 
 [PROD_NOT_TOUCHED]
+
+---
+
+# rev2 — 修复轮 2（方法 B：测试适配 bash 包装 git）
+
+## 前一轮被证伪
+
+上轮（3500192，shebang → `/bin/bash`）push 后 Windows 冒烟**仍失败**：
+`test_csg_1` 的 `assert "self-gate-review" in result.output` 仍失败，output 仅
+`[master ...] update readme`，无 WARNING、returncode 0。说明 shebang 改动未触及真正根因。
+
+## 新根因（rev2 实证收敛）
+
+对照矩阵（全部经 Windows 冒烟实证）：
+
+| 用例 | 调用方式 | Windows 结果 |
+|---|---|---|
+| unit `test_cmsg_1` | `bash` 直调薄壳 + AGATE_ROOT env | 通过（WARNING 出现） |
+| integration `test_bdd_19` | **`bash -c "cd repo && git commit"`（bash 包装 git）** | 通过 |
+| integration `test_csg_1` | **`git -C repo commit`（直接 spawn git）**，仅 env AGATE_ROOT | **失败**（hook 静默跳过） |
+
+收敛结论：薄壳链 Windows 可用，**分歧在 git 进程的 spawn 上下文**。Windows 上 git 直接
+spawn hook 走 `mingw_spawnvpe` → `parse_interpreter` 取 interpreter（`bash`）→
+`path_lookup("bash", 1)` 在 **git 进程 PATH** 找 bash.exe。`test_csg_1` 直接 spawn git，
+git 进程 PATH 不含 bash.exe → spawn 失败 → git **静默忽略 hook** → returncode 0 + 无输出。
+`test_bdd_19` 经 bash 包装 git，git 进程 PATH 继承 bash 的 PATH（含 bash.exe）→ hook 正常触发。
+
+> 注意：dispatch-context 提出反证（CI pytest 跑在 `bash.EXE ... -o pipefail` 下、PATH 理论上
+> 含 Git bin），PATH 假设可能不成立——因此本修复同样以 **CI 实证为最终裁判**。方法 B 是
+> dispatch-context 推荐的最可能最小修复（与 Windows 上已通过的既有测试模式一致）。
+
+## 修复（方法 B：测试适配）
+
+`agate/tests/integration/test_commit_msg_self_gate_integration.py` 的 `_commit` helper
+改为 **bash 包装 git**，与 `test_bdd_19`（test_pre_commit_hook.py:1358-1390）一致：
+
+```python
+def _commit(run_cli, bash, repo, agate_root, *args):
+    msg = " ".join(shlex.quote(a) for a in args)
+    return run_cli(
+        bash,
+        "-c",
+        f"cd {shlex.quote(str(repo))} && git commit {msg}",
+        cwd=str(repo),
+        env={"AGATE_ROOT": str(agate_root)},
+    )
+```
+
+- 保留 `env={"AGATE_ROOT": ...}`（hook 复制模式依赖，经 bash 继承给 git/hook）——**不删**。
+- 6 个 `test_csg_*` 全部改走 `_commit`，统一加 `bash` fixture（Windows 用 conftest bash fixture
+  解析 Git Bash 完整路径，排除 System32 WSL bash）。
+- **测试意图保留**：仍是"git commit 触发 commit-msg hook → self-gate WARNING"，只改变 git 进程
+  的启动方式（spawn 上下文）。实现（薄壳/py）零改动。
+- shebang 维持 `/bin/bash` 现状（Linux 全量无回归，Windows 下若 PATH 假设成立则两者配合生效；
+  dispatch-context 允许维持现状）。
+
+## 验证（本地 Linux）
+
+| 验证项 | 命令 | 结果 |
+|---|---|---|
+| 失败测试 | `python3 -m pytest agate/tests/integration/test_commit_msg_self_gate_integration.py -q` | 6 passed |
+| 全量 pytest | `python3 -m pytest agate/tests/ -q` | 823 passed, 2 skipped（无回归） |
+| shellcheck | `shellcheck -S warning agate/scripts/*.sh` | 0 error |
+| consistency | `python3 agate/scripts/check-protocol-consistency.py` | 0 ERROR |
+
+**Windows 真实验证 = push 后 CI matrix 重跑**（本机 Linux 无法替代）。本地全绿仅自查。
+
+## 未触碰
+
+- 3 个 hook 薄壳（shebang 维持 `/bin/bash`，本次不改）
+- resolve-entry.py / commit-msg-self-gate.py
+
+[PROD_NOT_TOUCHED]

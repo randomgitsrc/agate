@@ -54,3 +54,16 @@
   - 新 shebang + git commit（copy hook）→ WARNING + rc=0（无回归）。
 - 验证全绿：integration 6 passed；全量 823 passed + 2 skipped（基线一致）；shellcheck 3 个 hook 薄壳 + 全量 `agate/scripts/*.sh` 均 0 error；count-tests 825 无漂移；check-protocol-consistency 0 ERROR。
 - 产出 P5-fix-notes-hook.md。Windows CI 复跑为最终裁判。
+
+## implementer fix1 rev2
+- 读取 dispatch-context（rev2）、implementer 角色、conftest（run_cli/bash/git_repo fixtures）、test_commit_msg_self_gate_integration.py（_commit 直接 spawn git）、test_pre_commit_hook.py:1358-1390（test_bdd_19 bash 包装 git）、3 薄壳（shebang 已 /bin/bash）、FIX-WINDOWS-TAG0008.md、P5-progress.md 完成。
+- 已确认事实重述：上一轮 shebang→/bin/bash 被 CI 证伪（3500192 push 后 Windows 仍失败）；unit test_cmsg_1（bash 直调薄壳，windows_smoke 通过）证明薄壳链本身 Windows 可用；test_bdd_19（bash 包装 git，windows_smoke 通过）是唯一 git 触发 hook 且通过的集成用例；test_csg_1 直接 spawn git 失败（CI returncode==0 无 WARNING）。
+- 根因假设（dispatch-context，需 CI 实证）：Windows git 直接 spawn hook 时 mingw_spawnvpe→path_lookup(bash) 依赖 git 进程 PATH 含 bash.exe；test_csg_1 直接 spawn git 的 PATH 可能不含 → hook 被静默跳过；test_bdd_19 经 bash 包装 git 恰好使 PATH 含 bash。
+- 决策：落地方法 B——把 test_csg_1 的 _commit 改为与 test_bdd_19 一致的 bash 包装 git（`run_cli(bash, "-c", "cd <repo> && git commit ...")`，保留 env AGATE_ROOT 传参）。若 CI 仍失败再做方法 A（PATH/which 诊断打印）。
+- 注意：test_bdd_19 断言只查 returncode==0 不验证 WARNING，所以它对"hook 真跑了"的证明并不强——但它是 Windows 上唯一过的 git→hook 用例，方法 B 是 dispatch-context 推荐的方向；是否真修复由 CI 裁判。
+
+## implementer fix1 rev2 (落地+验证)
+- 已落地方法 B：test_commit_msg_self_gate_integration.py 的 _commit 改为 bash 包装 git（与 test_bdd_19 一致），6 个 test_csg_* 统一加 bash fixture，保留 env AGATE_ROOT。薄壳/py 零改动，shebang 维持 /bin/bash。
+- 验证全绿：integration 6 passed；全量 823 passed + 2 skipped（无回归）；shellcheck 0 error；consistency 0 ERROR。
+- 已写 P5-fix-notes-hook.md rev2 节（新根因：git 进程 PATH 缺 bash → hook 静默跳过；修复：bash 包装 git；验证表；未触碰清单）。
+- 下一步：git push 分支触发 CI（Windows 冒烟最终裁判）。
