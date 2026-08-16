@@ -147,6 +147,7 @@ check-p6-provenance.py $TASK_DIR # 证据-结论对应 / dispatch-context审计 
 ## 按包拆分并行（条件触发，受限模式）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+> 并行上限 / 失败批 retry 见 dispatch-protocol「派发编排机制」并行规则。**P6 例外**：P6 的汇总整合走自身证据并行 + 汇总 verifier 机制（下方），不适用权威节共享文件统一后处理规则。
 
 P6 采用**证据并行、验收文件不并行**模式：
 

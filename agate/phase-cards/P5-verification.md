@@ -113,12 +113,13 @@ gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你
 ## 按包拆分并行（条件触发，非强制）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
 
 当 P2 声明多个 packages 时，P5 可按包拆分并行——各 verifier subagent 跑各包的 gate_commands，各写 P5-test-results/{pkg}/。
 
 拆分判据同 P3。P5 是只读验证，无代码写冲突风险。
 
-**基础设施隔离（并行时强制）**：
+**基础设施隔离（本阶段特定，并行时强制）**：
 - 测试端口：各 verifier 使用独立端口（与 P4 并行时分配的端口一致，或新分配）
 - 测试数据库：各 verifier 用独立数据库（与 P4 隔离方案一致），不共享同一 test.db
 - 临时输出：各 verifier 写入 `P5-test-results/{pkg}/` 独立目录，不共享同一 unit.md

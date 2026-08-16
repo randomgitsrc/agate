@@ -99,7 +99,7 @@ agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）�
 | 工具 | 用途 | 依赖 |
 |------|------|------|
 | `agate-json-get.py` | stdin JSON → get/len/index/set/count_prefix/list/escape 子命令 | 无 |
-| `agate-md-field-get.py` | frontmatter 优先 + 正则回退的双读字段提取，覆盖 P1/P2/P6/P7 共 20 个 op（risk_level/ui_affected/phases 等原有 3 个 + candidate_count/packages/domains/override/internal_only/internal_only_reason/design_trivial/follows_existing_pattern/pass/fail/blocker_count/deviation_count/deviation_critical_count/design_gap_count/design_gap_reviewed_count/need_confirm_resolved/suggest_resolved/scope_resolved 等 17 个新增 op，详见脚本内 docstring） | pyyaml |
+| `agate-md-field-get.py` | frontmatter 优先 + 正则回退的双读字段提取，覆盖 P1/P2/P6/P7 各阶段 op（risk_level/ui_affected/phases 等原有 3 个 + candidate_count/packages/domains/override/internal_only/internal_only_reason/design_trivial/follows_existing_pattern/pass/fail/blocker_count/deviation_count/deviation_critical_count/design_gap_count/design_gap_reviewed_count/need_confirm_resolved/suggest_resolved/scope_resolved/dispatch_plan 等新增 op，含 JSON 字段 dispatch_plan；全集以脚本内 docstring 为准） | pyyaml |
 | `agate-state-get.py` | .state.yaml 读 phase/task_id/retries_over | pyyaml |
 | `agate-retreat-state.py` | 回退 check_retreat/write_retreat | pyyaml |
 | `agate-read-gate-commands.py` | 解析 gate_commands.P3 块 → JSON | 无 |

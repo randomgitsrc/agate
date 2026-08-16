@@ -1,0 +1,20 @@
+=== BDD-14: P7 不拆分例外表述更新 ===
+97:## P7 输入文件数量
+99:P7 是输入文件数量限制的例外（模式 1 单发 + 输入数量豁免特例，见 dispatch-protocol「派发编排机制」全阶段适用表），不拆分。原因：
+
+=== BDD-15: P1 卡片含编排模式引用 ===
+39:## 复杂需求编排（模式 4，条件触发）
+41:需求复杂（多来源 / 多模块 / 无法预先拆清范围）时，P1 可先派**侦察 subagent**（模式 4 先理解后拆，见 dispatch-protocol「派发编排机制」）读全貌后再拆需求：
+43:1. 侦察 subagent 读 P0-brief + 相关上下文，产出拆分方案（拆成哪些子需求、各子需求的输入/产出/依赖）
+合并语义:
+46:   - **BDD 全局编号**：各子需求承接的 BDD 编号全局唯一（`#### BDD-NN:`），不允许各子需求各自从 1 编号
+47:   - **包归属去重**：每个 BDD 明确归属唯一包，跨包的共享件单独列出，不允许两个子需求各写一份
+
+=== BDD-16: P8 卡片含多包拆批与合并机制 ===
+33:## 多包发布拆批（模式 2/3，条件触发）
+38:多包发布时 P8 可拆批并行（模式 2 静态拆批 / 模式 3 并行）：
+40:1. 每个 package 派一个 releaser subagent（implementer P8 模式），各写 `P8-release-{pkg}.md`
+42:3. 所有 releaser 返回后，主 Agent 派合并 subagent 整合唯一 P8-release.md
+43:4. 合并 subagent 需交叉核对：各包版本号不冲突、bump_type 汇总一致、CHANGELOG 变更合并无遗漏
+46:**合并机制**：单包时 releaser 直接产出 P8-release.md（不走合并）；多包时各 releaser 产 P8-release-{pkg}.md，合并 subagent 整合唯一 P8-release.md 供 gate 检查。
+EXIT_CODE: 0

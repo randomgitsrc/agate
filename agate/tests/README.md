@@ -50,7 +50,8 @@ bash agate/tests/scripts/count-tests.sh
 | agate-read-p5-commands.py | unit/test_agate_read_p5_commands.py | 4 |
 | agate-state-get.py | unit/test_agate_state_get.py | 6 |
 | agate-retreat-state.py | unit/test_agate_retreat_state.py | 4 |
-| agate-md-field-get.py | unit/test_agate_md_field_get.py | 14 |
+| agate-md-field-get.py | unit/test_agate_md_field_get.py | 16 |
+| dispatch_plan 编排字段契约 | unit/test_dispatch_orchestration.py | 10 |
 | agate-state-yaml-check.py | unit/test_agate_state_yaml_check.py | 3 |
 | agate-changelog-unreleased.py | unit/test_agate_changelog_unreleased.py | 2 |
 | agate-card-inject.py | unit/test_agate_card_inject.py | 2 |

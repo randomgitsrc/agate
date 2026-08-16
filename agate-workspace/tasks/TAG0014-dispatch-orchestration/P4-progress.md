@@ -1,0 +1,58 @@
+# P4 Review Progress — TAG0014-dispatch-orchestration
+
+- [x] 读取 P4-dispatch-context-review.md（派发指引）
+- [x] 读取 review.md（角色定义，Pass 1 数据安全 + Pass 2 代码健康）
+- [ ] 读取 P4-implementation.md
+- [ ] 读取 P2-design.md
+- [ ] 读取 P1-requirements.md
+- [ ] 读取 agate-md-field-get.py
+- [ ] 读取 check-gate.py
+- [ ] 读取 dispatch-protocol.md
+- [ ] 读取阶段卡 P1-P8 + architect.md + dispatch-prompt.md
+- [ ] 读取 test_dispatch_orchestration.py
+- [ ] Pass 1：数据安全与正确性
+- [ ] Pass 2：代码健康
+- [ ] 协议契约核对
+- [ ] 文档改动核对
+- [ ] 测试覆盖抽查
+- [ ] 写 P4-review.md
+- [x] 读取 P4-implementation.md
+- [x] 读取 P2-design.md
+- [x] 读取 P1-requirements.md
+- [x] 读取 agate-md-field-get.py（op 实现）
+- [x] 读取 check-gate.py（gate_p2 dispatch_plan 校验）
+- [x] 读取 dispatch-protocol.md 权威节（L643-735）
+- [x] 读取 test_dispatch_orchestration.py（8 条）
+- [x] 读取 approved plan（字段契约 + Task 1-6 + 验收标准）
+- [x] 复现验证：mode 为 list/dict → check-gate.py TypeError 崩溃（CRITICAL 候选）
+- [x] conftest run_cli/CommandResult（.output = stdout+stderr 合并，断言成立）
+- [x] 文档核对：P1/P2/P3/P4/P5/P6/P7/P8 卡 + architect.md + dispatch-prompt.md + task-files.md 引用与阶段约束
+- [x] 全量 pytest：778 passed, 2 skipped（0 failed，全绿——修复轮后 test_con_1/bdd_25/con_6 已过）
+- [x] consistency 0 ERROR（279 WARNING 既有）；count-tests 780
+- [x] Pass 1：发现 mode 非 str（list/dict）→ frozenset 成员测试 TypeError 崩溃（CRITICAL）
+- [x] Pass 2：测试覆盖缺口（BDD-6 批数超限 / BDD-5 子场景② complexity 非法值 无自动化测试）
+- [x] 实现记录 stale 声明核对（badge v0.49.0 / 3 failed 与实际状态不符）
+- [ ] 写 P4-review.md
+- [x] 写 P4-review.md（status: rejected）
+
+## 修复轮（implementer）
+- [x] 读取 P4-dispatch-context-implementer.md（修复点：1 CRITICAL + 建议）
+- [x] 读取 P4-review.md（CRITICAL: check-gate.py:314 mode 非 str 崩溃）
+- [x] 读取 check-gate.py L300-340 确认现状
+- [x] CRITICAL 修复：`if not isinstance(mode, str) or mode not in valid_modes:`（isinstance str 前置）
+- [x] 手动复现验证：`{mode: [single]}` → GATE P2 ERROR + exit 1，无 traceback
+- [x] 追加 2 条负向用例（test_dispatch_plan_mode_non_string / test_dispatch_plan_complexity_invalid），既有 8 条不动
+- [x] 单文件测试：10 passed in 1.02s
+- [ ] P4-implementation.md stale 声明对齐（§1.3/§2.2/§3/§4）
+- [ ] 全量回归 pytest + consistency
+- [x] P4-implementation.md stale 声明对齐（§1.1/§1.3/§2.2/§2.3/§3/§4）
+- [ ] 全量回归 pytest + consistency
+- [x] 全量回归 pytest：780 passed + 2 skipped + 0 failed（+2 新用例）
+- [x] check-protocol-consistency：0 ERROR（279 WARNING 既有）
+- [x] count-tests：782
+- [x] 自查：grep isinstance(mode, str) 命中 check-gate.py:314；git status 仅含清单内文件
+- [x] 复评轮复核：CRITICAL mode 非 str 崩溃已修复（check-gate.py:314 isinstance str 前置）
+- [x] 复评轮复核：2 条负向用例（mode 非 str / complexity invalid）已追加且全绿（10 passed）
+- [x] 复评轮复核：P4-implementation.md stale 声明已对齐（badge v0.48.0 / 全量全绿）
+- [x] 复评轮复核：全量 780 passed + 2 skipped + 0 failed；consistency 0 ERROR；count-tests 782
+- [x] 写 P4-review.md（status: approved，0 CRITICAL）

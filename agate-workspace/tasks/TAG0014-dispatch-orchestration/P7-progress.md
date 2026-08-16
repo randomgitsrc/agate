@@ -1,0 +1,15 @@
+- [agate-md-field-get.py] 已读：JSON_FIELDS={dispatch_plan}, json.dumps, 无正文回退, KNOWN_OPS 含 JSON_FIELDS
+- [check-gate.py] 已读：_gate_p2_dispatch_plan (L301-334), 5 modes, parallel_limit>=1, batches id+complexity, 批数<=limit
+- [dispatch-protocol.md] 已读：派发编排机制权威节 L643-734 (五维评级/五模式/模式4流程/并行规则/全阶段表/任务粒度/P7例外)
+- [P2-design.md] 已读：dispatch_plan 机器字段节 L78-93 (5 modes/parallel_limit>=1/batches id+complexity/批数<=limit/缺省跳过)
+- [P1/P3/P4/P5/P6/P8 cards] 已读：各卡片按包拆分并行/编排节 (P1 L39-47 模式4, P3 L74-91, P4 L94-118 额外约束, P5 L113-128, P6 L147-158 受限模式+汇总verifier, P8 L33-46 多包拆批)
+- [P7/P8 cards + architect.md] 已读：P7 卡片(嵌入 dispatch-context), P8 多包拆批 L33-46, architect.md 批次设计节 L139-153
+- [architect.md] 已读：批次设计节 L139-153 (dispatch_plan 字段契约/硬规则); [dispatch-prompt.md] 已读 L39-41 任务粒度兜底引用编排机制; [task-files.md] 已读 P2-design 结构 L227-308 (未发现 dispatch_plan 样例)
+- [P7-consistency.md] 已读：2/2 DESIGN_GAP REVIEWED (P2 YAML 引号 + README badge); [P4-implementation.md] 已读 L95/L97 DESIGN_GAP 记录; [git] P4 commit 772bbc2 27 文件
+- [test_dispatch_orchestration.py] 已读：10 条用例（正5+负5）; [tests/README.md] L54 计数=8 疑似未同步（P4 注 8→10）
+- [实测] pytest 780 passed/2 skipped (复跑确认), consistency 0 ERROR (284 WARNING 其中+5 为本任务 P6/P7 引用待产报告路径, 产出后自愈), count-tests 782
+- [tests/README.md] 复跑确认 test_dispatch_orchestration.py =10 tests collected, 表内=8 → 漂移
+- [汇总] A1 ALIGNED / A2 ALIGNED / A3 MISALIGNED(1: tests/README.md 计数8 vs 实10) + 2 NEEDS_HUMAN_REVIEW / A4 ALIGNED / A5 ALIGNED / A6 ALIGNED / A7 ALIGNED
+- [implementer] fix1 done: tests/README.md L54 计数 8→10 (test_dispatch_orchestration.py 实际 10 条)
+- [implementer] fix2 done: scripts/README.md L102 op 描述补入 dispatch_plan (JSON 字段) + 弱化硬计数为'全集以脚本内 docstring 为准'
+- [implementer] fix3 done: task-files.md P2-design 样例块追加注释性 # dispatch_plan 可选字段样例 + 契约权威指向

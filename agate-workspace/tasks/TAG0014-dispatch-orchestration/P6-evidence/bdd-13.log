@@ -1,0 +1,31 @@
+=== BDD-13: P3/P4/P5/P6 卡片「按包拆分并行」引用权威节 + 保留阶段特定约束 ===
+--- P3-tdd ---
+77:> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
+--- P4-implementation ---
+97:> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
+--- P5-verification ---
+116:> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
+--- P6-acceptance ---
+150:> 并行上限 / 失败批 retry 见 dispatch-protocol「派发编排机制」并行规则。**P6 例外**：P6 的汇总整合走自身证据并行 + 汇总 verifier 机制（下方），不适用权威节共享文件统一后处理规则。
+
+--- 阶段特定约束关键词 ---
+P3 拆分判据:
+86:拆分判据（本阶段特定）：
+P4 共享文件/基础设施隔离/串行:
+97:> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
+102:2. **各 implementer 只改自己 package 目录下的文件**——跨包的共享文件（类型定义、接口、配置）由主 Agent 在所有并行 implementer 返回后统一处理
+105:5. 主 Agent 在所有 implementer 返回后，统一处理共享文件改动（如果有）
+108:- dispatch-context 约束节必须写明：`只改动 {pkg}/ 目录下的文件。共享文件（{列出}）不在本次改动范围内`
+109:- 如果某个 implementer 必须改共享文件 → 该包不能并行，改为串行（主 Agent 先派其他包并行，再串行处理含共享改动的包）
+P5 端口/数据库/临时:
+52:  - 环境问题（超时/端口占用/依赖缺失）→ 修复环境重新跑
+123:- 测试端口：各 verifier 使用独立端口（与 P4 并行时分配的端口一致，或新分配）
+124:- 测试数据库：各 verifier 用独立数据库（与 P4 隔离方案一致），不共享同一 test.db
+125:- 临时输出：各 verifier 写入 `P5-test-results/{pkg}/` 独立目录，不共享同一 unit.md
+126:- E2E 浏览器：Playwright 默认隔离 browser context，但若 E2E 测试启动了本地 server，各 verifier 需用不同端口
+P6 证据并行/汇总 verifier:
+150:> 并行上限 / 失败批 retry 见 dispatch-protocol「派发编排机制」并行规则。**P6 例外**：P6 的汇总整合走自身证据并行 + 汇总 verifier 机制（下方），不适用权威节共享文件统一后处理规则。
+152:P6 采用**证据并行、验收文件不并行**模式：
+155:2. 所有 verifier 返回后，派一个汇总 verifier 逐包读取 results.md，转抄整合进唯一的 P6-acceptance.md
+156:3. 汇总 verifier 确认各包 BDD 编号合集 = P1 全部 BDD 编号，无重复/遗漏，**必须在 P6-acceptance.md 中记录交叉核对结果**
+EXIT_CODE: 0

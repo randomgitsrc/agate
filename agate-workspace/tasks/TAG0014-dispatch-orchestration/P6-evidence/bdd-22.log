@@ -1,0 +1,23 @@
+=== BDD-22: 协议/脚本改动 commit 均走 self-gate-review 流程 ===
+--- 涉及 agate/*.md + scripts/*.py + phase-cards 的 commit ---
+772bbc2 wf(TAG0014-P4): 派发编排机制实现（dispatch_plan op+gate 校验 + 权威节 + 8 卡统一 + 模板兜底），review approved；self-gate-review: docs/reviews/agate-alignment-review-TAG0014.md
+
+--- 各 commit message 的 self-gate-review 标记 ---
+772bbc2: wf(TAG0014-P4): 派发编排机制实现（dispatch_plan op+gate 校验 + 权威节 + 8 卡统一 + 模板兜底），review approved；self-gate-review: docs/reviews/agate-alignment-review-TAG0014.md
+   ✓ 含 self-gate-review:
+792096b: wf(TAG0014): phase P2→P3（随 P3 产出 commit 补正）
+   (无 self-gate-review: 标记)
+52fd115: wf(TAG0014-P3): 派发编排机制 TDD 测试（test_dispatch_orchestration 8 条 + op 层 2 条，全部红灯确认）
+   (无 self-gate-review: 标记)
+5ad94da: wf(TAG0014): phase P1→P2（随 P2 产出 commit 补正）
+   (无 self-gate-review: 标记)
+c70772f: wf(TAG0014-P2): 派发编排机制方案设计（3 维候选方案 + dispatch_plan 字段契约落地 + 22 BDD 全覆盖），plan-eng-review approved
+   (无 self-gate-review: 标记)
+aaf817d: wf(TAG0014-P1): 派发编排机制需求基线（22 BDD + 同类扫描影响面表 + self-gate 落点），requirements-review approved
+   (无 self-gate-review: 标记)
+eb48440: wf(TAG0014-P5): 派发编排机制技术验证（pytest 780 passed + consistency 0 ERROR + count 782）
+   (无 self-gate-review: 标记)
+
+--- 非 protocol/脚本 commit 的 self-gate 豁免（纯 phase 补正/测试 commit）---
+（无 ⚠️ 行 = 所有改动 commit 均含标记）
+EXIT_CODE: 0

@@ -1,0 +1,10 @@
+=== BDD-3: P2 gate 拦截非法 mode 值（mode: xyz）===
+GATE P2 ERROR: dispatch_plan.mode 非法（当前: 'xyz'），须 ∈ ['parallel', 'recon-then-split', 'serial', 'single', 'static-batch']
+EXIT_CODE: 1
+
+=== BDD-4: P2 gate 拦截 parallel_limit < 1（limit=0）===
+GATE P2 ERROR: dispatch_plan.parallel_limit 非法（当前: 0），须为 ≥1 的整数
+EXIT_CODE: 1
+
+# 验证结论：gate 对非法值返回 exit 1 是本 BDD 的 PASS 判定依据（期望行为）；验收命令运行本身 exit 0。
+EXIT_CODE: 0

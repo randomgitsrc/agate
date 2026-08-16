@@ -48,6 +48,7 @@
   frontmatter 声明值；op 返回空 → 调用方自行执行原有的正文 grep 计数逻辑。
 """
 
+import json
 import os
 import re
 import sys
@@ -107,6 +108,11 @@ NO_FALLBACK_LIST_FIELDS = frozenset({
 # 注意：change_type 不在其中——它走 NO_FALLBACK_STRING_FIELDS（frontmatter-only，无正文回退）。
 STRING_FIELDS = frozenset({"override", "internal_only_reason", "跳过风险", "risk_level"})
 
+# TAG0014（P2-design.md §3.1）：结构化 JSON 字段（dispatch_plan）。frontmatter dict/list
+# 值格式化为 json.dumps（ensure_ascii=False 保持中文可读），无正文回退——防止正文散文里的
+# `dispatch_plan:` 被误读（与 change_type/regression_pass 同语义，防伪造）。
+JSON_FIELDS = frozenset({"dispatch_plan"})
+
 
 def _read():
     with open(os.environ["FILE"], encoding="utf-8") as f:
@@ -127,6 +133,8 @@ def _read_frontmatter(text):
 
 
 def _format_value(value, field):
+    if field in JSON_FIELDS:
+        return json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else str(value)
     if field in BOOL_FIELDS or field in NO_FALLBACK_BOOL_FIELDS:
         return str(value).lower()
     if field in LIST_FIELDS:
@@ -186,15 +194,16 @@ def _get(text, op):
     if isinstance(fm, dict) and op in fm and fm[op] is not None:
         return _format_value(fm[op], op)
     if op in (NO_FALLBACK_INT_FIELDS | NO_FALLBACK_LIST_FIELDS
-              | NO_FALLBACK_BOOL_FIELDS | NO_FALLBACK_STRING_FIELDS):
-        return ""  # 流 B/C/TAG0002 字段：无正文回退语义，frontmatter 无该字段直接输出空字符串
+              | NO_FALLBACK_BOOL_FIELDS | NO_FALLBACK_STRING_FIELDS
+              | JSON_FIELDS):
+        return ""  # 流 B/C/TAG0002 字段 + JSON 字段：无正文回退语义，frontmatter 无该字段直接输出空字符串
     return _regex_fallback(text, op)  # 字段不在 frontmatter → 正则回退
 
 
 KNOWN_OPS = (
     BOOL_FIELDS | LIST_FIELDS | INT_FIELDS | STRING_FIELDS
     | NO_FALLBACK_INT_FIELDS | NO_FALLBACK_LIST_FIELDS | NO_FALLBACK_BOOL_FIELDS
-    | NO_FALLBACK_STRING_FIELDS
+    | NO_FALLBACK_STRING_FIELDS | JSON_FIELDS
 )
 
 

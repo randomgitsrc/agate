@@ -1,0 +1,9 @@
+=== BDD-7: dispatch_plan YAML 解析失败时不误拦、不崩溃 ===
+--- op 层：坏 YAML 文件 ---
+
+op EXIT_CODE: 0  (应为 0，空输出)
+
+--- op 层：无 dispatch_plan 字段的文件 ---
+
+op EXIT_CODE: 0  (应为 0，空输出)
+EXIT_CODE: 0

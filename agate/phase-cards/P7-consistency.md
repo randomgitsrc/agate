@@ -96,7 +96,7 @@ BLOCKER → consistency-reviewer 修改 → 再验 gate → … → 通过（⑩
 
 ## P7 输入文件数量
 
-P7 是输入文件数量限制的例外，不拆分。原因：
+P7 是输入文件数量限制的例外（模式 1 单发 + 输入数量豁免特例，见 dispatch-protocol「派发编排机制」全阶段适用表），不拆分。原因：
 1. 跨文件一致性比较需要全部源文件同时可见
 2. 角色文件（consistency-reviewer）已列出所需输入清单
 3. dispatch-context 为 subagent 提供摘要，无需逐文件全文注入

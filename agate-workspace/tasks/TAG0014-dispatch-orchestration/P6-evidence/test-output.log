@@ -1,0 +1,39 @@
+=== P6 test-output.log — TAG0014-dispatch-orchestration 验收命令执行日志 ===
+环境: worktree /home/kity/oclab/agate/.worktrees/agate-TAG0014, python3 3.12.3, pytest pytest 9.0.3
+
+--- 命令 1: op 契约（BDD-1/7）---
+{"mode": "static-batch", "parallel_limit": 3, "batches": [{"id": "B1", "complexity": "medium"}]}
+op EXIT_CODE: 0
+
+--- 命令 2: gate 负向场景（BDD-3/4/5/6）---
+[bdd3]
+GATE P2 ERROR: dispatch_plan.mode 非法（当前: 'xyz'），须 ∈ ['parallel', 'recon-then-split', 'serial', 'single', 'static-batch']
+EXIT: 1
+[bdd4]
+GATE P2 ERROR: dispatch_plan.parallel_limit 非法（当前: 0），须为 ≥1 的整数
+EXIT: 1
+[bdd5a]
+GATE P2 ERROR: dispatch_plan batch 'B1' 的 complexity 非法（当前: None），须 ∈ low/medium/high
+EXIT: 1
+[bdd5b]
+GATE P2 ERROR: dispatch_plan batch 'B1' 的 complexity 非法（当前: 'invalid'），须 ∈ low/medium/high
+EXIT: 1
+[bdd6]
+GATE P2 ERROR: dispatch_plan 批次数（4）超过 parallel_limit（3）
+EXIT: 1
+
+--- 命令 3: gate 无字段/坏YAML（BDD-2/7）---
+GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定
+EXIT: 2
+GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定
+EXIT: 2
+
+--- 命令 4: 全量 pytest（BDD-20）---
+..............................................................           [100%]
+780 passed, 2 skipped in 65.40s (0:01:05)
+--- 命令 5: count-tests（BDD-20）---
+总计：782 个测试用例（pytest collect-only 口径）
+--- 命令 6: consistency（BDD-21）---
+仅有 280 个 WARNING，无 ERROR。
+consistency EXIT_CODE: 0
+EXIT_CODE: 0

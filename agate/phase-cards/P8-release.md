@@ -30,6 +30,21 @@ releaser subagent（implementer P8 模式）执行以下发布准备步骤：
 
 > **注意**：releaser subagent 不执行 bump-version / git commit / git tag，这些由主 Agent 在 gate 验证通过后亲自执行。
 
+## 多包发布拆批（模式 2/3，条件触发）
+
+> 仅当 P2 packages > 1 时适用。单包任务跳过本节。
+> 并行上限 / 失败批 retry 见 dispatch-protocol「派发编排机制」并行规则。
+
+多包发布时 P8 可拆批并行（模式 2 静态拆批 / 模式 3 并行）：
+
+1. 每个 package 派一个 releaser subagent（implementer P8 模式），各写 `P8-release-{pkg}.md`
+2. 各 releaser 只处理自己包的发布准备（版本 bump 建议 + CHANGELOG 更新 + 发布检查命令）
+3. 所有 releaser 返回后，主 Agent 派合并 subagent 整合唯一 P8-release.md
+4. 合并 subagent 需交叉核对：各包版本号不冲突、bump_type 汇总一致、CHANGELOG 变更合并无遗漏
+5. 主 Agent 在 gate 验证通过后统一执行 bump-version / git commit / git tag
+
+**合并机制**：单包时 releaser 直接产出 P8-release.md（不走合并）；多包时各 releaser 产 P8-release-{pkg}.md，合并 subagent 整合唯一 P8-release.md 供 gate 检查。
+
 ## releaser→主 Agent 交接
 
 P8-release.md 中的**临时资源清单**是 releaser→主 Agent 的交接文件：

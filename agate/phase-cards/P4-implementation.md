@@ -94,6 +94,7 @@ review 不通过 → implementer 修改代码 → 再 review → … → approve
 ## 按包拆分并行（条件触发，需额外约束）
 
 > 仅当 P2 packages > 1 且包间无依赖时适用。单包任务跳过本节。
+> 并行上限 / 失败批 retry / 共享文件统一后处理见 dispatch-protocol「派发编排机制」并行规则。
 
 当 P2 声明多个 packages 且包间无数据依赖时，P4 可拆分并行，但**有额外约束**：
 

@@ -77,7 +77,7 @@ P0-brief 是主 Agent 作为 PM 在派发任何 subagent 之前写的判断文�
 
 ```yaml
 ## P0-brief.md
-task: "一句话描述任务（工程视角，不是产品语言）。若写不出一句话 → 任务太大，考虑拆分（见 dispatch-protocol.md「任务粒度指引」）"
+task: "一句话描述任务（工程视角，不是产品语言）。若写不出一句话 → 任务太大，考虑拆分（见 dispatch-protocol.md「派发编排机制」）"
 
 known_risks:
   - "涉及数据 schema 变更（需要在测试环境充分验证迁移逻辑）"
@@ -242,6 +242,9 @@ candidate_count: 2                # int ≥1，必填
 packages: [pkg-a]                 # list，必填
 domains: [backend, cli]           # list，必填
 ui_affected: false                # bool，必填
+# ── v2.0 派发编排字段（可选，TAG0014）──
+# dispatch_plan: {mode: static-batch, parallel_limit: 3, batches: [{id: pkg-a, complexity: medium}, {id: pkg-b, complexity: low}]}
+# 可选字段：多子任务编排方案（单行 flow YAML），契约以 P2 卡「dispatch_plan 机器字段」/ architect.md「批次设计」为准
 ---
 ```
 `gate_commands:` / `files_to_read:` / `env_constraints:` / `minimal_validation:` **留正文**（不迁移 frontmatter）。

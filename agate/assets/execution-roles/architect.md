@@ -136,6 +136,22 @@ DEVIATION 标注必须注明"涉及 P2 哪个设计目标"：
 
 判定"核心设计目标"的依据：P2-design.md 的改动方案节（§1）中明确列出的设计目标，被 P1 BDD 引用为验收条件的，为核心设计目标。
 
+## 批次设计（强制节，TAG0014）
+
+P2 方案含多个独立子任务（多包 / 多模块 / 高复杂度）时，**必须在 P2-design.md 输出 `dispatch_plan:` 机器字段**（frontmatter 单行 flow YAML，见 P2 卡片「dispatch_plan 机器字段」），声明后续阶段的编排方案：
+
+- `mode` — 编排模式（single / static-batch / parallel / recon-then-split / serial），按「派发编排机制」工作量五维评估选择
+- `batches` — 批次表（模式 static-batch/parallel 时必填）：每批 `id` + `complexity`（low/medium/high）
+- `parallel_limit` — 并行上限（≥1，缺省 3）
+
+**硬规则**：
+- **high 复杂度必须拆分**——工作量评估任一维度 high → 必须设计拆批（模式 2/3/4/5），不允许单发
+- **批次粒度受工作量评估约束**——单批的产出文件数 / 输入文件数仍遵守「派发编排机制」任务粒度基准（产出 ≤3 / 输入 ≤3，每并行 subagent 适用）
+- 无法预先确定拆分方案（结构不明）→ 选模式 4（recon-then-split），设计侦察 subagent 产出拆分方案
+- 多包时合并语义（BDD 全局编号、包归属去重）在设计节声明，见「派发编排机制」模式 4 流程
+
+**检查方式**：写完 P2-design.md 后，核对 frontmatter 的 `dispatch_plan:`（若适用）——`mode` 枚举合法、批数 ≤ parallel_limit、每批含 id + complexity。缺字段时 P2 gate 跳过（可选字段），但 high 复杂度不拆批会被 P7 一致性检查捕获为 DEVIATION。
+
 ## 返回给主 Agent
 文件路径 + 一句话摘要（方案要点 / 一致性结论，含双向检查结果）
 
