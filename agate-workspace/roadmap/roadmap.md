@@ -27,6 +27,7 @@
 | RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| scheduled | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
 | RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | scheduled | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
 | RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | scheduled | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-15 |
+| RM-AG0020 | 复盘机制统一：模板缺正文结构（只有核对清单）、内容无价值标准、标的矛盾（异常触发 vs 所有任务）、路径矛盾（docs/releases vs docs/reviews）；分层归因 + 执行错误/机制缺口二分 + 措施可落地缺失 | backlog | TAG0013/0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
 
 ## 状态标识
 
@@ -303,3 +304,30 @@
   4. **落点**：P0 卡片加"前提时效性自检" + state-machine P0→P1 转移条件加"前提验证" + P1 卡片加"P0-brief 前提校验"
 - **验证口径**：搁置后启动的任务，P0-brief 前提漂移被检测 → 更新或重立项；P1 在验证过的 P0-brief 基础上工作
 - **归属**：**并入 TAG0012**（2026-08-15 决策）——改动域与 TAG0012 高度重叠（P0/P1 卡片 + analyst + dispatch-protocol/state-machine），且与 RM-AG0014 同类（声明有时效处理无）；分开做会两轮改同文件。实施时 P1 须按"哪些卡/哪些节"组织 BDD，与 RM-AG0013/0014 一并规划。
+
+---
+
+## RM-AG0020 详情
+
+**复盘机制统一（TAG0013/0014 复盘讨论，2026-08-16）**
+
+- **问题**：复盘机制在协议层面残缺且不自洽：
+  1. **模板缺正文结构**：`docs/reviews/postmortem-template.md` 只有"机制触发核对清单"（retry/SCOPE+/gate 等是否触发），**无复盘正文结构**（做得好的/发现的问题/改进措施）——正文靠执行者临场拼（TAG0013 复盘 84 行是拼出来的，非模板定义）
+  2. **内容无价值标准**：不定义"什么值得写"——易沦为流水账（复述 P1-P8 过程）/自我表扬（只写做得好的）；有价值的内容是"机制缺口 + 可复用模式 + 归因到可行动层面的问题"
+  3. **标的矛盾**：`check-retrospective.py`（P2.12）只在**异常模式**（retry 超限/SCOPE+/override）时提醒复盘；但正常任务（TAG0013 无 retry）也写了复盘（因发现机制缺口）——无统一标的定义
+  4. **路径矛盾**：check-retrospective 提示 `docs/releases/v{version}-retrospective.md`，实际先例在 `docs/reviews/retrospective-tag00xx-*.md`——两处不一致
+  5. **归因纪律缺失**：不区分"执行错误（agent 没遵守规则 → 修纪律）" vs "机制缺口（协议没定义 → 修协议）"——归因错层，措施落空（如把协议缺陷误判为执行粗心）
+  6. **产出流向缺失**：复盘发现机制缺口 → 应流向 roadmap（RM 条目）或 DEBT 登记，但无强制/约定（check-retrospective 提醒行已加，TAG0018）
+- **建议修复方向**：
+  1. **复盘正文结构模板**：事实基线（客观数据）/ 做得好的 + 可复用模式（问"该固化进协议吗"）/ 发现的问题（分层归因：管理/技术/agate 机制/agent 执行，标注"执行错误 vs 机制缺口"）/ 改进措施（落到文件/字段/gate）/ 核对清单（沿用 postmortem-template）
+  2. **标的定义**：①异常模式（retry 超限/SCOPE+/override）→ 强制 ②发现机制缺口（任何任务）→ 强制 ③高价值任务（大型/跨模块/首次新做法/用户要求）→ 建议。正常完成且无机制发现 → 可不复盘
+  3. **路径统一**：`docs/reviews/retrospective-{task}-{date}.md`（对齐实际先例），check-retrospective 输出同步
+  4. **归因纪律 + 产出流向**：每条问题标"执行错误/机制缺口"；机制缺口 → 立 RM/DEBT；执行偏差 → 更新角色文件/派发模板/阶段卡
+  5. **事实依据三层（2026-08-16 补充，核心）**：复盘的机理分析（为什么这么做）不能只靠 git log（结果级）——因果链在主 Agent/subagent 的 session 里，session 会 compact 导致事实源丢失。按可靠性分层：
+     - **L1 仓库落盘（永久）**：git log / 产出文件 / orchestrator-log / progress.md
+     - **L2 会话 checkpoint（任务期间持续落盘，新增）**：防 compact 的核心保障——orchestrator-log 从"只记决策"扩展为"决策 + 依据"（每次派发记"给了哪些输入/为什么"、每次 gate 判定记"基于什么"）；每个阶段 gate 通过时落盘 `P{n}-checkpoint.md`（本阶段异常/关键判断/subagent 表现）；P8 完成时先落盘 `task-session-summary.md`（任务级过程摘要）
+     - **L3 平台 session 导出（补充，可能已 compact）**：OpenCode / Claude Code 会话历史可导出，作补充事实源，不作为依赖
+  6. **复盘时机前置（2026-08-16 定稿）**：**过程摘要（L2）在任务完成时立即落盘（趁 session 完整）**，正式复盘在 PR merge main 后基于摘要写——防止 session compact 后事实源丢失。时机链条：`P8 完成 → 落盘 task-session-summary.md → PR merge main → 基于摘要写正式复盘 → 登记 RM/DEBT`
+  7. **平台导出工具书（2026-08-16 补充，可做）**：产出平台 session 导出指南（各平台 session 存储位置/导出方法/如何定位某次 subagent 派发过程）。找对方法即可用，不作协议硬依赖
+- **验证口径**：复盘文档含"做得好的/发现的问题/改进措施"三节 + 每条问题标归因层面 + 措施写落点；check-retrospective 提示路径与实际一致；复盘文档"事实依据"节列出 L1/L2/L3 来源；长任务复盘能在 session compact 后仍写出完整因果链（L2 落盘生效）
+- **归属**：独立任务（协议机制增强：postmortem-template + check-retrospective.py + orchestrator-log 扩展 + checkpoint 落盘 + 复盘文档规范 + session-export-guide），与 RM-AG0018（tech-debt 登记触发点）同簇。
