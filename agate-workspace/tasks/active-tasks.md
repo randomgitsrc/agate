@@ -19,12 +19,12 @@
 | TAG0007 | agate 项目结构管理：0→1 骨架（RM-0008）/ code-map + 架构演进（RM-0009）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
 | TAG0008 | agate 版本管理机制（v1）：多版本共存 + 项目锁定 + 程序化安装/升级（agate-install / agate-resolve / hook 解析入口 / summary 版本显示）——P0-brief 已更新至 Python 化后状态（2026-08-15）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-15 |
 | TAG0012 | agate 协议机制增强批：阶段卡同类扫描（RM-AG0013）+ verification_env 边界（RM-AG0014）+ P0-brief 时效验证（RM-AG0019）| ⬜ | P0 | 高 | — | 2026-08-15 | 2026-08-15 |
-| TAG0014 | agate 派发编排机制（全阶段，RM-AG0016）：工作量评估 + 五模式编排 + 并行规则统一（有 approved plan：agate-workspace/plans/agate-dispatch-orchestration-20260815.md）| 🔄 | P1 | 高 | — | 2026-08-15 | 2026-08-16 |
 
 ### 已完成
 
 | 编号 | 任务名称 | 状态 | 最终阶段 | 优先级 | 完成日期 |
 |------|----------|------|----------|--------|----------|
+| TAG0014 | agate 派发编排机制（全阶段，RM-AG0016）：工作量评估 + 五模式编排 + 并行规则统一（dispatch_plan 可选字段 + 权威节 + 8 卡统一 + 模板兜底）→ v0.49.0 | ✅✅ | READY | 高 | 2026-08-16 |
 | T001 | agate v2.0 结构化数据改造（A+B+C+D 全做，一个 task）→ v0.40.0 | ✅✅ | READY | 高 | 2026-08-10 |
 | TAG0003 | agate 工作区架构（agate-workspace/ 目录规范 + roadmap 任务管理循环 + .agate.env 配置 + docs/tasks 迁移工具）→ v0.41.0 | ✅✅ | READY | 高 | 2026-08-12 |
 | TAG0002 | 重构一等任务（Phase A：change_type: refactor + P6 重构验收口径 + gate 分流）→ v0.42.0 | ✅✅ | READY | 高 | 2026-08-12 |
