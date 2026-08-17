@@ -16,16 +16,13 @@
 | RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | scheduled | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-13 |
 | RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | scheduled | 阶段提示词核查（2026-08-13）| TAG0012 | 2026-08-13 | 2026-08-15 |
 | RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | scheduled | TAG0005/0009 复盘核实（2026-08-14）| TAG0012 | 2026-08-13 | 2026-08-15 |
-| RM-AG0015 | 文档脚本名引用漂移无 gate 兜底：CHECK 2 只捕获 `scripts/` 前缀引用，裸脚本名（phase-cards/rules 全是）完全漏检 + phase-cards/rules 不在 PROTOCOL_FILES（引用检查降级 WARNING）| scheduled | TAG0010/0011 复盘（2026-08-15）+ 实测验证 | TAG0013 | 2026-08-15 | 2026-08-15 |
-| RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| scheduled | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
-| RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | scheduled | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-15 |
 | RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | scheduled | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-15 |
 | RM-AG0020 | 复盘机制统一：模板缺正文结构（只有核对清单）、内容无价值标准、标的矛盾（异常触发 vs 所有任务）、路径矛盾（应放 tasks/{Txxx}/ 作 task 产物 vs 实际 docs/reviews/ vs check-retrospective 提示 docs/releases/，三处不一致）；分层归因 + 执行错误/机制缺口二分 + 措施可落地缺失 | scheduled | TAG0013/0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
 | RM-AG0021 | agate 跨项目反馈机制：复盘中的 agate 机制/执行问题回馈到 agate 项目组（结构化 agate 反馈节 + 匿名化 + 开关，只回传 agate 归因内容不涉项目敏感信息）| scheduled | TAG0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
 | RM-AG0022 | 协议规则结构化层（层 1）：把 agent 消费的协议规则从自由文本抽成结构化定义（phases.yaml/dispatch.yaml/roles.yaml + 一致性 gate），解决"agent 读 8000+ 行 md 理解规则"的摩擦；需先设计 yaml schema 方案再立项 | backlog | TAG0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | scheduled | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-17 |
-| RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | backlog | WORKFLOW.md 审查（2026-08-17）| — | 2026-08-17 | 2026-08-17 |
-| RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | backlog | 外部 agent 分析（2026-08-17）| — | 2026-08-17 | 2026-08-17 |
+| RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | scheduled | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-17 |
+| RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | scheduled | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-17 |
 
 ## 状态标识
 
@@ -203,6 +200,7 @@
   2. **补 verification_env 的失败处理协议**：本地无法验证的项，P1 声明时同时列"可验证清单 vs 不可验证清单"；设定每轮 CI 验证多假设的批处理要求；设止损轮次（如 3 轮未收敛必须升级汇报）；定义 READY 后暴露外部问题的归属（补丁 vs 新任务）
   3. **CI 轮次预算进 P1**：risk_level 或专门字段记录"预计外部验证轮次"，让主 Agent 和用户对总时长有预期
   4. **环境准备职责边界（TPV0093 回流，RM-AG0023，2026-08-17 补充）**：verification_env 定义"如何声明环境"，还要补"**谁负责准备环境**"——P5/P6 需运行环境（debug server/测试数据库）时：①主 Agent（P0-brief debug_env 声明，负责启动/维护/关停）还是 subagent（自启无防护 → 卡死）？②多个 subagent（前端+后端）各启各的 debug → 冲突/资源竞争？**建议：环境启动/维护/关停归主 Agent（或 P0-brief 明确单一方），subagent 只消费不启动**；多 subagent 需共享环境时主 Agent 统一启动 + dispatch-context 注入环境访问方式。落点：dispatch-protocol verification_env 节 + P5/P6 卡片
+  5. **subagent 能力探测与传递（2026-08-17 用户讨论补充，通用机制扩展）**：supplementable 传递规则（dispatch-protocol L1184）只解决"任务级声明 + 派发注入"，但**主 Agent 能力 ≠ subagent 能力**（主可能无 vision、sub 有，反之亦然），且**平台不暴露 subagent 能力**（Task 工具不返回）。补"**subagent 级能力自查 + 失败回退**"：①派发时 prompt 要求 subagent **先自查能力**（"你有 vision 能力吗？没有就报告，不要静默假设"）；②subagent 能力不可用 → **报告主 Agent**（非静默失败）→ 主 Agent 降级（双证据/像素/人工）或换路径（主 Agent 亲自 / 换 subagent 类型）；③**不写死具体工具**（vision-engine 只是本机例子，项目可能有其他视觉能力）——能力探测按三态（available/supplementable/GAP），GAP 才降级。落点：dispatch-protocol supplementable 规则扩展 + dispatch-context 能力自查要求 + capability_requirements 三态细化
 - **归属**：独立任务（协议机制增强：dispatch-protocol + P1 卡片 + analyst 角色），与 RM-AG0013（阶段卡同类扫描）同属"协议机制增强"簇。
 
 ---
@@ -407,6 +405,9 @@
 | RM-AG0011 | check-gate P5 gate_commands 计数语义模糊（P5* 前缀全算，WARNING 误解主/辅命令）| done | TPV0090 复盘 M2（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-15 |
 | RM-AG0012 | 自定义角色机制两瑕疵：dispatch-prompt 无条件注入评审指令到执行角色 + render 脚本角色不存在时 exit 0 | done | 角色体系验证（2026-08-13）| TAG0005 | 2026-08-13 | 2026-08-15 |
 | RM-AG0016 | subagent 派发编排机制（全阶段）：工作量评估 + 五模式编排（单发/静态拆批/并行/先理解后拆/串行链）+ 并行规则统一；P1/P2 补空白、P3-P6 统一现有分散"按包并行" | done | TAG0010/0011 复盘（2026-08-15）+ 用户需求扩展（全阶段）| TAG0014 | 2026-08-15 | 2026-08-17 |
+| RM-AG0015 | 文档脚本名引用漂移无 gate 兜底：CHECK 2 只捕获 `scripts/` 前缀引用，裸脚本名（phase-cards/rules 全是）完全漏检 + phase-cards/rules 不在 PROTOCOL_FILES（引用检查降级 WARNING）| done | TAG0010/0011 复盘（2026-08-15）+ 实测验证 | TAG0013 | 2026-08-15 | 2026-08-17 |
+| RM-AG0017 | self-gate 触发面缺仓库根级文档：README.md/AGENTS.md 不在触发面（改协议语义绕过 self-gate 评审）| done | TAG0010/0011 复盘（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-17 |
+| RM-AG0018 | 复盘/评审发现未接 tech-debt 登记触发点：tech-debt.md 零登记（DEBT0001 前），复盘发现缺口只写进复盘/roadmap 不走 DEBT 路径 | done | 独立观察 + DEBT0001 破冰（2026-08-15）| TAG0013 | 2026-08-15 | 2026-08-17 |
 
 </details>
 
