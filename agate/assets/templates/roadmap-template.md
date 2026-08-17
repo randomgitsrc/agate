@@ -37,6 +37,8 @@
 1. 只有主 Agent 维护本文件，subagent 不直接写。
 2. 条目状态变更与任务看板推进同步（拆任务 → scheduled，完成 → done）。
 3. 状态只允许五选一（backlog/scheduled/in_progress/done/cancelled），不写中间态。
+4. **done 条目折叠归档**：done 条目移出主表 → 折叠到文件底部「已归档 RM 条目」的 `<details>` 块（信息保留，主表只留 backlog/scheduled 活跃项）。**折叠只用于已完成/归档区，活跃条目（backlog/scheduled）永不折叠**（要常看）。
+5. **折叠 summary 禁硬编码数字**：`<summary>` 文案**不写具体数量**（如"已完成的 RM"而非"已完成的 7 条 RM"）——数量会漂移，省略避免漂移。需要数量时从表格行自动统计。
 
 ---
 
