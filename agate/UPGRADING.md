@@ -89,6 +89,27 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.51.0 — agate UI/UX 验收质量机制（影响：frontend/UI 任务 + P6 截图证据路径）
+
+> 版本号已由 P8 确认（v0.51.0）。TAG0006 为 agate 补充 UI/UX 验收质量机制：P1 vision 能力三态硬声明、P2 UI 设计节检查、P6 双证据三态分档 + 射线形态适配、avg-hash 雷同判定升级。**本版本破坏性变更 / 行为变化逐条列出**（供升级前三问"我的项目是否触及"）。
+
+**① `avg-hash` 雷同截图判定从 WARNING 升级为「降级待复核」（影响：所有任务的 P6 截图证据路径）**：
+
+| 升级前 | 升级后 |
+|--------|--------|
+| P6 验收中两条不同操作类 BDD 截图视觉高度相似（avg-hash 相同）→ 仅非阻断 WARNING（exit 2） | avg-hash 重复 → 判定为「降级待复核」——P6-acceptance.md 含人工复核记录（`雷同截图复核` / `manual-review: <file>` 引用且文件存在）→ 放行；无记录 → exit 1 阻断 |
+
+- **md5 逐字节重复硬阻断语义不变**（原本就是 exit 1）。
+- **行为差异类 BDD 视觉相同的场景**（如两个查询命中同一空状态）：优先改用非截图证据（断言日志/response.json），或用带时间戳/高亮差异的截图，确保逐字节不同；若必须用截图且视觉相近 → 走人工复核记录放行。
+- **帧序列 `frames/` 与时序截图 `-tN` 系列**：同 BDD 组（bdd-id 前缀）内的相邻帧/相邻时刻**豁免**雷同判定（动画/时序正常特性），跨 BDD 组雷同仍按上表处理。
+- 升级动作：既有任务如有 P6 截图证据即将面对该判定——按需补复核记录或改用非截图证据。
+
+**② 新检查为"零动作则无感"门槛（不触发既有任务）**：P1 vision 三态、P1 渲染形态/维度声明、P2 UI 设计节检查——只在任务**新声明 `domains: frontend` / `ui_affected: true` / 形态字段**时才触发；既有任务（无这些声明）走默认（布局型 + available 语义），不新增硬校验、不红基线。**若未来某 frontend 任务 P1 漏声明 vision 条目 → 下次过 P1 gate 会 exit 1（这正是机制目标：强制声明）**。
+
+**③ 渲染形态适配为可选（向后兼容）**：`ui_render_shape` / `ui_ux_dimensions` 为 P1 frontmatter **可选字段**（presence 语义），缺失 = 布局型默认。开启了渲染组件/时序特效形态的任务，P6 证据形式须按形态匹配（帧序列/渲染输出对比/时序截图），纯文本证据拦截。
+
+---
+
 ### v0.47.0 — 测试框架 bats → pytest 迁移（影响：跑 agate 测试的开发者 / CI 维护者）
 
 > 版本号已由 P8 确认（v0.47.0）。agate 测试套件从 Bats 全面迁移到 pytest（TAG0011）：`agate/tests/` 下 60 个 `.bats` 文件 / 749 @test 迁移为 `test_*.py` pytest 用例，`agate/tests/helpers/` 三文件（load.bash / fixtures.bash / git-helper.bash）退役，由 `agate/tests/conftest.py` fixture 体系承接。
