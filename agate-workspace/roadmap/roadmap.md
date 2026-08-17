@@ -25,6 +25,7 @@
 | RM-AG0022 | 协议规则结构化层（层 1）：把 agent 消费的协议规则从自由文本抽成结构化定义（phases.yaml/dispatch.yaml/roles.yaml + 一致性 gate），解决"agent 读 8000+ 行 md 理解规则"的摩擦；需先设计 yaml schema 方案再立项 | backlog | TAG0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | scheduled | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-17 |
 | RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | backlog | WORKFLOW.md 审查（2026-08-17）| — | 2026-08-17 | 2026-08-17 |
+| RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | backlog | 外部 agent 分析（2026-08-17）| — | 2026-08-17 | 2026-08-17 |
 
 ## 状态标识
 
@@ -386,6 +387,7 @@
   5. **环境准备职责边界（用户补充）**：谁负责启动/维护/关停 debug 环境——P5/P6 需运行环境时，主 Agent（P0-brief debug_env 声明）还是 subagent（自启无防护 → 卡死）？多 subagent（前端+后端）各启各的 → 冲突/资源竞争。**并入 RM-AG0014**（verification_env 定义"如何声明"，补"谁负责准备"）
   6. **timeout 合理阈值 + 执行留痕（用户补充）**：timeout 必须给合理时间——阈值不能低到长命令误判失败（pytest 全量 ~70s、CDP E2E 需更大）；执行命令要留痕（timeout 判定基于真实执行，不拍脑袋）。**并入 A-1/A-2**（timeout_seconds 设计核心约束）
   7. **项目资产沉淀**（复盘时提炼临时命令到项目基础设施 + 经验记 agents.md）→ **已并入 RM-AG0020**（复盘模板"可复用模式"节扩展）
+  8. **xdist 试点（2026-08-17 外部 agent 分析补充）**：P5 单发场景（无并行派发同时跑）试点 `-n auto`，观察真实 CI（4 核）加速比；**不与模式 3 并行派发叠加**（本条目 A-3 已记"资源密集默认串行"）——测试套件隔离性实测过关（823 一致），加速收益需真实 CI 验证。实施时与 A-3 一并评估
 - **验证口径**：dispatch-prompt 含超时兜底节；gate_commands 支持 timeout_seconds；P5 资源密集默认串行；progress 命令前写心跳；verification_env 定义环境准备职责
 - **归属**：跨条目反馈回流，已并入（2026-08-17）——A-1/A-2/A-3 + timeout 阈值 + A-4 progress 心跳 → **TAG0012**（协议机制批，因 TAG0014 已完成 v0.49.0 未含新增内容，运行时管控并入 TAG0012 的 dispatch-protocol/派发模板/P5 卡改动）；环境职责 → **TAG0012**（RM-0014 verification_env）；项目资产沉淀 → **TAG0015**（RM-0020 复盘模板）。**本条目作为反馈源头记录 + 分发标记，内容已并入上述 task 的 P0-brief**
 
@@ -436,3 +438,28 @@
   5. **防复发机制**：除了"内容归属约定"，评估 check-protocol-consistency 能否加"同一关键词多处出现检测"（至少 WARNING 级）
 - **验证口径**：每份文档职责单一可描述；交叉重复消除（同一规则只有一处权威）；consistency 0 ERROR
 - **归属**：独立任务（协议文档重构），或并入 AG0022 前期。改动面大（动 WORKFLOW/dispatch-protocol/state-machine/platform-notes 等），触发 self-gate，需专门规划。
+
+---
+
+## RM-AG0026 详情
+
+**测试重跑审计与跨阶段证据引用（外部 agent 分析，2026-08-17）**
+
+- **问题**：同一任务的**全量测试套件可能被重复跑 4-5 遍**：
+  1. **P5 首跑**：进入 P5 全量跑一遍（gate_commands.P5）
+  2. **P5 重试**：每次修复后要求全量重跑（T027 教训：修复可能引入回归，不能只检查修复项）
+  3. **P6 refactor 口径**：强制独立 `regression.log`（`regression_pass: true` + 证据存在是 gate 硬校验，P6-acceptance.md L108；check-p6-provenance.py 审计 5 核 EXIT_CODE）
+  4. **P8**：明确"重跑 P5 gate"（P8-release.md L82/118）
+  - 实测：823 用例单次全量 106-115s，4-5 遍 = 500+ 秒花在"重复确认同一件事"
+- **核实结论**：
+  - P5 重试全量 ✅ 必须（T027 教训真实，保留）
+  - **P6/P8 的证据复用是优化点**——但 agent 称"零新增机制"是**低估**：P6 regression.log 是 refactor 任务的 **gate 硬校验**（regression_pass + 证据存在 + provenance 审计），且"P6 验收时的代码状态 ≠ P5 验证时"（P6 可能回 P4 修过 bug）。**复用需协议支持"跨阶段证据引用 + 中间无改动校验"**（如 git log 对比证明 P5 通过后无代码改动），这是**机制改进**（provenance 审计要支持引用前序证据），不是纯优化
+  - P8 重跑 P5 本质是"确认 bump 没破坏"，可**放宽为 bump 后跑一次**而非完整重跑（有优化空间）
+- **建议修复方向**：
+  1. **审计全量重跑点**：逐任务统计 P5/P6/P8 实际跑了几遍全量，量化浪费
+  2. **跨阶段证据引用协议**（核心，机制改进）：定义"何时可引用前序阶段证据"——P5 全绿 + P6 验收前无代码改动（git log 校验）→ P6 regression 可引用 P5 产物；provenance 审计支持"引用前序证据 + 无改动声明"
+  3. **P8 放宽**：bump 后跑一次 P5（非完整重跑），或"bump 无逻辑改动时引用 P5 最后通过"
+- **xdist 试点**（同批，TPV0093 已记 xdist flaky）：P5 单发场景（无并行派发同时跑）试点 `-n auto`，观察真实 CI（4 核）加速比；**不与模式 3 并行派发叠加**（RM-AG0023 A-3 已记录"资源密集默认串行"）。并入本条目或 RM-AG0023 实施时一并评估
+- **批次数据化备注**（不立条目）："1 轮可完成"是定性规则，等 RM-AG0016 的 dispatch_plan 字段攒够批次数据后再量化安全上限
+- **验证口径**：逐任务统计全量重跑次数；协议支持 P6 引用 P5 证据（gate + provenance 校验通过）；P8 放宽后仍保证发布质量
+- **归属**：独立任务（协议机制改进：P6/P8 卡片 + check-p6-provenance.py + 可能新脚本），与 RM-AG0023（运行时管控）相关但独立
