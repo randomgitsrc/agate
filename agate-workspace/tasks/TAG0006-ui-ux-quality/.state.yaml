@@ -7,8 +7,21 @@ retries:
       reason: requirements-review needs-revision（BDD-9 GAP 降级链语义冲突）
       prompt_changed: true
       adjustment: analyst 修复轮 + 复审通过
+    - count: 2
+      reason: SCOPE+ 增补（用户 2026-08-17 范围扩展：UI/UX 覆盖任意渲染形态）
+      prompt_changed: true
+      adjustment: 'analyst SCOPE 增补轮（BDD-1/2/4/6/9/10/13 扩展 + BDD-16/17 新增）+ requirements-review SCOPE 复审通过'
   P2:
     - count: 1
       reason: '双评审 needs-revision（plan-design-review: BDD-4 触发条件矛盾；plan-eng-review: GAP 默认语义未定义 + vision-blocked fixture 遗漏）'
       prompt_changed: true
       adjustment: architect 修复轮（B1-B4+M1/M2+N1/N2）+ 双评审复审通过
+    - count: 2
+      reason: SCOPE+ 增补（用户 2026-08-17 范围扩展：UI/UX 覆盖任意渲染形态）
+      prompt_changed: true
+      adjustment: 'architect SCOPE 增补轮（+§2.15 形态声明载体/§2.16 证据形式按形态）+ 双评审 SCOPE 复审（plan-design-review needs-revision→architect SCOPE 修复轮 B1-B2+M1-M3→复审 approved；plan-eng-review approved）+ 组长汇总 approved'
+scope_expand:
+  - date: 2026-08-17
+    requested_by: user
+    content: UI/UX 机制不应只适用于常规布局型 UI，需覆盖渲染组件（OpenGL/WebGL/Canvas/图表/模型/特效/地图/数字地球）与 UX 交互形态（动作/特效/时序）——视觉验收维度按项目实际 UI 形态自适应
+    decision: A1（分类框架+适配）+ B1（本任务内增补）——回退 P1 增补 BDD（17 条）→ 回退 P2 增补设计（§2.15/§2.16）→ 再进 P3
