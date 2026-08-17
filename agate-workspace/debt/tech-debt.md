@@ -113,7 +113,7 @@ task_id: TAG0008-version-management
 id: DEBT0005
 category: technical
 title: P6 双证据三态解析逻辑三处重复（check-gate / check-p6-evidence / check-p6-provenance）
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P2-design.md
@@ -134,7 +134,7 @@ task_id: TAG0006-ui-ux-quality
 id: DEBT0006
 category: technical
 title: check-p6-evidence.py ahash 文件名↔哈希 zip 对齐脆性（非图片/损坏图静默跳过致错位）
-status: open
+status: closed
 priority: high
 evidence:
   - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P4-review-backend.md

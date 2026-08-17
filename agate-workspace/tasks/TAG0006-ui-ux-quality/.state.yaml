@@ -1,6 +1,6 @@
 task_id: TAG0006
-phase: P8
-status: in_progress
+phase: READY
+status: completed
 retries:
   P1:
     - count: 1
@@ -41,3 +41,15 @@ p3_fix:
     root_cause: P2 gate_commands.P3 固化为 --collect-only（只收集不执行），check-tdd-red 无法看到断言失败 → exit 2 误判
     fix: P2-design.md gate_commands.P3 改为 --tb=no 实际执行 + P3 卡片注释修正 + P2-design.md 标注修复记录
     evidence: check-tdd-red 修复后 exit 0（14 断言失败真红灯）；P2/P3 gate exit 2
+READY:
+  date: 2026-08-18
+  version: v0.51.0
+  bump_type: minor
+  changelog: v0.51.0 节已更新
+  upgrading: v0.51.0 章节已新增（avg-hash 行为变化破坏性变更条目）
+  readme_badge: v0.51.0（README + README.zh-CN）
+  tag: v0.51.0
+  p5_rerun: 881 passed + 2 skipped
+  consistency: 0 ERROR
+  debt_check: reviewed（DEBT0005/0006 实现已修复，registry 状态更新见 debt/tech-debt.md）
+  clean_checkout: 工作区干净，无未提交变更
