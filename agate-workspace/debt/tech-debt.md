@@ -106,3 +106,24 @@ source: review
 created_at: 2026-08-16
 task_id: TAG0008-version-management
 ```
+
+## DEBT0005
+
+```yaml
+id: DEBT0005
+category: technical
+title: P6 双证据三态解析逻辑三处重复（check-gate / check-p6-evidence / check-p6-provenance）
+status: open
+priority: medium
+evidence:
+  - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P2-design.md
+    note: §2.1 _gate_p1_vision_capability / §2.8 check-p6-evidence 与 check-p6-provenance 各自读取 P1 视觉条目三态
+impact: 三处解析口径若漂移（如 GAP 判据扩展）会各自不一致，P6/P1 gate 判定分叉
+recommendation: 抽取公共 helper（agate_common.py 新增 read_vision_tri_state(p1_file)），三处复用
+closure_criteria:
+  - 公共 helper 就位且三处脚本调用同一函数
+  - 全量 pytest 825+ 全绿 + consistency 0 ERROR
+source: review
+created_at: 2026-08-17
+task_id: TAG0006-ui-ux-quality
+```
