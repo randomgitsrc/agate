@@ -24,6 +24,7 @@
 | RM-AG0021 | agate 跨项目反馈机制：复盘中的 agate 机制/执行问题回馈到 agate 项目组（结构化 agate 反馈节 + 匿名化 + 开关，只回传 agate 归因内容不涉项目敏感信息）| scheduled | TAG0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
 | RM-AG0022 | 协议规则结构化层（层 1）：把 agent 消费的协议规则从自由文本抽成结构化定义（phases.yaml/dispatch.yaml/roles.yaml + 一致性 gate），解决"agent 读 8000+ 行 md 理解规则"的摩擦；需先设计 yaml schema 方案再立项 | backlog | TAG0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | scheduled | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-17 |
+| RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | backlog | WORKFLOW.md 审查（2026-08-17）| — | 2026-08-17 | 2026-08-17 |
 
 ## 状态标识
 
@@ -406,3 +407,32 @@
 | RM-AG0016 | subagent 派发编排机制（全阶段）：工作量评估 + 五模式编排（单发/静态拆批/并行/先理解后拆/串行链）+ 并行规则统一；P1/P2 补空白、P3-P6 统一现有分散"按包并行" | done | TAG0010/0011 复盘（2026-08-15）+ 用户需求扩展（全阶段）| TAG0014 | 2026-08-15 | 2026-08-17 |
 
 </details>
+
+---
+
+## RM-AG0025 详情
+
+**协议文档职责边界与去重（WORKFLOW.md 审查，2026-08-17）**
+
+- **问题**：agate 协议文档是**渐进叠加**出来的（每版本/任务往顺手文件追加），无"职责边界审计"——导致多文档交叉重复 + 内容归属混乱：
+  1. **平台适配三份**：WORKFLOW.md L461-467 + dispatch-protocol.md L1207-1228 + platform-notes.md——同一内容三处维护，改一处漏两处（漂移源）
+  2. **阶段门槛两份**：WORKFLOW.md 阶段总览表（L284-293，含详细 grep 命令）+ dispatch-protocol.md 可判定门槛规范（L903-978）——TAG0013 的 CHECK 10 教训就是这种双源没同步
+  3. **派发 prompt 双源**：dispatch-protocol.md L429-628（模板 + 阶段特定提示）+ assets/templates/dispatch-prompt.md——N6 修复过的双源问题仍在
+  4. **Pre-commit 检查清单两份**：WORKFLOW.md L303-334 + state-machine.md L215-218
+  5. **重试上限两份**：state-machine.md L367-382 + dispatch-protocol.md L996-1033
+  6. **职责定位混乱**：WORKFLOW 标题说"主流程，详细见其他文件"，实际塞了 gate 命令/Pre-commit 清单/平台适配等实现细节；dispatch-protocol 塞了派发编排机制（TAG0014 新增，该在别处）
+- **根因**：无"每份文档唯一职责"的定义 + 无"新内容写哪个文件"的归属约定。这是 LIMITATIONS 局限 5（协议文档自身一致性）的具体表现——consistency 只查引用存在性，不查"同一规则多处维护"的重复。
+- **建议修复方向**：
+  1. **定义每份文档唯一职责**：WORKFLOW=主流程概要（阶段总览只留概要，gate 细节指向 dispatch-protocol）；dispatch-protocol=派发；state-machine=状态机；platform-notes=平台唯一权威；role-system=角色；git-integration=git
+  2. **消除交叉重复**：平台适配收敛到 platform-notes（其他处指向）；阶段门槛收敛到 dispatch-protocol（WORKFLOW 只留概要）；派发 prompt 收敛到模板（dispatch-protocol 指向）；Pre-commit 清单收敛到一处（WORKFLOW 或 scripts/README）
+  3. **内容归属约定**：加"新内容写哪个文件"规则（如派发编排机制→归 dispatch-protocol 还是独立文档，需定）
+  4. **防复发**：check-protocol-consistency 或审计补充"同一关键词多处出现"检测（或协议结构化 AG0022 时一并解决）
+- **与 RM-AG0022 关系**：AG0022 是"结构化"（大方向，规则抽成 yaml）；AG0025 是"职责边界+去重"（眼前卫生）。**AG0025 可先行**（轻，改文档结构），AG0022 后行（重）。但 AG0025 的"内容归属"定义可为 AG0022 的结构化打基础——两者相关。
+- **⚠️ 系统排查方法（2026-08-17 用户强调：不只修已知 6 处，要举一反三）**：本条目发现的 6 处是"打地鼠"式抽查，不能只修它们。P1 阶段必须做**系统性全量排查**：
+  1. **关键词交叉扫描**：对每条协议规则（平台适配/阶段门槛/重试上限/标记声明/裁剪规则/派发模板/Pre-commit 清单/降级规则/空返回恢复/证据要求等），grep 全仓确认**出现次数**，>1 处即潜在双源——逐条判定"哪个是权威，其余改指向"
+  2. **职责声明表**：产出"每份文档的唯一职责"对照表（WORKFLOW/dispatch-protocol/state-machine/role-system/platform-notes/git-integration/loop-orchestration/SETUP/LIMITATIONS/adr 各一句话职责），作为去重依据
+  3. **内容归属审计**：对每份文档的每个节，问"这内容该在这吗？权威在哪？"——迁移到正确位置或改指向
+  4. **生成性扫描**：检查是否还有"渐进叠加"产生的同类问题（新内容塞错文件），如派发编排机制（TAG0014 新增）塞在 dispatch-protocol 是否合适
+  5. **防复发机制**：除了"内容归属约定"，评估 check-protocol-consistency 能否加"同一关键词多处出现检测"（至少 WARNING 级）
+- **验证口径**：每份文档职责单一可描述；交叉重复消除（同一规则只有一处权威）；consistency 0 ERROR
+- **归属**：独立任务（协议文档重构），或并入 AG0022 前期。改动面大（动 WORKFLOW/dispatch-protocol/state-machine/platform-notes 等），触发 self-gate，需专门规划。
