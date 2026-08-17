@@ -1,0 +1,16 @@
+agate/tests/unit/test_review_role_docs.py::test_bdd_1_analyst_classification_framework PASSED [  7%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_1_p1_card_classification_framework PASSED [ 14%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_2_analyst_quantitative_criteria PASSED [ 21%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_5_architect_ui_design_section PASSED [ 28%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_5_role_system_architect_dual_hats PASSED [ 35%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_6_plan_design_review_dimensions PASSED [ 42%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_11_dispatch_prompt_injection_guidance PASSED [ 50%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_11_dispatch_protocol_a3_vision PASSED [ 57%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_12_dispatch_prompt_self_check PASSED [ 64%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_13_verifier_input_state_review PASSED [ 71%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_13_p6_card_input_state_review PASSED [ 78%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_16_render_component_dim_requirements PASSED [ 85%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_17_verifier_evidence_form_by_shape PASSED [ 92%]
+agate/tests/unit/test_review_role_docs.py::test_bdd_17_p6_card_evidence_form_by_shape PASSED [100%]
+============================== 14 passed in 0.02s ==============================
+EXIT_CODE: 0

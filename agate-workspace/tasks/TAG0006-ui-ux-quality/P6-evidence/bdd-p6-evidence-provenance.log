@@ -1,0 +1,18 @@
+agate/tests/unit/test_check_p6_evidence.py::test_vision_gap_1_evidence_manual_review_exit_0 PASSED [  6%]
+agate/tests/unit/test_check_p6_evidence.py::test_vision_gap_2_evidence_missing_review_exit_1 PASSED [ 12%]
+agate/tests/unit/test_check_p6_evidence.py::test_vision_docs_1_verifier_has_triple_state PASSED [ 18%]
+agate/tests/unit/test_check_p6_evidence.py::test_vision_docs_2_p6_card_real_analysis PASSED [ 25%]
+agate/tests/unit/test_check_p6_evidence.py::test_vision_docs_3_input_state_review PASSED [ 31%]
+agate/tests/unit/test_check_p6_evidence.py::test_render_evid_1_frame_sequence_recognized_exit_0 PASSED [ 37%]
+agate/tests/unit/test_check_p6_evidence.py::test_render_evid_2_render_output_compare_exit_0 PASSED [ 43%]
+agate/tests/unit/test_check_p6_evidence.py::test_render_evid_3_frame_seq_pure_text_exit_1 PASSED [ 50%]
+agate/tests/unit/test_check_p6_evidence.py::test_render_evid_4_shape_decl_layout_no_frames_exit_0 PASSED [ 56%]
+agate/tests/unit/test_check_p6_evidence.py::test_render_diff_1_missing_diff_json_exit_1 PASSED [ 62%]
+agate/tests/unit/test_check_p6_evidence.py::test_render_diff_2_diff_json_with_metric_exit_0 PASSED [ 68%]
+agate/tests/unit/test_check_p6_provenance.py::test_vision_gap_prov_1_gap_manual_review_exit_0 PASSED [ 75%]
+agate/tests/unit/test_check_p6_provenance.py::test_vision_gap_prov_2_gap_missing_review_exit_1 PASSED [ 81%]
+agate/tests/unit/test_check_p6_provenance.py::test_vision_avail_1_ui_available_no_vision_yaml_exit_1 PASSED [ 87%]
+agate/tests/unit/test_check_p6_provenance.py::test_vision_none_1_no_decl_default_available_exit_1 PASSED [ 93%]
+agate/tests/unit/test_check_p6_provenance.py::test_vision_gap_prov_3_gap_audit5_log_mismatch_exit_1 PASSED [100%]
+====================== 16 passed, 71 deselected in 1.48s =======================
+EXIT_CODE: 0

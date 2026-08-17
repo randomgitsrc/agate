@@ -1,0 +1,13 @@
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: docs/superpowers/guide.md [agate-workspace/tasks/TAG0013-script-consistency/P3-test-cases.md:49]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: docs/archived/reviews/agate-postmortem-T019-meta-review-2026-06-24.md [docs/design-notes/README.md:12]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: docs/archived/reviews/agate-improvement-guide.md [docs/design-notes/subagent-context-mechanism.md:4]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: scripts/check-gate.sh [docs/reviews/agate-alignment-review-2026-08-15.md:41]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: scripts/check-gate.sh [docs/reviews/agate-alignment-review-2026-08-15.md:46]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: scripts/check-gate.sh [docs/reviews/agate-alignment-review-2026-08-15.md:70]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: scripts/check-tdd-red.sh [docs/reviews/agate-alignment-review-2026-08-15.md:71]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: scripts/check-p6-provenance.sh [docs/reviews/agate-alignment-review-2026-08-15.md:72]
+    ⚠️  叙事文件含无法解析的脚本名引用（聚合提醒）: check-windows-smoke.sh [CHANGELOG.md:86]
+
+  仅有 279 个 WARNING，无 ERROR。
+
+EXIT_CODE: 0
