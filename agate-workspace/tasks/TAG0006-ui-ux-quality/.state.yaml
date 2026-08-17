@@ -1,4 +1,9 @@
 task_id: TAG0006
-phase: P0
-status: pending
-retries: {}
+phase: P1
+status: in_progress
+retries:
+  P1:
+    - count: 1
+      reason: requirements-review needs-revision（BDD-9 GAP 降级链语义冲突）
+      prompt_changed: true
+      adjustment: analyst 修复轮 + 复审
