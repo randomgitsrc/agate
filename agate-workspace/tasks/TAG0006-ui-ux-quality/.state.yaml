@@ -1,5 +1,5 @@
 task_id: TAG0006
-phase: P3
+phase: P4
 status: in_progress
 retries:
   P1:
@@ -20,6 +20,16 @@ retries:
       reason: SCOPE+ 增补（用户 2026-08-17 范围扩展：UI/UX 覆盖任意渲染形态）
       prompt_changed: true
       adjustment: 'architect SCOPE 增补轮（+§2.15 形态声明载体/§2.16 证据形式按形态）+ 双评审 SCOPE 复审（plan-design-review needs-revision→architect SCOPE 修复轮 B1-B2+M1-M3→复审 approved；plan-eng-review approved）+ 组长汇总 approved'
+  P3:
+    - count: 1
+      reason: P2 gate_commands.P3 固化为 --collect-only 致 check-tdd-red 误判绿
+      prompt_changed: true
+      adjustment: P2-design.md gate_commands.P3 改 --tb=no + 卡片注释修正 + check-tdd-red 真红灯确认；test-designer 产出 53 用例
+  P4:
+    - count: 1
+      reason: '双评审 reject/needs-revision（design: GAP 短路审计5/6 + avg-hash zip 错位；backend: CRITICAL-1 ahash 对齐 + MEDIUM-1 GAP 早退 + INFO-1/2）'
+      prompt_changed: true
+      adjustment: 'implementer 修复轮（B1 GAP 分支去 sys.exit(0)；B2 ahash 统一 _is_image 过滤口径；I1 维度粒度豁免；I2 标题前缀正则）+ 双评审复审 approved + 组长 approved'
 scope_expand:
   - date: 2026-08-17
     requested_by: user

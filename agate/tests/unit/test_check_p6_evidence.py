@@ -497,28 +497,20 @@ def test_vision_gap_2_evidence_missing_review_exit_1(
 
 
 def test_vision_docs_1_verifier_has_triple_state(agate_root):
-    content = (agate_root / "assets" / "execution-roles" / "verifier.md").read_text(
-        encoding="utf-8"
-    )
+    content = (agate_root / "assets" / "execution-roles" / "verifier.md").read_text(encoding="utf-8")
     assert "available" in content
     assert "supplementable" in content
     assert "GAP" in content
 
 
 def test_vision_docs_2_p6_card_real_analysis(agate_root):
-    content = (agate_root / "phase-cards" / "P6-acceptance.md").read_text(
-        encoding="utf-8"
-    )
+    content = (agate_root / "phase-cards" / "P6-acceptance.md").read_text(encoding="utf-8")
     assert "真实视觉分析" in content
 
 
 def test_vision_docs_3_input_state_review(agate_root):
-    verifier = (agate_root / "assets" / "execution-roles" / "verifier.md").read_text(
-        encoding="utf-8"
-    )
-    p6_card = (agate_root / "phase-cards" / "P6-acceptance.md").read_text(
-        encoding="utf-8"
-    )
+    verifier = (agate_root / "assets" / "execution-roles" / "verifier.md").read_text(encoding="utf-8")
+    p6_card = (agate_root / "phase-cards" / "P6-acceptance.md").read_text(encoding="utf-8")
     assert "人工复核" in verifier
     assert "输入态" in verifier
     assert "人工复核" in p6_card
@@ -712,6 +704,30 @@ def test_time_seq_1_adjacent_time_shots_exempt_exit_0(
     _make_png(shots / "bdd7-t2.png", seed=7, compress=9)
     assert _png_ok(shots / "bdd7-t1.png")
     assert _png_ok(shots / "bdd7-t2.png")
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "average hash 相同" not in result.output
+
+
+# B2 回归（TAG0006 修复轮）：screenshots/ 混入 >1KB 非图片文件（.log）且其文件名排序落在
+# 两个同 BDD 时序样本之间时，avg-hash 文件名↔哈希必须仍一一对应（统一 _is_image 过滤口径）。
+# 修复前 zip(sorted(glob), ahash_lines) 会因非图片无 ahash 行而错位：.log 顶掉真样本，
+# 使同 BDD 时序样本（应豁免）被误判为跨组雷同 → 对合法渲染/时序任务误 exit 1。
+# 本测试：修复后真时序重复对被正确豁免（exit 0）；修复前会误拦（exit 1）。
+def test_ahash_4_nonimage_file_misalign_temporal_exempt_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    pytest.importorskip("PIL.Image")
+    td = task_dir()
+    _write_ui_p2(td, "true")
+    _write_ahash_case(td, "- PASS BDD-7 (screenshots/bdd7-t1.png, screenshots/bdd7-t2.png)")
+    shots = td / "P6-evidence" / "screenshots"
+    _make_png(shots / "bdd7-t1.png", seed=7, compress=1)
+    _make_png(shots / "bdd7-t2.png", seed=7, compress=9)
+    (shots / "bdd7-t1a.log").write_bytes(os.urandom(3600))
+    assert _png_ok(shots / "bdd7-t1.png")
+    assert _png_ok(shots / "bdd7-t2.png")
+    assert os.path.getsize(shots / "bdd7-t1a.log") > 1024
     result = _run_evidence(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 0
     assert "average hash 相同" not in result.output

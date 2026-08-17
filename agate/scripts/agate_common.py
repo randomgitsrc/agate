@@ -287,6 +287,41 @@ def read_state_task_id(state_file):
     return data.get("task_id", "") if data else ""
 
 
+def read_vision_tri_state(p1_file):
+    """读取 P1-requirements.md 声明的能力三态（available/supplementable/GAP）中的视觉条目状态。
+
+    TAG0006（DEBT0005）统一解析：capability_requirements yaml 代码围栏块内
+    need/name 含 visual|vision 的条目，其 status 即该任务的视觉能力声明。
+    返回该 status 字符串；文件不存在 / 无视觉条目 / 解析失败 → 返回 None
+    （调用方按"无声明默认 available 语义"处理——TAG0006 P2 §2.8 兼容回归锚点）。
+    平台无关：纯文件文本解析，无路径/进程假设，gate/P6 多脚本复用同一口径。
+    """
+    if not os.path.isfile(p1_file):
+        return None
+    try:
+        with open(p1_file, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return None
+    for m in re.finditer(r"```(?:yaml|yml)\s*\n(.*?)```", text, re.DOTALL):
+        try:
+            data = yaml.safe_load(m.group(1))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        reqs = data.get("capability_requirements")
+        if not isinstance(reqs, list):
+            continue
+        for item in reqs:
+            if not isinstance(item, dict):
+                continue
+            need = item.get("need") or item.get("name")
+            if need and re.search(r"visual|vision", str(need), re.IGNORECASE):
+                return item.get("status")
+    return None
+
+
 def has_staged_phase_change(state_file):
     """暂存区中 state 文件含 phase 字段变更。
 

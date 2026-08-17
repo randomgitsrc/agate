@@ -528,12 +528,17 @@ def _write_vision_bdd_p1(td, status):
 
 
 def _write_ui_gap_case(td, review_line=False, review_file=False):
-    """ui_affected=true + 截图 PASS +（可选）manual-review 引用行与文件。"""
-    (td / "P2-design.md").write_text("ui_affected: true\n", encoding="utf-8")
+    """ui_affected=true + 截图 PASS +（可选）manual-review 引用行与文件。
+
+    夹具自带 agent 字段（P2/P6）——B1 修复后 GAP 分支不再整体 sys.exit(0)，
+    而是继续跑审计 5/6 与协作规范 agent 字段检查；一个"完全合规"的 GAP 任务
+    （vision 降级但 agent 字段齐全、审计 5/6 干净）应仍以 exit 0 通过。
+    """
+    (td / "P2-design.md").write_text("---\nagent: test\n---\nui_affected: true\n", encoding="utf-8")
     if review_line:
-        _write_p6(td, "- PASS BDD-1 (screenshots/login.png) (manual-review: review-gap.md)\n")
+        _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (screenshots/login.png) (manual-review: review-gap.md)\n")
     else:
-        _write_p6(td, "- PASS BDD-1 (screenshots/login.png)\n")
+        _write_p6(td, "---\nagent: test\n---\n- PASS BDD-1 (screenshots/login.png)\n")
     _add_evidence(td, "screenshots/login.png", 5000)
     if review_file:
         (td / "review-gap.md").write_text(
@@ -582,3 +587,20 @@ def test_vision_none_1_no_decl_default_available_exit_1(
     result = _run_prov(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 1
     assert "缺 vision" in result.output
+
+
+# B1 回归（TAG0006 修复轮）：GAP 分支修复后不再整体 sys.exit(0)——审计 5（日志
+# EXIT_CODE 一致性，exit 1 硬检查）对 GAP 任务同样生效，不能因 vision 降级被静默跳过。
+def test_vision_gap_prov_3_gap_audit5_log_mismatch_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_bdd_p1(td, "GAP")
+    _write_ui_gap_case(td, review_line=True, review_file=True)
+    _append_p6(td, "- PASS BDD-2 (logs/test.log)\n")
+    log = td / "P6-evidence" / "logs" / "test.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("=== Test Results ===\ntotal: 3, passed: 2, failed: 1\nEXIT_CODE: 1\n", encoding="utf-8")
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert ("EXIT_CODE" in result.output) or ("矛盾" in result.output)

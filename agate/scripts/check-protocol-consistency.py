@@ -17,6 +17,7 @@ agate 协议结构一致性检查 (P3-1)
    CHECK 8  v0.6 关键词存在性（DESIGN_GAP / design_trivial / model_tier / --cached）
    CHECK 9  协议-脚本结构对齐（锚点表：文档声明的规则 vs 脚本关键词存在性）
   CHECK 10  协议文档脚本名引用漂移（白名单形状对照 agate/scripts/ 实际文件）
+  CHECK 11  UI/UX 机制条文跨文档一致（分类框架 / 形态适配 / 三态分档 / 证据按形态选择）
 
  退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
@@ -815,6 +816,56 @@ def _iter_script_ref_scan_files(root: Path):
             yield relpath, p
 
 
+# ── CHECK 11: UI/UX 机制条文跨文档一致（TAG0006，BDD-1/2/5/6/9/11/12/13/16/17） ──
+# UI/UX 验收机制的文档条文是一组跨文件强耦合锚点：analyst 声明分类框架/形态、architect
+# 兼任产出 UI 设计节、plan-design-review 审视觉/交互/渲染维度、verifier/P6 卡片分档消费
+# 证据（三态 / 输入态复核 / 证据按形态选择）——任一处漂移都会让"文档条文 + gate 脚本 + 单测"
+# 三件套失效。本检查按 (文件 → 关键词集合) 白名单式断言条文存在性（0 ERROR）。
+# I14（三处形态声明一致）的同类机制：三份文件都须含"渲染形态"锚点，构成协议侧互相印证。
+UIUX_DOC_ANCHORS = [
+    ("agate/assets/execution-roles/analyst.md",
+     ("分类框架", "渲染形态", "渲染正确性", "动效时序", "可量化判据", "手势交互", "特效")),
+    ("agate/phase-cards/P1-requirements.md",
+     ("分类框架", "渲染形态", "渲染正确性", "动效时序")),
+    ("agate/assets/execution-roles/architect.md",
+     ("UI 设计", "兼任")),
+    ("agate/role-system.md",
+     ("UI 设计节由 architect 兼任产出",)),
+    ("agate/assets/review-roles/plan-design-review.md",
+     ("视觉设计", "交互设计", "渲染正确性与时序")),
+    ("agate/assets/templates/dispatch-prompt.md",
+     ("视觉能力", "获取指引", "能力自查", "先自查能否调用视觉能力")),
+    ("agate/dispatch-protocol.md",
+     ("视觉能力",)),
+    ("agate/assets/execution-roles/verifier.md",
+     ("available", "supplementable", "GAP", "人工复核", "输入态",
+      "帧序列", "时序截图", "渲染输出对比", "渲染形态")),
+    ("agate/phase-cards/P6-acceptance.md",
+     ("真实视觉分析", "人工复核", "输入态", "帧序列", "时序截图", "渲染输出对比", "渲染形态")),
+    ("agate/phase-cards/P2-design.md",
+     ("UI 设计", "渲染形态")),
+]
+
+
+def check_uiux_doc_anchors(root: Path, rep: Report) -> None:
+    errors = 0
+    for rel_path, keywords in UIUX_DOC_ANCHORS:
+        fpath = root / rel_path
+        if not fpath.exists():
+            rep.error("CHECK11-uiux", f"UI/UX 条文锚点文件不存在: {rel_path}", loc=rel_path)
+            errors += 1
+            continue
+        text = fpath.read_text(encoding="utf-8")
+        for kw in keywords:
+            if kw not in text:
+                rep.error("CHECK11-uiux",
+                          f"{rel_path} 缺少 UI/UX 机制条文锚点 '{kw}'（文档-脚本-单测三件套漂移）",
+                          loc=rel_path)
+                errors += 1
+    if errors == 0:
+        rep.ok("CHECK11-uiux")
+
+
 def check_script_name_refs(root: Path, rep: Report) -> None:
     """CHECK 10：协议文档面脚本名引用漂移检查。豁免①-⑤ + 叙事文件聚合 WARNING。"""
     scripts_dir = root / "agate" / "scripts"
@@ -879,6 +930,7 @@ CHECKS = [
     ("CHECK 8  v0.6 关键词存在性", check_v06_keywords),
     ("CHECK 9  协议-脚本结构对齐", check_script_alignment),
     ("CHECK 10 协议文档脚本名引用漂移", check_script_name_refs),
+    ("CHECK 11 UI/UX 机制条文跨文档一致", check_uiux_doc_anchors),
 ]
 
 

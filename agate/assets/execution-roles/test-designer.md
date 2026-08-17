@@ -16,6 +16,10 @@ agent: test-designer
 - 测试用例追溯到 P1 的每个需求/BDD 条件
 - 覆盖正常路径 + 边界 + 异常
 - **UI 任务**：若 P2 声明 ui_affected，必须为每个交互点写 Playwright/E2E 用例，不能只写后端单测
+- **渲染组件/时序特效类任务**（P1 `ui_render_shape: render_component` / `temporal_effects`）：
+  测试需覆盖帧采样点/帧捕获（P3 用例规格适配渲染形态，对应 P6 的帧序列/时序截图证据）。
+  P3 测试设计中体现 P6 帧序列 `frames/{bdd-id}-{NN}.png` 命名约定与时序截图 `-t{N}` 时刻
+  后缀约定（与 viewport 配置并列）
 
 ## 输入（自己读取）
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险）

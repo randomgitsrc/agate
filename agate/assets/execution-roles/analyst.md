@@ -102,6 +102,20 @@ capability_requirements:
 **仅 `status: GAP` 触发 `[CAPABILITY_GAP]`**，`available` 和 `supplementable` 不打断流程。
 不要因为主力模型自身不具备某能力就标 GAP——先看环境里有没有补充方式。
 
+**frontend 任务（domains 含 frontend，P2 会标 `ui_affected`）的视觉能力声明是硬要求**：
+必须在 `capability_requirements` 中声明视觉能力条目（`need` 命名含 `visual`/`vision`，status ∈
+available / supplementable / GAP）——缺失声明即视为需求不完整，requirements-review 打回，
+P1 gate（check-gate.py `_gate_p1_vision_capability`）在 `domains` 含 frontend 时直接拦截（exit 1）。
+三态语义：available = 环境有真实视觉分析能力 → P6 真实视觉验收；supplementable = 可注入
+skill/外部工具获取 → 派发时注入获取指引；GAP = 无任何补充路径 → P6 走降级链
+（截图/帧序列等多形式证据 + 像素检测 + 人工复核记录，不要求 vision YAML）。
+
+**渲染形态声明（frontmatter 可选字段，presence 语义）**：P1 frontmatter 可声明
+`ui_render_shape`（规范形态值，见下方词汇表）与 `ui_ux_dimensions`（维度选择列表）；
+缺失两个字段 = 常规布局型默认，不红基线。跨阶段一致：P2 的 UI 设计节「渲染形态」声明行必须
+复用 P1 的规范值（gate 按规范化值比对校验），P6 按 P1 形态选择证据形式（帧序列/时序截图/
+渲染输出对比）。
+
 文件含 Header（phase=P1, task_id, trace_id, parent=外部需求来源）
 
 ## 这是"活基线"——后续会被增补
@@ -198,6 +212,23 @@ P1-requirements.md 路径 + 一句话：建立基线，N 条 BDD 条件，M 个�
 - [ ] Given/When 是否绑定了实现细节？（如"调用 renderMath()" → 应改为用户行为描述）
 - [ ] 每条 BDD 是否只有一条 Given-When-Then？（多场景必须拆为独立 BDD 编号）
 - [ ] BDD 编号是否连续？（BDD-1, BDD-2, ... 不跳号）
+- [ ] 若为 UX 类别 BDD，Then 子句是否可被用户可观测行为二值判定（PASS/FAIL）？
+- [ ] UX 类别 BDD 是否不绑定具体 CSS 类名/组件名/工具名/技术栈名？（WebGL/Canvas/OpenGL 等仅可作"举例"出现，不构成技术栈要求）
+- [ ] 渲染正确性/时序/动效类 UX BDD 的判据是否可量化？**（UX 全维度必须含可量化判据**：渲染正确性 → 渲染结果对比参考图 + diff 阈值或输出断言；时序 → 帧/时间戳对齐；动效 → 过渡/动画关键帧与结束状态断言；手势交互 → 动作输入的坐标/旋转角/缩放比量化 —— 禁用"可读/美观/流畅/平滑/自然/响应灵敏"等主观词，判据以可量化锚点为准）
+
+**UX 类别 BDD 与分类框架（domains 含 frontend 时必做）**：frontend 任务的 P1 必须含至少一条
+UX 类别 BDD，并：① 声明实际 UI/渲染形态（frontmatter `ui_render_shape`，规范值
+`layout`（布局型）/`render_component`（渲染组件型，仅举例 OpenGL/WebGL/Canvas 画布/图表/
+模型/特效/地图/数字地球）/`temporal_effects`（时序特效型），开放集合新形态可扩规范值）；
+② 从协议 **UX 分类框架**（布局结构/渲染正确性/交互行为/动效时序/视觉呈现等，示例性开放
+集合）按形态选适用维度（frontmatter `ui_ux_dimensions`，常规布局型典型维度 = 布局结构/
+交互行为/视觉呈现，对应键盘可用性、显示内容正确性、样式呈现的典型示例）；③ 针对选中维度写
+至少一条可二值判定的 UX 类别 BDD，类别写入 BDD 标题后缀（如 `#### BDD-3: 渲染正确性：...`）。
+缺失形态声明/维度选择/UX 类别 BDD 时 requirements-review 打回，P1 gate
+（`_gate_p1_ui_shape`）在声明形态但维度为空、或选用了分类框架外的扩展维度但未在 BDD 标题
+出现时拦截（exit 1）。渲染组件类型形态（渲染正确性/动效时序维度）的 checklist 覆盖
+渲染输出/帧时序/动画关键帧/特效触发与结束状态/手势交互等——技术栈中立，维度与 checklist
+以"形态机制"描述，不绑定具体工具。
 
 ## 反例
 

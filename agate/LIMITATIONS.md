@@ -103,7 +103,21 @@ P6 验收中的视觉验收（vision-analyst 角色）需要截图能力——�
 - UI 变更的验收质量取决于截图工具的可用性和 Agent 的视觉理解能力
 - 截图证据的真实性无法机器验证（见局限 3 的证据-结论对应讨论）
 
-**现状**：视觉验收是可选增强，不是 P6 gate 的硬要求。P6 gate 检查的是 BDD 逐条验收 + provenance 审计，不要求必须有截图。
+**现状与缓解（TAG0006 落地）**：视觉验收不再是"可选增强"的模糊表述，而是**能力识别 + 三态分档 +
+降级链**：P1 显式声明视觉能力三态（available/supplementable/GAP，frontend 任务 P1 gate 强制声明），
+P6 按声明分档消费证据——
+- available/supplementable → vision YAML 引用 + blocker_count=0（真实视觉分析，判据须可量化）
+- GAP → 降级链：截图/帧序列等多形式证据 + 像素检测 + **人工复核记录**（不要求 vision YAML，
+  复核记录缺失会被 check-p6-evidence/check-p6-provenance 拦截）
+- 渲染组件/时序特效形态（P1 `ui_render_shape` 声明）可选用帧序列（`frames/`）/渲染输出对比
+  （`renders/` + `diff.json`）/时序截图（`-tN`）证据，框架与单测按形态适配
+- avg-hash 雷同截图从纯 WARNING 升级为"降级待复核"（有 `雷同截图复核`/manual-review 记录放行，
+  无记录阻断）；帧序列与 `-tN` 时序截图按"同 BDD 证据组（bdd-id 前缀）"同权豁免相邻样本，
+  避免动画/时序证据被误伤；md5 逐字节去重硬阻断不变
+
+缓解的残余边界：三态声明是自写文件（P1 可虚报），降级链依赖 verifier 自述的复核记录——
+self-authored gate 固有局限（局限 3），靠"形态声明与 UX BDD/UI 设计节/证据形式三处互相印证"
+抬高伪造成本，不消除。
 
 ## 局限 8：CI backstop 支持 GitHub Actions / GitLab CI / Gitea Actions
 

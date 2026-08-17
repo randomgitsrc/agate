@@ -21,7 +21,9 @@ exit 2 = WARNING（低方差/小图/无 P6 文件——不阻断，提醒人工�
   $(...) 剥尾换行 → .rstrip("\n")
 """
 
+import glob
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -30,6 +32,11 @@ import sys
 from collections import Counter
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+try:
+    from agate_common import read_vision_tri_state
+except ImportError:
+    read_vision_tri_state = None
 
 
 def _run_script(script, args, env_extra):
@@ -97,6 +104,24 @@ def _md5_entries(base):
             continue
         entries.append((digest, f))
     return entries
+
+
+def _ahash_group(name):
+    """雷同判定分组键 = bdd-id 前缀（P2 §2.16）。
+
+    帧序列 `{bdd-id}-NN.png` 与时序截图 `{bdd-id}-tN.png` 剥掉末尾数字/时刻后缀
+    归入同一组（`bdd16-01.png`/`bdd7-t2.png` → `bdd16`/`bdd7`）；无时序后缀的
+    证据名（`bdd1-shot.png`）原样返回（独立组）。
+    """
+    m = re.match(r"^(.*?)-(?:t\d+|\d+)\.\w+$", name)
+    if m:
+        return m.group(1)
+    return name
+
+
+def _is_temporal_shot(name):
+    """是否时序样本（-tN 时刻截图 / -NN 帧号），同 BDD 组内相邻样本豁免雷同判定的依据。"""
+    return bool(re.search(r"-(?:t\d+|\d+)\.\w+$", name))
 
 
 def main():
@@ -170,11 +195,68 @@ def main():
             )
             sys.exit(1)
 
+        # TAG0006（BDD-9/17，P2 §2.8/§2.16）：读取 P1 的 vision 三态声明 + 渲染形态，
+        # 决定 GAP 降级证据路径与证据形式（帧序列/渲染输出对比/时序截图）合法性。
+        vision_state = None
+        p1_shape = ""
+        p1_file = os.path.join(task_dir, "P1-requirements.md")
+        if os.path.isfile(p1_file):
+            if read_vision_tri_state is not None:
+                vision_state = read_vision_tri_state(p1_file)
+            out, rc = _run_script("agate-md-field-get.py", ["ui_render_shape"], {"FILE": p1_file})
+            if rc == 0:
+                p1_shape = out
+
+        # 证据形式按形态匹配（BDD-17，§2.16）：渲染组件/时序特效形态须含
+        # 帧序列（frames/）/ 渲染输出对比（renders/）/ 时序截图（-tN），否则形态与证据不匹配
+        if p1_shape in ("render_component", "temporal_effects"):
+            has_form_evidence = False
+            for f in _find_files(evidence_dir):
+                rel_part = os.path.relpath(f, evidence_dir).replace("\\", "/")
+                if rel_part.startswith("frames/") or rel_part.startswith("renders/"):
+                    has_form_evidence = True
+                    break
+                if rel_part.startswith("screenshots/") and re.search(r"-t\d+\.\w+$", os.path.basename(rel_part)):
+                    has_form_evidence = True
+                    break
+            if not has_form_evidence:
+                sys.stderr.write(
+                    "GATE P6-EVIDENCE: 声明渲染组件/时序特效形态（ui_render_shape）但证据不含 帧序列（frames/）/渲染输出对比（renders/）/时序截图（-tN）——证据形式与形态不匹配\n"
+                )
+                sys.exit(1)
+
         has_screenshot_ref = sum(
             1 for line in p6_text.splitlines() if "(screenshots/" in line
         )
 
         if has_screenshot_ref > 0:
+            # TAG0006 GAP 降级链（BDD-9，§2.8）：vision=GAP 时截图 PASS 不要求 vision YAML
+            # （那是 provenance R1b 的强制），但必须是"人工复核记录"证据路径——每条截图 PASS
+            # 引 (manual-review: <file>) 且文件存在；缺失 → exit 1。
+            if vision_state == "GAP":
+                gap_review_missing = 0
+                gap_review_details = ""
+                for line in p6_text.splitlines():
+                    if "(screenshots/" not in line:
+                        continue
+                    m = re.search(r"\(manual-review:\s*[^)]+\)", line)
+                    if not m:
+                        gap_review_missing += 1
+                        gap_review_details += f"  - {line}\n"
+                        continue
+                    review_file = re.sub(r"^.*manual-review:\s*", "", m.group(0)).replace(")", "").strip()
+                    if not os.path.isfile(os.path.join(task_dir, review_file)):
+                        sys.stderr.write(
+                            f"GATE P6-EVIDENCE: vision=GAP 降级路径人工复核记录文件不存在: {review_file}\n"
+                        )
+                        sys.exit(1)
+                if gap_review_missing > 0:
+                    sys.stderr.write(
+                        f"GATE P6-EVIDENCE: vision=GAP（无视觉能力）降级路径要求截图 PASS 附人工复核记录引用（manual-review: <file>）——有 {gap_review_missing} 条缺复核引用\n"
+                    )
+                    sys.stderr.write(gap_review_details + "\n")
+                    sys.exit(1)
+
             screenshots_dir = os.path.join(evidence_dir, "screenshots")
             if not os.path.isdir(screenshots_dir) or not _find_files(screenshots_dir):
                 sys.stderr.write(
@@ -219,9 +301,6 @@ def main():
                             sys.stderr.write(
                                 f"GATE P6-EVIDENCE WARNING: {os.path.basename(img)} 像素方差 {var_int}（<50，疑似纯色/占位图，请确认非充数）\n"
                             )
-                if variance_warning > 0:
-                    sys.stderr.write(f"GATE P6-EVIDENCE WARNING: 有 {variance_warning} 张截图像素方差 < 50（疑似纯色/占位图，请确认非充数）\n")
-                    sys.exit(2)
 
             if empty_count > 0:
                 sys.stderr.write(f"GATE P6-EVIDENCE: P6-evidence/screenshots/ 有 {empty_count} 个非图片文件 ≤ 1KB（疑似充数）\n")
@@ -232,7 +311,7 @@ def main():
                 sys.stderr.write(small_image_details + "\n")
                 sys.exit(2)
 
-            # md5 去重（逐字节相同 → 阻断）
+            # md5 去重（逐字节相同 → 阻断；时序/帧类跨 BDD 组逐字节相同仍硬阻断，充数防伪不放松）
             md5_entries = _md5_entries(screenshots_dir)
             md5_total = len(md5_entries)
             md5_unique = len({h for h, _ in md5_entries})
@@ -247,19 +326,89 @@ def main():
                 sys.stderr.write(md5_details)
                 sys.exit(1)
 
+            # avg-hash 雷同 → 降级待复核（BDD-14，§2.13）：ahash 按"同 BDD 证据组（bdd-id 前缀）"
+            # 分组——帧序列 {bdd-id}-NN 与时序截图 {bdd-id}-tN 组内相邻样本豁免（动画/时序正常特性），
+            # 跨组/跨 BDD 雷同触发判定：有"雷同截图复核/manual-review"记录 → 放行，无 → exit 1。
+            ahash_dupes = 0
             if not skip_checks:
                 ahash_list, _ = _run_script("agate-image-check.py", ["ahash"], {"SCREENSHOTS_DIR": screenshots_dir})
                 if "SKIP_NO_PILLOW" in ahash_list:
                     sys.stderr.write("GATE P6-EVIDENCE WARNING: Pillow 未安装，相似度检测已跳过\n")
                 else:
                     ahash_lines = [ln for ln in ahash_list.splitlines() if ln]
-                    ahash_total = len(ahash_lines)
-                    ahash_unique = len(set(ahash_lines))
-                    if ahash_total > ahash_unique:
-                        ahash_dupes = ahash_total - ahash_unique
+                    # agate-image-check 的 ahash 只对"图片文件"逐行输出 hash（非图片/解码失败被
+                    # suppress 不打印行）；故此处须用同一过滤口径，只对图片文件（_is_image）收集
+                    # ordered 并与 ahash_lines 按位置一一对应——否则混入 >1KB 非图片文件（.log/.json）
+                    # 会导致行数 < 文件数，zip 错位、哈希对错文件名、雷同分组失真。
+                    ordered = [f for f in sorted(glob.glob(screenshots_dir + "/*")) if _is_image(f)]
+                    groups = {}
+                    for f, h in zip(ordered, ahash_lines):
+                        groups.setdefault(h, []).append(os.path.basename(f))
+                    for _h, names in sorted(groups.items()):
+                        if len(names) < 2:
+                            continue
+                        prefixes = {_ahash_group(n) for n in names}
+                        if len(prefixes) == 1 and all(_is_temporal_shot(n) for n in names):
+                            continue  # 同 BDD 证据组相邻时刻/相邻帧 → 豁免（动画时序正常特性）
+                        ahash_dupes += 1
+                    if ahash_dupes > 0:
+                        has_manual_review = ("雷同截图复核" in p6_text) or ("manual-review" in p6_text)
+                        if not has_manual_review:
+                            sys.stderr.write(
+                                f"GATE P6-EVIDENCE: 有 {ahash_dupes} 组视觉高度相似截图（average hash 相同但非逐字节相同），未含人工复核记录 → 降级待复核失败\n"
+                            )
+                            sys.stderr.write("  请在 P6-acceptance.md 记录 雷同截图复核 或 manual-review 引用（复核人/时间/结论）；行为差异类 BDD 截图视觉相同优先改用非截图证据\n")
+                            sys.exit(1)
                         sys.stderr.write(
-                            f"GATE P6-EVIDENCE WARNING: 有 {ahash_dupes} 组视觉高度相似截图（average hash 相同但非逐字节相同，不阻断，行为差异类 BDD 截图可能视觉相同，请在 acceptance report 说明原因）\n"
+                            f"GATE P6-EVIDENCE: 有 {ahash_dupes} 组视觉高度相似截图（average hash 相同），已降级待复核且含人工复核记录，放行\n"
                         )
+            if variance_warning > 0:
+                sys.stderr.write(f"GATE P6-EVIDENCE WARNING: 有 {variance_warning} 张截图像素方差 < 50（疑似纯色/占位图，请确认非充数）\n")
+                sys.exit(2)
+
+        # 帧序列 / 渲染输出对比证据引用完整性（BDD-17，§2.16）：
+        #   frames/：引用文件须存在 + 帧号连续（缺口 → WARNING，verifier 复核时序采样）
+        #   renders/：每条 PASS 须引 actual + diff.json（diff 为判定锚点，含量化度量字段）
+        for line in p6_text.splitlines():
+            if "(frames/" in line:
+                frame_nums = []
+                for ref in re.findall(r"frames/[^()\s,]+\.\w+", line):
+                    if not os.path.isfile(os.path.join(evidence_dir, ref)):
+                        sys.stderr.write(f"GATE P6-EVIDENCE: 帧序列引用的文件不存在: {ref}\n")
+                        sys.exit(1)
+                    mnum = re.search(r"-(\d+)\.\w+$", os.path.basename(ref))
+                    if mnum:
+                        frame_nums.append(int(mnum.group(1)))
+                if frame_nums and max(frame_nums) - min(frame_nums) + 1 > len(set(frame_nums)):
+                    sys.stderr.write("GATE P6-EVIDENCE WARNING: 帧序列帧号不连续（存在缺口，请 verifier 复核时序采样完整性）\n")
+            if "(renders/" in line:
+                refs = re.findall(r"renders/[^()\s,]+\.\w+", line)
+                has_actual = any(
+                    "-actual." in os.path.basename(r) and os.path.isfile(os.path.join(evidence_dir, r))
+                    for r in refs
+                )
+                has_diff = any(
+                    "-diff.json" in os.path.basename(r) and os.path.isfile(os.path.join(evidence_dir, r))
+                    for r in refs
+                )
+                if not (has_actual and has_diff):
+                    sys.stderr.write(
+                        "GATE P6-EVIDENCE: 渲染输出对比证据须引 actual 图 + diff.json（diff 度量文件为判定锚点，缺其一即不能量化判定渲染正确性）\n"
+                    )
+                    sys.exit(1)
+                for r in refs:
+                    if r.endswith("-diff.json") and os.path.isfile(os.path.join(evidence_dir, r)):
+                        try:
+                            with open(os.path.join(evidence_dir, r), encoding="utf-8") as fh:
+                                metric = json.load(fh)
+                        except Exception:
+                            metric = None
+                        if not isinstance(metric, dict) or not any(
+                            re.search(r"ratio|diff|distance|metric|similarity|hash", str(k), re.IGNORECASE)
+                            for k in metric
+                        ):
+                            sys.stderr.write(f"GATE P6-EVIDENCE: diff.json 缺量化度量字段（须含 pixel_diff_ratio / average_hash_distance 等）: {r}\n")
+                            sys.exit(1)
 
     sys.exit(0)
 
