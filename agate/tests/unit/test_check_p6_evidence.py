@@ -10,6 +10,7 @@
 
 import base64
 import os
+import re
 
 import pytest
 
@@ -401,3 +402,316 @@ def test_bdd_10_no_extension_still_blocked_exit_1(
     result = _run_evidence(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 1
     assert "缺文件证据引用" in result.output
+
+
+# ========== 批次 9c：TAG0006 UI/UX 机制 P6 证据用例（BDD-9/10/13/14/17） ==========
+# 新增行为（P4 实现后落于 check-p6-evidence.py）：
+#   * P1 vision 三态读取：vision=GAP 时校验"人工复核记录文件"被 PASS 引用（BDD-9，§2.8）
+#   * 证据形式按渲染形态识别：shape=render_component → frames/renders/-tN 目录/后缀识别 +
+#     渲染输出对比缺 diff.json 拦截（BDD-17，§2.16）
+#   * avg-hash 雷同从 WARNING 升级为"降级待复核"：有"雷同截图复核/人工复核记录"放行、
+#     无则 exit 1（BDD-14，§2.13）+ 时序截图 -tN 按同 BDD 组（bdd-id 前缀）豁免相邻样本（BDD-17）
+# 平台无关：PNG 用 PIL 生成且 pytest.importorskip("PIL.Image") 包裹（无 Pillow 整函数 skip）；
+# 随机字节证据 os.urandom + write_bytes；tmp_path 由 task_dir 提供。
+# 前置门禁（P2 §2.13）：ahash 用例的 PNG 必须 >1KB 且像素方差 ≥50——_png_ok() 显式断言。
+
+
+def _write_vision_p1(td, status=None, shape=None):
+    """P1-requirements.md：frontmatter 形态字段（可选） + capability_requirements yaml 围栏块（可选）。"""
+    fm = "---\nagent: test\n---\n"
+    if shape:
+        fm = fm.replace("---\n", f"---\nui_render_shape: {shape}\n", 1)
+    body = fm + "\n"
+    if status is not None:
+        body += (
+            "```yaml\n"
+            "capability_requirements:\n"
+            "  - need: visual-analysis\n"
+            f"    status: {status}\n"
+            "```\n"
+        )
+    (td / "P1-requirements.md").write_text(body, encoding="utf-8")
+
+
+def _write_review_file(td, name="review-gap1.md"):
+    (td / name).write_text(
+        "复核人: 张三\n复核时间: 2026-08-17\n结论: 人工复核通过\n", encoding="utf-8"
+    )
+
+
+def _make_png(path, seed, size=(96, 96), compress=6):
+    """PIL 生成非纯色噪声 PNG（同 seed 同像素；不同 compress_level → md5 不同、ahash 相同）。"""
+    from PIL import Image as PILImage
+
+    rng = __import__("random").Random(seed)
+    img = PILImage.new("RGB", size)
+    img.putdata(
+        [(rng.randint(0, 255), rng.randint(0, 255), rng.randint(0, 255)) for _ in range(size[0] * size[1])]
+    )
+    img.save(path, format="PNG", compress_level=compress)
+
+
+def _png_ok(path):
+    """验证 ahash 前置门禁：文件 >1KB 且像素方差 ≥50（P2 §2.13）。"""
+    from PIL import Image as PILImage
+
+    if os.path.getsize(path) <= 1024:
+        return False
+    img = PILImage.open(path).convert("L")
+    px = list(img.tobytes())
+    mean = sum(px) / len(px)
+    variance = sum((p - mean) ** 2 for p in px) / len(px)
+    return variance >= 50
+
+
+def test_vision_gap_1_evidence_manual_review_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, status="GAP")
+    _write_ui_p2(td, "true")
+    _write_p6(
+        td,
+        "- PASS BDD-1 (screenshots/login.png) (manual-review: review-gap1.md)\n",
+    )
+    ev = td / "P6-evidence"
+    (ev / "screenshots").mkdir(parents=True)
+    (ev / "screenshots" / "login.png").write_bytes(os.urandom(5000))
+    _write_review_file(td)
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_vision_gap_2_evidence_missing_review_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, status="GAP")
+    _write_ui_p2(td, "true")
+    _write_p6(td, "- PASS BDD-1 (screenshots/login.png)\n")
+    ev = td / "P6-evidence"
+    (ev / "screenshots").mkdir(parents=True)
+    (ev / "screenshots" / "login.png").write_bytes(os.urandom(5000))
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+
+
+def test_vision_docs_1_verifier_has_triple_state(agate_root):
+    content = (agate_root / "assets" / "execution-roles" / "verifier.md").read_text(
+        encoding="utf-8"
+    )
+    assert "available" in content
+    assert "supplementable" in content
+    assert "GAP" in content
+
+
+def test_vision_docs_2_p6_card_real_analysis(agate_root):
+    content = (agate_root / "phase-cards" / "P6-acceptance.md").read_text(
+        encoding="utf-8"
+    )
+    assert "真实视觉分析" in content
+
+
+def test_vision_docs_3_input_state_review(agate_root):
+    verifier = (agate_root / "assets" / "execution-roles" / "verifier.md").read_text(
+        encoding="utf-8"
+    )
+    p6_card = (agate_root / "phase-cards" / "P6-acceptance.md").read_text(
+        encoding="utf-8"
+    )
+    assert "人工复核" in verifier
+    assert "输入态" in verifier
+    assert "人工复核" in p6_card
+    assert "输入态" in p6_card
+
+
+def test_render_evid_1_frame_sequence_recognized_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, shape="render_component")
+    _write_ui_p2(td, "true")
+    _write_p6(td, "- PASS BDD-16 (frames/bdd16-01.png, frames/bdd16-02.png)\n")
+    frames = td / "P6-evidence" / "frames"
+    frames.mkdir(parents=True)
+    (frames / "bdd16-01.png").write_bytes(os.urandom(2000))
+    (frames / "bdd16-02.png").write_bytes(os.urandom(2000))
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_render_evid_2_render_output_compare_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, shape="render_component")
+    _write_ui_p2(td, "true")
+    _write_p6(
+        td,
+        "- PASS BDD-1 (renders/bdd1-a-actual.png, renders/bdd1-a-diff.json)\n",
+    )
+    renders = td / "P6-evidence" / "renders"
+    renders.mkdir(parents=True)
+    (renders / "bdd1-a-actual.png").write_bytes(os.urandom(2000))
+    (renders / "bdd1-a-diff.json").write_text(
+        '{"pixel_diff_ratio": 0.05, "average_hash_distance": 4}\n', encoding="utf-8"
+    )
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_render_evid_3_frame_seq_pure_text_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, shape="render_component")
+    _write_ui_p2(td, "true")
+    _write_p6(td, "- PASS BDD-16 (analysis.md)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "analysis.md").write_text("text analysis\n", encoding="utf-8")
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+
+
+def test_render_evid_4_shape_decl_layout_no_frames_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, shape="layout")
+    _write_ui_p2(td, "true")
+    _write_p6(td, "- PASS BDD-1 (result.json)\n")
+    ev = td / "P6-evidence"
+    ev.mkdir()
+    (ev / "result.json").write_text('{"status": "pass"}\n', encoding="utf-8")
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_render_diff_1_missing_diff_json_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, shape="render_component")
+    _write_ui_p2(td, "true")
+    _write_p6(
+        td,
+        "- PASS BDD-1 (renders/bdd1-a-actual.png, renders/bdd1-a-reference.png)\n",
+    )
+    renders = td / "P6-evidence" / "renders"
+    renders.mkdir(parents=True)
+    (renders / "bdd1-a-actual.png").write_bytes(os.urandom(2000))
+    (renders / "bdd1-a-reference.png").write_bytes(os.urandom(2000))
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+
+
+def test_render_diff_2_diff_json_with_metric_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_p1(td, shape="render_component")
+    _write_ui_p2(td, "true")
+    _write_p6(
+        td,
+        "- PASS BDD-1 (renders/bdd1-a-actual.png, renders/bdd1-a-reference.png, renders/bdd1-a-diff.json)\n",
+    )
+    renders = td / "P6-evidence" / "renders"
+    renders.mkdir(parents=True)
+    (renders / "bdd1-a-actual.png").write_bytes(os.urandom(2000))
+    (renders / "bdd1-a-reference.png").write_bytes(os.urandom(2000))
+    (renders / "bdd1-a-diff.json").write_text(
+        '{"pixel_diff_ratio": 0.05}\n', encoding="utf-8"
+    )
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def _write_ahash_case(td, pass_lines, review_record=None):
+    """构造 PASS 行 + 可选复核记录（截图目录建立；文件由调用方显式生成）。"""
+    shots_dir = td / "P6-evidence" / "screenshots"
+    shots_dir.mkdir(parents=True)
+    lines = pass_lines.splitlines()
+    if review_record:
+        lines.append(review_record)
+    _write_p6(td, "\n".join(lines) + "\n")
+
+
+def _make_duplicate_pair(shots, name_a, name_b):
+    """同 seed（同视觉内容）不同 compress（不同字节 md5）→ ahash 相同、md5 不同。"""
+    _make_png(shots / name_a, seed=7, compress=1)
+    _make_png(shots / name_b, seed=7, compress=9)
+
+
+def test_ahash_1_duplicate_with_review_record_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    pytest.importorskip("PIL.Image")
+    td = task_dir()
+    _write_ui_p2(td, "true")
+    _write_ahash_case(
+        td,
+        "- PASS BDD-1 (screenshots/bdd1-shot.png)\n- PASS BDD-2 (screenshots/bdd2-shot.png)",
+        review_record="- 雷同截图复核: 已人工复核，确为不同操作但视觉相近",
+    )
+    shots = td / "P6-evidence" / "screenshots"
+    _make_duplicate_pair(shots, "bdd1-shot.png", "bdd2-shot.png")
+    assert _png_ok(shots / "bdd1-shot.png")
+    assert _png_ok(shots / "bdd2-shot.png")
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "人工复核记录" in result.output
+
+
+def test_ahash_2_duplicate_no_review_record_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    pytest.importorskip("PIL.Image")
+    td = task_dir()
+    _write_ui_p2(td, "true")
+    _write_ahash_case(
+        td,
+        "- PASS BDD-1 (screenshots/bdd1-shot.png)\n- PASS BDD-2 (screenshots/bdd2-shot.png)",
+    )
+    shots = td / "P6-evidence" / "screenshots"
+    _make_duplicate_pair(shots, "bdd1-shot.png", "bdd2-shot.png")
+    assert _png_ok(shots / "bdd1-shot.png")
+    assert _png_ok(shots / "bdd2-shot.png")
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+
+
+def test_ahash_3_no_duplicate_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    pytest.importorskip("PIL.Image")
+    td = task_dir()
+    _write_ui_p2(td, "true")
+    _write_ahash_case(
+        td,
+        "- PASS BDD-1 (screenshots/bdd1-shot.png)\n- PASS BDD-2 (screenshots/bdd2-shot.png)",
+    )
+    shots = td / "P6-evidence" / "screenshots"
+    _make_png(shots / "bdd1-shot.png", seed=1, compress=1)
+    _make_png(shots / "bdd2-shot.png", seed=2, compress=1)
+    assert _png_ok(shots / "bdd1-shot.png")
+    assert _png_ok(shots / "bdd2-shot.png")
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_time_seq_1_adjacent_time_shots_exempt_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    pytest.importorskip("PIL.Image")
+    td = task_dir()
+    _write_ui_p2(td, "true")
+    _write_ahash_case(td, "- PASS BDD-7 (screenshots/bdd7-t1.png, screenshots/bdd7-t2.png)")
+    shots = td / "P6-evidence" / "screenshots"
+    _make_png(shots / "bdd7-t1.png", seed=7, compress=1)
+    _make_png(shots / "bdd7-t2.png", seed=7, compress=9)
+    assert _png_ok(shots / "bdd7-t1.png")
+    assert _png_ok(shots / "bdd7-t2.png")
+    result = _run_evidence(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "average hash 相同" not in result.output

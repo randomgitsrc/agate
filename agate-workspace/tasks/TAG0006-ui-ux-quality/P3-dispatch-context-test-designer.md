@@ -9,35 +9,37 @@ role: test-designer
 > ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
 
 ### 目标
-产出 P3-test-cases.md（测试用例清单 + test_code_dir 声明）+ 测试代码：为 agate UI/UX 验收机制的 gate 脚本行为（BDD-3/4/9/14）与协议文档条文（BDD-1/2/6/11/12/13）写 pytest 单测，实现前先红（TDD 红灯语义，P4 实现脚本后转绿）。
+产出 P3-test-cases.md + 测试代码：为 agate UI/UX 验收机制（含 SCOPE+ 增补：UI/UX 覆盖任意渲染形态）的 gate 脚本行为与协议文档条文写 pytest 单测，实现前先红（TDD 红灯语义，P4 实现后转绿）。
 
 ### 约束
-1. **本任务是 agate 协议本体增强**（dogfooding）：测试对象是 gate 脚本（check-gate.py / check-p6-evidence.py / check-p6-provenance.py / 等）与协议文档（analyst.md / architect.md / verifier.md / plan-design-review.md / dispatch-prompt.md / P1/P2/P6 卡片）。测试代码写在 worktree 的 `agate/tests/` 下（改造对象），改的就是仓库测试文件。
-2. **测试代码落点**（在 worktree 既有测试文件内增量追加，不新建独立测试模块——保持 pytest 集合一致）：
-   - BDD-3（P1 gate vision 三态检查）：`agate/tests/unit/test_check_gate.py` 追加 4 用例（fixture 构造缺失/非法 status/GAP 合法/backend 兼容）
-   - BDD-4（P2 gate UI 设计节检查）：`agate/tests/unit/test_check_gate.py` 追加 4 用例（缺节/完整/缺关键词/非 UI 不触发）
-   - BDD-9/10/13（P6 双证据分档/真实分析/输入态复核）：`agate/tests/unit/test_check_p6_evidence.py` + `test_check_p6_provenance.py` 追加（vision=GAP 走复核记录、available 无 vision YAML exit 1、无声明默认 available 语义 test_vision_none_1、文档条文 test_vision_docs_*）
-   - BDD-14（雷同截图降级）：`agate/tests/unit/test_check_p6_evidence.py` 追加 3 用例（有复核记录放行/无复核记录 exit 1/不重复不受影响）——注意构造前置门禁：测试 PNG 须 >1KB + 像素方差≥50（PIL 生成非纯色图），Pillow 缺失 `pytest.importorskip("PIL")` 包裹
-   - BDD-1/2/6/11/12/13（协议文档条文）：新增 `agate/tests/unit/test_review_role_docs.py`（或并入既有文档检查测试）—读 analyst.md/plan-design-review.md/verifier.md/P6 卡片/dispatch-prompt.md 断言含要求锚点词
-3. **P3 红灯语义**：所有测试用例在 P4 实现前必须**失败**（红灯）——因为 gate 脚本尚未新增对应检查逻辑、文档尚未新增条文。红灯类型应为 B 类（断言失败/引用未实现函数），非 A 类（测试代码自身语法错误）。
-4. **平台无关原则（AGENTS.md 测试约定，强制）**：不硬编码 Unix 路径（用 pytest tmp_path fixture）、不假设 /tmp；Pillow 缺失时 ahash 相关测试 skip；不裸 `python3`（探测 `python3|python`）。
-5. **BDD→测试 1:1 映射**：每条 `#### BDD-NN` 对应 ≥1 个测试用例，测试名引用 BDD 编号（如 `test_vision_1_...` / `test_ui_design_1_...`）。
-6. **测试可运行性**：写完测试后自跑确认"测试文件可收集、红灯原因是被测功能未实现"（import 失败/断言失败），不是测试代码 bug（T075 教训：手写魔数断言与 fixture 数据矛盾）。
-7. **不做实现**：只写测试，不改 gate 脚本/协议文档实现（P4 implementer 的活）。
-8. **产出结构**：P3-test-cases.md（测试用例清单：编号、对应 BDD、预期、当前状态红灯）+ 测试代码（在 agate/tests/ 内）。`test_code_dir` 声明为 `agate/tests/`（或具体子目录）。
-9. **本任务特殊性**：P6 验收以"脚本单测 + 文档内容"为证据，不依赖真实截图/视觉分析——测试设计覆盖的是脚本行为断言与文档条文存在性断言。
+1. **本任务是 agate 协议本体增强**（dogfooding）：测试对象是 gate 脚本（check-gate.py / check-p6-evidence.py / check-p6-provenance.py 等）与协议文档（analyst.md / architect.md / verifier.md / plan-design-review.md / requirements-review.md / dispatch-prompt.md / P1/P2/P6 卡片）。测试代码写在 worktree 的 `agate/tests/` 下。
+2. **测试代码落点**（在既有测试文件内增量追加，保持 pytest 集合一致）：
+   - BDD-3（P1 gate vision 三态检查）：`test_check_gate.py` 追加 4 用例（缺失/非法 status/GAP 合法/backend 兼容）
+   - BDD-16（P1 gate 形态声明合法性 `_gate_p1_ui_shape`）：`test_check_gate.py` 追加（shape 存在维度空 → exit 1；维度非框架且未声明使用 → exit 1；双字段缺失 → 通过；shape 缺失维度存在 → 通过）
+   - BDD-4（P2 gate UI 设计节检查，含形态分支）：`test_check_gate.py` 追加（缺节/完整/缺关键词/非 UI 不触发 + **形态分支 3 用例：test_ui_design_5 渲染组件型 exit 2、test_ui_design_6 缺形态声明 exit 1、test_ui_design_7 P1-P2 形态不一致 exit 1、test_ui_design_8 规范值一致 exit 2、test_ui_design_9 中文标签经映射归一化 exit 2**）
+   - BDD-9/10/13（P6 双证据分档/真实分析/输入态复核）：`test_check_p6_evidence.py` + `test_check_p6_provenance.py` 追加（vision=GAP 走复核记录、available 无 vision YAML exit 1、无声明默认 available 语义 test_vision_none_1、文档条文 test_vision_docs_*）
+   - BDD-14（雷同截图降级）+ BDD-17（时序截图 -tN 分组豁免）：`test_check_p6_evidence.py` 追加（test_ahash_1/2/3 + **test_time_seq_1：同 bdd 的 t1/t2 视觉相近 → 不触发雷同降级 exit 0**）
+   - BDD-1/2/6/11/12/13/16/17（协议文档条文 + 渲染形态维度）：新增 `test_review_role_docs.py`（读 analyst.md/plan-design-review.md/verifier.md/P1/P6 卡片/dispatch-prompt.md 断言含要求锚点词——含分类框架/渲染正确性维度/形态声明要求/证据按形态选择条文）
+3. **P3 红灯语义**：所有测试在 P4 实现前必须失败（红灯）——gate 脚本尚未新增检查逻辑、文档尚未新增条文。红灯类型应为 B 类（断言失败/引用未实现函数），非 A 类（语法错误）。
+4. **平台无关原则（AGENTS.md 测试约定，强制）**：不硬编码 Unix 路径（用 pytest tmp_path fixture）、不假设 /tmp；Pillow 缺失时 ahash 相关测试 `pytest.importorskip("PIL")` 包裹；不裸 `python3`（探测 `python3|python`）。
+5. **BDD→测试 1:1 映射**：每条 `#### BDD-NN` 对应 ≥1 个测试用例，测试名引用 BDD 编号。
+6. **本任务特殊性**：P6 验收以"脚本单测 + 文档内容"为证据，不依赖真实截图/视觉分析——测试设计覆盖脚本行为断言与文档条文存在性断言。渲染组件形态的测试用 fixture 模拟（不实跑 WebGL/Canvas）。
+7. **不做实现**：只写测试，不改 gate 脚本/协议文档。
+8. **plan-eng-review NOTE 落实（SCOPE+ 复审留痕）**：若发现与 N-S1~N-S4（正文回退措辞/I14 载体/形态分支判定算法/双源字段）相关测试设计点，纳入设计；不需要为 NOTE 单独建测试。
+9. **产出结构**：P3-test-cases.md（测试用例清单：编号/对应 BDD/预期/当前状态红灯）+ 测试代码（agate/tests/ 内）。`test_code_dir` 声明为 `agate/tests/`。
 
 ### 上游关联
-- P2-design.md 已 approved：方案 A（三态硬声明 + P2 UI 设计节门禁 + P6 三态分档消费 + GAP 降级链）。§2.1-2.14 每条 BDD 已定义 gate 逻辑 + 单测规格（函数名/断言/兼容）。
-- 关键设计决策：P1 无视觉能力声明 → 默认 available 语义（R1b 强制保留）；GAP 分支仅在显式声明 status: GAP 时触发。
-- gate_commands（P2 固化）：P3 = `python3 -m pytest -q --collect-only agate/tests/`。
-- 基线：现有 825 pytest 用例全绿（回归底线）；本任务新增用例只增不减。
+- P2-design.md 已 approved（SCOPE+ 增补 + 修复轮闭合，759 行）：§2.1-2.16 每条 BDD 已定义 gate 逻辑 + 单测规格（函数名/断言/兼容）。关键新增：§2.15 形态声明载体（P1 frontmatter `ui_render_shape`/`ui_ux_dimensions` 可选字段 + 规范形态值词汇表 layout/render_component/temporal_effects + 同义映射）+ §2.16 证据形式按形态（帧序列 frames/、渲染输出对比 renders/、时序截图 -tN）+ **-tN 与 frames/ 同权分组豁免（分组键 = bdd-id 前缀）**。
+- P1-requirements.md 已 approved（17 BDD）：BDD-16 渲染组件类维度进入可测项、BDD-17 证据形式按形态选择。
+- 关键设计决策：P1 无视觉能力声明 → 默认 available 语义；GAP 分支仅显式声明时触发；形态声明缺失 → 布局型默认。
+- gate_commands（P2 固化）：P3 = `python3 -m pytest -q --collect-only agate/tests/`；P5/P6 = `python3 -m pytest -q --tb=no agate/tests/`。
+- 基线：825 pytest 用例全绿；本任务新增用例只增不减。
 
 ### 输入文件
-- {AGATE_WORKSPACE}/tasks/TAG0006-ui-ux-quality/P2-design.md（方案设计——主输入，§2.1-2.14 已定义每 BDD 的测试规格）
-- {AGATE_WORKSPACE}/tasks/TAG0006-ui-ux-quality/P1-requirements.md（BDD 验收条件——测试来源）
-- {AGATE_WORKSPACE}/tasks/TAG0006-ui-ux-quality/P0-brief.md（任务简报）
-- {project_root}/agate/assets/execution-roles/test-designer.md（你的角色定义）
+- {AGATE_WORKSPACE}/tasks/TAG0006-ui-ux-quality/P2-design.md（方案设计——主输入，§2.1-2.16 已定义每 BDD 测试规格）
+- {AGATE_WORKSPACE}/tasks/TAG0006-ui-ux-quality/P1-requirements.md（17 BDD 验收条件）
+- {AGATE_WORKSPACE}/tasks/TAG0006-ui-ux-quality/P0-brief.md（任务简报，含 SCOPE+ 决策）
+- {project_root}/agate/assets/execution-roles/test-designer.md（角色定义）
 - {project_root}/agate/tests/conftest.py（fixture helpers：create_task_dir / add_frontmatter_field / task_dir 等）
 - {project_root}/agate/tests/unit/test_check_gate.py、test_check_p6_evidence.py（既有测试模式参考）
 </dispatch_guide>
@@ -164,11 +166,11 @@ check-tdd-red.py $TASK_DIR
 
 <objective_info>
 - 测试对象现状：
-  - check-gate.py 现有 gate_p1（BDD 锚点 + NEED_CONFIRM 检查）与 gate_p2（四字段检查）——本任务新增 `_gate_p1_vision_capability` + `_gate_p2_ui_design_section`（P4 实现）
-  - check-p6-evidence.py 现有 avg-hash WARNING（P4 改为降级待复核判定）
-  - check-p6-provenance.py 现有 R1b vision YAML 审计（P4 加 GAP 放宽）
-  - fixtures：full-task/high-risk/paused-task/ui-affected/vision-blocked 5 个静态夹具（P2 gate 测试用自建 fixture，不引用它们）
-- 测试环境：worktree 内 pytest 可跑（`python3 -m pytest agate/tests/` 收集 825 用例）；PIL 已装（agate-image-check.py 依赖）但测试仍须 `importorskip("PIL")` 保持平台无关
+  - check-gate.py 现有 gate_p1/gate_p2——P4 将新增 `_gate_p1_vision_capability`、`_gate_p1_ui_shape`、`_gate_p2_ui_design_section`（含形态分支 + 形态一致性交叉校验）
+  - check-p6-evidence.py 现有 avg-hash WARNING——P4 改为降级待复核判定 + 按同 BDD 证据组（bdd-id 前缀）豁免相邻帧/时序截图
+  - check-p6-provenance.py 现有 R1b——P4 加 GAP 放宽
+  - fixtures：full-task/high-risk/paused-task/ui-affected/vision-blocked 5 个静态夹具（P2 gate 测试用自建 fixture，不引用它们；形态字段缺失 = 布局型默认）
+- 测试环境：worktree 内 pytest 可跑（825 用例收集）；PIL 已装但测试仍须 importorskip("PIL") 保持平台无关
 - 基线：825 pytest 全绿 + consistency 0 ERROR
 </objective_info>
 

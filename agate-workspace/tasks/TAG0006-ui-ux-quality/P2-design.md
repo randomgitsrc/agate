@@ -491,9 +491,11 @@ if ahash_total > ahash_unique:
 
 ## 3. gate_commands（P2 固化，P3/P5/P6 照此执行）
 
+> **[P3 发现修复，主 Agent 2026-08-17 修正]** gate_commands.P3 原为 `--collect-only`（只收集不执行），check-tdd-red 探测到该命令无法看到断言失败 → 误判绿灯。修正为 `--tb=no` 实际执行（check-tdd-red 需要读失败行判定红灯）。该修正属 P2 设计执行缺陷，gate 命令语义不变（仍 pytest agate/tests/），仅去掉 collect-only 标志；P3 卡片注释同步修正。修复后 check-tdd-red exit 0（真红灯 14 断言失败）实证通过。
+
 ```yaml
 gate_commands:
-  P3: "python3 -m pytest -q --collect-only agate/tests/"
+  P3: "python3 -m pytest -q --tb=no agate/tests/"
   P3_formatter: "python3 agate/assets/formatters/pytest.sh"   # 可选：测试输出标准化
   P5: "python3 -m pytest -q --tb=no agate/tests/"
   P5_formatter: "python3 agate/assets/formatters/pytest.sh"
@@ -503,7 +505,7 @@ gate_commands:
 
 说明：
 - 本任务无 UI 产物（ui_affected: false），**不声明 P3_e2e/P5_e2e**（P2 卡片 gate_commands.P5_e2e 仅在 ui_affected: true 时必填）
-- 测试根目录 `agate/tests/`（AGENTS.md 约定全量 pytest），P3 用 collect-only 供 check-tdd-red 读测试集，P5/P6 用 `--tb=no` 紧凑输出
+- 测试根目录 `agate/tests/`（AGENTS.md 约定全量 pytest），P3/P5/P6 用 `--tb=no` 紧凑输出（P3 供 check-tdd-red 读取断言失败行，不能只用 collect-only——只收集不执行无法判定红灯）
 - formatter 路径用绝对/仓库相对路径（`agate/assets/formatters/pytest.sh`）——check-gate.py P2.61 会做命令可执行性 WARNING 检查，`python3` 存在即可（脚本本身做 shutil.which(token)，首 token 是 python3，通过）
 
 ## 4. Windows GUI 自动化评估小节（BDD-7，RM-AG0006）

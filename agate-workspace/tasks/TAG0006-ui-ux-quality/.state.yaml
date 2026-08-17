@@ -25,3 +25,9 @@ scope_expand:
     requested_by: user
     content: UI/UX 机制不应只适用于常规布局型 UI，需覆盖渲染组件（OpenGL/WebGL/Canvas/图表/模型/特效/地图/数字地球）与 UX 交互形态（动作/特效/时序）——视觉验收维度按项目实际 UI 形态自适应
     decision: A1（分类框架+适配）+ B1（本任务内增补）——回退 P1 增补 BDD（17 条）→ 回退 P2 增补设计（§2.15/§2.16）→ 再进 P3
+p3_fix:
+  - date: 2026-08-17
+    discovered_by: 主 Agent（P3 check-tdd-red 误判绿）
+    root_cause: P2 gate_commands.P3 固化为 --collect-only（只收集不执行），check-tdd-red 无法看到断言失败 → exit 2 误判
+    fix: P2-design.md gate_commands.P3 改为 --tb=no 实际执行 + P3 卡片注释修正 + P2-design.md 标注修复记录
+    evidence: check-tdd-red 修复后 exit 0（14 断言失败真红灯）；P2/P3 gate exit 2

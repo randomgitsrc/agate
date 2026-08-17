@@ -498,3 +498,87 @@ def test_pv_28_missing_agent_not_short_circuit_exit_1(
     result = _run_prov(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 1
     assert "evidence JSON 与 P6-acceptance.md 声明不一致" in result.output
+
+
+# ========== 批次 9d：TAG0006 UI/UX 机制 R1b GAP 放宽 + 无声明默认 available 语义（BDD-9） ==========
+# 新增行为（P4 实现后落于 check-p6-provenance.py 审计 4）：
+#   * P1 vision 三态读取：status=GAP 时 R1b 放宽"截图 PASS 必须引 vision YAML"——
+#     改为要求"人工复核记录"被 PASS 引用（`manual-review: <file>`），文件存在（§2.8）
+#   * 无视觉能力声明（capability_requirements 无 need 含 visual/vision）→ 默认 available 语义：
+#     R1b 强制 + blocker_count 语义保持，不落入 GAP 放行（test_vision_none_1 兼容回归守卫）
+# P1 夹具含 `#### BDD-1` 标准标题（审计 3 BDD 总数对照需 p1_bdd ≥ 1）。
+# 平台无关：tmp_path 由 task_dir 提供；截图证据 os.urandom + write_bytes（5000→>1KB）。
+
+
+def _write_vision_bdd_p1(td, status):
+    """P1-requirements.md：标准 BDD-1 标题 + capability_requirements yaml 围栏块。status=None 表示无能力声明。"""
+    body = (
+        "---\nagent: test\nphase: P1\n---\n\n"
+        "#### BDD-1: ui rendering\n- Given ui\n- When rendered\n- Then ok\n"
+    )
+    if status is not None:
+        body += (
+            "\n```yaml\n"
+            "capability_requirements:\n"
+            "  - need: visual-analysis\n"
+            f"    status: {status}\n"
+            "```\n"
+        )
+    (td / "P1-requirements.md").write_text(body, encoding="utf-8")
+
+
+def _write_ui_gap_case(td, review_line=False, review_file=False):
+    """ui_affected=true + 截图 PASS +（可选）manual-review 引用行与文件。"""
+    (td / "P2-design.md").write_text("ui_affected: true\n", encoding="utf-8")
+    if review_line:
+        _write_p6(td, "- PASS BDD-1 (screenshots/login.png) (manual-review: review-gap.md)\n")
+    else:
+        _write_p6(td, "- PASS BDD-1 (screenshots/login.png)\n")
+    _add_evidence(td, "screenshots/login.png", 5000)
+    if review_file:
+        (td / "review-gap.md").write_text(
+            "复核人: 张三\n复核时间: 2026-08-17\n结论: 人工复核通过\n", encoding="utf-8"
+        )
+
+
+def test_vision_gap_prov_1_gap_manual_review_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_bdd_p1(td, "GAP")
+    _write_ui_gap_case(td, review_line=True, review_file=True)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_vision_gap_prov_2_gap_missing_review_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_bdd_p1(td, "GAP")
+    _write_ui_gap_case(td, review_line=False, review_file=False)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "人工复核" in result.output
+
+
+def test_vision_avail_1_ui_available_no_vision_yaml_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_bdd_p1(td, "available")
+    _write_ui_gap_case(td, review_line=False, review_file=False)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "缺 vision" in result.output
+
+
+def test_vision_none_1_no_decl_default_available_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_vision_bdd_p1(td, None)
+    _write_ui_gap_case(td, review_line=False, review_file=False)
+    result = _run_prov(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1
+    assert "缺 vision" in result.output
