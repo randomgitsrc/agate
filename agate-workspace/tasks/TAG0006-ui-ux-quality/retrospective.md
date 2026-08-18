@@ -65,10 +65,17 @@ agent: orchestrator
 - 归因：**机制缺口**（脚本间隐式耦合）。
 - 措施：统一 `_is_image` 过滤口径（已做），DEBT0006 登记重构建议。
 
-**G-4：P8 README badge bump 后未打 tag 导致 CHECK 7 测试红**（P8）
-- bump README badge 到 v0.51.0 但 tag v0.51.0 未打 → `test_con_6_check_7_version_badge_sync` 失败（CHECK 7 = version badge vs git tag 同步）。
-- 归因：**机制缺口**（P8 顺序：先 commit 版本文件 + 再 tag + 再重跑 P5；AGENTS.md 版本发布清单写了"tag+push"但未强调"重跑 P5 依赖 tag 已打"）。
-- 措施：先打 tag 再重跑 P5（已做）。**建议 P8 卡片/AGENTS.md 明确"README badge 更新与 git tag 必须同批，P5 重跑须在 tag 之后"。**
+**G-4（更正）：P8 `tag v0.51.0` 未 push 到 origin 致 CI CHECK 7 失败**（PR 合并阶段，真实根因）
+- 现象：PR 156 的 CI `pytest` 3 个 consistency 测试失败（`test_con_6_check_7_version_badge_sync` 断言 `PASS CHECK 7`）。本地/干净 checkout 均 0 ERROR、CHECK 7 PASS，但 CI 失败。
+- **真实根因**：本地打了 tag `v0.51.0`，但 push 分支时**用了 `git push` 未加 `--tags`，tag 从未推送到 origin**。CI 在 `pull_request` merge ref 环境 `git describe --tags --abbrev=0` 只能找到 origin 上的 `v0.50.0`，而 README badge 已是 `v0.51.0` → CHECK 7 报 `badge v0.51.0 != tag v0.50.0` → FAIL。
+- 早期诊断偏差：本复盘初稿把此现象写成"release PR merge-ref 必红"（误判）；随后 `FIX-YAML-PR156.md` 又误判为"YAML 块 Python 3.10 解析 bug"（实际 CHECK 1 一直 PASS）。**真根因是 tag 未 push**，补 `git push origin v0.51.0` + rerun PR 后 CHECK 7 转绿。
+- 归因：**机制缺口**——发布流程（AGENTS.md 版本发布清单）写了"tag + push"，但没有显式强调"`git push --tags` 或逐个 `git push origin vN.N.N` 必须执行 + 验证 `git ls-remote --tags origin` 确认 tag 到达远端"。`git push` 默认不推 tag，是杯静默失败点（本地 tag 存在、远端缺失，本地验证全绿但 CI 红）。
+- 措施：`git push origin v0.51.0`（已做）+ rerun PR（已做）。**建议**：P8 发布清单补"push tag 并 `git ls-remote --tags origin <tag>` 验证远端存在"显式步骤 + CHECK 7 失败解读指南（本地绿 CI 红 → 先查 tag 是否推送，勿臆测 YAML）。
+
+**G-5：发布后缺少"合并产物最终验证"的显式步骤**
+- 现象：合并 PR、`git describe origin/main` = v0.51.0、tag 为 main 祖先均需手动逐条查证；若未验证就易静默引入"tag 未推送"这类问题。
+- 归因：**机制缺口**——release 合并后的 verify 步骤（describe + tag 祖先 + 合并后 push CI 全绿）在 AGENTS.md/交接单里是推荐项非强制 checklist。
+- 措施：已手动逐条验证（见 §4）。**建议**把"合并后 main describe = 目标版本 + tag 为 main 祖先 + 合并后 push CI 全绿"固化为 max release PR 合并后的强制清单。
 
 ### 3.2 执行层（主 Agent/subagent 未遵守规则，→ 修纪律）
 
@@ -82,6 +89,11 @@ agent: orchestrator
 - 归因：**执行层**（subagent 未写文件即返回，符合空返回恢复流程，已正确走 resume 路径）。
 - 措施：通过 task resume 恢复落盘（已做）。
 
+**E-3：CI 失败未拉日志即臆测根因，产出错误诊断文档**（PR 合并阶段）
+- PR 156 的 consistency pytest 失败时，先被误判为"release PR merge-ref 必红"（交接单），又被 `FIX-YAML-PR156.md` 误判为"YAML 块 Python 3.10 解析 bug"——**两个都错**。实际拉出 CI 完整日志后，明确看到 `❌ FAIL CHECK 7 version badge 与 git tag`（非 YAML，CHECK 1 一直 PASS），再核对 `git ls-remote --tags origin` 发现 `v0.51.0` tag 未推送。
+- 归因：**执行错误**——未第一时间拉 CI job 完整日志看真实 FAIL 的 CHECK 归属，靠猜测（本 repo 历史"release PR CHECK 7 红"记忆 + YAML 版本差异假设）而非证据。
+- 措施：拉全日志（`gh api .../actions/jobs/{id}/logs`）+ 核对远端 tag 后定位真根因（已做）。**教训**：CI 一致性失败必须先看 `CHECK N` 归属与远端 tag 状态，**禁止在未看日志前臆测**（理性应遵循 systematic-debugging：先看证据再下结论，不靠历史先例或表面版本差异猜测）。`FIX-YAML-PR156.md` 的错误诊断应作废或更正为实际根因。
+
 ---
 
 ## 4. 改进措施（落到文件/字段/gate）
@@ -89,7 +101,10 @@ agent: orchestrator
 | 措施 | 落点 | 状态 |
 |------|------|------|
 | gate_commands.P3 语义文档化（check-tdd-red 需执行输出）| P3 卡片注释已改（本任务内）| ✅ 已做 |
+| P8 tag push 显式验证（`git push origin vN` + `git ls-remote --tags origin` 确认）| AGENTS.md 版本发布清单 / P8 卡片 | ⏳ 建议（本次已手动补 push tag）|
 | P8 版本 bump 顺序（badge+tag 同批，P5 重跑在 tag 后）| P8 卡片/AGENTS.md 版本发布清单 | ⏳ 建议 |
+| 合并后 main 验证清单（describe + tag 祖先 + 合并后 push CI 全绿）| max release PR 合并后强制清单 | ⏳ 建议 |
+| CI consistency 失败先看 `CHECK N` 归属 + 远端 tag，勿臆测 | 团队纪律（systematic-debugging 原则）| ⏳ 建议文档化 |
 | DEBT0006 ahash zip 重构（内联或成对输出）| 已登记 DEBT0006（本任务已临时修复 + 登记重构方向）| ✅ 登记 |
 | YAML 冒号告警 | 文档提醒/模板提示 | ⏳ 建议 |
 
