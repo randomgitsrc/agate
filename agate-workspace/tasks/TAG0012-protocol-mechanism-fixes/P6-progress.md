@@ -1,0 +1,40 @@
+# P6 progress — TAG0012 验收（verifier subagent，第二次派发，从头开始）
+
+- [读] P6-dispatch-context-verifier.md：目标=23 条 BDD 语义验收，无 UI，文本摘录证据，禁止只做关键词检查
+- [读] assets/execution-roles/verifier.md：P6 模式二口径，二值 PASS/FAIL，每条 PASS 引证据文件
+- [读] P1-requirements.md：23 条 BDD 全文（BDD-1~22 + BDD-15b），文件分组 A~K
+- [读] P4-implementation.md：12 个协议文件改动清单（改动 commit 27509a2）
+- [读] P5-test-results/unit.md：909 passed / 0 failed，consistency 0 ERROR，28/28 锚点 —— 仅证明关键词存在，不替代语义验证
+- [查] git show 27509a2 逐文件读实际新增文本（P0/P1卡、state-machine、analyst、architect、verifier、dispatch-protocol、dispatch-prompt、P2/P5/P6卡、task-files）
+- [跑] `timeout 120s python3 -m pytest agate/tests/unit/test_protocol_mechanism_anchors.py -v` → 28 passed（本轮独立实跑，非抄 P5）
+- [查] `grep -n timeout_seconds` 三处（P2卡/architect.md/task-files.md）→ 命名统一为 `{key}_timeout_seconds`
+- [验] BDD-1 PASS — P0 卡「同类/影响面预判」强制节，三问覆盖历史同类实例 + 上下游消费方 + 未来实例拦截（P6-evidence/bdd-01-p0-scan-preview.md）
+- [验] BDD-2 PASS — P0 卡推进条件新增时效性自检项，四字段全覆盖 + 严重/轻微分流 + 无间隔 presence 语义（bdd-02）
+- [验] BDD-3 PASS — state-machine.md P0→P1 转移条件紧邻注解含「时效性校验」，覆盖搁置重启/跨会话/PAUSED 三场景，判据引用 P0 卡不重写（bdd-03）
+- [验] BDD-4 PASS — P1 卡「同类扫描（强制节）」，扫描/判定/拦截/落盘四步 + 缺失打回（bdd-04）
+- [验] BDD-5 PASS — P1 卡 ASCII 判断树区分能力三态 vs verification_env，含轮次预算占位声明位（bdd-05）
+- [验] BDD-6 PASS — P1 卡 `[P0_STALE: 具体漂移点]` 格式（禁裸标记）+ 阻塞/记录二选一三行表（bdd-06）
+- [验] BDD-7 PASS — analyst.md 隐含需求清单首位新增「同类/影响面」维度，与既有 5 维同级同体例（bdd-07）
+- [验] BDD-8 PASS — analyst.md 三态判断规则旁新增「缺的是能力还是环境？」判断树 + 口诀 + TAG0009 教训（bdd-08）
+- [验] BDD-9 PASS — analyst.md「输入（自己读取）」节后新增 P0-brief 时效性质疑四步流程（bdd-09）
+- [验] BDD-10 PASS — dispatch-protocol.md「verification_env 失败处理协议」四问全答：二列可/不可重试表、批处理（≥2 假设同轮）、止损轮次=2 由主 Agent 追踪超限转 PAUSED、READY 后三条归属判据（bdd-10）
+- [验] BDD-11 PASS — 「环境准备职责边界」子节两条条款齐全，与 state-machine.md env_state 建引用关系（引用目标实际存在，已核实 L306 起「主 Agent 的单步执行（一轮）」1.5 环境一致性验证）（bdd-11）
+- [验] BDD-12 PASS — 并行规则第 4 条「资源密集型默认串行」为追加条目（未新建小节），与全阶段适用表 P5 行双向引用（bdd-12）
+- [验] BDD-13 PASS — 规范正文命令超时兜底段（×1.5 + 三动作 + 落盘到每条命令前）+ 四层分层关系子节（层级 4 vs 层级 2 显式区分）+ L521 示例块「为何不适用」说明。观察：第 3 点括注「互相引用」未在两节间加显式跳转链接，但规范性要求与不冲突/不重复定义均满足，不据此判 FAIL（bdd-13）
+- [跑] `timeout 180s python3 agate/scripts/check-protocol-consistency.py --strict` → exit 2（既定语义），0 ERROR / 279 WARNING，CHECK 1/3/4/6/7/8/9/11 全 PASS（本轮独立实跑，落 shared-p6-command-output.log）
+- [验] BDD-14 PASS — dispatch-prompt.md 三处同步（执行顺序第4步/落盘粒度/命令超时兜底段），与协议侧逐条语义一致，唯一差异是渲染模板禁花括号占位符（语义等价），consistency 0 ERROR（bdd-14）
+- [验] BDD-15 PASS — P2 卡「影响面梳理（强制节）」写在候选方案之前，改什么/不改什么/风险在哪三部分（bdd-15）
+- [验] BDD-15b PASS — architect.md 批次设计前置检查项含「影响面梳理已完成」，引用 P2 卡不重复展开，与 analyst.md 侧对称（bdd-15b）
+- [验] BDD-16 PASS — P2 卡 `{key}_timeout_seconds` 字段规则四问全答（per-key 不设共享默认 / 三档 120·300·600s 基准 / 缺字段等同现状 / 排除 P3），architect.md 点名四点 + 引用权威节（bdd-16）
+- [验] BDD-17 PASS — P5 卡引用并行规则第 4 条，双向引用编号一致，不重复展开判据（bdd-17）
+- [验] BDD-18 PASS — P5 卡环境准备职责边界落地段（不自启 + 主 Agent 统一准备注入 + 引用协议两节）（bdd-18）
+- [验] BDD-19 PASS — verifier.md 改引用式指向协议三节，只保留两条 verifier 侧操作约束（bdd-19）
+- [验] BDD-20 PASS — P6 卡沿用 P5 环境（状态未变时）/ 需新环境走统一准备 / 不由 verifier 自启（bdd-20）
+- [验] BDD-21 PASS — task-files.md 样例块新增三行字段示例 + 成块注释（用途/命名/档位/缺省/排除P3），三处命名统一 `{key}_timeout_seconds`（grep 实证）（bdd-21）
+- [验] BDD-22 PASS — P2-design.md §3.7 显式声明「不做脚本硬校验」+ 三条理由；锚点测试 28/28 本轮实跑通过；git show --stat 核实 check-gate.py 确未改动（bdd-22）
+- [写] P6-acceptance.md（frontmatter pass/fail/ui_affected + 23 条 PASS/FAIL 行）
+- [自查] `check-p6-format.py --fix P6-acceptance.md` → exit 0（无改写）
+- [自查] `agate/scripts/check-p6-evidence.py` → exit 0（23 条 BDD，证据目录非空）
+- [自查] `agate/scripts/check-p6-provenance.py` → exit 2（唯一剩余 WARNING：P1-gate-diagnosis.md 缺 agent 字段，属 P1 commit 36f2502 的预存问题、非本阶段产出，P6 只读验收不修改上游文件）
+- [核] `grep -c '^- PASS '` = 23，`grep -c '^- FAIL '` = 0
+- 结论：23 条 BDD 全部完成逐条语义验收，产出 P6-acceptance.md + P6-evidence/（23 个 BDD 证据文件 + 1 个共享命令输出日志）
