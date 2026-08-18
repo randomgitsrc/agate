@@ -249,7 +249,9 @@ ui_affected: false                # bool（与 P2 声明一致）
 - **自查≠gate**：写完验证脚本后应自跑确认语法正确（自查），但自查≠P6 gate
 - **CI 证据优先**：若项目有 CI 流水线，优先引用 CI 产出路径（如 CI artifacts 目录下的 test-results.json），而非自带证据文件。agent 自带证据是条件退让，非默认。
 - **技术栈无关**：gate_commands.P5_formatter 声明 formatter 脚本（可选），将测试输出标准化。见 `assets/formatters/README.md` 速查表。不提供 formatter 时退化为 exit-code-only。
-- **verification_env 条件化**：若 P0-brief 声明 ui_affected=true，verification_env 字段必填（列出验收环境与生产环境的已知差异）。非 UI、无 e2e、无环境依赖的任务无需声明。
+- **verification_env 条件化**：若 P0-brief 声明 ui_affected=true，verification_env 字段必填（列出验收环境与生产环境的已知差异）。非 UI、无 e2e、无环境依赖的任务无需声明。条件化触发条件、失败处理协议（可重试/不可重试分类、批处理要求、止损轮次、READY 后归属判定）与**环境准备职责边界**的权威定义在 dispatch-protocol.md「verification_env 条件化」「verification_env 失败处理协议」「环境准备职责边界」三节——本文件只引用，不重复展开。落到你身上的两条操作约束：
+  - 你**默认不自行启动环境**（debug server / 测试数据库 / 临时端口由主 Agent 统一准备并通过 dispatch-context 注入访问方式）；dispatch-context 没给访问方式就返回主 Agent 要，不要自己起一个
+  - 环境验证失败时先分类再动作：可重试类在主 Agent 给定的止损轮次预算内**一次性批量**验证完所有待验假设（不要一个假设起一轮）；不可重试类（权限/凭据缺失、平台本质不支持、机制误用如把环境问题标成 supplementable）立即返回主 Agent 升级人工，不消耗轮次
 
 ### gate 格式预检（返回主 Agent 前执行）
 

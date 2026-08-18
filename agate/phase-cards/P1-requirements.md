@@ -103,6 +103,65 @@ P1 gate 在"声明了形态但维度为空"或"维度不在分类框架且未在
 - `[SUGGEST: 推荐 X，理由 Y]` - 有倾向但求确认。主 Agent 可自行采纳倾向（除非涉及破坏性变更/业务方向），不必问用户
 - `[NEED_CONFIRM]` - 真无方向需人定夺。阻塞推进，主 Agent 问用户
 
+## 同类扫描（强制节）
+
+需求基线必须含一次**同类扫描**结论——被报告的那一处几乎从来不是唯一的一处。P0 卡片的「同类/影响面预判」给出粗粒度量级，P1 在此基础上把清单做实：
+
+1. **扫描动作**：对问题涉及的关键符号（函数名、字段名、配置键、协议节标题、错误文案）用 grep/rg 扫全仓，记录**命中数量 + 文件清单**
+2. **逐条判定**：每个命中标"本次处理 / 本次不处理 + 理由"。本次不处理的同类实例要么进 roadmap，要么写清为何不构成同一问题
+3. **回归拦截**：若同类问题未来还会新增（不是一次性修完的存量），需求里要声明拦截手段（新增测试 / gate 脚本 / 文档约定），并转成对应 BDD
+4. **结论落盘**：扫描结论写进 P1-requirements.md 正文（不是只写在 progress 里）；即使结论是"已确认只此一处"也要显式写出，空白不算做过
+
+同类扫描缺失 → requirements-review 打回（"只修被报告的那一处"是 agate 反复复发的反模式）。P2 的「影响面梳理」在本节结论上继续做候选方案级的影响域分析，三处（P0 预判 / P1 同类扫描 / P2 影响面梳理）同源、逐级细化，不重复劳动。
+
+## verification_env vs supplementable 边界判断树
+
+`capability_requirements` 三态（available / supplementable / GAP）和 `verification_env`（运行环境声明）经常被混用——TAG0009 的 11.7 小时就是把一个环境问题错标成 `supplementable` 导致的。P1 声明时按下面的判断树走：
+
+```
+先问：缺的是能力还是环境？
+├─ 缺的是「agent 侧的能力」（看不见图 / 不会用某工具 / 没有某技能）
+│   └─ 走 capability_requirements 三态：
+│      ├─ 当前就有 ................................. available
+│      ├─ 当前没有，但能通过派发子角色 / 注入 skill / 换工具补上 ... supplementable
+│      │   （必须在需求里写清补充方式，否则等同 GAP）
+│      └─ 当前没有且补不上 ......................... GAP（阻塞，PAUSED 交人工）
+└─ 缺的是「运行环境」（服务没起 / 端口没通 / 数据库没建 / 依赖没装 / 平台不支持）
+    └─ 走 verification_env 声明（不是 supplementable）：
+       ├─ 环境可由主 Agent 用标准操作准备好 → P1 声明 verification_env，
+       │   由主 Agent 按 dispatch-protocol.md「环境准备职责边界」统一准备
+       └─ 环境本质不可得（权限/凭据/平台原生不支持）→ 这是不可重试类，
+           按 dispatch-protocol.md「verification_env 失败处理协议」立即升级人工
+```
+
+**判别口诀**：换个更强的模型/角色就能做 → 能力问题（supplementable）；换谁来做都得先把服务起起来 → 环境问题（verification_env）。**把环境问题标成 `supplementable` 属于机制误用**，不算"环境故障"，不消耗验证轮次预算，应立即改正声明方式。
+
+**环境验证轮次预算占位声明位**：声明了 `verification_env` 的任务，P1 需求里留一行轮次预算占位（默认止损轮次 = 2 轮，与阶段 `retries[Pn]` 独立计数），供 P5/P6 派发时由主 Agent 在 dispatch-context 中接续记录"当前第几轮 + 历次已排除假设"。数值与完整规则的权威定义在 dispatch-protocol.md「verification_env 失败处理协议」，本卡片不重写：
+
+```yaml
+verification_env: "debug server http://127.0.0.1:3001 + tests/fixtures/test.db"
+verification_env_budget: "止损轮次 2（独立计数，不占 retries[P5]）；轮次追踪由主 Agent 在 dispatch-context 记录"
+```
+
+## P0-brief 时效性质疑
+
+analyst 拿到 P0-brief 后不默认它仍然成立——立项与实际启动之间可能已经漂移（跨会话恢复、任务搁置后重启、从 PAUSED 恢复）。P1 阶段必须做一次时效性质疑，判据（严重 3 条 / 轻微 2 条）的权威定义见 P0 卡片「P0-brief 时效性自检（漂移判据）」，本节只定标记规则与处理方式：
+
+**标记格式**（行首声明，一个漂移点一行，必须写出**具体漂移点**，不允许只写标记裸词）：
+
+```
+[P0_STALE: executor_env 声明的 CI 镜像已下线，当前实际跑在 ubuntu-24.04]
+[P0_STALE: task 描述的 .sh 路线已全量 Python 化，目标方案本身不再成立]
+```
+
+**阻塞 / 记录二选一**（按漂移严重程度分流，不允许"既不阻塞也不记录"地含糊推进）：
+
+| 漂移程度 | 处理 | 落盘 |
+|---------|------|------|
+| **严重**（命中 P0 卡判据 1-3 任一条） | **阻塞**：停止 P1，回 P0 重新立项 / 重做可行性分析 | P1-requirements.md 写 `[P0_STALE: 具体漂移点]` + 说明为何判定严重；主 Agent 按 PAUSED 或回 P0 流程处理 |
+| **轻微**（不命中判据 1-3） | **记录**：更新 P0-brief 对应字段后继续 P1，不阻塞 | P1-requirements.md 写 `[P0_STALE: 具体漂移点]` + 已更新哪个字段 |
+| 无间隔 / 已核对无漂移 | 继续 | 写一行"已核对 P0-brief 时效性，无漂移"，空白不算做过 |
+
 ## gate 规则
 
 check-gate.py P1 → P1-review.md 存在 + status:approved + agent≠main + 含 BDD 编号锚点 → exit 2（BDD 编号格式为 `#### BDD-NN:`）；缺 P1-review.md / agent=main / 无锚点 → exit 1
@@ -111,6 +170,8 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 ## 推进条件（全部满足才写 phase: P2）
 
 - [ ] P1-requirements.md 含 BDD ≥1 条
+- [ ] 含「同类扫描」结论（命中清单 + 逐条处理判定，"只此一处"也要写出）
+- [ ] P0-brief 时效性已质疑：无漂移则记录已核对；有漂移则含 `[P0_STALE: 具体漂移点]` 且已按阻塞/记录二选一处理
 - [ ] domains / packages / risk_level / phases 已声明
 - [ ] 无 [NEED_CONFIRM] 标记
 - [ ] 无 status: GAP（supplementable 不阻，GAP 阻）

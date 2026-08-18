@@ -181,6 +181,8 @@ P6 采用**证据并行、验收文件不并行**模式：
 
 基础设施隔离同 P5（端口/数据库/截图目录独立）。
 
+**环境准备职责边界（本阶段落地）**：P6 的环境访问沿用 P5 已由主 Agent 准备好的环境（环境状态未变时不重复起）；需要新环境时同样遵循 dispatch-protocol.md「verification_env 条件化」/「环境准备职责边界」的统一准备规则——由主 Agent 统一启动并通过 dispatch-context 注入访问方式，**不由 verifier subagent 自行启动**（多个并行 verifier 各自起环境会导致端口占用与资源竞争）。环境验证失败时的分类与止损见 dispatch-protocol.md「verification_env 失败处理协议」，本卡片不重复展开。
+
 ## 推进条件（全部满足才写 phase: P7）
 
 - [ ] 所有 BDD PASS（FAIL=0）

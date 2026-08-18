@@ -1,0 +1,22 @@
+# P4-progress（implementer, TAG0012）
+- [P4-dispatch-context-implementer.md] 读完：13 个文件改动清单 + 9 条硬约束（CHECK3 禁行号引用 / BDD-5 AND 语义 / 不改测试）
+- [implementer.md] 读完：最小实现原则、DESIGN_GAP/SCOPE+ 标注规则、分阶段落盘
+- [P2-design.md] 读完：候选 A（verification_env 失败处理 4 条规则）/候选 B（timeout_seconds 4 点 + ×1.5 关联决定）/候选 C（漂移判据 3 严重 2 轻微）/§3.3 职责边界 3 条
+- [test_protocol_mechanism_anchors.py] 读完：28 条 parametrize 用例，关键词逐字清单已核对
+- [agate/dispatch-protocol.md] 完成 4 处改动：①verification_env 失败处理协议（可重试/不可重试表+批处理+止损轮次=2+READY后三判据）+环境准备职责边界 3 条 ②并行规则新增第4条「资源密集型默认串行」+全阶段适用表 P5 行同步 ③派发 prompt 模板新增「命令超时兜底（层级 4）」节+progress 粒度扩展到每条 bash 命令前，并新增「命令超时兜底与既有超时机制的分层关系」四层表 ④非阶段产出示例块加「为何不适用」说明
+- [agate/assets/templates/dispatch-prompt.md] 同步「命令超时兜底（层级 4）」节 + 执行顺序/分阶段落盘粒度扩展（BDD-14）
+- [agate/phase-cards/P0-orchestrator.md] 新增「同类/影响面预判」节 + 「P0-brief 时效性自检（漂移判据）」节（严重3/轻微2）+ 推进条件两项（BDD-1/2）
+- [agate/state-machine.md] P0->P1 转移条件紧邻处新增时效性校验注解（含任务重启场景，引用 P0 卡不重写）（BDD-3）
+- [agate/phase-cards/P1-requirements.md] 新增「同类扫描」强制节 + 「verification_env vs supplementable 边界判断树」（含轮次预算占位声明位）+ 「P0-brief 时效性质疑」（[P0_STALE: ] 标记规则 + 阻塞/记录二选一表）+ 推进条件两项（BDD-4/5/6）
+- [agate/assets/execution-roles/analyst.md] 隐含需求清单新增「同类/影响面」维度 + 三态判断规则旁新增「缺的是能力还是环境」判断树 + 输入节新增 P0-brief 时效性质疑步骤（[P0_STALE]）（BDD-7/8/9）
+- [agate/phase-cards/P2-design.md] 新增「影响面梳理（强制节）」+ gate_commands 声明节新增 {key}_timeout_seconds 字段规则 4 点（排除P3/per-key/三档基准表/向后兼容）+ 样例块加两条 timeout_seconds + 推进条件加一项（BDD-15/16）
+- [agate/assets/execution-roles/architect.md] 批次设计节新增「批次设计前置检查项」4 条（影响面梳理引用 + 资源密集型串行引用 + timeout_seconds 声明位引用）（BDD-15b/16）
+- [agate/phase-cards/P5-verification.md] 「按包拆分并行」节新增资源密集型默认串行引用 + 环境准备职责边界落地引用（BDD-17/18）
+- [agate/assets/execution-roles/verifier.md] verification_env 条件化条目改为引用式（引 dispatch-protocol.md 三节权威定义 + 两条操作约束）（BDD-19）
+- [agate/phase-cards/P6-acceptance.md] 「按包拆分并行」节后新增环境准备职责边界落地句（沿用 P5 环境 / 新环境走统一准备规则）（BDD-20）
+- [agate/assets/templates/task-files.md] gate_commands 样例块新增 P5/P5_e2e/P6 三个 *_timeout_seconds 示例 + 用途/命名/建议档位/缺省行为/排除P3 注释（BDD-21）
+- [自查] pytest test_protocol_mechanism_anchors.py = 28 passed
+- [自查] 全量 pytest agate/tests/ = 909 passed, 2 skipped（首轮 test_rp_13 因 dispatch-prompt.md 新增 {N}/{key} 占位符红灯，改写为 <你的命令> / 具体 key 名后转绿）
+- [自查] check-protocol-consistency.py --strict = 0 ERROR，WARNING 281 与改动前基线逐行 diff 完全一致
+- [自查] count-tests.sh = 911（≥749 基线）
+- [产出] P4-implementation.md 已写入（implementation_dir: agate/，12 个文件逐文件改动记录 + 测试自查 + 决策标注 0 DESIGN_GAP/0 SCOPE+ + §7 完成标志对照 + 范围核对）

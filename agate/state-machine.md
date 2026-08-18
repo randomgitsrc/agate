@@ -75,6 +75,14 @@ status: approved        # ← 门槛判定字段
      （不能只看文件存在——subagent 可能写一半崩了，留下空/半截文件）
 
 P0 --[P0-brief.md 完成，四字段自查通过（task/known_risks/executor_env/env_constraints）]--> P1
+    （四字段自查含时效性校验：立项时间与实际启动/恢复时间存在间隔时——含任务被搁置后重启、
+      跨会话恢复、从 PAUSED 恢复——必须先判断 P0-brief 是否已漂移，再决定能否推进 P1。
+      严重漂移（task 的目标方案不再成立 / executor_env 平台前提不再成立 / known_risks 的
+      "已解决前提"实际未解决或已被他任务解决）→ 回 P0 重新立项；轻微漂移 → 更新对应字段 +
+      标 [P0_STALE] 后继续。判据全文见 phase-cards/P0-orchestrator.md「P0-brief 时效性自检
+      （漂移判据）」，本处不重写。
+      注意：时效性校验对"任务重启"场景同样强制——不是只在首次立项时做一次；
+      从 PAUSED / 跨会话恢复继续跑的任务，恢复时要重跑这一项校验。）
 P1 --[P1-requirements.md 有效 AND 含至少一条 BDD 验收条件 AND 无未决 NEED_CONFIRM（不含 `[SUGGEST:]`，T080 演进）AND 无 status: GAP（不含 supplementable）AND P1-review.md status:approved AND agent≠main AND 含 BDD 编号锚点]--> P2
 P1 --[P1-review.md status==rejected && retry<MAX]--> P1 (retry+1, analyst 修改需求后再 review)
 P1 --[存在未决阻塞 NEED_CONFIRM]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败。倾向项 `[SUGGEST:]` WARNING 不阻塞）
