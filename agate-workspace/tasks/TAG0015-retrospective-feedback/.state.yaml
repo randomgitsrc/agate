@@ -1,5 +1,5 @@
 task_id: TAG0015
-phase: P1
+phase: P2
 status: pending
 
 # ── 重试记录 ──
@@ -9,7 +9,11 @@ retries:
       failure_mode: quality           # requirements-review 首轮判定 needs-revision（BDD-14 task-files.md 裸路径引用，7 处）
       prompt_changed: true            # dispatch-context 补了针对性订正指引（7 处行号 + 修订方式）
       adjustment: null
-  P2: []
+  P2:
+    - round: 1
+      failure_mode: quality           # plan-eng-review 判定 needs-revision：候选方案A(L2 checkpoint)悄悄收窄roadmap.md原两件套设计，未论证是否削弱防compact核心目的（AP-1，阻塞）；AP-2（files_to_read行号偏差）非阻塞
+      prompt_changed: true            # dispatch-context 补了 AP-1/AP-2 具体位置+两个可选修复路径
+      adjustment: null
   P3: []
   P4: []
   P5: []
@@ -17,7 +21,7 @@ retries:
   P7: []
   P8: []
 
-retry_count: { P1: 1, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0, P7: 0, P8: 0 }
+retry_count: { P1: 1, P2: 1, P3: 0, P4: 0, P5: 0, P6: 0, P7: 0, P8: 0 }
 
 # 备注：requirements-review 子任务在判定 needs-revision 之前，先经历 3 次平台 API 过载（529）
 # 导致的启动失败（未产出任何文件，同一 dispatch-context 原样重派），不计入上方 retries——

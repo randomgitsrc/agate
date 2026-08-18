@@ -36,3 +36,38 @@ grep 结果确认无裸名残留。
 
 NEXT: 派发 requirements-review 重试 #1（聚焦复核 BDD-14 订正点，不重新全篇评审）。若 approved →
 预跑 check-gate.py P1 → git add + commit（phase 保持 P1）。
+
+[2026-08-19T00:53] requirements-review 重试 #1 approved（20/20 BDD）。check-gate.py P1 exit 2
+通过。git commit bcbb5a9（wf(TAG0015-P1)）。active-tasks.md 已挪入"进行中"、阶段标 P1。
+
+NEXT: 读 phase-cards/P2-design.md，派发 architect subagent 产出 P2-design.md（P1-requirements.md
+的 20 条 BDD 为输入），domains:[process] 触发对应评审角色（按 review-mapping.md 判定）。
+
+[2026-08-19T01:00] 已写 P2-dispatch-context-architect.md（候选方案权衡点：L2 checkpoint 落点 /
+agate-feedback.py 匿名化深度；影响面梳理须逐条覆盖 20 BDD）并注入 P2 卡片，派发 architect
+subagent（model=sonnet）。评审角色按 TAG0012 先例定为 plan-eng-review（domains:[process] 无
+literal C8 映射行，沿用 agate 自身协议任务惯例）。
+
+NEXT: 等 architect 产出 P2-design.md，派发 plan-eng-review 独立评审。
+
+[2026-08-19T01:15] architect 完成 P2-design.md（521 行）：2 候选方案（L2 checkpoint 新开专用
+文件 / agate-feedback 轻量正则脱敏），影响面梳理逐条覆盖 20 BDD，gate_commands/env_constraints/
+files_to_read/minimal_validation 齐全，dispatch_plan: {mode: single}。已派发 plan-eng-review
+独立评审。
+
+NEXT: 等 plan-eng-review 结果，approved 后预跑 check-gate.py P2 → commit（phase 保持 P2）→
+进入 P3。
+
+[2026-08-19T01:25] plan-eng-review 判定 needs-revision：AP-1（阻塞）候选方案A的L2 checkpoint
+落点悄悄收窄roadmap.md RM-AG0020原两件套设计（每阶段checkpoint + P8过程摘要），未论证是否削弱
+BDD-13/P0-brief问题⑦要解决的"防session compact"核心目的；AP-2（非阻塞）files_to_read行号偏差。
+.state.yaml 记 retries.P2 round 1。独立核实 roadmap.md 原文：确认 review 引用准确。
+
+NEXT: 派发 architect 重试 #1，处理 AP-1（二选一：恢复每阶段 checkpoint 机制 / 显式 DESIGN_GAP
+标注收窄），顺手处理 AP-2。完成后重派 plan-eng-review 复核。
+
+[2026-08-19T01:35] architect 重试 #1 完成：AP-1 采纳方案 a（恢复每阶段 P{n}-checkpoint.md +
+task-session-summary.md 两件套），§2/§3.2/§3.3/§6 联动一致，补 test_bdd_13 验收锚点；AP-2 行号
+已订正。已派发 plan-eng-review 重试 #1 复核。
+
+NEXT: 等复核结果，approved 后预跑 check-gate.py P2 → commit → 进入 P3。
