@@ -1,0 +1,8 @@
+- [P0-brief.md] 读取 5 条 RM issue + known_risks，核对 P1-requirements.md 是否忠实翻译
+- [dispatch-protocol.md 全文] 核实 L77(state-machine)/L952/L691/L429/L462/L521/L790-882 行号引用均与 BDD 文本描述一致
+- [dispatch-protocol.md L503-524] 发现 L521「分阶段落盘」实为「非阶段产出的路径规范」下的**示例块**（self-gate/alignment-review 场景），非 L462 同级的全阶段通用模板；BDD-13 把两者并列为对等编辑目标，未区分规范性/示例性
+- [agate_common.py:408] 确认 AGATE_TDD_TIMEOUT 层级 1 机制存在；task-files.md gate_commands 样例含 P3 key；BDD-16/21 提议给 gate_commands 加 timeout_seconds 未限定排除 P3 或声明与 AGATE_TDD_TIMEOUT 的关系，存在同一 P3 gate 命令两套超时声明并存风险，Then 子句未要求 P2 显式回答此问题
+- [analyst.md L180 隐含需求清单 / architect.md 全文] 确认 BDD-7 给 analyst.md 加"同类/影响面"维度，但 architect.md 无对应 BDD（P2-design.md 卡片 BDD-15 有"影响面梳理"节，但 architect.md 角色文件未同步），角色文件覆盖不对称
+- [verifier.md L252 / dispatch-protocol.md L952] 核实 BDD-19 关于"近似重复"的判断准确
+- [HANDOFF-TAG0012.md L84] 核实"批量机械改动的 TDD 策略"引用真实存在，P3 不裁剪理由站得住
+- 结论：22 条 BDD 整体结构扎实、行号引用准确、无越权写死数值、无主观判据；但发现 3 处需修订项（详见 P1-review.md），判定 needs-revision
