@@ -147,8 +147,19 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 1. 确认 pytest 全过 + 0 consistency ERROR + 0 shellcheck error（用例数以 `count-tests.sh` 为准）
 2. 更新 `README.md` version badge + `CHANGELOG.md` [Unreleased] → 新版本号
 3. **更新 `agate/UPGRADING.md` 新增本版本章节**（破坏性变更逐条列——v0.44.0 教训：漏更新；无自动检查，靠本清单 + P8 卡「主 Agent 必须亲自执行」兜底）
-4. `git tag vN.N.0 && git push origin vN.N.0`
+4. `git tag vN.N.0 && git push origin vN.N.0` — **`git push`（不带 tag）默认不推送 tag**，必须显式 `git push origin vN.N.0`（v0.51.0 教训：本地 tag 存在但从未推送 → CI merge-ref `git describe` 只见旧版 → CHECK 7 FAIL）
+   - 推送后**验证远端到达**：`git ls-remote --tags origin vN.N.0` 必须显示该 tag（静默失败点：本地验证全绿但 CI 红，见下方诊断纪律）
 5. CHECK 7（version badge vs git tag）自动通过
+6. **release PR 合并后最终验证（G-5，合并产物验证清单）**：
+   - `git fetch origin && git describe --tags origin/main` == vN.N.0（describe 命中新 tag）
+   - `git merge-base --is-ancestor vN.N.0 origin/main` 返回 0（tag 是 main 祖先）
+   - 合并后 push 的 CI 全绿（含 consistency job）
+
+### CI 一致性失败诊断纪律（E-3，v0.51.0 教训）
+
+- **本地绿但 CI 红 → 先拉 CI job 完整日志**（`gh api repos/{owner}/{repo}/actions/jobs/{id}/logs`）看真实 FAIL 的 `CHECK N` 归属，**禁止在未看日志前臆测根因**（v0.51.0 曾先误判"release PR merge-ref 必红"、再误判"YAML bug"，实际都是 tag 未推送）
+- CHECK 7 FAIL 的第一排查项：`git ls-remote --tags origin vN.N.N` 确认远端 tag 存在，再核对 README badge 数字
+- 遵循 systematic-debugging：先看证据再下结论，不靠历史先例或表面版本差异猜测
 
 > 版本引用文件清单（agate 仓库自身特有，通用 P8 卡不覆盖）：README badge / CHANGELOG / version 文件 / UPGRADING 章节 / 稳定版引用（文档优先写"稳定版"不写死版本号）。**通用项目的版本清单**（version 文件 + CHANGELOG + 测试重跑 + git log 对照）见 `agate/phase-cards/P8-release.md`「主 Agent 必须亲自执行」。
 
