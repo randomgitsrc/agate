@@ -16,11 +16,12 @@ executor_env:
   platform: "opencode"
   has_task_tool: true
   has_local_runtime: true
-  network: "limited"
+  network: "full"
   git: true
 
 env_constraints:
   debug_env: "本环境为 Linux；可在本仓库自举验证（agate 自己就是 0→1 项目的骨架案例）"
-  test_cmd: "bats agate/tests/sanity.bats agate/tests/unit/ agate/tests/regression/ agate/tests/integration/；python3 agate/scripts/check-protocol-consistency.py --strict"
+  test_cmd: "python3 -m pytest agate/tests/；python3 agate/scripts/check-protocol-consistency.py --strict；bash agate/tests/scripts/count-tests.sh"
   workspace_path: "{AGATE_WORKSPACE}/tasks/TAG0007-project-structure/"
   # 建机制类任务：骨架 + code-map 是协议新增能力，P2 设计核心（放哪阶段/格式/验证口径）
+  # 时效性更新（2026-08-18）：bats 已退役（TAG0011 v0.47.0 迁 pytest），test_cmd 同步现行约定；network 改为 full（本环境演化）
