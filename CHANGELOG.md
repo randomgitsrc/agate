@@ -8,6 +8,25 @@
 
 ---
 
+## [0.52.0] - 2026-08-18
+
+### 新增（TAG0012：agate 协议机制增强批）
+
+- **verification_env 失败处理协议（RM-AG0014 主体，`dispatch-protocol.md`）**：新增可重试/不可重试判据表（含"机制误用型问题应立即改正声明方式"）、批处理要求（单轮 ≥2 待验假设须一次性列出批量验完）、止损轮次=2（与阶段 `retries[Pn]` 独立计数，不新增 `.state.yaml` 字段，超限转 PAUSED）、READY 后问题归属三判据（本任务遗留/环境本身问题/证据不足默认按前者）
+- **环境准备职责边界（RM-AG0014 补充，`dispatch-protocol.md` + `P5-verification.md` + `P6-acceptance.md` + `verifier.md`）**：环境启动/维护/关停默认归主 Agent，subagent 默认只消费不自启；多个并行 subagent 共享环境由主 Agent 统一注入访问方式；`P5-verification.md`/`P6-acceptance.md`/`verifier.md` 改为引用式落地，不重复展开
+- **`{key}_timeout_seconds` 字段（RM-AG0016，`P2-design.md` 卡 + `architect.md` + `task-files.md`）**：per-key 声明式超时基准字段（三档建议默认：单元测试 120s / E2E 300s / 构建类 600s，手动声明非自动推断），明确排除 P3（P3 继续走既有 `AGATE_TDD_TIMEOUT` env var 机制），缺字段行为等同现状（向后兼容，`check-gate.py` 不新增校验）
+- **命令超时兜底 + 资源密集型默认串行（RM-AG0016，`dispatch-protocol.md` + `dispatch-prompt.md` 双源同步）**：subagent 执行任意 bash 命令前须设 shell 层超时（预期耗时 ×1.5，有 `_timeout_seconds` 声明则直接取值），超时/非预期失败固定三动作（停止执行/写 progress 记卡点/返回主 Agent，不自行换命令）；「派发编排机制」并行规则新增第 4 条"资源密集型默认串行"（全量 xdist 测试/CDP-Playwright E2E/构建打包默认不并行）
+- **P0-brief 漂移判据（RM-AG0019，`P0-orchestrator.md` + `P1-requirements.md` 卡 + `state-machine.md`）**：严重漂移 3 条判据（任务目标方案不成立/`executor_env` 平台前提不成立/`known_risks` 已解决前提失效或已被他任务解决）+ 轻微漂移 2 条判据（局部细节变化/`env_constraints` 值刷新），命中严重 → 回 P0 重新立项；命中轻微 → 更新字段 + 标 `[P0_STALE: 漂移点]` 后继续
+- **同类扫描/影响面梳理（RM-AG0013，`P0-orchestrator.md` + `P1-requirements.md` 卡 + `P2-design.md` 卡 + `analyst.md` + `architect.md`）**：P0"同类/影响面预判"节、P1"同类扫描（强制节）"、P2"影响面梳理（强制节）"三级递进；`analyst.md` 隐含需求清单新增"同类/影响面"维度 + "缺的是能力还是环境？"判断树；`architect.md` 批次设计前置检查项引用 P2 强制节
+
+### 测试
+
+- 新增 `agate/tests/unit/test_protocol_mechanism_anchors.py`：28 条 parametrize 用例，逐条 grep 断言审计上述新增机制的关键词锚点已落盘（覆盖 BDD-1~22 + BDD-15b，共 23 条 BDD）
+- 全量 `pytest agate/tests/ -q --tb=no` → 909 passed + 2 skipped，无回归；`count-tests.sh` → 911（≥749 单调不减）；`check-protocol-consistency.py --strict` → 0 ERROR（与改动前基线逐行 diff 比对，WARNING 集合完全一致，未新增）；`shellcheck -S warning agate/scripts/*.sh` → 0 issue
+- **本版本无破坏性变更**：`timeout_seconds` 为纯声明性可选字段（`check-gate.py` 未新增校验，无运行时消费方）；新增文档强制节/checklist 项为人工评审流程要求，不对应任何 gate 脚本 exit code 变化；`.state.yaml` schema 无新增字段；`agate/scripts/` 目录零改动（仅新增 1 个测试文件于 `agate/tests/`）
+
+---
+
 ## [0.51.0] - 2026-08-18
 
 ### 新增（TAG0006：agate UI/UX 验收质量机制）
