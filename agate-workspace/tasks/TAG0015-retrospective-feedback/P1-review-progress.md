@@ -1,0 +1,21 @@
+- 07:10:07 已读 dispatch-context 全文（dispatch_guide 7条约束 + AGATE_CARD + objective_info）
+- 07:10:07 已读角色定义 requirements-review.md + AGENTS.md/P0-brief.md 项目约定
+- 07:10:22 已读评审对象 P1-requirements.md 全文（226行）
+- 约束1（domains=process，跳过UX类检查）核实：frontmatter domains=[process] 无 frontend，无 ui_render_shape 声明，本次不检查 UX 类 BDD，符合约束
+- 约束2a（BDD归并/同类扫描第3节/第7节范围外核实）：独立grep验证行1「retrospective|复盘|postmortem」在agate/*.md+phase-cards+assets+scripts 命中14文件，与声明一致；docs/reviews/目录ls确认11个文件，与声明一致；postmortem-template.md引用点grep确认8+2处（不含archived），与声明一致
+- 约束2b（AG0020→AG0021依赖自洽）核实：BDD-17 Given 原文明确写"已包含 BDD-6 定义的字段"与"BDD-7 定义的节"，依赖在正文体现，非凭空假设，自洽
+- 约束2c（BDD-13不越权写死格式）核实：BDD-13 Then仅要求P2回答四个问题，未拍板具体触发时机/文件名，合规
+- 约束2d（BDD-9/16路径字符串逐字一致）核实：grep 匹配 tasks/{Txxx}/retrospective.md 命中6处（行45/125/136/162/170/199）字符级完全一致
+- 约束3（Given/When/Then客观可判定）核实：BDD-9~11/17~20原文对常见主观词零命中，判据均为grep锚点/exit code/JSON字段存在性，客观可判定
+- 【发现问题】task-files.md路径不准确：真实路径为 agate/assets/templates/task-files.md（find确认，agate根目录下无此文件），但P1正文第52/69/150/154/155/219/225行均以裸文件名引用并归类为核心协议文件/core-protocol-docs包，与state-machine.md/loop-orchestration.md/AGENTS.md等根目录协议文件混同，packages字段中core-protocol-docs与assets-templates包边界因此模糊，影响BDD-14可执行定位
+- 约束4（同类扫描覆盖度+BDD-15合理性）核实：AGENTS.md第11行原文核对与声明逐字一致；BDD-15新增措辞同步是路径迁移的必然连带而非范围蔓延，合理
+- 约束5（裁剪评审phases不可拆）核实：确认phases为任务级字段，未发现协议文档支持按BDD拆分裁剪的机制，论证站得住
+- 约束6（两项SUGGEST可直接采纳）核实：BDD-10/BDD-16的SUGGEST块均含具体方案加理由，非回避决策的模糊表述
+- BDD编号连续性核对：确认1到20连续无跳号，格式统一为四个井号加BDD-NN冒号
+- 全部约束核查完毕，开始写 P1-review.md，判定 needs-revision（task-files.md路径问题）
+- P1-review.md 已写出，status: needs-revision（task-files.md路径引用问题，BDD-14相关5处需订正）
+- 07:18:00 【重试#1 复核】清单1核实：grep -n "task-files.md" 命中第52/69/150/154/155/219/225行，全部已带完整路径 agate/assets/templates/task-files.md，无裸名残留
+- 07:18:00 【重试#1 复核】清单2核实：BDD-14 Given/When/Then 与上轮语义一致（跨文件描述点同步一致），仅路径字符串订正，行为要求未变
+- 07:18:00 【重试#1 复核】清单3核实：第8节risk_level理由（6个核心协议文件，task-files.md单独计1处assets/templates包措辞同步点）与第9节packages范围声明（task-files.md归入assets/templates包，core-protocol-docs不再含该文件）互相引用、自洽，归属理由与dispatch-context建议一致
+- 07:18:00 【重试#1 复核】清单4核实：grep -c "^#### BDD-" 得20，BDD-1至BDD-20连续无跳号，编号未被破坏
+- 07:18:00 4点复核清单全部通过，判定 status: approved，更新 P1-review.md
