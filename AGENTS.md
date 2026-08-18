@@ -141,6 +141,8 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
   - **先看全输出再分析**：不用 `tail` 截断关键输出（count-tests 教训：数字被 tail 吞掉导致误判）。
   - **commit 前检查 hook 会跑什么**：pre-commit 会按 .state.yaml phase 跑 check-gate。commit 时 phase 应与"本次产出所在阶段"一致（P1 产出 → phase=P1 再 commit，commit 后再推进），否则 hook 会因"下一阶段产出不存在"拦截（P2-design 未产出时 phase=P2 → GATE P2 未通过）。
   - **hook 机制在共享 git 目录**：worktree 的 `.git/hooks` 为空，hook 实际在共同 git 目录 `/home/kity/oclab/agate/.git/hooks/`（pre-commit/pre-push 软链已装；commit-msg 已补装）。改 hook 装那里。
+  - **CI 等待用 `gh pr checks <PR> --watch [--fail-fast]`，不手写 jq 轮询**（2026-08-18 教训：手写 `[.statusCheckRollup[] | ...] | . == ["SUCCESS"]` 数组比较永远为假 → 空转超时；`--watch` 官方等待支持失败退出码）。若不改名的理由非要手写 jq，先对已完成 PR 验证表达式输出再进循环。
+  - **git 脚本不在 opencode bash PATH 时用绝对路径**（`~/bin/git-to-pr`、`~/bin/git-to-main`）：opencode bash 工具非交互 shell 不读 bashrc，`~/bin` 未注入 PATH（2026-08-18 确认）。用 `/home/kity/bin/git-to-pr` / `/home/kity/bin/git-to-main`，不要裸敲（会 "command not found"）。
 
 ## 版本发布
 
