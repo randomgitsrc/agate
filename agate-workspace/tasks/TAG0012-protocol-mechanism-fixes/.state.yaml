@@ -1,5 +1,5 @@
 task_id: TAG0012
-phase: P2
+phase: P3
 status: in_progress
 
 # ── 重试记录（T016 教训：整数计数无法区分"原样重试"和"调整策略后重试"）──
@@ -14,7 +14,8 @@ retries:
       prompt_changed: true            # dispatch-context 补了 gate-diagnosis 引用 + 精确定位修订范围
       adjustment: null
   P2: []                               # 空列表 = 该阶段无重试，architect 首轮产出即 plan-eng-review approved
+  P3: []                               # 空列表 = 该阶段无重试，test-designer 首轮产出即真红灯确认
 
-retry_count: { P1: 2, P2: 0 }  # 派生字段 = len(retries[Pn])，向后兼容 active-tasks.md 看板
+retry_count: { P1: 2, P2: 0, P3: 0 }  # 派生字段 = len(retries[Pn])，向后兼容 active-tasks.md 看板
 
 updated: 2026-08-18
