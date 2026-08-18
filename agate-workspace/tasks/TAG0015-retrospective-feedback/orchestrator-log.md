@@ -71,3 +71,17 @@ task-session-summary.md 两件套），§2/§3.2/§3.3/§6 联动一致，补 te
 已订正。已派发 plan-eng-review 重试 #1 复核。
 
 NEXT: 等复核结果，approved 后预跑 check-gate.py P2 → commit → 进入 P3。
+
+[2026-08-19T01:40] plan-eng-review 重试 #1 approved（AP-1/AP-2 均已解决）。check-gate.py P2
+exit 2 通过（1 个已知误报 WARNING：timeout_seconds 数值被当命令名检查，非本任务范围，记录待后续
+DEBT）。git commit 68f00f0（wf(TAG0015-P2)）。active-tasks.md 阶段更新为 P2。
+
+NEXT: 读 phase-cards/P3-tdd.md，派发 test-designer subagent 产出 P3-test-cases.md（先红后绿，
+覆盖 gate_commands.P3 声明的三个测试文件：test_check_retrospective.py 扩展 / test_agate_feedback.py
+新建 / test_retrospective_protocol_docs.py 新建）。
+
+[2026-08-19T01:45] 跑 agate-capture-env-baseline.py（step 0），无阻塞（已知 timeout_seconds
+数值误判命令名问题同样出现，不影响，跳过捕获）。写好 P3-dispatch-context-test-designer.md（三
+文件映射 20 BDD + fixture 隔离预警 + 红灯真实性要求）并注入卡片，派发 test-designer。
+
+NEXT: 等 test-designer 产出，主 Agent 跑 check-tdd-red.py 独立确认红灯（不只信 subagent 自报）。

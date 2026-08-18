@@ -240,3 +240,86 @@ def test_bdd_11_no_anomaly_empty_output(task_dir, agate_scripts, python_exe, run
     result = _run_retro(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 0
     assert result.output == ""
+
+
+# ── TAG0015 新增：路径文案同步（BDD-9）+ DEBT/roadmap 机制缺口信号（BDD-10）─────
+# BDD-11（配套单测覆盖）由本组新增用例本身即构成实现，不单列测试函数（P2-design.md §5）。
+
+
+def test_tag0015_bdd9_stderr_hint_points_to_task_dir(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-9：异常提醒的路径提示改指向 tasks/{Txxx}/retrospective.md，不再提及 docs/releases。"""
+    td = task_dir()
+    (td / ".state.yaml").write_text(
+        "task_id: T001\n"
+        "phase: PAUSED\n"
+        "status: active\n"
+        "retries:\n"
+        "  P2:\n"
+        "    - attempt: 1\n"
+        "    - attempt: 2\n"
+        "    - attempt: 3\n",
+        encoding="utf-8",
+    )
+
+    result = _run_retro(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "tasks/{Txxx}/retrospective.md" in result.output
+    assert "docs/releases" not in result.output
+
+
+def test_tag0015_bdd10_debt_signal_triggers_mechanism_gap_reminder(
+    tmp_path, agate_scripts, python_exe, run_cli
+):
+    """BDD-10：无 retry/SCOPE+/override 异常，但 debt/tech-debt.md 登记了本 task_id
+    → 触发"发现机制缺口"提醒（与异常模式提醒文案可区分），exit code 仍为 0。
+
+    fixture 隔离（P2-design.md env_constraints）：手搭两级嵌套目录
+    tmp_path/agate-workspace/tasks/T001/（task_dir）+ tmp_path/agate-workspace/debt/
+    （兄弟目录），不复用共享 task_dir fixture 的单层布局，避免向上两级推导落在
+    tmp_path 本身。
+    """
+    workspace = tmp_path / "agate-workspace"
+    td = workspace / "tasks" / "T001"
+    td.mkdir(parents=True)
+    (td / ".state.yaml").write_text(
+        "task_id: T001\nphase: P4\nstatus: active\nretries: {}\n",
+        encoding="utf-8",
+    )
+    debt_dir = workspace / "debt"
+    debt_dir.mkdir(parents=True)
+    (debt_dir / "tech-debt.md").write_text(
+        '- task_id: "T001"\n  desc: 示例技术债\n',
+        encoding="utf-8",
+    )
+
+    result = _run_retro(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "发现机制缺口" in result.output
+    assert "T001" in result.output
+    # 与异常模式提醒文案（"检测到异常模式"）互相独立、可区分
+    assert "检测到异常模式" not in result.output
+
+
+def test_tag0015_bdd10_roadmap_signal_triggers_mechanism_gap_reminder(
+    tmp_path, agate_scripts, python_exe, run_cli
+):
+    """BDD-10 另一触发面：roadmap.md 关联任务表格命中本 task_id 同样触发提醒。"""
+    workspace = tmp_path / "agate-workspace"
+    td = workspace / "tasks" / "T001"
+    td.mkdir(parents=True)
+    (td / ".state.yaml").write_text(
+        "task_id: T001\nphase: P4\nstatus: active\nretries: {}\n",
+        encoding="utf-8",
+    )
+    roadmap_dir = workspace / "roadmap"
+    roadmap_dir.mkdir(parents=True)
+    (roadmap_dir / "roadmap.md").write_text(
+        "| 关联任务 | 说明 |\n|------|------|\n| T001 | 示例条目 |\n",
+        encoding="utf-8",
+    )
+
+    result = _run_retro(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+    assert "发现机制缺口" in result.output
