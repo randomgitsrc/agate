@@ -1,5 +1,5 @@
 task_id: TAG0012
-phase: P1
+phase: P2
 status: in_progress
 
 # ── 重试记录（T016 教训：整数计数无法区分"原样重试"和"调整策略后重试"）──
@@ -13,7 +13,8 @@ retries:
       failure_mode: quality           # check-gate.py P1 exit 1：第4节散文提及裸 [NEED_CONFIRM] 子串触发格式误判
       prompt_changed: true            # dispatch-context 补了 gate-diagnosis 引用 + 精确定位修订范围
       adjustment: null
+  P2: []                               # 空列表 = 该阶段无重试，architect 首轮产出即 plan-eng-review approved
 
-retry_count: { P1: 2 }  # 派生字段 = len(retries[Pn])，向后兼容 active-tasks.md 看板
+retry_count: { P1: 2, P2: 0 }  # 派生字段 = len(retries[Pn])，向后兼容 active-tasks.md 看板
 
 updated: 2026-08-18
