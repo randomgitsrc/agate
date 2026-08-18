@@ -1,0 +1,7 @@
+agate/tests/unit/test_check_p6_evidence.py::test_ahash_1_duplicate_with_review_record_exit_0 PASSED [ 20%]
+agate/tests/unit/test_check_p6_evidence.py::test_ahash_2_duplicate_no_review_record_exit_1 PASSED [ 40%]
+agate/tests/unit/test_check_p6_evidence.py::test_ahash_3_no_duplicate_exit_0 PASSED [ 60%]
+agate/tests/unit/test_check_p6_evidence.py::test_time_seq_1_adjacent_time_shots_exempt_exit_0 PASSED [ 80%]
+agate/tests/unit/test_check_p6_evidence.py::test_ahash_4_nonimage_file_misalign_temporal_exempt_exit_0 PASSED [100%]
+======================= 5 passed, 41 deselected in 1.26s =======================
+EXIT_CODE: 0

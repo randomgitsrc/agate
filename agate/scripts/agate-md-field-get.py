@@ -16,6 +16,9 @@
                             frontmatter-only，无正文回退，TAG0002——正文散文提及
                             "change_type: refactor" 不读取）
   ui_affected                frontmatter bool（归一化输出 "true"/"false"）/ 正文 "ui_affected: true|false"
+  ui_render_shape            frontmatter 字符串（P1 渲染形态声明，规范值 layout/render_component/
+                            temporal_effects）/ 正文 "ui_render_shape: <值>"（presence 语义，缺失即布局型默认）
+  ui_ux_dimensions           frontmatter list（P1 维度选择，空格连接）/ 正文内联或块式列表
   phases                     frontmatter list（内联或块式）/ 正文内联 "[P1, P2]" 或块式 "- Pn"
   candidate_count             frontmatter int（P2-design.md）/ 正文 "candidate_count: N"
   packages / domains         frontmatter list（空格连接）/ 正文内联或块式列表
@@ -79,9 +82,11 @@ NO_FALLBACK_BOOL_FIELDS = frozenset({"regression_pass"})
 NO_FALLBACK_STRING_FIELDS = frozenset({"change_type"})
 
 # list 字段：frontmatter 值（YAML list）格式化为空格连接字符串。
+# ui_ux_dimensions（TAG0006 P2 §2.15.1）：P1 维度选择可选字段，presence 语义（缺失=未声明）；
+# 维度名单 token 无内嵌空格，空格连接即可区分元素。
 LIST_FIELDS = frozenset({
     "phases", "packages", "domains",
-    "coupling_checklist", "follows_existing_pattern",
+    "coupling_checklist", "follows_existing_pattern", "ui_ux_dimensions",
 })
 
 # int 字段：格式化为 str(int)。
@@ -106,7 +111,11 @@ NO_FALLBACK_LIST_FIELDS = frozenset({
 
 # presence 语义的纯字符串字段：key 存在且值非 null → 输出值原样，否则空。
 # 注意：change_type 不在其中——它走 NO_FALLBACK_STRING_FIELDS（frontmatter-only，无正文回退）。
-STRING_FIELDS = frozenset({"override", "internal_only_reason", "跳过风险", "risk_level"})
+# ui_render_shape（TAG0006 P2 §2.15.1）：P1 渲染形态声明可选字段（规范值，开放集合），
+# presence 语义——缺失 = 常规布局型默认，不做必填校验；正文回退供旧格式兼容。
+STRING_FIELDS = frozenset({
+    "override", "internal_only_reason", "跳过风险", "risk_level", "ui_render_shape",
+})
 
 # TAG0014（P2-design.md §3.1）：结构化 JSON 字段（dispatch_plan）。frontmatter dict/list
 # 值格式化为 json.dumps（ensure_ascii=False 保持中文可读），无正文回退——防止正文散文里的
@@ -180,7 +189,7 @@ def _regex_fallback(text, op):
         return _regex_scalar(text, r"candidate_count:\s*(\d+)")
     if op in ("internal_only", "design_trivial"):
         return _regex_scalar(text, re.escape(op) + r":\s*(true|false)")
-    if op in ("override", "internal_only_reason", "跳过风险"):
+    if op in ("override", "internal_only_reason", "跳过风险", "ui_render_shape"):
         m = re.search(re.escape(op) + r":\s*(.+)", text)
         if not m:
             return ""

@@ -32,6 +32,8 @@ agate 的角色体系把角色分成两层：
 
 这些是 agate 新增的，gstack 里没有。
 
+> **UI 设计节由 architect 兼任产出**（P2，`ui_affected: true` 时 P2-design.md 必含），**不新增 designer 角色**——保持角色清单最小化，UI 设计节的责任压在 architect 的 P2 产出规格上，由 P2 gate 校验。视觉分析仍由 vision-analyst 在 P6 按需承担（P1 声明 vision 能力 available/supplementable 时真实分析，GAP 时走降级链）。
+
 ## 第二层：评审角色（assets/review-roles/）
 
 从 gstack 提取，负责审查执行角色的产出。在关键阶段插入：
@@ -42,7 +44,7 @@ agate 的角色体系把角色分成两层：
 | 创始人/CEO | plan-ceo-review.md | P2 | 方向对不对 |
 | 工程经理 | plan-eng-review.md | P2 | 架构对不对 |
 | 高级设计师+前端 | design-review.md | P4 后（前端）| UI 问题 |
-| 设计评审（计划阶段）| plan-design-review.md | P2（前端）| spec 交互完整性 |
+| 设计评审（计划阶段）| plan-design-review.md | P2（前端）| spec 交互完整性 + 交互状态覆盖 + 视觉设计 + 渲染形态适配（七维：交互状态覆盖/交互设计细节/可访问性/移动端/组件完整性/AI Slop/视觉设计/渲染正确性与时序）|
 | QA 工程师 | qa.md | P5 | 功能跑通、找 bug |
 | 调试专家 | investigate.md | 任意（出 bug 时）| 根因 |
 | 安全官 | cso.md | P4 后（涉敏感）| 安全审计 |

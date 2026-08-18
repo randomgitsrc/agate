@@ -30,8 +30,14 @@ import subprocess
 import sys
 
 try:
-    from agate_common import run_git
+    import yaml
 except ImportError:
+    yaml = None
+
+try:
+    from agate_common import read_vision_tri_state, run_git
+except ImportError:
+    read_vision_tri_state = None
     run_git = None
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -186,6 +192,209 @@ def _to_int_or_none(value):
         return None
 
 
+# ========== TAG0006 UI/UX 机制（P2 §2.1/§2.15.4/§2.3）：P1 vision 三态 + 形态声明、P2 UI 设计节 ==========
+# 分类框架维度（示例性开放集合，§2.15.2）：布局结构/渲染正确性/交互行为/动效时序/视觉呈现。
+_FRAMEWORK_DIMS = frozenset({"布局结构", "渲染正确性", "交互行为", "动效时序", "视觉呈现"})
+_VISION_STATUSES = frozenset({"available", "supplementable", "GAP"})
+# §2.15.1 同义映射表：中文标签 → 规范形态值（杜绝 ASCII 规范值 vs 中文标签字面永不匹配的误拦）。
+_SHAPE_SYNONYMS = {
+    "布局型": "layout",
+    "渲染组件型": "render_component",
+    "时序特效型": "temporal_effects",
+}
+# §2.3 渲染组件型分支的启发关键词（产品域启发词，仅用于识别可能的渲染组件形态分支，
+# 不构成任何技术栈绑定——形态判定以 P1 ui_render_shape 规范值 / 维度选择为准）。
+_RENDER_COMP_HEURISTICS = ("渲染组件", "视觉渲染", "画布", "图表", "模型", "特效", "地图", "数字地球")
+
+
+def _canonical_shape(value):
+    """P1/P2 形态声明 → 规范形态值（§2.15.1 规范化值比对语义）。
+
+    声明含规范值 ASCII 词（layout/render_component/temporal_effects）直接取用；
+    仅含中文标签（布局型/渲染组件型/时序特效型）经同义映射表归一化；
+    其余开放形态值原样返回（扩展形态以 P1 字段值为比对基准，P2 声明行需复用同一值）。
+    """
+    if not value:
+        return None
+    for canonical in ("layout", "render_component", "temporal_effects"):
+        if re.search(r"\b" + canonical + r"\b", value):
+            return canonical
+    for label, canonical in _SHAPE_SYNONYMS.items():
+        if label in value:
+            return canonical
+    stripped = value.strip("（）()【】[]{}｛｝,， \t")
+    return stripped or None
+
+
+def _gate_p1_vision_capability(p1_file):
+    """P1 检查：domains 含 frontend → capability_requirements 必须含视觉能力三态条目（BDD-3）。
+
+    取 frontmatter domains + 正文 YAML capability_requirements 块（need/name 含 visual|vision）：
+      - 条目缺失 → exit 1（frontend 任务必须显式声明视觉能力）
+      - status 不在 {available, supplementable, GAP} → exit 1
+      - 合法（含 GAP——GAP 是合法声明，触发的是 P6 降级链而非 P1 拦截）→ 通过
+    兼容：domains 不含 frontend → 不触发（基线 825 fixture 均无 frontend domains）。
+    """
+    domains = _md_field_get("domains", p1_file)
+    if "frontend" not in (domains or "").split():
+        return True
+    status = None
+    if read_vision_tri_state is not None:
+        status = read_vision_tri_state(p1_file)
+    if status is None and yaml is not None:
+        # 兜底（agate_common 不可用）：本地解析 capability_requirements 围栏块
+        text = _read_text(p1_file)
+        for m in re.finditer(r"```(?:yaml|yml)\s*\n(.*?)```", text, re.DOTALL):
+            try:
+                data = yaml.safe_load(m.group(1))
+            except Exception:
+                continue
+            if not isinstance(data, dict):
+                continue
+            reqs = data.get("capability_requirements")
+            if not isinstance(reqs, list):
+                continue
+            for item in reqs:
+                if not isinstance(item, dict):
+                    continue
+                need = item.get("need") or item.get("name")
+                if need and re.search(r"visual|vision", str(need), re.IGNORECASE):
+                    status = item.get("status")
+                    break
+            if status is not None:
+                break
+    if status is None:
+        sys.stderr.write(
+            "GATE P1: frontend 任务必须声明 vision 能力条目（capability_requirements 含 visual/vision need）\n"
+        )
+        return False
+    if str(status) not in _VISION_STATUSES:
+        sys.stderr.write(
+            f"GATE P1: frontend 任务 vision 能力条目 status 非法（当前: {status}，须 ∈ available/supplementable/GAP）\n"
+        )
+        return False
+    return True
+
+
+def _gate_p1_ui_shape(p1_file):
+    """P1 检查：domains 含 frontend → ui_render_shape/ui_ux_dimensions 声明合法性（BDD-16，§2.15.4）。
+
+    - 双字段缺失 → 通过（presence 语义，常规布局型默认，不红基线）
+    - 声明了形态但维度空 → exit 1（适配层无法生效）
+    - 维度 ∈ 分类框架（§2.15.2）→ 通过；维度为扩展名 → 须在 P1 UX 类别 BDD 标题出现证明其运用
+    - ui_render_shape 缺失而 ui_ux_dimensions 存在 → 允许（维度选择本身合法）
+    """
+    text = _read_text(p1_file)
+    domains = _md_field_get("domains", p1_file)
+    if "frontend" not in (domains or "").split():
+        return True
+    shape = _md_field_get("ui_render_shape", p1_file).strip()
+    dims_raw = _md_field_get("ui_ux_dimensions", p1_file)
+    dims = [d.strip() for d in re.split(r"[,，\s]+", dims_raw) if d.strip()]
+    if not shape and not dims:
+        return True
+    if shape and not dims:
+        sys.stderr.write(
+            "GATE P1: 已声明 ui_render_shape 但 ui_ux_dimensions 为空——形态声明必须选择适用维度（分类框架或扩展维度）\n"
+        )
+        return False
+    bdd_titles = "\n".join(re.findall(r"^#{2,5}\s+BDD-[0-9]+.*$", text, re.MULTILINE))
+    for dim in dims:
+        if dim in _FRAMEWORK_DIMS:
+            continue
+        if dim and dim in bdd_titles:
+            continue
+        sys.stderr.write(
+            f"GATE P1: 维度 '{dim}' 不在分类框架且未在 UX 类别 BDD 标题声明运用\n"
+        )
+        return False
+    return True
+
+
+def _gate_p2_ui_design_section(p2_file):
+    """P2 检查：ui_affected: true → P2-design.md 必含 UI 设计节（BDD-4，§2.3）。
+
+    校验：① `## UI 设计`（或 `### UI 设计`）节标题；② 渲染形态声明（`渲染形态:` / `适用维度:`）；
+    ③ 按形态分支的目标维度 checklist 关键词（布局型=布局/交互/视觉；渲染组件/时序特效型=
+    渲染正确性或动效时序锚点；"不适用"显式声明可豁免该维度关键词）；④ P1-P2 形态一致性
+    交叉校验（§2.15.1 规范化值比对：P1 声明 ui_render_shape 时 P2 形态声明须一致）。
+    兼容：ui_affected != true → 不触发（既有 fixture 中 full-task/high-risk/paused-task 均 false）。
+    """
+    ui_affected = _md_field_get("ui_affected", p2_file)
+    if ui_affected != "true":
+        return True
+    p2_text = _read_text(p2_file)
+
+    if not re.search(r"^#{2,3}\s+UI 设计", p2_text, re.MULTILINE):
+        sys.stderr.write("GATE P2: ui_affected: true 但缺 UI 设计 节标题（## UI 设计）\n")
+        return False
+
+    # 节区块 = UI 设计 标题之后的文本（形态声明与 checklist 均在节内）
+    ui_sec_match = re.search(r"^#{2,3}\s+UI 设计", p2_text, re.MULTILINE)
+    ui_block = p2_text[ui_sec_match.start():]
+
+    shape_line = ""
+    dim_line = ""
+    for line in _lines(ui_block):
+        m = re.match(r"^\s*[-*]?\s*渲染形态\s*[:：]\s*(.+)$", line)
+        if m and not shape_line:
+            shape_line = m.group(1).strip()
+        m = re.match(r"^\s*[-*]?\s*适用维度\s*[:：]\s*(.+)$", line)
+        if m and not dim_line:
+            dim_line = m.group(1).strip()
+
+    # ② 形态声明（渲染形态 或 适用维度）至少出现一次
+    if not shape_line and "适用维度" not in ui_block:
+        sys.stderr.write(
+            "GATE P2: UI 设计 节缺渲染形态声明（须含 渲染形态: 或 适用维度: 声明行）\n"
+        )
+        return False
+
+    # ③ 按形态分支校验 checklist 维度锚点
+    # 维度不适用豁免按"维度"粒度（§2.3）：显式声明"布局不适用"只豁免布局锚点，
+    # 交互/视觉 仍须各出现关键词——避免"声明任一维度不适用即一刀切豁免全部三维"过宽。
+    canonical = _canonical_shape(shape_line)
+    is_render_form = (
+        canonical is not None and canonical != "layout"
+    ) or any(h in shape_line for h in _RENDER_COMP_HEURISTICS) or bool(
+        re.search(r"渲染正确性|动效时序", dim_line or "")
+    )
+    if is_render_form:
+        render_anchor = bool(re.search(r"渲染|渲染正确性|capture", ui_block))
+        temporal_anchor = bool(re.search(r"时序|动效|animation|frame", ui_block))
+        if not (render_anchor or temporal_anchor):
+            sys.stderr.write(
+                "GATE P2: 渲染组件/时序特效型形态缺维度锚点——须出现渲染正确性（渲染|渲染正确性|capture）或动效时序（时序|动效|animation|frame）checklist\n"
+            )
+            return False
+    else:
+        layout_ok = "布局" in ui_block or bool(re.search(r"布局\s*不适用", ui_block))
+        interaction_ok = "交互" in ui_block or bool(re.search(r"交互\s*不适用", ui_block))
+        visual_ok = "视觉" in ui_block or bool(re.search(r"视觉\s*不适用", ui_block))
+        if not (layout_ok and interaction_ok and visual_ok):
+            sys.stderr.write(
+                "GATE P2: 常规布局型 UI 设计节缺维度 checklist——布局/交互/视觉 关键词须各出现至少一次（或显式声明维度不适用）\n"
+            )
+            return False
+
+    # ④ P1-P2 形态一致性交集校验（规范化值比对，§2.15.1）
+    p1_file = os.path.join(os.path.dirname(os.path.abspath(p2_file)), "P1-requirements.md")
+    p1_shape = _md_field_get("ui_render_shape", p1_file).strip() if os.path.isfile(p1_file) else ""
+    if p1_shape:
+        p2_canonical = _canonical_shape(shape_line) if shape_line else None
+        if p2_canonical is None:
+            sys.stderr.write(
+                "GATE P2: P1 声明了 ui_render_shape 但 P2 UI 设计节缺形态声明行（P1-P2 形态一致性校验不通过）\n"
+            )
+            return False
+        if p1_shape != p2_canonical:
+            sys.stderr.write(
+                f"GATE P2: P1-P2 渲染形态声明不一致（P1 ui_render_shape={p1_shape}, P2 形态声明={p2_canonical}）\n"
+            )
+            return False
+    return True
+
+
 def gate_p0(task_dir):
     sys.stderr.write(
         "GATE P0: 立项阶段无需脚本 gate（仅 P0-brief.md）。主 Agent 确认 P0-brief 四字段齐全即可推进 P1。\n"
@@ -284,6 +493,12 @@ def gate_p1(task_dir):
         return 1
     if nc_blocking == 0 and nc_suggest == 0 and not any(_NO_NEED_RE.search(line) for line in p1_lines):
         sys.stderr.write("GATE P1 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] / [SUGGEST: ...] / [NO_NEED_CONFIRM]）\n")
+
+    # TAG0006（BDD-3/16）：frontend 任务 vision 三态声明 + 形态/维度声明合法性（P1 gate 新增检查）
+    if not _gate_p1_vision_capability(p1_file):
+        return 1
+    if not _gate_p1_ui_shape(p1_file):
+        return 1
 
     sys.stderr.write("GATE P1: P1-review.md approved + agent≠main + 含 BDD 锚点。BDD 编号格式为 #### BDD-NN:\n")
     return 2
@@ -413,6 +628,10 @@ def gate_p2(task_dir):
     _dispatch_error = _gate_p2_dispatch_plan(p2_file)
     if _dispatch_error:
         sys.stderr.write(f"GATE P2 ERROR: {_dispatch_error}\n")
+        return 1
+
+    # TAG0006（BDD-4）：ui_affected: true → UI 设计节检查（含形态声明 + 维度选择 + P1-P2 一致性）
+    if not _gate_p2_ui_design_section(p2_file):
         return 1
 
     sys.stderr.write("GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定\n")

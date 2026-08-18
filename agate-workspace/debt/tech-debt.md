@@ -106,3 +106,45 @@ source: review
 created_at: 2026-08-16
 task_id: TAG0008-version-management
 ```
+
+## DEBT0005
+
+```yaml
+id: DEBT0005
+category: technical
+title: P6 双证据三态解析逻辑三处重复（check-gate / check-p6-evidence / check-p6-provenance）
+status: closed
+priority: medium
+evidence:
+  - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P2-design.md
+    note: §2.1 _gate_p1_vision_capability / §2.8 check-p6-evidence 与 check-p6-provenance 各自读取 P1 视觉条目三态
+impact: 三处解析口径若漂移（如 GAP 判据扩展）会各自不一致，P6/P1 gate 判定分叉
+recommendation: 抽取公共 helper（agate_common.py 新增 read_vision_tri_state(p1_file)），三处复用
+closure_criteria:
+  - 公共 helper 就位且三处脚本调用同一函数
+  - 全量 pytest 825+ 全绿 + consistency 0 ERROR
+source: review
+created_at: 2026-08-17
+task_id: TAG0006-ui-ux-quality
+```
+
+## DEBT0006
+
+```yaml
+id: DEBT0006
+category: technical
+title: check-p6-evidence.py ahash 文件名↔哈希 zip 对齐脆性（非图片/损坏图静默跳过致错位）
+status: closed
+priority: high
+evidence:
+  - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P4-review-backend.md
+    note: CRITICAL-1——agate-image-check ahash 对非图片文件 contextlib.suppress 吞错不打印行，check-p6-evidence 用 sorted(glob) 与输出 zip 对齐，行数不匹配 → 哈希错位（误拦/漏放）
+impact: avg-hash 雷同分组（BDD-14）与同 BDD 时序豁免（BDD-17）判定失真，静默破坏充数/雷同防伪
+recommendation: ahash 计算收敛到单一拥有方（内联到 check-p6-evidence 或 agate-image-check 改输出 文件名\t哈希 成对行），消除 zip 对齐脆性；补含非图片文件的中等复现单测
+closure_criteria:
+  - check-p6-evidence 与图片哈希文件一一对应，无 zip 错位
+  - 含 >1KB 非图片文件的 screenshots 场景，重复对仍正确分组
+source: P4-review
+created_at: 2026-08-17
+task_id: TAG0006-ui-ux-quality
+```

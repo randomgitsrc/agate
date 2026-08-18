@@ -1,0 +1,6 @@
+agate/tests/unit/test_check_gate.py::test_vision_1_frontend_missing_capability_exit_1 PASSED [ 25%]
+agate/tests/unit/test_check_gate.py::test_vision_2_frontend_invalid_status_exit_1 PASSED [ 50%]
+agate/tests/unit/test_check_gate.py::test_vision_3_frontend_valid_gap_exit_2 PASSED [ 75%]
+agate/tests/unit/test_check_gate.py::test_vision_4_backend_no_vision_no_fail_exit_2 PASSED [100%]
+====================== 4 passed, 143 deselected in 0.40s =======================
+EXIT_CODE: 0

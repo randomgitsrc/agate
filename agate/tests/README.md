@@ -29,14 +29,15 @@ bash agate/tests/scripts/count-tests.sh
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
 | check-pruning.py | unit/test_check_pruning.py | 29 |
-| check-gate.py | unit/test_check_gate.py | 124 |
+| check-gate.py | unit/test_check_gate.py | 144 |
 | check-gate.py 集成锚点 | unit/test_check_gate_p1_review.py | 9 |
 | check-gate.py P5 命令 diff | unit/test_check_gate_p5_diff.py | 13 |
 | agate-next-card.py | unit/test_agate_next_card.py | 22 |
 | agate-render-dispatch-prompt.py | unit/test_agate_render_dispatch_prompt.py | 20 |
-| check-p6-evidence.py | unit/test_check_p6_evidence.py | 30 |
+| check-p6-evidence.py | unit/test_check_p6_evidence.py | 45 |
 | check-p6-format.py | unit/test_check_p6_format.py | 16 |
-| check-p6-provenance.py | unit/test_check_p6_provenance.py | 36 |
+| check-p6-provenance.py | unit/test_check_p6_provenance.py | 40 |
+| check-p6-provenance.py | unit/test_review_role_docs.py（UI/UX 机制文档条文，TAG0006）| 14 |
 | check-scope-resolved.py | unit/test_check_scope_resolved.py | 10 |
 | check-frontmatter.py | unit/test_check_frontmatter.py | 14 |
 | check-state-yaml.py | unit/test_check_state_yaml.py | 9 |

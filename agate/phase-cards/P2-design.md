@@ -68,8 +68,18 @@ candidate_count: 2                # int ≥1，必填
 packages: [pkg-a]                 # list，必填
 domains: [backend, cli]           # list，必填
 ui_affected: false                # bool，必填
+ui_design_section: true           # bool，可选（presence 语义：ui_affected: true 时声明已含 UI 设计节）
 ---
 ```
+
+**UI 设计节（`ui_affected: true` 时必含，P2 gate 校验）：** `ui_affected: true` 的 P2-design.md
+正文必须包含 `## UI 设计` 节，节内含**渲染形态声明**（`渲染形态:` 声明行，复用 P1 frontmatter
+`ui_render_shape` 的规范形态值 + 中文注释，gate 按规范化值比对校验 P1-P2 一致；无 P1 声明时按
+布局型默认）+ **维度选择**（`适用维度:` 声明行）+ **按形态适配的 checklist**（常规布局型 =
+布局/交互/视觉三类；渲染组件/时序特效型 = 渲染正确性/动效时序等适用维度 checklist；不适用的维度
+显式声明"维度不适用"）。缺 UI 设计节 / 缺形态声明 / 缺按形态 checklist / P1-P2 形态声明不一致 →
+P2 gate exit 1。结构规格见 `assets/execution-roles/architect.md`「UI 设计节」节（由 architect
+兼任产出，不新增 designer 角色）。
 
 候选方案简化（须附理由，无理由视为无效声明，要求 ≥2 候选方案）：
 - `design_trivial: true` + 理由（为什么 trivial）→ 可只写 1 个候选方案（P2 仍不可省略）

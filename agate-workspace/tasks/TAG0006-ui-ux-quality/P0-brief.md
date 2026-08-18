@@ -11,6 +11,7 @@ known_risks:
   - "RM-AG0006 是技术选型调研（WinAppDriver/AutoIt）——非纯实现，P2 设计时需先出评估结论再定方向，可能产出'建议保持现状'"
   - "三处都涉及协议文档增强（phase-cards/*.md、assets/execution-roles/*.md、state-machine.md）→ 触发 SELF-GATE"
   - "【2026-08-13 用户确认】本任务走完整 task（非 plan）——UI/UX 质量是真实能力缺口，值得 P0-P8 完整流程"
+  - "【2026-08-17 范围扩展（用户提出，主 Agent 确认纳入）】UI/UX 机制不应只适用于常规布局型 UI，需覆盖任意实际渲染形态：渲染组件（OpenGL/WebGL/Canvas 画布/图表/模型/特效/地图/数字地球）+ UX 交互形态（动作/特效/时序）。视觉验收维度按项目实际 UI 形态自适应，不写死工具/技术栈。采用 A1（分类框架+适配）+ B1（本任务内增补，回退 P1/P2 后继续）"
   - "【强制要求】同类扫描 + 联动面梳理：P1/P2 阶段必须梳理'UX 机制影响面'——ui_affected/plan-design-review/vision-analyst 在 64 处文件被消费，改一处须同步所有联动点（state-machine 转移条件、verifier 角色、vision-analyst 角色、P2 卡片 C8 表）。P2 设计先画影响面图再动手，避免'改了 P6 漏了 P2'的多轮返工。用户明确：不愿意一轮一轮来回改"
 
 executor_env:

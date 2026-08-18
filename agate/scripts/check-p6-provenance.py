@@ -34,6 +34,11 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+try:
+    from agate_common import read_vision_tri_state
+except ImportError:
+    read_vision_tri_state = None
+
 _SKIP_AGENT_CHECK = (
     r"-dispatch-context\.md$",
     r"-dispatch-context-[^/]*\.md$",
@@ -274,9 +279,13 @@ def main():
             sys.stderr.write(f"GATE PROVENANCE: P6 结果数({p6_total}) < P1 BDD 条目数({p1_bdd})，挑验不通过\n")
             sys.exit(1)
 
-    # --- 审计 4：UI vision YAML 引用（R1b：T045 评审 v5）---
-    # ui_affected: true 时，含截图引用的 PASS 行必须同时含 (vision: ...) 引用
-    # YAML 文件存在 + summary.blocker_count == 0
+    # --- 审计 4：UI vision 证据（R1b：T045 评审 v5，TAG0006 增 GAP 放宽）---
+    # ui_affected: true 时，含截图引用的 PASS 行：
+    #   * P1 vision status=GAP（能力缺失，走降级链）→ 不强制 vision YAML，改为要求
+    #     每条截图 PASS 附 (manual-review: <file>) 引用且文件存在（人工复核记录）
+    #   * P1 显式 available/supplementable 或**无声明**（默认 available 语义，兼容回归
+    #     anchor：无声明任务 P6 行为与基线完全一致）→ 保留既有强制：
+    #     (vision: ...) 引用 + YAML 存在 + summary.blocker_count == 0
     if p6_exists and os.path.isfile(p1_file):
         p2_file = os.path.join(task_dir, "P2-design.md")
         ui_affected = ""
@@ -286,32 +295,59 @@ def main():
                 ui_affected = out
 
         if ui_affected == "true":
-            vision_missing = 0
-            for line in pass_lines:
-                if re.search(r"\(screenshots/", line) and not re.search(r"\(vision:\s*[^)]+\)", line):
-                    vision_missing += 1
+            vision_state = read_vision_tri_state(p1_file) if read_vision_tri_state is not None else None
+            is_gap = vision_state == "GAP"
 
-            if vision_missing > 0:
-                sys.stderr.write(f"GATE PROVENANCE: ui_affected=true 但有 {vision_missing} 条含截图的 PASS 缺 vision YAML 引用\n")
-                sys.exit(1)
+            if is_gap:
+                gap_review_missing = 0
+                for line in pass_lines:
+                    if re.search(r"\(screenshots/", line) and not re.search(r"\(manual-review:\s*[^)]+\)", line):
+                        gap_review_missing += 1
 
-            refs = sorted({
-                m
-                for line in p6_lines
-                for m in re.findall(r"\(vision:\s*[^)]+\)", line)
-            })
-            for ref in refs:
-                yaml_file = re.sub(r"^.*vision:\s*", "", ref).replace(" ", "").replace(")", "")
-                yaml_path = os.path.join(task_dir, yaml_file)
-                if not os.path.isfile(yaml_path):
-                    sys.stderr.write(f"GATE PROVENANCE: vision YAML 引用的文件不存在: {yaml_file}\n")
+                if gap_review_missing > 0:
+                    sys.stderr.write(
+                        f"GATE PROVENANCE: ui_affected=true 且 P1 vision=GAP（降级链）但有 {gap_review_missing} 条含截图的 PASS 缺人工复核记录引用（manual-review: <file>）\n"
+                    )
                     sys.exit(1)
-                blocker_count, rc = _run_script("agate-vision-blocker.py", [], {"YAML_PATH": yaml_path})
-                if rc != 0:
-                    blocker_count = "-1"
-                if blocker_count != "0":
-                    sys.stderr.write(f"GATE PROVENANCE: vision YAML {yaml_file} 的 blocker_count={blocker_count}（须为 0）\n")
+
+                for ref in re.findall(r"\(manual-review:\s*[^)]+\)", p6_text):
+                    review_file = re.sub(r"^.*manual-review:\s*", "", ref).replace(")", "").strip()
+                    if not os.path.isfile(os.path.join(task_dir, review_file)):
+                        sys.stderr.write(f"GATE PROVENANCE: 人工复核记录文件不存在: {review_file}\n")
+                        sys.exit(1)
+                # GAP 降级链放行（仅本轮审计 4）：vision 能力缺失任务的截图证据以
+                # "人工复核记录"为终态证据，不要求 vision YAML / blocker_count
+                # （那是 available 分支的强制项）。只跳过 vision 相关强制，不整脚本退出，
+                # 随后正常落入审计 5（日志 EXIT_CODE 一致性）、协作规范与审计 6
+                # （evidence JSON 一致性）——这些是非 vision 硬检查，GAP 任务同样适用。
+                sys.stderr.write("GATE PROVENANCE: P1 vision=GAP（降级链），截图 PASS 已附人工复核记录，R1b 本轮 vision 检查放行\n")
+            else:
+                vision_missing = 0
+                for line in pass_lines:
+                    if re.search(r"\(screenshots/", line) and not re.search(r"\(vision:\s*[^)]+\)", line):
+                        vision_missing += 1
+
+                if vision_missing > 0:
+                    sys.stderr.write(f"GATE PROVENANCE: ui_affected=true 但有 {vision_missing} 条含截图的 PASS 缺 vision YAML 引用\n")
                     sys.exit(1)
+
+                refs = sorted({
+                    m
+                    for line in p6_lines
+                    for m in re.findall(r"\(vision:\s*[^)]+\)", line)
+                })
+                for ref in refs:
+                    yaml_file = re.sub(r"^.*vision:\s*", "", ref).replace(" ", "").replace(")", "")
+                    yaml_path = os.path.join(task_dir, yaml_file)
+                    if not os.path.isfile(yaml_path):
+                        sys.stderr.write(f"GATE PROVENANCE: vision YAML 引用的文件不存在: {yaml_file}\n")
+                        sys.exit(1)
+                    blocker_count, rc = _run_script("agate-vision-blocker.py", [], {"YAML_PATH": yaml_path})
+                    if rc != 0:
+                        blocker_count = "-1"
+                    if blocker_count != "0":
+                        sys.stderr.write(f"GATE PROVENANCE: vision YAML {yaml_file} 的 blocker_count={blocker_count}（须为 0）\n")
+                        sys.exit(1)
 
     # --- 审计 5：日志 EXIT_CODE 与 PASS/FAIL 声明一致性（依赖 M1.3a 约定）---
     if p6_exists:

@@ -16,9 +16,15 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 
 ### P1 → P2
 - P1-requirements.md 有效 + 含至少一条 BDD 验收条件 + 无未决行首 NEED_CONFIRM（倾向项 `[SUGGEST:]` WARNING 不阻塞；无待确认项写 `[NO_NEED_CONFIRM]`）+ 无 status: GAP（supplementable 不阻）
+- frontend 任务（domains 含 frontend）：P1 必须声明 vision 视觉能力条目（need 含 visual/vision，
+  status ∈ available/supplementable/GAP，缺失 P1 gate exit 1）+ 渲染形态/维度声明合法性通过
+  （声明 ui_render_shape 但维度空 / 维度不在分类框架且未在 BDD 标题声明 → exit 1）
 
 ### P2 → P3
 - P2-review.md 有效 + status: approved + P2-design.md 声明 packages/domains/ui_affected/gate_commands + 候选方案 ≥2 + 含权衡/选择理由/取舍/考量/trade-off
+- UI 任务（ui_affected: true）：P2-design.md 必须含 UI 设计节（## UI 设计 + 渲染形态声明 +
+  维度选择 + 按形态 checklist，P2 gate 拦截缺失；形态声明须与 P1 ui_render_shape 一致，
+  规范化值比对）
 
 ### P3 → P4
 - check-tdd-red.py exit 0 + assertion_failures>0 + collection_errors==0
@@ -34,6 +40,10 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 ### P6 → P7
 - check-gate.py P6 exit 2（FAIL=0 / NC=0 / 证据非空）
 - check-p6-provenance.py exit 0（由审计 3 自动对照 BDD 总数，exit 1 硬阻，无过渡期兜底）
+- UI 任务 P6 双证据按 P1 vision 能力三态分档：available/supplementable（无声明默认 available）→
+  vision YAML 引用 + blocker_count=0；GAP → 截图/帧序列 + 人工复核记录引用（不要求 vision YAML）；
+  证据形式按渲染形态选择（常规布局型=截图/行为日志；渲染组件/时序特效型=帧序列/渲染输出对比/
+  时序截图，check-p6-evidence.py 校验形态匹配）
 
 ### P7 → P8
 - 声明行 [BLOCKER]: N 条 被排除后 =0 / [DEVIATION-CRITICAL] 同理

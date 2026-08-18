@@ -1193,6 +1193,21 @@ P1 产出 `capability_requirements` 后，主 Agent 在派发后续阶段时必�
 3. 若能力在 P3/P4 阶段就需要（如 Playwright viewport 配置），提前在对应阶段 prompt 里注入
 如未注入，subagent 不知道补充方式，supplementable 等效退化为 GAP。
 
+**A3 视觉语境扩展（TAG0006，BDD-11）**：当 P1-capability_requirements 中视觉条目
+status=supplementable 且该任务 P2 `ui_affected: true` 时，P6 派发 prompt 必须注入**视觉能力
+获取指引**（如「可调用 vision-analyst 角色 / 视觉分析 skill，先自查能否调用，再向主 Agent
+报告」），且派发 prompt 必须含**能力自查**强制要求（subagent 先自查能否调用视觉能力，不能则
+报告 `[CAPABILITY_GAP]` 走降级路径——文档条文/像素检测/人工复核记录，不静默假设）。
+P5/P6 派发追加段同样带能力自查要求（BDD-12）。
+
+**UI 任务证据规则（TAG0006，BDD-9/14/17，P6 证据段）**：`ui_affected: true` 任务的 P6 证据段
+说明须含三态分档 + 证据形式按形态选择——`available`/`supplementable`（无声明默认 available）
+→ vision YAML 引用 + blocker_count=0；`GAP` → 截图/帧序列 + 人工复核记录引用（不要求 vision
+YAML）；渲染组件/时序特效形态可选用 帧序列（`frames/`）/ 渲染输出对比（`renders/` + diff.json）/
+时序截图（`-tN`）证据，帧序列与 `-tN` 时序截图按"同 BDD 证据组（bdd-id 前缀）"同权豁免
+avg-hash 雷同判定；跨 BDD 组雷同截图 → 降级待复核（须含 `雷同截图复核` 记录或 manual-review
+引用才放行，md5 逐字节去重硬阻断不变）。
+
 **注意**：`supplementable` 不是 `GAP`。
 T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwright-cdp skill 可注入。
 如果 P1 就识别出这是 `supplementable` 并提示「需要注入 playwright-cdp skill」，

@@ -8,6 +8,28 @@
 
 ---
 
+## [0.51.0] - 2026-08-18
+
+### 新增（TAG0006：agate UI/UX 验收质量机制）
+
+- **P1 vision 能力三态硬声明（check-gate.py gate_p1）**：`domains` 含 `frontend` 的任务 P1 必须在 `capability_requirements` 声明视觉能力条目（`need`/`name` 含 visual/vision）且 `status ∈ {available, supplementable, GAP}`；缺失/非法 → exit 1。既有任务无 frontend domains 不触发（向后兼容）。
+- **P1 渲染形态/维度声明（可选字段）**：frontmatter 新增可选 `ui_render_shape`（规范值 layout / render_component / temporal_effects）+ `ui_ux_dimensions`（presence 语义，缺失 = 布局型默认，不破坏性）；跨阶段一致（I14）由 P2 gate + P7 CHECK 11 校验。
+- **P2 UI 设计节检查（check-gate.py gate_p2）**：`ui_affected: true` 的 P2-design.md 必须含「UI 设计」节（渲染形态声明 + 按形态 checklist：常规布局型布局/交互/视觉；渲染组件型渲染正确性/动效时序）+ P1-P2 形态一致性规范化值比对；缺节/缺声明/不一致 → exit 1。由 architect 兼任产出，**不新增 designer 角色**。
+- **P6 三态分档双证据 + 证据形式按形态（check-p6-evidence / check-p6-provenance）**：P1 vision=GAP → 降级为像素检测 + 人工复核记录；available/无声明（默认 available）保留既有 R1b vision YAML + blocker_count 强制。渲染组件型形态可用帧序列 / 渲染输出对比 / 时序截图，纯文本证据拦截。
+- **输入态/交互形态变化类人工复核（BDD-13）**：该类 BDD 结论必须附人工复核记录。
+- **P7 一致性 CHECK 11（check_uiux_doc_anchors）**：断言各协议文档含 UI/UX 机制条文锚点，防文档-脚本-单测三件套漂移。
+- **plan-design-review 维度五维→七维**：新增视觉设计/交互设计细节/渲染正确性与时序 0-10 可判定评分项 + 七维边界注。
+- **dispatch-prompt 新增「能力自查（强制）」节 + A3 视觉 supplementable 注入**：subagent 无法调用视觉能力时须报告 [CAPABILITY_GAP] 走降级，不静默假设。
+
+### 变更（行为变化，需读者注意）
+
+- **avg-hash 雷同截图判定升级（check-p6-evidence.py avg-hash）**：视觉高度相似截图从非阻断 WARNING（exit 2）升级为「降级待复核」——含人工复核记录 → 放行；无记录 → exit 1 阻断。md5 硬阻断语义不变。帧序列/时序截图按同 BDD 组（bdd-id 前缀）豁免相邻样本。**本行为变化对所有任务的 P6 截图证据路径生效，见 `agate/UPGRADING.md` v0.51.0 章节。**
+
+### 测试
+- P3 53 新增用例（test_check_gate / test_check_p6_evidence / test_check_p6_provenance / test_review_role_docs）；全量 pytest 881 passed + 2 skipped 无回归；consistency 0 ERROR；count-tests 883（≥749 单调不减）。
+
+---
+
 ## [0.50.0] - 2026-08-16
 
 ### 新增（TAG0008：agate 版本管理机制 v1）

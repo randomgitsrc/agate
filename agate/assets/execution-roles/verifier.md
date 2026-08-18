@@ -77,7 +77,10 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 1. **DOM 结构验证**（最可靠）：innerHTML 长度、元素存在性、class 状态
 2. **交互响应验证**（可靠）：点击后 class 变化、modal 出现/消失、URL 跳转
-3. **vision-analyst 视觉分析**（辅助证据）：可被 1/2 覆盖
+3. **vision-analyst 视觉分析**（辅助证据）：可被 1/2 覆盖；**P1 显式声明 vision 能力
+   status=available 的任务，视觉分析是 P6 真实视觉分析（BDD-10）的硬性证据**——分析对象
+   扩展至所选证据形式：截图 / 帧序列（逐帧描述帧间差异与时序）/ 渲染输出对比（结果差异描述），
+   不得仅以 naturalWidth>0 / complete=true / HTTP 200 / 像素方差断言视觉 PASS
 
 当 vision-analyst 报 blocker 但 DOM 验证 PASS 时：
 1. 派第二轮截图（换主题/换时机/换 viewport）
@@ -101,11 +104,53 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 
 **脚本已写 ≠ 验证完成**：如果你产出了 Playwright 验证脚本但没有实跑，必须在 acceptance.md 正文标注 `⚠️ 脚本未实跑，需主 Agent 验证`。主 Agent 必须在 gate 判定前实跑脚本——"脚本已写"不作为 gate 通过条件。
 
-**UI 任务追加约束**（`ui_affected: true` 时）：
-- 含截图引用的 PASS 行必须同时含 vision YAML 引用：`(screenshots/b01.png) (vision: vision-reports/b01.yaml)`
-- vision YAML 的 `summary.blocker_count` 必须为 0
-- 截图文件大小 ≤ 1KB 时的处理：非 PNG 文件充数 → 拦截（exit 1）；合法 PNG 但 ≤ 1KB → WARNING（exit 2，元素级小截图不阻断但请确认非充数）
-- 查询类 BDD（断言值是唯一证据）可不截图、不要求 vision——但如果你截了图，就必须有 vision
+**UI 任务追加约束**（`ui_affected: true` 时）——**双证据 + 视觉能力三态分档**：
+每条 UI 类 PASS 必须同时含**运行时证据**（截图/行为日志，或渲染组件类的帧序列/渲染输出对比）
++ **视觉证据**。视觉证据形式按任务的**渲染形态**选择（P1 frontmatter `ui_render_shape` 读取：
+缺失 = 常规布局型），并按 P1 声明的 vision 能力三态（`capability_requirements` 视觉条目 status）
+分档消费：
+- `available` / `supplementable`（能力可用/可补充）→ 视觉证据 = **vision YAML 引用**：
+  `- PASS BDD-1: 描述 (screenshots/login.png) (vision: vision-reports/bdd-1.yaml)`；vision YAML
+  的 `summary.blocker_count` 必须为 0。**P1 无视觉能力声明（capability_requirements 无 need
+  含 visual/vision 条目）时视为 available 语义**（默认值，保证既有无声明任务行为不变）
+- `GAP`（能力真缺失，走降级链）→ 视觉证据 = 截图 + **人工复核记录**：
+  `(screenshots/b01.png) (manual-review: review-b01.md)`——不要求 vision YAML 引用；
+  `manual-review` 引用的记录文件必须存在，否则 check-p6-evidence / check-p6-provenance 拦截
+- 截图像素方差 < 50 / ≤ 1KB 处理：非 PNG 充数 → 拦截（exit 1）；合法但异常 → WARNING（exit 2）
+- 查询类 BDD（断言值是唯一证据）可不截图、不要求 vision——但如果你截了图，就必须按所在分档附证据
+- **渲染组件型/时序特效型任务**（P1 声明 `ui_render_shape: render_component` / `temporal_effects`）
+  视觉证据可选用**帧序列、时序截图、渲染输出对比**（形式清单见下方"证据形式按形态选择"）：
+  - 帧序列：`P6-evidence/frames/{bdd-id}-{NN}.png`（NN 两位起，帧号=时序顺序），PASS 行引用
+    首末帧；帧文件必须 >1KB 非空，帧号连续（缺口 → WARNING 交 verifier 复核）
+  - 时序截图：`P6-evidence/screenshots/{bdd-id}-t{N}.png`（`-t1`/`-t2`/`-t3` 时刻后缀有序）
+  - 渲染输出对比：`P6-evidence/renders/{bdd-id}-{variant}-actual.png` / `-reference.png` /
+    `-diff.json`；diff.json 必须含量化度量（`pixel_diff_ratio` / `average_hash_distance`），
+    PASS 行须引 actual + diff
+  - 帧序列与 `-tN` 时序截图**同权豁免雷同判定**：avg-hash 按"同 BDD 证据组（bdd-id 前缀）"
+    分组——同一 bdd 的 帧 `{bdd-id}-01/02` 与 时刻截图 `{bdd-id}-t1/t2` 视觉相近是动画/时序正常
+    特性，不降级拦截；跨 BDD 组雷同才触发"降级待复核"（须附 `雷同截图复核` 记录或 manual-review）
+
+**语义规则**：PASS 行括号内路径相对 P6-evidence/，文件必须存在；合并在同一括号或独立括号均可被
+解析，但 vision/manual-review 引用建议独立括号（与截图引用区分）。
+
+**输入态/交互形态变化类人工复核**（BDD-13）：输入态/交互形态变化类 BDD 的 PASS/FAIL 结论必须附
+**人工复核记录**（复核人 / 复核时间 / 复核结论），不能仅由自动断言通过。判定标准：
+> 输入态/交互形态变化类用例 = 用户输入（键盘/鼠标/粘贴/手势/拖拽）或动作/特效/时序交互导致
+> 界面状态或渲染表现变化，或有时序动效联动的用例。判据：BDD 的 When 子句含输入动作
+> （输入/点击/按键/滚动/手势/拖拽）或动作/特效/时序触发，且 Then 子句断言的界面状态
+> （显示内容/样式/组件状态/渲染表现/时序状态）与该输入或触发相关。
+>
+> - 非输入态类（静态渲染、查询结果展示）→ 不触发人工复核
+> - 输入态类（表单输入、键盘导航、焦点转移）→ P6 结论必须附人工复核记录
+> - 交互形态类（动作/特效/时序：旋转/缩放/拖拽/过渡动画/帧时序变化）→ 亦触发人工复核
+>   （按时序类证据——帧序列/时序截图——附复核记录）
+
+**视觉质量 checklist 核对**：逐条对照 P1 UX 类别 BDD + P2 UI 设计节（渲染形态声明 + 维度选择
+的 checklist），核对渲染正确性/时序/动效判据是否有量化锚点（渲染结果对比 + diff 度量、帧/时间戳
+对齐、动效起止状态），在验收报告中记录每项 checked/unchecked + 依据，不只写"渲染成功"。
+判据可量化档位：渲染正确性 → 渲染输出与参考对比（diff 度量）或输出断言；时序 → 帧/时间戳对齐
+（时长不超阈值）；动效 → 过渡/动画关键帧与结束状态断言；手势交互/动作 → 动作输入 → 界面/渲染
+响应的坐标/参数断言（旋转角/缩放比/拖拽位移量化）。禁主观词（可读/美观/流畅/平滑/自然/响应灵敏）。
 
 ### 验证纪律（P6 模式）
 
@@ -145,7 +190,11 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P6-acceptance.md — 验收报告，每条 BDD 一个结果块
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P6-evidence/ — 验收证据目录（每条 BDD 至少一个证据文件）
   - test-output.log — 验证脚本执行日志（所有任务通用）
-  - screenshots/ — Playwright 截图（仅 UI 任务）
+  - screenshots/ — Playwright 截图（仅 UI 任务）；渲染组件/时序特效型任务的时序截图以
+    `-t{N}` 时刻后缀命名（`{bdd-id}-t1.png` / `-t2.png`）
+  - frames/ — 帧序列（渲染组件型，`{bdd-id}-{NN}.png` 帧号两位起，PASS 行引用首末帧）
+  - renders/ — 渲染输出对比（渲染组件型（对比类），`{bdd-id}-{variant}-actual.png` /
+    `-reference.png` / `-diff.json`，diff.json 含量化度量）
   - traces/ — Playwright trace（仅 UI 任务，可选）
 - evidences/ — Playwright 截图（desktop + mobile，若 ui_affected）——**本地工作文件**：pre-commit-gate 已放行该目录，但只有 `P6-evidence/` 里被 PASS/FAIL 行引用的文件才算验收证据，`evidences/` 可作为补充参考随任务提交
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P6-vision-{timestamp}.yaml — UI 条件的结构化视觉分析（由 vision-analyst 产出）
@@ -173,6 +222,11 @@ ui_affected: false                # bool（与 P2 声明一致）
 `- PASS`/`- FAIL` 开头，否则会被计入逐条统计造成误判。
 
 **UI 条件的处理流程**：
+0. **读形态 + vision 三态**：先读 P1-requirements.md 的 `ui_render_shape` / `ui_ux_dimensions`
+   与 vision 能力三态（capability_requirements 视觉条目 status，无声明默认 available）→ 决定
+   证据路径（常规布局型 = 截图/行为日志；渲染组件/时序特效型 = 帧序列/时序截图/渲染输出对比）
+   与 vision 分档（available/supplementable → vision YAML + blocker_count=0；GAP → 截图/帧/
+   渲染输出 + 人工复核记录 + 像素检测，不要求 vision YAML）
 0. **截图前确认过渡完成**：对含 CSS 过渡/动画的页面（路由淡入淡出、hover 效果等），`waitForSelector(state:'visible')` 只保证元素非零尺寸且非 display:none，**不保证 opacity===1**。截图前用 `page.evaluate` 确认目标元素 `getComputedStyle().opacity === '1'`，或 `waitForTimeout(200)` 等待过渡结束，避免截到淡入中间帧。低对比度/有淡入动画的设计系统里此风险反复出现。
 1. Playwright 跑完，截图存入 evidences/（desktop_1280x800.png + mobile_390x844.png）
 2. 派发 vision-analyst，传入截图路径 + 需验证的 BDD 条件列表
@@ -180,6 +234,9 @@ ui_affected: false                # bool（与 P2 声明一致）
 4. verifier 读取 YAML 的 summary 和 bdd_results，填入 P6-acceptance.md
 5. **blocker_count == 0 检查**：vision-analyst YAML 的 summary.blocker_count 必须 == 0，否则 P6 gate 不通过（这是协议硬约束，不是只检查 per-BDD 结果）
 6. blocker anomaly → 对应 BDD 条件标 FAIL → P6 不通过 → 回 P4
+7. **视觉质量 checklist 核对**：逐条对照 P1 UX 类别 BDD + P2 UI 设计节 checklist，核对
+   渲染正确性/时序/动效类判据有量化锚点；输入态/交互形态变化类 PASS 附人工复核记录；
+   雷同截图（avg-hash）如需保留 → 附 `雷同截图复核` 记录或改非截图证据
 
 ### 质量门槛
 - P1 的**每条** BDD 条件都有实跑结果，只允许 **PASS 或 FAIL**（二值），**不允许"⚠️ 调整/跳过/覆盖"等中间态**（T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）

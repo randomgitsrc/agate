@@ -87,6 +87,10 @@ P2 --[P2-review.md 有效 AND status==approved AND agent≠main AND P2-design.md
 P2 --[P2-review.md status==rejected && retry<MAX]--> P2 (retry+1)
 P2 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
     （若 P2 设计涉及 UI：P2-design.md 必须声明 ui_affected: true，并列出需 E2E 覆盖的交互点）
+    （P1→P2 vision 三态约束：domains 含 frontend 的任务，P1 的 capability_requirements 必须已声明
+      视觉能力条目（need 含 visual/vision）且 status ∈ available/supplementable/GAP——缺失会被 P1 gate 拦截）
+    （ui_affected: true 时 P2-design.md 必须含 UI 设计节（## UI 设计 + 渲染形态声明 + 维度选择 +
+      按形态 checklist，P2 gate 拦截缺失），形态声明复用 P1 frontmatter 的 ui_render_shape 规范值）
 
 P3 --[scripts/check-tdd-red.py exit 0 AND assertion_failures>0 AND collection_errors==0]--> P4
     （check-gate.py P3 只检查 P3-test-cases.md 存在，红灯由主 Agent 手动跑 check-tdd-red.py + CI backstop P3 兜底确认）
@@ -120,6 +124,10 @@ P6 --[scripts/check-gate.py P6 exit 2（FAIL=0/证据非空）AND scripts/check-
      ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3 平台支持独立 git author）
      （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
+     （UI 任务 P6 双证据按 P1 vision 能力三态分档：available/supplementable（无声明默认 available）
+       → vision YAML 引用 + blocker_count=0；GAP → 截图/帧序列 + 人工复核记录引用（不要求 vision
+       YAML）；证据形式按渲染形态选择（常规布局型=截图/行为日志；渲染组件/时序特效型=帧序列/
+       渲染输出对比/时序截图，由 check-p6-evidence.py 校验））
      （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
 P6 --[任何 BDD 标 FAIL && retry<MAX]--> P4 (retry+1)（行为不符 → 回实现）
 P6 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）

@@ -78,12 +78,26 @@ domains: [backend, frontend]  # list，必填
 # internal_only_reason / 跳过风险 / design_trivial / follows_existing_pattern
 # ── v2.0 refactor 任务类型声明（可选，缺省 = 功能任务）──
 # change_type: refactor   # 当前仅支持 refactor；枚举非法值由 frontmatter schema 拦截
+# ── TAG0006 UI/UX 渲染形态声明（可选，presence 语义：缺失 = 常规布局型默认，不红基线）──
+# ui_render_shape: render_component   # str，规范形态值：layout（布局型）/ render_component
+#                                     # （渲染组件型，仅举例 OpenGL/WebGL/Canvas/图表/模型/特效/
+#                                     #  地图/数字地球）/ temporal_effects（时序特效型）；开放集合可扩
+# ui_ux_dimensions: [渲染正确性, 动效时序]  # list，从 UX 分类框架选适用维度；渲染组件/时序特效
+#                                     # 类形态必填，常规布局型可省略
 # ── v2.0 标记"已解决/已确认"状态（可选，仅标记存在时写）──
 # need_confirm_resolved: []   # list[str]：已解决的 NEED_CONFIRM 项描述（逐条匹配正文）
 # suggest_resolved: []        # list[str]：已采纳的 SUGGEST 项描述
 # scope_resolved: []          # list[str]：已解决的 SCOPE+ 项描述
 ---
 ```
+
+**UX 类别 BDD 与分类框架（domains 含 frontend 时必做）**：frontend 任务的 P1 必须含至少一条
+UX 类别 BDD，并按实际 UI/渲染形态声明 `ui_render_shape` + 从 **UX 分类框架**（布局结构/
+渲染正确性/交互行为/动效时序/视觉呈现等示例性开放集合）选 `ui_ux_dimensions` 维度，类别写入
+BDD 标题后缀（如 `#### BDD-3: 渲染正确性：...`）。判据必须可量化（渲染正确性 → 渲染结果对比 +
+diff 阈值或输出断言；时序 → 帧/时间戳对齐；动效 → 过渡/动画关键帧与结束状态断言；手势交互 →
+动作输入的坐标/参数量化），禁主观词。缺失形态声明/维度选择/UX BDD → requirements-review 打回，
+P1 gate 在"声明了形态但维度为空"或"维度不在分类框架且未在 BDD 标题声明"时 exit 1。
 
 **NEED_CONFIRM 分级**：
 - `[SUGGEST: 推荐 X，理由 Y]` - 有倾向但求确认。主 Agent 可自行采纳倾向（除非涉及破坏性变更/业务方向），不必问用户
@@ -106,7 +120,10 @@ P1 评审不可裁——所有任务都走独立 requirements-review，无例外
 
 1. **BDD 写成技术实现而非用户行为**：BDD 应该描述"用户能看到什么/系统应该做什么"，不是"调用哪个 API"
 2. **domains 声明不全**：漏了某个受影响域 → P2 不派该域的评审 → 实现方向错误
-3. **capability_requirements 漏声明**：P6 验收时才发现需要但不可用的能力 → 返工
+3. **capability_requirements 漏声明**：P6 验收时才发现需要但不可用的能力 → 返工。**frontend 任务
+   漏声明 vision 视觉能力条目（need 含 visual/vision）→ P1 gate exit 1 硬拦**（check-gate.py
+   `_gate_p1_vision_capability`）；声明形态但漏选维度 / 形态声明与 UI/渲染形态不符 →
+   同样 exit 1
 4. **gate 不过 ≠ 你失败了**：红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
 
 ## 下游影响

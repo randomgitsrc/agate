@@ -1905,3 +1905,491 @@ def test_bdd29_backtick_need_confirm_exit_1(
     result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
     assert result.returncode == 1
     assert "未解决的 NEED_CONFIRM" in result.output
+
+
+# ========== 8i: TAG0006 UI/UX 机制——gate_p1 vision 三态 / 形态声明 + gate_p2 UI 设计节 ==========
+# 新增检查（P4 实现后挂载于 check-gate.py）：
+#   gate_p1：_gate_p1_vision_capability（domains 含 frontend → capability_requirements 视觉条目
+#            三态必填，缺失/非法 status → exit 1，BDD-3）+ _gate_p1_ui_shape
+#            （ui_render_shape/ui_ux_dimensions 声明合法性，BDD-16，§2.15.4）
+#   gate_p2：_gate_p2_ui_design_section（ui_affected:true → ## UI 设计 节 + 形态声明 +
+#            按形态 checklist + P1-P2 形态一致性交叉校验（规范值/同义映射归一化比对），BDD-4）
+# P1 夹具复用 8g _P1_MARKER_HEAD/_P1_MARKER_REVIEW/_write_p1_marker_task；
+# P2 夹具复用 8b _write_p2_design/add_p2_candidate_count/add_p2_review。
+# 基准退出码：P1=2（approved + agent≠main + BDD 锚点）、P2=2（四字段 + 2 候选 + 权衡 + review）。
+# 红绿灯语义：🔴 用例在 P4 前失败 = 新检查未实现（assertion 失败 B 类）；
+#   🟢 用例为兼容回归/新行为正例（既有行为即期望行为，负分支由配对红灯用例承担）。
+
+_P1_UI_BASE = _P1_MARKER_HEAD + "- [NO_NEED_CONFIRM]\n"
+
+
+def _append_p1_capability(td, status):
+    """P1 body 追加 capability_requirements yaml 代码围栏块（视觉条目 + 三态 status）。"""
+    with (td / "P1-requirements.md").open("a", encoding="utf-8") as fh:
+        fh.write(
+            "\n```yaml\n"
+            "capability_requirements:\n"
+            "  - need: visual-analysis\n"
+            f"    status: {status}\n"
+            "```\n"
+        )
+
+
+def _run_p1_ui_ctx(
+    task_dir,
+    agate_scripts,
+    python_exe,
+    run_cli,
+    domains="[frontend]",
+    status="available",
+    shape=None,
+    dims=None,
+    ext_bdd=None,
+):
+    """构造带 UI 语境（domains/形态字段/capability）的 P1 并跑 gate P1。
+
+    status=None 表示不写能力声明（BDD-3 缺失场景）；shape/dims 控制形态声明字段。
+    ext_bdd 非空时在 P1 body 追加含该词条的 UX 类别 BDD 标题（BDD-16 扩展维度已声明运用）。
+    """
+    td = task_dir(no_state_yaml=True)
+    _write_p1_marker_task(td, _P1_UI_BASE)
+    if domains:
+        add_p1_field(td, "domains", domains)
+    if shape is not None:
+        add_p1_field(td, "ui_render_shape", shape)
+    if dims is not None:
+        add_p1_field(td, "ui_ux_dimensions", dims)
+    if status is not None:
+        _append_p1_capability(td, status)
+    if ext_bdd:
+        with (td / "P1-requirements.md").open("a", encoding="utf-8") as fh:
+            fh.write(f"\n#### BDD-9: 渲染正确性：{ext_bdd}\n- Given x\n- When y\n- Then z\n")
+    return _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+
+
+def test_vision_1_frontend_missing_capability_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(task_dir, agate_scripts, python_exe, run_cli, status=None)
+    assert result.returncode == 1
+    assert "vision" in result.output
+
+
+def test_vision_2_frontend_invalid_status_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir, agate_scripts, python_exe, run_cli, status="invalid"
+    )
+    assert result.returncode == 1
+    assert "status" in result.output
+
+
+def test_vision_3_frontend_valid_gap_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(task_dir, agate_scripts, python_exe, run_cli, status="GAP")
+    assert result.returncode == 2
+
+
+def test_vision_4_backend_no_vision_no_fail_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        domains="[backend]",
+        status=None,
+    )
+    assert result.returncode == 2
+
+
+def test_shape_1_shape_no_dimensions_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        status="available",
+        shape="render_component",
+        dims="[]",
+    )
+    assert result.returncode == 1
+
+
+def test_shape_2_shape_with_valid_dims_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        shape="render_component",
+        dims="[渲染正确性]",
+    )
+    assert result.returncode == 2
+
+
+def test_shape_2b_shape_missing_dims_present_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        shape=None,
+        dims="[渲染正确性]",
+    )
+    assert result.returncode == 2
+
+
+def test_shape_3_no_shape_backend_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        domains="[backend]",
+        status=None,
+        shape=None,
+        dims=None,
+    )
+    assert result.returncode == 2
+
+
+def test_shape_4_extension_dim_declared_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        shape="render_component",
+        dims="[自定义导出能力]",
+        ext_bdd="自定义导出能力走参考图对比",
+    )
+    assert result.returncode == 2
+
+
+def test_shape_4b_extension_dim_not_declared_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        shape="render_component",
+        dims="[自定义导出能力]",
+        ext_bdd=None,
+    )
+    assert result.returncode == 1
+
+
+def test_shape_5_no_shape_fields_default_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p1_ui_ctx(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        status="available",
+        shape=None,
+        dims=None,
+    )
+    assert result.returncode == 2
+
+
+_UI_P2_BASE = (
+    "# P2 design\n"
+    "### 候选方案 A：方案一\n"
+    "### 候选方案 B：方案二\n"
+    "## 权衡\n"
+    "A 简单，B 稳健。\n"
+    "packages: [pkg-a]\n"
+    "domains: [frontend]\n"
+    "ui_affected: true\n"
+    "gate_commands: {}\n"
+)
+
+_UI_SECTION_LAYOUT_FULL = (
+    "\n## UI 设计\n"
+    "\n"
+    "### 渲染形态声明\n"
+    "- 渲染形态: layout（布局型）\n"
+    "- 适用维度: 布局结构, 交互行为, 视觉呈现\n"
+    "\n"
+    "### 布局 checklist\n"
+    "- [ ] 布局结构/页面分区已描述\n"
+    "\n"
+    "### 交互 checklist\n"
+    "- [ ] 交互行为（键盘可达/输入态反馈）已覆盖\n"
+    "\n"
+    "### 视觉 checklist\n"
+    "- [ ] 视觉呈现（颜色对比/字体层级）已说明\n"
+)
+
+
+def _run_p2_ui_case(
+    task_dir, agate_scripts, python_exe, run_cli, section, p1_shape=None
+):
+    td = task_dir()
+    if p1_shape is not None:
+        add_p1_field(td, "ui_render_shape", p1_shape)
+    _write_p2_design(td, _UI_P2_BASE + section)
+    add_p2_candidate_count(td, 2)
+    add_p2_review(td)
+    return _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
+
+
+def test_ui_design_1_ui_true_missing_section_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p2_ui_case(
+        task_dir, agate_scripts, python_exe, run_cli, section=""
+    )
+    assert result.returncode == 1
+
+
+def test_ui_design_2_ui_true_full_section_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    result = _run_p2_ui_case(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        section=_UI_SECTION_LAYOUT_FULL,
+    )
+    assert result.returncode == 2
+
+
+def test_ui_design_3_ui_true_missing_keyword_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: layout（布局型）\n"
+        "- 适用维度: 布局结构, 交互行为\n"
+        "\n"
+        "### 布局 checklist\n"
+        "- [ ] 布局结构已描述\n"
+        "\n"
+        "### 交互 checklist\n"
+        "- [ ] 交互行为已覆盖\n"
+    )
+    result = _run_p2_ui_case(task_dir, agate_scripts, python_exe, run_cli, section=section)
+    assert result.returncode == 1
+
+
+def test_ui_design_4_ui_false_no_section_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    _write_p2_design(td, _P2_TWO_CAND_BODY)
+    add_p2_candidate_count(td, 2)
+    add_p2_review(td)
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
+    assert result.returncode == 2
+
+
+def test_ui_design_5_ui_true_render_comp_section_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: render_component（渲染组件型）\n"
+        "- 适用维度: 渲染正确性, 动效时序\n"
+        "\n"
+        "### 渲染正确性 checklist\n"
+        "- [ ] 渲染正确性：渲染输出对比参考图，diff 阈值量化\n"
+        "\n"
+        "### 动效时序 checklist\n"
+        "- [ ] 动效时序：帧采样点与关键帧状态\n"
+    )
+    result = _run_p2_ui_case(task_dir, agate_scripts, python_exe, run_cli, section=section)
+    assert result.returncode == 2
+
+
+def test_ui_design_6_ui_true_missing_shape_decl_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 布局 checklist\n"
+        "- [ ] 布局结构已描述\n"
+        "\n"
+        "### 交互 checklist\n"
+        "- [ ] 交互行为已覆盖\n"
+        "\n"
+        "### 视觉 checklist\n"
+        "- [ ] 视觉呈现已说明\n"
+    )
+    result = _run_p2_ui_case(task_dir, agate_scripts, python_exe, run_cli, section=section)
+    assert result.returncode == 1
+
+
+def test_ui_design_7_ui_true_p1_p2_shape_mismatch_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: layout（布局型）\n"
+        "- 适用维度: 布局结构, 交互行为, 视觉呈现\n"
+        "\n"
+        "### 布局 checklist\n"
+        "- [ ] 布局结构\n"
+        "\n"
+        "### 交互 checklist\n"
+        "- [ ] 交互行为\n"
+        "\n"
+        "### 视觉 checklist\n"
+        "- [ ] 视觉呈现\n"
+    )
+    result = _run_p2_ui_case(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        section=section,
+        p1_shape="render_component",
+    )
+    assert result.returncode == 1
+
+
+def test_ui_design_8_ui_true_p1_p2_shape_canonical_match_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: render_component（渲染组件型）\n"
+        "- 适用维度: 渲染正确性, 动效时序\n"
+        "\n"
+        "### 渲染正确性 checklist\n"
+        "- [ ] 渲染正确性：渲染结果对比参考图\n"
+        "\n"
+        "### 动效时序 checklist\n"
+        "- [ ] 帧时序采样点\n"
+    )
+    result = _run_p2_ui_case(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        section=section,
+        p1_shape="render_component",
+    )
+    assert result.returncode == 2
+
+
+def test_ui_design_9_ui_true_p1_p2_shape_synonym_match_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: 渲染组件型\n"
+        "- 适用维度: 渲染正确性, 动效时序\n"
+        "\n"
+        "### 渲染正确性 checklist\n"
+        "- [ ] 渲染正确性：渲染结果对比参考图\n"
+        "\n"
+        "### 动效时序 checklist\n"
+        "- [ ] 帧时序采样点\n"
+    )
+    result = _run_p2_ui_case(
+        task_dir,
+        agate_scripts,
+        python_exe,
+        run_cli,
+        section=section,
+        p1_shape="render_component",
+    )
+    assert result.returncode == 2
+
+
+# TAG0006 修复轮 INFO-1（I1）：维度不适用豁免按"维度"粒度——仅声明"布局不适用"只豁免布局锚点，
+# 交互/视觉 仍须各出现关键词（修复前任一"不适用"一刀切豁免全部三维，偏宽松）。
+def test_ui_design_10_layout_waived_but_interaction_visual_required_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: layout（布局型）\n"
+        "- 适用维度: 布局结构（本维度不适用）\n"
+        "\n"
+        "### 布局 checklist\n"
+        "- [ ] 布局不适用\n"
+    )
+    result = _run_p2_ui_case(task_dir, agate_scripts, python_exe, run_cli, section=section)
+    assert result.returncode == 1
+
+
+def test_ui_design_11_all_three_dimensions_waived_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: layout（布局型）\n"
+        "- 适用维度: 布局结构, 交互行为, 视觉呈现\n"
+        "\n"
+        "### 布局 checklist\n"
+        "- [ ] 布局不适用\n"
+        "\n"
+        "### 交互 checklist\n"
+        "- [ ] 交互不适用\n"
+        "\n"
+        "### 视觉 checklist\n"
+        "- [ ] 视觉不适用\n"
+    )
+    result = _run_p2_ui_case(task_dir, agate_scripts, python_exe, run_cli, section=section)
+    assert result.returncode == 2
+
+
+# TAG0006 修复轮 INFO-2（I2）：UI 设计 节标题改为前缀匹配——标题后附括号说明（如
+# "## UI 设计（ui_affected: true 时必含）"）不再误拦（修复前要求 \s*$ 精确结尾）。
+def test_ui_design_12_heading_prefix_with_suffix_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    section = (
+        "\n## UI 设计（ui_affected: true 时必含本节）\n"
+        "\n"
+        "### 渲染形态声明\n"
+        "- 渲染形态: layout（布局型）\n"
+        "- 适用维度: 布局结构, 交互行为, 视觉呈现\n"
+        "\n"
+        "### 布局 checklist\n"
+        "- [ ] 布局结构/页面分区已描述\n"
+        "\n"
+        "### 交互 checklist\n"
+        "- [ ] 交互行为（键盘可达/输入态反馈）已覆盖\n"
+        "\n"
+        "### 视觉 checklist\n"
+        "- [ ] 视觉呈现（颜色对比/字体层级）已说明\n"
+    )
+    result = _run_p2_ui_case(task_dir, agate_scripts, python_exe, run_cli, section=section)
+    assert result.returncode == 2

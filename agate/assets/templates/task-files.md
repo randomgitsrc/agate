@@ -242,6 +242,7 @@ candidate_count: 2                # int ≥1，必填
 packages: [pkg-a]                 # list，必填
 domains: [backend, cli]           # list，必填
 ui_affected: false                # bool，必填
+# ui_design_section: true          # bool，可选（presence 语义：ui_affected: true 时声明已含 UI 设计节）
 # ── v2.0 派发编排字段（可选，TAG0014）──
 # dispatch_plan: {mode: static-batch, parallel_limit: 3, batches: [{id: pkg-a, complexity: medium}, {id: pkg-b, complexity: low}]}
 # 可选字段：多子任务编排方案（单行 flow YAML），契约以 P2 卡「dispatch_plan 机器字段」/ architect.md「批次设计」为准
@@ -306,6 +307,24 @@ env_constraints:
   debug_env: "..."
   isolation_check: "..."
 
+## 7. UI 设计节（ui_affected: true 时必含；由 architect 兼任产出；不新增 designer 角色）
+# 样式：## UI 设计 + ### 渲染形态声明 + 按形态 checklist（布局/交互/视觉 或 渲染正确性/动效时序）
+# 形态声明必须与 P1 frontmatter 的 ui_render_shape/ui_ux_dimensions 一致（P2 gate 规范化值比对）。
+## UI 设计
+### 渲染形态声明
+- 渲染形态: layout（布局型）        # 或 render_component（渲染组件型）/ temporal_effects（时序特效型）
+- 适用维度: 布局结构, 交互行为, 视觉呈现   # 渲染组件型可写 渲染正确性, 动效时序
+### 布局 checklist
+- [ ] 页面/组件层级结构与关键区域占位已描述
+### 交互 checklist
+- [ ] 键盘可达 / 输入态反馈 / 反馈态已覆盖；输入态用例宣称需人工复核
+### 视觉 checklist
+- [ ] 颜色对比度 / 字体层级 / 组件一致性已说明
+### 渲染正确性 checklist（渲染组件型适用）
+- [ ] 判定锚点：渲染结果对比参考图 + diff 阈值（量化）
+### 动效时序 checklist（时序特效型适用）
+- [ ] 帧/时序采样点与动画关键帧已定义
+
 ## SCOPE+ 增补区（后续阶段回写）
 - [SCOPE+ from P4] ...
 ```
@@ -353,9 +372,22 @@ ui_affected: false                # bool（与 P2 声明一致）
 
 **UI 任务证据追加约定**（`ui_affected: true` 时）：
 - `P6-evidence/screenshots/` 目录必须非空，每个截图文件大小 > 1KB（防空 png 充数，hook 检查）
-- 每条 UI 类 PASS 必须含 vision-analyst YAML 引用：`- PASS BDD-1: ... (screenshots/bdd-1.png) (vision: vision-reports/bdd-1.yaml)`
-- vision YAML 文件必须存在且 `summary.blocker_count == 0`（hook 检查）
+- 视觉证据按 **P1 vision 能力三态分档** + **渲染形态**选形式：
+  - **available / supplementable**（无声明默认 available）→ 每条 UI 类 PASS 必须含
+    vision-analyst YAML 引用：`- PASS BDD-1: ... (screenshots/bdd-1.png) (vision: vision-reports/bdd-1.yaml)`；
+    vision YAML 文件必须存在且 `summary.blocker_count == 0`（hook 检查）
+  - **GAP**（无视觉能力降级）→ 截图/帧序列 + **人工复核记录**引用：
+    `- PASS BDD-1: ... (screenshots/bdd-1.png) (manual-review: review-bdd-1.md)`；
+    复核记录文件必须存在，不要求 vision YAML
+  - **渲染组件/时序特效形态**（P1 `ui_render_shape: render_component` / `temporal_effects`）：
+    视觉证据可选用 帧序列 `(frames/bdd16-01.png, frames/bdd16-02.png)` / 渲染输出对比
+    `(renders/bdd1-a-actual.png, renders/bdd1-a-diff.json)`（diff.json 含量化度量）/
+    时序截图 `(screenshots/bdd7-t1.png, screenshots/bdd7-t2.png)`
+  - **输入态/交互形态变化类 PASS**：附人工复核记录（复核人/时间/结论）：
+    `- PASS BDD-3: ... (screenshots/x.png) 人工复核: 张三 2026-08-17 确认输入态正常`
 - vision YAML 格式见 `assets/execution-roles/vision-analyst.md` 的完整 YAML 结构
+- **雷同截图复核记录样例**：
+  `- 雷同截图复核: bdd1/bdd2 截图视觉相近，已人工复核确为不同操作但视觉相近（张三 2026-08-17）`
 
 **查询类 BDD 证据约定**：
 - 查询类 BDD（断言值是唯一证据）可不截图，但**须有断言记录文件**作为客观证据

@@ -1,0 +1,14 @@
+agate/tests/unit/test_check_gate.py::test_ui_design_1_ui_true_missing_section_exit_1 PASSED [  8%]
+agate/tests/unit/test_check_gate.py::test_ui_design_2_ui_true_full_section_exit_2 PASSED [ 16%]
+agate/tests/unit/test_check_gate.py::test_ui_design_3_ui_true_missing_keyword_exit_1 PASSED [ 25%]
+agate/tests/unit/test_check_gate.py::test_ui_design_4_ui_false_no_section_exit_2 PASSED [ 33%]
+agate/tests/unit/test_check_gate.py::test_ui_design_5_ui_true_render_comp_section_exit_2 PASSED [ 41%]
+agate/tests/unit/test_check_gate.py::test_ui_design_6_ui_true_missing_shape_decl_exit_1 PASSED [ 50%]
+agate/tests/unit/test_check_gate.py::test_ui_design_7_ui_true_p1_p2_shape_mismatch_exit_1 PASSED [ 58%]
+agate/tests/unit/test_check_gate.py::test_ui_design_8_ui_true_p1_p2_shape_canonical_match_exit_2 PASSED [ 66%]
+agate/tests/unit/test_check_gate.py::test_ui_design_9_ui_true_p1_p2_shape_synonym_match_exit_2 PASSED [ 75%]
+agate/tests/unit/test_check_gate.py::test_ui_design_10_layout_waived_but_interaction_visual_required_exit_1 PASSED [ 83%]
+agate/tests/unit/test_check_gate.py::test_ui_design_11_all_three_dimensions_waived_exit_2 PASSED [ 91%]
+agate/tests/unit/test_check_gate.py::test_ui_design_12_heading_prefix_with_suffix_exit_2 PASSED [100%]
+====================== 12 passed, 135 deselected in 1.52s ======================
+EXIT_CODE: 0

@@ -35,6 +35,7 @@ SCHEMAS = {
             "internal_only_reason", "跳过风险", "design_trivial",
             "follows_existing_pattern", "need_confirm_resolved",
             "suggest_resolved", "scope_resolved", "change_type",
+            "ui_render_shape", "ui_ux_dimensions",
         }),
         "required": ("risk_level", "phases", "packages", "domains"),
         "enums": {"risk_level": ("low", "medium", "high"), "change_type": ("refactor",)},
@@ -49,11 +50,15 @@ SCHEMAS = {
             "coupling_checklist": list,
             "follows_existing_pattern": list,
             "change_type": str,
+            "ui_render_shape": str,
+            "ui_ux_dimensions": list,
         },
         "min_values": {},
     },
     "P2-design.md": {
-        "migrated_keys": frozenset({"candidate_count", "packages", "domains", "ui_affected"}),
+        "migrated_keys": frozenset({
+            "candidate_count", "packages", "domains", "ui_affected", "ui_design_section",
+        }),
         "required": ("candidate_count", "packages", "domains", "ui_affected"),
         "enums": {},
         "types": {
@@ -61,6 +66,7 @@ SCHEMAS = {
             "packages": list,
             "domains": list,
             "ui_affected": bool,
+            "ui_design_section": bool,
         },
         "min_values": {"candidate_count": 1},
     },
