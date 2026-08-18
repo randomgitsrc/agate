@@ -1,5 +1,5 @@
 task_id: TAG0012
-phase: P6
+phase: P7
 status: in_progress
 
 # ── 重试记录（T016 教训：整数计数无法区分"原样重试"和"调整策略后重试"）──
@@ -18,7 +18,8 @@ retries:
   P4: []                               # 空列表 = 该阶段无重试，implementer 首轮产出即 review approved（28/28 锚点转绿）
   P5: []                               # 空列表 = 该阶段无重试，四条 gate_commands.P5* 首轮全绿
   P6: []                               # 空列表 = 该阶段无重试，23/23 PASS（首次派发因平台配额中断未产出，第二次派发完整完成，不计入重试——同一角色重新起跑非"上一轮失败后调整重派"）
+  P7: []                               # 空列表 = 该阶段无重试，consistency-reviewer 首轮 BLOCKER=0
 
-retry_count: { P1: 2, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0 }  # 派生字段 = len(retries[Pn])，向后兼容 active-tasks.md 看板
+retry_count: { P1: 2, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0, P7: 0 }  # 派生字段 = len(retries[Pn])，向后兼容 active-tasks.md 看板
 
 updated: 2026-08-18
