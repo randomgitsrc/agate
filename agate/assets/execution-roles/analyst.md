@@ -25,6 +25,19 @@ agent: analyst
 - 相关现有代码/文档（理解现状，判断隐含依赖）
 - dispatch-prompt 中指定的输入文件是必读的，按 prompt 给出的路径读取
 
+**读完 P0-brief 的第一个动作：质疑它的时效性**（不要默认它仍然成立）
+
+P0-brief 是立项时写的，立项与实际启动之间可能已经漂移（跨会话恢复、任务搁置后重启、从 PAUSED 恢复）。读完 P0-brief 先做这一步，再开始需求质疑：
+
+1. 对照 P0 卡片「P0-brief 时效性自检（漂移判据）」的严重 3 条（`task` 的目标方案不再成立 / `executor_env` 平台前提不再成立 / `known_risks` 的"已解决前提"实际未解决或已被他任务解决）逐条排查
+2. 命中任一条 = **严重漂移** → 在 P1-requirements.md 行首写 `[P0_STALE: 具体漂移点]` + 判定为严重的理由，并停下来报告主 Agent（回 P0 重新立项，不要带着失效前提继续写需求）
+3. 全部不命中但确有局部变化（路径 / 依赖版本 / `env_constraints` 具体值）= **轻微漂移** → 同样写 `[P0_STALE: 具体漂移点]`，注明已更新哪个字段，然后继续 P1，不阻塞
+4. 无间隔或已核对无漂移 → 写一行"已核对 P0-brief 时效性，无漂移"（空白不算做过）
+
+`[P0_STALE]` 标记必须带出**具体漂移点**（`[P0_STALE: 漂移点描述]`），只写裸标记不算数——下游看不出漂移在哪就无法判断严重/轻微。
+
+⚠️ 不要拿"距立项过了几天"当判据——隔 2 天技术路线切换是严重漂移，搁置 60 天但项目没变只是轻微。看的是**前提是否还成立**。标记与阻塞/记录二选一的完整规则见 P1 卡片「P0-brief 时效性质疑」节。
+
 ## 输出
 
 **{AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md** — 需求基线，含以下节：
@@ -102,6 +115,24 @@ capability_requirements:
 **仅 `status: GAP` 触发 `[CAPABILITY_GAP]`**，`available` 和 `supplementable` 不打断流程。
 不要因为主力模型自身不具备某能力就标 GAP——先看环境里有没有补充方式。
 
+**判断树：缺的是能力还是环境？**（标三态之前先过这一步）
+
+```
+缺的是能力还是环境？
+├─ 缺的是「agent 侧的能力」（看不见图 / 不会用某工具 / 没有某技能）
+│   └─ 走 capability_requirements 三态：
+│      ├─ 当前就有 ......................................... available
+│      ├─ 当前没有，但能派子角色 / 注入 skill / 换工具补上 .... supplementable
+│      │   （必须写清补充方式，写不清等同 GAP）
+│      └─ 当前没有且补不上 ................................. GAP → [CAPABILITY_GAP]
+└─ 缺的是「运行环境」（服务没起 / 端口没通 / 数据库没建 / 依赖没装 / 平台不支持）
+    └─ 不走三态，走 verification_env 声明（P1 卡片「verification_env vs supplementable
+       边界判断树」+ dispatch-protocol.md「verification_env 失败处理协议」）
+```
+
+**口诀**：换个更强的模型/角色就能做 → 能力问题（三态）；换谁来做都得先把服务起起来 → 环境问题（`verification_env`）。
+**把环境问题标成 `supplementable` 是机制误用**（TAG0009 教训：环境问题被错标 supplementable，验证陷入无止损的试错循环），属"不可重试"类，应立即改正声明方式，而不是当环境故障反复重试。
+
 **frontend 任务（domains 含 frontend，P2 会标 `ui_affected`）的视觉能力声明是硬要求**：
 必须在 `capability_requirements` 中声明视觉能力条目（`need` 命名含 `visual`/`vision`，status ∈
 available / supplementable / GAP）——缺失声明即视为需求不完整，requirements-review 打回，
@@ -178,6 +209,7 @@ P1-requirements.md 路径 + 一句话：建立基线，N 条 BDD 条件，M 个�
 不要停在表面症状。"MCP 调用慢"往下追：为什么慢→内容进了 LLM 上下文→为什么→Agent 先 read_file。真正问题是"Agent 被引导 read_file 导致内容两次过上下文"。
 
 **隐含需求清单（每次都过一遍这些维度）**
+- **同类/影响面**：这个问题在仓库里还有别的实例吗？被改动的符号有哪些消费方？（grep/rg 扫关键符号，记命中数 + 文件清单，逐条判"本次处理/不处理 + 理由"；结论必须写进 P1 正文，"已确认只此一处"也要显式写出——只修被报告的那一处是 agate 反复复发的反模式，落地要求见 P1 卡片「同类扫描」节）
 - 数据：已有数据受影响吗？需要迁移吗？
 - 前端：有显示/交互变化吗？（有 → 标 `domains: frontend`，P2 须声明 ui_affected）
 - 多端：MCP / CLI / API 需要同步吗？（T005 漏 MCP 的教训）

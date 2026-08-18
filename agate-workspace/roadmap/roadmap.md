@@ -14,13 +14,13 @@
 | RM-AG0007 | UI/UX 质量机制缺失：P1/P2 缺 UX 需求与设计评审、P6 缺视觉质量验收 | done | qtcalc 对比分析 §6（2026-08-13）| TAG0006 | 2026-08-13 | 2026-08-18 |
 | RM-AG0008 | 0→1 项目目录结构脚手架：agate 立项时应按最佳实践设计合理目录结构，避免东放一点西放一点 | scheduled | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-13 |
 | RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | scheduled | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-13 |
-| RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | scheduled | 阶段提示词核查（2026-08-13）| TAG0012 | 2026-08-13 | 2026-08-15 |
-| RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | scheduled | TAG0005/0009 复盘核实（2026-08-14）| TAG0012 | 2026-08-13 | 2026-08-15 |
-| RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | scheduled | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-15 |
+| RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | done | 阶段提示词核查（2026-08-13）| TAG0012 | 2026-08-13 | 2026-08-18 |
+| RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | done | TAG0005/0009 复盘核实（2026-08-14）| TAG0012 | 2026-08-13 | 2026-08-18 |
+| RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | done | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-18 |
 | RM-AG0020 | 复盘机制统一：模板缺正文结构（只有核对清单）、内容无价值标准、标的矛盾（异常触发 vs 所有任务）、路径矛盾（应放 tasks/{Txxx}/ 作 task 产物 vs 实际 docs/reviews/ vs check-retrospective 提示 docs/releases/，三处不一致）；分层归因 + 执行错误/机制缺口二分 + 措施可落地缺失 | scheduled | TAG0013/0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
 | RM-AG0021 | agate 跨项目反馈机制：复盘中的 agate 机制/执行问题回馈到 agate 项目组（结构化 agate 反馈节 + 匿名化 + 开关，只回传 agate 归因内容不涉项目敏感信息）| scheduled | TAG0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-16 |
 | RM-AG0022 | 协议规则结构化层（层 1）：把 agent 消费的协议规则从自由文本抽成结构化定义（phases.yaml/dispatch.yaml/roles.yaml + 一致性 gate），解决"agent 读 8000+ 行 md 理解规则"的摩擦；需先设计 yaml schema 方案再立项 | backlog | TAG0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
-| RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | scheduled | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-17 |
+| RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | done | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-18 |
 | RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | scheduled | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-17 |
 | RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | scheduled | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-17 |
 

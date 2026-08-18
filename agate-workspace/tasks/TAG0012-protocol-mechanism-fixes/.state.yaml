@@ -1,4 +1,26 @@
 task_id: TAG0012
-phase: P0
-status: pending
-retries: {}
+phase: READY
+status: complete
+
+# ── 重试记录（T016 教训：整数计数无法区分"原样重试"和"调整策略后重试"）──
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality           # requirements-review 首轮判定 needs-revision（3 处具体缺口）
+      prompt_changed: true            # dispatch-context 补了针对性修订指引（BDD-13/16/21/新增BDD-15b）
+      adjustment: null
+    - round: 2
+      failure_mode: quality           # check-gate.py P1 exit 1：第4节散文提及裸 [NEED_CONFIRM] 子串触发格式误判
+      prompt_changed: true            # dispatch-context 补了 gate-diagnosis 引用 + 精确定位修订范围
+      adjustment: null
+  P2: []                               # 空列表 = 该阶段无重试，architect 首轮产出即 plan-eng-review approved
+  P3: []                               # 空列表 = 该阶段无重试，test-designer 首轮产出即真红灯确认
+  P4: []                               # 空列表 = 该阶段无重试，implementer 首轮产出即 review approved（28/28 锚点转绿）
+  P5: []                               # 空列表 = 该阶段无重试，四条 gate_commands.P5* 首轮全绿
+  P6: []                               # 空列表 = 该阶段无重试，23/23 PASS（首次派发因平台配额中断未产出，第二次派发完整完成，不计入重试——同一角色重新起跑非"上一轮失败后调整重派"）
+  P7: []                               # 空列表 = 该阶段无重试，consistency-reviewer 首轮 BLOCKER=0
+  P8: []                               # 空列表 = 该阶段无重试，releaser 首轮产出即完整（bump_type=minor, debt_check=none）
+
+retry_count: { P1: 2, P2: 0, P3: 0, P4: 0, P5: 0, P6: 0, P7: 0, P8: 0 }  # 派生字段 = len(retries[Pn])，向后兼容 active-tasks.md 看板
+
+updated: 2026-08-18

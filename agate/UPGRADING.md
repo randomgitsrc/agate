@@ -89,6 +89,15 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.52.0 — 协议机制增强批（无破坏性变更）
+
+**本版本无破坏性变更，无需迁移动作。**
+
+- 新增 `{key}_timeout_seconds` **可选**声明性字段（`gate_commands` 块内，如 `P5_timeout_seconds`）——缺字段时行为等同现状（`check-gate.py` 未新增校验，无运行时消费方），既有任务不受影响。
+- `dispatch-protocol.md` verification_env 节新增「失败处理协议」+「环境准备职责边界」子节（权威定义，P5/P6 卡片与 verifier.md 引用不重复展开）；「派发编排机制」并行规则新增第 4 条"资源密集型默认串行"；「派发 prompt 模板」新增"命令超时兜底"运行时纪律段落（与 `dispatch-prompt.md` 同步）——均为新增文档规则/运行时纪律，不改变任何既有 gate 脚本 exit code 语义。
+- P0/P1/P2 三张阶段卡新增"同类扫描/影响面梳理"强制节 + P0-brief 时效性自检项（`[P0_STALE:]` 标记）——新增的是人工评审流程要求（requirements-review 打回判据），不对应脚本硬拦截，老任务不受影响。
+- 已有项目升级：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS 符号链接模式自动跟随，不放心可重跑确认；Windows 复制模式必须重跑）。
+
 ### v0.51.0 — agate UI/UX 验收质量机制（影响：frontend/UI 任务 + P6 截图证据路径）
 
 > 版本号已由 P8 确认（v0.51.0）。TAG0006 为 agate 补充 UI/UX 验收质量机制：P1 vision 能力三态硬声明、P2 UI 设计节检查、P6 双证据三态分档 + 射线形态适配、avg-hash 雷同判定升级。**本版本破坏性变更 / 行为变化逐条列出**（供升级前三问"我的项目是否触及"）。

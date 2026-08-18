@@ -269,12 +269,29 @@ gate_commands:
   P3_formatter: "pytest.sh"  # 可选：formatter 脚本（见 assets/formatters/README.md 速查表）
   P5: "pytest -q --tb=no"          # 紧凑输出模式（见下）
   P5_formatter: "pytest.sh"        # 可选：formatter 脚本，将测试输出标准化为 JSON
+  P5_timeout_seconds: 120          # 可选：该 key 命令的预期耗时上限（秒），见下方字段说明
   P5_e2e: "playwright test --reporter=line tests/e2e/"   # ui_affected: true 时必填
+  P5_e2e_timeout_seconds: 300      # 可选：per-key 声明，E2E 与单元测试各取各的档
   P6: "pytest -q --tb=no tests/acceptance/"
+  P6_timeout_seconds: 120          # 可选
   project_module: "myapp"  # 可选：项目模块前缀，B 类检测用
+# ── {key}_timeout_seconds（可选，per-key 声明）──
+# 用途：给对应 key 的 gate 命令声明"预期耗时上限（秒）"，供跑命令的一方据此设 shell 层超时
+#       （运行时取值 = 预期耗时 ×1.5，见 dispatch-protocol.md「命令超时兜底与既有超时机制的分层关系」）。
+# 命名：与 {key}_formatter / {key}_e2e 同为 per-key 惯例，逐条 key 各自声明，不设整体共享默认
+#       （单元测试与 E2E 耗时差 2.5 倍以上，共享一个值起不到分类阈值作用）。
+# 建议档位（**手动按命令类型声明，不是自动推断**——没有代码去猜命令属于哪一类）：
+#       单元测试类 120s / E2E 类 300s / 构建类（编译·安装依赖·打包）600s。
+# 缺省行为：**不声明即等同现状**——无强制阻断、无 gate 拦截，跑命令的一方按经验估算预期耗时
+#       （向后兼容，沿用 dispatch_plan"缺字段 → gate 跳过校验"先例，老任务无需回填）。
+# ⚠️ 排除 P3：P3 key **不适用**本字段——P3 的超时继续走既有 AGATE_TDD_TIMEOUT 环境变量机制
+#       （默认 120s，由 agate_common.py 的 run_test_with_formatter() 消费、check-tdd-red.py 读取）。
+#       两层不合并的完整关系说明见 P2 卡片「gate_commands 声明」的 {key}_timeout_seconds 字段规则，
+#       此处不重复展开。
 # P3 键（可选）：声明后 check-tdd-red.py 自动读取，无需主 Agent 手动设 TEST_RUNNER。
 # P3 用 verbose 输出（区分 A/B 类错误），P5 用紧凑输出（只判过没过），两者分离。
 # 非 pytest 项目建议声明此键（如 P3: "npx vitest run"）。
+# P3 的超时不写 P3_timeout_seconds（见上方"排除 P3"），改用 AGATE_TDD_TIMEOUT 环境变量。
 # 紧凑输出要求：P5/P6 gate 命令只供主 Agent 判断「过没过」，须用工具的汇总/安静模式
 # （pytest --tb=no / cargo --quiet / dotnet --verbosity quiet / vitest --reporter=dot
 #  / go test | tail -30 / mvn -q），保留通过失败汇总+失败清单，去掉逐项 traceback。

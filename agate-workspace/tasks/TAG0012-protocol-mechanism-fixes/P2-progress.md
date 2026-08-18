@@ -1,0 +1,15 @@
+- [dispatch-context] 读取完毕，核心指令：核查 A/B/C 三候选规则可执行性、五维评估依据、BDD 23 条覆盖、BDD-22 不改 check-gate.py 理由（可有不同意见但不能自行拍板）
+- [plan-eng-review.md] 读取完毕，评审重点：数据流/状态机/接口契约/错误边界/测试策略/技术债/多方案探索/实现就绪度/最小验证
+- [P2-design.md] 全文读完，§0-§8 共 9 节，candidate_count: 3（A/B/C 三维度各 2 候选 + 采纳理由），dispatch_plan 8 批
+- [P1-requirements.md] 全文读完，23 条 BDD（BDD-1~22 + BDD-15b），交叉核对 §4 覆盖表逐条对应，无遗漏
+- [check-gate.py] 核实 _gate_p2_dispatch_plan（L516-556）：len(batches)>limit 才报错，8 batch + parallel_limit:8，8>8 不成立 → 通过，与 P2-design.md objective_info 声明一致
+- [check-gate.py] 核实 candidate_count 校验（L561-578）：纯计数字段校验 ≥min_candidates，不解析正文候选数，3≥2 通过；design 把 candidate_count 语义定义为"3 个正交维度各选 1"（非正文候选写法总数 6），非常规但不违反 gate 契约，记为非阻塞观察
+- [architect.md] 核实「批次设计」节五维评估表（产出规模/输入规模/改动性质/耦合度/认知负荷）与 P2-design.md §5.1 完全一致，且 P2 给出具体数字依据（13 文件/7 输入文件等），非套模板
+- [dispatch-protocol.md] 核实多处行号引用：L77(state-machine.md，P0→P1 转移条件，准确)、L429(派发prompt模板，准确)、L462(分阶段落盘，准确)、L503/L521(非阶段产出路径规范，准确)、L691(并行规则，准确)、L790(Playwright策略标题，files_to_read写780-879，含标题前上下文，基本准确)、verification_env 实际位于 L952-957（是「可判定门槛规范」大节下的加粗段落，非独立 ### 子节），P2-design.md 表述为"L940-960 节"，范围包含实际内容，不算错误但严格讲不是独立小节，将改造为独立子节属于设计的合理扩展
+- [check-protocol-consistency.py] 核实 PROTOCOL_FILES(L54)/PROTOCOL_DIRS(L67)/CHECK3 check_line_refs(L272/276) 与 P2-design.md §0 声称完全吻合；LINEREF_RE 正则确认只在 is_protocol_file 命中的文件生效，P2-design.md 自身不在 PROTOCOL_FILES/DIRS 内，其 files_to_read 里的行号引用不会触发 CHECK3（行号引用规则只约束协议正文，不约束 P2 文档本身的导航字段）
+- [agate_common.py] 核实 run_test_with_formatter (L400-408) AGATE_TDD_TIMEOUT 消费逻辑与 P2-design.md 引用完全一致；check-tdd-red.py L55/211 确认调用链
+- [state-transitions.md] 核实重试上限表：P1=3/P2=3/P3=2/P4=3/P5=2/P6=2/P7=2/P8=2，P2-design.md 引用"P1/P2 MAX=3，P3/P5/P6/P7/P8 MAX=2"未提 P4=3，但未误导（只是未提及，不算错误）
+- [§2.1 vs §5.3 批次表交叉核对] 发现 dispatch-protocol-core 批次描述"三处新机制原文"（verification_env节+并行规则+派发prompt模板正文），但 §2.1 表中 dispatch-protocol.md 实际有 4 个改动点（含 BDD-13 的 L521 条件性子句），批次描述遗漏第 4 点的显式提及——同文件同批次内，P4 实现时不至于遗漏，但批次表自身描述不够精确，记为非阻塞发现
+- [候选方案真实性核查] A2/B2/C2 均为真实可行的替代方案（非稻草人），各自有具体实现路径和实际存在的缺点论证（A2 违反 P1 隐含需求4/B2 需要改 agate_common.py+check-tdd-red.py/C2 被 TAG0008 案例证伪），符合 architect.md 反稻草人要求
+- [BDD-22 判断] 核实"不改 check-gate.py"理由：timeout_seconds 目前零运行时消费方，理由具体、非空话，且 BDD-22 本身声明两分支皆合法收敛；采纳该决定但在 review 中记录个人倾向意见（建议未来若加脚本校验，可参照 _gate_p2_dispatch_plan 模式加最基础的数值合法性检查），非阻塞
+- 结论：未发现阻塞级问题，status: approved
