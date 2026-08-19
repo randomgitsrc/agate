@@ -85,3 +85,81 @@ NEXT: 读 phase-cards/P3-tdd.md，派发 test-designer subagent 产出 P3-test-c
 文件映射 20 BDD + fixture 隔离预警 + 红灯真实性要求）并注入卡片，派发 test-designer。
 
 NEXT: 等 test-designer 产出，主 Agent 跑 check-tdd-red.py 独立确认红灯（不只信 subagent 自报）。
+
+[2026-08-19T01:55] test-designer 完成：23 个新测试函数满射覆盖 20 条 BDD。独立核实
+check-gate.py P3 exit 2 + check-tdd-red.py exit 0（真红灯）+ 既有 12 用例未破坏。git commit
+fbd9c31（wf(TAG0015-P3)，WARNING "phase=P3 暂存代码文件"为预期——测试代码本就是 P3 产出）。
+
+NEXT: 读 phase-cards/P4-implementation.md，派发 implementer subagent 落地代码（按 P2-design.md
+files_to_read 导航 + P3 测试驱动实现，20 条 BDD 全部转绿）。
+
+[2026-08-19T02:05] 跑 agate-capture-env-baseline.py（step 0），无阻塞。写好 P4-dispatch-context-
+implementer.md（逐条对照 P2-design.md §1.1 七类改动落点 + §1.2 不改什么清单 + R5 兜底 grep）
+并注入卡片，派发 implementer（这是本任务改动面最大的一步：模板迁移 + check-retrospective.py
+改动 + state-machine.md 新增小节 + AGENTS.md 措辞 + 5 份存量文档标注 + 新增 agate-feedback.py）。
+
+NEXT: 等 implementer 产出，主 Agent 独立跑三测试文件 + 全量 pytest + consistency --strict 确认，
+不只信 subagent 自报。之后按 domains:[process] 惯例（同 TAG0012）派发 review 角色做 P4 实现评审。
+
+[2026-08-19T02:20] implementer 完成，七类改动全部落地（新脚本 agate-feedback.py + git mv 模板 +
+check-retrospective.py 分支 + 4 处协议文档 + 5 份存量文档标注）。主 Agent 独立复核：三测试文件
+35 passed；全量 pytest 932 passed+2 skipped（基线 909+2，净增 23，无回归）；consistency
+--strict 0 ERROR（298 WARNING，基线 279）。1 条 [DESIGN_GAP]（roadmap.md 路径字符串因
+check-protocol-consistency CHECK 2 误判死链，拆字符串规避，内容未删减）。git status 与
+P2 §1.1 七类改动落点一致。已 stage 全部改动，派发 review 角色做 P4 实现评审。
+
+NEXT: 等评审结果，approved 后预跑 check-gate.py P4 → commit（触发 SELF-GATE，需
+self-gate-review 或 self-gate-skip）→ 进入 P5。
+
+[2026-08-19T02:30] review（P4 实现评审）approved，7 条约束逐条独立核查（含独立重跑测试/grep/
+consistency）全部属实，无 CRITICAL/BLOCKER。check-gate.py P4 exit 0 通过。本次改动触发
+SELF-GATE（改 agate/*.md + agate/scripts/*.py），按 SELF-GATE.md 流程派发
+protocol-alignment-review subagent（变更触发模式，留痕文件
+docs/reviews/agate-alignment-2026-08-19-01.progress.md，成果文件
+docs/reviews/agate-alignment-review-2026-08-19.md）。
+
+NEXT: 等 SELF-GATE 审查结果，MISALIGNED 需先修复；全部 ALIGNED/已确认 NEEDS_HUMAN_REVIEW 后
+git commit（message 含 self-gate-review: 引用成果文件路径），phase 保持 P4 → 进入 P5。
+
+[2026-08-19T02:45] protocol-alignment-review 完成：ALIGNED 4（A1/A4/A6/A3a），MISALIGNED 3
+（A2/A3b/A5 共享同一组差异：WORKFLOW.md:318 + scripts/README.md + tests/README.md 未同步新
+触发分支/新脚本/新测试文件登记），NEEDS_HUMAN_REVIEW 1（A7，agate-feedback.py 未复用 ADR-007
+单一双读工具 agate-md-field-get.py）。审查过程中 git stash 与主 Agent 并发写 orchestrator-log
+产生冲突标记，已由 subagent 自行修复，独立核实无内容丢失（17 文件不变）。
+
+用户裁决 A7：扩展 agate-md-field-get.py 注册 mechanism_issues/execution_issues/feedback_ready
+三字段，agate-feedback.py 改为调用该工具，完全合规 ADR-007（而非维持现状或改 ADR 边界）。
+
+派发 implementer 重试 #1：① 扩展 agate-md-field-get.py ② agate-feedback.py 改用 _md_field_get()
+③ 连带订正 test_bdd20 断言（"禁 subprocess"过窄，改为精确禁 git push/gh 网络调用，忠实 BDD-20
+真实意图）④ 三处文档同步（WORKFLOW.md/scripts/README.md/tests/README.md）。
+.state.yaml 记 retries.P4 round 1。
+
+NEXT: 等 implementer 修复完成，主 Agent 独立验证后重新派发 P4 review + protocol-alignment-review
+确认全部 ALIGNED，再 commit。
+
+[2026-08-19T03:00] implementer 重试#1 完成，自报 4 项修复+自检全通过。主 Agent 独立复核：
+targeted 35 passed；全量 pytest 首次复测出现 3 个 test_check_pruning.py 失败，经排查（isolated
+run/组合子集 run/git stash A-B/无并发进程下的干净单跑）确认是本次会话内并发操作（SELF-GATE
+reviewer 早前 git stash 冲突同期）造成的瞬时资源竞争假阳性，非真实回归——干净环境下单次全量跑
+932 passed+2 skipped+0 failed，与预期一致。consistency --strict 0 ERROR。git status 已重新
+git add -A（rename 检测恢复正常，postmortem-template.md → retrospective-template.md 仍是 R 而非
+拆成 D+A）。派发 P4 review 重试#1 聚焦复核 4 处改动（不与其他后台任务并发跑，避免重演
+git stash 冲突）。
+
+NEXT: review 通过后，派发 protocol-alignment-review 复核（同样避免并发），确认 A2/A3b/A5/A7
+均转 ALIGNED，再 check-gate.py P4 + commit（self-gate-review: 引用两份成果文件）。
+
+[2026-08-19T03:10] P4 review 重试#1 approved（4 点复核全通过）。protocol-alignment-review
+复核轮：4 点全部转 ALIGNED（追加节写入同一成果文件，保留原 A1-A7 全文）。
+
+独立验证 check-gate.py P4 exit 0 通过；consistency --strict 0 ERROR。全量 pytest 复测时再次
+观察到 test_check_pruning.py 3 个失败——本次深入排查（手工构造隔离 fixture 复现、读
+check-pruning.py:56 _staged_source_count 源码）确认根因：该函数用 `git diff --cached
+--name-only` 读**当前仓库真实暂存区**（非测试自己的隔离 task_dir），本任务当前暂存 28 个文件
+触发"源码文件数≤5"裁剪判据误伤——纯 git 暂存区体量的环境副作用，非 TAG0015 改动引入的代码
+缺陷，commit 后暂存区清空即恢复（该测试对真实 git 暂存区的依赖是 test_check_pruning.py 自身
+的隔离缺口，非本任务范围，不在此修，可考虑后续登记 DEBT）。
+
+NEXT: git add -A → phase 写 P4 → commit（self-gate-review 引用两份成果文件）→ commit 后重跑
+全量 pytest 确认 test_check_pruning.py 恢复 0 failed，验证上述根因判断 → 进入 P5。

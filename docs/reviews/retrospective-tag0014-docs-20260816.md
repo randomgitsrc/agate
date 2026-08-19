@@ -1,3 +1,5 @@
+> 历史复盘（迁移前旧布局），新复盘请见 `tasks/{Txxx}/retrospective.md`（模板：`agate/assets/templates/retrospective-template.md`）
+
 # TAG0014 复盘 — agate 派发编排机制（v0.49.0）
 
 > 任务：RM-AG0016（subagent 派发编排机制：工作量评估 + 五模式编排 + 并行规则统一，全阶段）

@@ -43,7 +43,9 @@ bash agate/tests/scripts/count-tests.sh
 | check-state-yaml.py | unit/test_check_state_yaml.py | 9 |
 | check-state-transition.py | unit/test_check_state_transition.py | 30 |
 | check-changelog.py | unit/test_check_changelog.py | 8 |
-| check-retrospective.py | unit/test_check_retrospective.py | 10 |
+| check-retrospective.py | unit/test_check_retrospective.py | 15 |
+| agate-feedback.py | unit/test_agate_feedback.py | 7 |
+| 复盘协议文档条文 | unit/test_retrospective_protocol_docs.py | 13 |
 | check-tdd-red.py | unit/test_check_tdd_red.py | 43 |
 | formatters | unit/test_check_tdd_red_formatter.py | 13 |
 | ci-gate-backstop.py | unit/test_ci_gate_backstop.py | 11 |

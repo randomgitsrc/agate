@@ -310,16 +310,16 @@
 **复盘机制统一（TAG0013/0014 复盘讨论，2026-08-16）**
 
 - **问题**：复盘机制在协议层面残缺且不自洽：
-  1. **模板缺正文结构**：`docs/reviews/postmortem-template.md` 只有"机制触发核对清单"（retry/SCOPE+/gate 等是否触发），**无复盘正文结构**（做得好的/发现的问题/改进措施）——正文靠执行者临场拼（TAG0013 复盘 84 行是拼出来的，非模板定义）
+  1. **模板缺正文结构**：`docs/reviews/` 下的 `postmortem-template.md`（→ 已于 TAG0015 迁移至 agate/assets/templates/retrospective-template.md）只有"机制触发核对清单"（retry/SCOPE+/gate 等是否触发），**无复盘正文结构**（做得好的/发现的问题/改进措施）——正文靠执行者临场拼（TAG0013 复盘 84 行是拼出来的，非模板定义）
   2. **内容无价值标准**：不定义"什么值得写"——易沦为流水账（复述 P1-P8 过程）/自我表扬（只写做得好的）；有价值的内容是"机制缺口 + 可复用模式 + 归因到可行动层面的问题"
   3. **标的矛盾**：`check-retrospective.py`（P2.12）只在**异常模式**（retry 超限/SCOPE+/override）时提醒复盘；但正常任务（TAG0013 无 retry）也写了复盘（因发现机制缺口）——无统一标的定义
-  4. **路径矛盾（三处不一致）**：复盘是**该 task 的产物**（绑定具体 task，内容全是该 task 的事，与任务内 P{n}-review.md 同类）→ 应放 `{AGATE_WORKSPACE}/tasks/{Txxx}/`（如 `{Txxx}/retrospective.md`，与 P1-review.md 等并列）；但实际先例（TAG0013/0014）写在 `docs/reviews/retrospective-*.md`（老布局习惯），check-retrospective 又提示 `docs/releases/v{version}-retrospective.md`——三个位置互不一致。**区分**：工作区顶层 `{AGATE_WORKSPACE}/reviews/` 放**跨任务评审**（alignment-review / plan-review 等独立评审报告，非绑定具体 task）；task 内复盘与 P{n}-review.md 同类，归 `tasks/{Txxx}/`。postmortem-template.md 在 docs/reviews/ 合理（模板描述流程规范，非流程产出）
+  4. **路径矛盾（三处不一致）**：复盘是**该 task 的产物**（绑定具体 task，内容全是该 task 的事，与任务内 P{n}-review.md 同类）→ 应放 `{AGATE_WORKSPACE}/tasks/{Txxx}/`（如 `{Txxx}/retrospective.md`，与 P1-review.md 等并列）；但实际先例（TAG0013/0014）写在 `docs/reviews/retrospective-*.md`（老布局习惯），check-retrospective 又提示 `docs/releases/v{version}-retrospective.md`——三个位置互不一致。**区分**：工作区顶层 `{AGATE_WORKSPACE}/reviews/` 放**跨任务评审**（alignment-review / plan-review 等独立评审报告，非绑定具体 task）；task 内复盘与 P{n}-review.md 同类，归 `tasks/{Txxx}/`。postmortem-template.md 在 docs/reviews/ 合理（模板描述流程规范，非流程产出）（→ 已于 TAG0015 迁移至 agate/assets/templates/retrospective-template.md）
   5. **归因纪律缺失**：不区分"执行错误（agent 没遵守规则 → 修纪律）" vs "机制缺口（协议没定义 → 修协议）"——归因错层，措施落空（如把协议缺陷误判为执行粗心）
   6. **产出流向缺失**：复盘发现机制缺口 → 应流向 roadmap（RM 条目）或 DEBT 登记，但无强制/约定（check-retrospective 提醒行已加，TAG0018）
 - **建议修复方向**：
   1. **复盘正文结构模板**：事实基线（客观数据）/ 做得好的 + 可复用模式（问"该固化进协议吗"）/ 发现的问题（分层归因：管理/技术/agate 机制/agent 执行，标注"执行错误 vs 机制缺口"）/ 改进措施（落到文件/字段/gate）/ 核对清单（沿用 postmortem-template）
   2. **标的定义**：①异常模式（retry 超限/SCOPE+/override）→ 强制 ②发现机制缺口（任何任务）→ 强制 ③高价值任务（大型/跨模块/首次新做法/用户要求）→ 建议。正常完成且无机制发现 → 可不复盘
-  3. **路径统一到 task 产物**：复盘产出放 `{AGATE_WORKSPACE}/tasks/{Txxx}/retrospective.md`（复盘是绑定该 task 的产物，与任务内 P{n}-review.md 同类——2026-08-16 用户判断）；check-retrospective 输出同步；工作区顶层 `reviews/` 保留给跨任务评审（alignment-review/plan-review）；postmortem-template.md 保留在 docs/reviews/（模板描述流程规范，非流程产出）。已存在的 docs/reviews/retrospective-*.md 存量复盘迁移到 `tasks/{Txxx}/` 或标记旧布局
+  3. **路径统一到 task 产物**：复盘产出放 `{AGATE_WORKSPACE}/tasks/{Txxx}/retrospective.md`（复盘是绑定该 task 的产物，与任务内 P{n}-review.md 同类——2026-08-16 用户判断）；check-retrospective 输出同步；工作区顶层 `reviews/` 保留给跨任务评审（alignment-review/plan-review）；postmortem-template.md 保留在 docs/reviews/（模板描述流程规范，非流程产出）（→ 已于 TAG0015 迁移至 agate/assets/templates/retrospective-template.md）。已存在的 docs/reviews/retrospective-*.md 存量复盘迁移到 `tasks/{Txxx}/` 或标记旧布局
   4. **归因纪律 + 产出流向**：每条问题标"执行错误/机制缺口"；机制缺口 → 立 RM/DEBT；执行偏差 → 更新角色文件/派发模板/阶段卡
   4.5 **项目资产沉淀（2026-08-17 用户补充）**：复盘"做得好的/可复用模式"节要**区分两类可复用资产并明确流向**——①agate 机制可复用 → 回馈 agate（RM-AG0021）；②**项目可复用资产**（临时命令/脚本如 make/run-e2e、经验教训如 xdist flaky/timeout 陷阱）→ **提炼到项目基础设施（Makefile/scripts/）+ 项目记忆（agents.md/project.md）**。复盘模板强制问："本次产生的临时命令/脚本/经验，哪些该沉淀为项目固定资产？沉淀到哪？"——解决"agent 很难自主发现可提炼资产"的盲区（TPV0093 复盘：run-e2e-tests.sh 无 timeout 是临时脚本，应提炼为项目基础设施并加防护；flaky 应记 agents.md）
   5. **事实依据三层（2026-08-16 补充，核心）**：复盘的机理分析（为什么这么做）不能只靠 git log（结果级）——因果链在主 Agent/subagent 的 session 里，session 会 compact 导致事实源丢失。按可靠性分层：

@@ -71,7 +71,9 @@ BOOL_FIELDS = frozenset({"ui_affected", "internal_only", "design_trivial"})
 # P6 refactor 口径的"回归全绿"声明字段（TAG0002，P2-design.md §3.1.3）：bool 无正文回退。
 # 与 NO_FALLBACK_INT_FIELDS 同语义——frontmatter 无该字段时输出空字符串，不做正文正则
 # 回退（防正文伪造陷阱，MDF.10：正文写 `regression_pass: false` 陷阱行不应被读到）。
-NO_FALLBACK_BOOL_FIELDS = frozenset({"regression_pass"})
+# TAG0015（BDD-6/17，重试#1 A7 修复）：feedback_ready 同语义，retrospective.md 全新文档类型，
+# 无需正文回退。
+NO_FALLBACK_BOOL_FIELDS = frozenset({"regression_pass", "feedback_ready"})
 
 # TAG0002（P2-design.md §3.1.3，P4-review §2.1 BLOCKER 修复）：P1 任务类型声明字段
 # （可选，缺省=功能口径），frontmatter-only，无正文回退——change_type 是新增 P1 机器字段，
@@ -105,8 +107,11 @@ NO_FALLBACK_INT_FIELDS = frozenset({
 # 但 frontmatter 无该字段时**不做正则回退**（同 NO_FALLBACK_INT_FIELDS 的理由——
 # v0.35 正文里没有这些字段的单行声明形式）；格式化为换行连接（非空格连接，
 # 元素是含空格的散文描述，见模块 docstring）。
+# TAG0015（BDD-6/17，重试#1 A7 修复）：retrospective.md 是全新文档类型，无需兼容旧格式，
+# 无正文回退，元素为散文描述，换行连接，与 need_confirm_resolved 等字段同语义。
 NO_FALLBACK_LIST_FIELDS = frozenset({
     "need_confirm_resolved", "suggest_resolved", "scope_resolved",
+    "mechanism_issues", "execution_issues",
 })
 
 # presence 语义的纯字符串字段：key 存在且值非 null → 输出值原样，否则空。

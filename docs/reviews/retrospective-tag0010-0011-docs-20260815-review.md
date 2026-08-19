@@ -1,3 +1,5 @@
+> 历史复盘（迁移前旧布局），新复盘请见 `tasks/{Txxx}/retrospective.md`（模板：`agate/assets/templates/retrospective-template.md`）
+
 # 评审报告：复盘 TAG0010 + TAG0011 + 文档体系更新（复核修订版）
 
 日期：2026-08-15

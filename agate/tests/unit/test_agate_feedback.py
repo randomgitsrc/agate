@@ -152,9 +152,12 @@ def test_bdd20_source_contains_no_network_submit_calls(agate_scripts):
     assert script.is_file(), "agate-feedback.py 尚未实现（P4 职责，P3 预期红灯）"
     source = script.read_text(encoding="utf-8")
 
-    assert "subprocess" not in source
     assert "git push" not in source
     assert re.search(r"\bgh\s", source) is None
+    # subprocess 允许用于本地脚本间调用（如 agate-md-field-get.py，ADR-007 单一双读工具），
+    # 但不得出现任何 git/gh 网络提交子命令字符串（重试#1 断言订正，见
+    # P4-dispatch-context-implementer.md「重试 #1」节 2）。
+    assert not re.search(r"subprocess\.\w+\(\s*\[[^\]]*\b(git|gh)\b", source)
 
 
 def test_bdd20_stdout_contains_markdown_issue_body_snippet(
