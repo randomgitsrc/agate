@@ -21,8 +21,8 @@
 | RM-AG0021 | agate 跨项目反馈机制：复盘中的 agate 机制/执行问题回馈到 agate 项目组（结构化 agate 反馈节 + 匿名化 + 开关，只回传 agate 归因内容不涉项目敏感信息）| done | TAG0014 复盘讨论（2026-08-16）| TAG0015 | 2026-08-16 | 2026-08-19 |
 | RM-AG0022 | 协议规则结构化层（层 1）：把 agent 消费的协议规则从自由文本抽成结构化定义（phases.yaml/dispatch.yaml/roles.yaml + 一致性 gate），解决"agent 读 8000+ 行 md 理解规则"的摩擦；需先设计 yaml schema 方案再立项 | backlog | TAG0014 复盘讨论（2026-08-16）| — | 2026-08-16 | 2026-08-16 |
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | done | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-18 |
-| RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | scheduled | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-17 |
-| RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | scheduled | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-17 |
+| RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | done | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
+| RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | done | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
 
 ## 状态标识
 
@@ -439,6 +439,7 @@
   5. **防复发机制**：除了"内容归属约定"，评估 check-protocol-consistency 能否加"同一关键词多处出现检测"（至少 WARNING 级）
 - **验证口径**：每份文档职责单一可描述；交叉重复消除（同一规则只有一处权威）；consistency 0 ERROR
 - **归属**：独立任务（协议文档重构），或并入 AG0022 前期。改动面大（动 WORKFLOW/dispatch-protocol/state-machine/platform-notes 等），触发 self-gate，需专门规划。
+- **落地（TAG0016，2026-08-19，v0.54.0）**：P1 系统性全仓关键词交叉扫描核实已知 6 处中 4 处成立（平台适配 ×3/阶段门槛 ×2/派发 prompt 双源/重试上限表文档级，其中重试上限实际权威文件对与本条目原始猜测不同——是 `state-machine.md` vs `rules/state-transitions.md`，非 `dispatch-protocol.md`）、1 处不成立（Pre-commit 清单已是正确"权威源+指针"模式）、新发现 1 类未预判重复（8 张阶段卡片内联 `MAX=` 数值散落）。收敛为单一权威源+指针：`platform-notes.md`/`state-machine.md`/`assets/templates/dispatch-prompt.md`；新增 CHECK 12 防复发跨文件一致性检测（结构化白名单锚点扫描，非文本相似度，与既有"只做结构一致性"设计哲学一致）。7 份协议文档新增职责边界声明行。19 条 BDD 全 PASS，P7 一致性检查 BLOCKER=0。
 
 ---
 
@@ -464,3 +465,4 @@
 - **批次数据化备注**（不立条目）："1 轮可完成"是定性规则，等 RM-AG0016 的 dispatch_plan 字段攒够批次数据后再量化安全上限
 - **验证口径**：逐任务统计全量重跑次数；协议支持 P6 引用 P5 证据（gate + provenance 校验通过）；P8 放宽后仍保证发布质量
 - **归属**：独立任务（协议机制改进：P6/P8 卡片 + check-p6-provenance.py + 可能新脚本），与 RM-AG0023（运行时管控）相关但独立
+- **落地（TAG0016，2026-08-19，v0.54.0）**：`check-p6-provenance.py` 新增审计 7（`audit7_p5_evidence_reuse`，三态判定 `reuse_allowed`/`reuse_blocked`/`no_reuse_claim_possible`，`git diff` 命令失败时 fail-closed 为 `reuse_blocked`，P4-review CRITICAL-1 修复）+ `--audit7-only` CLI 模式供 P8 消费判定结果；`.state.yaml` 新增可选字段 `p5_pass_commit`；`P5-verification.md`/`P6-acceptance.md`/`P8-release.md`/`verifier.md`/`dispatch-prompt.md` 五处协议文档同步落地"P5 全绿+验收/发布前无代码改动→可引用 P5 证据、不必重跑全量"规则；`dispatch-protocol.md` 新增「全量重跑点审计」小节；`.github/workflows/protocol-tests.yml` 新增 `continue-on-error: true` 的 xdist 观测步骤（不影响门禁）；新增 ADR-010 记录"受控例外——满足客观可判定条件时允许复用既有验证证据"这一新架构原则。P8 现状确认为"跑一次"（非原描述的额外重跑），本次精简为条件化（无改动→复用证据）。
