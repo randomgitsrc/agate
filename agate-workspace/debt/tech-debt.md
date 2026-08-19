@@ -404,3 +404,36 @@ source: review
 created_at: 2026-08-19
 task_id: TAG0016
 ```
+
+## DEBT0013
+
+```yaml
+id: DEBT0013
+category: technical
+title: P8-release.md 未说明 CHECK 7（README badge vs 最新 git tag）与"重跑 P5 gate"之间的时序依赖，bump 版本文件后、tag 创建前重跑必然触发该 ERROR
+status: open
+priority: low
+evidence:
+  - ref: agate/scripts/check-protocol-consistency.py
+    note: "CHECK 7（check_version_badge，约 L418-441）用 `git describe --tags --abbrev=0` 取
+      最新 tag，与 README.md 的 version badge 做严格字符串相等比较，不相等即 rep.error——设计上
+      只有在 tag 已创建、且与 badge 一致时才会通过"
+  - path: agate-workspace/tasks/TAG0016-protocol-hygiene/retrospective.md
+    note: "TAG0016 P8 阶段实测复现：bump README.md/README.zh-CN.md/CHANGELOG.md 后（tag 尚未
+      创建）重跑 gate_commands.P5，consistency 报 1 个 ERROR（'README version badge v0.54.0 !=
+      最新 tag v0.53.0'），导致该次 pytest 链路 3 个测试失败；commit + 创建 tag v0.54.0 后
+      重跑同一条 gate_commands.P5，0 ERROR，pytest 全绿——确认是时序问题非真实回归"
+impact: 任何任务在 P8 阶段按 P8-release.md 字面顺序（先 bump 文件、随即重跑 P5 gate）执行，都会
+  在"bump 已完成但 tag 未创建"这个必经的中间状态撞上 CHECK 7 的设计性 ERROR；若执行者不知道
+  这是时序问题，容易误判为真实回归而重新排查协议文档/脚本改动，浪费排查时间
+recommendation: 在 `agate/phase-cards/P8-release.md`「主 Agent 必须亲自执行」节"重跑 P5 gate"
+  一条后附注："若 gate_commands.P5 的链路包含 check-protocol-consistency.py 的 CHECK 7
+  （badge vs tag 一致性），该重跑应安排在 commit + 创建 git tag 之后进行，而非 bump 文件后
+  立即重跑——bump 后、tag 前的中间状态下 CHECK 7 必然报错，这是设计使然不是回归"
+closure_criteria:
+  - P8-release.md「主 Agent 必须亲自执行」节补充上述时序说明
+  - （可选）新增一条对该时序依赖的说明性测试或文档一致性检查项
+source: retrospective
+created_at: 2026-08-19
+task_id: TAG0016
+```
