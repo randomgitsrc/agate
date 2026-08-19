@@ -11,5 +11,10 @@ retries:
       failure_mode: quality
       prompt_changed: true
       adjustment: null
-retry_count: { P1: 2 }
+  P2:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+retry_count: { P1: 2, P2: 1 }
 updated: 2026-08-19

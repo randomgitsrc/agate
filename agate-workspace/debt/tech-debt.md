@@ -222,3 +222,31 @@ source: retrospective
 created_at: 2026-08-19
 task_id: null
 ```
+
+## DEBT0009
+
+```yaml
+id: DEBT0009
+category: protocol
+title: BDD-12 P5 provenance 存储位置候选 C（commit message 派生）技术上更优雅但依赖无 gate 强校验的自然语言约定，本次未采纳
+status: open
+priority: low
+evidence:
+  - path: agate-workspace/tasks/TAG0016-protocol-hygiene/P2-design.md
+    note: "§3.3/§3.4 候选方案权衡——候选 C 从既有 commit message（`wf({task_id}-P5):` 前缀）现查现用派生
+      P5 pass commit，零 schema 改动、直接复用已有约定；但该前缀当前没有任何 gate 脚本强制校验格式，
+      属于自然语言约定，健壮性弱于候选 A。本任务最终选择候选 A（`.state.yaml` 新增可选字段
+      `p5_pass_commit`），信任模型更干净（写入者为主 Agent 本人，非依赖 subagent 自报或文本格式约定）"
+impact: 若未来 commit message 格式（wf() 前缀约定）仍未被 gate 强制校验，候选 C 的健壮性风险持续存在，
+  不会自然消解；若届时想重新评估切换到候选 C 以省去 `.state.yaml` schema 改动，需要重新翻找本次
+  P2-design.md §3.3 已做过的权衡分析，增加决策成本
+recommendation: 若未来 commit message 格式（wf() 前缀约定）被新增 gate 脚本强制校验，重新评估是否将
+  BDD-12 provenance 存储从候选 A（.state.yaml 字段）切换为候选 C（commit message 派生），届时候选 C
+  零 schema 改动的优势才能安全兑现；若无此前提变化，维持候选 A 现状
+closure_criteria:
+  - commit message 的 wf() 前缀格式已被新增 gate 脚本强制校验，且完成候选 A→C 切换评估（切或不切均可，需记录理由）
+  - 或明确评估后决定长期维持候选 A，本条债务关闭并记录理由
+source: review
+created_at: 2026-08-19
+task_id: TAG0016
+```
