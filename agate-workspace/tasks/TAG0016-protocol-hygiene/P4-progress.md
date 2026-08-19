@@ -132,3 +132,13 @@
 - 自跑全量：`timeout 180 python3 -m pytest agate/tests/ -q --tb=short` → 966 passed, 2 skipped,
   0 failed，与预期基线一致。
 - 结论：2 个 CRITICAL 均验证修复到位，无新问题。P4-review.md 已覆盖重写，status: approved。
+
+[orchestrator] commit 880269d 触发 SELF-GATE WARNING（commit message 未含 self-gate-review/skip 标记，
+系疏漏）。判断：本次改动（CRITICAL-1/2 fail-closed 修复）不改变 check-protocol-consistency.py
+CHECK 12 / check-p6-provenance.py 审计7 的协议层三态语义（reuse_allowed/reuse_blocked/
+no_reuse_claim_possible 含义不变，只是修正了两处判定逻辑的正确性缺陷），不涉及任何 agate/*.md
+协议文档改动，且改动的两处函数已被 P4-review（偏执 Staff Engineer 视角）两轮深度代码级评审
+（第 1 轮发现问题+复现，第 2 轮验证修复），protocol-alignment-review 的 A1-A7 协议-脚本语义对齐
+问题不适用于这类纯 bug 修复。补记 self-gate-skip 理由：CRITICAL 修复不改变协议语义，已被 P4-review
+两轮代码级评审覆盖，不重复派发 protocol-alignment-review。commit message 未能及时写入此标记是
+本次操作的疏漏，此处补记存档，不重新 commit（遵循"不 amend"纪律）。
