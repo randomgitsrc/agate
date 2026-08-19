@@ -250,3 +250,39 @@ source: review
 created_at: 2026-08-19
 task_id: TAG0016
 ```
+
+## DEBT0010
+
+```yaml
+id: DEBT0010
+category: technical
+title: agate-read-gate-commands.py 把 P3_timeout_seconds 等超时声明字段误判为待执行命令，导致 check-tdd-red.py 误报 A 类错误
+status: open
+priority: medium
+evidence:
+  - ref: agate/scripts/agate-read-gate-commands.py
+    note: "L31 `elif key.startswith(\"P3\") and not key.endswith(\"_formatter\"):` 只排除
+      `_formatter` 后缀键，未排除 `_timeout_seconds` 后缀键——P2-design.md §6 声明
+      `gate_commands.P3_timeout_seconds: 120`（P2 卡片「{key}_timeout_seconds 字段规则」正式
+      支持的可选字段）时，该整数值 120 被当成一条待执行 shell 命令解析"
+  - path: agate-workspace/tasks/TAG0016-protocol-hygiene/P3-test-cases.md
+    note: "§3「已知问题」——TAG0016 自身 P3 阶段实测复现：`python3 agate/scripts/check-tdd-red.py
+      {task_dir}` 对真实真红灯（24 个 AssertionError/AttributeError，0 个 A 类）误报
+      exit 1（A 类，`bash -c \"120\"` 返回 127）；用 `TEST_RUNNER` 环境变量覆盖绕过后确认
+      exit 0（真实 B 类红灯）"
+impact: 任何任务在 P2-design.md 声明 `{key}_timeout_seconds` 字段（P2 卡片「{key}_timeout_seconds
+  字段规则」鼓励声明长命令超时预算，属正常用法）后，若该任务的 P3 阶段主 Agent 直接跑
+  `check-tdd-red.py` 而不知道这个坑，会被误报为 A 类错误（假红灯），可能误判测试代码本身有
+  SyntaxError/collection error 并要求 test-designer 返工，实际是 gate 工具自身的解析缺陷；
+  已知规避方式（`TEST_RUNNER` 环境变量覆盖）不是每个操作者都知道
+recommendation: "agate-read-gate-commands.py 的 P3 命令提取判据补充排除
+  key.endswith('_timeout_seconds')（与已有的 _formatter 排除并列），使超时声明字段和
+  formatter 声明字段一样不被误判为待执行命令"
+closure_criteria:
+  - agate-read-gate-commands.py 对 `P3_timeout_seconds` 等 `_timeout_seconds` 后缀键不再当作命令解析
+  - 新增回归用例覆盖"声明 P3_timeout_seconds 时 check-tdd-red.py 仍正确判定真红灯"场景
+  - 全量 pytest 回归通过
+source: review
+created_at: 2026-08-19
+task_id: TAG0016
+```

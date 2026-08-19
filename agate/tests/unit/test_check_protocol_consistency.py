@@ -296,3 +296,183 @@ def test_bdd_5_docs_dir_not_scanned(agate_scripts, tmp_path):
 
     assert _check10_errors(rep) == []
     assert _check10_warnings(rep) == []
+
+
+# ── CHECK 12（权威数值/规则跨文件一致性，防复发，TAG0016 RM-AG0025 BDD-9/10）────────
+# 被测：AUTHORITATIVE_VALUE_ANCHORS 白名单锚点表 + check_authoritative_values(root, rep)。
+# 设计依据：P2-design.md §2（候选 2：结构化权威锚点扫描，延续 CHECK 4/9/11 提取-比对模式）。
+# CHECK 12 尚未实现（TAG0016 P4 落地）——本批次测试当前预期红灯：
+#   AttributeError: module 'cpc' has no attribute 'AUTHORITATIVE_VALUE_ANCHORS' / 'check_authoritative_values'
+# （B 类：项目内属性/函数不存在，不是测试代码自身语法错误）。
+# 夹具用真实重试上限数值（P1=3/P2=3/P3=2/P4=3/P5=2/P6=2/P7=2/P8=2，P1-requirements.md §3.5
+# 已核实），phase-cards 文件名用真实文件名（P3-tdd.md / P5-verification.md / P6-acceptance.md /
+# P8-release.md 等），使夹具贴近迁移后的真实文档形态。
+
+_RETRY_TABLE_MD = (
+    "## 重试上限\n\n"
+    "| 阶段 | MAX | 说明 |\n"
+    "|------|-----|------|\n"
+    "| P1 | 3 | 需求基线 |\n"
+    "| P2 | 3 | 方案设计 |\n"
+    "| P3 | 2 | TDD 红灯 |\n"
+    "| P4 | 3 | 实现 |\n"
+    "| P5 | 2 | 技术验证 |\n"
+    "| P6 | 2 | 验收 |\n"
+    "| P7 | 2 | 一致性 |\n"
+    "| P8 | 2 | 发布 |\n"
+)
+
+_PHASE_CARD_NAMES = {
+    "P1": "P1-requirements.md",
+    "P2": "P2-design.md",
+    "P3": "P3-tdd.md",
+    "P4": "P4-implementation.md",
+    "P5": "P5-verification.md",
+    "P6": "P6-acceptance.md",
+    "P7": "P7-consistency.md",
+    "P8": "P8-release.md",
+}
+
+_AUTHORITATIVE_MAX = {"P1": 3, "P2": 3, "P3": 2, "P4": 3, "P5": 2, "P6": 2, "P7": 2, "P8": 2}
+
+
+def _make_check12_tree(tmp_path, pointer_ok=True, mismatched_phase=None, redeclare_pointer=False):
+    """构造 CHECK 12 最小假协议树：
+
+    - agate/state-machine.md：权威重试上限表 + Pre-commit 指针句（既有正确模式，BDD-7/10 防误伤）
+    - agate/rules/state-transitions.md：迁移后的纯指针句（或按参数还原为"仍复制完整表格"的
+      迁移前状态 / 缺权威指针短语的占位状态）
+    - agate/phase-cards/P{N}-*.md ×8：内联 MAX= 行（可注入一处与权威表不一致）
+    - agate/dispatch-protocol.md、agate/git-integration.md：既有正确 Pre-commit 指针位置
+      （P1 3.4 节已验证，只含指针句不含数值表，CHECK 12 锚点表物理上不扫描这两处的数值）
+    """
+    root = Path(tmp_path)
+    sm = root / "agate" / "state-machine.md"
+    sm.parent.mkdir(parents=True, exist_ok=True)
+    sm.write_text(
+        "# state-machine\n\n本表是重试上限的唯一权威源；`rules/state-transitions.md` 与 8 张阶段"
+        "卡片均须与本表一致（CHECK 12 自动校验）。\n\n" + _RETRY_TABLE_MD
+        + "\n## Pre-commit 检查全景\n"
+        "完整清单见 `WORKFLOW.md`「Pre-commit 检查总览」——权威唯一来源，本文件不重复维护。\n",
+        encoding="utf-8",
+    )
+
+    st = root / "agate" / "rules" / "state-transitions.md"
+    st.parent.mkdir(parents=True, exist_ok=True)
+    if redeclare_pointer:
+        # 迁移前状态：文件头已声明"权威源"，但正文仍复制完整数值表（M11 待落地前的红灯基线）
+        st.write_text(
+            "> 权威源：`agate/state-machine.md`。\n\n" + _RETRY_TABLE_MD, encoding="utf-8"
+        )
+    elif pointer_ok:
+        # 迁移后状态：纯指针句，不含数值表
+        st.write_text(
+            "> 权威源：`agate/state-machine.md`。\n\n## 重试上限\n\n"
+            "详见 `agate/state-machine.md`《重试上限》——权威唯一来源，本文件不重复维护。\n",
+            encoding="utf-8",
+        )
+    else:
+        # 缺权威指针短语的占位状态（边界：既不复制表格也不指向权威源）
+        st.write_text("## 重试上限\n\n（占位内容，未声明来源）\n", encoding="utf-8")
+
+    for phase, fname in _PHASE_CARD_NAMES.items():
+        card = root / "agate" / "phase-cards" / fname
+        card.parent.mkdir(parents=True, exist_ok=True)
+        value = _AUTHORITATIVE_MAX[phase]
+        if mismatched_phase == phase:
+            value = 99
+        card.write_text(f"# {fname}\n\n本阶段重试上限 MAX={value}\n", encoding="utf-8")
+
+    # BDD-7/10：既有正确"权威源+指针"位置（Pre-commit 清单，P1 3.4 节已验证），
+    # 不含权威数值表，CHECK 12 的 retry-max 锚点表不应扫描到这两处并误报。
+    dp = root / "agate" / "dispatch-protocol.md"
+    dp.parent.mkdir(parents=True, exist_ok=True)
+    dp.write_text(
+        "**Pre-commit 检查全景**：完整清单见 `WORKFLOW.md`「Pre-commit 检查总览」——"
+        "权威唯一来源，本文件不重复维护。\n",
+        encoding="utf-8",
+    )
+    gi = root / "agate" / "git-integration.md"
+    gi.write_text(
+        "阶段 commit 会触发 9 项 pre-commit 检查（详见 WORKFLOW.md「Pre-commit 检查总览」）。\n",
+        encoding="utf-8",
+    )
+
+    return root
+
+
+def test_bdd_9_checks_list_registers_check12(agate_scripts):
+    cpc = _load_cpc(agate_scripts)
+    assert any(name.startswith("CHECK 12") for name, _ in cpc.CHECKS), (
+        "CHECKS 未注册 CHECK 12（check_authoritative_values）"
+    )
+
+
+def test_bdd_9_authoritative_value_anchors_retry_max_registered(agate_scripts):
+    cpc = _load_cpc(agate_scripts)
+    anchors = cpc.AUTHORITATIVE_VALUE_ANCHORS
+    retry = [a for a in anchors if a.get("id") == "retry-max"]
+    assert len(retry) == 1, f"Expected exactly 1 'retry-max' anchor, got {len(retry)}"
+    anchor = retry[0]
+    assert anchor["authoritative_file"] == "agate/state-machine.md"
+    pointer_files = [pf["file"] for pf in anchor.get("pointer_files", [])]
+    assert "agate/rules/state-transitions.md" in pointer_files
+    inline_globs = [ivf["glob"] for ivf in anchor.get("inline_value_files", [])]
+    assert "agate/phase-cards/P*-*.md" in inline_globs
+
+
+def test_bdd_9_check12_mismatched_inline_max_reports_error(agate_scripts, tmp_path):
+    """正报：8 张卡片中 P3 的内联 MAX 与权威表不一致 → CHECK 12 报 ERROR，消息含文件名与数值对。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_check12_tree(tmp_path, mismatched_phase="P3")
+    rep = cpc.Report()
+    cpc.check_authoritative_values(root, rep)
+    errors = [e for e in rep.errors if e["check"] == "CHECK12-authval"]
+    assert len(errors) == 1, f"Expected 1 CHECK12 mismatch error, got {len(errors)}"
+    assert "P3-tdd.md" in errors[0]["msg"]
+    assert "99" in errors[0]["msg"] and "2" in errors[0]["msg"]
+
+
+def test_bdd_9_check12_consistent_values_zero_error(agate_scripts, tmp_path):
+    """不误报：迁移后的一致状态（8 卡片值与权威表一致 + 指针文件为纯指针）应 0 ERROR。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_check12_tree(tmp_path)
+    rep = cpc.Report()
+    cpc.check_authoritative_values(root, rep)
+    assert [e for e in rep.errors if e["check"] == "CHECK12-authval"] == []
+    assert "CHECK12-authval" in rep.passed
+
+
+def test_bdd_10_check12_no_false_positive_on_existing_precommit_pointers(agate_scripts, tmp_path):
+    """BDD-10/BDD-7：既有正确 Pre-commit 权威源+指针位置（dispatch-protocol.md/git-integration.md/
+    state-machine.md）不在 CHECK 12 的 retry-max 锚点扫描范围内，0 误报。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_check12_tree(tmp_path)
+    rep = cpc.Report()
+    cpc.check_authoritative_values(root, rep)
+    assert [e for e in rep.errors if e["check"] == "CHECK12-authval"] == []
+
+
+def test_bdd_5_check12_pointer_file_missing_phrase_reports_error(agate_scripts, tmp_path):
+    """边界：rules/state-transitions.md 既不复制表格也不含权威指针短语 → 报 ERROR。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_check12_tree(tmp_path, pointer_ok=False)
+    rep = cpc.Report()
+    cpc.check_authoritative_values(root, rep)
+    errors = [e for e in rep.errors if e["check"] == "CHECK12-authval"]
+    assert len(errors) >= 1
+    assert any("state-transitions.md" in e["msg"] for e in errors)
+
+
+def test_bdd_5_check12_pointer_redeclares_table_reports_error(agate_scripts, tmp_path):
+    """迁移前状态（M11 落地前的红灯基线）：rules/state-transitions.md 复制了完整数值表，
+    即使文件头已声明"权威源"，仍应被判定为重新声明权威表格（BDD-5 的核心断言）。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_check12_tree(tmp_path, redeclare_pointer=True)
+    rep = cpc.Report()
+    cpc.check_authoritative_values(root, rep)
+    errors = [e for e in rep.errors if e["check"] == "CHECK12-authval"]
+    assert len(errors) >= 1
+    assert any(
+        "重新声明" in e["msg"] or "state-transitions.md" in e["msg"] for e in errors
+    )

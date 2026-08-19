@@ -11,12 +11,13 @@
 #   以 _run_gate_p7 调用）。
 # 随机字节证据文件用 os.urandom + write_bytes（平台无关，不写字面命中行，BDD-5）。
 
+import importlib.util
 import os
 import re
 
 import pytest
 
-from conftest import add_p1_bdd
+from conftest import GitRepo, add_p1_bdd
 
 
 def _run_prov(agate_scripts, python_exe, run_cli, td):
@@ -604,3 +605,89 @@ def test_vision_gap_prov_3_gap_audit5_log_mismatch_exit_1(
     result = _run_prov(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 1
     assert ("EXIT_CODE" in result.output) or ("矛盾" in result.output)
+
+
+# ========== 审计 7：P6 引用 P5 证据的无改动校验（TAG0016 RM-AG0026 BDD-12/13）==========
+# 被测：check-p6-provenance.py 新增函数 audit7_p5_evidence_reuse(task_dir, state_yaml)
+#   （P2-design.md §3.5 伪代码：state_yaml 为已解析的 .state.yaml dict，读取可选字段
+#   p5_pass_commit；返回三态字符串之一）：
+#     "no_reuse_claim_possible" — p5_pass_commit 字段缺失（存量任务兼容，静默回退强制重跑）
+#     "reuse_blocked"           — 检测到 p5_pass_commit..HEAD 间存在非产出文件改动（BDD-13）
+#     "reuse_allowed"           — 排除 agate-workspace/tasks/ 前缀后 diff 为空（BDD-12）
+# 审计 7 函数尚未实现（TAG0016 P4 落地）——本批次测试当前预期红灯：
+#   AttributeError: module 'cpp_mod' has no attribute 'audit7_p5_evidence_reuse'
+# （B 类：项目内属性/函数不存在）。
+# 用真实 git 仓库（GitRepo fixture）构造 commit 历史而非 mock，贴近 §3.5 的 git diff 实现路径；
+# EXCLUDE_PRODUCE_PREFIX = "agate-workspace/tasks/"（P2 minimal_validation 已用真实 git 命令验证
+# 该前缀不匹配任何源码路径）。
+
+
+def _load_prov_module(agate_scripts):
+    path = os.path.join(str(agate_scripts), "check-p6-provenance.py")
+    spec = importlib.util.spec_from_file_location("cpp_mod", path)
+    cpp_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cpp_mod)
+    return cpp_mod
+
+
+def _init_repo_with_p5_commit(tmp_path, task_rel="agate-workspace/tasks/T001-test"):
+    """构造一个真实 git 仓库：先提交一份 P5 产出（模拟 P5 gate 通过 commit），
+    返回 (repo, task_dir 绝对路径, p5_pass_commit 哈希)。"""
+    repo = GitRepo(tmp_path)
+    task_dir = tmp_path / task_rel
+    task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "P5-test-results.md").write_text(
+        "pytest 916 passed, 0 failed\n", encoding="utf-8"
+    )
+    repo.commit("wf(T001-test-P5): baseline 916 全绿")
+    p5_commit = repo.git("rev-parse", "HEAD").stdout.strip()
+    return repo, task_dir, p5_commit
+
+
+def test_bdd_12_audit7_no_changes_reuse_allowed(agate_scripts, tmp_path):
+    """P6 验收发起时点距 P5 通过 commit 之间只有产出文件改动 → 判定可复用（reuse_allowed）。"""
+    cpp_mod = _load_prov_module(agate_scripts)
+    repo, task_dir, p5_commit = _init_repo_with_p5_commit(tmp_path)
+    (task_dir / "P6-acceptance.md").write_text(
+        "---\nagent: test\n---\n- PASS BDD-1 (result.json)\n", encoding="utf-8"
+    )
+    repo.commit("wf(T001-test-P6): acceptance draft")
+
+    result = cpp_mod.audit7_p5_evidence_reuse(str(task_dir), {"p5_pass_commit": p5_commit})
+    assert result == "reuse_allowed"
+
+
+def test_bdd_13_audit7_non_produce_change_reuse_blocked(agate_scripts, tmp_path):
+    """BDD-13：模拟 P6→P4 修复后重到 P6——P5 通过点之后又出现了非产出文件（真实源码）改动，
+    必须拦截声明"引用 P5 证据"，强制重跑（返回 reuse_blocked）。"""
+    cpp_mod = _load_prov_module(agate_scripts)
+    repo, task_dir, p5_commit = _init_repo_with_p5_commit(tmp_path)
+    src = tmp_path / "agate" / "scripts" / "some-fixed-script.py"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_text("print('P4 修复')\n", encoding="utf-8")
+    repo.commit("wf(T001-test-P4): 修复 P6 退回的 bug")
+
+    result = cpp_mod.audit7_p5_evidence_reuse(str(task_dir), {"p5_pass_commit": p5_commit})
+    assert result == "reuse_blocked"
+
+
+def test_bdd_12_audit7_missing_field_no_reuse_claim_possible(agate_scripts, tmp_path):
+    """存量任务兼容：.state.yaml 无 p5_pass_commit 字段 → 静默回退强制重跑，不报错。"""
+    cpp_mod = _load_prov_module(agate_scripts)
+    _repo, task_dir, _p5_commit = _init_repo_with_p5_commit(tmp_path)
+
+    result = cpp_mod.audit7_p5_evidence_reuse(str(task_dir), {})
+    assert result == "no_reuse_claim_possible"
+
+
+def test_bdd_13_audit7_only_produce_dirs_excluded_active_tasks_board(agate_scripts, tmp_path):
+    """边界（P2 minimal_validation 附注）：跨任务共享看板文件 agate-workspace/tasks/active-tasks.md
+    同样落在 EXCLUDE_PRODUCE_PREFIX 前缀下，应被排除、不误判为非产出文件改动。"""
+    cpp_mod = _load_prov_module(agate_scripts)
+    repo, task_dir, p5_commit = _init_repo_with_p5_commit(tmp_path)
+    board = tmp_path / "agate-workspace" / "tasks" / "active-tasks.md"
+    board.write_text("- T001-test: P6\n", encoding="utf-8")
+    repo.commit("wf(T001-test-P6): 更新共享看板")
+
+    result = cpp_mod.audit7_p5_evidence_reuse(str(task_dir), {"p5_pass_commit": p5_commit})
+    assert result == "reuse_allowed"
