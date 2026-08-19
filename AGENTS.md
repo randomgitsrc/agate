@@ -131,6 +131,7 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 - **gate 工具 ≠ 检查对象**：commit hook 用 `~/.agate`（稳定版）判定；但 `check-protocol-consistency.py` 必须用 worktree 自己的（检查 worktree 里的协议文件）。
 - **工具稳定优先**：hook 指向 `~/.agate` 稳定版，不指向 worktree（避免"用未验证的新 gate 判自己"）。
 - **~/.agate 脚本在 worktree 跑显示主 checkout 上下文**：`agate-summary.py` 显示稳定版 main/HEAD，不代表 worktree 状态。
+- **编排/派发类工具一律用 `~/.agate/scripts/` 稳定版**：`agate-inject-card.py` / `agate-render-dispatch-prompt.py` / `agate-next-card.py` 等都有 AGATE_ROOT 自解析逻辑——在 worktree 里用相对路径调用会读到 worktree 正在被修改的协议卡片副本，把尚未发布的新机制内容注入任务（TAG0016 P1-P4 教训）。
 - **工具纪律（T001/TAG0004 多次实战验证）**：
   - **bash 命令一律加 `timeout`**（外层 `timeout N cmd`，N 按命令预期耗时给 30-90s），工具 timeout 参数同步设。无 timeout 的 bash 在本环境多次被 abort/挂起。
   - **单步串行，不并行 bash**：一次只发一个 bash 调用；必须链多步时用 `&&` 且每步短。并行 bash 是 abort 高危。
