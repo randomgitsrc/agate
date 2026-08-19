@@ -256,7 +256,7 @@ task_id: TAG0016
 ```yaml
 id: DEBT0010
 category: technical
-title: agate-read-gate-commands.py 把 P3_timeout_seconds 等超时声明字段误判为待执行命令，导致 check-tdd-red.py 误报 A 类错误
+title: 至少 4 个 gate_commands 键解析脚本只排除 _formatter 后缀、未排除 _timeout_seconds 后缀，把超时声明字段误判为待执行命令/待核实字段（同类扫描后发现是系统性模式，不止 P3 一处）
 status: open
 priority: medium
 evidence:
@@ -270,17 +270,38 @@ evidence:
       {task_dir}` 对真实真红灯（24 个 AssertionError/AttributeError，0 个 A 类）误报
       exit 1（A 类，`bash -c \"120\"` 返回 127）；用 `TEST_RUNNER` 环境变量覆盖绕过后确认
       exit 0（真实 B 类红灯）"
-impact: 任何任务在 P2-design.md 声明 `{key}_timeout_seconds` 字段（P2 卡片「{key}_timeout_seconds
-  字段规则」鼓励声明长命令超时预算，属正常用法）后，若该任务的 P3 阶段主 Agent 直接跑
-  `check-tdd-red.py` 而不知道这个坑，会被误报为 A 类错误（假红灯），可能误判测试代码本身有
-  SyntaxError/collection error 并要求 test-designer 返工，实际是 gate 工具自身的解析缺陷；
-  已知规避方式（`TEST_RUNNER` 环境变量覆盖）不是每个操作者都知道
-recommendation: "agate-read-gate-commands.py 的 P3 命令提取判据补充排除
-  key.endswith('_timeout_seconds')（与已有的 _formatter 排除并列），使超时声明字段和
-  formatter 声明字段一样不被误判为待执行命令"
+  - ref: agate/scripts/agate-gate-missing-cmds.py
+    note: "L20 `if k.endswith(\"_formatter\") or k == \"project_module\":` 同样未排除
+      `_timeout_seconds`——TAG0016 P2 阶段实测复现：check-gate.py P2 对
+      `gate_commands.P3_timeout_seconds: 120` / `P5_timeout_seconds: 180` 均报
+      'GATE P2 WARNING: gate_commands.{key} 命令 {token} 不存在于当前环境'（把整数值当成
+      待核实是否可执行的命令 token）"
+  - ref: agate/scripts/agate-gate-p5-count.py
+    note: "L23 `aux = [k for k in re.findall(r\"^  (P5_\\w+):\", block, re.MULTILINE) if not
+      k.endswith(\"_formatter\")]` 同样未排除 `_timeout_seconds`——TAG0016 P5 阶段实测复现：
+      check-gate.py P5 把声明的 `P5_timeout_seconds` 计为 1 条'辅助命令'，报
+      'GATE P5 WARNING: P2 声明了 1 个主命令 + 1 个辅助命令...请确认已全部执行（非子集）'，
+      而实际只有 1 条真实 P5 命令（`P5_timeout_seconds` 不是命令）"
+  - ref: agate/scripts/agate-read-p5-commands.py
+    note: "L29 `if key.endswith(\"_formatter\"):` 同样未排除 `_timeout_seconds`——TAG0016 系统性
+      grep `_formatter` 排除模式命中的第 4 处，未逐一实测复现（该脚本是否会把
+      `_timeout_seconds` 键实际当命令执行、还是仅列举，需要修复时一并核实），先登记同一根因，
+      避免遗漏"
+impact: 任何任务在 P2-design.md 按 P2 卡片「{key}_timeout_seconds 字段规则」正常声明
+  `{key}_timeout_seconds` 字段（协议鼓励的正常用法，非误用）后，P2/P3/P5 阶段的 gate 校验/红灯
+  判定/命令完整性核对都可能被这同一类"未排除 _timeout_seconds 后缀"的解析缺陷误导——P3 会被
+  `check-tdd-red.py` 误报真红灯为假红灯（A 类），P2/P5 会收到虚假的"命令不存在"/"还有命令未执行"
+  WARNING，操作者若不知道这是已知的工具解析缺陷，容易误判任务自身有问题而返工，或反过来对真实
+  问题的 WARNING 掉以轻心（"反正 timeout_seconds 那个坑我知道，不用管"）
+recommendation: 四个脚本的判据统一补充排除 `key.endswith("_timeout_seconds")`（与已有的
+  `_formatter` 排除并列，四处修法结构相似，可考虑抽成 agate_common.py 的一个共享判据函数，
+  避免未来又出现第五处遗漏——这正是本任务 RM-AG0025 想要的"权威源+复用"模式在脚本代码层面的
+  应用）
 closure_criteria:
-  - agate-read-gate-commands.py 对 `P3_timeout_seconds` 等 `_timeout_seconds` 后缀键不再当作命令解析
-  - 新增回归用例覆盖"声明 P3_timeout_seconds 时 check-tdd-red.py 仍正确判定真红灯"场景
+  - agate-read-gate-commands.py / agate-gate-missing-cmds.py / agate-gate-p5-count.py /
+    agate-read-p5-commands.py 四处均不再把 `_timeout_seconds` 后缀键当作命令/待执行项解析
+  - 新增回归用例覆盖"声明 P3_timeout_seconds/P5_timeout_seconds 时，check-tdd-red.py 仍正确
+    判定真红灯 + check-gate.py P2/P5 不再误报命令不存在/命令数不符"场景
   - 全量 pytest 回归通过
 source: review
 created_at: 2026-08-19
@@ -325,6 +346,60 @@ closure_criteria:
   - 新增或更新一条回归检查（哪怕只是文档层面的检查清单项），要求 subagent 覆盖写前先确认目标
     文件不是别的任务的记录
   - 全量 pytest 回归通过（若涉及脚本改动）
+source: review
+created_at: 2026-08-19
+task_id: TAG0016
+```
+
+## DEBT0012
+
+```yaml
+id: DEBT0012
+category: technical
+title: check-protocol-consistency.py --strict 在"仅有 WARNING 无 ERROR"时返回 exit 2，与 && 串联的
+  gate_commands.P5 链路组合会因长期存量 WARNING 债务而永远短路中断
+status: open
+priority: medium
+evidence:
+  - ref: agate/scripts/check-protocol-consistency.py
+    note: "main() 末尾（约 L1129-1133）：`if rep.errors: return 1` / `if rep.warnings and
+      args.strict: return 2` / `return 0`——--strict 模式下'仅有 WARNING、无 ERROR'与'有
+      ERROR'是两种不同的非 0 返回码，但对 `&&` 串联的调用方而言都同样会短路后续命令"
+  - path: agate-workspace/tasks/TAG0016-protocol-hygiene/P5-test-results/unit.md
+    note: "TAG0016 P5 阶段实测复现：gate_commands.P5（P2-design.md §6 声明）为
+      `pytest ... && check-protocol-consistency.py --strict && count-tests.sh` 三命令 &&
+      串联；实跑链路整体 exit=2，第 3 步 count-tests.sh 因链路在第 2 步短路而**未在链路内
+      执行到**。逐步单独复核确认：pytest 0 failed、consistency 0 ERROR（308 个 WARNING，
+      全部为历史遗留的叙事文件死链引用，与本任务无关）、count-tests.sh 独立跑通过——三步
+      本身均无问题，问题在于链路层面的 && 短路语义与 --strict 的'WARNING-only 也非 0'设计
+      叠加后产生的组合缺陷"
+  - ref: git log（历史 P5/P8 commit message）
+    note: "e40adac/687e622/eb48440/916d537 等历史任务的 P5/P8 commit message 均只声称
+      'consistency 0 ERROR'，从未声称'0 WARNING'——说明本仓库长期以来的实际验收标准是
+      0 ERROR 而非 0 WARNING/strict-exit-0；结合当前 308+ 条存量 WARNING 从未被清理，
+      推断这一 && 链路组合缺陷可能自 --strict 与该链路命令首次一起使用起就一直存在，只是
+      此前的验证流程习惯性用 `command | tail -N; echo $?` 之类的管道模式核对，管道会让 `$?`
+      变成 `tail` 的退出码而非目标命令的真实退出码，掩盖了这个问题（TAG0016 本次也曾踩过
+      同一个验证方法陷阱，后改用 `timeout ... bash -c '...'; echo $?` 不经管道直接核对才发现）"
+impact: 任何后续任务若原样沿用当前 gate_commands.P5 的 && 串联写法（这是 P2-design.md 已固化的
+  声明，大概率会被后续任务复制作为范式），只要仓库内存量 WARNING 未清零，P5 阶段的链路级 exit
+  code 永远是 2、且链路最后一步命令永远不会真正被链路执行到——若验证者使用管道+tail 模式核对
+  exit code（如本任务前几个阶段一度采用的方式），会得到虚假的"exit 0"印象而看不出问题；若验证
+  者直接核对链路真实 exit code，则会看到非 0 但需要额外做"逐步拆解复核"才能确认这不是真失败，
+  增加了每次 P5 验证的认知负担和排查成本
+recommendation: 二选一（或都做）——(a) gate_commands.P5 declaration 层面：不要用 `&&` 串联含
+  `--strict` 的 consistency 检查，改为三条独立命令（如 P0-brief.md env_constraints.test_cmd
+  已经是用中文分号分隔的三条独立命令，语义上更准确）分别执行并分别判定，不整体链式短路；
+  (b) 脚本层面：`check-protocol-consistency.py` 增加一个更细粒度的模式（如
+  `--strict-errors-only`），仅在存在 ERROR 时非 0，WARNING-only 时仍返回 0（把"WARNING 需要
+  关注"这件事通过打印内容告知人类，而不是通过阻断式退出码），保留现有 `--strict`
+  （WARNING-only 也非 0）作为可选的更严格模式供人工主动选用，不作为 && 链路的默认组成部分
+closure_criteria:
+  - gate_commands.P5 相关文档/模板（P2 卡片 gate_commands 声明示例、或 HANDOFF 类文档）不再
+    推荐把 --strict 塞进 && 链路中间位置
+  - 或 check-protocol-consistency.py 新增区分 ERROR-only 与 WARNING-only 的退出码模式，
+    且有对应回归测试覆盖两种模式的 exit code 差异
+  - 全量 pytest 回归通过
 source: review
 created_at: 2026-08-19
 task_id: TAG0016
