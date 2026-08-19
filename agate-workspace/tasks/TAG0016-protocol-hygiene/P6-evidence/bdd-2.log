@@ -1,0 +1,16 @@
+=== BDD-2: grep 平台适配 WORKFLOW.md dispatch-protocol.md ===
+agate/WORKFLOW.md:465:## 平台适配
+agate/WORKFLOW.md-466-
+agate/WORKFLOW.md-467-不同 Agent 平台的 subagent 机制不同。详见 `platform-notes.md`《各平台适配说明》——权威唯一来源，本文件不重复维护。派发协议的具体调用方式见 `dispatch-protocol.md` 的平台适配章节。
+agate/WORKFLOW.md-468-
+agate/WORKFLOW.md-469----
+agate/WORKFLOW.md-470-
+agate/dispatch-protocol.md:1077:## 平台适配
+agate/dispatch-protocol.md-1078-
+agate/dispatch-protocol.md-1079-平台能力矩阵（各 Agent 平台已覆盖情况、Windows 安装指南）权威源见 `platform-notes.md`——权威唯一来源，本节不重复维护平台能力矩阵本身，只保留与派发调用方式相关的独家操作细节。
+agate/dispatch-protocol.md-1080-
+agate/dispatch-protocol.md-1081-**OpenCode 调用坑位（issue #29616）**：`opencode.jsonc` 里 `mode: "subagent"` 定义的自定义 agent 可能无法被 task 工具调起来（subagent_type 枚举硬编码只有 explore/general）。**优先用 markdown 文件方式定义自定义角色**，并在实际环境先做最小验证：定义一个测试角色，让主 Agent 派发它，确认能调起来。如果自定义角色确实调不起来，退路：用内置的 general subagent，把角色定义文件路径写进派发 prompt 让它读取遵循（角色行为靠 prompt 注入而非平台机制）。
+agate/dispatch-protocol.md-1082-
+
+=== BDD-2: platform-notes.md 内容完整性 (grep -c .) ===
+112

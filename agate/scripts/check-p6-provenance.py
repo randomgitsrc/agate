@@ -5,7 +5,15 @@
   check-p6-provenance.py TASK_DIR
 exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
 
-六道客观审计 + agent 字段协作规范：
+独立 CLI 模式（TAG0016 修复 A1-c，供 P8 场景单独取审计 7 判定结果）：
+  check-p6-provenance.py --audit7-only TASK_DIR
+只跑审计 7（audit7_p5_evidence_reuse），不跑其余六道审计。三态结果打印到 stdout，
+一行，格式固定为 `AUDIT7_RESULT: <reuse_allowed|reuse_blocked|no_reuse_claim_possible>`，
+供调用方 grep 提取。exit code：reuse_allowed → 0；reuse_blocked → 1；
+no_reuse_claim_possible → 0（字段缺失是"无法声明复用"而非"错误"，与主流程审计 7 的静默
+回退语义一致，不算失败退出码）。不带 `--audit7-only` 时的既有行为不变。
+
+七道客观审计 + agent 字段协作规范：
   1. 证据-结论对应（1a PASS 行证据引用路径必须存在 / 1b PASS 数 ≤ 证据文件数，
      空证据拦截 / 1c 证据文件必须被至少一条 PASS 行引用，空 png 充数拦截）
   2. dispatch-context 内容约束（不含 PASS/FAIL 验收结论预判）
@@ -14,6 +22,9 @@ exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
      (vision: ...) 引用 + YAML 存在 + summary.blocker_count == 0）
   5. 日志 EXIT_CODE 与 PASS/FAIL 声明一致性（M1.3a 约定）
   6. evidence JSON 与 P6-acceptance.md PASS/FAIL 声明一致性（P2.57）
+  7. P6 引用 P5 证据的无改动校验（audit7_p5_evidence_reuse，TAG0016 BDD-12/13：读取
+     .state.yaml 可选字段 p5_pass_commit，判定 p5_pass_commit..HEAD 间是否存在
+     EXCLUDE_PRODUCE_PREFIX 前缀外的改动；已声明"引用 P5 证据"但判定 reuse_blocked → 拦截）
 
 - grep -cE '^\\s*- PASS\\b' → 逐行 re.search 计数（PASS_COUNT / P6_BODY_STRICT /
   P1_BDD 均同模式）
@@ -46,6 +57,11 @@ _SKIP_AGENT_CHECK = (
     r"-progress\.md$",
     r"-paused-resolution\.md$",
 )
+
+# --- 审计 7：P6 引用 P5 证据的无改动校验（BDD-12/13，TAG0016 RM-AG0026）---
+# P2-design.md §3.5：EXCLUDE_PRODUCE_PREFIX 已用真实 git 命令验证不匹配任何源码路径
+# （agate/scripts/、agate/*.md 等协议本体路径），只匹配任务编排产出目录。
+EXCLUDE_PRODUCE_PREFIX = "agate-workspace/tasks/"
 
 
 def _run_script(script, args, env_extra):
@@ -119,7 +135,110 @@ def _is_skipped_agent_check(localname):
     return any(re.search(p, localname) for p in _SKIP_AGENT_CHECK)
 
 
+def _run_git(task_dir, args):
+    """在 task_dir 所在 git 仓库中运行 git 命令（`-C task_dir`，git 自动向上发现仓库根），
+    返回 (stdout, returncode)。task_dir 不存在/非 git 仓库时返回空串 + 非 0。"""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(task_dir), *list(args)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+    except OSError:
+        return "", 1
+    return proc.stdout or "", proc.returncode
+
+
+def p6_declares_reuse(task_dir):
+    """P6-acceptance.md 是否声明"引用 P5 证据、不重跑"（M21 落地的产出规格判定）。"""
+    p6_file = os.path.join(task_dir, "P6-acceptance.md")
+    if not os.path.isfile(p6_file):
+        return False
+    try:
+        with open(p6_file, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return False
+    return bool(re.search(r"引用\s*P5\s*证据", text))
+
+
+def audit7_p5_evidence_reuse(task_dir, state_yaml):
+    """审计 7：P6 引用 P5 证据的无改动校验（P2-design.md §3.5，BDD-12/13）。
+
+    state_yaml 为已解析的 .state.yaml dict（读取可选字段 p5_pass_commit）。返回三态字符串：
+      "no_reuse_claim_possible" — p5_pass_commit 字段缺失（存量任务兼容，静默回退强制重跑，不报错）
+      "reuse_blocked"           — p5_pass_commit..HEAD 间存在非产出文件改动（BDD-13，不可复用）；
+                                   或 git diff 命令本身失败（fail-closed，见下方 CRITICAL-1 修复）
+      "reuse_allowed"           — 排除 EXCLUDE_PRODUCE_PREFIX 前缀后 diff 为空（BDD-12，可复用）
+
+    若 P6-acceptance.md 已声明"引用 P5 证据、不重跑"但判定为 reuse_blocked，向 stderr 报
+    GATE PROVENANCE 错误（不在此处 sys.exit，由调用方按需处理，函数本身只负责判定+提示）。
+
+    P4-review CRITICAL-1 修复（TAG0016 P4-review-20260819）：`_run_git` 返回 (stdout, returncode)，
+    此前调用方只用了 stdout、从未检查 returncode——当 p5_commit 是 git diff 无法解析的哈希
+    （历史被 rebase/squash 移除、.state.yaml 手工写错、CI 浅克隆导致该 commit 不在本地历史）时，
+    git diff 失败会向 stderr 打印 fatal 并以非 0 退出，同时 stdout 为空，被误判为"无改动"→
+    reuse_allowed（本该强制重跑的场景被静默放行）。fail-closed：returncode != 0 时不进入"无改动"
+    分支，直接判定 reuse_blocked，并写清楚区分"git 命令本身失败"与"确实检测到改动"的诊断信息
+    （两者是不同性质的失败，不合并进同一条 stderr 消息）。
+    """
+    p5_commit = (state_yaml or {}).get("p5_pass_commit")
+    if not p5_commit:
+        return "no_reuse_claim_possible"
+
+    out, rc = _run_git(task_dir, ["diff", f"{p5_commit}..HEAD", "--name-only"])
+    if rc != 0:
+        sys.stderr.write(
+            f"GATE PROVENANCE: git diff {p5_commit}..HEAD 命令本身执行失败（returncode={rc}），"
+            "无法判定 p5_pass_commit 与 HEAD 间是否存在改动（可能原因：commit 已被 rebase/squash "
+            "移除、.state.yaml 手工写错哈希、CI 浅克隆导致该 commit 不在本地历史）。"
+            "fail-closed：按 reuse_blocked 处理，强制重跑 P5\n"
+        )
+        return "reuse_blocked"
+
+    changed = [line for line in out.splitlines() if line and not line.startswith(EXCLUDE_PRODUCE_PREFIX)]
+
+    if changed:
+        if p6_declares_reuse(task_dir):
+            sys.stderr.write(
+                "GATE PROVENANCE: 声明引用 P5 证据但检测到非产出文件改动，须重跑 P5：" + ", ".join(changed) + "\n"
+            )
+        return "reuse_blocked"
+    return "reuse_allowed"
+
+
+def _load_state_yaml(task_dir):
+    """读取 task_dir/.state.yaml，返回 dict（文件缺失/无 pyyaml/解析失败 → 静默回退空 dict，
+    等价于 audit7 的 no_reuse_claim_possible 静默回退语义）。"""
+    state_yaml_path = os.path.join(task_dir, ".state.yaml")
+    state_yaml = {}
+    if os.path.isfile(state_yaml_path):
+        try:
+            import yaml
+            with open(state_yaml_path, encoding="utf-8", errors="replace") as f:
+                state_yaml = yaml.safe_load(f) or {}
+        except Exception:
+            state_yaml = {}
+    return state_yaml
+
+
+def _run_audit7_only(task_dir):
+    """--audit7-only TASK_DIR：只跑审计 7，三态结果打印到 stdout 供 grep 提取。"""
+    state_yaml = _load_state_yaml(task_dir)
+    reuse_result = audit7_p5_evidence_reuse(task_dir, state_yaml)
+    print(f"AUDIT7_RESULT: {reuse_result}")
+    if reuse_result == "reuse_blocked":
+        sys.exit(1)
+    sys.exit(0)
+
+
 def main():
+    if len(sys.argv) >= 2 and sys.argv[1] == "--audit7-only":
+        if len(sys.argv) < 3:
+            sys.stderr.write("用法: check-p6-provenance.py --audit7-only TASK_DIR\n")
+            sys.exit(1)
+        _run_audit7_only(sys.argv[2])
+        return
+
     if len(sys.argv) < 2:
         sys.stderr.write("用法: check-p6-provenance.py TASK_DIR\n")
         sys.exit(1)
@@ -407,6 +526,16 @@ def main():
             sys.stderr.write("GATE PROVENANCE: evidence JSON 与 P6-acceptance.md 声明不一致：\n")
             for line in inconsistency.splitlines():
                 sys.stderr.write(f"  - {line}\n")
+            sys.exit(1)
+
+    # --- 审计 7：P6 引用 P5 证据的无改动校验（BDD-12/13，TAG0016）---
+    # .state.yaml 缺失/无 p5_pass_commit 字段/无 pyyaml → 静默回退（no_reuse_claim_possible
+    # 语义），不阻塞；只有"P6 已声明复用但判定为 reuse_blocked"时才拦截（错误信息已在
+    # audit7_p5_evidence_reuse 内部写 stderr）。
+    if p6_exists:
+        state_yaml = _load_state_yaml(task_dir)
+        reuse_result = audit7_p5_evidence_reuse(task_dir, state_yaml)
+        if reuse_result == "reuse_blocked" and p6_declares_reuse(task_dir):
             sys.exit(1)
 
     if warning_found == 1:

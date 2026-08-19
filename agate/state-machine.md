@@ -1,5 +1,7 @@
 # 状态机落盘设计
 
+> 职责边界：状态机权威源——阶段转移规则、重试上限唯一权威数值表、PAUSED 恢复机制（详见职责声明表，P2-design.md §0）
+
 > agate，解决"LLM 不能稳定执行长循环"的问题
 
 ---
@@ -382,6 +384,8 @@ function 执行一步(task_id):
 
 ## 重试上限
 
+> 本表是重试上限的唯一权威源；`rules/state-transitions.md` 与 8 张阶段卡片均须与本表一致（CHECK 12 自动校验）。
+
 | 阶段 | MAX_RETRY | 说明 |
 |------|-----------|------|
 | P1 | 3 | 需求基线，涉及需求定义 |
@@ -407,6 +411,11 @@ function 执行一步(task_id):
 task_id: TAG0001
 phase: P4
 status: in_progress
+
+# 可选字段：P5 gate 通过时记录的父提交哈希（TAG0016 BDD-12，供 P6/P8 判定"引用 P5 证据、
+# 不重跑"）。字段可选——缺失时 check-p6-provenance.py 审计 7 回退为强制重跑，不报错，
+# 存量任务（无此字段）天然兼容。
+p5_pass_commit: <40 位 git 提交哈希，可选字段>
 
 # ── 重试记录（T016 教训：整数计数无法区分"原样重试"和"调整策略后重试"）──
 retries:
@@ -437,6 +446,9 @@ env_state:
 ```
 
 **字段说明**：
+- `p5_pass_commit`（可选）：P5 gate 通过、`git add` 之前写入的父提交哈希（见
+  `phase-cards/P5-verification.md`「如果是首次进入本阶段」）。缺失 → 回退语义为"无法声明
+  复用，强制重跑"，不视为错误（存量任务兼容，TAG0016 BDD-12）
 - `retries[Pn]`：列表，每次重试追加一条记录，`len(retries[Pn])` 即重试次数
 - `retry_count`：派生字段，从 `retries` 计算，保留是为了 active-tasks.md 看板兼容
 - `failure_mode`：失败模式（`quality` / `empty_return` / `timeout`），区分"产出了但不够好"和"根本没产出"

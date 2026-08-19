@@ -33,6 +33,14 @@ jobs:
         run: python3 -m pytest agate/tests/
         env:
           PYTHONIOENCODING: utf-8
+      - name: xdist Timing Observation (Linux, 仅观测耗时，不影响门禁，BDD-15/M23)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: |
+          pip install pytest-xdist
+          time python3 -m pytest -n auto agate/tests/
+        env:
+          PYTHONIOENCODING: utf-8
       - name: Run Windows Smoke (marker 代表子集)
         if: runner.os == 'Windows'
         run: |

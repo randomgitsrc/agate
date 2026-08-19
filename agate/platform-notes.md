@@ -1,5 +1,7 @@
 # Platform Notes — 各平台适配说明
 
+> 职责边界：平台适配权威源——各 Agent 平台（OpenCode/Claude Code/Codex 等）能力矩阵、Windows 原生安装指南（详见职责声明表，P2-design.md §0）
+
 不同 Agent 平台对 agate 的支持程度不同，本文记录已知情况。
 
 ---

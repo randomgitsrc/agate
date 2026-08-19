@@ -8,6 +8,53 @@
 
 ---
 
+## [0.54.0] - 2026-08-19
+
+### 新增（TAG0016：agate 协议卫生与测试效率，RM-AG0025 + RM-AG0026）
+
+- **协议文档职责边界与去重（RM-AG0025，BDD-1~10、19）**：全仓关键词交叉扫描核实 P0-brief 六处
+  已知重复中四处成立（平台适配 ×3、阶段门槛表 ×2、派发 prompt 模板双源、重试上限表文档级
+  ×2——实际权威文件对为 `state-machine.md` vs `rules/state-transitions.md`，非最初猜测的
+  `dispatch-protocol.md`）、一处不成立（Pre-commit 清单已是正确"权威源+指针"模式）、并新发现
+  一类未被预判的重复（8 张阶段卡片内联 `MAX=` 数值散落）。收敛为单一权威源 + 指针引用：
+  `platform-notes.md`（平台适配）、`state-machine.md`（重试上限）、
+  `assets/templates/dispatch-prompt.md`（派发 prompt 完整模板，`dispatch-protocol.md` 收窄为
+  极简结构骨架）；7 份协议文档新增「职责边界」声明行（BDD-1/19）。
+- **CHECK 12 防复发跨文件一致性检测（RM-AG0025，BDD-9~10）**：`check-protocol-consistency.py`
+  新增结构化白名单锚点扫描（`AUTHORITATIVE_VALUE_ANCHORS` + `check_authoritative_values()`，
+  沿用既有 CHECK 4/9/11 骨架），覆盖重试上限表（权威源 vs 指针文件 vs 8 张卡片内联值）跨文件
+  一致性；扫描范围裁剪到目标小节（`extract_section()`），避免误吞同形态无关表格行（P4-review
+  CRITICAL-2 修复）。
+- **P5→P6/P8 跨阶段证据引用机制（RM-AG0026，BDD-11~18）**：`check-p6-provenance.py` 新增审计 7
+  （`audit7_p5_evidence_reuse()`，三态判定 `reuse_allowed`/`reuse_blocked`/
+  `no_reuse_claim_possible`，`git diff` 命令失败时 fail-closed 为 `reuse_blocked`，P4-review
+  CRITICAL-1 修复）+ `--audit7-only TASK_DIR` CLI 模式（stdout 输出 `AUDIT7_RESULT:` 供主 Agent
+  在 P8 场景消费判定结果）；`.state.yaml` 新增可选字段 `p5_pass_commit`（缺失时静默回退强制
+  重跑，不影响存量任务）；`P5-verification.md`/`P6-acceptance.md`/`P8-release.md`/
+  `verifier.md`/`dispatch-prompt.md` 五处协议文档同步落地"P5 全绿 + 验收/发布前无代码改动 →
+  可引用 P5 证据、不必重跑全量"的操作规则；`dispatch-protocol.md` 新增「全量重跑点审计」小节
+  （P5 首跑/P5 失败重跑/P6 refactor regression/P8 bump 后重跑，逐点标注必然/条件性质）。
+- **xdist CI 观测试点（RM-AG0026，BDD-15~16）**：`.github/workflows/protocol-tests.yml` pytest
+  job 新增 `continue-on-error: true` 的 `pytest -n auto` 耗时观测步骤，不影响门禁结果，仅在真实
+  CI（4 核）留痕耗时数字供后续评估；「并行规则」第 4 条资源密集型判据（含 xdist）保持不变。
+- **ADR-010：受控例外——满足客观可判定条件时允许复用既有验证证据**：记录"P5→P6/P8 间无代码
+  改动时可复用证据、不重新执行验证"这一新架构原则（判定标准必须机器可判定 + 失败方向保守 +
+  显式声明何时不可复用），在 ADR-004"完整重跑是安全网"哲学基础上开的受控例外口子。
+
+### 技术债登记（TAG0016 dogfooding 过程中发现，均已登记 `agate-workspace/debt/tech-debt.md`）
+
+- DEBT0009（low）：BDD-12 provenance 存储候选 C（commit message 派生）本次未采纳，记录权衡供
+  未来 commit message 格式若被 gate 强校验后重新评估。
+- DEBT0010（medium，扩充为系统性条目）：至少 4 个 `gate_commands` 键解析脚本
+  （`agate-read-gate-commands.py`/`agate-gate-missing-cmds.py`/`agate-gate-p5-count.py`/
+  `agate-read-p5-commands.py`）均未排除 `_timeout_seconds` 后缀键，把超时声明字段误判为待执行
+  命令/待核实项。
+- DEBT0011（medium）：`SELF-GATE.md` 的 `protocol-alignment-review` 成果文件/留痕文件按纯日期
+  命名（不含任务标识），跨任务同日复用会静默覆盖已提交的历史审查记录（本次实测复现并手工规避）。
+- DEBT0012（medium）：`check-protocol-consistency.py --strict` 在"仅 WARNING 无 ERROR"时返回
+  exit 2，与 `&&` 串联的 `gate_commands.P5` 组合会因本仓库长期存量 WARNING 债务而永久短路
+  中断（历史 P5/P8 commit 从未声称"0 WARNING"，只声称"0 ERROR"，印证长期实际验收标准）。
+
 ## [0.53.0] - 2026-08-19
 
 ### 新增（TAG0015：agate 复盘与反馈机制统一，RM-AG0020 + RM-AG0021）

@@ -18,6 +18,7 @@ agate 协议结构一致性检查 (P3-1)
    CHECK 9  协议-脚本结构对齐（锚点表：文档声明的规则 vs 脚本关键词存在性）
   CHECK 10  协议文档脚本名引用漂移（白名单形状对照 agate/scripts/ 实际文件）
   CHECK 11  UI/UX 机制条文跨文档一致（分类框架 / 形态适配 / 三态分档 / 证据按形态选择）
+  CHECK 12  权威数值/规则跨文件一致性（防复发，锚点表：重试上限表 vs 指针文件/内联值）  (对应 BDD-9, BDD-10)
 
  退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
@@ -910,6 +911,143 @@ def check_script_name_refs(root: Path, rep: Report) -> None:
         rep.ok("CHECK10-scriptref")
 
 
+# ── CHECK 12: 权威数值/规则跨文件一致性（防复发，BDD-9/10，TAG0016 RM-AG0025）──
+# 延续 CHECK 4/9/11 的白名单式提取-比对模式（非文本相似度）：从声明的权威文件里提取
+# 具名数值 → 比对指针文件"未重复声明表格 + 含指针短语"、内联值文件"数值与权威表一致"。
+# 设计依据：P2-design.md §2（候选 2：结构化权威锚点扫描）。
+
+_RETRY_TABLE_ROW_RE = re.compile(r"\|\s*(P\d+)\s*\|\s*(\d+)\s*\|")
+
+RETRY_LIMIT_HEADING = "## 重试上限"
+
+
+def extract_section(text: str, heading: str) -> str | None:
+    """定位 `heading`（如 "## 重试上限"）标题下的小节正文（到下一个同级 `## ` 标题或文件
+    末尾为止），未找到该标题返回 None。
+
+    被 `extract_md_table_int_column`（权威文件取数）与 `check_authoritative_values`
+    （指针文件误报防护，P4-review CRITICAL-2 修复）共用同一套小节裁剪逻辑，避免两处实现
+    漂移。
+    """
+    m = re.search(r"^" + re.escape(heading) + r"\s*$", text, re.M)
+    if not m:
+        return None
+    section = text[m.end():]
+    next_heading = re.search(r"^## ", section, re.M)
+    if next_heading:
+        section = section[: next_heading.start()]
+    return section
+
+
+def extract_md_table_int_column(path: Path) -> dict[str, int]:
+    """从「## 重试上限」小节的 markdown 表格里提取 {阶段: 数值} 映射。
+
+    只扫描该小节文本，不对整个文件做无范围扫描——避免误吞同格式但语义无关的表格行
+    （如任务追踪表里的 "| P4 | 0 | ... |"）。
+    """
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    section = extract_section(text, RETRY_LIMIT_HEADING)
+    if section is None:
+        return {}
+    result: dict[str, int] = {}
+    for row in _RETRY_TABLE_ROW_RE.finditer(section):
+        result[row.group(1)] = int(row.group(2))
+    return result
+
+
+def redeclares_table(text: str, authoritative: dict[str, int]) -> bool:
+    """判定文本是否重新声明了权威表格。
+
+    统计文本里能同时匹配权威表 (phase, value) 组合的行数，≥3 组同时命中即判定
+    "重新声明了完整表格"（阈值 3 而非"任意 1 组"，容忍正文偶尔提及某一阶段的具体
+    数字而不逐条列出全表——见 P2-design.md §2.3 附注）。
+
+    调用方（P4-review CRITICAL-2 修复）须先用 `extract_section` 把待扫描文本裁剪到
+    与权威表同名的小节内，再传入本函数——本函数自身不做小节裁剪，只做行匹配计数，
+    避免全文无范围扫描误吞同形态但语义无关的表格行（如指针文件里另一张与重试上限
+    无关的表格，恰好命中 ≥3 组同值行）。
+    """
+    hits = 0
+    for row in _RETRY_TABLE_ROW_RE.finditer(text):
+        phase, value = row.group(1), int(row.group(2))
+        if authoritative.get(phase) == value:
+            hits += 1
+    return hits >= 3
+
+
+AUTHORITATIVE_VALUE_ANCHORS = [
+    {
+        "id": "retry-max",
+        "desc": "阶段重试上限（MAX_RETRY）",
+        "authoritative_file": "agate/state-machine.md",
+        "extract_authoritative": extract_md_table_int_column,
+        "pointer_files": [
+            {
+                "file": "agate/rules/state-transitions.md",
+                "must_not_redeclare_table": True,
+                "must_contain_any": ["权威源", "详见", "见 agate/state-machine.md"],
+            },
+        ],
+        "inline_value_files": [
+            {"glob": "agate/phase-cards/P*-*.md", "extract": r"MAX=(\d+)", "phase_from": "filename"},
+        ],
+    },
+]
+
+
+def check_authoritative_values(root: Path, rep: Report) -> None:
+    errors = 0
+    for anchor in AUTHORITATIVE_VALUE_ANCHORS:
+        authoritative = anchor["extract_authoritative"](root / anchor["authoritative_file"])
+        for pf in anchor.get("pointer_files", []):
+            fpath = root / pf["file"]
+            if not fpath.exists():
+                rep.error("CHECK12-authval",
+                          f"{pf['file']} 不存在（权威锚点 {anchor['id']} 声明的指针文件缺失）",
+                          pf["file"])
+                errors += 1
+                continue
+            text = fpath.read_text(encoding="utf-8")
+            # P4-review CRITICAL-2 修复：redeclares_table 只扫描指针文件里与权威表同名的
+            # 小节（如「## 重试上限」），不做全文无范围扫描——防止指针文件里另一处与权威
+            # 表无关的表格（恰好命中 ≥3 组同值行）被误判为"重新声明了权威表格"。若指针文件
+            # 根本没有该级别标题，退化为对全文扫描（与既有行为一致，不引入新的漏报）。
+            scan_section = extract_section(text, RETRY_LIMIT_HEADING)
+            scan_text = scan_section if scan_section is not None else text
+            # INFO-1 修复：must_not_redeclare_table 此前声明但从未被读取（死配置）——
+            # 现实际读取该 key（默认 True，向后兼容既有唯一一条 pointer_files 记录）。
+            if pf.get("must_not_redeclare_table", True) and redeclares_table(scan_text, authoritative):
+                rep.error("CHECK12-authval",
+                          f"{pf['file']} 重新声明了权威表格（应改为指向 "
+                          f"{anchor['authoritative_file']} 的指针）",
+                          pf["file"])
+                errors += 1
+            elif not any(p in text for p in pf["must_contain_any"]):
+                rep.error("CHECK12-authval",
+                          f"{pf['file']} 缺少指向权威源 {anchor['authoritative_file']} 的指针短语",
+                          pf["file"])
+                errors += 1
+        for ivf in anchor.get("inline_value_files", []):
+            for f in sorted(root.glob(ivf["glob"])):
+                pm = re.match(r"(P\d+)-", f.name)
+                if not pm:
+                    continue
+                phase = pm.group(1)
+                if phase not in authoritative:
+                    continue
+                vm = re.search(ivf["extract"], f.read_text(encoding="utf-8"))
+                if vm and int(vm.group(1)) != authoritative[phase]:
+                    rep.error("CHECK12-authval",
+                              f"{f.name} 内联 MAX={vm.group(1)} 与权威表 "
+                              f"{phase}={authoritative[phase]} 不一致",
+                              f"agate/phase-cards/{f.name}")
+                    errors += 1
+    if errors == 0:
+        rep.ok("CHECK12-authval")
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
 
 def run_all_checks(root: Path, rep: Report) -> None:
@@ -931,6 +1069,7 @@ CHECKS = [
     ("CHECK 9  协议-脚本结构对齐", check_script_alignment),
     ("CHECK 10 协议文档脚本名引用漂移", check_script_name_refs),
     ("CHECK 11 UI/UX 机制条文跨文档一致", check_uiux_doc_anchors),
+    ("CHECK 12 权威数值/规则跨文件一致性", check_authoritative_values),
 ]
 
 

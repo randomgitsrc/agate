@@ -1,4 +1,25 @@
 task_id: TAG0016
-phase: P0
-status: pending
-retries: {}
+phase: READY
+status: complete
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+    - round: 2
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+  P2:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+  P4:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+retry_count: { P1: 2, P2: 1, P4: 1 }
+updated: 2026-08-19
