@@ -18,3 +18,18 @@
 - [self-check] 全量 python3 -m pytest agate/tests/ -q：944 passed, 15 failed（全部落在 check12/provenance/dedup 后两批 scope 内，或上述 ruff 预存问题），2 skipped
 - [self-check] check-protocol-consistency.py（非 strict）：0 ERROR，仅既有 308 WARNING，与改动前基线一致
 - [done] P4-implementation.md 写入完成，DESIGN_GAP 计数=1，返回前自检完成
+
+## [batchB] check12-anti-recurrence 实现进度
+
+- 读取 dispatch-context + P2-design.md §2（CHECK 12 完整设计伪代码）+ 现有 CHECK 4/9/11 实现风格 + 7 条相关测试断言。
+- 读取批次1迁移后真实文档：agate/state-machine.md「## 重试上限」表（表头列名实为 MAX_RETRY，非 MAX，故 extract 用列位置而非列名解析）；agate/rules/state-transitions.md 已是纯指针句「详见 `state-machine.md`《重试上限》——权威唯一来源」；8 张 phase-cards 的 MAX= 内联行确认存在且与权威表一致（P1=3/P2=3/P3=2/P4=3/P5=2/P6=2/P7=2/P8=2）。
+- 已实现：extract_md_table_int_column()（限定扫描「## 重试上限」小节，避免误吞 state-machine.md L30 任务追踪表里同形态的 "| P4 | 0 | ... |" 行）+ redeclares_table()（阈值3组匹配判定重复表格）+ AUTHORITATIVE_VALUE_ANCHORS（retry-max 锚点）+ check_authoritative_values() + 注册进 CHECKS 列表 + docstring 编号表追加 CHECK 12 一行。
+- 下一步：跑 test_check_protocol_consistency.py 7 条 CHECK 12 用例自查 + 跑 check-protocol-consistency.py --strict 全仓确认 0 ERROR。
+
+## [batchB] check12-anti-recurrence 完成
+
+- 代码改动确认已落盘（grep 确认 AUTHORITATIVE_VALUE_ANCHORS / check_authoritative_values / CHECKS 注册均存在）。
+- test_check_protocol_consistency.py: 23 passed（7 条 CHECK 12 用例全绿，既有 16 条未破坏）。
+- check-protocol-consistency.py --strict: CHECK 12 PASS，全仓 0 ERROR（exit=2 仅因既有 308 条 WARNING，与本批次无关）。
+- 全量 pytest: 8 failed / 951 passed / 2 skipped（失败数从 15 降到 8，均为批次3范围/ruff lint，非本批次范围）。
+- 已写 P4-implementation-batchB.md。
