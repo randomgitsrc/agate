@@ -13,7 +13,7 @@ known_risks:
   - "【强制要求】同类扫描 + 影响面梳理：AG0025 自身就是'职责边界'的示范——P1 必须 grep 全仓每条协议规则的出现次数建影响面表；AG0026 统计各任务实际全量重跑次数。用户明确：不愿意一轮一轮来回改"
 
 executor_env:
-  platform: "opencode"
+  platform: "claude-code"  # [P0_STALE] 原值 opencode，本次会话实际以 Claude Code 启动；orchestrator 双平台已注册（.opencode + .claude 均软链同一模板），能力字段不受影响，轻微漂移（判据4），更新后继续
   has_task_tool: true
   has_local_runtime: true
   network: "full"
