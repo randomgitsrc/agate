@@ -163,3 +163,25 @@ check-pruning.py:56 _staged_source_count 源码）确认根因：该函数用 `g
 
 NEXT: git add -A → phase 写 P4 → commit（self-gate-review 引用两份成果文件）→ commit 后重跑
 全量 pytest 确认 test_check_pruning.py 恢复 0 failed，验证上述根因判断 → 进入 P5。
+
+[2026-08-19T03:20] git commit 208a1ec（wf(TAG0015-P4)）成功，gate 通过。commit 后暂存区清空，
+重跑全量 pytest：932 passed + 2 skipped + 0 failed，验证 test_check_pruning.py 根因判断准确
+（暂存区体量副作用，非代码缺陷）。active-tasks.md 阶段更新为 P4。
+
+NEXT: 读 phase-cards/P5-verification.md，派发 verifier subagent 执行 gate_commands.P5（全量
+pytest + consistency --strict），主 Agent 验 gate。
+
+[2026-08-19T03:30] 写好 P5-dispatch-context-verifier.md（含 test_check_pruning.py 环境相关性
+预警，避免 verifier 误判）并注入卡片，派发 verifier。
+
+NEXT: 等 verifier 产出，主 Agent 验 gate（P5-test-results/ 存在 + failed 计数 + 签名校验），
+不只信自报，独立跑一次交叉核对。approved 后 commit → 进入 P6。
+
+[2026-08-19T03:40] verifier 完成：pytest 932 passed+2 skipped+0 failed；consistency --strict
+0 ERROR/305 WARNING（exit 2 为脚本既定语义，非命令失败，与 TAG0012/TAG0013 先例一致）。主 Agent
+独立核实：签名 grep=1（>0）；305 WARNING 增量（279→305）逐一核对均为本任务自身工作区文档对
+已迁移旧模板路径的历史叙事引用，同既有基线同类，非新增 ERROR 类问题。gate P5 exit 2（需主 Agent
+判定，已判定通过）。git commit（phase=P5，P5-test-results/ 产出）。
+
+NEXT: 读 phase-cards/P6-acceptance.md，派发 verifier subagent 做用户视角验收（20 条 BDD 逐条
+PASS/FAIL + 证据）。
