@@ -1,0 +1,17 @@
+=== BDD-1 + BDD-19 verification: 职责边界声明行 head-20 grep, 4 files ===
+--- WORKFLOW.md (head -20 | grep) ---
+3:> 职责边界：主流程入口——P0-P8 阶段总览、裁剪规则、核心原则、需求/验收机制骨架（详见职责声明表，P2-design.md §0）
+--- dispatch-protocol.md (head -20 | grep) ---
+3:> 职责边界：派发操作层——可执行门槛判定命令、派发编排机制（工作量评估/并行规则/回退处理）、特殊事件恢复（详见职责声明表，P2-design.md §0）
+--- state-machine.md (head -20 | grep) ---
+3:> 职责边界：状态机权威源——阶段转移规则、重试上限唯一权威数值表、PAUSED 恢复机制（详见职责声明表，P2-design.md §0）
+--- platform-notes.md (head -20 | grep) ---
+3:> 职责边界：平台适配权威源——各 Agent 平台（OpenCode/Claude Code/Codex 等）能力矩阵、Windows 原生安装指南（详见职责声明表，P2-design.md §0）
+
+=== Cross-check against P2-design.md §0 table ===
+29:| `WORKFLOW.md` | 主流程入口——P0-P8 阶段总览、裁剪规则、核心原则、需求/验收机制骨架 | 具体派发操作细节、平台能力矩阵全文、门槛可执行判定命令 |
+30:| `dispatch-protocol.md` | 派发操作层——可执行门槛判定命令、派发编排机制（工作量评估/并行规则/回退处理）、特殊事件恢复 | 平台能力矩阵本身（引用 platform-notes.md）、派发 prompt 模板全文（引用 dispatch-prompt.md） |
+31:| `state-machine.md` | 状态机权威源——阶段转移规则、**重试上限唯一权威数值表**、PAUSED 恢复机制 | 派发操作细节 |
+32:| `platform-notes.md` | 平台适配权威源——各 Agent 平台（OpenCode/Claude Code/Codex 等）能力矩阵、Windows 原生安装指南 | 派发调用方式细节（引用 dispatch-protocol.md） |
+73:| `dispatch-protocol.md` L972 / `state-machine.md` L231-233 / `git-integration.md` L162（Pre-commit 清单三处指针）| P1 3.4 节已验证是"权威源+指针"正确模式，非重复源；本任务防误伤（BDD-7），CHECK 12 锚点表不纳入这三处（物理上不可能触发误报，见 §2.3） |
+75:| `dispatch-protocol.md`「并行规则」第 4 条判据描述（L730-750） | BDD-16 要求保持不变——本任务只加 CI 观测步骤（M23），不修改并行隔离判据本身；若测试涉及需断言其原文不变，而非新增豁免 |

@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0016
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 51 items / 49 deselected / 2 selected
+
+agate/tests/unit/test_check_p6_provenance.py::test_bdd_13_audit7_non_produce_change_reuse_blocked PASSED [ 50%]
+agate/tests/unit/test_check_p6_provenance.py::test_bdd_13_audit7_only_produce_dirs_excluded_active_tasks_board PASSED [100%]
+
+======================= 2 passed, 49 deselected in 0.09s =======================
+PYTEST_EXIT: 0

@@ -1,0 +1,35 @@
+=== BDD-4: 派发 prompt 模板单一权威源 ===
+--- dispatch-protocol.md 全文行数 ---
+1179 agate/dispatch-protocol.md
+--- 派发 prompt 模板 节内容 ---
+431:## 派发 prompt 模板
+## 派发 prompt 模板
+
+> 完整模板（含全部阶段特定追加节）唯一权威源：`assets/templates/dispatch-prompt.md`，本文件不维护完整版。
+
+极简结构骨架（用于快速对照，非完整正文，实际派发以权威源为准）：
+
+```
+你是 {阶段 Pn} 阶段的 {角色名} 子 Agent。
+读取并严格遵循：{agate_root}/assets/{execution-roles|review-roles}/{role}.md
+读取并严格遵循 dispatch-context：{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md
+输出：{AGATE_WORKSPACE}/tasks/{Txxx}/{本阶段产出文件}
+```
+
+各阶段特定追加节（评审角色专属指令 / P2 最小验证 / P3 自检 / refactor 任务回归口径 / P4 上下文控制
+/ P5-P6 BDD 规则与证据要求 / 证据日志格式约定 / 回退诊断 / READY 收尾检查 / 版本 bump 判定 /
+项目占位符映射 / 返回前自检等）均已合并进 `assets/templates/dispatch-prompt.md`，本文件不重复维护。
+
+**命令超时兜底（层级 4，所有 bash 命令强制）**：取值 = 该命令预期耗时 ×1.5，完整规则与分层关系见
+`assets/templates/dispatch-prompt.md`「命令超时兜底」节。
+
+---
+
+## 全量重跑点审计
+
+--- assets/templates/dispatch-prompt.md 文件头 5 行 ---
+# 派发 Prompt 模板
+
+> 主 Agent 调用 task 工具派发 subagent 时，prompt 用这个结构
+> 本文件是派发 prompt 的权威来源；dispatch-protocol.md 仅保留极简结构提示 + 指针
+

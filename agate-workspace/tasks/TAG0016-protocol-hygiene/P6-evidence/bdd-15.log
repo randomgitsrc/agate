@@ -1,0 +1,13 @@
+36:      - name: xdist Timing Observation (Linux, 仅观测耗时，不影响门禁，BDD-15/M23)
+37-        if: runner.os == 'Linux'
+38-        continue-on-error: true
+39-        run: |
+40:          pip install pytest-xdist
+41-          time python3 -m pytest -n auto agate/tests/
+42-        env:
+43-          PYTHONIOENCODING: utf-8
+44-      - name: Run Windows Smoke (marker 代表子集)
+45-        if: runner.os == 'Windows'
+
+=== BDD-15 判据说明（严格照抄 dispatch-context 措辞）===
+本条判据是'步骤存在且不影响门禁'，不是'已验证加速效果'——本次验收未在真实 CI 环境运行该步骤，不产出'已验证加速'的结论。以上 grep 输出确认：步骤存在（xdist Timing Observation, Linux only）+ continue-on-error: true（步骤失败不影响 job exit code）。
