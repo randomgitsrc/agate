@@ -148,3 +148,77 @@ source: P4-review
 created_at: 2026-08-17
 task_id: TAG0006-ui-ux-quality
 ```
+
+## DEBT0007
+
+```yaml
+id: DEBT0007
+category: technical
+title: test_check_pruning.py 部分用例依赖真实 git 暂存区而非隔离 fixture，大体量协议自身任务会误报
+status: open
+priority: medium
+evidence:
+  - ref: agate-workspace/tasks/TAG0015-retrospective-feedback/retrospective.md
+    note: TAG0015 P4/P5/P6/P8 阶段多次独立验证全量 pytest 时反复出现
+      test_p2_6e_prune_p7_coupling_checklist_exit_0 / test_p2_52_yaml_list_phases_exit_0 /
+      test_p2_52b_yaml_list_phases_p3_pruned_low_exit_0 三个用例间歇性失败；根因排查（手工构造
+      隔离目录复现）确认 agate/scripts/check-pruning.py:56 `_staged_source_count` 用
+      `git diff --cached --name-only` 读取**当前仓库真实暂存区**（通过 `git rev-parse
+      --show-toplevel` 定位），不是隔离在测试自己的 tmp_path fixture 内——协议自身改造类任务
+      （如 TAG0015 本身）在 P4-P8 阶段暂存区常有 20+ 个协议/文档文件（远超判据"源码文件数≤5"），
+      导致这三个用例的"应 exit 0"断言被仓库真实暂存区体量污染而失败，commit 后暂存区清空即恢复
+  - ref: agate-workspace/tasks/TAG0015-retrospective-feedback/orchestrator-log.md
+    note: 2026-08-19 P4/P5 阶段记录了完整的根因排查过程（isolated run / 组合子集 run / git
+      stash A-B 对比 / 无并发进程下干净单跑），确认非本任务代码缺陷、非资源竞争假阳性，而是该
+      测试固有的隔离缺口
+impact: 任何协议自身改造任务（agate 改自己）在 P4-P8 阶段跑全量回归时，都可能被这三个用例的
+  误报打断验证节奏，需要每次重新排查"是不是这个已知坑"——排查成本随任务改动文件数增长；更危险的
+  是若排查者不知道这个坑，可能误判为真实回归而阻塞流程，或反过来对真实回归掉以轻心（"反正是那三个
+  老熟人误报"）
+recommendation: 让 `_staged_source_count` 的测试用例改为在隔离的临时 git 仓库内运行（`git init`
+  临时目录 + 在其中构造暂存区），不依赖运行 pytest 时外层仓库的真实暂存区状态；或至少在这三个
+  用例里显式 monkeypatch `run_git`/`_staged_source_count` 的返回值，不依赖环境
+closure_criteria:
+  - 三个用例改为不依赖外层仓库真实 git 暂存区状态（隔离或 monkeypatch 任一方式）
+  - 在暂存区含 20+ 文件的环境下重跑，三个用例仍稳定 exit 0
+  - 全量 pytest 回归通过
+source: retrospective
+created_at: 2026-08-19
+task_id: null
+```
+
+## DEBT0008
+
+```yaml
+id: DEBT0008
+category: technical
+title: agate-feedback.py 匿名化正则 ABS_PATH_RE 误伤中文散文里的斜杠分隔词（非路径场景过度脱敏）
+status: open
+priority: low
+evidence:
+  - ref: agate-workspace/tasks/TAG0015-retrospective-feedback/retrospective.md
+    note: 撰写本复盘后端到端跑
+      `AGATE_FEEDBACK=on python3 agate/scripts/agate-feedback.py
+      agate-workspace/tasks/TAG0015-retrospective-feedback/retrospective.md`（TAG0015
+      自身产出、真实 dogfooding，非单测构造场景）验证机制闭环时发现：
+      `agate/scripts/agate-feedback.py` 的 `ABS_PATH_RE = re.compile(r'(?:[A-Za-z]:\\|/)
+      [^\s\'"`]+')` 会把中文散文里"机制/执行层面""P1/P2 卡片"这类用 `/` 做分隔符的正常文本
+      误判为绝对路径并替换成 `<PATH>`（复现：`ABS_PATH_RE.findall('机制/执行层面')` →
+      `['/执行层面']`），产出的脱敏 JSON/Markdown 里出现"归因到 <PROJECT> 机制<PATH> ...
+      提取"这类语义被破坏的乱码式替换
+impact: 不影响 BDD-18 验收的核心诉求（不泄露项目名/绝对路径，方向正确，偏保守不算安全问题），
+  但会让 agate-feedback.py 产出的待提交内容出现明显语义破损的乱码片段，人工复核时体验差、
+  可能被误认为脚本 bug 而不敢提交，间接削弱 AG0021 反馈机制的可用性
+recommendation: ABS_PATH_RE 增加边界约束，要求路径 token 匹配后紧跟或结尾为常见路径结构特征
+  （如至少含一个 `.`/字母数字扩展名，或前一个字符是空白/行首/标点而非中日韩文字），排除
+  "中文字/中文字"这类纯分隔符用法；或改用更严格的路径检测（如要求匹配到已知项目内文件后缀/
+  目录关键词）
+closure_criteria:
+  - ABS_PATH_RE（或替代实现）对 "机制/执行层面"、"P1/P2" 等中文散文分隔符用法不再误判
+  - 对真实绝对路径（/home/xxx/... 、C:\Users\...）判断能力不退化（既有 test_agate_feedback.py
+    BDD-18 用例仍全绿）
+  - 新增覆盖本条 evidence 场景的回归用例
+source: retrospective
+created_at: 2026-08-19
+task_id: null
+```
