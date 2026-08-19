@@ -439,3 +439,31 @@ source: retrospective
 created_at: 2026-08-19
 task_id: TAG0016
 ```
+
+## DEBT0014
+
+```yaml
+id: DEBT0014
+category: protocol
+title: Windows Store python3 占位符命中 hook 探测循环导致 Windows 用户 commit 阻断（AGENTS.md/CLAUDE.md 已知但 protocol 层未防护）
+status: open
+priority: medium
+evidence:
+  - ref: agate/scripts/pre-commit-gate.sh
+    note: "第 11-13 行探测循环 `PY=\"\"` / `for c in python3 python; do command -v \"$c\" >/dev/null 2>&1 && { PY=\"$c\"; break; }; done`——`command -v python3` 在 Windows 上能命中 WindowsApps 目录下的 Store 占位符 python3.exe（它是真实存在的 exe stub），exec 时非交互模式返回 exit 49 → hook 走 fail-closed 分支阻断 commit。薄壳是协议本体（3 个：pre-commit-gate.sh / commit-msg-self-gate.sh / pre-push-gate.sh 同结构），改需 SELF-GATE"
+  - ref: agate/platform-notes.md
+    note: "「已知限制」表 L141-147 仅列 3 条（`ln -sf` 退化为复制 / pytest 需安装 / 3 hook 需 sh），未列 Store 占位符；Windows 原生章节也未提及"
+  - ref: AGENTS.md / agate/AGENTS.md / CLAUDE.md
+    note: "提到 Windows 复制模式（hook 软链退化），未提及 Store 占位符；这是项目侧已知但协议层从未防护的兼容性缺口——任何新 Windows 用户都会重新踩"
+impact: Windows 用户跑 agate 时 commit 钩子默认阻断，需要手动复制 python.exe 为 python3.exe 或改 PATH 让真实 Python 优先，脆弱且不可重现；任何新项目/新用户都会重新踩这一坑，跨项目反馈回流案例（2026-08-19 用户反馈）
+recommendation: 三改一并做——(a) 3 薄壳探测循环增强：探测后做可执行性小测试（exit 49 / stderr 含 Microsoft Store 字符串 → skip 该候选，转下一候选 python）或加 AGATE_PYTHON 环境变量优先（项目侧设 AGATE_PYTHON=/path/to/python.exe 时直接接受，跳过探测循环）；(b) agate/platform-notes.md「已知限制」表新增一条 + 「Windows 原生」章节加 Store 占位符说明 + AGATE_PYTHON 机制文档；(c) agate/AGENTS.md「升级 agate」段同步一句。P1 派发时需实测薄壳代码并定 Store 占位符识别阈值（exit 49 / stderr 内容 / Python313 路径是否在 WindowsApps 之前）
+closure_criteria:
+  - 3 薄壳探测循环增强并实测：Windows 含 Store 占位符的环境，hook 能正确解析到真实 python（或 AGATE_PYTHON 指定路径）
+  - AGATE_PYTHON 环境变量机制文档化（platform-notes.md「Windows 原生」章节 + AGENTS.md「升级 agate」段）
+  - platform-notes 已知限制表新增一条
+  - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue（薄壳改动后）
+  - 新增回归用例覆盖 Store 占位符场景（模拟或 Windows CI matrix）
+source: cross_project_feedback
+created_at: 2026-08-19
+task_id: TAG0017
+```
