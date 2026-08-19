@@ -199,3 +199,17 @@ exit 0；check-gate.py P6 exit 2（20 BDD，FAIL=0，通过）；check-p6-eviden
 check-p6-provenance.py exit 0。抽查 bdd-10 证据文件确认独立构造场景（非转抄测试代码）。
 
 NEXT: commit（phase=P6）→ 进入 P7（一致性检查）。
+
+[2026-08-19T04:10] git commit 4fd310f（wf(TAG0015-P6)）成功。写好
+P7-dispatch-context-consistency-reviewer.md（DESIGN_GAP 配对 + SCOPE+ 闭环 + 4 项跨文件核对
++ 未决项清零）并注入卡片，派发 consistency-reviewer。
+
+NEXT: 等产出，主 Agent 预跑 check-gate.py P7，无 BLOCKER 则 commit → 进入 P8（发布）。
+
+[2026-08-19T04:20] consistency-reviewer 完成：BLOCKER=0，DEVIATION=0/0，DESIGN_GAP=1
+REVIEWED=1（配对完整，引用 SELF-GATE 独立核实结论 + 理由三点）。2 项非阻断观察：
+roadmap.md 未被 P1§9 packages 描述文字显式归类（改动本身在 P1 BDD-8/P2§1.1 均有出处，判定不
+升级）；SELF-GATE 重试#1 额外触碰 4 个 P2 原"不改"文件（全程留痕+用户裁决批准，非静默偏离，
+不计入 deviation_count）。主 Agent 独立验证 check-gate.py P7 exit 0。
+
+NEXT: commit（phase=P7）→ 读 phase-cards/P8-release.md，进入最后阶段（版本发布准备）。
