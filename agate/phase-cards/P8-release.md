@@ -79,7 +79,10 @@ check-gate.py P8 $TASK_DIR
 
 主 Agent **必须亲自执行**以下验证（不可跳过、不可委托 subagent）：
 - 从 P2 packages 逐包读取发布检查命令并执行 → 全部 exit 0
-- 重跑 P5 gate（gate_commands.P5 exit 0 + failed==0）
+- **P5 验证（TAG0016 BDD-14 精简为条件化表述，底线不变——至少一次客观验证动作不可省）**：
+  若 `check-p6-provenance.py` 审计 7（BDD-12）判定 P8 发起时点距 P5 通过点（`.state.yaml`
+  的 `p5_pass_commit`）之间无代码改动 → 复用同一份 `P5-test-results/`（不重新执行命令）；
+  否则完整重跑 `gate_commands.P5`（exit 0 + failed==0）
 - `git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏
 - 从 P2 packages 验证 version 文件路径
 
@@ -118,7 +121,7 @@ check-gate.py P8 $TASK_DIR
 
 ## 推进条件（全部满足才写 phase: READY）
 
-- [ ] bump-version 完成 + P5 重跑全绿
+- [ ] bump-version 完成 + P5 验证全绿（重跑或复用 `P5-test-results/`，见上方「gate 规则」条件化表述）
 - [ ] CHANGELOG 已更新
 - [ ] git tag 已创建
 - [ ] READY 收尾检查全部通过

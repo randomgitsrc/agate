@@ -38,7 +38,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ── 工具函数 ──────────────────────────────────────────────────────────────
 
 
@@ -156,7 +155,7 @@ def test_bdd_4_dispatch_prompt_single_source_template(agate_root):
     text = _read(agate_root, "dispatch-protocol.md")
     section = _section(text, r"^## 派发 prompt 模板")
     assert section is not None, "dispatch-protocol.md 未找到 '## 派发 prompt 模板' 小节"
-    line_count = len([l for l in section.splitlines() if l.strip()])
+    line_count = len([line for line in section.splitlines() if line.strip()])
     assert line_count < 30, (
         f"dispatch-protocol.md「派发 prompt 模板」内联版仍有 {line_count} 行非空内容"
         "（应收窄为极简结构骨架 + 指针，权威源见 assets/templates/dispatch-prompt.md）"

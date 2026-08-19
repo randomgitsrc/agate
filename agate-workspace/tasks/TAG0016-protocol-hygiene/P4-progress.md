@@ -33,3 +33,19 @@
 - check-protocol-consistency.py --strict: CHECK 12 PASS，全仓 0 ERROR（exit=2 仅因既有 308 条 WARNING，与本批次无关）。
 - 全量 pytest: 8 failed / 951 passed / 2 skipped（失败数从 15 降到 8，均为批次3范围/ruff lint，非本批次范围）。
 - 已写 P4-implementation-batchB.md。
+
+## [batchC] test-evidence-provenance 实现进度
+
+- 读取 dispatch-context + 角色定义 + P2-design.md §1.1(M16-M23)/§3(BDD-12/13 完整设计+§3.2 R9)/§10 + check-p6-provenance.py 现有六道审计风格 + test_check_p6_provenance.py 4 条 audit7 测试断言 + conftest GitRepo fixture + test_protocol_dedup_audit.py BDD-11/14/15 三条测试断言。
+- 确认落点：dispatch-protocol.md L453 前插入 M16 新小节；state-machine.md L404-456「每任务独立状态文件」插入 p5_pass_commit；P5-verification.md L13-15 步骤4-5间插入写入步骤+R9操作纪律；P6-acceptance.md 新增引用P5证据分支（约L130后）+gate规则行更新；P8-release.md L82 精简为条件化表述；.github/workflows/protocol-tests.yml pytest job 新增 continue-on-error xdist 观测步骤。
+- 下一步：逐条实现 M16-M23。
+
+## [batchC] test-evidence-provenance 完成
+
+- 代码/文档改动确认已落盘（grep 确认 M16-M23 七处落点均存在：dispatch-protocol.md「## 全量重跑点审计」、check-p6-provenance.py 的 EXCLUDE_PRODUCE_PREFIX/audit7_p5_evidence_reuse/p6_declares_reuse、state-machine.md/P5-verification.md 的 p5_pass_commit、P6-acceptance.md 引用P5证据分支、P8-release.md 复用表述、protocol-tests.yml xdist观测步骤）。
+- test_check_p6_provenance.py: 45 passed（4 条审计7用例全绿，既有41条未破坏）。
+- test_protocol_dedup_audit.py: 16 passed（BDD-11/14/15 全绿，既有 BDD-1/2/3/4/5/7/16/18 回归防护未破坏）。
+- 全量 pytest: 958 passed / 1 failed / 2 skipped——唯一失败是既有 ruff lint 问题（test_protocol_dedup_audit.py 测试代码自身 I001/E741，批次1遗留，不可改测试代码，dispatch-context 明确排除范围）。本批次新代码自查 ruff check 已过（修复了自己引入的 RUF005 list 拼接警告）。
+- check-protocol-consistency.py（非 strict）：0 ERROR，308 WARNING，与批次2基线一致。
+- 未改动批次1/2已完成部分；DEBT0010 与本批次无交集未修复。无 DESIGN_GAP/SCOPE+/CLARIFY。
+- 已写 P4-implementation-batchC.md。三批次全部完成，等待主 Agent 全批次汇总。

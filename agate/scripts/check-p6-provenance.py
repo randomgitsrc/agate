@@ -5,7 +5,7 @@
   check-p6-provenance.py TASK_DIR
 exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
 
-六道客观审计 + agent 字段协作规范：
+七道客观审计 + agent 字段协作规范：
   1. 证据-结论对应（1a PASS 行证据引用路径必须存在 / 1b PASS 数 ≤ 证据文件数，
      空证据拦截 / 1c 证据文件必须被至少一条 PASS 行引用，空 png 充数拦截）
   2. dispatch-context 内容约束（不含 PASS/FAIL 验收结论预判）
@@ -14,6 +14,9 @@ exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
      (vision: ...) 引用 + YAML 存在 + summary.blocker_count == 0）
   5. 日志 EXIT_CODE 与 PASS/FAIL 声明一致性（M1.3a 约定）
   6. evidence JSON 与 P6-acceptance.md PASS/FAIL 声明一致性（P2.57）
+  7. P6 引用 P5 证据的无改动校验（audit7_p5_evidence_reuse，TAG0016 BDD-12/13：读取
+     .state.yaml 可选字段 p5_pass_commit，判定 p5_pass_commit..HEAD 间是否存在
+     EXCLUDE_PRODUCE_PREFIX 前缀外的改动；已声明"引用 P5 证据"但判定 reuse_blocked → 拦截）
 
 - grep -cE '^\\s*- PASS\\b' → 逐行 re.search 计数（PASS_COUNT / P6_BODY_STRICT /
   P1_BDD 均同模式）
@@ -46,6 +49,11 @@ _SKIP_AGENT_CHECK = (
     r"-progress\.md$",
     r"-paused-resolution\.md$",
 )
+
+# --- 审计 7：P6 引用 P5 证据的无改动校验（BDD-12/13，TAG0016 RM-AG0026）---
+# P2-design.md §3.5：EXCLUDE_PRODUCE_PREFIX 已用真实 git 命令验证不匹配任何源码路径
+# （agate/scripts/、agate/*.md 等协议本体路径），只匹配任务编排产出目录。
+EXCLUDE_PRODUCE_PREFIX = "agate-workspace/tasks/"
 
 
 def _run_script(script, args, env_extra):
@@ -117,6 +125,59 @@ def _is_skipped_agent_check(localname):
     """sh 版 case 模式（*-dispatch-context*.md / *-dispatch-prompt-*.md / *-progress.md /
     *-paused-resolution.md）等价判定。"""
     return any(re.search(p, localname) for p in _SKIP_AGENT_CHECK)
+
+
+def _run_git(task_dir, args):
+    """在 task_dir 所在 git 仓库中运行 git 命令（`-C task_dir`，git 自动向上发现仓库根），
+    返回 (stdout, returncode)。task_dir 不存在/非 git 仓库时返回空串 + 非 0。"""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(task_dir), *list(args)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+    except OSError:
+        return "", 1
+    return proc.stdout or "", proc.returncode
+
+
+def p6_declares_reuse(task_dir):
+    """P6-acceptance.md 是否声明"引用 P5 证据、不重跑"（M21 落地的产出规格判定）。"""
+    p6_file = os.path.join(task_dir, "P6-acceptance.md")
+    if not os.path.isfile(p6_file):
+        return False
+    try:
+        with open(p6_file, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return False
+    return bool(re.search(r"引用\s*P5\s*证据", text))
+
+
+def audit7_p5_evidence_reuse(task_dir, state_yaml):
+    """审计 7：P6 引用 P5 证据的无改动校验（P2-design.md §3.5，BDD-12/13）。
+
+    state_yaml 为已解析的 .state.yaml dict（读取可选字段 p5_pass_commit）。返回三态字符串：
+      "no_reuse_claim_possible" — p5_pass_commit 字段缺失（存量任务兼容，静默回退强制重跑，不报错）
+      "reuse_blocked"           — p5_pass_commit..HEAD 间存在非产出文件改动（BDD-13，不可复用）
+      "reuse_allowed"           — 排除 EXCLUDE_PRODUCE_PREFIX 前缀后 diff 为空（BDD-12，可复用）
+
+    若 P6-acceptance.md 已声明"引用 P5 证据、不重跑"但判定为 reuse_blocked，向 stderr 报
+    GATE PROVENANCE 错误（不在此处 sys.exit，由调用方按需处理，函数本身只负责判定+提示）。
+    """
+    p5_commit = (state_yaml or {}).get("p5_pass_commit")
+    if not p5_commit:
+        return "no_reuse_claim_possible"
+
+    out, _rc = _run_git(task_dir, ["diff", f"{p5_commit}..HEAD", "--name-only"])
+    changed = [line for line in out.splitlines() if line and not line.startswith(EXCLUDE_PRODUCE_PREFIX)]
+
+    if changed:
+        if p6_declares_reuse(task_dir):
+            sys.stderr.write(
+                "GATE PROVENANCE: 声明引用 P5 证据但检测到非产出文件改动，须重跑 P5：" + ", ".join(changed) + "\n"
+            )
+        return "reuse_blocked"
+    return "reuse_allowed"
 
 
 def main():
@@ -407,6 +468,24 @@ def main():
             sys.stderr.write("GATE PROVENANCE: evidence JSON 与 P6-acceptance.md 声明不一致：\n")
             for line in inconsistency.splitlines():
                 sys.stderr.write(f"  - {line}\n")
+            sys.exit(1)
+
+    # --- 审计 7：P6 引用 P5 证据的无改动校验（BDD-12/13，TAG0016）---
+    # .state.yaml 缺失/无 p5_pass_commit 字段/无 pyyaml → 静默回退（no_reuse_claim_possible
+    # 语义），不阻塞；只有"P6 已声明复用但判定为 reuse_blocked"时才拦截（错误信息已在
+    # audit7_p5_evidence_reuse 内部写 stderr）。
+    if p6_exists:
+        state_yaml_path = os.path.join(task_dir, ".state.yaml")
+        state_yaml = {}
+        if os.path.isfile(state_yaml_path):
+            try:
+                import yaml
+                with open(state_yaml_path, encoding="utf-8", errors="replace") as f:
+                    state_yaml = yaml.safe_load(f) or {}
+            except Exception:
+                state_yaml = {}
+        reuse_result = audit7_p5_evidence_reuse(task_dir, state_yaml)
+        if reuse_result == "reuse_blocked" and p6_declares_reuse(task_dir):
             sys.exit(1)
 
     if warning_found == 1:
