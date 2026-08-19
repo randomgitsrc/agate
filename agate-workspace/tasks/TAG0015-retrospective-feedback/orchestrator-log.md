@@ -236,3 +236,15 @@ phase=READY status=complete。
 
 NEXT: git add -A → commit（wf(TAG0015-P8)）→ 创建 tag v0.53.0 → READY 收尾检查（干净 checkout
 consistency 验证 + 工作区确认干净）。
+
+[2026-08-19T04:50] git commit d310b61 成功，tag v0.53.0 已创建（与该 commit 同点）。
+**流程缺口（如实记录）**：commit 时 hook 报 SELF-GATE WARNING（暂存区含 README.md/AGENTS.md
+等触发文件，commit message 未含 self-gate-review:/self-gate-skip:）——WARNING 不拦截，commit
+已完成。事后核实 `git show --stat d310b61`：本 commit 只改了 README.md/README.zh-CN.md
+版本徽章、CHANGELOG.md 新章节、roadmap.md 状态位、.state.yaml/active-tasks.md 记账字段 +
+task 工作区文件，**无协议语义/gate 脚本改动**，应属 self-gate-skip 的合法场景（纯版本发布记账）。
+因 tag 已建在该 commit 上，不做 amend（会使 tag 指向失效）——留痕记录，供后续复盘参考："P8
+commit 也在 SELF-GATE 触发文件清单内（README.md/AGENTS.md 泛匹配），纯记账性 P8 commit 应提前
+在 commit message 加 self-gate-skip 声明，而非依赖 WARNING 放行后补救"。
+
+NEXT: READY 收尾检查——干净 checkout 验证 consistency + 工作区状态确认。
