@@ -23,7 +23,7 @@
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | done | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-18 |
 | RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | done | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
 | RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | done | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
-| RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 | scheduled | TAG0016 复盘（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
+| RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012/0014）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 + Windows Store python3 占位符命中 hook 探测循环（DEBT0014，跨项目反馈汇入）| scheduled | TAG0016 复盘（2026-08-19）+ 用户跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
 
 ## 状态标识
 
@@ -488,10 +488,17 @@
 - **问题 3（DEBT0012，medium）**：`check-protocol-consistency.py --strict`（WARNING-only 也 exit 2）与 `gate_commands.P5` 的 `&&` 串联组合，在存量 WARNING 未清零（当前 314 条，全为历史叙事文件死链）时**永远短路**链路末步（P5 实跑 count-tests 未执行到）；历史验证方法盲区（`command | tail` 掩盖真实 exit code）使该缺陷长期存在未被发现
   - 修复（二选一或都做）：(a) P2 卡片 gate_commands 声明示例不再推荐 `--strict` 放 `&&` 链路中间，改为三条独立命令分别判；(b) `check-protocol-consistency.py` 加 `--strict-errors-only` 模式（仅 ERROR 时非 0，WARNING 通过打印提示），保留 `--strict` 供人工主动选用
 
+- **问题 4（DEBT0014，medium，2026-08-19 跨项目反馈汇入）**：Windows Store `python3` 占位符命中 hook 探测循环导致 Windows 用户 commit 阻断
+  - `agate/scripts/pre-commit-gate.sh` 第 11-13 行（及 commit-msg-self-gate.sh / pre-push-gate.sh 同结构薄壳）探测循环 `for c in python3 python` 中 `command -v python3` 能命中 WindowsApps 目录下的 Store 占位符 `python3.exe`（它是个真实存在的 exe stub），但 exec 时 Store 占位符非交互模式直接 exit 49（无输出，不打开 Store）→ hook 走 fail-closed 分支阻断 commit
+  - Windows 用户每次都踩的坑：AGENTS.md/CLAUDE.md 已知提示"python3 是 Store 占位符必须用 python"，但**协议层未做任何防护**——当前 workaround 是手动复制 `python.exe` 为 `python3.exe` 或改用 `python` 命令，脆弱且不可重现（任何新项目/新用户都会重新踩）
+  - 修复：(a) 3 薄壳探测循环增强——探测后做可执行性小测试（exit 49 / stderr 含 "Microsoft Store" 字符串 → skip 该候选，转下一候选 python）或加 `AGATE_PYTHON` 环境变量优先（项目侧设 `AGATE_PYTHON=/path/to/python.exe` 时直接接受，跳过探测循环）；(b) `agate/platform-notes.md`「已知限制」表新增一条 + 「Windows 原生」章节加 Store 占位符说明 + `AGATE_PYTHON` 机制文档；(c) `agate/AGENTS.md`「升级 agate」段同步一句
+  - P1 派发时需实测薄壳代码并定 Store 占位符识别阈值（exit 49 / stderr 内容 / Python313 路径是否在 WindowsApps 之前）
+
 - **验证口径**：
   - DEBT0010：声明 `P3_timeout_seconds`/`P5_timeout_seconds` 时，check-tdd-red.py 仍正确判定真红灯 + check-gate.py P2/P5 不再误报（回归用例）
   - DEBT0011：SELF-GATE.md 模板含任务标识占位符 + 覆盖写前确认检查项
   - DEBT0012：gate_commands.P5 声明示例/脚本退出码模式更新 + 回归测试覆盖两种模式的 exit code 差异
+  - DEBT0014：Windows 环境（Git for Windows 实测，含 Store 占位符）下 commit 钩子能正确解析到真实 python；`AGATE_PYTHON` 环境变量机制文档化；platform-notes 已知限制表新增一条
   - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue
 
-- **归属**：独立任务（协议工具链修复批，TAG0017）。三债均改脚本 + 协议文档 + 回归测试，不宜顺手改；DEBT0013 已在 PR #166 修复，DEBT0009 已关闭。改造域 = gate 脚本 + SELF-GATE.md + P2 卡片，触发 SELF-GATE。
+- **归属**：独立任务（协议工具链修复批，TAG0017）。三债均改脚本 + 协议文档 + 回归测试，不宜顺手改；DEBT0013 已在 PR #166 修复，DEBT0009 已关闭。改造域 = gate 脚本 + SELF-GATE.md + P2 卡片，触发 SELF-GATE。DEBT0014（2026-08-19 跨项目反馈汇入）扩展改造域 = 3 薄壳 sh + platform-notes.md + AGENTS.md，同样触发 SELF-GATE。
