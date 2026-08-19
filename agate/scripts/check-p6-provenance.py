@@ -166,17 +166,35 @@ def audit7_p5_evidence_reuse(task_dir, state_yaml):
 
     state_yaml 为已解析的 .state.yaml dict（读取可选字段 p5_pass_commit）。返回三态字符串：
       "no_reuse_claim_possible" — p5_pass_commit 字段缺失（存量任务兼容，静默回退强制重跑，不报错）
-      "reuse_blocked"           — p5_pass_commit..HEAD 间存在非产出文件改动（BDD-13，不可复用）
+      "reuse_blocked"           — p5_pass_commit..HEAD 间存在非产出文件改动（BDD-13，不可复用）；
+                                   或 git diff 命令本身失败（fail-closed，见下方 CRITICAL-1 修复）
       "reuse_allowed"           — 排除 EXCLUDE_PRODUCE_PREFIX 前缀后 diff 为空（BDD-12，可复用）
 
     若 P6-acceptance.md 已声明"引用 P5 证据、不重跑"但判定为 reuse_blocked，向 stderr 报
     GATE PROVENANCE 错误（不在此处 sys.exit，由调用方按需处理，函数本身只负责判定+提示）。
+
+    P4-review CRITICAL-1 修复（TAG0016 P4-review-20260819）：`_run_git` 返回 (stdout, returncode)，
+    此前调用方只用了 stdout、从未检查 returncode——当 p5_commit 是 git diff 无法解析的哈希
+    （历史被 rebase/squash 移除、.state.yaml 手工写错、CI 浅克隆导致该 commit 不在本地历史）时，
+    git diff 失败会向 stderr 打印 fatal 并以非 0 退出，同时 stdout 为空，被误判为"无改动"→
+    reuse_allowed（本该强制重跑的场景被静默放行）。fail-closed：returncode != 0 时不进入"无改动"
+    分支，直接判定 reuse_blocked，并写清楚区分"git 命令本身失败"与"确实检测到改动"的诊断信息
+    （两者是不同性质的失败，不合并进同一条 stderr 消息）。
     """
     p5_commit = (state_yaml or {}).get("p5_pass_commit")
     if not p5_commit:
         return "no_reuse_claim_possible"
 
-    out, _rc = _run_git(task_dir, ["diff", f"{p5_commit}..HEAD", "--name-only"])
+    out, rc = _run_git(task_dir, ["diff", f"{p5_commit}..HEAD", "--name-only"])
+    if rc != 0:
+        sys.stderr.write(
+            f"GATE PROVENANCE: git diff {p5_commit}..HEAD 命令本身执行失败（returncode={rc}），"
+            "无法判定 p5_pass_commit 与 HEAD 间是否存在改动（可能原因：commit 已被 rebase/squash "
+            "移除、.state.yaml 手工写错哈希、CI 浅克隆导致该 commit 不在本地历史）。"
+            "fail-closed：按 reuse_blocked 处理，强制重跑 P5\n"
+        )
+        return "reuse_blocked"
+
     changed = [line for line in out.splitlines() if line and not line.startswith(EXCLUDE_PRODUCE_PREFIX)]
 
     if changed:

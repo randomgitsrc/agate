@@ -1,5 +1,5 @@
 task_id: TAG0016
-phase: P3
+phase: P4
 status: in_progress
 retries:
   P1:
@@ -16,5 +16,10 @@ retries:
       failure_mode: quality
       prompt_changed: true
       adjustment: null
-retry_count: { P1: 2, P2: 1 }
+  P4:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+retry_count: { P1: 2, P2: 1, P4: 1 }
 updated: 2026-08-19

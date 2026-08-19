@@ -693,6 +693,28 @@ def test_bdd_13_audit7_only_produce_dirs_excluded_active_tasks_board(agate_scrip
     assert result == "reuse_allowed"
 
 
+def test_p4_review_critical1_git_diff_command_fails_fail_closed_reuse_blocked(
+    agate_scripts, tmp_path, capsys
+):
+    """P4-review CRITICAL-1：p5_pass_commit 是 git diff 无法解析的伪造哈希（历史被 rebase/
+    squash 移除、.state.yaml 手工写错、CI 浅克隆导致该 commit 不在本地历史）时，git diff
+    命令本身失败（非 0 返回码 + 空 stdout）。修复前会被误判为"无改动"→ reuse_allowed；
+    修复后须 fail-closed 判定为 reuse_blocked，且 stderr 诊断信息要点出"git 命令本身失败"
+    （与"确实检测到改动"是不同性质的失败，不应混在同一条消息里）。"""
+    cpp_mod = _load_prov_module(agate_scripts)
+    _repo, task_dir, _p5_commit = _init_repo_with_p5_commit(tmp_path)
+    fake_commit = "a" * 40  # 40 位十六进制格式合法，但仓库历史里不存在的伪造哈希
+
+    result = cpp_mod.audit7_p5_evidence_reuse(str(task_dir), {"p5_pass_commit": fake_commit})
+    assert result == "reuse_blocked"
+
+    stderr = capsys.readouterr().err
+    assert "git" in stderr
+    assert "命令本身执行失败" in stderr or "命令本身失败" in stderr
+    # 不应把"命令失败"误报成"检测到非产出文件改动"那条消息
+    assert "检测到非产出文件改动" not in stderr
+
+
 # ========== --audit7-only CLI 模式（TAG0016 SELF-GATE 修复轮 A1-c）==========
 # 被测：check-p6-provenance.py --audit7-only TASK_DIR
 #   只跑审计 7，三态结果打印到 stdout，一行 `AUDIT7_RESULT: <state>`；
@@ -720,6 +742,25 @@ def test_audit7_only_reuse_blocked_stdout_and_exit1(agate_scripts, python_exe, r
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text("print('P4 修复')\n", encoding="utf-8")
     repo.commit("wf(T001-test-P4): 修复 P6 退回的 bug")
+
+    result = run_cli(
+        python_exe, str(agate_scripts / "check-p6-provenance.py"),
+        "--audit7-only", str(task_dir),
+    )
+    assert result.returncode == 1
+    assert "AUDIT7_RESULT: reuse_blocked" in result.stdout
+
+
+def test_audit7_only_p4_review_critical1_fake_commit_git_fails_exit1(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """P4-review CRITICAL-1 CLI 覆盖：--audit7-only 模式下伪造哈希导致 git diff 命令本身
+    失败，同样须 fail-closed 走 reuse_blocked → exit 1（而非把失败误判成 reuse_allowed →
+    exit 0）。"""
+    repo, task_dir, _p5_commit = _init_repo_with_p5_commit(tmp_path)
+    fake_commit = "b" * 40
+    (task_dir / ".state.yaml").write_text(f"p5_pass_commit: {fake_commit}\n", encoding="utf-8")
+    repo.commit("wf(T001-test-P6): write state yaml with bogus commit")
 
     result = run_cli(
         python_exe, str(agate_scripts / "check-p6-provenance.py"),

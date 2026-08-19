@@ -336,7 +336,10 @@ _PHASE_CARD_NAMES = {
 _AUTHORITATIVE_MAX = {"P1": 3, "P2": 3, "P3": 2, "P4": 3, "P5": 2, "P6": 2, "P7": 2, "P8": 2}
 
 
-def _make_check12_tree(tmp_path, pointer_ok=True, mismatched_phase=None, redeclare_pointer=False):
+def _make_check12_tree(
+    tmp_path, pointer_ok=True, mismatched_phase=None, redeclare_pointer=False,
+    unrelated_table_outside_section=False,
+):
     """构造 CHECK 12 最小假协议树：
 
     - agate/state-machine.md：权威重试上限表 + Pre-commit 指针句（既有正确模式，BDD-7/10 防误伤）
@@ -366,11 +369,22 @@ def _make_check12_tree(tmp_path, pointer_ok=True, mismatched_phase=None, redecla
         )
     elif pointer_ok:
         # 迁移后状态：纯指针句，不含数值表
-        st.write_text(
+        content = (
             "> 权威源：`agate/state-machine.md`。\n\n## 重试上限\n\n"
-            "详见 `agate/state-machine.md`《重试上限》——权威唯一来源，本文件不重复维护。\n",
-            encoding="utf-8",
+            "详见 `agate/state-machine.md`《重试上限》——权威唯一来源，本文件不重复维护。\n"
         )
+        if unrelated_table_outside_section:
+            # P4-review CRITICAL-2 误报防护用例：文件里另有一个与「## 重试上限」无关的
+            # 小节，其表格行形状恰好命中 ≥3 组 (phase, value) 组合（P1=3/P2=3/P3=2，
+            # 与权威表 _AUTHORITATIVE_MAX 一致），但语义上与重试上限完全无关（示意任务
+            # 追踪表）。修复前（全文无范围扫描）会被误判为"重新声明了权威表格"；修复后
+            # （小节限定扫描）不应触发。
+            content += (
+                "\n## 状态标记绑定（与重试上限无关的另一张表）\n\n"
+                "| 阶段 | 计数 | 说明 |\n|------|-----|------|\n"
+                "| P1 | 3 | 示例 |\n| P2 | 3 | 示例 |\n| P3 | 2 | 示例 |\n"
+            )
+        st.write_text(content, encoding="utf-8")
     else:
         # 缺权威指针短语的占位状态（边界：既不复制表格也不指向权威源）
         st.write_text("## 重试上限\n\n（占位内容，未声明来源）\n", encoding="utf-8")
@@ -476,3 +490,20 @@ def test_bdd_5_check12_pointer_redeclares_table_reports_error(agate_scripts, tmp
     assert any(
         "重新声明" in e["msg"] or "state-transitions.md" in e["msg"] for e in errors
     )
+
+
+def test_p4_review_critical2_unrelated_table_outside_section_no_false_positive(
+    agate_scripts, tmp_path
+):
+    """P4-review CRITICAL-2：指针文件里存在与「## 重试上限」无关的另一张表格，其行形状
+    恰好命中 ≥3 组 (phase, value) 与权威表相同的组合，但语义上完全无关（不在「## 重试
+    上限」小节内）。redeclares_table 修复前对全文做无范围扫描会误判为"重新声明了权威
+    表格"；修复后须限定在「## 重试上限」小节内扫描，该小节本身仍是纯指针句，不应触发
+    CHECK12-authval 误报。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_check12_tree(tmp_path, unrelated_table_outside_section=True)
+    rep = cpc.Report()
+    cpc.check_authoritative_values(root, rep)
+    errors = [e for e in rep.errors if e["check"] == "CHECK12-authval"]
+    assert errors == [], f"Expected 0 CHECK12 errors (false positive guard), got {errors}"
+    assert "CHECK12-authval" in rep.passed

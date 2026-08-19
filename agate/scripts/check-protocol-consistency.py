@@ -918,23 +918,39 @@ def check_script_name_refs(root: Path, rep: Report) -> None:
 
 _RETRY_TABLE_ROW_RE = re.compile(r"\|\s*(P\d+)\s*\|\s*(\d+)\s*\|")
 
+RETRY_LIMIT_HEADING = "## 重试上限"
 
-def extract_md_table_int_column(path: Path) -> dict[str, int]:
-    """从「## 重试上限」小节的 markdown 表格里提取 {阶段: 数值} 映射。
 
-    只扫描该小节文本（到下一个 `## ` 标题或文件末尾为止），不对整个文件做无范围扫描——
-    避免误吞同格式但语义无关的表格行（如任务追踪表里的 "| P4 | 0 | ... |"）。
+def extract_section(text: str, heading: str) -> str | None:
+    """定位 `heading`（如 "## 重试上限"）标题下的小节正文（到下一个同级 `## ` 标题或文件
+    末尾为止），未找到该标题返回 None。
+
+    被 `extract_md_table_int_column`（权威文件取数）与 `check_authoritative_values`
+    （指针文件误报防护，P4-review CRITICAL-2 修复）共用同一套小节裁剪逻辑，避免两处实现
+    漂移。
     """
-    if not path.exists():
-        return {}
-    text = path.read_text(encoding="utf-8")
-    m = re.search(r"^## 重试上限\s*$", text, re.M)
+    m = re.search(r"^" + re.escape(heading) + r"\s*$", text, re.M)
     if not m:
-        return {}
+        return None
     section = text[m.end():]
     next_heading = re.search(r"^## ", section, re.M)
     if next_heading:
         section = section[: next_heading.start()]
+    return section
+
+
+def extract_md_table_int_column(path: Path) -> dict[str, int]:
+    """从「## 重试上限」小节的 markdown 表格里提取 {阶段: 数值} 映射。
+
+    只扫描该小节文本，不对整个文件做无范围扫描——避免误吞同格式但语义无关的表格行
+    （如任务追踪表里的 "| P4 | 0 | ... |"）。
+    """
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    section = extract_section(text, RETRY_LIMIT_HEADING)
+    if section is None:
+        return {}
     result: dict[str, int] = {}
     for row in _RETRY_TABLE_ROW_RE.finditer(section):
         result[row.group(1)] = int(row.group(2))
@@ -947,6 +963,11 @@ def redeclares_table(text: str, authoritative: dict[str, int]) -> bool:
     统计文本里能同时匹配权威表 (phase, value) 组合的行数，≥3 组同时命中即判定
     "重新声明了完整表格"（阈值 3 而非"任意 1 组"，容忍正文偶尔提及某一阶段的具体
     数字而不逐条列出全表——见 P2-design.md §2.3 附注）。
+
+    调用方（P4-review CRITICAL-2 修复）须先用 `extract_section` 把待扫描文本裁剪到
+    与权威表同名的小节内，再传入本函数——本函数自身不做小节裁剪，只做行匹配计数，
+    避免全文无范围扫描误吞同形态但语义无关的表格行（如指针文件里另一张与重试上限
+    无关的表格，恰好命中 ≥3 组同值行）。
     """
     hits = 0
     for row in _RETRY_TABLE_ROW_RE.finditer(text):
@@ -989,7 +1010,15 @@ def check_authoritative_values(root: Path, rep: Report) -> None:
                 errors += 1
                 continue
             text = fpath.read_text(encoding="utf-8")
-            if redeclares_table(text, authoritative):
+            # P4-review CRITICAL-2 修复：redeclares_table 只扫描指针文件里与权威表同名的
+            # 小节（如「## 重试上限」），不做全文无范围扫描——防止指针文件里另一处与权威
+            # 表无关的表格（恰好命中 ≥3 组同值行）被误判为"重新声明了权威表格"。若指针文件
+            # 根本没有该级别标题，退化为对全文扫描（与既有行为一致，不引入新的漏报）。
+            scan_section = extract_section(text, RETRY_LIMIT_HEADING)
+            scan_text = scan_section if scan_section is not None else text
+            # INFO-1 修复：must_not_redeclare_table 此前声明但从未被读取（死配置）——
+            # 现实际读取该 key（默认 True，向后兼容既有唯一一条 pointer_files 记录）。
+            if pf.get("must_not_redeclare_table", True) and redeclares_table(scan_text, authoritative):
                 rep.error("CHECK12-authval",
                           f"{pf['file']} 重新声明了权威表格（应改为指向 "
                           f"{anchor['authoritative_file']} 的指针）",

@@ -81,3 +81,54 @@
   P4-implementation-selfgate-fix.md。
 - P4-implementation-selfgate-fix.md 已用 Write 工具写入指定路径，含正确 header 与 3 个修复
   目标摘要。本轮任务完成，准备返回。
+
+## P4-review（review 子 Agent，2026-08-19）
+- 审查对象：check-protocol-consistency.py CHECK12（行 914-1019）、check-p6-provenance.py 审计7+--audit7-only（行 61-222）、7 份协议文档去重抽查
+- 发现 2 个 CRITICAL：
+  1. audit7_p5_evidence_reuse（check-p6-provenance.py:179）忽略 git diff 返回码，git 命令失败时静默判为 reuse_allowed（已用最小复现验证：伪造不存在的 commit hash 得到 RESULT: reuse_allowed，应拦截）
+  2. redeclares_table（check-protocol-consistency.py:944-956）对指针文件做无范围全文扫描，未采用姊妹函数 extract_md_table_int_column 已用的小节限定策略，与本任务修复过一次的"误吞同形态表格行"同根因，存在潜在误报
+- 4 个 INFORMATIONAL：must_not_redeclare_table 死配置key / exists+read_text 无 try-except（全文件既有模式）/ pyyaml 缺失被 except Exception 静默吞掉无诊断信号 / MAX= 正则无上下文锚定
+- 协议文档去重抽查（dispatch-protocol.md 派发 prompt 模板骨架 + state-machine.md/state-transitions.md/WORKFLOW.md/platform-notes.md 指针句）未发现新问题
+- 产出：P4-review.md，status: rejected
+
+## P4-review 修复轮进度（trace_id: TAG0016-P4-reviewfix-20260819）
+
+- [已读] dispatch-context P4-dispatch-context-implementer-review-fix.md
+- [已读] implementer.md 角色定义
+- [已读] P4-review.md 全文：CRITICAL-1（audit7 git 返回码未检查，check-p6-provenance.py:179）+
+  CRITICAL-2（redeclares_table 无小节限定，check-protocol-consistency.py:944-956）
+- [已读] check-p6-provenance.py 全文（audit7_p5_evidence_reuse 行 164-188）
+- [已读] check-protocol-consistency.py CHECK12 段（行 914-1020）
+- [核实] agate/rules/state-transitions.md 确实有「## 重试上限」小节（行 56-60），
+  只含指针句无表格 → 小节限定方案对真实文件可行
+
+- [已改] agate/scripts/check-p6-provenance.py：audit7_p5_evidence_reuse 检查 `_run_git`
+  返回码，rc != 0 时 fail-closed 返回 reuse_blocked，stderr 诊断信息与"检测到改动"分支
+  分开（不同性质失败不合并消息）
+- [已改] agate/scripts/check-protocol-consistency.py：
+  - 新增 extract_section(text, heading) 通用小节裁剪辅助函数（原 extract_md_table_int_column
+    内联逻辑抽取为共用函数）
+  - extract_md_table_int_column 改为调用 extract_section
+  - check_authoritative_values 调用 redeclares_table 前先用 extract_section(text,
+    RETRY_LIMIT_HEADING) 裁剪出「## 重试上限」小节文本，找不到该标题则回退全文扫描（保持
+    既有行为不变，不引入新漏报）
+  - 顺手修复 INFO-1：must_not_redeclare_table key 现被实际读取（默认 True）
+
+- [已加测试] test_check_p6_provenance.py: test_p4_review_critical1_git_diff_command_fails_fail_closed_reuse_blocked
+  + test_audit7_only_p4_review_critical1_fake_commit_git_fails_exit1（单元 + CLI 两层覆盖）
+- [已加测试] test_check_protocol_consistency.py: test_p4_review_critical2_unrelated_table_outside_section_no_false_positive
+- [已跑] 全量 pytest：966 passed, 2 skipped, 0 failed（基线 963 + 新增 3 条）
+- [已写] P4-implementation-reviewfix.md
+- [完成] P4-review 修复轮结束
+
+## P4-review 复审第 2 轮（2026-08-19，agent: review）
+
+- 核对 CRITICAL-1 修复代码（check-p6-provenance.py:164-206 `audit7_p5_evidence_reuse`）：
+  `rc != 0` 时 fail-closed 为 `reuse_blocked`，stderr 文案与"确实检测到改动"分支不混淆。
+  自跑 `pytest -k critical1`：2 passed。
+- 核对 CRITICAL-2 修复代码（check-protocol-consistency.py `extract_section` + 调用处小节裁剪）：
+  `check_authoritative_values` 已先用 `extract_section(text, RETRY_LIMIT_HEADING)` 裁剪再传给
+  `redeclares_table`，未找到标题时回退全文（不引入新漏报）。自跑 `pytest -k critical2`：1 passed。
+- 自跑全量：`timeout 180 python3 -m pytest agate/tests/ -q --tb=short` → 966 passed, 2 skipped,
+  0 failed，与预期基线一致。
+- 结论：2 个 CRITICAL 均验证修复到位，无新问题。P4-review.md 已覆盖重写，status: approved。
