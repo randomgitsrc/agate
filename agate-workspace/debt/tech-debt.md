@@ -229,7 +229,7 @@ task_id: null
 id: DEBT0009
 category: protocol
 title: BDD-12 P5 provenance 存储位置候选 C（commit message 派生）技术上更优雅但依赖无 gate 强校验的自然语言约定，本次未采纳
-status: open
+status: closed
 priority: low
 evidence:
   - path: agate-workspace/tasks/TAG0016-protocol-hygiene/P2-design.md
@@ -249,6 +249,8 @@ closure_criteria:
 source: review
 created_at: 2026-08-19
 task_id: TAG0016
+closed_at: 2026-08-19
+close_reason: "三分法评估（2026-08-19 主 Agent 复核）：本条是 P2 设计决策记录（候选方案权衡），非缺陷——不存在'不修验收声明变假'或'未来变更更贵'的任意一者。登记本条目时误将其视为'值得追踪的权衡备忘'，违反 tech-debt 三分法（都不影响 → 不登记的合法出口）。决策本身已记录在 P2-design.md §3.3 且长期有效；若未来 wf() 前缀被 gate 强制校验，届时按 recommendation 重新评估即可，无需以债务形式持续占位。按 closure_criteria 第二条关闭。"
 ```
 
 ## DEBT0010
