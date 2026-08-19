@@ -213,3 +213,26 @@ roadmap.md 未被 P1§9 packages 描述文字显式归类（改动本身在 P1 B
 不计入 deviation_count）。主 Agent 独立验证 check-gate.py P7 exit 0。
 
 NEXT: commit（phase=P7）→ 读 phase-cards/P8-release.md，进入最后阶段（版本发布准备）。
+
+[2026-08-19T04:30] git commit c5dcac9（wf(TAG0015-P7)）成功。写好
+P8-dispatch-context-implementer.md（版本决策独立核实/CHANGELOG 不照抄/debt_check 逐条核对/
+临时资源如实声明）并注入卡片，派发 releaser。当前基线 v0.52.0，预期 minor bump → v0.53.0。
+
+NEXT: 等 releaser 产出 P8-release.md，主 Agent 亲自执行 gate 验证（发布检查命令全绿 + 重跑 P5
++ git log 对照 CHANGELOG），通过后亲自执行 bump-version + CHANGELOG + tag，READY 收尾检查，
+commit → phase=READY。
+
+[2026-08-19T04:45] releaser 完成：bump_type=minor（v0.52.0→v0.53.0，4 点独立核实依据：
+check-gate.py 零改动/check-retrospective.py exit契约不变/agate-md-field-get.py 纯新增字段/
+七类改动均加性）；debt_check=none（6 条 DEBT 逐条核对 task_id 均不相关）；无临时资源。
+check-gate.py P8 exit 2（version/CHANGELOG 未 bump 的预期 WARNING）。
+
+主 Agent 亲自执行：① P3+P5 发布检查命令重跑全绿（35 passed；932 passed+2 skipped+0 failed；
+0 ERROR/307 WARNING）② git log v0.52.0..HEAD 对照 CHANGELOG 无遗漏（8 个 phase commit 全部
+覆盖）③ bump README.md + README.zh-CN.md badge v0.52.0→v0.53.0（releaser 提案未提及
+README.zh-CN.md，主 Agent 独立发现并同步）④ CHANGELOG.md 新增 [0.53.0] 章节 ⑤ roadmap.md
+RM-AG0020/RM-AG0021 状态 scheduled→done ⑥ active-tasks.md 挪入已完成归档区 ⑦ .state.yaml
+phase=READY status=complete。
+
+NEXT: git add -A → commit（wf(TAG0015-P8)）→ 创建 tag v0.53.0 → READY 收尾检查（干净 checkout
+consistency 验证 + 工作区确认干净）。

@@ -8,6 +8,60 @@
 
 ---
 
+## [0.53.0] - 2026-08-19
+
+### 新增（TAG0015：agate 复盘与反馈机制统一，RM-AG0020 + RM-AG0021）
+
+- **复盘模板迁入协议本体（RM-AG0020，BDD-1~8）**：`docs/reviews/postmortem-template.md`
+  git mv 为 `agate/assets/templates/retrospective-template.md`，补齐正文四节结构（事实基线 /
+  做得好的 + 可复用模式 / 发现的问题 / 改进措施，BDD-1）、内容价值标准小节（机制缺口 / 可复用
+  模式 / 归因到可行动层面的问题，BDD-2）、「发现的问题」节强制"归因层面：机制缺口 / 执行错误"
+  二值字段（BDD-3）、技术债登记核对行强制说明（标记"是"必须填 DEBT/roadmap 编号，BDD-4）、
+  「做得好的」节两类去向标注 + 强制追问句（BDD-5）、frontmatter 三机器字段
+  `mechanism_issues`/`execution_issues`/`feedback_ready`（BDD-6）、「## agate 反馈」结构化节
+  （BDD-7）；挂钩点落在 `agate/phase-cards/P8-release.md`「READY 收尾检查」节，模板不再游离
+  于协议本体外（BDD-8）；`agate-workspace/roadmap/roadmap.md` 三处旧路径引用同步脚注更正
+- **`check-retrospective.py` 路径与触发标的扩展（RM-AG0020，BDD-9~11）**：stderr 提示文案改为
+  指向 `tasks/{Txxx}/retrospective.md`，不再提及 `docs/releases/`（BDD-9）；新增
+  `_scan_debt_roadmap_signal` 检测分支，任务关联 DEBT/roadmap 条目时输出独立于异常模式的第二段
+  "建议复盘"提醒（消息文案可区分，BDD-10），`exit code` 恒为 0 的既有契约未变；
+  `agate/tests/unit/test_check_retrospective.py` 新增测试函数覆盖路径文案与两类信号（BDD-11）
+- **`orchestrator-log` 语义扩展为"决策 + 依据"（RM-AG0020，BDD-12~14）**：`agate/state-machine.md`
+  第 481 行规则文本追加"和触发决策的简要依据"分句（三项既有排除原样保留）；新增「L2 会话
+  checkpoint（两件套）——`P{n}-checkpoint.md` + `task-session-summary.md`」小节，回答落盘
+  时机/文件路径/与 orchestrator-log 关系/防 compact 策略四问（BDD-13）；核实
+  `loop-orchestration.md`/`agate/assets/templates/task-files.md` 既有引用不与新语义矛盾，
+  `task-files.md`「辅助文件」表新增两行说明两个 L2 文件（BDD-14）
+- **`agate/AGENTS.md` 复盘位置措辞同步（RM-AG0020，BDD-15）**：区分"历史存量复盘仍在
+  `docs/reviews/`（迁移前旧布局）"与"新复盘归 `tasks/{Txxx}/retrospective.md`"，消除过期声明
+  对新复盘同样成立的推论
+- **存量 5 份复盘文档标注（RM-AG0020，BDD-16）**：`docs/reviews/retrospective-tag0008-*.md` /
+  `retrospective-tag0010-0011-*.md`（含同名 review）/ `retrospective-tag0013-*.md` /
+  `retrospective-tag0014-*.md` 首行统一插入历史标注，指向新路径约定，文件原地保留不物理迁移
+- **`agate-feedback.py` 新增（RM-AG0021，BDD-17~20）**：新脚本 `agate/scripts/agate-feedback.py`
+  从复盘文档提取 `mechanism_issues`/`execution_issues`/「## agate 反馈」节结构化数据（BDD-17，
+  ADR-007 合规复用 `agate-md-field-get.py` 单一双读工具）；输出脱敏（项目名 → `<PROJECT>`，
+  绝对路径按项目根截断/替换 `<PATH>`，BDD-18）；`AGATE_FEEDBACK` 开关默认 `off`，未启用时不
+  产生任何提取输出，exit code 明确提示功能未启用（BDD-19）；产出物为待人工提交的 JSON +
+  Markdown 片段，脚本本身不调用 `git push`/`gh` 等网络提交命令，且不存在任何自动触发钩子
+  （BDD-20）
+- **`agate-md-field-get.py` 字段注册（ADR-007 合规）**：`NO_FALLBACK_BOOL_FIELDS` 新增
+  `feedback_ready`，`NO_FALLBACK_LIST_FIELDS` 新增 `mechanism_issues`/`execution_issues`，
+  三字段均为 `retrospective.md` 专用，纯新增不影响既有 4 个字段行为
+
+### 测试
+
+- 新增/扩展 `agate/tests/unit/test_check_retrospective.py`（BDD-9/10/11）+ 全新
+  `agate/tests/unit/test_agate_feedback.py`（BDD-17~20）+ 全新
+  `agate/tests/unit/test_retrospective_protocol_docs.py`（纯文档类 BDD-1/2/3/4/5/6/7/8/12/13/
+  14/15/16），三文件合计 35 passed
+- 全量 `pytest agate/tests/ -q --tb=no` → 932 passed + 2 skipped，无回归（基线 909 passed，
+  净增 23）；`check-protocol-consistency.py --strict` → 0 ERROR
+- **本版本无破坏性变更**：`check-gate.py` 零改动；`check-retrospective.py` `exit code` 契约
+  不变；`agate-md-field-get.py` 新字段纯新增不影响既有消费字段；均为面向新场景的加性变更
+
+---
+
 ## [0.52.0] - 2026-08-18
 
 ### 新增（TAG0012：agate 协议机制增强批）

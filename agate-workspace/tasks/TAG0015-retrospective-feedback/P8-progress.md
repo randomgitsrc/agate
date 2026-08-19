@@ -1,0 +1,12 @@
+## P8 releaser progress
+- 读取 dispatch-context + P1/P2/P4/P6/P7 + tech-debt.md + TAG0012 P8-release.md 参照，完成
+- 版本核实：README.md:5 badge = v0.52.0，git describe --tags --abbrev=0 = v0.52.0，一致，与 dispatch-context 声明基线相符
+- check-gate.py 独立核实：git diff --stat 70a16af..HEAD -- agate/scripts/check-gate.py 输出为空，确认全程零改动（70a16af 是 TAG0015 P0 提交点）
+- agate-md-field-get.py 独立核实：git diff 70a16af..HEAD 显示仅新增 3 个字段进 NO_FALLBACK_BOOL_FIELDS/NO_FALLBACK_LIST_FIELDS 两个 frozenset（feedback_ready + mechanism_issues/execution_issues），既有字段 regression_pass/need_confirm_resolved/suggest_resolved/scope_resolved 原样保留未动，纯新增无修改
+- check-retrospective.py 独立核实：sed -n 85,145p 确认第 141 行路径提示已改为 tasks/{Txxx}/retrospective.md；grep sys.exit 确认仅 line 115（无参数用法错误，既有分支）与 line 152（main 末尾恒 exit(0)），BDD-10 新分支未新增任何 sys.exit 调用，exit 0 契约不变——判定支持 bump_type: minor
+- debt_check 逐条核实：tech-debt.md 现存 6 条 DEBT（DEBT0001 task_id=TAG0013-script-consistency；DEBT0002/3/4 task_id=TAG0008-version-management；DEBT0005/6 task_id=TAG0006-ui-ux-quality），无一条 task_id 为 TAG0015-retrospective-feedback 或关联 RM-AG0020/AG0021 → debt_check: none
+- packages 对照：直接引用 P7-consistency.md §3b 结论（roadmap.md 观察项不构成阻断），未重新逐文件核对
+- CHANGELOG 内容：逐条回查 P4-implementation.md 改动清单原文重新组织，不套用 TAG0012 P8-release.md 段落结构
+- 临时资源清单核实：本任务全程纯协议文档+Python脚本改动（P4/P6 自查记录均为 pytest/grep/subprocess 调用协议脚本本身），未见任何 debug server/临时数据库/端口占用/开发安装痕迹 → 无临时资源
+- gate_commands 清单从 P2-design.md §5 原文抄录，未重跑（P5 已跑，标注非本次结果）
+- 产出 P8-release.md 完成

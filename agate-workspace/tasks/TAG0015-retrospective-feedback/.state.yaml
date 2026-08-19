@@ -1,6 +1,6 @@
 task_id: TAG0015
-phase: P7
-status: pending
+phase: READY
+status: complete
 
 # ── 重试记录 ──
 retries:
