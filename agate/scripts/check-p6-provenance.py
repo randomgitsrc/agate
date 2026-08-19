@@ -5,6 +5,14 @@
   check-p6-provenance.py TASK_DIR
 exit 0 = 通过; exit 1 = 审计不通过; exit 2 = WARNING（不阻塞）
 
+独立 CLI 模式（TAG0016 修复 A1-c，供 P8 场景单独取审计 7 判定结果）：
+  check-p6-provenance.py --audit7-only TASK_DIR
+只跑审计 7（audit7_p5_evidence_reuse），不跑其余六道审计。三态结果打印到 stdout，
+一行，格式固定为 `AUDIT7_RESULT: <reuse_allowed|reuse_blocked|no_reuse_claim_possible>`，
+供调用方 grep 提取。exit code：reuse_allowed → 0；reuse_blocked → 1；
+no_reuse_claim_possible → 0（字段缺失是"无法声明复用"而非"错误"，与主流程审计 7 的静默
+回退语义一致，不算失败退出码）。不带 `--audit7-only` 时的既有行为不变。
+
 七道客观审计 + agent 字段协作规范：
   1. 证据-结论对应（1a PASS 行证据引用路径必须存在 / 1b PASS 数 ≤ 证据文件数，
      空证据拦截 / 1c 证据文件必须被至少一条 PASS 行引用，空 png 充数拦截）
@@ -180,7 +188,39 @@ def audit7_p5_evidence_reuse(task_dir, state_yaml):
     return "reuse_allowed"
 
 
+def _load_state_yaml(task_dir):
+    """读取 task_dir/.state.yaml，返回 dict（文件缺失/无 pyyaml/解析失败 → 静默回退空 dict，
+    等价于 audit7 的 no_reuse_claim_possible 静默回退语义）。"""
+    state_yaml_path = os.path.join(task_dir, ".state.yaml")
+    state_yaml = {}
+    if os.path.isfile(state_yaml_path):
+        try:
+            import yaml
+            with open(state_yaml_path, encoding="utf-8", errors="replace") as f:
+                state_yaml = yaml.safe_load(f) or {}
+        except Exception:
+            state_yaml = {}
+    return state_yaml
+
+
+def _run_audit7_only(task_dir):
+    """--audit7-only TASK_DIR：只跑审计 7，三态结果打印到 stdout 供 grep 提取。"""
+    state_yaml = _load_state_yaml(task_dir)
+    reuse_result = audit7_p5_evidence_reuse(task_dir, state_yaml)
+    print(f"AUDIT7_RESULT: {reuse_result}")
+    if reuse_result == "reuse_blocked":
+        sys.exit(1)
+    sys.exit(0)
+
+
 def main():
+    if len(sys.argv) >= 2 and sys.argv[1] == "--audit7-only":
+        if len(sys.argv) < 3:
+            sys.stderr.write("用法: check-p6-provenance.py --audit7-only TASK_DIR\n")
+            sys.exit(1)
+        _run_audit7_only(sys.argv[2])
+        return
+
     if len(sys.argv) < 2:
         sys.stderr.write("用法: check-p6-provenance.py TASK_DIR\n")
         sys.exit(1)
@@ -475,15 +515,7 @@ def main():
     # 语义），不阻塞；只有"P6 已声明复用但判定为 reuse_blocked"时才拦截（错误信息已在
     # audit7_p5_evidence_reuse 内部写 stderr）。
     if p6_exists:
-        state_yaml_path = os.path.join(task_dir, ".state.yaml")
-        state_yaml = {}
-        if os.path.isfile(state_yaml_path):
-            try:
-                import yaml
-                with open(state_yaml_path, encoding="utf-8", errors="replace") as f:
-                    state_yaml = yaml.safe_load(f) or {}
-            except Exception:
-                state_yaml = {}
+        state_yaml = _load_state_yaml(task_dir)
         reuse_result = audit7_p5_evidence_reuse(task_dir, state_yaml)
         if reuse_result == "reuse_blocked" and p6_declares_reuse(task_dir):
             sys.exit(1)

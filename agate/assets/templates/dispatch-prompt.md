@@ -170,6 +170,9 @@ regression.log 必须被 PASS 行引用；禁止新增非 BDD 编号 PASS 行；
 ## P6 BDD 覆盖完整性
 P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
 P1 有 N 条 BDD → P6 必须有 N 条验收结果（PASS 或 FAIL）。挑验 = gate 不通过。
+## P6 引用 P5 证据、不重跑（refactor 任务，若适用）
+若本次判定可引用 P5 证据（主 Agent 会在 dispatch-context 中告知审计 7 判定结果），
+按 verifier.md「引用 P5 证据、不重跑」节口径处理，不必独立产出 regression.log。
 ## P6 证据要求
 每条 BDD 验收结果必须有对应证据文件，存入 {AGATE_WORKSPACE}/tasks/{Txxx}/P6-evidence/。
 证据类型：

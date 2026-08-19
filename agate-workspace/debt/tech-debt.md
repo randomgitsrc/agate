@@ -286,3 +286,46 @@ source: review
 created_at: 2026-08-19
 task_id: TAG0016
 ```
+
+## DEBT0011
+
+```yaml
+id: DEBT0011
+category: technical
+title: SELF-GATE.md protocol-alignment-review 成果文件/留痕文件按纯日期命名，跨任务同日复用会静默覆盖已提交的历史审查记录
+status: open
+priority: medium
+evidence:
+  - ref: SELF-GATE.md
+    note: "「变更触发模式」派发模板声明成果文件路径为
+      `docs/reviews/agate-alignment-review-{date}.md`、留痕文件为
+      `docs/reviews/agate-alignment-{date}-{NN}.progress.md`——命名只含日期，不含任务标识"
+  - path: docs/reviews/agate-alignment-review-2026-08-19.md
+    note: "TAG0016 自身实测复现：2026-08-19 当天 TAG0015（commit 208a1ec，已合并入 main）与
+      TAG0016 各自触发了一次 protocol-alignment-review，两次派发都按 SELF-GATE.md 模板生成同名
+      文件 `agate-alignment-review-2026-08-19.md`（及同名留痕文件
+      `agate-alignment-2026-08-19-01.progress.md`）。TAG0016 的 subagent 用 Write 覆盖写入该
+      文件时，TAG0015 已提交的历史审查记录被静默覆盖（`git diff` 显示 TAG0015 全部审查内容被
+      TAG0016 内容整体替换）——若主 Agent 未在 commit 前跑 `git status`/`git diff` 逐一核对新增
+      文件是否真的是新增（而非覆盖了已跟踪文件），这类覆盖会在 commit 时静默发生且不产生任何
+      WARNING（git 无法区分'合法覆盖旧草稿'与'意外破坏历史记录'）。TAG0016 已手工恢复
+      TAG0015 原文件内容（`git checkout --`）并将自己的审查另存为
+      `agate-alignment-review-2026-08-19-tag0016.md` 规避，但这是本次会话的人工补救，不是机制修复"
+impact: 只要两次 self-gate 审查落在同一日历日（对活跃度较高的 agate 自身改造仓库并不罕见——同一天
+  推进两个任务、或同一任务当天多轮 P4/P8 均可能触发多次），后触发的一次会静默覆盖前一次已提交的
+  审查历史（若前一次尚未 commit 则是工作区覆盖，损失更隐蔽），且没有任何 gate/hook 检测这种覆盖；
+  这类历史记录一旦被覆盖再 commit，除非人工翻 git log 逐次核对，否则不会被发现
+recommendation: SELF-GATE.md 的成果文件/留痕文件命名模板补充任务标识（如
+  `agate-alignment-review-{date}-{task_id}.md`，无关联任务时用序号 `-{NN}` 后缀，与留痕文件已有
+  的多批次序号约定对齐）；同时可选加固：`protocol-alignment-review` 角色文件的分阶段落盘指引里
+  提示 subagent 用 Write 前先检查目标路径是否已存在且内容非空，若已存在应先读一遍确认是不是同一
+  任务的复核轮（可覆盖）还是别的任务遗留（不可覆盖，需改用带任务标识的新文件名）
+closure_criteria:
+  - SELF-GATE.md 派发模板的成果文件/留痕文件路径模板补充任务标识占位符
+  - 新增或更新一条回归检查（哪怕只是文档层面的检查清单项），要求 subagent 覆盖写前先确认目标
+    文件不是别的任务的记录
+  - 全量 pytest 回归通过（若涉及脚本改动）
+source: review
+created_at: 2026-08-19
+task_id: TAG0016
+```

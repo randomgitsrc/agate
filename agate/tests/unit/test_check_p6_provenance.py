@@ -691,3 +691,59 @@ def test_bdd_13_audit7_only_produce_dirs_excluded_active_tasks_board(agate_scrip
 
     result = cpp_mod.audit7_p5_evidence_reuse(str(task_dir), {"p5_pass_commit": p5_commit})
     assert result == "reuse_allowed"
+
+
+# ========== --audit7-only CLI 模式（TAG0016 SELF-GATE 修复轮 A1-c）==========
+# 被测：check-p6-provenance.py --audit7-only TASK_DIR
+#   只跑审计 7，三态结果打印到 stdout，一行 `AUDIT7_RESULT: <state>`；
+#   exit code：reuse_allowed → 0；reuse_blocked → 1；no_reuse_claim_possible → 0。
+
+
+def test_audit7_only_reuse_allowed_stdout_and_exit0(agate_scripts, python_exe, run_cli, tmp_path):
+    repo, task_dir, p5_commit = _init_repo_with_p5_commit(tmp_path)
+    (task_dir / ".state.yaml").write_text(f"p5_pass_commit: {p5_commit}\n", encoding="utf-8")
+    repo.commit("wf(T001-test-P6): write state yaml")
+
+    result = run_cli(
+        python_exe, str(agate_scripts / "check-p6-provenance.py"),
+        "--audit7-only", str(task_dir),
+    )
+    assert result.returncode == 0
+    assert "AUDIT7_RESULT: reuse_allowed" in result.stdout
+
+
+def test_audit7_only_reuse_blocked_stdout_and_exit1(agate_scripts, python_exe, run_cli, tmp_path):
+    repo, task_dir, p5_commit = _init_repo_with_p5_commit(tmp_path)
+    (task_dir / ".state.yaml").write_text(f"p5_pass_commit: {p5_commit}\n", encoding="utf-8")
+    repo.commit("wf(T001-test-P6): write state yaml")
+    src = tmp_path / "agate" / "scripts" / "some-fixed-script.py"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_text("print('P4 修复')\n", encoding="utf-8")
+    repo.commit("wf(T001-test-P4): 修复 P6 退回的 bug")
+
+    result = run_cli(
+        python_exe, str(agate_scripts / "check-p6-provenance.py"),
+        "--audit7-only", str(task_dir),
+    )
+    assert result.returncode == 1
+    assert "AUDIT7_RESULT: reuse_blocked" in result.stdout
+
+
+def test_audit7_only_missing_field_no_reuse_claim_possible_exit0(agate_scripts, python_exe, run_cli, tmp_path):
+    _repo, task_dir, _p5_commit = _init_repo_with_p5_commit(tmp_path)
+    # 无 .state.yaml → no_reuse_claim_possible（静默回退，不算失败退出码）
+
+    result = run_cli(
+        python_exe, str(agate_scripts / "check-p6-provenance.py"),
+        "--audit7-only", str(task_dir),
+    )
+    assert result.returncode == 0
+    assert "AUDIT7_RESULT: no_reuse_claim_possible" in result.stdout
+
+
+def test_audit7_only_missing_task_dir_arg_exit1(agate_scripts, python_exe, run_cli):
+    result = run_cli(
+        python_exe, str(agate_scripts / "check-p6-provenance.py"),
+        "--audit7-only",
+    )
+    assert result.returncode == 1

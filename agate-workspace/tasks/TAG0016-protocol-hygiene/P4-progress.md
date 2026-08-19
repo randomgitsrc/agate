@@ -49,3 +49,35 @@
 - check-protocol-consistency.py（非 strict）：0 ERROR，308 WARNING，与批次2基线一致。
 - 未改动批次1/2已完成部分；DEBT0010 与本批次无交集未修复。无 DESIGN_GAP/SCOPE+/CLARIFY。
 - 已写 P4-implementation-batchC.md。三批次全部完成，等待主 Agent 全批次汇总。
+
+## P4 SELF-GATE 修复轮（trace_id: TAG0016-P4-selfgate-fix-20260819）
+
+- 已读 dispatch-context P4-dispatch-context-implementer-selfgate-fix.md
+- 已读 docs/reviews/agate-alignment-review-2026-08-19.md A1-c/A3/A5/A7 四节完整原文
+- 已读 agate/scripts/check-p6-provenance.py 现有实现（main() 结构、audit7_p5_evidence_reuse 函数）
+- 已读 agate/phase-cards/P8-release.md L82-85、agate/dispatch-protocol.md「全量重跑点审计」表 L453-462
+- 已读 agate/assets/execution-roles/verifier.md「refactor 任务验收口径」节 L171-180
+- 已读 agate/assets/templates/dispatch-prompt.md「P5/P6 派发追加」节 L158-197
+- 已读 agate/adr.md ADR-002/ADR-004/ADR-009 格式参照
+- 开始实现修复目标 1：--audit7-only CLI 模式
+- 修复目标 1 script 改动完成：check-p6-provenance.py 新增 --audit7-only 模式（_load_state_yaml
+  提取复用 + _run_audit7_only）。手工验证三态：reuse_allowed exit0 / reuse_blocked exit1 /
+  no_reuse_claim_possible exit0，输出行 `AUDIT7_RESULT: <state>`，均符合规格。
+- 修复目标 1 文档同步完成：P8-release.md L82-86（改为可执行命令 + AUDIT7_RESULT 三态判定步骤）、
+  dispatch-protocol.md「全量重跑点审计」表 P8 行（同样改为具体命令 + AUDIT7_RESULT 判定）。
+- 开始实现修复目标 2：verifier.md + dispatch-prompt.md 补充新机制说明
+- 修复目标 2 完成：verifier.md「refactor 任务验收口径」节后新增「引用 P5 证据、不重跑（P6 模式，
+  TAG0016 BDD-12/13）」小节（判定权归主 Agent，指向 P6-acceptance.md 权威节，不复制完整规则）；
+  dispatch-prompt.md「P5/P6 派发追加」节加一句指针，指向 verifier.md 新增小节。
+- 开始实现修复目标 3：ADR-010
+- 修复目标 3 完成：adr.md 末尾新增 ADR-010（受控例外——满足客观可判定条件时允许复用既有验证
+  证据），格式参照 ADR-002/ADR-004（状态/语境/决策/理由/后果五节）。
+- 三个修复目标代码/文档改动均已落盘，准备新增 --audit7-only CLI 测试用例并跑全量 pytest。
+- 新增 4 条 --audit7-only CLI 测试用例（test_check_p6_provenance.py，未改动已有测试断言逻辑）：
+  reuse_allowed exit0/stdout、reuse_blocked exit1/stdout、no_reuse_claim_possible exit0/stdout、
+  缺 TASK_DIR 参数 exit1。全部通过。
+- 全量 pytest 跑完：963 passed, 2 skipped, 0 failed（基线 959 passed + 新增 4 条，无回归）。
+- 返回前自检：grep 确认各文件改动落盘 + 手工 CLI 验证三态输出格式，均通过。准备写
+  P4-implementation-selfgate-fix.md。
+- P4-implementation-selfgate-fix.md 已用 Write 工具写入指定路径，含正确 header 与 3 个修复
+  目标摘要。本轮任务完成，准备返回。

@@ -459,7 +459,7 @@ trigger: gate_fail
 | P5 首跑 | 必然 | 每个任务到达 P5 阶段必然执行一次 `gate_commands.P5` | 不可替代——首次验证无前序证据可引用 |
 | P5 失败后重跑 | 条件 | 仅当首跑失败、修复后重新验证时发生（T027 教训：必须全量重跑，不能只测修复项） | 不可替代——重跑本身就是"确认修复且无新回归"的必要动作 |
 | P6 refactor 独立 regression.log | 条件 | 仅 `change_type: refactor` 任务，且当前口径要求独立跑一次全量回归 | **本任务后可替代**——BDD-12 无改动校验成立时，P6 可引用 P5-test-results/ 而非独立重跑 |
-| P8 bump-version 后重跑 `gate_commands.P5` | 必然（发布前最后一道防线，不可移除，见 P1 BDD-14）| 每个走到 P8 的任务，bump-version 后需确认测试仍全绿 | **范围/方式可被简化**——BDD-12 判定 P8 发起时点距 P5 通过点无代码改动时，复用同一份 `P5-test-results/`（不重新执行命令）；否则仍需完整重跑 |
+| P8 bump-version 后重跑 `gate_commands.P5` | 必然（发布前最后一道防线，不可移除，见 P1 BDD-14）| 每个走到 P8 的任务，bump-version 后需确认测试仍全绿 | **范围/方式可被简化**——主 Agent 跑 `python3 agate/scripts/check-p6-provenance.py --audit7-only $TASK_DIR`，读 stdout 的 `AUDIT7_RESULT:` 行：`reuse_allowed` → 复用同一份 `P5-test-results/`（不重新执行命令）；`reuse_blocked` / `no_reuse_claim_possible` → 仍需完整重跑 `gate_commands.P5` |
 
 ---
 

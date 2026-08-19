@@ -179,6 +179,16 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
 - **格式约束**：regression.log 必须被一条 PASS 行引用（审计 1c）；禁止新增非 BDD 编号 PASS 行（如 `- PASS REGRESSION: ...`）——回归结果作为关键路径 BDD 的 PASS 行呈现，多文件证据逗号分隔；BDD 编号机制对 refactor 不豁免（P6 PASS+FAIL ≥ P1 BDD 数）。
 - **no_behavior_change 不豁免回归双证**：refactor 口径只看 change_type，即使任务声明了 no_behavior_change，回归双证仍强制。
 
+### 引用 P5 证据、不重跑（P6 模式，TAG0016 BDD-12/13）
+
+若 `.state.yaml` 已有 `p5_pass_commit` 字段，且主 Agent 已跑 `check-p6-provenance.py` 审计 7
+（`audit7_p5_evidence_reuse`）判定 P5→P6 间无非产出文件改动（`reuse_allowed`，判定结果会由
+dispatch-context 告知），可在「行为不变声明」的 PASS 行引用 `P5-test-results/` 路径作为全量
+回归证据，**不必**独立跑一次全量回归产出 `P6-evidence/regression.log`。审计 7 判定为
+`reuse_blocked`（或字段缺失导致 `no_reuse_claim_possible`）时，仍按上方既有口径独立产出
+`regression.log`——判定权在主 Agent，不由 verifier 自行判断是否可复用。具体格式与 gate 判定
+细节见 `phase-cards/P6-acceptance.md`「P6-acceptance.md（引用 P5 证据、不重跑：BDD-12/13）」节。
+
 ### 输入（自己读取）
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（环境约束、已知风险——首先读，了解约束边界）
 - {AGATE_WORKSPACE}/tasks/{Txxx}/P1-requirements.md（**所有** BDD 条件，含 SCOPE+ 增补——验收依据）
