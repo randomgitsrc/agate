@@ -1,5 +1,7 @@
 # 子 Agent 派发协议
 
+> 职责边界：派发操作层——可执行门槛判定命令、派发编排机制（工作量评估/并行规则/回退处理）、特殊事件恢复（详见职责声明表，P2-design.md §0）
+
 > agate 核心文件，解决"主 Agent 不派发、自己一路走到底"的问题
 
 ---
@@ -428,254 +430,23 @@ trigger: gate_fail
 
 ## 派发 prompt 模板
 
-主 Agent 调用 task 工具时，prompt 用这个结构（完整模板见 `assets/templates/dispatch-prompt.md`，以下为内联版）：
+> 完整模板（含全部阶段特定追加节）唯一权威源：`assets/templates/dispatch-prompt.md`，本文件不维护完整版。
+
+极简结构骨架（用于快速对照，非完整正文，实际派发以权威源为准）：
 
 ```
-你是 {阶段} 阶段的 {角色名} 子 Agent。
-
-## 你的角色定义
-读取并遵循：{agate_root}/assets/execution-roles/{role}.md
-> 若派发评审角色（review-roles），须追加 assets/templates/dispatch-prompt.md 中评审角色专用节的 status 字段语义说明（产出 Header 初始 draft、完成后改 approved/rejected/needs-revision，gate 读 Header 非返回摘要）。
-
-## 项目约定（必读）
-- {project_conventions_file}（项目约定、命名规范、目录结构）
-- {AGATE_WORKSPACE}/tasks/{Txxx}/P0-brief.md（本任务的环境约束和风险声明）
-
-## 环境隔离（强制，所有阶段适用）
-本任务的环境约束见 P0-brief.md 的 env_constraints 字段。
-- 调试/验证必须使用 P0-brief 的 debug_env 声明的测试环境，严禁直接操作生产环境
-- 开发全程不应接触生产环境；若意外接触，立即停止并标注 [PROD_TOUCHED] 报告主 Agent
-
-## dispatch-context（核心输入）
-读取并严格遵循：{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md
-> dispatch-context 中的派发指引是本次任务的强制指令，不是参考信息。
-
-## 执行顺序
-1. 读取 dispatch-context 派发指引（目标/约束/上游关联/输入文件）
-2. 读取角色定义文件和项目约定
-3. 按输入文件列表逐一读取，每读完一个追加 progress
-4. 按 dispatch-context 约束执行任务
-5. 写产出文件到约定路径
-6. 自检产出文件（Header/内容/证据）
-7. 返回路径 + 一句话摘要
-
-## 分阶段落盘（留痕文件，防空返回）
-留痕文件：{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md
-开始前先删除留痕文件（如已存在）：rm -f {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md
-每读完一个输入文件或完成一个关键步骤，立即用 bash 追加一行（不要整理、不格式化）：
-  echo "- [文件名] 关键发现摘要" >> {AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-progress.md
-不要在留痕文件里做内容整理、不格式化——那是产出文件的事。
-读一个写一个，不要等全部读完再一次性写。
-留痕文件仅供空返回诊断用，主 Agent 检查产出文件后可删。
-落盘粒度不止"每读完一个输入文件"——**每条 bash 命令执行前**也追加一行（写清要跑什么、预期多久），
-这样命令挂死时主 Agent 从留痕文件就能看出卡在哪条命令上。
-
-## 命令超时兜底（层级 4，所有 bash 命令强制）
-执行任意 bash 命令前，必须设 shell 层 timeout，不允许无超时裸跑：
-  timeout {N}s {命令}     # 或工具自带的 timeout 参数
-取值 N = 该命令预期耗时 ×1.5：
-- 该命令对应的 `gate_commands.{key}_timeout_seconds` 已声明 → "预期耗时"直接取该值
-- 未声明（含绝大多数非 gate 的日常 bash 调用）→ 按经验估算预期耗时，再 ×1.5
-超时（或出现非预期失败）后的动作是固定的：
-1. 停止执行，不自行更换命令、不深入诊断、不重试第三次
-2. 往留痕文件写一行：卡在哪条命令、跑了多久、拿到什么输出
-3. 返回主 Agent，由主 Agent 决定加长超时重跑 / 换策略 / 升级人工
-"宁可等一等也不要无限挂起，宁可早返回也不要自己越权改命令"。
-
-## 任务粒度兜底
-产出文件 >3 个或输入文件 >5 个时，必须分批派发或在本节明确说明为何不分批
-（批量评估与编排模式见 dispatch-protocol.md「派发编排机制」）。
-
-## 输出（路径约束）
-产出文件：{AGATE_WORKSPACE}/tasks/{Txxx}/{本阶段产出文件}
-
-⚠️ 路径是硬约束，不是建议：
-- 必须用 Write 工具写入上述路径
-- 不得将产出文件写入 /tmp、工作区根目录、或其他自选路径
-- 写到其他位置 = 未产出，主 Agent 只检查上述路径
-- /tmp 可用于中间临时文件（如 gate-runner 落盘 traceback），但产出文件必须写入约定路径
-
-必须包含 Header（完整字段见 task-files.md「通用 Header」）：
-  phase: {Pn}
-  task_id: {完整 task_id，如 TAG0002-fix-db-migration}
-  type: {problems|design|review|test-cases|implementation|test-results|acceptance|consistency|release}
-  parent: {上一阶段文件名}
-  trace_id: {Txxx}-{Pn}-{日期}
-  status: draft
-  created: {日期}
-
-## 门槛（什么算完成）
-{可判定的完成条件}
-
-## 返回给我
-只返回两行：
-  1. 产出文件路径
-  2. 一句话摘要（不超过 30 字）
-不要返回文件全文。
+你是 {阶段 Pn} 阶段的 {角色名} 子 Agent。
+读取并严格遵循：{agate_root}/assets/{execution-roles|review-roles}/{role}.md
+读取并严格遵循 dispatch-context：{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md
+输出：{AGATE_WORKSPACE}/tasks/{Txxx}/{本阶段产出文件}
 ```
 
-### 命令超时兜底与既有超时机制的分层关系
+各阶段特定追加节（评审角色专属指令 / P2 最小验证 / P3 自检 / refactor 任务回归口径 / P4 上下文控制
+/ P5-P6 BDD 规则与证据要求 / 证据日志格式约定 / 回退诊断 / READY 收尾检查 / 版本 bump 判定 /
+项目占位符映射 / 返回前自检等）均已合并进 `assets/templates/dispatch-prompt.md`，本文件不重复维护。
 
-上面模板里的「命令超时兜底」是**层级 4**，与既有的几层超时机制职责不同，不要互相替代：
-
-| 层级 | 机制 | 谁施加 | 权威节 |
-|------|------|--------|--------|
-| 层级 1 | 阶段 gate 命令的预期时长声明（`gate_commands.{key}_timeout_seconds`） | P2 architect 静态声明 | P2 卡片「gate_commands 声明」 |
-| 层级 2 | 脚本内部硬超时（Playwright/Node 脚本 `HARD = 90_000` / `180_000`，exit 2 + `lastStep`） | 脚本自己 | 本文件「Playwright/长时操作 subagent 派发策略」的 subagent 超时判定 |
-| 层级 3 | P3 测试运行器超时（`AGATE_TDD_TIMEOUT`，默认 120s，exit 124 → 超时 JSON） | 测试运行器 | `agate_common.py` 的 `run_test_with_formatter()` |
-| **层级 4** | **bash 命令级超时兜底**：subagent 跑任意 bash 命令前设 shell 层 `timeout`，取值 = 预期耗时 ×1.5 | subagent 自己，每条命令 | 本节 + 上方派发 prompt 模板 |
-
-区分要点：
-
-- 层级 2 是**内层**机制，只覆盖那一个脚本自己的执行；层级 4 是**外层**兜底，覆盖 subagent 跑的每一条 bash 命令（含 `git`、`pytest`、构建命令等根本没有内部硬超时的命令）。二者叠加时，层级 4 的取值必须留够层级 2 完整走完的余量（如脚本 HARD=180s，外层 `timeout` 不能设 120s，否则外层先杀，拿不到 `lastStep` 诊断信息）
-- 层级 1 是**静态声明**（P2 写在文档里，供人和 subagent 读），层级 4 是**运行时纪律**（subagent 每次执行前真的去设 timeout）。层级 1 声明了值，层级 4 就用它 ×1.5；没声明就按经验估算 ×1.5
-- 层级 3 只服务 P3（TDD 红灯判定），与层级 1 的 `timeout_seconds` 互不覆盖（关系说明见 P2 卡片「gate_commands 声明」的 `timeout_seconds` 字段规则）
-
-—— TPV0093 教训：`make test-quick` 无任何超时保护，实际挂了 188 分钟才被发现。层级 4 的存在就是为了让"挂死"在预期耗时 ×1.5 的时刻变成一条可诊断的返回，而不是无限等待。
-
-### 非阶段产出的路径规范
-
-主 Agent 派发非阶段 subagent（如 self-gate 审查、设计评审、计划编写）时，prompt 的"## 输出"节必须：
-
-1. 给出**具体路径**（用 `{project_root}/docs/reviews/xxx.md` 格式，不用纯占位符也不用绝对路径）
-2. 声明路径硬约束（同阶段产出："不得写入 /tmp 或其他路径"）
-3. 区分留痕文件（bash 追加）和成果文件（Write 工具一次写出）——不要混用
-
-`/tmp` 可用于中间临时文件（如 gate-runner 落盘 traceback 供修复 subagent 读取），但**产出文件**（主 Agent 校验的那个）必须写入约定路径。
-
-注意：agate 自身的 self-gate 审查用相对路径（`docs/reviews/xxx.md`，因为 cwd 就是 agate 仓库根）；外部项目用 `{project_root}/` 前缀。
-
-示例（self-gate 审查派发）：
-```
-## 产出（成果文件）
-路径：{project_root}/docs/reviews/agate-alignment-review-{date}.md
-用 Write 工具写入此路径。不得写入 /tmp 或其他路径。
-
-## 分阶段落盘（留痕文件）
-路径：{project_root}/docs/reviews/agate-alignment-{date}-{NN}.progress.md
-用 bash 追加：echo "- [文件名] 摘要" >> {留痕文件路径}
-```
-
-**为何本示例不展开「命令超时兜底」**：self-gate 审查 / alignment-review 这类非阶段派发，跑的基本是
-grep / 读文件 / `git log` 这类秒级短命令，没有长时挂起风险，逐条命令声明 ×1.5 超时只会稀释 prompt。
-超时兜底纪律本身仍然适用（层级 4 是全局纪律，见上方「命令超时兜底与既有超时机制的分层关系」），
-只是**不在本示例里重复展开**。若某次非阶段派发确实要跑测试/构建/浏览器类长命令，则须把上方派发
-prompt 模板的「命令超时兜底」节一并追加进 prompt。
-
-### 阶段特定提示（按需追加到 prompt 末尾）
-
-**P2 派发时追加**：
-```
-## P2 最小验证
-方案设计前，先用最小验证确认关键假设（10 行 HTML 测试页 / curl 请求 / 20 行脚本）。
-验证结果写入 P2-design.md 的 minimal_validation 字段。
-- 方案依赖浏览器行为/安全模型/外部系统行为 → 必须做最小验证
-- 纯代码逻辑 → 须在 minimal_validation 字段声明 `纯代码逻辑，无外部系统依赖`（须写明依赖了哪些内部函数/数据转换）
-```
-
-**P3 派发时追加**（P2.62）：
-```
-## P3 自检（强制）
-产出测试代码后，必须自跑测试，确认每个红灯的失败原因都是"被测模块未实现"（import 失败 / 模块不存在 / 组件未导出）。
-如果某个红灯的失败原因是"断言与测试数据矛盾"（如断言行数/列数/页数与 fixture 不符）——这是测试代码 bug，先修正断言再交付，不要交付给 P5。
-手写魔数断言（`expect(x).toBe(100)` 但数据实际 50 行）与数据矛盾是 T075 的教训，P3 阶段就要发现。
-## refactor 任务（P1 change_type: refactor）：回归测试口径
-按回归测试口径设计——复用/保留既有测试用例，标注每条回归用例覆盖的路径，**不新增功能行为断言**；
-跳过 check-tdd-red 红灯（重构无新行为可断言，红灯语义不适用，回归质量由 P5 全量回归 + P6 regression.log 兜底）。
-```
-
-**修复轮派发时追加**（P2.63，给主 Agent 的模板）：
-```
-主 Agent 修复轮派发时，dispatch-context 用增量模式：
-- 上轮产出路径：{P{N}-产出文件.md 路径}
-- 上轮 dispatch-context：{P{N}-dispatch-context-{role}.md 路径}（复用其约束）
-- 修复目标：{具体要修复的问题}
-- 不要重写完整目标/约束/上游关联——引用上轮文件即可
-```
-
-**P4 派发时追加**：
-```
-## 上下文控制
-读取代码文件以 P2-design.md 的 files_to_read 清单为准，按需读取（标了行号范围的只读片段）。
-不要在项目里盲目搜索或整目录全读。
-## 自查≠gate
-写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
-P5 由主 Agent 派发 verifier subagent 从 P2-design.md 读取 gate_commands.P5 并执行，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验），CI backstop 兜底。
-不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-```
-
-**P5/P6 派发时追加**：
-```
-## 截图质量标准
-操作类 BDD 截图必须互不相同（md5 逐字节去重，hook 阻断；average hash 视觉相似度检测，WARNING 不阻断），查询类 BDD 可不截图但须有断言记录文件（response.json / assert.log 等，hook 强制）。
-截图须通过像素方差检测（低方差/疑似占位图 WARNING 不阻断）；Pillow 未安装时检测跳过并输出 WARNING，可设 `AGATE_SKIP_IMAGE_CHECKS=1` 主动跳过。
-## P6 BDD 二值规则
-每条 BDD 结果只允许 PASS 或 FAIL，不允许"调整/跳过/覆盖"等中间态。任何 BDD 标 FAIL → gate 不通过。
-## P6 BDD 结果格式
-每条 BDD 验收结果必须用行首 `- PASS` 或 `- FAIL` 格式，便于 gate 命令可靠匹配。
-不要用表格格式（`| BDD-1 | ... | PASS |`），不要用 ✅/❌ emoji，不要用其他格式。
-**大小写敏感**：必须大写 PASS/FAIL。主 Agent 在 verifier 返回后、跑 gate 前运行 `check-p6-format.py --fix` 自动归一化（①）。
-除正文逐条结果外，P6-acceptance.md **还必须**在文件头 frontmatter 声明 `pass:`/`fail:`/`ui_affected:` 三个机器汇总字段（int/int/bool），gate 优先读取该汇总、正文格式仅作旧格式回退——样例见 `agate/assets/execution-roles/verifier.md`。
-示例：
-- PASS BDD-1: 用户可以创建分享链接
-- FAIL BDD-2: 过期链接返回 410
-## P6 BDD 覆盖完整性
-P6 验收必须全量对照 P1 的 BDD 条数（含 SCOPE+ 增补），不能挑验。
-P1 有 N 条 BDD → P6 必须有 ≥N 条验收结果（PASS 或 FAIL，允许 SCOPE+ 增补）。挑验 < N = gate 不通过。
-## P6 证据要求
-每条 BDD 验收结果必须有对应证据文件，存入 {AGATE_WORKSPACE}/tasks/{Txxx}/P6-evidence/。
-证据类型：
-- test-output.log — 验证脚本执行日志（所有任务通用）
-- screenshots/ — Playwright 截图（仅 UI 任务）
-- traces/ — Playwright trace（仅 UI 任务，可选）
-无证据的 PASS 标记 = gate 不通过。
-## P6 verifier 脚本执行
-P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由主 Agent 执行。
-执行输出落盘到 P6-evidence/test-output.log。
-若主 Agent 需要自写脚本（如 verifier 脚本不兼容当前环境），自写脚本的执行输出也落盘到 P6-evidence/test-output.log。
-关键约束：P6-evidence/ 必须有执行产出，不接受空目录。
-## 自查≠gate
-写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
-P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.py P6 + check-p6-evidence.py + check-p6-provenance.py），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
-不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
-## refactor 任务（P1 change_type: refactor）：P6 回归验收口径
-P6 验收换用回归口径（换口径 ≠ 裁 P6，P6 仍不可裁剪）——三段式：① 行为不变声明（禁止伪造功能 BDD）；
-② 全量回归全绿（以一条关键路径 BDD 的 PASS 行呈现，引用 P6-evidence/regression.log，尾行 EXIT_CODE: 0）；
-③ 关键路径行为不变断言 BDD 逐条 PASS/FAIL。frontmatter 额外声明 `regression_pass: true`；
-回归双证（regression_pass + regression.log）是 check-gate.py P6 硬校验，任一缺失 → gate exit 1；
-regression.log 必须被 PASS 行引用；禁止新增非 BDD 编号 PASS 行；no_behavior_change 不豁免回归双证。
-```
-
-**P8 派发时追加**：
-```
-## READY 收尾检查
-P8 gate 通过后，主 Agent 会执行收尾检查（停止调试服务、清理临时数据、还原开发环境、确认生产无残留）。
-你在 P8 产出中应列出：启动了哪些临时服务/进程、创建了哪些临时数据、做了哪些开发安装，供主 Agent 清理。
-
-## 版本 bump 判定
-- 公共 API 行为变化 / 破坏性变更 → major
-- 加功能 / 内部重构改 API（向后兼容）→ minor
-- 修 bug / 不改 API 行为 → patch
-- 测试缺陷不应影响版本号决策：测试 hard-code 版本号 → 修测试，不降级版本
-- 在 P8-release.md 中显式声明：bump 类型（major/minor/patch）+ 理由
-```
-
-### P8 subagent 提交约束
-
-P8 releaser subagent 的职责边界：
-- **只产出文件**：输出 P8-release.md（含 bump_type、版本号、CHANGELOG、临时资源清单）
-- **不执行 `git commit` / `git tag`**：这些是主 Agent 的专属职责，releaser subagent 不得执行
-- **不执行 bump-version**：bump-version 由主 Agent 在 gate 验证通过后亲自执行
-- 主 Agent 流程：releaser 产出 → 主 Agent 验 gate → 通过后亲自执行 bump-version → commit + tag
-
-**理由**：`git commit` + `git tag` 是发布状态的最终确认，必须由主 Agent（编排层）在 gate 验证通过后统一执行，确保发布状态与 gate 结果绑定。subagent 的工作范围限于产出文件和执行验证命令，不触及版本提交边界。
-
-**[PROD_TOUCHED] 标记说明**：任何 subagent 若在执行过程中意外接触了生产环境（写入、读取真实数据、触发外部调用），立即在产出文件标注。采用二值声明：
-```
-[PROD_TOUCHED] {描述}      = 正向（触发了）
-[PROD_NOT_TOUCHED]         = 负向（未触发）
-```
-主 Agent 看到 [PROD_TOUCHED] → 立即暂停流程 → PAUSED → 报告人工处置。
+**命令超时兜底（层级 4，所有 bash 命令强制）**：取值 = 该命令预期耗时 ×1.5，完整规则与分层关系见
+`assets/templates/dispatch-prompt.md`「命令超时兜底」节。
 
 ---
 
@@ -946,6 +717,8 @@ setTimeout(() => {
 ---
 
 ## 可判定门槛规范
+
+> 本表为逐条可执行 grep/命令颗粒度；角色/评审映射颗粒度见 `WORKFLOW.md`《P1-P8 阶段总览》。
 
 门槛必须是**主 Agent 亲自跑命令可验证的明确值**，不能是模糊判断或仅依赖 subagent 产出文件字段。
 
@@ -1290,23 +1063,9 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
 
 ## 平台适配
 
-### OpenCode
+平台能力矩阵（各 Agent 平台已覆盖情况、Windows 安装指南）权威源见 `platform-notes.md`——权威唯一来源，本节不重复维护平台能力矩阵本身，只保留与派发调用方式相关的独家操作细节。
 
-用 `task` 工具派发，`subagent_type` 指定角色。
-
-**自定义角色用 markdown 文件方式定义**（放在 OpenCode 的 agent 目录，文件名即角色名）。
-
-⚠️ **已知坑（issue #29616）**：用 `opencode.jsonc` 里 `mode: "subagent"` 定义的自定义 agent 可能无法被 task 工具调起来（subagent_type 枚举硬编码只有 explore/general）。**优先用 markdown 文件方式定义自定义角色**，并在实际环境先做最小验证：定义一个测试角色，让主 Agent 派发它，确认能调起来。
-
-如果自定义角色确实调不起来，退路：用内置的 general subagent，把角色定义文件路径写进派发 prompt 让它读取遵循（角色行为靠 prompt 注入而非平台机制）。
-
-### Claude Code
-
-用 Agent Teams（2026-02 起）或 Task 工具派发。lead agent spawn teammate agent，各自独立上下文，通过消息传递协调。角色定义可以放 `.claude/agents/` 下的 markdown。
-
-### Codex
-
-用 spawn_agent / send_input / wait / close_agent 工具套件。`agents.max_depth` 默认 1（允许直接子 agent，禁止深层嵌套）。自定义 agent 在 `[agents]` 配置。Codex 只在被明确要求时才 spawn subagent，所以派发指令要明确。
+**OpenCode 调用坑位（issue #29616）**：`opencode.jsonc` 里 `mode: "subagent"` 定义的自定义 agent 可能无法被 task 工具调起来（subagent_type 枚举硬编码只有 explore/general）。**优先用 markdown 文件方式定义自定义角色**，并在实际环境先做最小验证：定义一个测试角色，让主 Agent 派发它，确认能调起来。如果自定义角色确实调不起来，退路：用内置的 general subagent，把角色定义文件路径写进派发 prompt 让它读取遵循（角色行为靠 prompt 注入而非平台机制）。
 
 ---
 

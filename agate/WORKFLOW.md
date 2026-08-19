@@ -1,5 +1,7 @@
 # agate — 子 Agent 编排工作流
 
+> 职责边界：主流程入口——P0-P8 阶段总览、裁剪规则、核心原则、需求/验收机制骨架（详见职责声明表，P2-design.md §0）
+
 > 适用：OpenCode / Claude Code / Codex 等支持 subagent 的 Agent 平台
 > 完整规则文档，从此文件开始阅读。
 > 当前版本见 `git describe --tags` 或 README.md badge。
@@ -279,6 +281,8 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 ## P1-P8 阶段总览
 
+> 本表为角色/评审映射颗粒度；逐条可执行判定命令见 `dispatch-protocol.md`《可判定门槛规范》。
+
 | 阶段 | 名称 | 执行角色 | 评审角色 | 门槛（进入下一阶段的条件）|
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks |
@@ -460,11 +464,7 @@ P1 不可能预见所有隐含需求。P2 设计、P4 实现时，subagent 常�
 
 ## 平台适配
 
-不同 Agent 平台的 subagent 机制不同，派发协议的具体调用方式见 `dispatch-protocol.md` 的平台适配章节。已覆盖：
-
-- **OpenCode**：`task` 工具派发。**经 validation-report 验证：自定义 subagent（方法 A）因 issue #29616 不可用，统一用 general subagent + prompt 注入角色文件（方法 B）**。custom-role.md 模板走方法 B 路径。
-- **Claude Code**：Agent Teams（2026-02 起）+ Task 工具
-- **Codex**：spawn_agent / wait / close_agent 工具套件
+不同 Agent 平台的 subagent 机制不同。详见 `platform-notes.md`《各平台适配说明》——权威唯一来源，本文件不重复维护。派发协议的具体调用方式见 `dispatch-protocol.md` 的平台适配章节。
 
 ---
 
