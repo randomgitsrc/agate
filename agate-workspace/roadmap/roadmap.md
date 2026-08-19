@@ -23,6 +23,7 @@
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | done | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-18 |
 | RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | done | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
 | RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | done | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
+| RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 | scheduled | TAG0016 复盘（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
 
 ## 状态标识
 
@@ -466,3 +467,31 @@
 - **验证口径**：逐任务统计全量重跑次数；协议支持 P6 引用 P5 证据（gate + provenance 校验通过）；P8 放宽后仍保证发布质量
 - **归属**：独立任务（协议机制改进：P6/P8 卡片 + check-p6-provenance.py + 可能新脚本），与 RM-AG0023（运行时管控）相关但独立
 - **落地（TAG0016，2026-08-19，v0.54.0）**：`check-p6-provenance.py` 新增审计 7（`audit7_p5_evidence_reuse`，三态判定 `reuse_allowed`/`reuse_blocked`/`no_reuse_claim_possible`，`git diff` 命令失败时 fail-closed 为 `reuse_blocked`，P4-review CRITICAL-1 修复）+ `--audit7-only` CLI 模式供 P8 消费判定结果；`.state.yaml` 新增可选字段 `p5_pass_commit`；`P5-verification.md`/`P6-acceptance.md`/`P8-release.md`/`verifier.md`/`dispatch-prompt.md` 五处协议文档同步落地"P5 全绿+验收/发布前无代码改动→可引用 P5 证据、不必重跑全量"规则；`dispatch-protocol.md` 新增「全量重跑点审计」小节；`.github/workflows/protocol-tests.yml` 新增 `continue-on-error: true` 的 xdist 观测步骤（不影响门禁）；新增 ADR-010 记录"受控例外——满足客观可判定条件时允许复用既有验证证据"这一新架构原则。P8 现状确认为"跑一次"（非原描述的额外重跑），本次精简为条件化（无改动→复用证据）。
+
+---
+
+## RM-AG0027 详情
+
+**协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012，2026-08-19）**
+
+- **来源**：TAG0016 复盘（v0.54.0）登记 3 个真实、未修复、影响后续任务的协议工具链系统缺陷；另有 DEBT0009（决策备忘非债）已单独关闭、DEBT0013（P8 时序文档注）已随 PR #166 顺手修复。
+
+- **问题 1（DEBT0010，medium）**：`gate_commands` 键解析脚本系统性未排除 `_timeout_seconds` 后缀（4 处同类）：
+  - `agate-read-gate-commands.py` L31、`agate-gate-missing-cmds.py` L20、`agate-gate-p5-count.py` L23、`agate-read-p5-commands.py` L29——均只排除 `_formatter` 后缀，未排除 `_timeout_seconds`
+  - 影响：任何任务按 P2 卡片「`{key}_timeout_seconds` 字段规则」正常声明后，P2 报假"命令不存在" WARNING、P3 的 `check-tdd-red.py` 会把真红灯误判为假红灯（A 类，`bash -c "120"` → 127）、P5 报假"1 主 + 1 辅助"计数——操作者误判任务自身有问题而返工，或对真实 WARNING 掉以轻心
+  - 修复：4 脚本判据统一补 `key.endswith("_timeout_seconds")`（与 `_formatter` 并列），可抽 `agate_common.py` 共享判据函数防第五处遗漏 + 回归用例覆盖三阶段场景
+
+- **问题 2（DEBT0011，medium）**：SELF-GATE 审查文件纯日期命名触发跨任务覆盖：
+  - `SELF-GATE.md` 派发模板规定 `agate-alignment-review-{date}.md`（只含日期）——TAG0015/TAG0016 同日各自触发审查时生成同名文件，TAG0016 覆盖 TAG0015 已提交历史（`git diff` 实证），git 无法区分"合法覆盖草稿"与"意外破坏历史"
+  - 修复：命名模板补任务标识（`agate-alignment-review-{date}-{task_id}.md`）+ protocol-alignment-review 角色文件提示 subagent 覆盖写前先确认目标不是别的任务记录
+
+- **问题 3（DEBT0012，medium）**：`check-protocol-consistency.py --strict`（WARNING-only 也 exit 2）与 `gate_commands.P5` 的 `&&` 串联组合，在存量 WARNING 未清零（当前 314 条，全为历史叙事文件死链）时**永远短路**链路末步（P5 实跑 count-tests 未执行到）；历史验证方法盲区（`command | tail` 掩盖真实 exit code）使该缺陷长期存在未被发现
+  - 修复（二选一或都做）：(a) P2 卡片 gate_commands 声明示例不再推荐 `--strict` 放 `&&` 链路中间，改为三条独立命令分别判；(b) `check-protocol-consistency.py` 加 `--strict-errors-only` 模式（仅 ERROR 时非 0，WARNING 通过打印提示），保留 `--strict` 供人工主动选用
+
+- **验证口径**：
+  - DEBT0010：声明 `P3_timeout_seconds`/`P5_timeout_seconds` 时，check-tdd-red.py 仍正确判定真红灯 + check-gate.py P2/P5 不再误报（回归用例）
+  - DEBT0011：SELF-GATE.md 模板含任务标识占位符 + 覆盖写前确认检查项
+  - DEBT0012：gate_commands.P5 声明示例/脚本退出码模式更新 + 回归测试覆盖两种模式的 exit code 差异
+  - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue
+
+- **归属**：独立任务（协议工具链修复批，TAG0017）。三债均改脚本 + 协议文档 + 回归测试，不宜顺手改；DEBT0013 已在 PR #166 修复，DEBT0009 已关闭。改造域 = gate 脚本 + SELF-GATE.md + P2 卡片，触发 SELF-GATE。
