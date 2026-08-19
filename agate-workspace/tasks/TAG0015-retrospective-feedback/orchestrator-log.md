@@ -185,3 +185,17 @@ NEXT: 等 verifier 产出，主 Agent 验 gate（P5-test-results/ 存在 + faile
 
 NEXT: 读 phase-cards/P6-acceptance.md，派发 verifier subagent 做用户视角验收（20 条 BDD 逐条
 PASS/FAIL + 证据）。
+
+[2026-08-19T03:50] 写好 P6-dispatch-context-verifier.md（沿用 TAG0012 P6 先例风格：不复用 P5
+结论，逐条打开实际文件核对语义 + 独立实跑脚本证据）并注入卡片，派发 verifier。
+
+NEXT: 等 verifier 产出，主 Agent 跑 check-p6-format.py --fix → check-gate.py P6 +
+check-p6-evidence.py + check-p6-provenance.py 三道 gate，FAIL>0 则退回诊断，全过则 commit →
+进入 P7。
+
+[2026-08-19T04:05] verifier 完成：20/20 BDD PASS，0 FAIL，21 个证据文件（含 shared 命令输出），
+每条独立实跑/grep 核对，不复用 P5 结论。主 Agent 独立验证三道 gate：check-p6-format --fix
+exit 0；check-gate.py P6 exit 2（20 BDD，FAIL=0，通过）；check-p6-evidence.py exit 0；
+check-p6-provenance.py exit 0。抽查 bdd-10 证据文件确认独立构造场景（非转抄测试代码）。
+
+NEXT: commit（phase=P6）→ 进入 P7（一致性检查）。
