@@ -8,7 +8,7 @@
 
 ## 这是什么
 
-仓库根的 `docs/` 目录存放 agate **项目的开发资料**——设计文档、评审记录、路线图、复盘。这些都是仓库维护者（author）写的，**使用者无需阅读**。
+仓库根的 `docs/` 目录存放 agate **项目的开发资料**——设计文档、评审记录、路线图，以及迁移前旧布局下的历史复盘（docs/reviews/，2026-08-19 前）。这些都是仓库维护者（author）写的，**使用者无需阅读**。新复盘归 `tasks/{Txxx}/retrospective.md`（模板见 `agate/assets/templates/retrospective-template.md`），同样是维护者产物，使用者无需阅读，但路径不在 `docs/` 下。
 
 你看到 `agate/` 这一层，是**协议本体**——里面是一组编排协议文件，告诉 AI Agent 怎么用 agate 完成一个软件工程任务。**你（使用者）从这里开始**：
 

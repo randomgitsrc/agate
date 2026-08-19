@@ -1,3 +1,5 @@
+> 历史复盘（迁移前旧布局），新复盘请见 `tasks/{Txxx}/retrospective.md`（模板：`agate/assets/templates/retrospective-template.md`）
+
 # TAG0008 复盘 — agate 版本管理机制（v0.50.0）
 
 > 任务：agate 版本管理机制 v1（多版本共存 + 项目锁定 + 程序化安装/升级 + 内网离线部署包）

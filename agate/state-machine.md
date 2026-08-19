@@ -478,8 +478,9 @@ env_state:
 
 规则：
 - 仅追加不编辑不整理
-- 不写思考过程、不写文件内容摘要、不写 subagent 返回原文——只写决策和下一步
+- 不写思考过程、不写文件内容摘要、不写 subagent 返回原文——只写决策、下一步和触发决策的简要依据（依据示例：gate 输出摘要 / BDD 编号 / 文件路径引用；不等同于展开的思考过程）
 - 任务从 DONE 重新激活 → 清空后重建（旧决策基于旧上下文）；active/PAUSED 恢复 → 追加
+- 另见下方「L2 会话 checkpoint」（阶段级 `P{n}-checkpoint.md` + 任务级 `task-session-summary.md`）
 
 必须记录的事件：
 - 派发 subagent 前：`NEXT: 派发 {角色} subagent 执行 {阶段}`
@@ -489,6 +490,33 @@ env_state:
 - 流程决策：`DECISION: {PAUSED/回退/跳阶}，原因：{...}`
 
 **commit 被 hook 拦截**：同一阶段累计被拦 3 次 → PAUSED（不要无限重试，Agent 明显走进了错误路径）。
+
+**L2 会话 checkpoint（两件套）——P{n}-checkpoint.md + task-session-summary.md**：
+
+①**与 orchestrator-log.md 的关系**：三者互补，不是相互替代/包含。`orchestrator-log.md` 是 L1
+（持续追加、逐决策颗粒度，只写"决策+简要依据"不写展开的思考过程）；`P{n}-checkpoint.md` 是 L2
+的**阶段级**颗粒度（比 orchestrator-log 更粗，一阶段一条，不是逐决策一条；比 progress.md 更贴近
+主 Agent 的判断视角——progress.md 是 subagent 中间产物，checkpoint 是主 Agent 对本阶段的评估）；
+`task-session-summary.md` 是 L2 的**任务级**颗粒度，一次性落盘，允许包含更完整的"为什么这么做"
+因果链叙述（弥补 orchestrator-log 明确排除的"思考过程"缺口）。P7/正式复盘写作时交叉引用三者，
+不是二选一或三选一。
+
+②**`P{n}-checkpoint.md` 子机制**：
+- 落盘时机：主 Agent 在**每个阶段 gate 通过后、派发下一阶段之前**写盘
+- 文件路径：`{AGATE_WORKSPACE}/tasks/{Txxx}/P{n}-checkpoint.md`（`{n}` 为实际阶段号，如
+  `P4-checkpoint.md`），不是阶段门槛产出（gate 不要求其存在，属「辅助文件」），缺失不阻断阶段推进
+- 内容颗粒度：本阶段异常/关键判断/subagent 表现，2-4 行极简记录，不要求完整叙述
+- 防 compact 策略：沿用 orchestrator-log 的"写下去就完成使命"原则——写完即完成使命，不回读校验
+
+③**`task-session-summary.md` 子机制**：
+- 落盘时机：任务完成、P8 gate 通过后，进入「READY 收尾检查」节之前
+- 文件路径：`{AGATE_WORKSPACE}/tasks/{Txxx}/task-session-summary.md`
+- 内容颗粒度：任务级过程摘要，颗粒度更完整，允许展开因果链叙述
+- 防 compact 策略：P8 gate 通过后主 Agent 亲自写盘，写完即完成使命，不需回读校验
+
+④**两者共同覆盖的防 compact 范围**：`P{n}-checkpoint.md` 保证任务生命周期每个阶段边界都有
+非空 L2 落点（覆盖"中途 compact"场景）；`task-session-summary.md` 补充任务完成时的完整因果链
+叙述（覆盖"任务级复盘写作"场景）——两者时间线上互补，不是同一内容的两份拷贝。
 
 ---
 

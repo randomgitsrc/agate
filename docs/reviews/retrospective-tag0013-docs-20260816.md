@@ -1,3 +1,5 @@
+> 历史复盘（迁移前旧布局），新复盘请见 `tasks/{Txxx}/retrospective.md`（模板：`agate/assets/templates/retrospective-template.md`）
+
 # TAG0013 复盘 — agate 脚本一致性批（v0.48.0）
 
 > 任务：RM-AG0015（CHECK 10 文档脚本名引用漂移 gate）+ RM-AG0017（self-gate 触发面补 README/AGENTS）+ RM-AG0018 剩余（check-retrospective 登记提醒）

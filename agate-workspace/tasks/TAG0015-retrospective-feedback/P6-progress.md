@@ -1,0 +1,25 @@
+# P6-progress.md — TAG0015 verifier
+
+- 2026-08-19T10:17:05+08:00 读完 dispatch-context + verifier.md + P1/P2/P4，开始逐条验收 20 条 BDD
+- 2026-08-19T10:24:50+08:00 BDD-1 验完：retrospective-template.md 四节标题+说明齐全 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-2 验完：内容价值标准小节三条枚举齐全 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-3 验完：归因层面字段强制说明+示例齐全 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-4 验完：技术债登记行强制说明 + 脚本侧未做内容语义解析 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-5 验完：追问句原文命中 + 两类去向标注齐全 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-6 验完：frontmatter 三字段样例 + yaml.safe_load 独立验证类型正确 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-7 验完：「## agate 反馈」节标题+边界声明齐全 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-8 验完：P8-release.md:96 显式引用新模板路径 + roadmap.md 三处旧路径已加脚注 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-9 验完：独立构造 retry超限+SCOPE+ 场景实跑，stderr 含 tasks/{Txxx}/retrospective.md 不含 docs/releases → PASS
+- 2026-08-19T10:24:50+08:00 BDD-10 验完：独立构造 DEBT+roadmap 关联信号场景实跑，触发'发现机制缺口信号'独立消息块，exit 0 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-11 验完：test_check_retrospective.py 新增3个非空心测试覆盖BDD-9/10，本轮实跑全绿 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-12 验完：state-machine.md:481 三项排除保留+新增简要依据分句，旧表述零命中 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-13 验完：L2 checkpoint 小节四问均有具体回答（时机/路径/关系/防compact策略）→ PASS
+- 2026-08-19T10:24:50+08:00 BDD-14 验完：loop-orchestration.md/task-files.md 均未复述旧表述，语义不矛盾 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-15 验完：AGENTS.md:11 区分历史/新复盘措辞，路径断言不再误导 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-16 验完：5份存量文件均标注+原位保留，roadmap.md引用未变 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-17 验完：独立构造样例复盘文档实跑 agate-feedback.py，mechanism_issues 正确解析无报错 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-18 验完：独立构造两场景（路径在/不在项目根）验证脱敏，输出JSON无原始项目名/路径 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-19 验完：未设置+显式off两场景实跑，exit 2+功能未启用提示，无JSON输出 → PASS
+- 2026-08-19T10:24:50+08:00 BDD-20 验完：独立grep确认无git push/gh调用+无自动触发hook/CI，产出为待人工提交内容 → PASS
+- 2026-08-19T10:24:50+08:00 20/20 BDD 全部验完，全部 PASS，开始写 P6-acceptance.md
+- 2026-08-19T10:29:09+08:00 自检通过：PASS行数=20, 证据文件数=21（20 BDD + 1 shared log），check-p6-format/evidence/provenance 预检全部 exit 0（check-gate.py P6 exit 2 为脚本设计的既有'脚本检查通过需主Agent复核'语义，非失败）。P6-acceptance.md 完成，返回主 Agent。

@@ -42,6 +42,54 @@ def _retries_over(state_file):
     return (proc.stdout or "").rstrip("\n")
 
 
+DEBT_TASK_ID_RE_TEMPLATE = r'task_id:\s*"?{}"?\s*$'
+ROADMAP_TASK_ID_RE_TEMPLATE = r'\|\s*{}\s*\|'
+
+
+def _task_id(state_file):
+    """调 agate-state-get.py task_id（同 _retries_over 的 subprocess 模式）。"""
+    env = dict(os.environ)
+    env["STATE_FILE"] = state_file
+    try:
+        proc = subprocess.run(
+            [sys.executable, AGATE_STATE_GET, "task_id"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=env,
+        )
+    except OSError:
+        return ""
+    if proc.returncode != 0:
+        return ""
+    return (proc.stdout or "").rstrip("\n")
+
+
+def _scan_debt_roadmap_signal(task_dir, state_file):
+    """BDD-10：检测 DEBT/roadmap 登记信号（机制缺口检测代理），命中返回 tid，否则返回 ""。"""
+    if not os.path.isfile(state_file):
+        return ""
+    tid = _task_id(state_file)
+    if not tid:
+        return ""
+
+    workspace = os.path.dirname(os.path.dirname(os.path.abspath(task_dir.rstrip(os.sep))))
+    debt_file = os.path.join(workspace, "debt", "tech-debt.md")
+    roadmap_file = os.path.join(workspace, "roadmap", "roadmap.md")
+
+    if os.path.isfile(debt_file):
+        with open(debt_file, encoding="utf-8") as f:
+            text = f.read()
+        if re.search(DEBT_TASK_ID_RE_TEMPLATE.format(re.escape(tid)), text, re.MULTILINE):
+            return tid
+
+    if os.path.isfile(roadmap_file):
+        with open(roadmap_file, encoding="utf-8") as f:
+            text = f.read()
+        if re.search(ROADMAP_TASK_ID_RE_TEMPLATE.format(re.escape(tid)), text):
+            return tid
+
+    return ""
+
+
 def _scan_scope_plus(task_dir):
     """扫描顶层 *.md 找行首 [SCOPE+]（排除 dispatch-context/dispatch-prompt/progress 文件
     + 剥离 AGATE_CARD 块，同 sh sed 删除 + grep -qE）。返回首个命中文件 basename 或空串。"""
@@ -90,8 +138,16 @@ def main():
         sys.stderr.write("GATE RETRO: 建议复盘 — 检测到异常模式：\n")
         for w in warnings:
             sys.stderr.write(f"  - {w}\n")
-        sys.stderr.write("  请在版本 bump 前写简版复盘（docs/releases/v{version}-retrospective.md）\n")
+        sys.stderr.write("  请在版本 bump 前写简版复盘（tasks/{Txxx}/retrospective.md）\n")
         sys.stderr.write("  复盘发现的新缺口请登记 DEBT/roadmap（技术债清单 / 路线图）\n")
+
+    if os.path.isdir(task_dir):
+        debt_roadmap_tid = _scan_debt_roadmap_signal(task_dir, state_file)
+        if debt_roadmap_tid:
+            sys.stderr.write("GATE RETRO: 建议复盘 — 发现机制缺口信号：\n")
+            sys.stderr.write(
+                f"  - {debt_roadmap_tid} 关联的 DEBT/roadmap 条目已登记（可能存在机制缺口，建议复盘归因）\n"
+            )
 
     sys.exit(0)
 

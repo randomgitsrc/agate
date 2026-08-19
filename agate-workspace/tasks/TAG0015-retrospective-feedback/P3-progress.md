@@ -1,0 +1,8 @@
+- [test-designer] 读完 P2-design.md (521+行) 与 dispatch-context，确认三文件规划与20条BDD映射
+- [test-designer] 读完 test-designer.md 角色定义，确认 BDD→测试1:1映射规则与红灯要求
+- [test-designer] 读完 P1-requirements.md，确认20条BDD原文与验收标准
+- [test-designer] 读完 test_check_retrospective.py(242行/12用例)、test_review_role_docs.py(风格参照)、conftest.py fixtures(task_dir/agate_root/run_cli)、check-retrospective.py(100行)，确认既有测试与被测脚本现状
+- [test-designer] 扩展 test_check_retrospective.py：新增3个测试函数（BDD-9 x1 + BDD-10 x2），未破坏既有12个用例
+- [test-designer] 新建 test_agate_feedback.py：7个测试函数覆盖 BDD-17/18/19/20，脚本本身不存在，预期真红
+- [test-designer] 红灯自检：pytest 三文件 -v，23 failed（全部新增/扩展函数）+ 12 passed（既有用例原样通过），失败均为 AssertionError/FileNotFoundError（B类），BDD-19 用例特别校验"未启用"文案排除 exit-code-2 巧合的假绿风险
+- [test-designer] 新建 test_retrospective_protocol_docs.py：13个测试函数覆盖 BDD-1/2/3/4/5/6/7/8/12/13/14/15/16

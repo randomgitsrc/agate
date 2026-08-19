@@ -92,6 +92,9 @@ check-gate.py P8 $TASK_DIR
 - [ ] {AGATE_WORKSPACE}/tasks/active-tasks.md 任务行状态已更新
 - [ ] git 工作区干净
 - [ ] git tag 已创建
+- [ ] 若本任务触发复盘（异常模式 / 发现机制缺口 / 高价值任务），复盘产出
+  `tasks/{Txxx}/retrospective.md` 基于 `agate/assets/templates/retrospective-template.md`
+  模板撰写
 
 **测试环境已清理**：
 - [ ] 调试服务/进程已停止

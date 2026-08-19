@@ -1,4 +1,34 @@
 task_id: TAG0015
-phase: P0
-status: pending
-retries: {}
+phase: READY
+status: complete
+
+# ── 重试记录 ──
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality           # requirements-review 首轮判定 needs-revision（BDD-14 task-files.md 裸路径引用，7 处）
+      prompt_changed: true            # dispatch-context 补了针对性订正指引（7 处行号 + 修订方式）
+      adjustment: null
+  P2:
+    - round: 1
+      failure_mode: quality           # plan-eng-review 判定 needs-revision：候选方案A(L2 checkpoint)悄悄收窄roadmap.md原两件套设计，未论证是否削弱防compact核心目的（AP-1，阻塞）；AP-2（files_to_read行号偏差）非阻塞
+      prompt_changed: true            # dispatch-context 补了 AP-1/AP-2 具体位置+两个可选修复路径
+      adjustment: null
+  P3: []
+  P4:
+    - round: 1
+      failure_mode: quality           # SELF-GATE 语义对齐审查（protocol-alignment-review）发现 A2/A3b/A5 三处文档同步缺口 + A7 NEEDS_HUMAN_REVIEW（ADR-007 适用范围，agate-feedback.py 未复用单一双读工具）。用户裁决：扩展 agate-md-field-get.py 注册新字段以完全合规
+      prompt_changed: true            # dispatch-context 补了 4 项具体修复点（ADR-007 合规改法 + 连带的测试断言订正 + 3 处文档同步）
+      adjustment: null
+  P5: []
+  P6: []
+  P7: []
+  P8: []
+
+retry_count: { P1: 1, P2: 1, P3: 0, P4: 1, P5: 0, P6: 0, P7: 0, P8: 0 }
+
+# 备注：requirements-review 子任务在判定 needs-revision 之前，先经历 3 次平台 API 过载（529）
+# 导致的启动失败（未产出任何文件，同一 dispatch-context 原样重派），不计入上方 retries——
+# 与 TAG0012 .state.yaml P6 注释的判例一致："同一角色重新起跑非'上一轮失败后调整重派'"。
+
+updated: 2026-08-19
