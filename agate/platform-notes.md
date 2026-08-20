@@ -158,6 +158,9 @@ git config --global user.name  "Your Name"
 | pytest 需安装 | 开发者无法跑 `python3 -m pytest` 测试 | `pip install pytest`（Windows 原生 python 直接可用）；或用 WSL 跑测试（使用不受影响） |
 | CI 仅 ubuntu | Windows 本地行为无 CI 兜底 | 靠本地验证；protocol-tests.yml 的 pytest job 已加 `windows-latest` matrix（`-m windows_smoke` 冒烟，见 AGENTS.md 测试约定） |
 | 路径分隔符 | MSYS2 自动转换 `/c/Users/` <-> `C:\Users\`，但极少数硬编码路径可能出问题 | 遇到时用 `cygpath -w` 转换 |
+| Windows Store `python3.exe` 占位符 | 部分 Windows 安装（未关闭「应用执行别名」）下，PATH 上的 `python3`（有时 `python`）解析到 Microsoft Store 的占位符可执行文件——`command -v`/`where` 能找到它、有执行位，但实际执行任意命令一律非零退出，不解释传入的脚本 | 3 个 hook 薄壳（`pre-commit-gate.sh` / `commit-msg-self-gate.sh` / `pre-push-gate.sh`）的探测循环已改为逐候选先做一次可执行性小测试（通用 exit code 判据），命中占位符会跳过并继续尝试下一候选；也可设置 `AGATE_PYTHON` 环境变量显式指定真实 Python 解释器的完整路径，直接跳过整个探测循环 |
+
+> **DEBT0014 验证边界说明**：以上 Store 占位符现象与 `AGATE_PYTHON` 机制的修复，验证方式是静态代码修复 + Linux 环境下用模拟 stub 复现「`command -v` 命中但执行非零退出」症状特征做的回归测试 + CI protocol-tests.yml 的 `windows-latest` matrix 冒烟——本仓库开发环境是 Linux，未在真实 Windows 环境下触发过 Store 占位符场景本身，上述描述是已知机制的静态修复说明，不代表已在 Windows 环境中复现并验证通过。
 
 ### latest / current 指针在无符号链接权限时的形态（TAG0008 版本管理）
 

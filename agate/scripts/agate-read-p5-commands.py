@@ -15,6 +15,8 @@ import os
 import re
 import sys
 
+from agate_common import is_gate_meta_key
+
 content = open(os.environ["P2_DESIGN"], encoding="utf-8").read()
 if not content.endswith(chr(10)):
     content += chr(10)
@@ -26,7 +28,7 @@ entries = []
 for line in re.findall(r"^  (P5\w*):\s*(.+)$", block, re.MULTILINE):
     key = line[0]
     val = line[1].strip().strip(chr(34)).strip(chr(39))
-    if key.endswith("_formatter"):
+    if is_gate_meta_key(key):
         continue
     suffix = key[2:] if len(key) > 2 else ""
     fmt_key = "P5" + suffix + "_formatter"

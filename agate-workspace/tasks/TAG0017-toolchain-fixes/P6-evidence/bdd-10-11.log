@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0017
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 54 items / 48 deselected / 6 selected
+
+agate/tests/integration/test_pre_commit_hook.py::test_bdd_10_probe_skips_unexecutable_candidate[pre-commit] PASSED [ 16%]
+agate/tests/integration/test_pre_commit_hook.py::test_bdd_10_probe_skips_unexecutable_candidate[commit-msg] PASSED [ 33%]
+agate/tests/integration/test_pre_commit_hook.py::test_bdd_10_probe_skips_unexecutable_candidate[pre-push] PASSED [ 50%]
+agate/tests/integration/test_pre_commit_hook.py::test_bdd_11_agate_python_explicit_override_skips_probe_loop[pre-commit] PASSED [ 66%]
+agate/tests/integration/test_pre_commit_hook.py::test_bdd_11_agate_python_explicit_override_skips_probe_loop[commit-msg] PASSED [ 83%]
+agate/tests/integration/test_pre_commit_hook.py::test_bdd_11_agate_python_explicit_override_skips_probe_loop[pre-push] PASSED [100%]
+
+======================= 6 passed, 48 deselected in 0.38s =======================
+EXIT_CODE: 0

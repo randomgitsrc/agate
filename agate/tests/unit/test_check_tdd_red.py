@@ -680,6 +680,69 @@ def test_pyx_6_missing_gate_file_nonzero_exit(python_exe, run_cli, agate_scripts
     assert result.returncode != 0
 
 
+def test_pyx_7_bdd_1_timeout_seconds_excluded_from_commands(
+    python_exe, run_cli, agate_scripts, tmp_path
+):
+    """BDD-1: P2-design.md 声明 `P3_timeout_seconds: 120`（纯整数字符串值，无路径无 `=`）时，
+    agate-read-gate-commands.py 输出的 `commands` 列表中不得出现该 key 对应的假命令——
+    当前脚本只排除 `_formatter` 后缀，`P3_timeout_seconds` 会被误判为一条 cmd="120" 的
+    待执行命令（进而被 check-tdd-red.py 当作真实测试命令执行，见 test_bdd_2_* 用例）。"""
+    p2 = tmp_path / "pyx7" / "P2-design.md"
+    p2.parent.mkdir(parents=True)
+    p2.write_text(
+        "---\nagent: test\n---\n"
+        "gate_commands:\n"
+        '  P3: "pytest -q"\n'
+        "  P3_timeout_seconds: 120\n",
+        encoding="utf-8",
+    )
+    result = run_cli(
+        python_exe,
+        str(agate_scripts / "agate-read-gate-commands.py"),
+        env={"GATE_FILE": str(p2)},
+    )
+    assert result.returncode == 0
+    assert '"cmd": "pytest -q"' in result.output
+    assert '"cmd": "120"' not in result.output
+    assert "timeout_seconds" not in result.output
+
+
+def test_bdd_2_timeout_seconds_declared_real_a_class_failure_stays_a_class(
+    python_exe, run_cli, agate_scripts, tmp_path
+):
+    """BDD-2 护栏用例: P2-design.md 同时声明 `P3_timeout_seconds` 与真实会失败（非超时、
+    A 类）的 P3 测试命令时，check-tdd-red.py 的判定结果仍须为 A 类真实失败（exit 1），
+    且 `_timeout_seconds` 排除逻辑不得让该 key 被当成一条独立命令去实际执行。
+
+    当前 bug（未排除 `_timeout_seconds`）不仅是展示问题：check-tdd-red.py 的 main() 会
+    真的把 gate_commands 里每一条 "命令" 都 subprocess 执行一遍——`P3_timeout_seconds: 120`
+    会被当成一条 cmd="120" 的命令实际执行（bash: 120: command not found），多出一次
+    `judge_result` 判定、多打印一行 `TDD_CHECK:`。用 `TDD_CHECK:` 出现次数（而非仅退出码，
+    退出码在本场景下巧合地两边都是 1）精确验证"只有真实测试命令被执行、被判定"这一点，
+    防止 is_gate_meta_key 的新增排除逻辑本身引入放宽/误判回归（P1 R3 风险）。"""
+    fake = _make_fake_pytest(
+        tmp_path,
+        "fake-bdd2",
+        "Trace" + "back (most recent call last):\n" + "Syntax" + "Error: invalid syntax",
+        1,
+    )
+    task_dir = tmp_path / "task-bdd2"
+    task_dir.mkdir()
+    (task_dir / "P2-design.md").write_text(
+        f"gate_commands:\n  P3: \"{fake}\"\n  P3_timeout_seconds: 120\n",
+        encoding="utf-8",
+    )
+    result = _run_red(
+        python_exe,
+        run_cli,
+        agate_scripts,
+        {"TEST_RUNNER": "", "TASK_DIR": str(task_dir)},
+    )
+    assert result.returncode == 1
+    assert "A-class error" in result.output
+    assert result.output.count("TDD_CHECK:") == 1
+
+
 def test_bdd_30_no_formatter_compile_error_a_class(python_exe, run_cli, agate_scripts, tmp_path):
     fake = _make_fake_pytest(
         tmp_path,

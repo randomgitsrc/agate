@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0017
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 27 items / 24 deselected / 3 selected
+
+agate/tests/unit/test_check_protocol_consistency.py::test_strict_errors_only_zero_error_zero_warning_exit_0 PASSED [ 33%]
+agate/tests/unit/test_check_protocol_consistency.py::test_strict_errors_only_zero_error_n_warning_exit_0_with_hint PASSED [ 66%]
+agate/tests/unit/test_check_protocol_consistency.py::test_strict_errors_only_n_error_exit_1 PASSED [100%]
+
+======================= 3 passed, 24 deselected in 0.04s =======================
+EXIT_CODE: 0

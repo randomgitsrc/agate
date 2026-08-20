@@ -23,8 +23,8 @@
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | done | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-18 |
 | RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | done | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
 | RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | done | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
-| RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012/0014）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 + Windows Store python3 占位符命中 hook 探测循环（DEBT0014，跨项目反馈汇入）| scheduled | TAG0016 复盘（2026-08-19）+ 用户跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
-| RM-AG0028 | env_constraints 声明性字段无执行/gate 绑定：deploy 类动作（UI 任务 windeployqt 构建 dist）只注入 subagent 上下文、不触发任何 gate 检查（agate-extract-context.py L107-109 只注入，check-gate.py grep deploy 零命中；TQC0001 实证 dist 从未主动产出直到用户提醒）| scheduled | TQC0001 跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
+| RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012/0014）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 + Windows Store python3 占位符命中 hook 探测循环（DEBT0014，跨项目反馈汇入）| done | TAG0016 复盘（2026-08-19）+ 用户跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-20 |
+| RM-AG0028 | env_constraints 声明性字段无执行/gate 绑定：deploy 类动作（UI 任务 windeployqt 构建 dist）只注入 subagent 上下文、不触发任何 gate 检查（agate-extract-context.py L107-109 只注入，check-gate.py grep deploy 零命中；TQC0001 实证 dist 从未主动产出直到用户提醒）| done | TQC0001 跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-20 |
 
 ## 状态标识
 
@@ -503,6 +503,7 @@
   - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue
 
 - **归属**：独立任务（协议工具链修复批，TAG0017）。三债均改脚本 + 协议文档 + 回归测试，不宜顺手改；DEBT0013 已在 PR #166 修复，DEBT0009 已关闭。改造域 = gate 脚本 + SELF-GATE.md + P2 卡片，触发 SELF-GATE。DEBT0014（2026-08-19 跨项目反馈汇入）扩展改造域 = 3 薄壳 sh + platform-notes.md + AGENTS.md，同样触发 SELF-GATE。
+- **落地（TAG0017，2026-08-20，v0.55.0）**：`agate_common.py` 新增共享判据函数 `is_gate_meta_key`（`_formatter`/`_timeout_seconds` 统一排除），4 处解析脚本改用，DEBT0010 closed；`SELF-GATE.md` 命名模板补 `{task_id}`（DEBT0011 closed）；`check-protocol-consistency.py` 新增 `--strict-errors-only` 互斥模式 + 协议卡片示例同步改用（DEBT0012 closed）；3 薄壳新增 `AGATE_PYTHON` 显式覆盖 + 候选可执行性小测试（DEBT0014，Linux 模拟回归通过，Windows 真实环境待本次 PR 的 CI matrix 确认，**未提前宣称已实测**，DEBT0014 保持 open）。12 条 BDD 全 PASS，P4 review 迭代 1 轮（CRITICAL：协议卡片新示例未同步用新 flag）+ self-gate 迭代 1 轮（`agate/scripts/README.md` 遗漏）。
 
 ---
 
@@ -519,3 +520,4 @@
   3. 可选：`check-gate.py` 或新脚本校验 `gate_commands` 中声明了 deploy/构建命令时，P4/P8 产出物存在
 - **验证口径**：TQC0001 类 UI 任务在 P4 后自动产出 dist（不靠用户提醒）；env_constraints 语义边界文档化；UI 任务 P8 有 dist 产物检查
 - **归属**：并入 TAG0017（协议工具链修复批，与 DEBT0010/11/12/14 同域——都是"协议有声明/设计但 gate 无强制"的系统性缺口）。P1 时与 DEBT0010（gate_commands 解析）一并做"env_constraints vs gate_commands 执行绑定"的整体设计。
+- **落地（TAG0017，2026-08-20，v0.55.0）**：`phase-cards/P2-design.md`「gate_commands 声明」节 + `architect.md` 新增 `env_constraints` 声明性 vs `gate_commands` 执行性边界说明；`phase-cards/P4-implementation.md`「自查≠gate」节新增"UI/需构建任务 P4 后应构建并确认 dist 类产物存在"提醒。**验证口径第 3 条（TQC0001 类 UI 任务在 P4 后自动产出 dist，不靠用户提醒）本次未验证**——TAG0017 自身不涉及 UI/dist 场景，该指标需下一个实际 UI 任务走完 P4 后才能实证，DEBT0015 保持 open，不提前标记 closed。

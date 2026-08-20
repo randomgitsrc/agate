@@ -1382,3 +1382,109 @@ def test_bdd_19_copy_mode_agate_root(
         cwd=str(repo),
     )
     assert result.returncode == 0
+
+
+# ── DEBT0014 / BDD-10 / BDD-11：3 个 hook 薄壳 python 探测循环增强 ──
+# （TAG0017 fg4-windows-python-probe 批次；诚实边界：本环境 Linux 无法真实触发 Windows
+#   Store python3.exe 占位符 exit 49，以下用模拟 stub 复现"候选可被 command -v 找到但
+#   不可正常执行"这一症状特征，不代表已在真实 Windows 环境验证——见 P0-brief 约束 3 /
+#   P1 verification_env / P2-design.md §8 minimal_validation。）
+
+_PROBE_HOOKS = [
+    pytest.param("pre-commit-gate.sh", "pre-commit-gate.py", id="pre-commit"),
+    pytest.param("commit-msg-self-gate.sh", "commit-msg-self-gate.py", id="commit-msg"),
+    pytest.param("pre-push-gate.sh", "pre-push-gate.py", id="pre-push"),
+]
+
+_PROBE_MARKER = "AGATE_PROBE_TEST_OK"
+
+
+def _build_probe_workflow_root(tmp_path, agate_root, hook_filename, gate_py_filename):
+    """构造一个独立 workflow_root，复制 hook 薄壳 + resolve-entry.py + agate_common.py，
+    并把对应的真 gate py（pre-commit-gate.py 等）替换为只打印 marker 的假实现——
+    等价 test_agate_root_self_locate_worktree（T086）的自定位验证模式，用于隔离验证
+    探测循环本身是否解析到"可正常 exec 的解释器"，不牵涉真实 gate 业务逻辑。
+    薄壳文件直接落在 workflow_root/scripts/ 下（非软链），readlink -f 解析到自身，
+    ENTRY_ROOT 自定位 = workflow_root，AGATE_ROOT 传空字符串触发该自定位分支。
+    """
+    workflow_root = tmp_path / "workflow-root"
+    (workflow_root / "scripts").mkdir(parents=True)
+    for name in (hook_filename, "resolve-entry.py", "agate_common.py"):
+        shutil.copy2(
+            str(agate_root / "scripts" / name), str(workflow_root / "scripts" / name)
+        )
+    hook_path = workflow_root / "scripts" / hook_filename
+    hook_path.chmod(0o755)
+    (workflow_root / "scripts" / gate_py_filename).write_text(
+        f'#!/usr/bin/env python3\nprint("{_PROBE_MARKER}")\n', encoding="utf-8"
+    )
+    return hook_path
+
+
+def _make_broken_python3_stub(bin_dir):
+    """模拟 Windows Store python3.exe 占位符的症状特征：`command -v` 能找到（有执行位），
+    但执行任何操作一律非零退出、忽略传入参数——不解释所给的 .py 脚本内容。"""
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    stub = bin_dir / "python3"
+    stub.write_text("#!/bin/sh\nexit 49\n", encoding="utf-8")
+    stub.chmod(0o755)
+    return stub
+
+
+def _make_working_python_stub(bin_dir, real_python_exe):
+    """构造一个真正可用的 `python` 候选（软链到本机真实 python3 解释器）。"""
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    stub = bin_dir / "python"
+    os.symlink(real_python_exe, str(stub))
+    return stub
+
+
+@pytest.mark.parametrize("hook_filename,gate_py_filename", _PROBE_HOOKS)
+def test_bdd_10_probe_skips_unexecutable_candidate(
+    tmp_path, agate_root, python_exe, bash, run_cli, hook_filename, gate_py_filename
+):
+    """bdd-10：探测循环命中不可执行候选（PATH 上找得到但 exec 一律失败）时跳过，
+    继续探测下一候选，最终解析到可正常执行的解释器（3 个 hook 薄壳均需验证）。
+    模拟 stub 复现，非真实 Windows 环境验证。"""
+    hook_path = _build_probe_workflow_root(
+        tmp_path, agate_root, hook_filename, gate_py_filename
+    )
+    bin1 = tmp_path / "fake-bin1"
+    bin2 = tmp_path / "fake-bin2"
+    _make_broken_python3_stub(bin1)
+    _make_working_python_stub(bin2, python_exe)
+    fake_path = f"{bin1}:{bin2}:{os.environ.get('PATH', '')}"
+
+    result = run_cli(
+        bash, str(hook_path), env={"AGATE_ROOT": "", "PATH": fake_path}
+    )
+    assert result.returncode == 0, (
+        f"探测循环未跳过不可执行的 Python 解释器候选（{hook_filename}）："
+        f"returncode={result.returncode} output={result.output!r}"
+    )
+    assert _PROBE_MARKER in result.output
+
+
+@pytest.mark.parametrize("hook_filename,gate_py_filename", _PROBE_HOOKS)
+def test_bdd_11_agate_python_explicit_override_skips_probe_loop(
+    tmp_path, agate_root, python_exe, bash, run_cli, hook_filename, gate_py_filename
+):
+    """bdd-11：显式指定 AGATE_PYTHON 时薄壳直接使用该路径，不执行 command -v 探测循环——
+    即便 PATH 上唯一能找到的 python3 候选是不可执行的（3 个 hook 薄壳均需验证）。"""
+    hook_path = _build_probe_workflow_root(
+        tmp_path, agate_root, hook_filename, gate_py_filename
+    )
+    bin1 = tmp_path / "fake-bin1"
+    _make_broken_python3_stub(bin1)
+    fake_path = f"{bin1}:{os.environ.get('PATH', '')}"
+
+    result = run_cli(
+        bash,
+        str(hook_path),
+        env={"AGATE_ROOT": "", "PATH": fake_path, "AGATE_PYTHON": python_exe},
+    )
+    assert result.returncode == 0, (
+        f"AGATE_PYTHON 显式指定未被薄壳采用，仍走了探测循环并命中不可执行候选"
+        f"（{hook_filename}）：returncode={result.returncode} output={result.output!r}"
+    )
+    assert _PROBE_MARKER in result.output

@@ -9,6 +9,8 @@ import os
 import re
 import sys
 
+from agate_common import is_gate_meta_key
+
 content = open(os.environ["GATE_FILE"], encoding="utf-8").read()
 if not content.endswith(chr(10)):
     content += chr(10)
@@ -17,7 +19,7 @@ if not m:
     sys.exit(0)
 block = m.group(1)
 for k, v in re.findall(r"^  (P[0-9]\w*):\s*(.+)$", block, re.MULTILINE):
-    if k.endswith("_formatter") or k == "project_module":
+    if is_gate_meta_key(k) or k == "project_module":
         continue
     val = v.strip().strip(chr(34)).strip(chr(39))
     if not val:

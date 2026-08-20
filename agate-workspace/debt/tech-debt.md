@@ -259,7 +259,7 @@ close_reason: "三分法评估（2026-08-19 主 Agent 复核）：本条是 P2 �
 id: DEBT0010
 category: technical
 title: 至少 4 个 gate_commands 键解析脚本只排除 _formatter 后缀、未排除 _timeout_seconds 后缀，把超时声明字段误判为待执行命令/待核实字段（同类扫描后发现是系统性模式，不止 P3 一处）
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate/scripts/agate-read-gate-commands.py
@@ -289,6 +289,17 @@ evidence:
       grep `_formatter` 排除模式命中的第 4 处，未逐一实测复现（该脚本是否会把
       `_timeout_seconds` 键实际当命令执行、还是仅列举，需要修复时一并核实），先登记同一根因，
       避免遗漏"
+  - ref: agate/scripts/agate_common.py
+    note: "closure（TAG0017）：新增共享判据函数 is_gate_meta_key(key)（endswith((_formatter,
+      _timeout_seconds))），4 处消费方均已切换（closure_criteria 1 满足）"
+  - path: agate-workspace/tasks/TAG0017-toolchain-fixes/P6-evidence/bdd-1-2-3-4.log
+    note: "closure（TAG0017）：BDD-1~4 实跑证据，test_gmc_3/test_p5c_5/test_pyx_7/test_gpc_4/
+      test_bdd_2_timeout_seconds_declared_real_a_class_failure_stays_a_class/
+      test_bdd_4_formatter_excluding_scripts_also_exclude_timeout_seconds 全部通过，覆盖
+      P2/P3/P5 三阶段场景 + 同类遗漏审计（closure_criteria 2 满足）"
+  - path: agate-workspace/tasks/TAG0017-toolchain-fixes/P5-test-results/unit.md
+    note: "closure（TAG0017）：全量 pytest 1011 passed, 2 skipped, 0 failed（closure_criteria 3
+      满足）"
 impact: 任何任务在 P2-design.md 按 P2 卡片「{key}_timeout_seconds 字段规则」正常声明
   `{key}_timeout_seconds` 字段（协议鼓励的正常用法，非误用）后，P2/P3/P5 阶段的 gate 校验/红灯
   判定/命令完整性核对都可能被这同一类"未排除 _timeout_seconds 后缀"的解析缺陷误导——P3 会被
@@ -308,6 +319,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-19
 task_id: TAG0016
+closed_at: 2026-08-20
 ```
 
 ## DEBT0011
@@ -316,7 +328,7 @@ task_id: TAG0016
 id: DEBT0011
 category: technical
 title: SELF-GATE.md protocol-alignment-review 成果文件/留痕文件按纯日期命名，跨任务同日复用会静默覆盖已提交的历史审查记录
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: SELF-GATE.md
@@ -334,6 +346,17 @@ evidence:
       WARNING（git 无法区分'合法覆盖旧草稿'与'意外破坏历史记录'）。TAG0016 已手工恢复
       TAG0015 原文件内容（`git checkout --`）并将自己的审查另存为
       `agate-alignment-review-2026-08-19-tag0016.md` 规避，但这是本次会话的人工补救，不是机制修复"
+  - ref: SELF-GATE.md
+    note: "closure（TAG0017）：命名模板 4 处出现点（文件类型表 + 两种审查模式派发模板）均已补
+      `{task_id}`，留痕 `agate-alignment-{date}-{task_id}-{NN}.progress.md`、成果
+      `agate-alignment-review-{date}-{task_id}.md`（closure_criteria 1 满足）"
+  - ref: agate/assets/review-roles/protocol-alignment-review.md
+    note: "closure（TAG0017）：新增 Write 前存在性检查段落，区分同一任务复核轮（可覆盖）/别的
+      任务遗留（不可覆盖）两分支（closure_criteria 2 满足）"
+  - path: agate-workspace/tasks/TAG0017-toolchain-fixes/P6-evidence/bdd-7-8.log
+    note: "closure（TAG0017）：BDD-7/8 实跑证据，test_bdd_7_naming_template_produces_distinct_
+      filenames_for_different_task_ids 等 6 条 + test_bdd_8_* 2 条全部通过；全量 pytest 1011
+      passed（closure_criteria 3 满足）"
 impact: 只要两次 self-gate 审查落在同一日历日（对活跃度较高的 agate 自身改造仓库并不罕见——同一天
   推进两个任务、或同一任务当天多轮 P4/P8 均可能触发多次），后触发的一次会静默覆盖前一次已提交的
   审查历史（若前一次尚未 commit 则是工作区覆盖，损失更隐蔽），且没有任何 gate/hook 检测这种覆盖；
@@ -351,6 +374,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-19
 task_id: TAG0016
+closed_at: 2026-08-20
 ```
 
 ## DEBT0012
@@ -360,7 +384,7 @@ id: DEBT0012
 category: technical
 title: check-protocol-consistency.py --strict 在"仅有 WARNING 无 ERROR"时返回 exit 2，与 && 串联的
   gate_commands.P5 链路组合会因长期存量 WARNING 债务而永远短路中断
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate/scripts/check-protocol-consistency.py
@@ -383,6 +407,17 @@ evidence:
       此前的验证流程习惯性用 `command | tail -N; echo $?` 之类的管道模式核对，管道会让 `$?`
       变成 `tail` 的退出码而非目标命令的真实退出码，掩盖了这个问题（TAG0016 本次也曾踩过
       同一个验证方法陷阱，后改用 `timeout ... bash -c '...'; echo $?` 不经管道直接核对才发现）"
+  - ref: agate/scripts/check-protocol-consistency.py
+    note: "closure（TAG0017）：新增 --strict-errors-only 互斥模式（仅 ERROR 非零，WARNING-only
+      exit 0），保留既有 --strict 语义不变；agate/phase-cards/P2-design.md「gate_commands 声明」
+      节新增示例改用 --strict-errors-only 为默认推荐，--strict 保留给专门 WARNING 清理任务
+      （closure_criteria 1、2 均满足，两方案都做）"
+  - path: agate-workspace/tasks/TAG0017-toolchain-fixes/P6-evidence/bdd-9-code.log
+    note: "closure（TAG0017）：BDD-9 代码半 3 场景矩阵实跑通过（0E0W/0E+NW/NE 三态）"
+  - path: agate-workspace/tasks/TAG0017-toolchain-fixes/P6-evidence/bdd-9-chain-behavior.log
+    note: "closure（TAG0017）：额外实测构造真实 `&& echo NEXT_STEP_REACHED` 链路，验证
+      --strict-errors-only 场景下链路后续步骤确实被执行到，非仅引用单测断言；全量 pytest 1011
+      passed（closure_criteria 3 满足）"
 impact: 任何后续任务若原样沿用当前 gate_commands.P5 的 && 串联写法（这是 P2-design.md 已固化的
   声明，大概率会被后续任务复制作为范式），只要仓库内存量 WARNING 未清零，P5 阶段的链路级 exit
   code 永远是 2、且链路最后一步命令永远不会真正被链路执行到——若验证者使用管道+tail 模式核对
@@ -405,6 +440,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-19
 task_id: TAG0016
+closed_at: 2026-08-20
 ```
 
 ## DEBT0013
@@ -455,6 +491,14 @@ evidence:
     note: "「已知限制」表 L141-147 仅列 3 条（`ln -sf` 退化为复制 / pytest 需安装 / 3 hook 需 sh），未列 Store 占位符；Windows 原生章节也未提及"
   - ref: AGENTS.md / agate/AGENTS.md / CLAUDE.md
     note: "提到 Windows 复制模式（hook 软链退化），未提及 Store 占位符；这是项目侧已知但协议层从未防护的兼容性缺口——任何新 Windows 用户都会重新踩"
+  - ref: agate/scripts/pre-commit-gate.sh / commit-msg-self-gate.sh / pre-push-gate.sh
+    note: "进行中（TAG0017）：3 薄壳探测循环已增强（AGATE_PYTHON 显式覆盖 + 逐候选可执行性小测试，
+      通用 exit code 判据，3 文件逐字一致）；platform-notes.md/AGENTS.md 已补 Store 占位符说明 +
+      AGATE_PYTHON 机制文档；agate/tests/integration/test_pre_commit_hook.py 新增模拟 stub 集成
+      测试覆盖（closure_criteria 1/2/3/4 在 Linux 模拟环境下已满足）。**closure_criteria 5
+      （Windows CI matrix 回归确认）本会话未执行**——本环境为 Linux，无法真实触发 Windows Store
+      占位符，需等待本次 PR 的 GitHub Actions Windows CI matrix（pytest -m windows_smoke）跑通后
+      再关闭本条，不在此提前标记 closed（遵守 P0-brief 约束 3：不宣称已实测 Windows）"
 impact: Windows 用户跑 agate 时 commit 钩子默认阻断，需要手动复制 python.exe 为 python3.exe 或改 PATH 让真实 Python 优先，脆弱且不可重现；任何新项目/新用户都会重新踩这一坑，跨项目反馈回流案例（2026-08-19 用户反馈）
 recommendation: 三改一并做——(a) 3 薄壳探测循环增强：探测后做可执行性小测试（exit 49 / stderr 含 Microsoft Store 字符串 → skip 该候选，转下一候选 python）或加 AGATE_PYTHON 环境变量优先（项目侧设 AGATE_PYTHON=/path/to/python.exe 时直接接受，跳过探测循环）；(b) agate/platform-notes.md「已知限制」表新增一条 + 「Windows 原生」章节加 Store 占位符说明 + AGATE_PYTHON 机制文档；(c) agate/AGENTS.md「升级 agate」段同步一句。P1 派发时需实测薄壳代码并定 Store 占位符识别阈值（exit 49 / stderr 内容 / Python313 路径是否在 WindowsApps 之前）
 closure_criteria:
@@ -485,6 +529,15 @@ evidence:
     note: "env_constraints 全部是'确认/细化 + 注入'语义（P2 卡 L50、P4 卡 L41、architect L135），无'必须执行其中某命令'的 gate 绑定"
   - ref: TQC0001 跨项目复盘（Qt 计算器）
     note: "P2 声明 env_constraints.deploy（windeployqt 构建 dist），但全流程 P0-P8 从未主动执行，用户双击 exe 报缺 DLL 后才补做——声明了但没有执行点"
+  - ref: agate/phase-cards/P2-design.md「gate_commands 声明」节 / agate/assets/execution-roles/architect.md
+    note: "进行中（TAG0017）：新增 env_constraints 声明性 vs gate_commands 执行性边界说明段落
+      （closure_criteria 1 满足）"
+  - ref: agate/phase-cards/P4-implementation.md「自查≠gate」节
+    note: "进行中（TAG0017）：新增'UI/需构建任务 P4 后应构建并确认 dist 类产物存在'提醒条目
+      （closure_criteria 2 满足）。**closure_criteria 3（TQC0001 类 UI 任务在 P4 后自动产出
+      dist，不靠用户提醒）本会话未验证**——这是一条面向未来的行为性指标，需要下一个实际的 UI 任务
+      走完 P4 阶段后才能实证确认提醒条目是否真的改变了 implementer 行为，本任务自身不涉及 UI/dist
+      构建场景，无法自我验证，不在此提前标记 closed"
 impact: 任何依赖 env_constraints 声明 deploy/pack/build 产物的任务，可能出现'设计说要做但流程不强制'的静默缺口；UI 任务 dist 产物、打包产物、部署产物均无 gate 检查；TQC0001（真实跨项目）已实证
 recommendation: 三改一并做——(1) 明确 env_constraints 字段语义边界（声明性 vs 执行性）：P2 卡片/architect 角色说明'执行性约束必须落到 gate_commands 或 P4/P8 明确 checklist'；(2) UI 任务 P4 后应构建 dist：P4 卡片「自查≠gate」节补'UI 任务 P4 后构建 dist（windeployqt 等）'或 P8 gate 加 dist 产物存在性检查；(3) 可选：check-gate.py 或新脚本校验 gate_commands 声明了 deploy/构建命令时 P4/P8 产出物存在
 closure_criteria:

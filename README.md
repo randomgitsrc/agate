@@ -2,7 +2,7 @@
 
 > An orchestration protocol that verifies AI agents the way a build system verifies a compiler.
 
-[![version](https://img.shields.io/badge/version-v0.54.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.55.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)

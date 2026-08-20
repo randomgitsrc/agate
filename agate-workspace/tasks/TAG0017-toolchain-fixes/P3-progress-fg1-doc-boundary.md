@@ -1,0 +1,13 @@
+## P3 progress fg1-doc-boundary
+- [start] 读取 dispatch-context 完成，读取 test-designer.md 完成
+- [read] P1-requirements.md 读完：BDD-5/6/9 原文核对完成
+- [read] P2-design.md（task 产出）关键段落核对完成（§1.1 改什么表格 / §2.1/§2.3 候选方案 / §6 dispatch_plan / §7 files_to_read）
+- [read] agate/phase-cards/P2-design.md「gate_commands 声明」节（L117-147）核对：当前无 env_constraints 边界说明，无 && 反模式指引
+- [read] agate/assets/execution-roles/architect.md env_constraints 段（L135-141）核对：当前无声明性/执行机制边界文字
+- [read] agate/phase-cards/P4-implementation.md「自查≠gate」节（L50-53）核对：当前无 dist/构建产物提醒条目
+- [confirm] grep 全仓确认三文件目标落点均无"声明性"/"执行机制"/"&&.*反模式"/"dist"/"构建产物"关键词命中 -> 红灯前提成立
+- [write] 测试代码写入 agate/tests/unit/test_p2p4_boundary_docs.py（5 个测试用例，覆盖 BDD-5×2/BDD-9文档半×2/BDD-6×1）
+- [write] 用例清单写入 P3-test-cases-fg1-doc-boundary.md
+- [verify] python3 -m pytest agate/tests/unit/test_p2p4_boundary_docs.py -v -> 5 collected / 5 failed / 0 error，全部 AssertionError，真红灯
+- [verify] git status 确认未修改 phase-cards/P2-design.md / architect.md / P4-implementation.md / check-protocol-consistency.py，未越权
+- [done] 批次完成 [PROD_NOT_TOUCHED]

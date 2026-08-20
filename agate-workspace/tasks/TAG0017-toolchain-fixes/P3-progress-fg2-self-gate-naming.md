@@ -1,0 +1,16 @@
+## P3 progress fg2-self-gate-naming
+- [start] 读取 dispatch-context 完成，读取 test-designer.md（角色定义）完成
+- [read] P1-requirements.md L170-183 读完：BDD-7（同日不同任务的 SELF-GATE 审查文件不再同名覆盖）/ BDD-8（Write 前检查目标路径存在性）原文核对完成
+- [read] P2-design.md 关键行核对完成：L40（改动点：SELF-GATE.md 命名模板补 task_id，留痕 `docs/reviews/agate-alignment-{date}-{task_id}-{NN}.progress.md`，成果 `docs/reviews/agate-alignment-review-{date}-{task_id}.md`）/ L41（protocol-alignment-review.md 新增 Write 前 test -f 检查段）/ L216-217（files_to_read：SELF-GATE.md:48-60,125-145,175-195 + protocol-alignment-review.md:100-119）
+- [read] SELF-GATE.md（根目录，无 agate/ 前缀，已用 ls 确认路径存在）L48-60 文件类型表：现状命名模板为 `docs/reviews/agate-alignment-{date}-{NN}.progress.md` / `docs/reviews/agate-alignment-review-{date}.md`，均不含 `{task_id}`
+- [read] SELF-GATE.md L125-145（变更触发模式派发模板）：L133 留痕文件模板 `docs/reviews/agate-alignment-{date}-{NN}.progress.md`、L143 成果文件模板 `docs/reviews/agate-alignment-review-{date}.md`，均不含 `{task_id}`
+- [read] SELF-GATE.md L175-197（全量审查模式派发模板）：L183 留痕文件模板、L193 成果文件模板，同上均不含 `{task_id}`
+- [read] agate/assets/review-roles/protocol-alignment-review.md L100-119（闭环规则 + 人工验收清单）：全文 grep "test -f|写入前|Write 前|目标路径" 无命中，确认当前无"Write 前检查目标路径是否已存在"逻辑说明
+- [confirm] 红灯前提成立：SELF-GATE.md 四处命名模板（L53/54 表格行、L133、L143、L183、L193）均不含 `{task_id}` 占位符；protocol-alignment-review.md 全文无 Write 前存在性检查逻辑
+- [write] 编写测试文件 agate/tests/unit/test_self_gate_naming_docs.py：BDD-7 断言 SELF-GATE.md 五处命名模板含 `{task_id}`（文件类型表 2 处 + 变更触发模板 2 处 + 全量审查模板 2 处，共 6 处断言点）+ 一个纯字符串拼接单测（同日不同 task_id 生成文件名不同）；BDD-8 断言 protocol-alignment-review.md 含"Write 前检查目标路径"逻辑说明关键词
+- [write] 编写 P3-test-cases-fg2-self-gate-naming.md（批次专属文件）
+- [test] 自跑 pytest 确认红灯（见下方结果记录）
+- [test-result] pytest tests/unit/test_self_gate_naming_docs.py -v: 8 个测试，6 FAILED（真实 AssertionError，B 类：SELF-GATE.md 命名模板不含 {task_id} 共 4 处 + protocol-alignment-review.md 无 Write 前检查逻辑说明共 2 处）、2 PASSED（路径前置校验测试 + 纯字符串拼接逻辑自证测试，按设计本就应为绿，不属于 BDD 待改动内容断言）
+- [confirm] git status 确认 SELF-GATE.md 与 agate/assets/review-roles/protocol-alignment-review.md 均未被本次改动（不在 modified/untracked 列表中）
+- [confirm] 测试文件内路径引用统一为 agate_root.parent / "SELF-GATE.md"（无 agate/ 前缀），并新增显式路径前置断言测试防止路径写错
+- [done] 产出：agate/tests/unit/test_self_gate_naming_docs.py + P3-test-cases-fg2-self-gate-naming.md，全部完成

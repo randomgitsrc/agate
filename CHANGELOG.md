@@ -8,6 +8,68 @@
 
 ---
 
+## [0.55.0] - 2026-08-20
+
+### 新增（TAG0017：协议工具链修复批，RM-AG0027 + RM-AG0028，来源 TAG0016 复盘 + TQC0001 跨项目反馈）
+
+- **DEBT0010 修复：`gate_commands` 键解析统一排除 `_timeout_seconds` 后缀（BDD-1~4）**：
+  `agate/scripts/agate_common.py` 新增共享判据函数 `is_gate_meta_key(key)`
+  （`key.endswith(("_formatter", "_timeout_seconds"))`），`agate-read-gate-commands.py` /
+  `agate-gate-missing-cmds.py` / `agate-gate-p5-count.py` / `agate-read-p5-commands.py` 四处解析
+  脚本改用该函数，消除此前只排除 `_formatter`、把 `{key}_timeout_seconds` 声明字段误判为待执行
+  命令/待核实项的系统性缺陷（TAG0016 P2/P3/P5 三阶段均实测复现）；新增结构性审计测试防第五处
+  遗漏，`check-tdd-red.py` 补 `P3_timeout_seconds` 真红灯场景用例防止判定被放宽。
+- **RM-AG0028/DEBT0015 修复：`env_constraints` 声明性 vs 执行性边界文档化（BDD-5~6）**：
+  `agate/phase-cards/P2-design.md`「gate_commands 声明」节新增边界说明——`env_constraints` 是
+  声明性字段（信息注入），执行性约束必须落到 `gate_commands` 或 P4/P8 明确 checklist；
+  `agate/assets/execution-roles/architect.md` 同步；`agate/phase-cards/P4-implementation.md`
+  「自查≠gate」节新增"UI/需构建任务 P4 后应构建并确认 dist 类产物存在"提醒（TQC0001 跨项目反馈
+  实证：声明了 `env_constraints.deploy` 但全流程从未主动执行，用户双击 exe 报缺 DLL 才补做）。
+- **DEBT0011 修复：SELF-GATE 审查文件命名补任务标识防跨任务覆盖（BDD-7~8）**：
+  `SELF-GATE.md` 成果文件/留痕文件命名模板从纯日期（`agate-alignment-review-{date}.md`）改为
+  含任务标识（`agate-alignment-review-{date}-{task_id}.md`），消除同日多任务生成同名文件互相
+  静默覆盖已提交历史审查记录的风险（TAG0016 实测复现并手工恢复过一次）；
+  `agate/assets/review-roles/protocol-alignment-review.md` 新增"Write 前检查"段落，要求写入前
+  先确认目标路径是否已存在、是否为同一任务复核轮（可覆盖）还是他任务遗留（不可覆盖）。
+- **DEBT0012 修复：`check-protocol-consistency.py` 新增 `--strict-errors-only` 模式（BDD-9）**：
+  解决 `--strict`（WARNING-only 也 exit 2）与 `&&` 串联的 `gate_commands.P5` 组合在长期存量
+  WARNING 债务下永久短路中断的问题——新增互斥模式 `--strict-errors-only`，仅 ERROR 非零
+  （exit 1），WARNING-only 场景打印提示后 exit 0；既有 `--strict` 语义不变，仍可供专门清理
+  WARNING 债务的任务主动选用。`phase-cards/P2-design.md` 增补 `--strict` 不放 `&&` 链路中间的
+  指引 + 反例，本任务自身 `gate_commands.P5` 声明也改用 `--strict-errors-only` 以身作则。
+- **DEBT0014 修复：Windows Store python3 占位符探测增强（BDD-10~12）**：
+  `pre-commit-gate.sh` / `commit-msg-self-gate.sh` / `pre-push-gate.sh` 三处探测循环（结构一致，
+  逐字同步改动）新增：① `AGATE_PYTHON` 环境变量显式指定时直接使用，跳过探测循环；② 探测循环
+  内每个候选先做可执行性小测试，非零则跳过继续下一候选——默认路径即可绕过 Windows Store 占位符
+  exe stub（命中后 exit 49 导致 hook fail-closed 阻断 commit）导致的 commit 阻断，不要求用户先
+  知道环境变量才能规避问题。`agate/platform-notes.md`「已知限制」表 + Windows 原生章节、
+  `AGENTS.md`「Gate 脚本分层」节同步补充说明（严格遵守 verification_env 约束，不含"已在 Windows
+  实测通过"断言，本环境为 Linux，Windows 行为靠 CI matrix 冒烟 + 模拟 stub 回归验证）。
+
+### 关键机制
+
+- `is_gate_meta_key(key)`（`agate_common.py`）：4 处 `gate_commands` 键解析脚本共享判据，
+  避免"改一处忘改一处"的重复失误来源再次出现（DEBT0010 根因）。
+- `check-protocol-consistency.py --strict-errors-only`：ERROR-only 判定新模式，与既有 `--strict`
+  （WARNING-only 也非 0）并列不冲突，互斥组参数校验。
+- SELF-GATE 命名模板新增 `{task_id}` 占位符：`agate-alignment-review-{date}-{task_id}.md` /
+  `agate-alignment-{date}-{task_id}-{NN}.progress.md`。
+- `AGATE_PYTHON` 环境变量：3 个 hook 薄壳探测循环的显式覆盖机制，跳过探测直接使用指定解释器。
+
+### 技术债关闭（TAG0017 修复，均登记于 `agate-workspace/debt/tech-debt.md`）
+
+- DEBT0010（medium）：4 处 `gate_commands` 键解析脚本未排除 `_timeout_seconds` 后缀——已修复，
+  closure_criteria 全部满足（四脚本统一改用 `is_gate_meta_key`；新增回归用例覆盖
+  `P3_timeout_seconds`/`P5_timeout_seconds` 声明场景；全量 pytest 回归通过）。
+- DEBT0011（medium）：SELF-GATE 审查文件纯日期命名跨任务覆盖——已修复，命名模板补
+  `{task_id}` + `protocol-alignment-review.md` 新增写前防覆盖检查段落。
+- DEBT0012（medium）：`check-protocol-consistency.py --strict` 与 `&&` 链路永久短路——已修复，
+  新增 `--strict-errors-only` 模式 + 文档指引不再推荐 `--strict` 放 `&&` 链路中间。
+- DEBT0014（medium，跨项目反馈汇入）：Windows Store python3 占位符命中探测循环阻断 commit——
+  已修复，3 处 hook 薄壳同步增强 + `AGATE_PYTHON` 机制文档化。
+- DEBT0015（medium，RM-AG0028/TQC0001 跨项目反馈）：`env_constraints` 声明性字段无执行/gate
+  绑定——已修复，字段语义边界文档化（P2 卡片 + architect 角色）+ P4 卡片新增 dist 产物确认提醒。
+
 ## [0.54.0] - 2026-08-19
 
 ### 新增（TAG0016：agate 协议卫生与测试效率，RM-AG0025 + RM-AG0026）

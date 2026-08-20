@@ -75,6 +75,17 @@ def probe_python():
     return None
 
 
+def is_gate_meta_key(key):
+    """gate_commands key 是否为元信息 key（非待执行命令）（DEBT0010/TAG0017）。
+
+    仅精确匹配两个已知固定后缀 `_formatter` / `_timeout_seconds`，不做通配/正则
+    宽松匹配（P1 R3 风险条目：防止把真正需要核实/计入的 key 一并放宽排除）。
+    供 agate-read-gate-commands.py / agate-gate-missing-cmds.py /
+    agate-gate-p5-count.py / agate-read-p5-commands.py 共用（P2-design.md §1.1）。
+    """
+    return key.endswith(("_formatter", "_timeout_seconds"))
+
+
 # ---------- 版本解析（TAG0008，resolve-chain 批次） ----------
 # 四层解析语义（P2-design.md §4.1）：
 #   env 最高 → 项目声明（.agate-version，asdf 模式 cwd 向上）→ current/latest 指针链

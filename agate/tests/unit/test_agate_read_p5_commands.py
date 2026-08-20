@@ -51,6 +51,25 @@ def test_p5c_3_p2_no_gate_commands_block_output_empty(agate_scripts, python_exe,
     assert result.output.strip() == ""
 
 
+def test_p5c_5_bdd_1_3_timeout_seconds_not_treated_as_command(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """BDD-1/3: `P5_timeout_seconds: 120` 不得作为一条命令出现在 `commands` 输出中——
+    当前脚本只排除 `_formatter` 键，`_timeout_seconds` 会被误判为一条 cmd="120" 的命令。"""
+    p2_file = tmp_path / "P2-design.md"
+    p2_file.write_text(
+        "---\nagent: test\n---\ngate_commands:\n"
+        "  P5: pytest -q\n"
+        "  P5_timeout_seconds: 120\n",
+        encoding="utf-8",
+    )
+    result = _run_p5c(agate_scripts, python_exe, run_cli, p2_file)
+    assert result.returncode == 0
+    assert '"cmd": "pytest -q"' in result.output
+    assert '"cmd": "120"' not in result.output
+    assert "timeout_seconds" not in result.output
+
+
 def test_p5c_4_p5_quoted_values_stripped_with_formatter_link(
     agate_scripts, python_exe, run_cli, tmp_path
 ):

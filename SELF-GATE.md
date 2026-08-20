@@ -50,8 +50,8 @@ python3 agate/scripts/check-protocol-consistency.py
 
 | 类型 | 文件名 | 用途 | 内容 | 生命周期 |
 |------|--------|------|------|---------|
-| 留痕文件 | `docs/reviews/agate-alignment-{date}-{NN}.progress.md` | 空返回诊断 | 原始执行痕迹，逐条追加，不整理不格式化 | subagent 返回后主 Agent 检查；成功可删，失败保留待查 |
-| 成果文件 | `docs/reviews/agate-alignment-review-{date}.md` | 最终交付物 | 结构化审查报告（A1-A7）| 保留，闭环依据 |
+| 留痕文件 | `docs/reviews/agate-alignment-{date}-{task_id}-{NN}.progress.md` | 空返回诊断 | 原始执行痕迹，逐条追加，不整理不格式化 | subagent 返回后主 Agent 检查；成功可删，失败保留待查 |
+| 成果文件 | `docs/reviews/agate-alignment-review-{date}-{task_id}.md` | 最终交付物 | 结构化审查报告（A1-A7）| 保留，闭环依据 |
 
 **关键规则**：
 - 留痕文件和成果文件是**两个不同的文件**
@@ -59,7 +59,7 @@ python3 agate/scripts/check-protocol-consistency.py
 - 成果文件是最终报告，subagent 审查完所有文件后**一次性写出**（或覆盖重写）
 - 每个 subagent 调用有**独立的留痕文件**（`{NN}` 序号区分），避免多次调用追加同一文件导致内容重复
 - **留痕文件如果已存在，subagent 开始前先删除**（`rm -f`）——确保每次调用从空文件开始，重试不会累积重复内容
-- 全量审查如果分批派发，每批用自己的留痕文件（如 `agate-alignment-2026-07-01-01.progress.md`、`-02.progress.md`）
+- 全量审查如果分批派发，每批用自己的留痕文件（如 `agate-alignment-2026-07-01-TAG0017-01.progress.md`、`-02.progress.md`）
 
 ### 两种审查模式
 
@@ -130,7 +130,7 @@ python3 agate/scripts/check-protocol-consistency.py
 - 若 MISALIGNED：具体差异描述 + 建议修复方向
 
 ## 分阶段落盘（留痕文件，防空返回）
-留痕文件：docs/reviews/agate-alignment-{date}-{NN}.progress.md
+留痕文件：docs/reviews/agate-alignment-{date}-{task_id}-{NN}.progress.md
 开始前先删除留痕文件（如已存在）：rm -f {留痕文件路径}
 每读完一个文件，立即用 bash 追加一行（不要整理、不格式化）：
   echo "- [文件名] 关键逻辑摘要" >> {留痕文件路径}
@@ -140,7 +140,7 @@ python3 agate/scripts/check-protocol-consistency.py
 读一个写一个，判断一条写一条。
 
 ## 产出（成果文件，最终交付物）
-docs/reviews/agate-alignment-review-{date}.md
+docs/reviews/agate-alignment-review-{date}-{task_id}.md
 审查完所有文件后，把结构化报告写入成果文件（覆盖写，不是追加）。
 成果文件含 frontmatter + A1-A7 结论汇总表（含反向传播检查）+ 逐项审查详情。
 ⚠️ 路径是硬约束：必须用 Write 工具写入此路径，不得将产出文件写入 /tmp、工作区根目录或其他路径。
@@ -180,7 +180,7 @@ docs/reviews/agate-alignment-review-{date}.md
 `REVIEWED-ACCEPTED` 记录，避免把已知偏离误判为新 MISALIGNED。
 
 ## 分阶段落盘（留痕文件，防空返回）
-留痕文件：docs/reviews/agate-alignment-{date}-{NN}.progress.md
+留痕文件：docs/reviews/agate-alignment-{date}-{task_id}-{NN}.progress.md
 开始前先删除留痕文件（如已存在）：rm -f {留痕文件路径}
 每读完一个文件，立即用 bash 追加一行（不要整理、不格式化）：
   echo "- [文件名] 关键逻辑摘要" >> {留痕文件路径}
@@ -190,7 +190,7 @@ docs/reviews/agate-alignment-review-{date}.md
 读一个写一个，判断一条写一条。
 
 ## 产出（成果文件，最终交付物）
-docs/reviews/agate-alignment-review-{date}.md
+docs/reviews/agate-alignment-review-{date}-{task_id}.md
 审查完所有文件后，把结构化报告写入成果文件（覆盖写，不是追加）。
 如果成果文件已存在（前一批写的），追加本次批次的审查结果到已有文件。
 ⚠️ 路径是硬约束：必须用 Write 工具写入此路径，不得将产出文件写入 /tmp、工作区根目录或其他路径。

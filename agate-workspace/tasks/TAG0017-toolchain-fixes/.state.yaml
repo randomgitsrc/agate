@@ -1,4 +1,28 @@
 task_id: TAG0017
-phase: P0
-status: pending
-retries: {}
+phase: READY
+status: complete
+p5_pass_commit: 17a3a5d6ea00f968352dbeba1c5bf5b22488e786
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "订正 3.3/3.4 节同类扫描计数与清单不一致（8→7 算术错误 + 遗漏 TAG0005/10/11 分类；12→13 算术错误 + 遗漏测试基础设施类命中归类）"
+  P2:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "订正 P2-design.md 内 SELF-GATE.md 路径前缀自相矛盾（L40/L216 仍写 agate/SELF-GATE.md，应为根目录 SELF-GATE.md，与 L149/L189 的正确写法冲突），plan-eng-review BLOCKER-1"
+  P3:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "主 Agent 亲自跑全量 gate_commands.P3 发现 3 处并行批次副作用：①fg1 test_bdd_2 假字符串字面量含 Traceback/SyntaxError 触发 check-tdd-red.py 无 formatter 时的原始输出正则误判 A 类；②fg2 test_self_gate_naming_docs.py 未用 import pytest 触发 ruff F401；③fg4 assertion 消息含裸 python3 触发 check-platform-assumptions.py R2 规则。三处均为测试代码本身的卫生问题，非设计缺陷，一次并行修复批统一处理"
+  P4:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "P4 review CRITICAL：phase-cards/P2-design.md「正确做法」示例与 TAG0017 自身 P2-design.md §5 gate_commands.P5_consistency 均仍用 --strict（实测在 314 条历史 WARNING 基线下 exit 2），未真正用上本任务新增的 --strict-errors-only，与 DEBT0012 修复目的相悖，也会直接阻塞本任务自身 P5 gate。选择 Option A+C：协议卡片示例改为推荐 --strict-errors-only（--strict 保留给专门 WARNING 清理任务）+ TAG0017 自身 gate_commands 同步改用 --strict-errors-only"
+    - note: "review 第 1 次派发因平台额度中断（外部原因，非 subagent 失败）无产出，重发后正常完成，未计入本轮 retry round 计数（round 1 是指下方 quality adjustment 那次真正的 needs-revision 修复）"
+retry_count: { P1: 1, P2: 1, P3: 1, P4: 1 }
+updated: 2026-08-20
