@@ -1,4 +1,11 @@
 task_id: TAG0007
-phase: P0
-status: pending
-retries: {}
+phase: P1
+status: in_progress
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+retry_count: { P1: 1 }
+updated: 2026-08-20
