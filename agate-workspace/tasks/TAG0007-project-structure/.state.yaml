@@ -1,5 +1,5 @@
 task_id: TAG0007
-phase: P6
+phase: P7
 status: in_progress
 p5_pass_commit: f63e207daac99b5812ff1d87b787e3270476a887
 retries:
@@ -16,7 +16,8 @@ retries:
   P4: []
   P5: []
   P6: []
-retry_count: { P1: 1, P2: 1, P4: 0, P5: 0, P6: 0 }
+  P7: []
+retry_count: { P1: 1, P2: 1, P4: 0, P5: 0, P6: 0, P7: 0 }
 review_scores:
   P2:
     - round: 1
@@ -35,4 +36,10 @@ review_scores:
       score: null
       status: approved
       feedback: "0 阻塞问题；2 条 DESIGN_GAP 均给出明确判定（第1条接受+补充边界说明，第2条登记 DEBT0016）；跨批次字段一致性与 ADR-003 合规均核实通过"
+  P7:
+    - round: 1
+      reviewer: consistency-reviewer
+      score: null
+      status: approved
+      feedback: "BLOCKER=0，2条 DESIGN_GAP 全部 REVIEWED 配对；独立发现 gate_p4 假阴性 + 自我应用缺口，判定 CODE_MAP_DRIFT 非阻塞，登记 DEBT0017"
 updated: 2026-08-20

@@ -590,3 +590,51 @@ source: review
 created_at: 2026-08-20
 task_id: TAG0007
 ```
+
+## DEBT0017
+
+```yaml
+id: DEBT0017
+category: technical
+title: check-gate.py gate_p4「## 新增文件核对表」子串判定在自指/dogfooding 场景下存在假阴性，TAG0007 自身 P4 产出未对新增文件打标准 CODE-MAP 标记
+status: open
+priority: low
+evidence:
+  - ref: agate/scripts/check-gate.py
+    note: "L713：`if \"## 新增文件核对表\" not in _read_text(p4_impl_check):` 用子串包含判定
+      P4-implementation.md 是否已补「新增文件核对表」小节，未限定必须整行/标题形式匹配（如
+      `^## 新增文件核对表\\s*$`）——只要该字符串以任意上下文（含说明性散文）出现在文件任意
+      位置即判定为满足，L715 触发的 WARNING（骨架/CODE-MAP 机制已采用但缺该标题）因此被
+      静默跳过"
+  - ref: agate-workspace/tasks/TAG0007-project-structure/P7-consistency.md
+    note: "第2节「CODE-MAP 核对」完整独立论证（2.1 复核问题属实：TAG0007 自己的
+      P4-implementation.md 第71行命中的『## 新增文件核对表』字符串只是描述『给协议卡片模板
+      新增了一个标题叫这个的小节』的说明性文字，非 TAG0007 自己为自己新增文件
+      （skeleton-template.md/code-map-template.md/agate-workspace/agents/CODE-MAP.md/3个
+      测试文件）真正填写的核对表；标记级正则 grep `[CODE_MAP_UPDATED]`/`[CODE_MAP_EXEMPT]`
+      在该文件中 0 命中。2.2 独立判定为 [CODE_MAP_DRIFT:]——真实偏离但不构成 P7 级
+      [BLOCKER]，因 gate_p4 WARNING 本就非阻断、且不影响 P6 11/11 PASS 判定；P7 结论：
+      不打回本轮 P7，建议后续补核对表附录或登记技术债，两种路径均可）"
+impact: 任一后续任务在"自指/dogfooding"场景（任务自身产出文档里用说明性文字描述"新增了一个标题叫
+  『## 新增文件核对表』的小节"这类元描述，而非真正逐文件填写的核对表）下，gate_p4 的子串判定会被
+  这类说明性文字误判为"已满足"，本该触发的 WARNING（提醒补充新增文件核对表）被静默跳过；同时
+  TAG0007 自身作为骨架+CODE-MAP 机制的首个落地任务，其 P4-implementation.md 对本次新增文件的
+  CODE-MAP 处置只用叙事方式交代、未使用标准 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT] 标记逐条落标，
+  构成机制的自我应用缺口——不影响任何 BDD PASS 判定或 gate exit code，但与该任务要求未来所有
+  任务遵守的标准格式不一致
+recommendation: 二事并记，均为低成本后续处理——① check-gate.py 的 gate_p4 判定改用整行/标题级
+  正则匹配（如 `re.search(r"^## 新增文件核对表\s*$", text, re.MULTILINE)`）替代当前子串包含
+  `in` 判定，消除自指场景下说明性文字被误判为"已满足"的假阴性；② 后续任一涉及 CODE-MAP 机制
+  自指场景的任务（或专门处理本债的任务）为 TAG0007 的 P4-implementation.md 补一份真正的「新增
+  文件核对表」附录（逐个列出 skeleton-template.md/code-map-template.md/
+  agate-workspace/agents/CODE-MAP.md/3 个测试文件，标注 [CODE_MAP_UPDATED] 或
+  [CODE_MAP_EXEMPT：理由]），或确认无需补齐的替代方案并记录理由
+closure_criteria:
+  - gate_p4 改用整行匹配（或等价的健壮判定方式，如标题级正则）替代当前子串包含判定
+  - TAG0007（或后续任一涉及 CODE-MAP 机制自指场景的任务）补齐自己新增文件的标准 CODE-MAP
+    标记，或明确评估后确认无需补齐并记录替代方案理由
+  - 全量 pytest + consistency 0 ERROR
+source: review
+created_at: 2026-08-20
+task_id: TAG0007
+```
