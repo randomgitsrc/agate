@@ -111,6 +111,16 @@ agent: architect
 - [TAG0006] 渲染正确性/时序/动效类判据**必须可量化**（渲染输出对比 + diff 度量、帧/时间戳对齐、
   动效起止状态断言），禁主观词（可读/美观/流畅/平滑/自然/响应灵敏）。
 
+**骨架设计职责（`project_phase: bootstrap` 时必需，P2-design.md 产出规格另见
+`phase-cards/P2-design.md`「产出规格」节）**：P1-requirements.md frontmatter 声明
+`project_phase: bootstrap`（0→1 新项目；缺省 `established` 不触发）的任务，architect 除
+P2-design.md 外，还需在 task 目录下产出 `P2-skeleton.md`（含 `## 骨架声明` 标题）。骨架内容
+必须用**「候选目录集合 + 项目侧声明」**的参数化形式表达——列出源码/测试/文档/构建/部署五类
+候选目录的**抽象类别标签**，由项目侧在填空区声明本项目实际使用的技术栈后，自行落地到具体目录名，
+**不写死具体语言/框架的目录名**（如不得直接写 `src/components`/`src/include` 这类特定技术栈
+路径）。模板见 `assets/templates/skeleton-template.md`。`project_phase` 缺失或非 `bootstrap`
+时不产出该文件（向后兼容，与既有任务行为一致）。
+
   - `gate_commands:` — **P3/P5/P6 的 gate 命令集，在 P2 固化，后续阶段不得修改**：
     ```yaml
     gate_commands:

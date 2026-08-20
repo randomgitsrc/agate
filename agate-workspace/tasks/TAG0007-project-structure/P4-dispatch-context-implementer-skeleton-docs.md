@@ -1,3 +1,70 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0007
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令。本批次是 P2-design.md `dispatch_plan` 声明的
+`skeleton-docs` 批次（4 批并行之一），只改本批次范围内的文件，不碰其他批次的文件。
+
+### 目标
+实现 RM-AG0008（0→1 骨架脚手架）的文档层部分：P1/P2 卡片新增 `project_phase` 字段说明 +
+architect.md 骨架设计职责段落 + 新建骨架模板文件。让 `test_skeleton_template_stack_neutral.py`
+的 3 个红灯测试变绿（不改动测试文件本身）。
+
+### 约束（严格按 P2-design.md §1.1 改什么表执行，不要自行改变设计）
+1. **`agate/phase-cards/P1-requirements.md`**（L77-80 附近，`change_type: refactor` 注释样例后）：
+   新增可选字段注释样例：`project_phase: bootstrap`（枚举 `bootstrap` / `established`，缺省
+   `established`，向后兼容，仿照现有 `change_type: refactor` 注释样例的风格）。
+2. **`agate/phase-cards/P2-design.md`**（L136-166 附近，「产出规格」节）：新增条件产出规格说明：
+   `project_phase: bootstrap` 时，P2 architect 除 P2-design.md 外还需产出 task 目录下
+   `P2-skeleton.md`（须含 `## 骨架声明` 标题）。
+3. **`agate/assets/execution-roles/architect.md`**（L34-63 附近，「输出」节 P2 部分）：新增骨架
+   设计职责段落——0→1 任务（`project_phase: bootstrap`）时，architect 产出 `P2-skeleton.md`，须用
+   "候选目录集合 + 项目侧声明"参数化形式表达（不写死具体语言/框架目录名），模板见
+   `assets/templates/skeleton-template.md`。
+4. **`agate/assets/templates/skeleton-template.md`（新建）**：骨架模板，五类候选目录（源码/测试/
+   文档/构建/部署）以**抽象类别标签**表达 + 项目侧技术栈声明填空区。**硬约束（ADR-003 不绑定
+   技术栈，P2 review 已核实的关键点）**：模板内容**不得出现**以下任何字符串（这是
+   `test_skeleton_template_stack_neutral.py` 的黑名单断言对象）：`src/components`、
+   `src/include`、`src/hooks`、`src/pages`。同时模板内容**必须包含**参数化标记关键词：
+   `候选目录`、`技术栈`（这是该测试的正面断言对象，字符串必须逐字出现，用于渲染模板的引导语，
+   如"请在下方声明本项目技术栈，并从候选目录集合中选择/命名对应目录"）。
+
+### 验证（写完后自跑，不是 P5 gate，是自查）
+```bash
+timeout 60s python3 -m pytest agate/tests/unit/test_skeleton_template_stack_neutral.py -v
+```
+预期 3 个测试全部由红灯（AssertionError）变绿灯（PASSED）。不要修改测试文件本身让它通过。
+
+### 不要做
+- 不要碰 `agate/scripts/check-gate.py`（gate_p2 的 `project_phase` 判定分支在另一批次
+  `gate-script-both` 实现，本批次只写文档说明）
+- 不要碰 `agate/phase-cards/P4-implementation.md`、`P7-consistency.md`、
+  `consistency-reviewer.md`、`code-map-template.md`、`WORKFLOW.md`（属 `code-map-docs` 批次）
+- 不要碰 `{AGATE_WORKSPACE}/agents/CODE-MAP.md`（属 `dogfood-bootstrap` 批次）
+- 不要修改任何测试文件（`agate/tests/unit/test_*.py`）
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P2-design.md（§1.1/§2.2/§3，本批次的权威
+  规格来源，已完整给出精确判定逻辑）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/phase-cards/P1-requirements.md:60-89
+  （frontmatter 字段样例节，`project_phase` 新字段的插入模板参照点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/phase-cards/P2-design.md:136-166
+  （产出规格节，P2-skeleton.md 条件产出规格插入点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/assets/execution-roles/architect.md:34-63
+  （「输出」节 P2 部分，骨架设计职责段落插入点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/tests/unit/test_skeleton_template_stack_neutral.py
+  （本批次要满足的测试断言，先读一遍确认黑名单/关键词字符串精确匹配）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -62,24 +129,6 @@ UI/前端等需构建任务：单元测试全绿不代表可用，implementer �
 - P4-implementation.md 必须声明 `implementation_dir: {实际路径}`
 - 代码文件在声明的目录下
 - 遵守 P2-design.md 的方案设计 + 现有项目代码规范
-
-## 新增文件核对表
-
-> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
-> 存在）机制时填写；未采用则本节可省略。
-
-implementer 为本阶段**每个新增文件**填一行：
-
-| 新增文件路径 | 骨架归属 | CODE-MAP 处理 |
-|------------|---------|--------------|
-| {path} | `within <dir>` / `[SKELETON_DEVIATION: 理由]` | `[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]` |
-
-- **骨架归属列**：新增文件落在骨架声明的目录内 → `within <dir>`；落在骨架外 → 标
-  `[SKELETON_DEVIATION: 理由]`（不阻断，供 P7 核对）
-- **CODE-MAP 处理列**：新增文件已同步更新 `agents/CODE-MAP.md` → `[CODE_MAP_UPDATED]`；判断
-  该文件不需要更新 CODE-MAP（如临时/测试脚手架）→ `[CODE_MAP_EXEMPT: 理由]`
-
-`change_type: refactor` 同样适用本表（不因换用回归口径而豁免）。
 
 ## 评审派发（C8 机械映射）
 
@@ -169,3 +218,16 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- P2-design.md frontmatter：packages=[phase-cards, execution-roles, templates, scripts],
+  domains=[backend], ui_affected=false
+- 批次范围（P2-design.md §7）：`skeleton-docs`，涉及文件 5 个：
+  `phase-cards/P1-requirements.md`、`phase-cards/P2-design.md`、
+  `assets/execution-roles/architect.md`、`assets/templates/skeleton-template.md`（新）、
+  `tests/unit/test_skeleton_template_stack_neutral.py`（P3 已产出，本批次不改）
+- 4 批并行范围两两不相交（P2-design.md §7 已核实），本批次可独立完成，无需等待其他批次
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

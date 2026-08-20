@@ -1,3 +1,119 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0007
+role: review
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令。C8 机械映射：domains=[backend] → review；risk_level=high
+（P1 frontmatter）→ 同一映射已覆盖，不额外触发其他角色。本任务是单评审角色场景，你的产出直接写
+P4-review.md，无需组长汇总。
+
+### 目标
+独立评审 P4-implementation.md 记录的全部实现改动（4 个并行批次：skeleton-docs / code-map-docs /
+gate-script-both / dogfood-bootstrap），判定 approved / rejected，产出 P4-review.md。本任务是
+协议脚本 + 协议文档改动（不是典型 Web 应用后端代码），评审重点相应调整——不是查 SQL 注入/前端
+AI slop，而是查 gate 判定逻辑的正确性、边界条件、与既有机制（DESIGN_GAP pairing）的一致性。
+
+### 约束（评审重点，按下列具体项逐条检查，不要套用角色定义里 Web 应用场景的检查项）
+
+1. **`check-gate.py` 三处新增分支的正确性核查（最高优先级）**：
+   - `gate_p2` 的 `project_phase: bootstrap` 判定：字段缺失/`established` 时是否真的完全不触发
+     新分支（回归安全）；`bootstrap` 声明时缺 `P2-skeleton.md` 或缺标题是否正确 exit 1
+   - `gate_p7` 的两层 pairing 校验：**逐行核对字段对应关系**——内部一致性层比较
+     `code_map_reviewed_count < code_map_new_files_count`；转抄核对层比较 P4 实际标记数与
+     `code_map_new_files_count`（**不是** `code_map_reviewed_count`）。这是 P2 review 第一轮
+     曾打回的错误点（P2-design.md §5 minimal_validation 记录了修复过程），P4 实现必须严格遵循
+     修复后的对应关系，若发现写反或混淆，判 CRITICAL 级问题
+   - `gate_p4` 的 WARNING 分支：是否真的不阻断（exit code 仍为 0）、`change_type: refactor`
+     是否真的不影响判定（BDD-10 要求）
+   - **TOCTOU/竞态角度**：gate 脚本读取暂存区文件状态（`git diff --cached`）与读取工作区文件
+     （`P2-skeleton.md`/`P4-implementation.md`/`P7-consistency.md`）是否存在时序不一致的风险
+     （如暂存区已 add 但工作区文件后续被改动）——若existing 代码本就有这类假设，不苛求本次改动
+     解决，但新增分支不应引入新的更严重的不一致
+   - **状态枚举完整性**：`project_phase` 目前只有 `bootstrap`/`established` 两个枚举值，若未来
+     新增第三个值，当前实现是否会静默误判为其中一个（防御性检查）
+
+2. **DESIGN_GAP 重点核查（implementer 已标注 2 条，你必须逐条给出明确判定，不能只是"已阅读"）**：
+   - **第 1 条**（`_md_field_get` 因新字段未注册 `KNOWN_OPS` 会静默失败，改用本地
+     `_frontmatter_field` 替代）：核查 `_frontmatter_field` 与 `_md_field_get` 的实际行为差异
+     是否真的等价（尤其对"字段存在但值为空字符串"、"frontmatter 块格式异常"等边界情形），若
+     发现两者语义不完全等价，需明确指出差异点
+   - **第 2 条**（`{AGATE_WORKSPACE}/agents/CODE-MAP.md` 路径解析用"task_dir 向上两级"简化
+     推导，未使用 `agate_common.py` 现有的 `resolve_workspace(project_root)` 权威解析函数）：
+     **主 Agent 已核实 `resolve_workspace` 函数确实存在**（`agate/scripts/agate_common.py`
+     L461-489），签名 `resolve_workspace(project_root) -> (workspace, tasks_dir)`，解析优先级
+     `.agate.env(AGATE_WORKSPACE=)` → env `AGATE_TASKS_DIR` → 默认
+     `{project_root}/agate-workspace`——这意味着若项目通过 `.agate.env` 自定义了工作区位置，
+     implementer 当前"task_dir 向上两级"的简化推导会得出**错误路径**，导致
+     `{AGATE_WORKSPACE}/agents/CODE-MAP.md` 存在性误判（骨架/CODE-MAP 机制已采用但被判定为
+     未采用，WARNING 不会触发）。**请你独立判断**：这个问题是否足以构成 rejected 的理由（影响
+     范围仅限于 WARNING 分支且只是"少触发一次提醒"，不阻断任何 commit，本身不是 BLOCKER 级
+     数据安全问题），还是可以作为非阻塞的技术债登记（`{AGATE_WORKSPACE}/debt/tech-debt.md`，
+     标准 DEBT 格式，`evidence` 引用 `resolve_workspace` 函数位置）而 approve。给出你的判断
+     + 理由，不要回避这个问题。
+
+3. **回归验证核查**：主 Agent 已跑过全量 `python3 -m pytest agate/tests/` → 1028 passed, 2
+   skipped, 0 failed；`check-protocol-consistency.py` → 0 ERROR；`shellcheck` → 0 error（见
+   objective_info）。你可以直接引用这些结果，不需要重跑，但若怀疑结果不实可自行抽查复核。
+
+4. **跨批次一致性核查**：4 批次产出的字段名/标题名是否真的逐字一致（`code-map-docs` 批次在
+   文档中声明的 `code_map_new_files_count`/`code_map_reviewed_count`/`## 新增文件核对表` 字符串
+   是否与 `gate-script-both` 批次的实际代码判定字符串完全匹配，不是"大致相似"）。
+
+5. **ADR-003 合规复核**：`skeleton-docs` 批次产出的 `assets/templates/skeleton-template.md` 是否
+   真的不含硬编码技术栈目录名（`src/components`/`src/include`/`src/hooks`/`src/pages`），这是
+   P1/P2 review 都强调过的关键约束点。
+
+### 输出结构（按本任务实际场景调整，不套用角色定义的 Web 应用格式）
+```
+架构/正确性问题（阻塞级）：
+  - [具体问题 + 文件:行号 + 建议]（若无则写"无"）
+
+架构/正确性问题（非阻塞）：
+  - [具体问题 + 记录到 TD-xxx 或建议后续处理]（若无则写"无"）
+
+DESIGN_GAP 逐条判定：
+  1. [第 1 条判定 + 理由]
+  2. [第 2 条判定 + 理由，含是否需要登记 DEBT]
+
+回归验证确认：
+  [引用/复核结果]
+
+跨批次一致性确认：
+  [核查结果]
+
+结论：
+approved / rejected + 理由
+```
+
+### 上游关联
+P2-design.md（approved，含 P2 review 曾打回的 pairing 字段对应关系错误 + 修复记录）→
+P3-test-cases.md（17 个测试用例，12 个针对 check-gate.py 三处新增分支）→ P4-implementation.md
+（4 批次实现记录 + 2 条 DESIGN_GAP）。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P4-implementation.md（评审对象，含 2 条
+  DESIGN_GAP）
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P2-design.md（§2.3/§5，pairing 字段对应
+  关系的权威规格 + P2 review 修复记录）
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P3-test-cases.md（12 个 check-gate.py 相关
+  测试用例的精确断言）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/scripts/check-gate.py（评审对象代码，
+  gate_p2/gate_p4/gate_p7 三个函数的改动后完整源码）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/scripts/agate_common.py:461-489
+  （`resolve_workspace` 函数，DESIGN_GAP 第 2 条的权威判据来源）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/assets/templates/skeleton-template.md
+  （ADR-003 合规复核对象）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/assets/templates/code-map-template.md
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -62,24 +178,6 @@ UI/前端等需构建任务：单元测试全绿不代表可用，implementer �
 - P4-implementation.md 必须声明 `implementation_dir: {实际路径}`
 - 代码文件在声明的目录下
 - 遵守 P2-design.md 的方案设计 + 现有项目代码规范
-
-## 新增文件核对表
-
-> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
-> 存在）机制时填写；未采用则本节可省略。
-
-implementer 为本阶段**每个新增文件**填一行：
-
-| 新增文件路径 | 骨架归属 | CODE-MAP 处理 |
-|------------|---------|--------------|
-| {path} | `within <dir>` / `[SKELETON_DEVIATION: 理由]` | `[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]` |
-
-- **骨架归属列**：新增文件落在骨架声明的目录内 → `within <dir>`；落在骨架外 → 标
-  `[SKELETON_DEVIATION: 理由]`（不阻断，供 P7 核对）
-- **CODE-MAP 处理列**：新增文件已同步更新 `agents/CODE-MAP.md` → `[CODE_MAP_UPDATED]`；判断
-  该文件不需要更新 CODE-MAP（如临时/测试脚手架）→ `[CODE_MAP_EXEMPT: 理由]`
-
-`change_type: refactor` 同样适用本表（不因换用回归口径而豁免）。
 
 ## 评审派发（C8 机械映射）
 
@@ -169,3 +267,16 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 全量回归（主 Agent 已跑）：`python3 -m pytest agate/tests/ -q --tb=line` → 1028 passed, 2
+  skipped, 0 failed
+- `python3 agate/scripts/check-protocol-consistency.py` → 0 ERROR（316 WARNING）
+- `shellcheck -S warning agate/scripts/*.sh` → 0 error
+- `git status --porcelain` 已核实 4 批次改动无跨批文件重叠
+- `agate_common.py` 的 `resolve_workspace(project_root)` 函数确认存在（L461-489），可作为
+  DESIGN_GAP 第 2 条的权威判据
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

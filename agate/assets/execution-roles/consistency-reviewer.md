@@ -48,6 +48,9 @@ review 类 subagent 不能靠代码改动校验兜底。结论必须附带实质
    - P1 BDD 数量与 P6 验收结果数量匹配
    - P4 实现路径与 P2 方案设计吻合
 4. **未决项清零**：P1-requirements.md 无残留行首 `[NEED_CONFIRM]`（P6 不再有 NEED_CONFIRM，客观验收 PASS/FAIL 二值）、[BLOCKER]、[DEVIATION-CRITICAL]
+5. **CODE-MAP 核对**：对照 `{AGATE_WORKSPACE}/agents/CODE-MAP.md` 记录与 P4「新增文件核对表」实际
+   新增文件，逐条判定同步（`[CODE_MAP_SYNC:]`）或偏离（`[CODE_MAP_DRIFT:]`）。人工判断，不做跨
+   语言静态依赖分析（ADR-003 合规）
 
 ## 质量门槛
 - 无 [BLOCKER] / [DEVIATION-CRITICAL]

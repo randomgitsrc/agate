@@ -84,7 +84,7 @@ agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPA
 {AGATE_WORKSPACE}/                # 工作区根（默认 agate-workspace/）
 ├── roadmap/                      # 项目级任务规划看板（roadmap.md）
 ├── tasks/                        # 任务目录（active-tasks.md + 各 {Txxx}/ 任务）
-├── agents/                       # agent 输入知识（project.md / memory）
+├── agents/                       # agent 输入知识（project.md / memory）；也承载 CODE-MAP.md（项目架构全貌维护物，非任务产出，不新增第 10 个固定子目录）
 ├── debt/                         # 技术债登记（tech-debt.md，模板见 assets/templates/tech-debt-template.md）
 ├── archived/                     # 归档（已归档任务/阶段产出）
 ├── reviews/                      # 评审记录

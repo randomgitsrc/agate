@@ -1,3 +1,50 @@
+---
+phase: P4
+generated_by: 主 Agent（收尾文档任务）
+task_id: TAG0007
+role: implementer
+---
+
+<dispatch_guide>
+### 目标
+产出 P4-implementation.md——本阶段唯一缺失的产出文件（4 个并行批次都已完成代码/文档改动并
+自查通过，但漏了这份汇总记录）。**本次任务不改任何代码/文档**，纯粹是把已完成的改动写成一份
+符合协议格式的实现记录，供接下来的 P4 实现评审阅读。
+
+### 约束
+1. **不改任何代码或协议文档**——所有实现工作已完成，本次只读取已有的 4 份批次记录 +
+   `git diff HEAD --stat` 汇总成文档。
+2. 内容来源：读取 4 个 `P4-implementation-{batch}.md` 文件（各自已按 BDD 编号组织改动清单），
+   合并为一份，按批次分节，每节列改动文件 + 改动点 + 关联 BDD（可直接复制各批次已写好的内容，
+   不需要重新分析代码）。
+3. `implementation_dir: agate/`（4 批中 3 批改动在 `agate/` 下，`dogfood-bootstrap` 批次的
+   `{AGATE_WORKSPACE}/agents/CODE-MAP.md`——即本 worktree 的 `agate-workspace/agents/CODE-MAP.md`
+   ——超出 `agate/` 范围，在正文单独一节列出，不影响 `implementation_dir` 字段本身的声明，参照
+   TAG0017 同类协议任务先例）。
+4. **DESIGN_GAP 转抄（关键，必须完整保留，不得遗漏或改写原意）**：`gate-script-both` 批次的
+   `P4-implementation-gate-script-both.md` 含 2 条 `[DESIGN_GAP: ...]` 标记，**必须原样转抄
+   到本文件正文**（独立成行，`[DESIGN_GAP:` 开头，与原文逐字一致，不得意译/精简）——P7 一致性
+   检查只扫描顶层 `P4-implementation.md`，不会去读各批次子文件，遗漏转抄会导致 DESIGN_GAP 静默
+   丢失。
+5. 若其他 3 批各自声明"无 DESIGN_GAP/SCOPE+/CLARIFY"，在对应小节注明即可，不用编造。
+6. 用一句话在文末小结全量回归结果（主 Agent 已跑过，见下方 objective_info，可直接引用，不需要
+   自己重跑一遍——除非你想复核）。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P4-implementation-skeleton-docs.md
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P4-implementation-code-map-docs.md
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P4-implementation-gate-script-both.md
+  （含 2 条 [DESIGN_GAP:] 标记，本文件重点核对来源）
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P4-implementation-dogfood-bootstrap.md
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P2-design.md（§1.1 改什么表格，核对改动
+  清单完整性——11 条 BDD 是否都能在 4 批改动中找到对应）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -62,24 +109,6 @@ UI/前端等需构建任务：单元测试全绿不代表可用，implementer �
 - P4-implementation.md 必须声明 `implementation_dir: {实际路径}`
 - 代码文件在声明的目录下
 - 遵守 P2-design.md 的方案设计 + 现有项目代码规范
-
-## 新增文件核对表
-
-> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
-> 存在）机制时填写；未采用则本节可省略。
-
-implementer 为本阶段**每个新增文件**填一行：
-
-| 新增文件路径 | 骨架归属 | CODE-MAP 处理 |
-|------------|---------|--------------|
-| {path} | `within <dir>` / `[SKELETON_DEVIATION: 理由]` | `[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]` |
-
-- **骨架归属列**：新增文件落在骨架声明的目录内 → `within <dir>`；落在骨架外 → 标
-  `[SKELETON_DEVIATION: 理由]`（不阻断，供 P7 核对）
-- **CODE-MAP 处理列**：新增文件已同步更新 `agents/CODE-MAP.md` → `[CODE_MAP_UPDATED]`；判断
-  该文件不需要更新 CODE-MAP（如临时/测试脚手架）→ `[CODE_MAP_EXEMPT: 理由]`
-
-`change_type: refactor` 同样适用本表（不因换用回归口径而豁免）。
 
 ## 评审派发（C8 机械映射）
 
@@ -169,3 +198,24 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 4 批全部完成，`git status --porcelain` 确认无跨批文件重叠、无非预期改动
+- 全量回归（主 Agent 已跑）：`python3 -m pytest agate/tests/ -q --tb=line` → 1028 passed, 2
+  skipped, 0 failed（1011 基线 + 17 新增 = 1028，与 P3 阶段确认的用例总数吻合）
+- `python3 agate/scripts/check-protocol-consistency.py` → 0 ERROR（316 WARNING）
+- `shellcheck -S warning agate/scripts/*.sh` → 0 error
+- `bash agate/tests/scripts/count-tests.sh` → 1030 个测试用例（含 2 skipped）
+- 2 条 `[DESIGN_GAP:]`（均在 gate-script-both 批次）：① `_md_field_get` 因新字段未注册
+  `KNOWN_OPS` 会静默失败，改用本地 `_frontmatter_field` 函数替代（功能等价，非阻塞）；②
+  `{AGATE_WORKSPACE}/agents/CODE-MAP.md` 的路径解析用"task_dir 向上两级"简化推导，未使用
+  `agate_common.py` 现有的 `resolve_workspace(project_root)` 权威解析函数，P3 测试未覆盖此分支，
+  需人工/评审确认是否与实际部署布局相符（主 Agent 已核实 `resolve_workspace` 函数存在且更权威，
+  这条留给下一步 P4 实现评审重点核查）
+</objective_info>
+
+## 返回给我
+只返回两行：
+  1. P4-implementation.md 路径
+  2. 一句话摘要（含 DESIGN_GAP 转抄是否完整）

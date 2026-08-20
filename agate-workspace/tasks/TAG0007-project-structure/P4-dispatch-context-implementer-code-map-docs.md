@@ -1,3 +1,81 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0007
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令。本批次是 P2-design.md `dispatch_plan` 声明的
+`code-map-docs` 批次（4 批并行之一），只改本批次范围内的文件，不碰其他批次的文件。
+
+### 目标
+实现 RM-AG0009（CODE-MAP 架构演进纪律）的文档层部分：P4/P7 卡片新增小节 + consistency-reviewer.md
+职责段落 + 新建 CODE-MAP 模板 + WORKFLOW.md 补充说明。让 `test_code_map_template.py` 的 2 个红灯
+测试变绿（不改动测试文件本身）。
+
+### 约束（严格按 P2-design.md §1.1 改什么表执行）
+1. **`agate/phase-cards/P4-implementation.md`**（L60-65 附近，「产出规格」节后）：新增「新增文件
+   核对表」小节——implementer 为每个新增文件填一行：骨架归属列（`within <dir>` 或
+   `[SKELETON_DEVIATION: 理由]`）+ CODE-MAP 处理列（`[CODE_MAP_UPDATED]` 或
+   `[CODE_MAP_EXEMPT: 理由]`）。末尾追加一句：`change_type: refactor` 同样适用本表（不因换用
+   回归口径而豁免）。**表格式须与 `gate-script-both` 批次的测试用例期望完全一致**——测试断言
+   `"新增文件核对表"` 字符串必须逐字出现在标题中（`## 新增文件核对表`）。
+2. **`agate/phase-cards/P7-consistency.md`**（L48-73 附近，frontmatter 样例节）：新增两个可选
+   frontmatter 字段：`code_map_new_files_count`（P4 核对表中 CODE-MAP 处理列标记的转抄计数，
+   语义对应既有 `design_gap_count`）/ `code_map_reviewed_count`（consistency-reviewer 实际核对
+   完成数，语义对应既有 `design_gap_reviewed_count`）——与既有两字段并列展示在同一 YAML 代码块
+   （P2-design.md §1.3 R3 已要求并列展示防止漏填）。「检查清单」新增第 5 条：CODE-MAP 核对（对照
+   `{AGATE_WORKSPACE}/agents/CODE-MAP.md` 与 P4 新增文件核对表，发现依赖方向偏离标
+   `[CODE_MAP_DRIFT:]`（WARNING 级，不阻断），核对通过标 `[CODE_MAP_SYNC:]`）。
+3. **`agate/assets/execution-roles/consistency-reviewer.md`**（L42-56 附近，「检查清单」节）：新增
+   职责段落——CODE-MAP 核对：对照 `{AGATE_WORKSPACE}/agents/CODE-MAP.md` 记录与 P4「新增文件核对
+   表」实际新增文件，逐条判定同步（`[CODE_MAP_SYNC:]`）/偏离（`[CODE_MAP_DRIFT:]`）。人工判断，
+   不做跨语言静态依赖分析（ADR-003 合规）。
+4. **`agate/assets/templates/code-map-template.md`（新建）**：CODE-MAP 模板，五类必填字段占位（
+   模块、层、依赖方向、关键文件、约定），初始内容可为占位声明。**硬约束（测试断言对象）**：
+   模板内容必须含五个必填标题（对应「模块」「层」「依赖方向」「关键文件」「约定」五个字段名，
+   具体标题 markup 形式`##`/`###`/加粗等由你决定，只需字段名文字逐字出现即可，务必先读
+   `test_code_map_template.py` 的确切断言字符串再动手，不要凭猜测）。
+5. **`agate/WORKFLOW.md`**（L79-95 附近，工作区目录规范节，`agents/` 行）：追加一句描述：
+   `agents/` 也承载 `CODE-MAP.md`（项目架构全貌维护物，非任务产出，不新增第 10 个固定子目录）。
+
+### 验证（写完后自跑，不是 P5 gate，是自查）
+```bash
+timeout 60s python3 -m pytest agate/tests/unit/test_code_map_template.py -v
+```
+预期 2 个测试全部由红灯（AssertionError）变绿灯（PASSED）。不要修改测试文件本身让它通过。
+
+### 不要做
+- 不要碰 `agate/scripts/check-gate.py`（gate_p4/gate_p7 的判定逻辑在另一批次 `gate-script-both`
+  实现，本批次只写文档说明）
+- 不要碰 `agate/phase-cards/P1-requirements.md`、`P2-design.md`、`architect.md`、
+  `skeleton-template.md`（属 `skeleton-docs` 批次）
+- 不要碰 `{AGATE_WORKSPACE}/agents/CODE-MAP.md`（agate 自身实例，属 `dogfood-bootstrap` 批次，
+  与你写的 `assets/templates/code-map-template.md` 协议本体模板是两个不同文件）
+- 不要修改任何测试文件（`agate/tests/unit/test_*.py`）
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P2-design.md（§1.1/§2.3/§3，本批次的权威
+  规格来源，已完整给出精确字段名和判定逻辑，含 P2 review 修复后的两层 pairing 校验字段对应关系
+  说明——本批次不实现判定逻辑本身，但字段名必须与 §2.3 精确一致，供 gate-script-both 批次消费）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/phase-cards/P4-implementation.md:60-65
+  （产出规格节，「新增文件核对表」小节插入点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/phase-cards/P7-consistency.md:48-73
+  （产出规格节 frontmatter 样例，新增字段插入点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/assets/execution-roles/consistency-reviewer.md:42-56
+  （「检查清单」节，CODE-MAP 核对职责插入点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/WORKFLOW.md:79-95（工作区目录规范节，
+  `agents/` 行补充说明插入点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/tests/unit/test_code_map_template.py
+  （本批次要满足的测试断言，先读一遍确认标题字符串精确匹配）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -62,24 +140,6 @@ UI/前端等需构建任务：单元测试全绿不代表可用，implementer �
 - P4-implementation.md 必须声明 `implementation_dir: {实际路径}`
 - 代码文件在声明的目录下
 - 遵守 P2-design.md 的方案设计 + 现有项目代码规范
-
-## 新增文件核对表
-
-> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
-> 存在）机制时填写；未采用则本节可省略。
-
-implementer 为本阶段**每个新增文件**填一行：
-
-| 新增文件路径 | 骨架归属 | CODE-MAP 处理 |
-|------------|---------|--------------|
-| {path} | `within <dir>` / `[SKELETON_DEVIATION: 理由]` | `[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]` |
-
-- **骨架归属列**：新增文件落在骨架声明的目录内 → `within <dir>`；落在骨架外 → 标
-  `[SKELETON_DEVIATION: 理由]`（不阻断，供 P7 核对）
-- **CODE-MAP 处理列**：新增文件已同步更新 `agents/CODE-MAP.md` → `[CODE_MAP_UPDATED]`；判断
-  该文件不需要更新 CODE-MAP（如临时/测试脚手架）→ `[CODE_MAP_EXEMPT: 理由]`
-
-`change_type: refactor` 同样适用本表（不因换用回归口径而豁免）。
 
 ## 评审派发（C8 机械映射）
 
@@ -169,3 +229,16 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- P2-design.md frontmatter：packages=[phase-cards, execution-roles, templates, scripts],
+  domains=[backend], ui_affected=false
+- 批次范围（P2-design.md §7）：`code-map-docs`，涉及文件 6 个：
+  `phase-cards/P4-implementation.md`、`phase-cards/P7-consistency.md`、
+  `assets/execution-roles/consistency-reviewer.md`、`assets/templates/code-map-template.md`（新）、
+  `tests/unit/test_code_map_template.py`（P3 已产出，本批次不改）、`WORKFLOW.md`
+- 4 批并行范围两两不相交（P2-design.md §7 已核实），本批次可独立完成，无需等待其他批次
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

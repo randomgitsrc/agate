@@ -1,3 +1,74 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0007
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令。本批次是 P2-design.md `dispatch_plan` 声明的
+`dogfood-bootstrap` 批次（4 批并行之一，complexity: low）。
+
+### 目标
+为 agate 仓库自身初始化 `{AGATE_WORKSPACE}/agents/CODE-MAP.md`（本任务的 dogfooding 实例——
+agate 自己就是采用 CODE-MAP 机制的第一个项目），作为 BDD-6"CODE-MAP 存在性"的验收对象（由 P6
+acceptance 人工核对存在性，不是自动化测试覆盖对象——`assets/templates/code-map-template.md`
+协议本体模板才是自动化测试覆盖对象，那是另一批次 `code-map-docs` 的产出物，与你要写的这份
+`agents/CODE-MAP.md` dogfooding 实例是两个不同文件）。
+
+### 约束
+1. 文件路径：`{AGATE_WORKSPACE}/agents/CODE-MAP.md`——即本 worktree 的
+   `agate-workspace/agents/CODE-MAP.md`（**不是** `~/.agate`，本任务双工作区纪律：worktree 自己
+   的 agate-workspace/，见 HANDOFF-TAG0007.md）。若 `agate-workspace/agents/` 目录不存在，先
+   创建该目录。
+2. 内容须含五类必填字段（与 `code-map-docs` 批次产出的 `assets/templates/code-map-template.md`
+   模板结构一致，字段名：模块、层、依赖方向、关键文件、约定），但填**真实内容**（不是占位声明）
+   ——描述 agate 协议本体自身的实际架构：
+   - **模块**：phase-cards（9 张阶段卡片）/ execution-roles（7 个执行角色）/ review-roles（10 个
+     评审角色）/ scripts（gate/一致性/状态脚本家族）/ templates（11 个模板文件）五大模块
+   - **层**：协议流程层（phase-cards，定义 P0-P8 各阶段做什么）→ 角色层（execution-roles +
+     review-roles，定义谁来做）→ 工具层（scripts，把判定规则脚本化）→ 模板层（templates，
+     给角色/主 Agent 提供可复制的产出格式）
+   - **依赖方向**：phase-cards 描述流程但不直接依赖角色/脚本实现细节（松耦合，角色/脚本可独立
+     演进只要遵守卡片声明的契约）；scripts 消费 phase-cards/templates 声明的字段名做判定
+     （如 gate 脚本读 frontmatter 字段）；execution-roles/review-roles 消费 phase-cards 声明的
+     职责边界，不反向定义流程
+   - **关键文件**：WORKFLOW.md（流程总览）、dispatch-protocol.md（派发协议）、state-machine.md
+     （状态转移）、role-system.md（角色体系）、check-gate.py（门槛判定核心脚本）
+   - **约定**：新增机制需经 P0-P8 完整流程（不可因"新机制"裁剪阶段）；改协议脚本走 TDD；
+     改协议文档/脚本/卡片触发 SELF-GATE 自审
+3. 具体标题 markup 形式（`##`/`###`/加粗等）由你自行决定，不强制与 `code-map-template.md` 批次
+   产出的 markup 完全一致（P2-design.md §7 已明确两批次并行、不强制 markup 一致）。
+4. 本批次不依赖 `code-map-docs` 批次的实际产出物返回即可独立完成（P2-design.md 已完整声明五
+   字段类别名，你可直接依据本 dispatch-context 的字段名清单产出，不需要等待另一批次）。
+
+### 不要做
+- 不要碰 `assets/templates/code-map-template.md`（`code-map-docs` 批次的产出物，是协议本体
+  模板，与你写的 dogfooding 实例是两个不同文件）
+- 不要碰任何其他批次范围内的文件（phase-cards/execution-roles/scripts/WORKFLOW.md 等）
+- 不需要写测试代码（本批次产出是数据文件，无对应自动化测试，见「目标」节说明）
+
+### 验证
+本批次无对应 pytest 用例。自查方式：确认文件存在 + 五个字段名均出现在内容中即可：
+```bash
+timeout 10s test -f agate-workspace/agents/CODE-MAP.md && \
+  grep -c "模块\|层\|依赖方向\|关键文件\|约定" agate-workspace/agents/CODE-MAP.md
+```
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/P2-design.md（§1.1/§3，本批次的权威规格
+  来源）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/WORKFLOW.md:35-75（目录结构树状图，
+  填写"模块/层"字段内容的参照）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/HANDOFF-TAG0007.md（双工作区纪律，确认
+  {AGATE_WORKSPACE} 指向本 worktree 的 agate-workspace/，不是 ~/.agate）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -62,24 +133,6 @@ UI/前端等需构建任务：单元测试全绿不代表可用，implementer �
 - P4-implementation.md 必须声明 `implementation_dir: {实际路径}`
 - 代码文件在声明的目录下
 - 遵守 P2-design.md 的方案设计 + 现有项目代码规范
-
-## 新增文件核对表
-
-> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
-> 存在）机制时填写；未采用则本节可省略。
-
-implementer 为本阶段**每个新增文件**填一行：
-
-| 新增文件路径 | 骨架归属 | CODE-MAP 处理 |
-|------------|---------|--------------|
-| {path} | `within <dir>` / `[SKELETON_DEVIATION: 理由]` | `[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]` |
-
-- **骨架归属列**：新增文件落在骨架声明的目录内 → `within <dir>`；落在骨架外 → 标
-  `[SKELETON_DEVIATION: 理由]`（不阻断，供 P7 核对）
-- **CODE-MAP 处理列**：新增文件已同步更新 `agents/CODE-MAP.md` → `[CODE_MAP_UPDATED]`；判断
-  该文件不需要更新 CODE-MAP（如临时/测试脚手架）→ `[CODE_MAP_EXEMPT: 理由]`
-
-`change_type: refactor` 同样适用本表（不因换用回归口径而豁免）。
 
 ## 评审派发（C8 机械映射）
 
@@ -169,3 +222,14 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 批次范围（P2-design.md §7）：`dogfood-bootstrap`，涉及文件 1 个：
+  `{AGATE_WORKSPACE}/agents/CODE-MAP.md`（新建，即本 worktree
+  `agate-workspace/agents/CODE-MAP.md`）
+- 当前 `agate-workspace/agents/` 目录：{尚未存在，需创建}
+- 4 批并行范围两两不相交（P2-design.md §7 已核实），本批次可独立完成，无需等待其他批次
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

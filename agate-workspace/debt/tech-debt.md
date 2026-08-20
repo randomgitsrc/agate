@@ -564,3 +564,29 @@ source: retrospective
 created_at: 2026-08-19
 task_id: TAG0017
 ```
+
+## DEBT0016
+
+```yaml
+id: DEBT0016
+category: technical
+title: check-gate.py gate_p4 的 CODE-MAP.md 路径用本地"task_dir 向上两级"推导，未调用 agate_common.resolve_workspace 权威解析函数
+status: open
+priority: low
+evidence:
+  - ref: agate/scripts/check-gate.py
+    note: "L702-710：`code_map_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(task_dir))), \"agents\", \"CODE-MAP.md\")` —— 本地路径算术，未 import/调用 agate_common.resolve_workspace"
+  - ref: agate/scripts/agate_common.py
+    note: "L464-493：resolve_workspace(project_root) 权威解析函数，优先级 .agate.env(AGATE_WORKSPACE=) → env AGATE_TASKS_DIR → 默认 {project_root}/agate-workspace；_resolve_abs 内部用 Path(...).resolve()（解析符号链接归一化），check-gate.py 本地推导用 os.path.abspath（不解析符号链接）"
+  - ref: agate/scripts/pre-commit-gate.py
+    note: "L251-252：task_dir = os.path.join(tasks_dir, task_id) if state_dir == repo_root else state_dir —— 确认 task_dir 在当前所有调用路径下恒等于 {workspace}/tasks/{task_id} 两级嵌套，与 resolve_workspace 两分支的构造方式（tasks_dir=workspace/tasks 或 workspace=dirname(tasks_dir)）代数等价，故本地推导在标准场景下产出与 resolve_workspace 相同结果"
+impact: 仅影响 gate_p4 一处 WARNING 分支（骨架/CODE-MAP 机制已采用但 P4-implementation.md 缺「新增文件核对表」标题时的提醒）——不阻断任何 commit、不影响 exit code 判定；已论证在标准 task_dir 两级嵌套约定下与权威解析函数结果代数等价，唯一已知潜在分歧点是路径含符号链接时 os.path.abspath 与 Path.resolve() 的符号链接解析行为差异（本项目 worktree 场景 ~/.agate 软链接命中的是 AGATE_ROOT 而非 AGATE_WORKSPACE，未直接命中此路径，但不能排除其他项目布局下的分歧）；未来若 resolve_workspace 的路径构造约定变化（如 task_dir 不再保证两级嵌套），本地推导会静默产出错误路径而无测试覆盖预警
+recommendation: 后续改动 check-gate.py 时，将 gate_p4 的 CODE-MAP.md 路径推导改为 import agate_common 并调用 resolve_workspace(找到 task_dir 对应的 project_root)，与项目其余脚本（agate-migrate-workspace.py / pre-commit-gate.py / check-debt.py / ci-gate-backstop.py）保持同一权威解析源，消除重复路径算术；同时补一个覆盖"task_dir 非标准两级嵌套"边界场景的回归测试
+closure_criteria:
+  - gate_p4 的 CODE-MAP.md 路径解析改为调用 agate_common.resolve_workspace（或等价的单点权威封装），不再本地重新推导路径层级
+  - 新增回归测试覆盖 task_dir 与 workspace 非标准两级嵌套关系的场景，验证路径解析仍正确
+  - 全量 pytest + consistency 0 ERROR
+source: review
+created_at: 2026-08-20
+task_id: TAG0007
+```
