@@ -467,3 +467,32 @@ source: cross_project_feedback
 created_at: 2026-08-19
 task_id: TAG0017
 ```
+
+## DEBT0015
+
+```yaml
+id: DEBT0015
+category: protocol
+title: env_constraints 声明性字段无执行/gate 绑定（deploy 类动作只注入不强制，TQC0001 实证 dist 从未主动产出）
+status: open
+priority: medium
+evidence:
+  - ref: agate/scripts/agate-extract-context.py
+    note: "L107-109 只把 env_constraints 从 P0-brief 注入 subagent 上下文（`env = _grep_after(...)` 后 `output += ...`），不执行任何环境约束对应的动作"
+  - ref: agate/scripts/check-gate.py
+    note: "grep env_constraints.deploy / deploy / debug_env / test_cmd / workspace_path 零命中——gate 不检查 env_constraints 字段值（只确认字段存在）"
+  - ref: agate/phase-cards/P2-design.md / P4-implementation.md / agate/assets/execution-roles/architect.md
+    note: "env_constraints 全部是'确认/细化 + 注入'语义（P2 卡 L50、P4 卡 L41、architect L135），无'必须执行其中某命令'的 gate 绑定"
+  - ref: TQC0001 跨项目复盘（Qt 计算器）
+    note: "P2 声明 env_constraints.deploy（windeployqt 构建 dist），但全流程 P0-P8 从未主动执行，用户双击 exe 报缺 DLL 后才补做——声明了但没有执行点"
+impact: 任何依赖 env_constraints 声明 deploy/pack/build 产物的任务，可能出现'设计说要做但流程不强制'的静默缺口；UI 任务 dist 产物、打包产物、部署产物均无 gate 检查；TQC0001（真实跨项目）已实证
+recommendation: 三改一并做——(1) 明确 env_constraints 字段语义边界（声明性 vs 执行性）：P2 卡片/architect 角色说明'执行性约束必须落到 gate_commands 或 P4/P8 明确 checklist'；(2) UI 任务 P4 后应构建 dist：P4 卡片「自查≠gate」节补'UI 任务 P4 后构建 dist（windeployqt 等）'或 P8 gate 加 dist 产物存在性检查；(3) 可选：check-gate.py 或新脚本校验 gate_commands 声明了 deploy/构建命令时 P4/P8 产出物存在
+closure_criteria:
+  - env_constraints 语义边界文档化（P2 卡片 / architect 角色 / task-files 至少一处权威源）
+  - UI 任务 P4 后 dist 构建有明确落点（P4 卡片或 P8 gate）
+  - TQC0001 类 UI 任务在 P4 后自动产出 dist（不靠用户提醒）
+  - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue
+source: cross_project_feedback
+created_at: 2026-08-19
+task_id: TAG0017
+```
