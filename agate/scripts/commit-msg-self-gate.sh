@@ -11,9 +11,21 @@ if [ ! -d "$ENTRY_ROOT/scripts" ] \
     && [ -f "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root" ]; then
     ENTRY_ROOT=$(tr -d '\r' < "$(dirname "$(readlink -f "${BASH_SOURCE[0]:-$0}")")/.agate-root")
 fi
-# 2. python 探测：python3 → python
+# 2. python 探测：AGATE_PYTHON 显式覆盖优先（非空直接用，跳过探测循环）；
+#    否则遍历 python3/python 候选，每个候选先做一次可执行性小测试（通用 exit code 判据，
+#    非 command -v 命中即用）——Windows Store python3.exe 占位符会被 command -v 找到但执行
+#    非零退出，借此跳过并继续探测下一候选（DEBT0014）。
 PY=""
-for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { PY="$c"; break; }; done
+if [ -n "${AGATE_PYTHON:-}" ]; then
+    PY="$AGATE_PYTHON"
+else
+    for c in python3 python; do
+        command -v "$c" >/dev/null 2>&1 || continue
+        "$c" -c "" >/dev/null 2>&1 || continue
+        PY="$c"
+        break
+    done
+fi
 # 3. exec 固定解析入口 resolve-entry（读项目 .agate-version → 对应版本 gate py，不随版本变）
 if [ -n "$PY" ] && [ -f "$ENTRY_ROOT/scripts/resolve-entry.py" ]; then
     exec "$PY" "$ENTRY_ROOT/scripts/resolve-entry.py" commit-msg "$@"

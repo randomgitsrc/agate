@@ -1,3 +1,46 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0017-toolchain-fixes
+role: implementer
+batch: fg1-doc-boundary
+---
+
+<dispatch_guide>
+> ⚠️ 批次化并行派发之一（P2 dispatch_plan 5 批），只改本批次范围的文件，不要碰其他批次的文件——尤其不要碰 `agate/scripts/check-protocol-consistency.py`（fg3 批次范围）。
+
+### 目标
+让 fg1-doc-boundary 批次的红灯测试（BDD-5/6/9文档半，共 5 个测试用例，均在 `test_p2p4_boundary_docs.py`）变绿灯——在 3 处协议文档新增文字段落。
+
+### 约束
+1. **双工作区纪律**：只读写 worktree，不碰主 checkout 或 `~/.agate`。
+2. **只改这 3 个文档文件**：
+   - `agate/phase-cards/P2-design.md`「## gate_commands 声明」节（约 L117-146）：新增两段
+     - BDD-5：`env_constraints` 是声明性字段（仅信息注入）、`gate_commands` 是真正被执行的机制，两者不等价；任何需要被强制执行的约束必须落到 `gate_commands` 或 P4/P8 明确 checklist
+     - BDD-9：`--strict` 不要放进 `&&` 链路中间的指引 + 一个具体反例命令串（形如 `pytest && check-protocol-consistency.py --strict && shellcheck ...`），建议改为多个独立 key 分别声明（如 `P5`/`P5_consistency`/`P5_shellcheck`）
+   - `agate/assets/execution-roles/architect.md`：`env_constraints:` 字段说明段落（约 L135-141）同步 BDD-5 的边界说明文字
+   - `agate/phase-cards/P4-implementation.md`「## 自查≠gate」节（约 L50-54，也就是你现在正在读取执行的这份阶段卡片本身）：新增"UI/需构建任务 P4 后应构建并确认 dist 类产物存在"的提醒条目（对应 BDD-6）
+3. **不要修改测试文件** `agate/tests/unit/test_p2p4_boundary_docs.py`。
+4. **文字表述不要求逐字匹配某个固定文案**——测试断言的是关键词/结论存在性（如"声明性"、"`env_constraints`"、"`gate_commands`"、"`--strict`"、"`&&`"、"反模式"类措辞、UI/前端/需构建 + dist/构建产物 关键词），只要新增文字段落包含这些语义要点即可通过，具体行文自行组织、保持协议文档一贯的简洁风格。
+5. **不要新增任何 gate 脚本执行绑定**——BDD-5/6/9(文档半) 的验收标准是"文档能找到结论"，不是"新增自动化校验脚本"（P1/P2 已明确排除该方向，见 P2-design.md §2.1 候选 B 讨论）。
+
+### 上游关联
+P3 test-designer（fg1-doc-boundary 批次）摘要：5 个测试用例（BDD-5×2/BDD-9文档半×2/BDD-6×1），当前全部红灯（AssertionError）。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md（§1.1 改什么表格中 `phase-cards/P2-design.md`/`architect.md`/`P4-implementation.md` 三行、§2.1 功能分组1候选方案、§2.3 功能分组3候选方案的文档指引部分）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P3-test-cases.md（BDD-5/6/9文档半 节，测试断言点原文）
+- agate/tests/unit/test_p2p4_boundary_docs.py（红灯测试，精确断言逻辑，实现前务必读一遍确认关键词要求）
+- agate/phase-cards/P2-design.md:110-146（现状「gate_commands 声明」节）
+- agate/assets/execution-roles/architect.md（grep `env_constraints` 定位现状段落）
+- agate/phase-cards/P4-implementation.md:44-54（现状「自查≠gate」节）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +94,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +193,9 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境：worktree（950+41 新增红灯测试基线已验证）
+- 其他批次由并行 implementer 负责：fg1-parser-scripts / fg2-self-gate-naming / fg3-strict-mode-code（负责 `check-protocol-consistency.py` 代码本身，不在本批次范围）/ fg4-windows-python-probe
+</objective_info>

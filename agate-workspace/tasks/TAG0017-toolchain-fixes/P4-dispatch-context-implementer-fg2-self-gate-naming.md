@@ -1,3 +1,43 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0017-toolchain-fixes
+role: implementer
+batch: fg2-self-gate-naming
+---
+
+<dispatch_guide>
+> ⚠️ 批次化并行派发之一（P2 dispatch_plan 5 批），只改本批次范围的文件。
+
+### 目标
+让 fg2-self-gate-naming 批次的红灯测试（BDD-7/8，`test_self_gate_naming_docs.py` 内 6 个红灯用例，另 2 个已是绿灯不用管）变绿灯——修改 SELF-GATE.md 命名模板 + protocol-alignment-review.md 写入前检查逻辑说明。
+
+### 约束
+1. **双工作区纪律**：只读写 worktree，不碰主 checkout 或 `~/.agate`。
+2. **`SELF-GATE.md`（仓库根目录，无 `agate/` 前缀！）**，改动点：
+   - 文件类型表（约 L48-60）：留痕文件命名模板由 `docs/reviews/agate-alignment-{date}-{NN}.progress.md` 改为 `docs/reviews/agate-alignment-{date}-{task_id}-{NN}.progress.md`；成果文件命名模板由 `docs/reviews/agate-alignment-review-{date}.md` 改为 `docs/reviews/agate-alignment-review-{date}-{task_id}.md`
+   - 变更触发模式派发模板（约 L133/143）：同步两处命名模板改动
+   - 全量审查模式派发模板（约 L183/193）：同步两处命名模板改动
+3. **`agate/assets/review-roles/protocol-alignment-review.md`**：新增段落，说明 subagent 用 Write 工具写入审查产出路径前，先检查目标路径是否已存在同名文件；若存在，判断是否属于"同一任务的复核轮"（文件名中 `{task_id}` 与当前任务一致，可覆盖）还是"别的任务遗留"（`{task_id}` 不同或无法确认，不可覆盖，需改用带任务标识的新文件名/人工确认）。测试要求含"Write 前"/"目标路径"关键词，以及区分"同一任务"vs"不可覆盖"两个分支的说明。
+4. **不要修改测试文件** `agate/tests/unit/test_self_gate_naming_docs.py`。
+5. 精确核实路径：`SELF-GATE.md` 在仓库根目录（`/home/kity/oclab/agate/.worktrees/agate-TAG0017/SELF-GATE.md`），**不是** `agate/SELF-GATE.md`（此前 P2 阶段曾把这个路径写错，被 review 打回过一次，本次实现务必用正确路径定位文件）。
+
+### 上游关联
+P3 test-designer（fg2-self-gate-naming 批次）摘要：8 个测试用例（BDD-7 六个 + BDD-8 两个），6 个真实红灯（文档内容断言失败），2 个按设计本就为绿（路径前置校验 + 纯逻辑自证，不用管）。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md（§1.1 改什么表格「SELF-GATE.md」「protocol-alignment-review.md」两行、§2.2 功能分组2候选方案）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P3-test-cases.md（BDD-7/8 节，测试断言点原文）
+- agate/tests/unit/test_self_gate_naming_docs.py（红灯测试，精确断言逻辑）
+- SELF-GATE.md（根目录，现状 L48-60/125-145/175-195）
+- agate/assets/review-roles/protocol-alignment-review.md:100-119（现状内容）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +91,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +190,9 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境：worktree（950+41 新增红灯测试基线已验证）
+- 其他批次由并行 implementer 负责：fg1-parser-scripts / fg1-doc-boundary / fg3-strict-mode-code / fg4-windows-python-probe
+</objective_info>

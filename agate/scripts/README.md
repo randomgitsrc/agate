@@ -169,13 +169,21 @@ python3 agate/scripts/check-protocol-consistency.py
 # WARNING 也判失败（更严格）
 python3 agate/scripts/check-protocol-consistency.py --strict
 
+# 仅 ERROR 判失败，WARNING 不视为失败（与 --strict 互斥）
+python3 agate/scripts/check-protocol-consistency.py --strict-errors-only
+
 # 机器可读输出（CI 消费）
 python3 agate/scripts/check-protocol-consistency.py --json
 ```
 
 依赖：Python 3.8+ 和 `pyyaml`（`pip install pyyaml`）。
 
-退出码：`0` = 无 ERROR；`1` = 有 ERROR；`2` = 仅 WARNING 且加了 `--strict`。
+日常任务默认用 `--strict-errors-only`；`--strict` 留给专门做 WARNING 债务清理的任务主动选用。两者互斥，不可同时传入。
+
+退出码（区分三种模式）：
+- `0` = 无 ERROR（默认模式、`--strict-errors-only` 下 WARNING-only 场景，以及 `--strict` 下 0 ERROR + 0 WARNING）
+- `1` = 有 ERROR（三种模式下均如此，`--strict-errors-only` 不改变 ERROR 语义）
+- `2` = 仅 WARNING 且加了 `--strict`（默认模式和 `--strict-errors-only` 下不会返回此码）
 
 ## 分级设计（避免假阳性爆炸）
 

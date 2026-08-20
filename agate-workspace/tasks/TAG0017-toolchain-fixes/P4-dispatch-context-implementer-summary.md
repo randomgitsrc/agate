@@ -1,3 +1,38 @@
+---
+phase: P4
+generated_by: 主 Agent（收尾文档任务）
+task_id: TAG0017-toolchain-fixes
+role: implementer
+---
+
+<dispatch_guide>
+### 目标
+产出 P4-implementation.md——本阶段唯一缺失的产出文件（5 个并行批次 + 1 轮 review-fix 都已完成代码/文档改动并通过 review approved，但漏了这份汇总记录）。**本次任务不改任何代码/文档**，纯粹是把已完成的改动写成一份符合协议格式的实现记录。
+
+### 约束
+1. **双工作区纪律**：只读写 worktree，不碰主 checkout。
+2. **不改任何代码或协议文档**——所有实现工作已完成并通过 P4-review.md approved，本次只读取已有的进度文件 + git diff 汇总成文档。
+3. 内容来源：读取 5 个 `P4-progress-{batch}.md` 文件 + `P4-progress-reviewfix.md` + `git diff HEAD --stat`（了解全部改动文件），按 BDD 编号组织改动清单（参照 TAG0016 的 `P4-implementation.md` 格式风格：按批次分节，每节列改动文件 + 改动点 + 关联 BDD）。
+4. `implementation_dir: agate/`（本任务改动横跨 `agate/scripts/`、`agate/phase-cards/`、`agate/assets/`、根目录 `SELF-GATE.md`/`AGENTS.md`/`platform-notes.md`，用顶层 `agate/` 作为声明值，参照 TAG0016 同类协议任务的先例——根目录几个文件超出 `agate/` 范围，在正文列出即可，不影响 `implementation_dir` 字段本身的声明）。
+5. 若有 `[DESIGN_GAP]`/`[SCOPE+]`/`[CLARIFY]` 标记：核实各批次返回时均声明"无特殊标记"，正文写明"本次实现无 DESIGN_GAP/SCOPE+/CLARIFY"。
+6. review-fix 轮的 CRITICAL 修复（--strict → --strict-errors-only 同步）也要在文档中记录，说明是 P4-review 发现并修复的问题。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-progress-fg1-parser-scripts.md
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-progress-fg1-doc-boundary.md
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-progress-fg2-self-gate-naming.md
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-progress-fg3-strict-mode-code.md
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-progress-fg4-windows-python-probe.md
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-progress-reviewfix.md
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-review.md（approved，含已修复的 CRITICAL/INFO）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md（§1.1 改什么表格，核对改动清单完整性）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +86,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +185,9 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 全部 5 批次 + review-fix 轮已完成，P4-review.md status: approved（agent≠main）
+- 全量 pytest 1011 passed, 2 skipped, 0 failed；ruff/shellcheck 全绿
+</objective_info>

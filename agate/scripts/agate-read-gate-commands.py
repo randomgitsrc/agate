@@ -13,6 +13,8 @@ import os
 import re
 import sys
 
+from agate_common import is_gate_meta_key
+
 content = open(os.environ["GATE_FILE"], encoding="utf-8").read()
 if not content.endswith(chr(10)):
     content += chr(10)
@@ -28,7 +30,7 @@ for line in re.findall(r"^  (\w+):\s*(.+)$", block, re.MULTILINE):
     val = line[1].strip().strip(chr(34)).strip(chr(39))
     if key == "project_module":
         project_module = val
-    elif key.startswith("P3") and not key.endswith("_formatter"):
+    elif key.startswith("P3") and not is_gate_meta_key(key):
         suffix = key[2:] if len(key) > 2 else ""
         fmt_key = "P3" + suffix + "_formatter"
         fmt_val = ""

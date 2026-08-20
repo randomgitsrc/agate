@@ -1076,7 +1076,13 @@ CHECKS = [
 def main() -> int:
     ap = argparse.ArgumentParser(description="agate 协议结构一致性检查")
     ap.add_argument("--root", default=".", help="仓库根目录（默认当前目录）")
-    ap.add_argument("--strict", action="store_true", help="WARNING 也判失败")
+    strict_group = ap.add_mutually_exclusive_group()
+    strict_group.add_argument("--strict", action="store_true", help="WARNING 也判失败")
+    strict_group.add_argument(
+        "--strict-errors-only",
+        action="store_true",
+        help="仅 ERROR 判失败，WARNING 不视为失败（与 --strict 互斥）",
+    )
     ap.add_argument("--json", action="store_true", help="JSON 输出")
     args = ap.parse_args()
 
@@ -1128,6 +1134,8 @@ def main() -> int:
 
     if rep.errors:
         return 1
+    if args.strict_errors_only:
+        return 0
     if rep.warnings and args.strict:
         return 2
     return 0

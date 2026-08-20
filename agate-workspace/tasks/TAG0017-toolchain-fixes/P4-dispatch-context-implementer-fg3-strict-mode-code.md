@@ -1,3 +1,41 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0017-toolchain-fixes
+role: implementer
+batch: fg3-strict-mode-code
+---
+
+<dispatch_guide>
+> ⚠️ 批次化并行派发之一（P2 dispatch_plan 5 批），只改本批次范围的文件——不要碰 `agate/phase-cards/P2-design.md`（fg1-doc-boundary 批次负责该文件的 BDD-9 文档半）。
+
+### 目标
+让 fg3-strict-mode-code 批次的红灯测试（BDD-9代码半，`test_check_protocol_consistency.py` 内 3 个 `test_strict_errors_only_*` 用例）变绿灯——给 `check-protocol-consistency.py` 新增 `--strict-errors-only` 互斥 CLI 模式。
+
+### 约束
+1. **双工作区纪律**：只读写 worktree，不碰主 checkout 或 `~/.agate`。
+2. **只改 `agate/scripts/check-protocol-consistency.py`**：
+   - `argparse` 新增 `--strict-errors-only` flag，与 `--strict` 用 `add_mutually_exclusive_group()` 互斥（不能同时指定两者）
+   - `main()` 尾部分支逻辑（约 L1128-1134，当前 `if rep.errors: return 1` / `if rep.warnings and args.strict: return 2` / `return 0`）新增：`--strict-errors-only` 模式下，仅 `rep.errors` 非空时 exit 1；`rep.warnings` 非空但 `rep.errors` 为空时打印提示信息（复用现有"仅有 N 个 WARNING，无 ERROR。"提示分支）但 exit 0；`--strict` 现有语义完全不变
+   - 三条测试用例的具体期望行为参见 `agate/tests/unit/test_check_protocol_consistency.py` 中 `test_strict_errors_only_*` 三个函数的断言细节
+3. **不要修改测试文件** `test_check_protocol_consistency.py`。
+4. **不要影响既有 `--strict` 行为**：修改前后都要能让 `python3 -m pytest agate/tests/unit/test_check_protocol_consistency.py -k "not strict_errors_only"` 全绿（24 个既有用例）。
+
+### 上游关联
+P3 test-designer（fg3-strict-mode-code 批次）摘要：3 个测试用例（0E0W→exit0 / 0E+NW→exit0+提示 / NE→exit1），当前全部红灯（argparse `unrecognized arguments: --strict-errors-only`）。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md（§1.1 改什么表格「check-protocol-consistency.py」行、§2.3 功能分组3候选方案、§1.3 风险 R4）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P3-test-cases.md（BDD-9代码半 节，测试断言点原文）
+- agate/tests/unit/test_check_protocol_consistency.py（红灯测试 `test_strict_errors_only_*` 三个函数，精确断言逻辑；结尾部分）
+- agate/scripts/check-protocol-consistency.py:1076-1134（现状 `main()`，`--strict`/`--json` flag 定义与尾部分支逻辑）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +89,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +188,9 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境：worktree（950+41 新增红灯测试基线已验证）
+- 其他批次由并行 implementer 负责：fg1-parser-scripts / fg1-doc-boundary（负责 `phase-cards/P2-design.md` 的 BDD-9 文档半，不在本批次范围）/ fg2-self-gate-naming / fg4-windows-python-probe
+</objective_info>

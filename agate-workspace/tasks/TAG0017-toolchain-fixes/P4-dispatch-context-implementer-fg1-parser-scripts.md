@@ -1,3 +1,48 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0017-toolchain-fixes
+role: implementer
+batch: fg1-parser-scripts
+---
+
+<dispatch_guide>
+> ⚠️ 批次化并行派发之一（P2 dispatch_plan 5 批），只改本批次范围的文件，不要碰其他批次的文件。
+
+### 目标
+让 fg1-parser-scripts 批次的红灯测试（BDD-1/2/3/4，共 18 个测试用例，分布在 `test_agate_common.py`/`test_gate_key_suffix_audit.py`/`test_check_tdd_red.py`/`test_agate_gate_missing_cmds.py`/`test_agate_gate_p5_count.py`/`test_agate_read_p5_commands.py`）变绿灯。
+
+### 约束
+1. **双工作区纪律**：只读写 worktree，不碰主 checkout 或 `~/.agate`。
+2. **只改这些文件**：
+   - `agate/scripts/agate_common.py`：新增共享判据函数 `is_gate_meta_key(key)`（判据：`key.endswith(("_formatter", "_timeout_seconds"))`），插入位置参照 `probe_python()` 附近（约 L60-76），风格与既有函数注释一致
+   - `agate/scripts/agate-read-gate-commands.py`（约 L31）：`elif key.startswith("P3") and not key.endswith("_formatter"):` 改为调用 `is_gate_meta_key(key)`
+   - `agate/scripts/agate-gate-missing-cmds.py`（约 L20）：`if k.endswith("_formatter") or k == "project_module": continue` 改为 `if is_gate_meta_key(k) or k == "project_module": continue`
+   - `agate/scripts/agate-gate-p5-count.py`（约 L23）：`aux = [k for k in ... if not k.endswith("_formatter")]` 改为用 `is_gate_meta_key` 排除
+   - `agate/scripts/agate-read-p5-commands.py`（约 L29）：`if key.endswith("_formatter"): continue` 改为 `if is_gate_meta_key(key): continue`
+3. **不要修改测试文件**（`test_agate_common.py`/`test_gate_key_suffix_audit.py`/`test_check_tdd_red.py`/`test_agate_gate_missing_cmds.py`/`test_agate_gate_p5_count.py`/`test_agate_read_p5_commands.py`）——测试是红灯基线，实现让它变绿，不改测试迁就实现。
+4. **不引入放宽判定的风险（BDD-2 核心要求）**：`is_gate_meta_key` 只精确匹配两个已知固定后缀（`_formatter`/`_timeout_seconds`），不做通配/正则宽松匹配，不吞并 `project_module` 之类语义不同的精确匹配判据（`agate-gate-missing-cmds.py` 里 `k == "project_module"` 保留独立判断，不合并进 `is_gate_meta_key`）。
+5. **4 个脚本的具体判据替换需保持各自原有的其他逻辑不变**（如 `agate-read-gate-commands.py` 的 formatter key 拼接逻辑 `fmt_key = "P3" + suffix + "_formatter"`），只替换排除判据这一处，不要顺手重构其他部分。
+
+### 上游关联
+P3 test-designer（fg1-parser-scripts 批次）摘要：18 个测试用例覆盖 BDD-1/2/3/4，当前全部红灯（AssertionError/ImportError，真红灯）；BDD-2 护栏用例已验证"真实非超时失败仍判 A 类"（用 TDD_CHECK 输出行数精确验证，退出码本身在该场景不可靠）；既有 53 条相关用例无回归。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md（§1.1 改什么表格 fg1-parser-scripts 相关行、§2.1 功能分组1候选方案 A、§7 files_to_read「fg1-parser-scripts」节）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P3-test-cases.md（BDD-1~4 节，测试用例清单与断言点）
+- agate/tests/unit/test_agate_common.py（红灯测试，实现目标）
+- agate/tests/unit/test_gate_key_suffix_audit.py（红灯测试，审计断言逻辑）
+- agate/tests/unit/test_check_tdd_red.py:683-742（BDD-1/2 相关用例）
+- agate/tests/unit/test_agate_gate_missing_cmds.py / test_agate_gate_p5_count.py / test_agate_read_p5_commands.py（各自新增用例）
+- agate/scripts/agate-read-gate-commands.py / agate-gate-missing-cmds.py / agate-gate-p5-count.py / agate-read-p5-commands.py（现状代码，待改）
+- agate/scripts/agate_common.py:60-76（`probe_python()` 附近，插入点参照）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +96,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +195,9 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境：worktree（950+41 新增红灯测试基线已验证）
+- 其他批次由并行 implementer 负责：fg1-doc-boundary / fg2-self-gate-naming / fg3-strict-mode-code / fg4-windows-python-probe
+</objective_info>

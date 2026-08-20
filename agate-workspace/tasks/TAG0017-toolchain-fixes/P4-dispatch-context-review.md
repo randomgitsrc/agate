@@ -1,3 +1,48 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0017-toolchain-fixes
+role: review
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令。单评审角色（domains=[protocol-docs, gate-scripts] 视同 backend 性质，按 C8 映射机械触发 `review`），直接产出 P4-review.md，无需组长汇总。
+
+### 目标
+对 P4 实现（5 个并行批次，14 个改动文件）做上线前最后一道评审：找一切可能在生产/后续任务中出问题的东西。
+
+### 约束
+1. **本任务性质特殊**：改动对象是 agate 协议自身（gate 判定脚本 + git hook 薄壳 + 协议 Markdown 文档），不是常规业务后端代码——传统"SQL 注入/竞态条件"类 CRITICAL 检查项大部分不适用，请把 Pass 1/Pass 2 的检查精神迁移到本任务语境：
+   - **Read-Check-Write 竞态** → 关注 3 个 hook 薄壳的探测逻辑是否有类似的检查-使用不一致（如 `command -v` 命中后到实际 exec 之间环境是否可能变化）
+   - **Enum/状态值新增后消费方是否都处理** → 关注 `is_gate_meta_key` 新增后是否所有原本判断 `_formatter` 后缀的地方都已切换、有无遗漏
+   - **TOCTOU** → 关注新增的可执行性小测试（`"$c" -c "" >/dev/null 2>&1`）与随后的 `exec "$PY"` 之间是否存在竞态窗口
+   - **资源泄漏/错误被吞掉** → 关注 `check-protocol-consistency.py` 新增 `--strict-errors-only` 分支是否正确处理所有 Report 状态组合，没有吞掉 ERROR 场景
+2. **重点核查同类扫描/影响面梳理声明的完整性**：P1/P2 反复强调"5 条 issue 域重叠、按文件→改动归并、避免同一文件被两批各改一次"——请核实最终实现是否真的做到了这一点（可用 `git diff --stat` 核对改动文件清单是否与 P2 §6 dispatch_plan 声明的 5 批文件边界一致，无遗漏无越界）。
+3. **核查 DEBT0010 修复没有放宽 TDD 红灯判定语义**（P1 R3 风险，BDD-2 核心要求）：`is_gate_meta_key` 是否严格只匹配 `_formatter`/`_timeout_seconds` 两个后缀，有没有可能被写成更宽泛的匹配从而误伤真实红灯判定。
+4. **核查 Windows 相关改动的诚实性边界**：`platform-notes.md`/`AGENTS.md` 新增文字是否真的没有"已在 Windows 实测通过"类断言（P0-brief 约束 3 硬性要求）。
+5. **核查 3 个 hook 薄壳改动是否逐字一致**：这是 P2 §1.3 R5 明确要求的一致性约束（3 文件必须同步，不能只改 1-2 个）。
+
+### 上游关联
+5 个并行 P4 implementer 批次全部完成，无任何 `[DESIGN_GAP]`/`[SCOPE+]`/`[CLARIFY]` 标记。主 Agent 已独立验证：全量 `python3 -m pytest agate/tests/` → 1011 passed, 2 skipped, 0 failed；`ruff check agate/` 全绿；`shellcheck -S warning` 3 个 hook 全绿；3 个 hook 薄壳探测循环片段逐字比对（`awk` 精确锚点提取）确认完全一致。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md（方案设计全文，尤其 §1 影响面梳理 + §2 候选方案选择理由 + §6 dispatch_plan 批次边界）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P1-requirements.md（BDD-1~12 验收条件原文）
+- 改动文件（`git diff HEAD` 可看到全部改动，或按下方清单逐个读取）：
+  - agate/scripts/agate_common.py（新增 `is_gate_meta_key`）
+  - agate/scripts/agate-read-gate-commands.py / agate-gate-missing-cmds.py / agate-gate-p5-count.py / agate-read-p5-commands.py（改用共享判据）
+  - agate/scripts/check-protocol-consistency.py（新增 `--strict-errors-only`）
+  - agate/scripts/pre-commit-gate.sh / commit-msg-self-gate.sh / pre-push-gate.sh（探测循环增强）
+  - agate/phase-cards/P2-design.md / agate/assets/execution-roles/architect.md / agate/phase-cards/P4-implementation.md（env_constraints 边界 + --strict 反模式指引 + dist 提醒文档）
+  - SELF-GATE.md / agate/assets/review-roles/protocol-alignment-review.md（命名模板 + 写入前检查）
+  - agate/platform-notes.md / AGENTS.md（Windows 已知限制文档）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +96,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +195,8 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 独立核验（主 Agent 已做）：全量 pytest 1011 passed / 0 failed；ruff 全绿；shellcheck 全绿；3 hook 探测循环片段逐字一致；`check-platform-assumptions.py agate/` 的若干命中经核实均为改动范围之外的历史遗留代码（未被本任务改动的行），非本次引入的回归
+</objective_info>

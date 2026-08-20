@@ -1,3 +1,48 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0017-toolchain-fixes
+role: implementer
+batch: fg4-windows-python-probe
+---
+
+<dispatch_guide>
+> ⚠️ 批次化并行派发之一（P2 dispatch_plan 5 批），只改本批次范围的文件。
+
+### 目标
+让 fg4-windows-python-probe 批次的红灯测试（BDD-10/11/12，`test_pre_commit_hook.py` 内 6 个参数化红灯用例 + `test_windows_python_probe_docs.py` 内 3 个正面断言红灯用例）变绿灯——3 个 hook 薄壳探测循环增强 + 2 处文档新增说明。
+
+### 约束
+1. **双工作区纪律**：只读写 worktree，不碰主 checkout 或 `~/.agate`。
+2. **3 个 hook 薄壳**（`agate/scripts/pre-commit-gate.sh` / `commit-msg-self-gate.sh` / `pre-push-gate.sh`，探测循环结构完全一致，约 L11-16）改动**逐字相同**：
+   - `AGATE_PYTHON` 环境变量非空时直接使用该路径作为 `PY`，跳过整个探测循环（BDD-11）
+   - 否则遍历 `python3 python` 候选，每个候选先做一次可执行性小测试（如 `"$CAND" -c "" >/dev/null 2>&1`），非零结果跳过继续下一候选，不是当前 `command -v "$c"` 命中就直接采用（BDD-10）
+   - 判据用**通用 exit code 判据**（候选执行任意最小命令失败即跳过），不要用"exit code 精确等于 49"或 stderr 字符串特征匹配（P2-design.md §2.4 候选 A 已定这个方向）
+   - 三个文件改动内容必须逐字一致（同一段代码片段），改完后自己 `diff` 三份探测循环片段确认一致（P2 §1.3 R5 风险要求）
+3. **`agate/platform-notes.md`「Windows 原生」章节**（约 L85-169，含「已知限制（Windows 原生）」表）：新增一行限制条目 + 一段说明，含 `"Store"` + "占位符"/"placeholder" + `"python3"` 字样，以及 `"AGATE_PYTHON"` 机制说明。**禁止**出现"已在 Windows 实测通过"/"已在真实 Windows 环境实测通过"/"已在 Windows 环境实测通过"这类断言——本环境是 Linux，只能诚实声明"静态修复 + 模拟 stub 回归 + CI matrix 冒烟验证"。
+4. **`AGENTS.md`「Gate 脚本分层」节**（约 L38-43）：追加一句提及 `AGATE_PYTHON`（同样禁止"已实测 Windows"断言）。
+5. **不要修改测试文件**（`test_pre_commit_hook.py`/`test_windows_python_probe_docs.py`）。
+6. **红灯测试用了参数化 fixture 构造模拟 stub**（broken python3 返回 exit 49、可用 python stub），实现只需让薄壳的探测逻辑本身正确即可让这些模拟测试变绿——不要试图"让测试适配 Windows 真实环境"，测试本身已经是模拟场景。
+
+### 上游关联
+P3 test-designer（fg4-windows-python-probe 批次）摘要：9 个测试用例（BDD-10 x3 hook + BDD-11 x3 hook + BDD-12 x3 正面断言）当前全部红灯，另 2 个 BDD-12 诚实性负面断言按设计天然为绿（须保持绿，不能因为实现引入夸大断言而变红）。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md（§1.1 改什么表格「3 个 hook 薄壳」「platform-notes.md」「AGENTS.md」相关行、§2.4 功能分组4候选方案、§8 minimal_validation 中 DEBT0014 那条模拟 stub 验证方法）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P3-test-cases.md（BDD-10/11/12 节，测试断言点原文）
+- agate/tests/integration/test_pre_commit_hook.py（红灯测试，精确断言逻辑与 fixture 构造方式，实现前务必读一遍理解 `_build_probe_workflow_root`/`_make_broken_python3_stub`/`_make_working_python_stub` 的行为约定）
+- agate/tests/unit/test_windows_python_probe_docs.py（红灯测试，精确关键词断言）
+- agate/scripts/pre-commit-gate.sh（全文，探测循环现状）
+- agate/scripts/commit-msg-self-gate.sh、agate/scripts/pre-push-gate.sh（全文，同结构确认）
+- agate/platform-notes.md:85-169（现状「Windows 原生」章节）
+- AGENTS.md:38-43（现状「Gate 脚本分层」节）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +96,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +195,9 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 环境：worktree（950+41 新增红灯测试基线已验证）
+- 其他批次由并行 implementer 负责：fg1-parser-scripts / fg1-doc-boundary / fg2-self-gate-naming / fg3-strict-mode-code
+</objective_info>

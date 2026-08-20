@@ -39,7 +39,7 @@
 
 ## Gate 脚本分层
 
-`scripts/*.py` 是产品逻辑，`scripts/agate_common.py` 是公共函数库（`write_gate_result`、`read_state_phase`、`read_state_task_id`、`resolve_workspace` 等）。3 个 hook（`pre-commit-gate.sh`、`commit-msg-self-gate.sh`、`pre-push-gate.sh`）保留 sh 薄壳，经 `install-hook.py` 以软链方式安装，升级自动生效；薄壳只做 AGATE_ROOT 自定位 + python 探测 + exec py 主程序（`pre-commit-gate.py` 等）。`check-gate.py` 是主 Agent 每阶段调用的总闸检查。
+`scripts/*.py` 是产品逻辑，`scripts/agate_common.py` 是公共函数库（`write_gate_result`、`read_state_phase`、`read_state_task_id`、`resolve_workspace` 等）。3 个 hook（`pre-commit-gate.sh`、`commit-msg-self-gate.sh`、`pre-push-gate.sh`）保留 sh 薄壳，经 `install-hook.py` 以软链方式安装，升级自动生效；薄壳只做 AGATE_ROOT 自定位 + python 探测 + exec py 主程序（`pre-commit-gate.py` 等）。`check-gate.py` 是主 Agent 每阶段调用的总闸检查。python 探测循环支持 `AGATE_PYTHON` 环境变量显式覆盖（非空时直接使用该路径，跳过探测循环），未设置时逐候选做可执行性小测试后再采用（规避 Windows Store python3.exe 占位符现象，DEBT0014；验证方式见 platform-notes.md，静态修复 + 模拟 stub 回归 + CI matrix 冒烟，未在真实 Windows 环境实测）。
 
 ## 依赖
 

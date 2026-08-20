@@ -1,3 +1,58 @@
+---
+phase: P4
+generated_by: 主 Agent（修复轮，增量模式）
+task_id: TAG0017-toolchain-fixes
+role: implementer
+retry_round: 1
+---
+
+<dispatch_guide>
+> ⚠️ 修复轮——P4-review.md 判定 rejected，1 个 CRITICAL + 2 个 INFO。本轮修复全部 3 项（CRITICAL 必须修，2 个 INFO 顺带一并处理，成本很低）。
+
+### 上轮评审产出
+{AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-review.md（status: rejected）
+
+### 修复目标
+
+**1. CRITICAL（主 Agent 已裁决：选 Option A + Option C 组合，不采用 Option B）**
+
+根因：`check-protocol-consistency.py --strict` 在当前仓库真实基线（0 ERROR + 314 条历史 WARNING）下返回 exit 2（主 Agent 已独立实测复核，`STRICT_EXIT=2`）；本任务新增的 `--strict-errors-only` 在同样基线下返回 exit 0（`SEO_EXIT=0`，已实测确认）。但协议卡片新增的"正确做法"示例和 TAG0017 自身的 gate_commands 声明都还在用 `--strict`，没有真正用上新增的模式，会让本任务自身的 `P5_consistency` gate 步骤永久失败。
+
+- **Option A**：`agate/phase-cards/P2-design.md`「gate_commands 声明」节的"正确做法"示例（约 L165-171，`P5_consistency: "check-protocol-consistency.py --strict"`）改为推荐 `--strict-errors-only`：
+  ```yaml
+  gate_commands:
+    P5: "pytest -q --tb=no"
+    P5_consistency: "check-protocol-consistency.py --strict-errors-only"
+    P5_shellcheck: "shellcheck scripts/*.sh"
+  ```
+  并在示例下方补一句说明："`--strict-errors-only`（仅 ERROR 判失败）适合日常任务默认使用；`--strict`（WARNING-only 也判失败）保留给专门做 WARNING 债务清理的任务主动选用。"
+- **Option C**：`{AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md` §5 `gate_commands` 声明里的 `P5_consistency` 由 `"python3 agate/scripts/check-protocol-consistency.py --strict"` 改为 `"python3 agate/scripts/check-protocol-consistency.py --strict-errors-only"`。**这是对已产出的 P2-design.md 的修正**（该文件通常在 P2 固化后不应改动，但本次是 review 发现的设计层缺陷订正，不是新方案设计变更）——修改后在该文件里紧邻这一行加一条 HTML 注释或行内说明，标注 `<!-- P4 review 修正：原 --strict 在当前 WARNING 基线下阻塞本任务自身 P5，改用 --strict-errors-only -->`，保留可追溯性，不要静默改掉不留痕迹。
+
+**2. INFO（顺带修复）**
+- `agate/scripts/agate-gate-p5-count.py` 第 6 行 docstring 仍写"排除 `_formatter` 键"，未同步提及 `_timeout_seconds`。改为"排除 `_formatter` / `_timeout_seconds` 元信息键"。
+- `SELF-GATE.md` 第 62 行左右的示例文案（"如 agate-alignment-2026-07-01-01.progress.md、-02.progress.md"）是旧命名格式（缺 `{task_id}`），与同文件新命名模板不一致。改为类似 `agate-alignment-2026-07-01-TAG0017-01.progress.md` 的新格式示例。
+
+### 约束
+1. **双工作区纪律**：只读写 worktree，不碰主 checkout 或 `~/.agate`。
+2. **只做上述 4 处修复**（CRITICAL 2 处 + INFO 2 处），不要改动其他已通过的内容。
+3. **修复后验证**：
+   - `python3 agate/scripts/check-protocol-consistency.py --strict-errors-only --root .` 应 exit 0（可用 `; echo "EXIT=$?"` 单独一行验证，不要通过管道丢失退出码——`| tail` 会导致 `$?` 变成 tail 的退出码而非 python3 的，这是主 Agent 自己踩过的坑，提醒你也注意）
+   - 重跑 `python3 -m pytest agate/tests/ -q --tb=no` 确认仍是 1011 passed（本轮不改测试，不应引入任何测试变化）
+   - `agate/phase-cards/P2-design.md` 与 `{AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md` 里不应再有会导致 `check-protocol-consistency.py --strict`（不带 `-errors-only`）出现在"推荐使用"上下文里的表述（`--strict` 本身作为"可选保留给 WARNING 清理任务"的说明性提及不算，只改"默认推荐用法"）
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-review.md（完整评审报告，含 CRITICAL 详情与 Fix 三选项）
+- agate/phase-cards/P2-design.md:160-175（现状"正确做法"示例段落）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md:162-171（本任务自身 gate_commands 声明现状）
+- agate/scripts/agate-gate-p5-count.py:1-10（docstring 现状）
+- SELF-GATE.md:55-65（示例文案现状）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +106,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +205,9 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 主 Agent 独立实测：`python3 agate/scripts/check-protocol-consistency.py --strict --root .` → exit 2；`--strict-errors-only --root .` → exit 0（均为 0 ERROR + 314 WARNING 的同一基线，唯一变量是 flag）
+- 本轮是 retries[P4] 第 1 轮（P4 MAX=3）
+</objective_info>

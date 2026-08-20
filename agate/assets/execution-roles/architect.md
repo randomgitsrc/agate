@@ -139,6 +139,7 @@ agent: architect
       # 不写 prod_env：生产环境不在 agate 范围内
       isolation_check: "（测试环境隔离的验证方式，P5 gate 会用到这里）"
     ```
+    **边界提醒**：`env_constraints` 是**声明性字段**，只做信息确认/注入，不会被自动执行、也没有 gate 脚本会去校验它写的条件是否成立——它和 `gate_commands` 这个真正被执行的机制不等价。任何需要被强制执行的约束，必须落到 `gate_commands` 或 P4/P8 阶段卡片的明确 checklist，不能只写进 `env_constraints` 就当作已经生效。
   - `files_to_read:` — **实现时需要读取的文件清单**（你是唯一既读了代码又设计了方案的角色，把这张"上下文地图"显式交付，让 P4 implementer 不必在项目里乱窜找文件、也不必整目录全读撑爆上下文）：
     ```yaml
     files_to_read:

@@ -1,3 +1,46 @@
+---
+phase: P4
+generated_by: 主 Agent（复评轮，增量模式）
+task_id: TAG0017-toolchain-fixes
+role: review
+retry_round: 1
+---
+
+<dispatch_guide>
+> ⚠️ 复评轮——上轮（P4-review.md）已确认除 1 个 CRITICAL + 2 个 INFO 外，其余全部通过（5 批文件边界无重叠、3 hook 逐字一致、is_gate_meta_key 判据未放宽、--strict-errors-only 不吞 ERROR、Windows 诚实性边界、命名模板改造完整）。本轮只需复核 CRITICAL + 2 INFO 是否已解决，不要重新逐项评审已通过内容。
+
+### 上轮评审产出
+{AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-review.md（status: rejected，CRITICAL + 2 INFO 详情见该文件）
+
+### 本轮复核对象
+- `agate/phase-cards/P2-design.md`「gate_commands 声明」节"正确做法"示例（应已改用 `--strict-errors-only`）
+- `{AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md` §5 gate_commands（应已改用 `--strict-errors-only`，并留有修正说明注释）
+- `agate/scripts/agate-gate-p5-count.py` docstring（应已同步 `_timeout_seconds`）
+- `SELF-GATE.md` 示例文案（应已改为新命名格式）
+
+### 复核目标
+1. CRITICAL 是否已解决：独立执行 `python3 agate/scripts/check-protocol-consistency.py --strict-errors-only --root .`（**注意用独立一行捕获 exit code，不要通过管道**，管道会丢失真实退出码——上轮主 Agent 自己踩过这个坑）应为 exit 0；两处文档示例是否都已改为推荐 `--strict-errors-only`
+2. 2 个 INFO 是否已顺带修复
+3. 修复过程是否引入新问题（如 implementer 提到把 HTML 注释改成了 YAML `#` 注释以避免触发 CHECK 1 新 WARNING——请核实这个改动本身是否正确，`check-protocol-consistency.py --root .` 默认模式应仍是 0 ERROR + 314 WARNING，不多不少）
+4. 全量 `python3 -m pytest agate/tests/ -q --tb=no` 应仍是 1011 passed（本轮修复不应改测试代码，不应引入任何测试数量或结果变化）
+
+### 约束
+- 只审这 4 处订正是否解决问题 + 是否有新引入的问题，不需要重新核实上轮已通过的其余内容（5 批边界/hook 一致性/判据语义/诚实性边界/命名模板等）
+- 若均已解决且无新问题 → status: approved
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P4-review.md（上轮评审，CRITICAL 与 2 INFO 原始描述）
+- agate/phase-cards/P2-design.md:160-175（复核对象）
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/P2-design.md:162-172（复核对象）
+- agate/scripts/agate-gate-p5-count.py:1-10（复核对象）
+- SELF-GATE.md:55-65（复核对象）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +94,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +193,8 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 主 Agent 已做初步核对：`--strict-errors-only --root .` → exit 0；两处文档示例均已改为 `--strict-errors-only`；`check-protocol-consistency.py --root .`（默认模式）仍是 0 ERROR + 314 WARNING（与注释改用 YAML `#` 而非 HTML 注释前后一致，未新增/减少 WARNING）；全量 pytest 1011 passed, 2 skipped, 0 failed
+</objective_info>

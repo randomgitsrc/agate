@@ -1,3 +1,39 @@
+---
+phase: P4
+generated_by: 主 Agent（self-gate MISALIGNED 修复轮）
+task_id: TAG0017-toolchain-fixes
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ protocol-alignment-review 发现 1 处 MISALIGNED（A2/A3b 同源），本轮只修这一处。
+
+### 目标
+让 `agate/scripts/README.md` 同步反映 `check-protocol-consistency.py` 新增的 `--strict-errors-only` 模式。
+
+### 修复内容
+`agate/scripts/README.md:163-178`（「用法」+ 退出码节）：
+1. 在既有的 `python3 agate/scripts/check-protocol-consistency.py` / `--strict` 用法示例后，补一行 `--strict-errors-only` 用法示例，可引用 `phase-cards/P2-design.md` 的措辞："日常任务默认用 `--strict-errors-only`；`--strict` 留给专门做 WARNING 债务清理的任务主动选用"。
+2. 退出码说明表格/文字扩展为区分三种模式，例如：
+   - `0` = 无 ERROR（含 `--strict-errors-only` 下 WARNING-only 场景）
+   - `1` = 有 ERROR
+   - `2` = 仅 WARNING 且加了 `--strict`
+
+### 约束
+1. 只改 `agate/scripts/README.md`，不改其他文件。
+2. 内容准确性以 `agate/scripts/check-protocol-consistency.py` 实际 argparse 定义与 main() 尾部分支逻辑为准（互斥组 `--strict`/`--strict-errors-only`）。
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0017-toolchain-fixes/docs/reviews/agate-alignment-review-2026-08-20-TAG0017.md（实为 `docs/reviews/agate-alignment-review-2026-08-20-TAG0017.md`，worktree 根目录下，非任务目录内——审查发现的具体差异描述见该文件 A2 节）
+- agate/scripts/README.md:163-178（现状）
+- agate/scripts/check-protocol-consistency.py（argparse 定义 + main() 尾部分支，核实实际行为）
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -51,7 +87,6 @@
 写完代码后应自跑测试确认基本功能（自查），但自查通过 ≠ P5 gate 通过。
 P5 由主 Agent 派发 verifier subagent 执行 gate_commands.P5，主 Agent 验 gate（检查产出 + failed 计数 + N5 最小校验）。
 不要在返回中声称"P5 已过"或"全部测试通过"——只返回路径 + 摘要。
-UI/前端等需构建任务：单元测试全绿不代表可用，implementer 在 P4 完成后应构建并确认 dist 等构建产物存在，不能只跑单元测试就认为完成。
 
 ## 生产环境隔离
 任何写入生产环境/生产数据库/生产 API 的操作都必须先 PAUSED 报告人工。
@@ -151,3 +186,8 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 全部其余审查项（A1/A4/A5/A6/A7）均 ALIGNED，仅这一处需修复
+</objective_info>
