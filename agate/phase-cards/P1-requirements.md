@@ -78,6 +78,9 @@ domains: [backend, frontend]  # list，必填
 # internal_only_reason / 跳过风险 / design_trivial / follows_existing_pattern
 # ── v2.0 refactor 任务类型声明（可选，缺省 = 功能任务）──
 # change_type: refactor   # 当前仅支持 refactor；枚举非法值由 frontmatter schema 拦截
+# ── TAG0007 项目阶段声明（可选，缺省 = established，向后兼容）──
+# project_phase: bootstrap   # bootstrap（0→1 新项目）/ established（既有项目，缺省值）；
+#                             # bootstrap 时 P2 architect 需额外产出 P2-skeleton.md（骨架声明）
 # ── TAG0006 UI/UX 渲染形态声明（可选，presence 语义：缺失 = 常规布局型默认，不红基线）──
 # ui_render_shape: render_component   # str，规范形态值：layout（布局型）/ render_component
 #                                     # （渲染组件型，仅举例 OpenGL/WebGL/Canvas/图表/模型/特效/

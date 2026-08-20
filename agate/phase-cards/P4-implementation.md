@@ -63,6 +63,24 @@ UI/前端等需构建任务：单元测试全绿不代表可用，implementer �
 - 代码文件在声明的目录下
 - 遵守 P2-design.md 的方案设计 + 现有项目代码规范
 
+## 新增文件核对表
+
+> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
+> 存在）机制时填写；未采用则本节可省略。
+
+implementer 为本阶段**每个新增文件**填一行：
+
+| 新增文件路径 | 骨架归属 | CODE-MAP 处理 |
+|------------|---------|--------------|
+| {path} | `within <dir>` / `[SKELETON_DEVIATION: 理由]` | `[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]` |
+
+- **骨架归属列**：新增文件落在骨架声明的目录内 → `within <dir>`；落在骨架外 → 标
+  `[SKELETON_DEVIATION: 理由]`（不阻断，供 P7 核对）
+- **CODE-MAP 处理列**：新增文件已同步更新 `agents/CODE-MAP.md` → `[CODE_MAP_UPDATED]`；判断
+  该文件不需要更新 CODE-MAP（如临时/测试脚手架）→ `[CODE_MAP_EXEMPT: 理由]`
+
+`change_type: refactor` 同样适用本表（不因换用回归口径而豁免）。
+
 ## 评审派发（C8 机械映射）
 
 **在 P4 实现完成后、gate 前**，按 P1 声明的 domains 和 risk_level 派评审。C8 映射表是机械规则，不靠判断"需不需要"：
@@ -126,6 +144,7 @@ check-gate.py P4 $TASK_DIR
 
 - **exit 0**：暂存区含非 md/yaml 代码文件（git diff --cached --name-only）
 - **exit 1**：暂存区仅 .md/.yaml 文件（无实际代码变更）→ 不能推进
+- WARNING（不改变 exit code）：骨架/CODE-MAP 机制已采用（P2-skeleton.md 或 agents/CODE-MAP.md 存在）但缺「新增文件核对表」标题
 
 ## 推进条件（全部满足才写 phase: P5）
 

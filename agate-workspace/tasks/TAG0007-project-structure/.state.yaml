@@ -1,4 +1,45 @@
 task_id: TAG0007
-phase: P0
-status: pending
-retries: {}
+phase: READY
+status: complete
+p5_pass_commit: f63e207daac99b5812ff1d87b787e3270476a887
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+  P2:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+  P4: []
+  P5: []
+  P6: []
+  P7: []
+retry_count: { P1: 1, P2: 1, P4: 0, P5: 0, P6: 0, P7: 0 }
+review_scores:
+  P2:
+    - round: 1
+      reviewer: plan-eng-review
+      score: null
+      status: rejected
+      feedback: "gate_p7 CODE-MAP pairing 校验只描述单层结构，与 DESIGN_GAP 真实两层结构（内部一致性+转抄核对）不对称，code_map_new_files_count 字段声明未使用"
+    - round: 2
+      reviewer: plan-eng-review
+      score: null
+      status: approved
+      feedback: "两层校验字段对应关系修复核实无误，两处非阻塞措辞已改写到位"
+  P4:
+    - round: 1
+      reviewer: review
+      score: null
+      status: approved
+      feedback: "0 阻塞问题；2 条 DESIGN_GAP 均给出明确判定（第1条接受+补充边界说明，第2条登记 DEBT0016）；跨批次字段一致性与 ADR-003 合规均核实通过"
+  P7:
+    - round: 1
+      reviewer: consistency-reviewer
+      score: null
+      status: approved
+      feedback: "BLOCKER=0，2条 DESIGN_GAP 全部 REVIEWED 配对；独立发现 gate_p4 假阴性 + 自我应用缺口，判定 CODE_MAP_DRIFT 非阻塞，登记 DEBT0017"
+updated: 2026-08-20

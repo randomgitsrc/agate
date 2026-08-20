@@ -32,6 +32,7 @@ consistency-reviewer subagent 执行。检查清单：
 2. **SCOPE+ 闭环**：P1-requirements.md 有 [SCOPE_RESOLVED] 标记，确认所有 SCOPE+ 增补已纳入基线
 3. **跨文件一致性**：P2 声明的 packages 与 P8 release 的 bump 范围一致？P1 的 BDD 和 P6 的验收结果数量匹配？P4 的实现路径和 P2 的方案设计吻合？
 4. **未决项清零**：P1-requirements.md 无残留行首 [NEED_CONFIRM]（P6 不再有 NEED_CONFIRM）、[BLOCKER]、[DEVIATION-CRITICAL]
+5. **CODE-MAP 核对**：对照 `{AGATE_WORKSPACE}/agents/CODE-MAP.md` 与 P4「新增文件核对表」逐条核对，发现依赖方向偏离标 `[CODE_MAP_DRIFT:]`（WARNING 级，不阻断）；核对通过标 `[CODE_MAP_SYNC:]`
 
 ## 实质锚点要求（N3⑨）
 
@@ -51,7 +52,8 @@ gate 脚本校验说明：
 - 逐条检查结果，无 [BLOCKER] 标记
 
 `blocker_count`/`deviation_count`/`deviation_critical_count`/`design_gap_count`/
-`design_gap_reviewed_count` 写在文件头 **frontmatter**（`---` 分隔块），不写正文；正文
+`design_gap_reviewed_count`/`code_map_new_files_count`/`code_map_reviewed_count` 写在文件头
+**frontmatter**（`---` 分隔块），不写正文；正文
 `[BLOCKER]`/`[DEVIATION-CRITICAL]`/`[DESIGN_GAP]`/`[DESIGN_GAP_REVIEWED]` 散文标记保留为
 人类痕迹（不迁移），gate 判定改读 frontmatter 结构化计数。**可直接复制的完整样例**：
 ```yaml
@@ -70,6 +72,8 @@ deviation_count: 0                # int ≥0
 deviation_critical_count: 0       # int ≥0
 design_gap_count: 0                # int ≥0
 design_gap_reviewed_count: 0       # int ≥0
+code_map_new_files_count: 0        # int ≥0（可选，仅骨架/CODE-MAP 机制已采用时填）
+code_map_reviewed_count: 0         # int ≥0（可选，语义对应 design_gap_reviewed_count）
 ---
 ```
 
@@ -82,6 +86,7 @@ check-gate.py P7 $TASK_DIR
 - [BLOCKER] 存在 → exit 1
 - [DEVIATION-CRITICAL] 存在 → exit 1
 - DESIGN_GAP 未配对（P4 有但 P7 无 REVIEWED）→ exit 1
+- CODE-MAP 未配对（code_map_reviewed_count < code_map_new_files_count，或 P4 实际标记数 > code_map_new_files_count）→ exit 1（两字段均缺失时机制未采用，跳过）
 - 含 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词 → WARNING（不改变 exit code）
 - 全部通过 → exit 0
 

@@ -15,7 +15,6 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0007 | agate 项目结构管理：0→1 骨架（RM-0008）/ code-map + 架构演进（RM-0009）| ⬜ | P0 | 高 | — | 2026-08-13 | 2026-08-13 |
 
 ### 已完成（归档）
 
@@ -24,6 +23,7 @@
 
 | 编号 | 任务名称 | 状态 | 最终阶段 | 优先级 | 完成日期 |
 |------|----------|------|----------|--------|----------|
+| TAG0007 | agate 项目结构管理机制（RM-AG0008 0→1 骨架脚手架 + RM-AG0009 CODE-MAP 架构演进纪律）：P1 需求 needs-revision 1 轮修复、P2 方案 rejected 1 轮修复（gate_p7 pairing 字段对应关系）、P4 实现 4 批并行（skeleton-docs/code-map-docs/gate-script-both/dogfood-bootstrap）review 一次通过、P7 一致性发现 gate_p4 自指假阴性登记 DEBT0017：11 条 BDD 全 PASS → v0.56.0 | ✅✅ | READY | 高 | 2026-08-20 |
 | TAG0017 | agate 协议工具链修复批（RM-AG0027/0028，TAG0016 复盘 + TQC0001 跨项目反馈）：DEBT0010 gate_commands 解析未排除 _timeout_seconds（4 脚本 + is_gate_meta_key 共享判据函数，修复 P2/P3/P5 误判）+ DEBT0011 SELF-GATE 审查文件命名补 {task_id} 防跨任务覆盖 + DEBT0012 check-protocol-consistency.py 新增 --strict-errors-only 消除 --strict 与 && 链路短路 + DEBT0014 Windows Store python3 占位符命中 hook 探测循环（AGATE_PYTHON 显式覆盖 + 候选可执行性小测试）+ DEBT0015 env_constraints 声明性/执行性边界文档化：12 条 BDD 全 PASS，5 批并行 + 3 轮 review/self-gate 迭代修复 → v0.55.0 | ✅✅ | READY | 高 | 2026-08-20 |
 | TAG0016 | agate 协议卫生与测试效率（RM-AG0025 + RM-AG0026）：协议文档职责边界与去重（全仓关键词交叉扫描核实 6 处已知重复中 4 处成立/1 处不成立/新发现 1 类未预判重复，收敛为单一权威源+指针）+ CHECK 12 防复发跨文件一致性检测 + 测试重跑审计与跨阶段证据引用（P5→P6/P8 无改动时可复用证据机制，审计7 + --audit7-only CLI + ADR-010）+ xdist CI 观测试点：19 条 BDD 全 PASS，2 个 P4-review CRITICAL 均修复（fail-closed + 小节裁剪防误报），4 条 DEBT 登记（含系统性扫描发现的 gate_commands 解析缺陷） → v0.54.0 | ✅✅ | READY | 高 | 2026-08-19 |
 | TAG0015 | agate 复盘与反馈机制统一（RM-AG0020 + RM-AG0021）：复盘模板迁入协议本体（正文四节结构/内容价值标准/归因分层/技术债强制说明/资产沉淀标注/frontmatter 三字段/agate 反馈节）+ check-retrospective.py 路径与机制缺口信号扩展 + orchestrator-log 决策依据扩展 + L2 会话 checkpoint 两件套 + 新增 agate-feedback.py 跨项目反馈（ADR-007 合规）：20 条 BDD 全 PASS → v0.53.0 | ✅✅ | READY | 高 | 2026-08-19 |

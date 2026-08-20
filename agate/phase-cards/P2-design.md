@@ -81,6 +81,14 @@ ui_design_section: true           # bool，可选（presence 语义：ui_affecte
 P2 gate exit 1。结构规格见 `assets/execution-roles/architect.md`「UI 设计节」节（由 architect
 兼任产出，不新增 designer 角色）。
 
+**骨架产出（`project_phase: bootstrap` 时必含，P2 gate 校验）：** P1-requirements.md frontmatter
+声明 `project_phase: bootstrap`（0→1 新项目；缺省 `established` 不触发）的任务，P2 architect 除
+P2-design.md 外，还须在 task 目录下产出 `P2-skeleton.md`（须含 `## 骨架声明` 标题）。骨架内容以
+「候选目录集合 + 项目侧声明」的参数化形式表达（不写死具体语言/框架目录名），模板见
+`assets/templates/skeleton-template.md`，结构规格见 `assets/execution-roles/architect.md`
+「骨架设计职责」节（由 architect 兼任产出，不新增专属角色）。`project_phase` 字段缺失或非
+`bootstrap` 时不检查（向后兼容，行为与改动前一致）。
+
 候选方案简化（须附理由，无理由视为无效声明，要求 ≥2 候选方案）：
 - `design_trivial: true` + 理由（为什么 trivial）→ 可只写 1 个候选方案（P2 仍不可省略）
 - `follows_existing_pattern: [src/foo.py]`（列出参照文件路径）→ 可只写 1 个候选方案，参照已有模式（P2 仍不可省略）

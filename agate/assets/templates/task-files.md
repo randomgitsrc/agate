@@ -433,6 +433,8 @@ deviation_count: 0                # int ≥0（BDD-19）
 deviation_critical_count: 0       # int ≥0（DEVIATION-CRITICAL）
 design_gap_count: 0               # int ≥0（BDD-20）
 design_gap_reviewed_count: 0      # int ≥0（BDD-20）
+code_map_new_files_count: 0        # int ≥0（可选，仅骨架/CODE-MAP 机制已采用时填）
+code_map_reviewed_count: 0         # int ≥0（可选，语义对应 design_gap_reviewed_count）
 ---
 ```
 正文 `[BLOCKER]` / `[DEVIATION-CRITICAL]` / `[DESIGN_GAP]` / `[DESIGN_GAP_REVIEWED]` 散文标记

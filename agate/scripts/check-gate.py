@@ -634,6 +634,17 @@ def gate_p2(task_dir):
     if not _gate_p2_ui_design_section(p2_file):
         return 1
 
+    # TAG0007（BDD-1/3）：project_phase: bootstrap → P2-skeleton.md「## 骨架声明」存在性校验。
+    # 字段缺失或为 established（含显式声明）时完全不检查——行为须与改动前逐字节一致（BDD-3 回归）。
+    project_phase = _frontmatter_field(p1_file, "project_phase")
+    if project_phase == "bootstrap":
+        skeleton_file = os.path.join(task_dir, "P2-skeleton.md")
+        if not os.path.isfile(skeleton_file) or "## 骨架声明" not in _read_text(skeleton_file):
+            sys.stderr.write(
+                "GATE P2: project_phase: bootstrap 但 P2-skeleton.md 不存在或缺少「## 骨架声明」标题\n"
+            )
+            return 1
+
     sys.stderr.write("GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定\n")
     return 2
 
@@ -675,11 +686,36 @@ def gate_p4(task_dir):
     rc, name_only = _git(["diff", "--cached", "--name-only"])
     if rc != 0:
         return 1
+    has_code_file = False
     for raw_line in name_only.splitlines():
         line = raw_line.rstrip("\r")
         if not _STAGED_EXCLUDE_RE.search(line):
-            return 0
-    return 1
+            has_code_file = True
+            break
+    if not has_code_file:
+        return 1
+
+    # TAG0007（BDD-4/7/10）：骨架/CODE-MAP 机制已采用（P2-skeleton.md 或
+    # {AGATE_WORKSPACE}/agents/CODE-MAP.md 存在，OR 条件）且 P4-implementation.md 缺少
+    # 「## 新增文件核对表」标题 → WARNING 不阻断（仍 return 0）。change_type 字段不读取、
+    # 不分支（BDD-10：refactor 任务同样触发，不豁免）。
+    skeleton_file = os.path.join(task_dir, "P2-skeleton.md")
+    # [DESIGN_GAP: P2-design.md 未给出 {AGATE_WORKSPACE}/agents/CODE-MAP.md 的函数级路径解析
+    # 细节（P3 测试只覆盖 P2-skeleton.md 分支）。本实现采用 task_dir 向上两级推导 workspace 根
+    # （task_dir 通常形如 {AGATE_WORKSPACE}/tasks/{Txxx}），再拼接 agents/CODE-MAP.md：
+    # os.path.dirname(os.path.dirname(os.path.abspath(task_dir))) + "/agents/CODE-MAP.md"。
+    # 若与 agate_common._resolve_workspace / .agate.env 的实际工作区解析机制不一致，需后续对齐。]
+    code_map_file = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(task_dir))), "agents", "CODE-MAP.md"
+    )
+    if os.path.isfile(skeleton_file) or os.path.isfile(code_map_file):
+        p4_impl_check = os.path.join(task_dir, "P4-implementation.md")
+        if "## 新增文件核对表" not in _read_text(p4_impl_check):
+            sys.stderr.write(
+                "GATE P4 WARNING: 骨架/CODE-MAP 机制已采用，但 P4-implementation.md 缺少「## 新增文件核对表」标题（不阻断，请补充）\n"
+            )
+
+    return 0
 
 
 def gate_p5(task_dir):
@@ -897,6 +933,51 @@ def gate_p7(task_dir):
         sys.stderr.write(
                 "WARNING P7: P7-consistency.md 有 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词（P1 BDD / P2 packages / P4 implementation）——review 可能未做实质性交叉检查\n"
             )
+
+    # TAG0007（BDD-8/9/10）：CODE_MAP pairing 两层硬校验，仿照上方 DESIGN_GAP pairing 模板
+    # （字段对应关系：内部一致性层比较 code_map_reviewed_count 与 code_map_new_files_count；
+    # 转抄核对层比较 P4 实际标记数与 code_map_new_files_count，不是 code_map_reviewed_count）。
+    # 两字段均缺失 → 机制未采用，两层校验全部跳过（回归对照）。change_type 字段不读取、不分支
+    # （BDD-10：refactor 任务同样生效）。与上方 DESIGN_GAP 逻辑并行独立，不共享变量。
+    # [DESIGN_GAP: dispatch-context 建议用 _md_field_get 读取 code_map_new_files_count/
+    # code_map_reviewed_count（与既有 design_gap_count 读取方式一致），但
+    # agate-md-field-get.py 的 KNOWN_OPS 允许列表尚未注册这两个新字段名（该文件不在本批次
+    # 允许改动范围内，只能改 check-gate.py）——若照字面用 _md_field_get 调用，子进程会因
+    # unknown op exit(2)，_md_field_get 恒回退为空字符串，导致两层校验永远被判定为"机制未
+    # 采用"而跳过，12 个新增测试中 3 个 gate_p7 用例会失败。改用本文件已有的纯本地实现
+    # _frontmatter_field(path, field)（同一文件内定义，无子进程/无 allowlist 限制）直接从
+    # P7-consistency.md frontmatter 块取值，行为等价（frontmatter-only，无正文回退，因为
+    # _frontmatter_field 本身只扫描 --- 块内的行）。若后续有批次把这两个字段注册进
+    # agate-md-field-get.py 的 NO_FALLBACK_INT_FIELDS，可切回 _md_field_get 保持风格统一。]
+    cm_count_fm = _frontmatter_field(p7_file, "code_map_new_files_count")
+    cm_reviewed_fm = _frontmatter_field(p7_file, "code_map_reviewed_count")
+    if cm_count_fm != "" and cm_reviewed_fm != "":
+        cm_count = _to_int_or_none(cm_count_fm)
+        cm_reviewed = _to_int_or_none(cm_reviewed_fm)
+        # 内部一致性层
+        if cm_count is not None and cm_reviewed is not None and cm_reviewed < cm_count:
+            sys.stderr.write(
+                f"GATE P7: CODE_MAP 新增文件核对未通过——code_map_reviewed_count={cm_reviewed} < code_map_new_files_count={cm_count}\n"
+            )
+            return 1
+        if cm_count is None:
+            cm_count = 0
+        # 转抄核对层：P4 正文实际 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT] 标记数
+        # > code_map_new_files_count（注意不是 code_map_reviewed_count）→ return 1
+        p4_impl_file_for_cm = os.path.join(task_dir, "P4-implementation.md")
+        p4_cm_lines = _lines(_read_text(p4_impl_file_for_cm))
+        p4_code_map_actual_count = sum(
+            1 for line in p4_cm_lines
+            if re.search(r"^\s*-?\s*\[CODE_MAP_UPDATED\]", line)
+            or re.search(r"^\s*-?\s*\[CODE_MAP_EXEMPT", line)
+        )
+        if p4_code_map_actual_count > cm_count:
+            sys.stderr.write(
+                f"GATE P7: P4 实际标记 {p4_code_map_actual_count} 条 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT]，"
+                f"超过 P7 声明的 code_map_new_files_count={cm_count}（转抄核对未通过）\n"
+            )
+            return 1
+
     return 0
 
 

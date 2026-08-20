@@ -8,6 +8,44 @@
 
 ---
 
+## [0.56.0] - 2026-08-20
+
+### 新增（TAG0007：agate 项目结构管理机制，RM-AG0008 + RM-AG0009）
+
+- **RM-AG0008：0→1 项目骨架脚手架（BDD-1~5）**：新增 `P1-requirements.md` 可选 frontmatter 字段
+  `project_phase: bootstrap`（缺省 = `established`，向后兼容，不触发骨架流程）。触发后 P2
+  architect 除 `P2-design.md` 外额外产出任务目录内 companion 文件 `P2-skeleton.md`（含
+  `## 骨架声明` 标题），使用新增模板 `agate/assets/templates/skeleton-template.md`——五类候选
+  目录（源码/测试/文档/构建/部署）以抽象类别标签 + 项目侧技术栈声明填空区表达，不硬编码
+  `src/components`/`src/include` 等具体技术栈目录名（跨语言/框架通用）。`check-gate.py` 的
+  `gate_p2` 新增判定：`project_phase: bootstrap` 时要求 `P2-skeleton.md` 存在且含
+  `## 骨架声明` 标题，否则 exit 1；字段缺失/非 bootstrap 时行为与改动前逐字节一致。
+- **RM-AG0009：CODE-MAP 架构演进纪律（BDD-6~11）**：复用既有工作区 `agents/` 子目录，新增
+  `{AGATE_WORKSPACE}/agents/CODE-MAP.md`（配套模板 `agate/assets/templates/code-map-template.md`）
+  维护"当前架构全貌"（模块/层/依赖方向/关键文件/约定），文件是否存在即"该项目是否已采用
+  CODE-MAP 机制"的判据。`P4-implementation.md` 新增「新增文件核对表」小节：implementer 为每个
+  新增文件填一行——骨架归属列（`within <dir>` / `[SKELETON_DEVIATION: 理由]`）+ CODE-MAP
+  处理列（`[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]`），`change_type: refactor` 场景同样
+  适用不豁免。`P7-consistency.md` frontmatter 新增两个可选字段
+  `code_map_new_files_count`/`code_map_reviewed_count`（语义分别对应既有
+  `design_gap_count`/`design_gap_reviewed_count`），「检查清单」新增第 5 条 CODE-MAP 核对——对照
+  `agents/CODE-MAP.md` 与 P4 新增文件核对表，发现依赖方向偏离标 `[CODE_MAP_DRIFT:]`（WARNING
+  级，不阻断），核对通过标 `[CODE_MAP_SYNC:]`，与既有 `DESIGN_GAP`/`DESIGN_GAP_REVIEWED`
+  双轨判定模式平行运作，不新造一套判定机制。`consistency-reviewer.md`「检查清单」节新增
+  CODE-MAP 核对职责段落。`check-gate.py` 的 `gate_p4` 新增 WARNING 分支：骨架/CODE-MAP 机制
+  已采用但 `P4-implementation.md` 缺「新增文件核对表」标题时提醒（非阻断）。
+- **关联 BDD 覆盖**：P1-requirements.md 11 条 BDD 全覆盖（RM-AG0008 骨架 BDD-1~5 +
+  RM-AG0009 CODE-MAP BDD-6~11），新增 12 个回归测试用例验证向后兼容性与新判定分支。
+
+### 已知遗留（本轮新登记，留待后续任务处理）
+
+- DEBT0016（低优先级）：`gate_p4` 的 CODE-MAP.md 路径推导用本地路径算术，未调用
+  `agate_common.resolve_workspace` 权威解析函数，标准两级嵌套场景下结果代数等价，但非标准布局
+  存在潜在分歧风险。
+- DEBT0017（低优先级）：`gate_p4`「## 新增文件核对表」子串判定在自指/dogfooding 场景下存在
+  假阴性（说明性文字可误判为已满足），且 TAG0007 自身 P4 产出未对新增文件逐条打标准
+  CODE-MAP 标记，构成机制的自我应用缺口。
+
 ## [0.55.0] - 2026-08-20
 
 ### 新增（TAG0017：协议工具链修复批，RM-AG0027 + RM-AG0028，来源 TAG0016 复盘 + TQC0001 跨项目反馈）
