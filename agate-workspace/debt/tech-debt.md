@@ -118,6 +118,9 @@ priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P2-design.md
     note: §2.1 _gate_p1_vision_capability / §2.8 check-p6-evidence 与 check-p6-provenance 各自读取 P1 视觉条目三态
+  - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P6-evidence/bdd3-p1-vision-tri-state.log
+    note: "closure：TAG0006 落地 read_vision_tri_state 公共 helper，BDD-3（P1 视觉条目三态读取）
+      在 P6 阶段验证通过，三处脚本共用同一函数"
 impact: 三处解析口径若漂移（如 GAP 判据扩展）会各自不一致，P6/P1 gate 判定分叉
 recommendation: 抽取公共 helper（agate_common.py 新增 read_vision_tri_state(p1_file)），三处复用
 closure_criteria:
@@ -126,6 +129,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-17
 task_id: TAG0006-ui-ux-quality
+closed_at: 2026-08-18
 ```
 
 ## DEBT0006
@@ -139,14 +143,18 @@ priority: high
 evidence:
   - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P4-review-backend.md
     note: CRITICAL-1——agate-image-check ahash 对非图片文件 contextlib.suppress 吞错不打印行，check-p6-evidence 用 sorted(glob) 与输出 zip 对齐，行数不匹配 → 哈希错位（误拦/漏放）
+  - ref: agate-workspace/tasks/TAG0006-ui-ux-quality/P6-evidence/bdd14-ahash-degradation.log
+    note: "closure：TAG0006 修复 ahash 收敛单一拥有方，BDD-14（avg-hash 雷同分组含非图片文件
+      场景）在 P6 阶段验证通过，zip 对齐脆性消除"
 impact: avg-hash 雷同分组（BDD-14）与同 BDD 时序豁免（BDD-17）判定失真，静默破坏充数/雷同防伪
 recommendation: ahash 计算收敛到单一拥有方（内联到 check-p6-evidence 或 agate-image-check 改输出 文件名\t哈希 成对行），消除 zip 对齐脆性；补含非图片文件的中等复现单测
 closure_criteria:
   - check-p6-evidence 与图片哈希文件一一对应，无 zip 错位
   - 含 >1KB 非图片文件的 screenshots 场景，重复对仍正确分组
-source: P4-review
+source: review
 created_at: 2026-08-17
 task_id: TAG0006-ui-ux-quality
+closed_at: 2026-08-18
 ```
 
 ## DEBT0007
@@ -449,7 +457,7 @@ closed_at: 2026-08-20
 id: DEBT0013
 category: technical
 title: P8-release.md 未说明 CHECK 7（README badge vs 最新 git tag）与"重跑 P5 gate"之间的时序依赖，bump 版本文件后、tag 创建前重跑必然触发该 ERROR
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate/scripts/check-protocol-consistency.py
@@ -461,6 +469,11 @@ evidence:
       创建）重跑 gate_commands.P5，consistency 报 1 个 ERROR（'README version badge v0.54.0 !=
       最新 tag v0.53.0'），导致该次 pytest 链路 3 个测试失败；commit + 创建 tag v0.54.0 后
       重跑同一条 gate_commands.P5，0 ERROR，pytest 全绿——确认是时序问题非真实回归"
+  - ref: agate/phase-cards/P8-release.md
+    note: "closure：PR #166（2026-08-19，merge commit 7bc45fd）已在「主 Agent 必须亲自执行」节
+      '重跑 P5 gate'一条后补'⚠️ 时序注意（DEBT0013）'——明确该重跑应安排在 commit + 创建 git tag
+      之后进行，而非 bump 版本文件后立即重跑（closure_criteria 1 满足）。本债为纯文档补强，closure
+      由作者在 docs 提交中落地，无对应 P5/P6 阶段 gate 验证（文档注类债务的特例）"
 impact: 任何任务在 P8 阶段按 P8-release.md 字面顺序（先 bump 文件、随即重跑 P5 gate）执行，都会
   在"bump 已完成但 tag 未创建"这个必经的中间状态撞上 CHECK 7 的设计性 ERROR；若执行者不知道
   这是时序问题，容易误判为真实回归而重新排查协议文档/脚本改动，浪费排查时间
@@ -474,6 +487,8 @@ closure_criteria:
 source: retrospective
 created_at: 2026-08-19
 task_id: TAG0016
+closed_at: 2026-08-20
+close_reason: "closure_criteria 1 已满足：PR #166（merge 7bc45fd）已在 P8-release.md 补 CHECK 7 时序注意（DEBT0013），tag 创建前重跑的必然 ERROR 有明确提示。closure 为纯文档补强（docs 提交落地），非代码修复，无对应 P5/P6 阶段 gate 验证，但修复目标（消除时序误判）已达成。"
 ```
 
 ## DEBT0014
@@ -507,7 +522,7 @@ closure_criteria:
   - platform-notes 已知限制表新增一条
   - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue（薄壳改动后）
   - 新增回归用例覆盖 Store 占位符场景（模拟或 Windows CI matrix）
-source: cross_project_feedback
+source: retrospective
 created_at: 2026-08-19
 task_id: TAG0017
 ```
@@ -545,7 +560,7 @@ closure_criteria:
   - UI 任务 P4 后 dist 构建有明确落点（P4 卡片或 P8 gate）
   - TQC0001 类 UI 任务在 P4 后自动产出 dist（不靠用户提醒）
   - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue
-source: cross_project_feedback
+source: retrospective
 created_at: 2026-08-19
 task_id: TAG0017
 ```
