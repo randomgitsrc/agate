@@ -97,6 +97,17 @@ agate 的派发机制于 2026-06-12 在 OpenCode 上完成验证：
 | **ruff（可选）** | `pip install ruff` | 仅开发者跑 `ruff check agate/` 时需要（替代 shellcheck，含 tests）。使用者不需要 |
 | **pytest（仅开发者）** | `pip install pytest` | 使用者不需要跑测试；开发者跑 `python3 -m pytest agate/tests/`（Bats 已退役，TAG0011） |
 
+### 前置环境配置（git 用户身份，**新环境必做**）
+
+agate 协议脚本不读 git 用户配置，但 git 本身在 `git commit` 时若未设 `user.email` / `user.name` 会**直接拒绝 commit**（`fatal: unable to auto-detect email address`）——这是 git 自身行为，不是 agate 的问题。新环境**首次使用前**必须配置：
+
+```bash
+git config --global user.email "you@example.com"
+git config --global user.name  "Your Name"
+```
+
+> 项目级 / 用户级 / 环境变量均可（`GIT_AUTHOR_EMAIL` / `GIT_COMMITTER_EMAIL`），global 是最少侵入的入口。若仅个别项目需要不同身份，改用 `git config user.email ...`（项目级，不带 `--global`）即可，不影响其他项目。
+
 ### 安装步骤
 
 1. **装 Git for Windows**：下载安装包，全程默认即可。它会在 `C:\Program Files\Git\` 安装 git + sh。
