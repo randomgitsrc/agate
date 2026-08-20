@@ -23,8 +23,8 @@
 | RM-AG0023 | subagent 运行时管控（TPV0093 跨项目反馈回流）：命令超时兜底（timeout_seconds 字段 + dispatch-prompt 标准节 + 资源密集默认串行 + progress 心跳扩展）+ 环境准备职责边界（谁启动 debug/多 subagent 冲突）+ timeout 合理阈值与执行留痕 | done | TPV0093 复盘（2026-08-16）+ 用户补充（2026-08-17）| TAG0012 | 2026-08-17 | 2026-08-18 |
 | RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | done | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
 | RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | done | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
-| RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012/0014）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 + Windows Store python3 占位符命中 hook 探测循环（DEBT0014，跨项目反馈汇入）| scheduled | TAG0016 复盘（2026-08-19）+ 用户跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
-| RM-AG0028 | env_constraints 声明性字段无执行/gate 绑定：deploy 类动作（UI 任务 windeployqt 构建 dist）只注入 subagent 上下文、不触发任何 gate 检查（agate-extract-context.py L107-109 只注入，check-gate.py grep deploy 零命中；TQC0001 实证 dist 从未主动产出直到用户提醒）| scheduled | TQC0001 跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
+| RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012/0014）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 + Windows Store python3 占位符命中 hook 探测循环（DEBT0014，跨项目反馈汇入）| done | TAG0016 复盘（2026-08-19）+ 用户跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-20 |
+| RM-AG0028 | env_constraints 声明性字段无执行/gate 绑定：deploy 类动作（UI 任务 windeployqt 构建 dist）只注入 subagent 上下文、不触发任何 gate 检查（agate-extract-context.py L107-109 只注入，check-gate.py grep deploy 零命中；TQC0001 实证 dist 从未主动产出直到用户提醒）| done | TQC0001 跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-20 |
 
 ## 状态标识
 
