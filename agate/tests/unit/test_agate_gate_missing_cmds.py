@@ -42,3 +42,21 @@ def test_gmc_2_tokens_with_slash_or_equals_skipped(agate_scripts, python_exe, ru
     result = _run_gmc(agate_scripts, python_exe, run_cli, gate_file)
     assert result.returncode == 0
     assert result.output == ""
+
+
+def test_gmc_3_bdd_1_timeout_seconds_key_not_treated_as_missing_command(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """BDD-1: `P5_timeout_seconds: 120`（纯整数值，无路径无 `=`）不得出现在待核实命令清单中——
+    当前脚本只排除 `_formatter` 后缀，`_timeout_seconds` 会被误判为一个待核实命令 `120`。"""
+    gate_file = tmp_path / "P2.md"
+    gate_file.write_text(
+        "gate_commands:\n"
+        "  P5: pytest -q\n"
+        "  P5_timeout_seconds: 120\n",
+        encoding="utf-8",
+    )
+    result = _run_gmc(agate_scripts, python_exe, run_cli, gate_file)
+    assert result.returncode == 0
+    assert "P5:pytest" in result.output
+    assert "timeout_seconds" not in result.output

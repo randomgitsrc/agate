@@ -507,3 +507,114 @@ def test_p4_review_critical2_unrelated_table_outside_section_no_false_positive(
     errors = [e for e in rep.errors if e["check"] == "CHECK12-authval"]
     assert errors == [], f"Expected 0 CHECK12 errors (false positive guard), got {errors}"
     assert "CHECK12-authval" in rep.passed
+
+
+# ── BDD-9（DEBT0012 代码半）：`--strict-errors-only` 互斥模式 ──────────────
+# TAG0017 P3（fg3-strict-mode-code 批次）新增。当前 main() 的 argparse 只定义了
+# --root/--strict/--json，没有 --strict-errors-only，以下三个用例驱动 real main()
+# （沿用 test_bdd_2_blocker_check1_independent_when_check10_error/warning 的既有
+# 惯用法：monkeypatch CHECKS + run_all_checks 构造确定的 rep 状态，再用 sys.argv
+# 注入 CLI flag 跑 real main()）。三个场景当前都应在 `code = cpc.main()` 这一行就
+# 因 argparse "unrecognized arguments: --strict-errors-only" 而 SystemExit(2)
+# 崩溃——这是预期的真红灯（B 类：CLI 接口缺失，不是测试代码写错），不要在这几个测
+# 试里额外包一层 pytest.raises(SystemExit) 把它吞掉，否则会掩盖红灯语义。
+#
+# 命名说明：文件里已有的 test_bdd_9_* 前缀属于历史 CHECK9/12 任务，编号撞了但语义
+# 无关；本批次改用 test_strict_errors_only_* 前缀避免撞名（dispatch-context 已指
+# 明）。与既有 --strict 矩阵（test_bdd_2_blocker_check1_independent_when_check10_
+# error/warning）并列，不修改那两个用例的行为。
+
+
+def test_strict_errors_only_zero_error_zero_warning_exit_0(
+    agate_scripts, tmp_path, monkeypatch, capsys
+):
+    """BDD-9 场景 1/3：0 ERROR + 0 WARNING → --strict-errors-only 应 exit 0。
+
+    当前红灯来源：argparse 未定义 --strict-errors-only，main() 在解析 sys.argv 时
+    直接 SystemExit(2)（unrecognized arguments），执行不到下面的断言。
+    """
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    monkeypatch.setattr(cpc, "CHECKS", [
+        ("CHECK 1  YAML 代码块可解析", lambda r, rep: None),
+    ])
+
+    def _fake_run(root_, rep):
+        pass  # 不产出任何 ERROR / WARNING
+
+    monkeypatch.setattr(cpc, "run_all_checks", _fake_run)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["check-protocol-consistency.py", "--root", str(root), "--strict-errors-only"],
+    )
+
+    code = cpc.main()
+    out = capsys.readouterr().out
+
+    assert code == 0
+    assert "🎉" in out or "全部检查通过" in out
+
+
+def test_strict_errors_only_zero_error_n_warning_exit_0_with_hint(
+    agate_scripts, tmp_path, monkeypatch, capsys
+):
+    """BDD-9 场景 2/3：0 ERROR + N WARNING（N>0）→ --strict-errors-only 应 exit 0
+    且打印提示信息（沿用现有非 JSON 分支已有的
+    "仅有 {N} 个 WARNING，无 ERROR。" 提示行为，--strict-errors-only 不应压制它）。
+
+    当前红灯来源：同上，argparse 未定义 --strict-errors-only，main() 解析
+    sys.argv 阶段即 SystemExit(2)，执行不到下面的断言。
+    """
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    monkeypatch.setattr(cpc, "CHECKS", [
+        ("CHECK 1  YAML 代码块可解析", lambda r, rep: None),
+    ])
+
+    def _fake_run(root_, rep):
+        rep.warn("CHECK1-yaml", "示例 WARNING 1", "agate/WORKFLOW.md:1")
+        rep.warn("CHECK1-yaml", "示例 WARNING 2", "agate/WORKFLOW.md:2")
+        rep.warn("CHECK1-yaml", "示例 WARNING 3", "agate/WORKFLOW.md:3")
+
+    monkeypatch.setattr(cpc, "run_all_checks", _fake_run)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["check-protocol-consistency.py", "--root", str(root), "--strict-errors-only"],
+    )
+
+    code = cpc.main()
+    out = capsys.readouterr().out
+
+    assert code == 0
+    assert "仅有 3 个 WARNING，无 ERROR。" in out
+
+
+def test_strict_errors_only_n_error_exit_1(
+    agate_scripts, tmp_path, monkeypatch, capsys
+):
+    """BDD-9 场景 3/3：N ERROR（N>0）→ --strict-errors-only 应 exit 1
+    （与默认模式的 ERROR 判定一致，--strict-errors-only 不改变 ERROR 语义）。
+
+    当前红灯来源：同上，argparse 未定义 --strict-errors-only，main() 解析
+    sys.argv 阶段即 SystemExit(2)，执行不到下面的断言。
+    """
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    monkeypatch.setattr(cpc, "CHECKS", [
+        ("CHECK 1  YAML 代码块可解析", lambda r, rep: None),
+    ])
+
+    def _fake_run(root_, rep):
+        rep.error("CHECK1-yaml", "示例 ERROR", "agate/WORKFLOW.md:1")
+
+    monkeypatch.setattr(cpc, "run_all_checks", _fake_run)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["check-protocol-consistency.py", "--root", str(root), "--strict-errors-only"],
+    )
+
+    code = cpc.main()
+    out = capsys.readouterr().out
+
+    assert code == 1
+    assert "示例 ERROR" in out

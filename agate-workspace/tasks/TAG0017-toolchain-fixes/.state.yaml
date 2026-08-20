@@ -1,5 +1,5 @@
 task_id: TAG0017
-phase: P2
+phase: P3
 status: in_progress
 retries:
   P1:
@@ -12,5 +12,10 @@ retries:
       failure_mode: quality
       prompt_changed: true
       adjustment: "订正 P2-design.md 内 SELF-GATE.md 路径前缀自相矛盾（L40/L216 仍写 agate/SELF-GATE.md，应为根目录 SELF-GATE.md，与 L149/L189 的正确写法冲突），plan-eng-review BLOCKER-1"
-retry_count: { P1: 1, P2: 1 }
+  P3:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "主 Agent 亲自跑全量 gate_commands.P3 发现 3 处并行批次副作用：①fg1 test_bdd_2 假字符串字面量含 Traceback/SyntaxError 触发 check-tdd-red.py 无 formatter 时的原始输出正则误判 A 类；②fg2 test_self_gate_naming_docs.py 未用 import pytest 触发 ruff F401；③fg4 assertion 消息含裸 python3 触发 check-platform-assumptions.py R2 规则。三处均为测试代码本身的卫生问题，非设计缺陷，一次并行修复批统一处理"
+retry_count: { P1: 1, P2: 1, P3: 1 }
 updated: 2026-08-20

@@ -51,6 +51,22 @@ def test_gpc_3_formatter_excluded_from_aux(agate_scripts, python_exe, run_cli, t
     assert result.output.strip() == "1 0"
 
 
+def test_gpc_4_bdd_3_timeout_seconds_excluded_from_aux_count(agate_scripts, python_exe, run_cli, tmp_path):
+    """BDD-3: `P5:` 主命令 + `P5_timeout_seconds: 120` 超时声明 → 统计结果须为 "1 0"
+    （1 主命令 + 0 辅助命令）。当前脚本只排除 `_formatter` 键，`_timeout_seconds` 键会被
+    误计入辅助命令，产出 "1 1"。"""
+    gate_file = tmp_path / "P2.md"
+    gate_file.write_text(
+        "gate_commands:\n"
+        "  P5: pytest\n"
+        "  P5_timeout_seconds: 120\n",
+        encoding="utf-8",
+    )
+    result = _run_gpc(agate_scripts, python_exe, run_cli, gate_file)
+    assert result.returncode == 0
+    assert result.output.strip() == "1 0"
+
+
 def test_stream_lock_stderr_hits_merged_output(agate_scripts, python_exe, run_cli, tmp_path):
     # 流语义回归锁：无占位符时 agate-card-inject.py 写失败信息到 stderr 并 exit 1。
     # bats $output = stdout + stderr 合并流（P2 BLOCKER-1）→ 断言必须用 result.output
