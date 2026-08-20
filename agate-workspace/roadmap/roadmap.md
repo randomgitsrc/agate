@@ -12,8 +12,8 @@
 | RM-AG0005 | 冒烟验证脚本内置 finally-kill + 进程清理主 Agent 复核 | cancelled | TQC0001 复盘 Q8（2026-08-13）| — | 2026-08-13 | 2026-08-13 |
 | RM-AG0006 | GUI 自动化框架评估（WinAppDriver/AutoIt）补真实 GUI 交互路径 | done | TQC0001 复盘 Q9（2026-08-13）| TAG0006 | 2026-08-13 | 2026-08-18 |
 | RM-AG0007 | UI/UX 质量机制缺失：P1/P2 缺 UX 需求与设计评审、P6 缺视觉质量验收 | done | qtcalc 对比分析 §6（2026-08-13）| TAG0006 | 2026-08-13 | 2026-08-18 |
-| RM-AG0008 | 0→1 项目目录结构脚手架：agate 立项时应按最佳实践设计合理目录结构，避免东放一点西放一点 | scheduled | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-13 |
-| RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | scheduled | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-13 |
+| RM-AG0008 | 0→1 项目目录结构脚手架：agate 立项时应按最佳实践设计合理目录结构，避免东放一点西放一点 | done | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-20 |
+| RM-AG0009 | code-map + 架构演进纪律：新增文件/代码要从架构设计与设计模式层面考虑，避免胶水式层层堆叠 | done | 用户需求（2026-08-13）| TAG0007 | 2026-08-13 | 2026-08-20 |
 | RM-AG0013 | 阶段卡缺"同类扫描/影响面梳理"机制层要求：P0-P8 卡无举一反三提示，仅 task P0-brief 局部 | done | 阶段提示词核查（2026-08-13）| TAG0012 | 2026-08-13 | 2026-08-18 |
 | RM-AG0014 | 跨平台/外部环境验证的机制边界：supplementable vs verification_env 误用 + verification_env 缺失败处理流程 | done | TAG0005/0009 复盘核实（2026-08-14）| TAG0012 | 2026-08-13 | 2026-08-18 |
 | RM-AG0019 | P0-brief 时效性验证缺失：立项后搁置再启动时，P0-brief 前提（技术路线/依赖/风险）可能已与最新状态漂移（TAG0008 .sh→py 实证），无检测/更新环节 | done | 用户提问（2026-08-15）| TAG0012 | 2026-08-15 | 2026-08-18 |
@@ -114,6 +114,17 @@
   3. 骨架作为"第一个可验收产物"（P1 或独立前置阶段），后续阶段产出必须落在骨架布局内
   4. 提供模板（agate/assets/templates/ 下按技术栈的 skeleton-template）
 - **归属**：独立任务（协议增加"项目骨架"阶段或产出），与架构演进（RM-AG0009）关联
+- **落地（TAG0007，2026-08-20，v0.56.0）**：`P1-requirements.md` 新增可选字段
+  `project_phase: bootstrap`（缺省 `established`，向后兼容）；`project_phase: bootstrap` 时
+  P2 architect 除 `P2-design.md` 外须产出 `P2-skeleton.md`（含 `## 骨架声明` 标题），模板
+  `assets/templates/skeleton-template.md` 用"候选目录集合（源码/测试/文档/构建/部署五类
+  抽象标签）+ 项目侧技术栈声明填空区"参数化表达（不硬编码具体语言/框架目录名，ADR-003
+  合规，黑名单回归测试覆盖）；`check-gate.py` `gate_p2` 新增判定分支（bootstrap 缺骨架
+  exit 1，字段缺失/`established` 行为逐字节不变）。11 条 BDD 中 BDD-1~5 覆盖本条目，P6
+  验收全 PASS。**未验证项（诚实说明）**：本次落地未实际跑通一个真实 0→1 新项目走完整
+  P1→P4（TAG0007 自身是 established 项目，`project_phase` 字段未在自身声明），触发判据
+  "谁来判定 0→1"仍是 P1 analyst 人工判断（与既有 `risk_level`/`domains` 判定方式一致，非
+  本条目独有新风险，但机器化判定仍是未来可探索方向）。
 
 ---
 
@@ -133,6 +144,26 @@
   3. **gate 或 WARNING**：检测"新增文件数量/新增依赖方向"与 code-map 声明的偏离（如新的 include/import 方向违反分层）
   4. **设计模式约束**：P2 候选方案评审增加"设计模式合理性"维度（是否引入合适抽象，避免 if-else 胶水堆叠）
 - **归属**：独立任务（协议增加 code-map 维护 + 架构演进纪律），与 RM-AG0008（骨架）、TAG0002（重构一等任务）关联
+- **落地（TAG0007，2026-08-20，v0.56.0）**：`{AGATE_WORKSPACE}/agents/CODE-MAP.md` 作为
+  项目架构全貌维护物（复用既有 `agents/` 子目录，未新增 WORKFLOW.md 第 10 个固定子目录），
+  五字段（模块/层/依赖方向/关键文件/约定），模板 `assets/templates/code-map-template.md`；
+  `P4-implementation.md` 新增「新增文件核对表」小节（implementer 逐个新文件填骨架归属列 +
+  CODE-MAP 处理列 `[CODE_MAP_UPDATED]`/`[CODE_MAP_EXEMPT: 理由]`）；`consistency-reviewer.md`
+  新增 CODE-MAP 核对职责（人工判断，不做跨语言静态依赖分析，ADR-003 合规）；`check-gate.py`
+  新增两处判定：`gate_p4`（机制已采用但缺核对表 → WARNING 不阻断）+ `gate_p7`（
+  `code_map_new_files_count`/`code_map_reviewed_count` 两层 pairing 硬校验，与既有
+  DESIGN_GAP 判定结构对齐）。11 条 BDD 中 BDD-6~11 覆盖本条目，P6 验收全 PASS。agate 自身
+  已 dogfooding 产出 `agate-workspace/agents/CODE-MAP.md` 实例。**未完全解决/已知遗留（诚实
+  说明）**：① 依赖方向偏离检测走人工判断 + gate 强制"必须留痕"（`[CODE_MAP_DRIFT:]`/
+  `[CODE_MAP_SYNC:]`），未做自动化静态依赖分析（P2 设计阶段已论证违反 ADR-003，非阻塞遗留，
+  是既定方向）；② P2 设计模式合理性评审维度**未落地**（建议修复方向第 4 条未实现，留待
+  未来任务）；③ 多 worktree/多任务并发更新同一份 `CODE-MAP.md` 的合并冲突机制**未设计**
+  （P2 已声明为已知限制，比照 `CHANGELOG.md [Unreleased]` 现有处理方式，未新增锁机制）；
+  ④ P7 一致性检查发现 `gate_p4`「## 新增文件核对表」子串判定在自指/dogfooding 场景存在
+  假阴性（TAG0007 自身未对新增文件打标准 CODE-MAP 标记），登记 DEBT0017（open，留待后续
+  任务修复为整行匹配 + 补齐自我应用）；⑤ CODE-MAP.md 路径解析用本地简化推导而非
+  `agate_common.resolve_workspace` 权威函数，登记 DEBT0016（open，标准场景下已论证代数
+  等价，非阻塞）。
 
 ---
 
