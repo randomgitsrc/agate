@@ -1,4 +1,11 @@
 task_id: TAG0017
-phase: P0
-status: pending
-retries: {}
+phase: P1
+status: in_progress
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "订正 3.3/3.4 节同类扫描计数与清单不一致（8→7 算术错误 + 遗漏 TAG0005/10/11 分类；12→13 算术错误 + 遗漏测试基础设施类命中归类）"
+retry_count: { P1: 1 }
+updated: 2026-08-20
