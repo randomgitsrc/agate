@@ -1,3 +1,71 @@
+---
+phase: P4
+generated_by: 主 Agent（self-gate 修复轮）
+task_id: TAG0007
+role: implementer
+---
+
+<dispatch_guide>
+### 目标
+修复 self-gate 审查（`docs/reviews/agate-alignment-review-2026-08-20-TAG0007.md`）发现的 5 处
+MISALIGNED——均为"新机制已在代码/主文档落地，但周边索引/样例/权威源文档未同步"的传播缺口，不涉及
+任何逻辑改动。**只做这 5 处文字追加，不改任何代码，不改已批准的设计内容**。
+
+### 修复清单（逐条对照审查报告的「修复优先级建议」表）
+
+1. **`agate/phase-cards/P7-consistency.md`**（L88 附近，「## gate 规则」小节，DESIGN_GAP 未配对
+   那一行之后）：追加一行：
+   `- CODE-MAP 未配对（code_map_reviewed_count < code_map_new_files_count，或 P4 实际标记数 >
+   code_map_new_files_count）→ exit 1（两字段均缺失时机制未采用，跳过）`
+
+2. **`agate/assets/templates/task-files.md`**（L435 附近，P7-consistency.md frontmatter 样例块，
+   `design_gap_reviewed_count: 0` 那两行之后）：追加两行，与
+   `agate/phase-cards/P7-consistency.md`「可直接复制的完整样例」块（L75-76 一带）**逐字同步**：
+   ```yaml
+   code_map_new_files_count: 0       # int ≥0（可选，CODE-MAP 机制采用时填）
+   code_map_reviewed_count: 0        # int ≥0（可选，CODE-MAP 机制采用时填）
+   ```
+   注释文字须先读 `phase-cards/P7-consistency.md` 该处实际注释措辞，逐字保持一致，不要自己编。
+
+3. **`agate/scripts/README.md`**（L33 附近，`check-gate.py` 工具清单行，参照 TAG0006 加
+   `check-gate.py（续）` 的先例格式）：追加一行（续行），如：
+   `check-gate.py（再续）| gate_p2 新增 project_phase:bootstrap → P2-skeleton.md 存在性校验；
+   gate_p4 新增骨架/CODE-MAP 机制已采用时缺「新增文件核对表」WARNING；gate_p7 新增 CODE-MAP
+   两层 pairing 硬校验 |`
+   先读该文件现有格式（表格/列表），照既有格式写，不要引入新格式。
+
+4. **`agate/state-machine.md`**（L103 附近，P2 转移条件块，`ui_affected: true` 那条括注之后）：
+   追加一行括注，仿照既有 `ui_affected: true` 括注的格式：
+   `（project_phase: bootstrap 时 P2-design.md 之外还须产出 P2-skeleton.md 含「## 骨架声明」
+   标题，P2 gate 拦截缺失，见 phase-cards/P2-design.md「骨架产出」节）`
+
+5. **`agate/phase-cards/P4-implementation.md`**（L146 附近，「## gate 规则（check-gate.py 会跑）」
+   小节，`exit 1：暂存区仅 .md/.yaml 文件` 那行之后）：追加一行：
+   `- WARNING（不改变 exit code）：骨架/CODE-MAP 机制已采用（P2-skeleton.md 或
+   agents/CODE-MAP.md 存在）但缺「新增文件核对表」标题`
+
+### 约束
+- 每处改动都是**追加一行**，不删除/不改写已有内容
+- 先读目标文件对应位置的实际现状（行号可能因文件已改动而与建议行号有 ±5 行偏差，找对应内容
+  定位，不要死磕行号），确认插入点后再改
+- 改完后跑一次 `python3 agate/scripts/check-protocol-consistency.py` 确认仍 0 ERROR
+
+### 输入文件
+- {AGATE_WORKSPACE}/tasks/TAG0007-project-structure/../../../docs/reviews/agate-alignment-review-2026-08-20-TAG0007.md
+  即 /home/kity/oclab/agate/.worktrees/agate-TAG0007/docs/reviews/agate-alignment-review-2026-08-20-TAG0007.md
+  （self-gate 审查报告，5 处问题的完整上下文 + 建议措辞）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/phase-cards/P7-consistency.md
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/assets/templates/task-files.md
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/scripts/README.md
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/state-machine.md
+- /home/kity/oclab/agate/.worktrees/agate-TAG0007/agate/phase-cards/P4-implementation.md
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -63,24 +131,6 @@ UI/前端等需构建任务：单元测试全绿不代表可用，implementer �
 - 代码文件在声明的目录下
 - 遵守 P2-design.md 的方案设计 + 现有项目代码规范
 
-## 新增文件核对表
-
-> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
-> 存在）机制时填写；未采用则本节可省略。
-
-implementer 为本阶段**每个新增文件**填一行：
-
-| 新增文件路径 | 骨架归属 | CODE-MAP 处理 |
-|------------|---------|--------------|
-| {path} | `within <dir>` / `[SKELETON_DEVIATION: 理由]` | `[CODE_MAP_UPDATED]` / `[CODE_MAP_EXEMPT: 理由]` |
-
-- **骨架归属列**：新增文件落在骨架声明的目录内 → `within <dir>`；落在骨架外 → 标
-  `[SKELETON_DEVIATION: 理由]`（不阻断，供 P7 核对）
-- **CODE-MAP 处理列**：新增文件已同步更新 `agents/CODE-MAP.md` → `[CODE_MAP_UPDATED]`；判断
-  该文件不需要更新 CODE-MAP（如临时/测试脚手架）→ `[CODE_MAP_EXEMPT: 理由]`
-
-`change_type: refactor` 同样适用本表（不因换用回归口径而豁免）。
-
 ## 评审派发（C8 机械映射）
 
 **在 P4 实现完成后、gate 前**，按 P1 声明的 domains 和 risk_level 派评审。C8 映射表是机械规则，不靠判断"需不需要"：
@@ -144,7 +194,6 @@ check-gate.py P4 $TASK_DIR
 
 - **exit 0**：暂存区含非 md/yaml 代码文件（git diff --cached --name-only）
 - **exit 1**：暂存区仅 .md/.yaml 文件（无实际代码变更）→ 不能推进
-- WARNING（不改变 exit code）：骨架/CODE-MAP 机制已采用（P2-skeleton.md 或 agents/CODE-MAP.md 存在）但缺「新增文件核对表」标题
 
 ## 推进条件（全部满足才写 phase: P5）
 
@@ -170,3 +219,14 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 5 处均为文档传播缺口（A2/A3b/A5），非逻辑错误，无需改代码
+- 修复前 `check-protocol-consistency.py` → 0 ERROR（316 WARNING），修复后应仍保持 0 ERROR
+</objective_info>
+
+## 返回给我
+只返回两行：
+  1. 5 处改动是否都已完成（逐条打勾）
+  2. `check-protocol-consistency.py` 复跑结果（ERROR 计数）

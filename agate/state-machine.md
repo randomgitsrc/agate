@@ -97,6 +97,7 @@ P2 --[P2-review.md 有效 AND status==approved AND agent≠main AND P2-design.md
 P2 --[P2-review.md status==rejected && retry<MAX]--> P2 (retry+1)
 P2 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
     （若 P2 设计涉及 UI：P2-design.md 必须声明 ui_affected: true，并列出需 E2E 覆盖的交互点）
+    （project_phase: bootstrap 时 P2-design.md 之外还须产出 P2-skeleton.md 含「## 骨架声明」标题，P2 gate 拦截缺失，见 phase-cards/P2-design.md「骨架产出」节）
     （P1→P2 vision 三态约束：domains 含 frontend 的任务，P1 的 capability_requirements 必须已声明
       视觉能力条目（need 含 visual/vision）且 status ∈ available/supplementable/GAP——缺失会被 P1 gate 拦截）
     （ui_affected: true 时 P2-design.md 必须含 UI 设计节（## UI 设计 + 渲染形态声明 + 维度选择 +

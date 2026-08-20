@@ -86,6 +86,7 @@ check-gate.py P7 $TASK_DIR
 - [BLOCKER] 存在 → exit 1
 - [DEVIATION-CRITICAL] 存在 → exit 1
 - DESIGN_GAP 未配对（P4 有但 P7 无 REVIEWED）→ exit 1
+- CODE-MAP 未配对（code_map_reviewed_count < code_map_new_files_count，或 P4 实际标记数 > code_map_new_files_count）→ exit 1（两字段均缺失时机制未采用，跳过）
 - 含 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词 → WARNING（不改变 exit code）
 - 全部通过 → exit 0
 

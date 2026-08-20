@@ -31,6 +31,7 @@ agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）�
 | `check-p6-evidence.py` (P1.7) | P6 证据目录非空 + md5 逐字节去重（阻断）+ 像素方差（WARNING）+ average hash 雷同降级待复核（有 `雷同截图复核`/manual-review 记录放行，无则阻断；帧序列/`-tN` 时序截图按同 BDD 组豁免）+ 渲染形态证据形式校验（帧序列/渲染输出对比/时序截图）+ GAP 降级链人工复核记录存在性 | 0=通过, 1=阻断, 2=WARNING |
 | `check-p6-provenance.py` (P2.1/P2.10) | P6 客观行为审计（六道 + EXIT_CODE 一致性 + 协作规范）+ R1b vision YAML 审计的 GAP 放宽（vision=GAP → 改验人工复核记录，不要求 vision YAML）| 0=通过, 1=审计失败, 2=WARNING |
 | `check-gate.py`（续） | gate_p1 新增 `_gate_p1_vision_capability`（frontend 任务必须声明 vision 三态条目）+ `_gate_p1_ui_shape`（形态/维度声明合法性）；gate_p2 新增 `_gate_p2_ui_design_section`（ui_affected:true → UI 设计节 + 形态声明 + 按形态 checklist + P1-P2 形态一致性规范化值比对）| |
+| `check-gate.py`（再续） | gate_p2 新增 project_phase:bootstrap → P2-skeleton.md 存在性校验；gate_p4 新增 骨架/CODE-MAP 机制已采用时缺「新增文件核对表」WARNING；gate_p7 新增 CODE-MAP 两层 pairing 硬校验 | |
 | `check-state-transition.py` (P2.3-P2.5) | 状态转移合法性 + 重试上限 | 0=通过, 1=非法转移 |
 | `check-pruning.py` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
 | `check-scope-resolved.py` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
