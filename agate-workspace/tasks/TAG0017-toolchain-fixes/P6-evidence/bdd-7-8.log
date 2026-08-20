@@ -1,0 +1,20 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0017
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 8 items
+
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_7_self_gate_path_has_no_agate_prefix PASSED [ 12%]
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_7_file_type_table_progress_filename_has_task_id PASSED [ 25%]
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_7_file_type_table_result_filename_has_task_id PASSED [ 37%]
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_7_change_triggered_template_naming_has_task_id PASSED [ 50%]
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_7_full_review_template_naming_has_task_id PASSED [ 62%]
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_7_naming_template_produces_distinct_filenames_for_different_task_ids PASSED [ 75%]
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_8_protocol_alignment_review_has_write_precheck_logic PASSED [ 87%]
+agate/tests/unit/test_self_gate_naming_docs.py::test_bdd_8_write_precheck_distinguishes_same_task_vs_other_task PASSED [100%]
+
+============================== 8 passed in 0.02s ===============================
+EXIT_CODE: 0

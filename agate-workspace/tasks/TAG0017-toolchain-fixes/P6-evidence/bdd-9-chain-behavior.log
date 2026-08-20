@@ -1,0 +1,26 @@
+=== 实跑链路：模拟 gate_commands.P5 声明的 pytest && consistency --strict-errors-only && echo NEXT_STEP_REACHED 链路 ===
+================================================================
+  agate 协议结构一致性检查 (P3-1)
+================================================================
+  ✅ PASS  CHECK 1  YAML 代码块可解析
+  ⚠️  WARN  CHECK 2  仓库内文件引用存在
+  ✅ PASS  CHECK 3  协议文件无硬编码行号
+  ✅ PASS  CHECK 4  gate_commands 键集合一致
+  ✅ PASS  CHECK 6  LICENSE 与 gstack 归属
+  ✅ PASS  CHECK 7  version badge 与 git tag
+  ✅ PASS  CHECK 8  v0.6 关键词存在性
+  ✅ PASS  CHECK 9  协议-脚本结构对齐
+  ⚠️  WARN  CHECK 10 协议文档脚本名引用漂移
+  ✅ PASS  CHECK 11 UI/UX 机制条文跨文档一致
+  ✅ PASS  CHECK 12 权威数值/规则跨文件一致性
+----------------------------------------------------------------
+
+  WARNING (314):
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: docs/reviews/postmortem-template.md [CHANGELOG.md:62]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: scripts/check-p6-provenance.sh [CHANGELOG.md:941]
+... (314 条 WARNING 详情省略，完整列表见上方命令原始输出) ...
+
+  仅有 314 个 WARNING，无 ERROR。
+
+NEXT_STEP_REACHED
+chain exit code: 0
