@@ -24,6 +24,7 @@
 | RM-AG0025 | 协议文档职责边界与去重：WORKFLOW/dispatch-protocol/state-machine/platform-notes 等交叉重复（平台适配三份/阶段门槛两份/派发 prompt 双源/Pre-commit 清单两份），无内容归属约定——渐进叠加导致，需职责唯一化 + 去重 | done | WORKFLOW.md 审查（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
 | RM-AG0026 | 测试重跑审计与跨阶段证据引用：P5 首跑/P5 重试/P6 refactor regression/P8 重跑 P5 最坏 4-5 遍全量（823 用例单次 106-115s）；P6 regression.log 独立证据是 gate 硬校验（regression_pass），复用需协议支持"跨阶段证据引用 + 无改动校验"——机制改进非纯优化 | done | 外部 agent 分析（2026-08-17）| TAG0016 | 2026-08-17 | 2026-08-19 |
 | RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012/0014）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 + Windows Store python3 占位符命中 hook 探测循环（DEBT0014，跨项目反馈汇入）| scheduled | TAG0016 复盘（2026-08-19）+ 用户跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
+| RM-AG0028 | env_constraints 声明性字段无执行/gate 绑定：deploy 类动作（UI 任务 windeployqt 构建 dist）只注入 subagent 上下文、不触发任何 gate 检查（agate-extract-context.py L107-109 只注入，check-gate.py grep deploy 零命中；TQC0001 实证 dist 从未主动产出直到用户提醒）| scheduled | TQC0001 跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-19 |
 
 ## 状态标识
 
@@ -502,3 +503,19 @@
   - 全量 pytest + consistency 0 ERROR + shellcheck 0 issue
 
 - **归属**：独立任务（协议工具链修复批，TAG0017）。三债均改脚本 + 协议文档 + 回归测试，不宜顺手改；DEBT0013 已在 PR #166 修复，DEBT0009 已关闭。改造域 = gate 脚本 + SELF-GATE.md + P2 卡片，触发 SELF-GATE。DEBT0014（2026-08-19 跨项目反馈汇入）扩展改造域 = 3 薄壳 sh + platform-notes.md + AGENTS.md，同样触发 SELF-GATE。
+
+---
+
+## RM-AG0028 详情
+
+**env_constraints 声明性字段无执行/gate 绑定（TQC0001 跨项目反馈，2026-08-19）**
+
+- **问题**：`env_constraints` 是 P0-brief/P2-design 的**声明性字段**——协议所有引用都是"确认/细化 + 注入 subagent 上下文"（`agate-extract-context.py` L107-109 只做注入；P0/P1/P2/P4 卡片当输入/约束读；dispatch-prompt 注入约束节），**没有任何 gate/脚本消费 `env_constraints.deploy` 之类的字段做执行性校验**。
+- **实证**：TQC0001（Qt 简单计算器跨项目复盘）——P2 设计声明了 `env_constraints.deploy`（windeployqt 构建 dist），但全流程 P0-P8 **从未主动执行**，直到用户双击 exe 报缺 DLL 后才补做。根因不是 agent 粗心，是**协议层面"声明了但没有执行点"**——`env_constraints` 语义是"环境约束的声明"，不含"必须执行哪些部署命令"的 gate 绑定。
+- **影响**：任何依赖 `env_constraints` 声明 deploy/pack/build 产物的任务，都可能出现"设计说要做但流程不强制"的静默缺口；UI 任务 dist 产物、打包产物、部署产物均无 gate 检查。
+- **建议修复方向**（P1/P2 设计时选定）：
+  1. 明确 env_constraints 字段语义边界：声明性（信息注入）vs 执行性（gate 强制）——P2 卡片/architect 角色说明"执行性约束必须落到 `gate_commands` 或 P4/P8 明确 checklist，不能只靠 env_constraints 声明"
+  2. UI 任务 P4 后应构建 dist：P4 卡片「自查≠gate」节补"UI 任务 P4 后构建 dist（windeployqt 等）"；或 P8 gate 加 dist 产物存在性检查
+  3. 可选：`check-gate.py` 或新脚本校验 `gate_commands` 中声明了 deploy/构建命令时，P4/P8 产出物存在
+- **验证口径**：TQC0001 类 UI 任务在 P4 后自动产出 dist（不靠用户提醒）；env_constraints 语义边界文档化；UI 任务 P8 有 dist 产物检查
+- **归属**：并入 TAG0017（协议工具链修复批，与 DEBT0010/11/12/14 同域——都是"协议有声明/设计但 gate 无强制"的系统性缺口）。P1 时与 DEBT0010（gate_commands 解析）一并做"env_constraints vs gate_commands 执行绑定"的整体设计。
