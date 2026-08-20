@@ -40,21 +40,25 @@ git worktree add .worktrees/agate-{Txxx} -b feat/{Txxx}-{slug}
 ### Step 2：依赖检查（worktree 内）
 
 ```bash
-bash --version && python3 --version && pytest --version && \
-python3 -c "import yaml; print('pyyaml OK')" && command -v shellcheck
+bash --version && python3 --version && python3 -m pytest --version && \
+python3 -c "import yaml; print('pyyaml OK')" && command -v shellcheck && command -v ruff
 ```
 
-缺什么补什么（bash/python/pyyaml/pytest/shellcheck）。
+缺什么补什么（bash/python/pyyaml/pytest/shellcheck/ruff）。
+
+**⚠️ 解释器注意**：请用**系统 python（`/usr/bin/python3`）**跑 pytest/pyyaml——pytest 以模块形式装在系统 python，**裸 `pytest` 命令在 PATH 里通常找不到**（会误报"缺 pytest"）。`~/.venvs/agate-dev` 是开发 agate 本体的 venv，只装了 python + ruff、**没装 pytest**，不要 source 它跑测试。CI 用 `python3 -m pytest`（`protocol-tests.yml`），本机也应统一 `python3 -m pytest`。ruff 用 `~/.venvs/agate-dev/bin/ruff`（开发 agate 才需要，仅跑测试用不到，但本任务要改脚本所以需检查）。
 
 ### Step 3：基线验证（Step 4 of skill——确保干净起点）
 
 ```bash
 cd .worktrees/agate-{Txxx}
 python3 -m pytest agate/tests/
-python3 agate/scripts/check-protocol-consistency.py --strict
+python3 agate/scripts/check-protocol-consistency.py --strict-errors-only
 ```
 
 全绿 + 0 ERROR 才算干净基线。失败则停下来（可能主 checkout 有未合并改动）。
+
+> ⚠️ **用 `--strict-errors-only` 而非 `--strict`（DEBT0012 教训）**：仓库存量有 300+ 条历史叙事文件死链 WARNING，`--strict` 会让"仅有 WARNING、无 ERROR"也 exit 2，把干净基线误判为"主 checkout 有未合并改动"。`--strict-errors-only` 仅在 ERROR 时非 0（TAG0017 起官方默认语义，见 `agate/scripts/README.md`）。pytest 全量大可分 unit/regression/integration 三片跑（`tests/README.md`），每片外层加 `timeout 90`，gate/consistency 单跑并加 timeout。
 
 ### Step 4：确认 hook 就位（共享 git 目录）
 
@@ -69,11 +73,14 @@ ls -la /home/kity/oclab/agate/.git/hooks/ | grep -E 'pre-commit|commit-msg|pre-p
 ### Step 5：注册 orchestrator（SETUP）
 
 ```bash
+# OpenCode + Claude Code 双平台都注册（TAG0016/17 实际都双平台）
 mkdir -p .opencode/agents
 ln -sf ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
+mkdir -p .claude/agents
+ln -sf ~/.agate/orchestrator-template.md .claude/agents/orchestrator.md
 ```
 
-`.opencode/` 已被 gitignore（本地环境配置不入库）。
+`.opencode/` 与 `.claude/` 均已 gitignore（本地环境配置不入库），对应 setup 步骤见 `SETUP.md`（OpenCode 与 Claude Code 各一节）。
 
 ### Step 6：验证工作区解析
 
@@ -93,13 +100,18 @@ grep -E 'task_id|phase' agate-workspace/tasks/{Txxx}-{slug}/.state.yaml
 
 ### Step 8：写交接单
 
-复制 `agate/assets/templates/handoff-template.md` → worktree 根 `HANDOFF-{Txxx}.md`，填：
-- 任务编号/标题/一句话（从 P0-brief 取）
-- worktree 路径（实际路径）
-- 缺陷/需求清单（从 P0-brief known_risks + 审计/复盘取）
-- 核心约束（Linux 基线 / Windows 增量 / 范围锁定）
-- 验证命令（模板已有，改测试文件名）
-- 风险（从 P0-brief known_risks 取）
+复制 `agate/assets/templates/handoff-template.md` → worktree 根 `HANDOFF-{Txxx}.md`，**按模板全部 9 个小节填写**（不要只填部分字段）：
+- §1 你要做什么（任务编号/标题/一句话，从 P0-brief 取）
+- §2 工作区布局（worktree/主 checkout/`~/.agate` 双工作区表 + 核心原则）
+- §3 任务范围（缺陷/需求清单从 P0-brief known_risks + 审计/复盘取 + 核心约束）
+- §4 关键验证命令（模板已有，改测试文件名 + 解释器）
+- §5 阶段推进纪律（commit phase、TDD、SELF-GATE 触发、`wf({Txxx}-P{N})` 前缀——T001 血泪教训级硬约束，**必填**）
+- §6 任务编号与状态
+- §7 已知风险与止损
+- §8 完成后（PR 普通 merge 非 squash、CI 检查、roadmap 回写）
+- §9 交接确认
+
+> ⚠️ §5 的 commit-phase 纪律与 §8 的 PR merge 规则都是硬约束，只填到 §3 会让后续 agent 漏掉关键纪律。
 
 ### Step 9：交接单 commit
 
@@ -114,7 +126,9 @@ git worktree list   # 确认 worktree 就位
 git log --oneline -3   # 确认交接单已提交
 ```
 
-然后切到 worktree 目录，新开 session，让 agent 读 `HANDOFF-{Txxx}.md` 启动 P1。
+然后切到 worktree 目录，新开 session。
+
+**⚠️ 启动入口（HANDOFF 读取盲点）**：orchestrator 的默认启动流程读的是 `{AGATE_WORKSPACE}/tasks/active-tasks.md` + `.state.yaml`（orchestrator-template.md），**并不会自动读 HANDOFF**。所以必须在新 session 的首条指令里显式写"**读 worktree 根 `HANDOFF-{Txxx}.md`**"（认准当前任务号——仓库根会积累历史 `HANDOFF-TAG0xxx.md`，别读错；且本任务分支未合并前，其 HANDOFF 只存在于本 worktree、不在 main）。若 agent 没读 HANDOFF，它仍能按默认流程从 active-tasks.md + P0-brief 启动（handoff 是"快捷入口"而非"必需"），但缺陷清单/核心约束/阶段纪律会缺失。
 
 ## 关键纪律（违反必出事故）
 
@@ -131,8 +145,11 @@ git log --oneline -3   # 确认交接单已提交
 
 ```bash
 # 任务合并 main 后
-git worktree remove .worktrees/agate-{Txxx}
+# worktree 有未追踪残留（P5 日志等）时 remove 会拒删——确认已合并 main 后加 --force
+git worktree remove .worktrees/agate-{Txxx} --force
 git branch -D feat/{Txxx}-{slug}
+# 若 PR 未自动删远端分支：
+# git push origin --delete feat/{Txxx}-{slug}
 ```
 
 ## 与 AGENTS.md 的关系
