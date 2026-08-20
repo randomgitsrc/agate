@@ -1,5 +1,5 @@
 task_id: TAG0017
-phase: P1
+phase: P2
 status: in_progress
 retries:
   P1:
@@ -7,5 +7,10 @@ retries:
       failure_mode: quality
       prompt_changed: true
       adjustment: "订正 3.3/3.4 节同类扫描计数与清单不一致（8→7 算术错误 + 遗漏 TAG0005/10/11 分类；12→13 算术错误 + 遗漏测试基础设施类命中归类）"
-retry_count: { P1: 1 }
+  P2:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: "订正 P2-design.md 内 SELF-GATE.md 路径前缀自相矛盾（L40/L216 仍写 agate/SELF-GATE.md，应为根目录 SELF-GATE.md，与 L149/L189 的正确写法冲突），plan-eng-review BLOCKER-1"
+retry_count: { P1: 1, P2: 1 }
 updated: 2026-08-20

@@ -10,7 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0017 | agate 协议工具链修复批（RM-AG0027/0028，TAG0016 复盘 + TQC0001 跨项目反馈）：DEBT0010 gate_commands 解析未排除 _timeout_seconds（4 脚本，P2/P3/P5 误判）+ DEBT0011 SELF-GATE 审查文件命名跨任务覆盖 + DEBT0012 --strict 与 && 链路短路 + DEBT0014 Windows Store python3 占位符命中 hook 探测循环 + DEBT0015 env_constraints deploy 类动作无执行/gate 绑定（DEBT0013 已在 PR #166 修、DEBT0009 已关闭）| 🔄 | P1 | 高 | — | 2026-08-19 | 2026-08-20 |
+| TAG0017 | agate 协议工具链修复批（RM-AG0027/0028，TAG0016 复盘 + TQC0001 跨项目反馈）：DEBT0010 gate_commands 解析未排除 _timeout_seconds（4 脚本，P2/P3/P5 误判）+ DEBT0011 SELF-GATE 审查文件命名跨任务覆盖 + DEBT0012 --strict 与 && 链路短路 + DEBT0014 Windows Store python3 占位符命中 hook 探测循环 + DEBT0015 env_constraints deploy 类动作无执行/gate 绑定（DEBT0013 已在 PR #166 修、DEBT0009 已关闭）| 🔄 | P2 | 高 | — | 2026-08-19 | 2026-08-20 |
 
 ### 待开始
 
