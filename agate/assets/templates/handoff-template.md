@@ -32,9 +32,9 @@
 
 **已完成的 setup（worktree 已可独立使用）**：
 - 依赖齐全：bash / python / pyyaml / pytest / shellcheck
-- 基线验证：全量 pytest 全绿 + consistency 0 ERROR（--strict）
+- 基线验证：全量 pytest 全绿 + consistency 0 ERROR（--strict-errors-only；DEBT0012 教训：存量 300+ WARNING 下 --strict 会误导判 exit 2）
 - commit hook：指向 `~/.agate`（稳定版），worktree commit 自动触发
-- orchestrator 注册：`.opencode/agents/orchestrator.md` → `~/.agate/orchestrator-template.md`（符号链接，不拷贝）
+- orchestrator 注册：`.opencode/agents/orchestrator.md` + `.claude/agents/orchestrator.md` → `~/.agate/orchestrator-template.md`（符号链接，不拷贝，双平台）
 - 工作区解析：`agate_common.py` 输出 worktree 自己的 `agate-workspace/`
 - 任务数据：{Txxx} P0-brief + .state.yaml phase=P0 在 worktree 的 `agate-workspace/tasks/`
 
@@ -60,9 +60,9 @@
 # 全量测试（必须全绿才算过）
 python3 -m pytest agate/tests/
 
-# 一致性（0 ERROR 才行；--strict 让 WARNING 也阻断）
+# 一致性（0 ERROR 才行；--strict-errors-only 仅在 ERROR 时 exit 非 0，对齐 DEBT0012/TAG0017 语义）
 # ⚠️ 必须用 worktree 自己的脚本（检查对象是 worktree 里的协议文件），不要用 ~/.agate 的
-python3 agate/scripts/check-protocol-consistency.py --strict
+python3 agate/scripts/check-protocol-consistency.py --strict-errors-only
 
 # shellcheck
 shellcheck -S warning agate/scripts/*.sh
