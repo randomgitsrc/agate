@@ -1,5 +1,5 @@
 task_id: TAG0017
-phase: P7
+phase: READY
 status: in_progress
 p5_pass_commit: 17a3a5d6ea00f968352dbeba1c5bf5b22488e786
 retries:
