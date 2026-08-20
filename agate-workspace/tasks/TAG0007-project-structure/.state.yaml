@@ -1,5 +1,5 @@
 task_id: TAG0007
-phase: P5
+phase: P6
 status: in_progress
 p5_pass_commit: f63e207daac99b5812ff1d87b787e3270476a887
 retries:
@@ -15,7 +15,8 @@ retries:
       adjustment: add_navigation
   P4: []
   P5: []
-retry_count: { P1: 1, P2: 1, P4: 0, P5: 0 }
+  P6: []
+retry_count: { P1: 1, P2: 1, P4: 0, P5: 0, P6: 0 }
 review_scores:
   P2:
     - round: 1

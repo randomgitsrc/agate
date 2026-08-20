@@ -1,0 +1,11 @@
+=== grep -A3 '新增文件核对表' agate/phase-cards/P4-implementation.md ===
+66:## 新增文件核对表
+67-
+68-> 仅当项目已采用骨架（`P2-skeleton.md` 存在）或 CODE-MAP（`{AGATE_WORKSPACE}/agents/CODE-MAP.md`
+69-> 存在）机制时填写；未采用则本节可省略。
+--
+147:- WARNING（不改变 exit code）：骨架/CODE-MAP 机制已采用（P2-skeleton.md 或 agents/CODE-MAP.md 存在）但缺「新增文件核对表」标题
+148-
+149-## 推进条件（全部满足才写 phase: P5）
+150-
+EXIT_CODE: 0
