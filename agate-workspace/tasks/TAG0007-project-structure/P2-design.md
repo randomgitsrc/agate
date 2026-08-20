@@ -273,7 +273,7 @@ minimal_validation:
   - assumption: "project_phase 字段缺失时 gate_p2 不会误触发骨架校验，向后兼容 1011 条既有测试"
     method: "读 gate_p2 现有可选字段判定逻辑（L570-575，design_trivial/follows_existing_pattern 分支）：`if any(re.search(...) for line in p1_lines)` 对空/不匹配输入返回 False，天然走默认分支。project_phase 判定拟用同款写法：`_frontmatter_field(p1_file, \"project_phase\") == \"bootstrap\"`——_frontmatter_field 对不存在字段返回空字符串（已读该函数签名于既有调用处 `_frontmatter_field(p2_review, \"status\")` 确认返回类型为 str），空字符串 != \"bootstrap\" 为 False，天然不触发新校验"
     result: confirmed
-    note: "新分支与现有代码同款写法，不存在"意外匹配空值"的边界条件；新增回归测试仍需覆盖此路径作为双重保险（TDD 红→绿标准流程），非因不信任本次验证结果，而是遵循 AGENTS.md 改脚本工作流强制要求"
+    note: "新分支与现有代码同款写法，不存在“意外匹配空值”的边界条件；新增回归测试仍需覆盖此路径作为双重保险（TDD 红→绿标准流程），非因不信任本次验证结果，而是遵循 AGENTS.md 改脚本工作流强制要求"
   - assumption: "其余改动（模板文件新增、phase-cards 文字新增、architect.md/consistency-reviewer.md 文字新增）是纯文档新增，无外部系统依赖"
     method: "纯代码逻辑，无外部系统依赖。依赖的内部函数/数据转换：无（新增内容为 Markdown 文本段落 + YAML 注释样例，不涉及运行时代码路径），验证方式是 §3「实现完成的标志」列出的静态存在性/关键词断言（pytest 读文件 + 正则匹配），非行为验证"
     result: not_needed

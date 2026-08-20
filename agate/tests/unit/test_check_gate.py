@@ -2393,3 +2393,231 @@ def test_ui_design_12_heading_prefix_with_suffix_exit_2(
     )
     result = _run_p2_ui_case(task_dir, agate_scripts, python_exe, run_cli, section=section)
     assert result.returncode == 2
+
+
+# ========== 8j: TAG0007 骨架 + CODE-MAP 机制（BDD-1/3/4/7/8/9/10，12 用例） ==========
+# 骨架/CODE-MAP 判定分支尚未实现（P4 未开始），本段用例目前应全部产出真红灯
+# （AssertionError：实际 returncode/output 与断言不符），不是 SyntaxError/ImportError。
+# gate_p2（BDD-1/3）：project_phase: bootstrap 驱动 P2-skeleton.md 存在性校验，字段
+#   缺失/established 时行为须与改动前逐字节一致（回归，允许已绿）。
+# gate_p4（BDD-4/7）：暂存代码文件 + 骨架/CODE-MAP 机制已采用 + 「新增文件核对表」标题
+#   缺失 → WARNING（不阻断，exit 0）。
+# gate_p7（BDD-8/9）：CODE-MAP pairing 两层硬校验——(a) 内部一致性
+#   code_map_reviewed_count < code_map_new_files_count → exit 1；(b) 转抄核对 P4 实际
+#   [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT] 标记数 > code_map_new_files_count（不是
+#   code_map_reviewed_count）→ exit 1（P2-design.md §2.3/§5 已修正的字段对应关系）。
+# BDD-10（refactor 不豁免）：change_type: refactor 声明下 gate_p4/gate_p7 判定逻辑
+#   同样生效，不因该字段分支跳过。
+
+
+def test_bdd_1_bootstrap_missing_skeleton_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "project_phase", "bootstrap")
+    _write_p2_design(td, _P2_TWO_CAND_BODY)
+    add_p2_candidate_count(td, 2)
+    add_p2_review(td)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
+    assert result.returncode == 1
+    assert "P2-skeleton.md" in result.output
+
+
+def test_bdd_1_bootstrap_with_skeleton_title_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "project_phase", "bootstrap")
+    _write_p2_design(td, _P2_TWO_CAND_BODY)
+    add_p2_candidate_count(td, 2)
+    add_p2_review(td)
+    (td / "P2-skeleton.md").write_text("## 骨架声明\n\n占位内容。\n", encoding="utf-8")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
+    assert result.returncode == 2
+
+
+def test_bdd_3_field_missing_no_regression_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    # project_phase 字段完全不声明（缺省 = established），P2-skeleton.md 不存在，
+    # 行为须与改动前逐字节一致（回归对照，参见既有 test_g2_3_two_candidates_exit_2）。
+    _write_p2_design(td, _P2_TWO_CAND_BODY)
+    add_p2_candidate_count(td, 2)
+    add_p2_review(td)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
+    assert result.returncode == 2
+    assert "P2-skeleton.md" not in result.output
+
+
+def test_bdd_3_established_explicit_no_regression_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "project_phase", "established")
+    _write_p2_design(td, _P2_TWO_CAND_BODY)
+    add_p2_candidate_count(td, 2)
+    add_p2_review(td)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P2", str(td))
+    assert result.returncode == 2
+    assert "P2-skeleton.md" not in result.output
+
+
+def test_bdd_4_7_gate_p4_warning_when_table_missing(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    (td / "P2-skeleton.md").write_text("## 骨架声明\n\n占位内容。\n", encoding="utf-8")
+    # P4-implementation.md 由 create_task_dir 生成为空文件（补 frontmatter 后无
+    # "## 新增文件核对表" 标题）——满足"表缺失"条件。
+    _init_repo_with_task(git_repo, td)
+    repo = git_repo.path
+    _write_p4_review(repo, "approved", "reviewer-subagent")
+    (repo / "src.py").write_text("def hello(): pass\n", encoding="utf-8")
+    git_repo.stage("src.py")
+    git_repo.stage("task/P4-review.md")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P4", "task", cwd=str(repo))
+    assert result.returncode == 0  # WARNING 不阻断
+    assert "WARNING" in result.output
+    assert "新增文件核对表" in result.output
+
+
+def test_bdd_4_7_gate_p4_no_warning_when_table_present(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    (td / "P2-skeleton.md").write_text("## 骨架声明\n\n占位内容。\n", encoding="utf-8")
+    (td / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n\n"
+        "## 新增文件核对表\n\n"
+        "| 文件 | 骨架归属 | CODE-MAP 处理 |\n"
+        "|------|----------|----------------|\n"
+        "| src.py | within src | [CODE_MAP_UPDATED] |\n",
+        encoding="utf-8",
+    )
+    _init_repo_with_task(git_repo, td)
+    repo = git_repo.path
+    _write_p4_review(repo, "approved", "reviewer-subagent")
+    (repo / "src.py").write_text("def hello(): pass\n", encoding="utf-8")
+    git_repo.stage("src.py")
+    git_repo.stage("task/P4-review.md")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P4", "task", cwd=str(repo))
+    assert result.returncode == 0
+    assert "WARNING" not in result.output
+
+
+def test_bdd_8_9_gate_p7_internal_consistency_mismatch_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    # 内部一致性层：code_map_reviewed_count(1) < code_map_new_files_count(2) → exit 1
+    # （对应现有 dg_reviewed < dg_count 分支，P2-design.md §2.3/§5）。
+    _write_p7(
+        td,
+        "---\ncode_map_new_files_count: 2\ncode_map_reviewed_count: 1\n---\n"
+        "一致性检查进行中。\n",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "CODE_MAP" in result.output
+
+
+def test_bdd_8_9_gate_p7_transcription_mismatch_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    # 转抄核对层：P4 实际 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT] 标记数(3) >
+    # P7 的 code_map_new_files_count(2)（不是 code_map_reviewed_count）→ exit 1。
+    # code_map_reviewed_count 特意设为与 new_files_count 相等（2），隔离出只有转抄层
+    # 失败、内部一致性层本身通过的场景（防止用例写反字段对应关系，P2 review 曾打回的错误点）。
+    (td / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n"
+        "- [CODE_MAP_UPDATED] src/foo.py\n"
+        "- [CODE_MAP_UPDATED] src/bar.py\n"
+        "- [CODE_MAP_EXEMPT: 仅测试文件] tests/test_foo.py\n",
+        encoding="utf-8",
+    )
+    _write_p7(
+        td,
+        "---\ncode_map_new_files_count: 2\ncode_map_reviewed_count: 2\n---\n"
+        "一致性检查完成。\n",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "CODE_MAP" in result.output
+
+
+def test_bdd_8_9_gate_p7_paired_matches_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    (td / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n"
+        "- [CODE_MAP_UPDATED] src/foo.py\n"
+        "- [CODE_MAP_EXEMPT: 仅测试文件] tests/test_foo.py\n",
+        encoding="utf-8",
+    )
+    _write_p7(
+        td,
+        "---\ncode_map_new_files_count: 2\ncode_map_reviewed_count: 2\n---\n"
+        "一致性检查完成，CODE-MAP 已同步。\n",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 0
+
+
+def test_bdd_8_9_gate_p7_mechanism_not_adopted_no_check(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    # code_map_new_files_count / code_map_reviewed_count 均未声明 → 机制未采用，
+    # 两层 pairing 校验均不触发（回归对照，behavior 应与改动前一致）。
+    _write_p7(td, "---\nagent: test\n---\n一致性检查完成（未采用 CODE-MAP 机制）。\n")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 0
+    assert "CODE_MAP" not in result.output
+
+
+def test_bdd_10_gate_p4_refactor_not_exempt_warning(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    (td / "P2-skeleton.md").write_text("## 骨架声明\n\n占位内容。\n", encoding="utf-8")
+    _init_repo_with_task(git_repo, td)
+    repo = git_repo.path
+    _write_p4_review(repo, "approved", "reviewer-subagent")
+    (repo / "src.py").write_text("def hello(): pass\n", encoding="utf-8")
+    git_repo.stage("src.py")
+    git_repo.stage("task/P4-review.md")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P4", "task", cwd=str(repo))
+    assert result.returncode == 0
+    assert "WARNING" in result.output
+    assert "新增文件核对表" in result.output
+
+
+def test_bdd_10_gate_p7_refactor_not_exempt_pairing_check(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    td = task_dir()
+    add_p1_field(td, "change_type", "refactor")
+    _write_p7(
+        td,
+        "---\ncode_map_new_files_count: 2\ncode_map_reviewed_count: 1\n---\n"
+        "一致性检查进行中（refactor 任务）。\n",
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
+    assert result.returncode == 1
+    assert "CODE_MAP" in result.output
