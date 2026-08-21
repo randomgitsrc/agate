@@ -2,7 +2,7 @@
 
 > An orchestration protocol that verifies AI agents the way a build system verifies a compiler.
 
-[![version](https://img.shields.io/badge/version-v0.56.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.57.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)
@@ -61,6 +61,7 @@ The orchestrator does exactly four things: read state, dispatch subagents, run g
 |----------|-----------|-----------------|
 | OpenCode | ✅ | Full P0-P8 |
 | Claude Code | ✅ | Full P0-P8 |
+| DSH | ✅ | Full P0-P8 |
 | Claude Project sessions | ❌ | Design phases (P0-P2) only |
 
 See [`agate/platform-notes.md`](agate/platform-notes.md) for platform-specific adaptations, including native Windows (Git for Windows) support.

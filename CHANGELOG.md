@@ -8,6 +8,49 @@
 
 ---
 
+## [0.57.0] - 2026-08-21
+
+### 新增（TAG0018：agate 原生支持 DSH 平台，RM-AG0030）
+
+- **DSH（deepseek-harness）成为 agate 官方支持的第三个平台**（继 OpenCode、Claude Code 之后）：
+  新增 `assets/templates/dsh/` 模板目录（`agent.cordis.yml` orchestrator agent-preset +
+  `preset.yml` 会话选择器元数据 + `SKILL.md` agate-protocol skill）、`SETUP.md`「步骤 2-DSH」
+  接入章节、`platform-notes.md` DSH 平台条目、`tests/unit/test_dsh_preset.py` 平台无关回归测试
+  （8 用例）。
+- **orchestrator agent-preset（agent.cordis.yml）**：薄身份 persona（行为规范指向
+  `{agate_root}/orchestrator-template.md`，不复制模板全文）+ 最小工具面 + `tool-fs-search` 必填
+  配置 `config.sampleOverCapGlobResults: false`（DSH schemastery 必填无默认值，缺失 → preset
+  挂载失败 → fail-closed 拒绝创建会话，2026-08-21 实机缺陷回归）。
+- **SETUP.md「步骤 2-DSH」**：符号链接接入命令（`mkdir -p` + 三条 `ln -sf` 指向
+  `~/.agate/assets/templates/dsh/`），与 Claude Code/OpenCode/Windows 平台小节同构；「身份薄、
+  协议厚」说明 + 升级跟随行为（符号链接免操作 / 复制模式重跑）+ 使用与验证指引（会话选择器选
+  「agate 编排者」）。
+- **platform-notes.md「## DSH（deepseek-harness）」条目**：六项能力差异对照表（orchestrator 身份
+  注册 / 派发 subagent / 批量并行 / 独立复核 / 跨轮续跑 / 实时 gate）+「已知注意」节（sandbox
+  只读、DSH 无 `.claude/agents/*.md` 等价物），接入步骤单一真相源指向 SETUP.md「步骤 2-DSH」。
+- **test_dsh_preset.py（8 用例，平台无关）**：守护 agent.cordis.yml 行结构（id/name）、
+  tool-fs-search 必填配置、preset.yml 元数据、SKILL frontmatter、SETUP.md 章节与命令在位；只
+  校验仓库内文件，无 DSH 实例的 CI 环境可跑。
+
+### 关键机制
+
+- DSH 平台接入 = SETUP.md 文档化符号链接 + 唯一 `install-hook.py`，不发明新结构（无 per-platform
+  installer）；「身份薄、协议厚」保证模板随 `~/.agate` 升级自动更新。
+- 回归测试平台无关原则：不依赖真实 DSH 实例、不写 /tmp、不假设符号链接语义——无 DSH 的 CI 环境
+  可跑。
+
+### 说明
+
+- **本版本无破坏性变更**：交付物全部为新增文件（`assets/templates/dsh/` 三文件、
+  `test_dsh_preset.py`）与文档追加章节（SETUP.md / platform-notes.md），未改动任何既有协议机制
+  运行时行为；已有项目升级仅需 `git pull` + 重跑 `install-hook.py`。
+- **技术债**：本次无技术债关闭（`debt_check: none`）——既有 open 债务
+  （DEBT0002/3/4/7/8/14/15/16/17）与本任务无交集。
+- DSH 平台接入步骤见 `SETUP.md`「步骤 2-DSH」（单一真相源）；`platform-notes.md` DSH 条目只做
+  能力差异说明。
+
+---
+
 ## [0.56.0] - 2026-08-20
 
 ### 新增（TAG0007：agate 项目结构管理机制，RM-AG0008 + RM-AG0009）

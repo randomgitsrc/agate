@@ -2,7 +2,7 @@
 
 > 一种编排协议，用构建系统验证编译器的方式验证 AI Agent。
 
-[![version](https://img.shields.io/badge/version-v0.56.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.57.0-blue)](https://github.com/randomgitsrc/agate)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)
@@ -61,6 +61,7 @@ gate 检查（测试运行器 exit code、类型检查器、git log、BDD 运行
 |----------|-----------|-----------------|
 | OpenCode | ✅ | 完整 P0-P8 |
 | Claude Code | ✅ | 完整 P0-P8 |
+| DSH | ✅ | 完整 P0-P8 |
 | Claude Project 会话 | ❌ | 仅设计阶段（P0-P2） |
 
 平台相关的适配，包括原生 Windows（Git for Windows）支持，见 [`agate/platform-notes.md`](agate/platform-notes.md)。

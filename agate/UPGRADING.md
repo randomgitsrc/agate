@@ -89,6 +89,20 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.57.0 — DSH 平台支持（无破坏性变更）
+
+**本版本无破坏性变更，无需迁移动作。**
+
+- agate 新增对 DSH（deepseek-harness）平台的原生支持（RM-AG0030）：`assets/templates/dsh/`
+  三文件（agent.cordis.yml / preset.yml / SKILL.md）+ `SETUP.md`「步骤 2-DSH」+ `platform-notes.md`
+  DSH 条目 + `tests/unit/test_dsh_preset.py` 回归测试——全部为新增文件/新增章节，未改动任何既有
+  协议机制运行时行为。
+- **DSH 平台接入（新接入用户）见 `SETUP.md`「步骤 2-DSH」**：符号链接注册 orchestrator
+  agent-preset 与 agate-protocol skill 后，在 DSH 会话选择器选「agate 编排者」即可按 P0-P8
+  全流程使用。
+- 已有项目升级：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS 符号
+  链接模式自动跟随，不放心可重跑确认；Windows 复制模式必须重跑）。
+
 ### v0.52.0 — 协议机制增强批（无破坏性变更）
 
 **本版本无破坏性变更，无需迁移动作。**
