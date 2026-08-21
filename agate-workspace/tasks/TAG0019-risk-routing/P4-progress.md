@@ -144,3 +144,4 @@
 - [x] 重写 P4-review.md 为终裁汇总（两位专家终裁表 + 汇总已验证清单 C1-C3/F1/F2/fail-closed 主链/importlib 复用/平台无关/注册点/零回归 + 遗留非阻断项 I1 移交 P5、F4、F6；Header agent: review 非 main）
 - [x] Header status: rejected → approved（终裁）
 - [x] verdict: approved（主 Agent 可推进 P5，前置落实 I1 basetemp）
+- [x] wrote P4-implementation.md (header/implementation_dir/新增文件核对表/摘要/测试状态/评审)
