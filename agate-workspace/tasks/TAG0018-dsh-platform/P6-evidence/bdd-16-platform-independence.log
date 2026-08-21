@@ -1,0 +1,23 @@
+===== BDD-16 平台无关验证（P6 验收实跑，round 2：显式 PYTHONPATH 适配用户级 site-packages）=====
+模拟 CI 类环境：HOME=/home/kity/oclab/dsh-workspace/fakehome.qsDFab（空主目录，无 ~/.dsh 目录）
+  python3: /usr/bin/python3
+  pytest: /home/kity/.local/lib/python3.12/site-packages（用户级安装，显式注入 PYTHONPATH 供解释器发现——隔离的是 HOME/~/.dsh，不是模块发现机制）
+--- [1/2] 静态核查四条禁止项（grep 测试文件，只读仓库内文件）---
+  模式 [tempfile\|/tmp\b\|mktemp]:
+    (0 命中)
+  模式 [islink\|os\.symlink\|Path\.symlink]:
+    (0 命中)
+  模式 [subprocess\|spawn\|Popen]:
+    (0 命中)
+  模式 [expanduser\|environ\[.HOME\|getenv(.HOME]:
+grep: 不匹配的 ( 或 \(
+    (0 命中)
+--- [2/2] 隔离 HOME（无 ~/.dsh）跑单文件 pytest ---
+........                                                                 [100%]
+8 passed in 0.04s
+ISOLATED_PYTEST_EXIT: 0
+--- 附加：确认隔离环境下无 ~/.dsh（测试未触碰它）---
+总计 8
+drwx------ 2 kity kity 4096  8月 21 10:12 .
+drwxr-xr-x 9 kity kity 4096  8月 21 10:12 ..
+EXIT_CODE: 0

@@ -1,0 +1,9 @@
+BDD-10 PASS: 章节含「身份薄、协议厚」说明（persona 只写薄身份、行为规范指向模板）与升级跟随行为
+  [OK] 「身份薄、协议厚」表述
+  [OK] persona 只写薄身份（不复制模板全文）
+  [OK] 行为规范指向 orchestrator-template.md
+  [OK] 模板随 ~/.agate 升级自动更新
+  [OK] 符号链接升级后无需操作
+  [OK] 无符号链接权限退复制模式
+  [OK] 升级后重跑
+EXIT_CODE: 0

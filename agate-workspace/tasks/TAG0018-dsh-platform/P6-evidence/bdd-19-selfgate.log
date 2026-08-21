@@ -1,0 +1,42 @@
+===== BDD-19 self-gate 触发面覆盖核对（P6 验收实跑）=====
+P1 声明触发文件：agate/SETUP.md、agate/platform-notes.md、agate/assets/templates/dsh/SKILL.md（agate/**/*.md）；test_dsh_preset.py 不触发
+
+--- [1/2] 含触发文件的 commit 及其 message self-gate 标记 ---
+== agate/SETUP.md ==
+bf69754 wf(TAG0018-P4): 实现 6 交付物过 review（approved）→ 8/8 绿；self-gate-skip: P4 实现提交，完整 self-gate review（protocol-alignment-review）于 P8 统一派发
+dc5090b wf(TAG0008-P8): 发布准备——bump minor v0.50.0 + CHANGELOG + UPGRADING 章节 + 文档层全联动 + debt_check reviewed
+7659161 docs: 修复独立评审问题（README 裁剪语义对齐 + phase-cards 26 处 py 化引用 + SETUP/UPGRADING 轻量修正）
+== agate/platform-notes.md ==
+bf69754 wf(TAG0018-P4): 实现 6 交付物过 review（approved）→ 8/8 绿；self-gate-skip: P4 实现提交，完整 self-gate review（protocol-alignment-review）于 P8 统一派发
+17a3a5d wf(TAG0017-P4): 实现（5 批并行 + review-fix + self-gate 修复）
+2c71916 docs: platform-notes Windows setup 补 git 用户身份前项（user.email/name）
+== agate/assets/templates/dsh/SKILL.md ==
+bf69754 wf(TAG0018-P4): 实现 6 交付物过 review（approved）→ 8/8 绿；self-gate-skip: P4 实现提交，完整 self-gate review（protocol-alignment-review）于 P8 统一派发
+
+--- 各触发 commit 完整 message（检查 self-gate-review/self-gate-skip）---
+== commit bf69754 ==
+wf(TAG0018-P4): 实现 6 交付物过 review（approved）→ 8/8 绿；self-gate-skip: P4 实现提交，完整 self-gate review（protocol-alignment-review）于 P8 统一派发
+ agate/SETUP.md                                     |  29 +++
+ agate/assets/templates/dsh/SKILL.md                |  77 +++++++
+ agate/platform-notes.md                            |  22 ++
+== commit 153c0a2 ==
+docs(TAG0018-P4): tests/README.md 映射表补 DSH 平台测试行（M-7 顺手项，独立 docs commit）；self-gate-skip: 纯文档行追加，无协议机制改动
+ agate/tests/README.md | 1 +
+
+--- [2/2] test_dsh_preset.py 不触发 self-gate（正则核对 + 实际提交）---
+commit-msg-self-gate.py 正则（源）：
+14:Python 3.8+（无 match / str.removeprefix）；所有文本读写显式 encoding="utf-8"。
+38:_SELF_GATE_RE = re.compile(
+41:_SKIP_RE = re.compile(r"^self-gate-skip:\s*\S+", re.MULTILINE)
+42:_REVIEW_RE = re.compile(r"^self-gate-review:\s*\S+", re.MULTILINE)
+57:            if _SELF_GATE_RE.match(line.rstrip("\r")):
+71:    if _SKIP_RE.search(commit_msg):
+73:    if _REVIEW_RE.search(commit_msg):
+实际：P3/P5 引入 test_dsh_preset.py 的 commit message 是否带 self-gate 标记：
+== commit 15a6874 ==
+  (无 self-gate 标记——符合预期：test_dsh_preset.py 不触发)
+ agate/tests/unit/test_dsh_preset.py                | 204 +++++++++++++++++++++
+== commit 40a9046 ==
+  (无 self-gate 标记——符合预期：test_dsh_preset.py 不触发)
+ agate/tests/unit/test_dsh_preset.py                |   6 +-
+EXIT_CODE: 0

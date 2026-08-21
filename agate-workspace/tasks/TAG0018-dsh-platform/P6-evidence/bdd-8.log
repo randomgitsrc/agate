@@ -1,0 +1,6 @@
+BDD-8 PASS: 「步骤 2-DSH」章节含 mkdir -p + 三条 ln -sf，源路径均指向 ~/.agate/assets/templates/dsh/
+  [OK] mkdir -p 命令
+  [OK] ln -sf agent.cordis.yml
+  [OK] ln -sf preset.yml
+  [OK] ln -sf SKILL.md
+EXIT_CODE: 0

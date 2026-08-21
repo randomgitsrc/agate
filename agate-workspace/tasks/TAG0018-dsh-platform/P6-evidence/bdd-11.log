@@ -1,0 +1,6 @@
+BDD-11 PASS: 章节含使用指引（打开 DSH 会话→选「agate 编排者」→执行「开始」几步验证）
+  [OK] 打开 DSH 会话
+  [OK] 会话选择器选「agate 编排者」
+  [OK] 对应 claude --agent orchestrator
+  [OK] 执行 orchestrator-template.md「开始」几步验证
+EXIT_CODE: 0

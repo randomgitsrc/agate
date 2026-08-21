@@ -1,0 +1,31 @@
+===== BDD-17 回归护栏红/绿变异验证（P6 验收实跑）=====
+原始文件 md5: 3aea0262252a11ac5755e40b50fc31ca
+
+--- [RED] 变异：移除 tool-fs-search 的 config.sampleOverCapGlobResults ---
+变异完成：sampleOverCapGlobResults 已从 tool-fs-search config 移除
+15:# sampleOverCapGlobResults 的挂载失败缺陷已复现并修复（该字段为 schemastery 必填，
+--- 红态：跑 tool-fs-search 回归用例（预期 FAIL）---
+F                                                                        [100%]
+=================================== FAILURES ===================================
+E   AssertionError: tool-fs-search 缺 config.sampleOverCapGlobResults: false（DSH schemastery 必填）
+    assert None is False
+     +  where None = <built-in method get of dict object at 0x74f7517b0cc0>('sampleOverCapGlobResults')
+     +    where <built-in method get of dict object at 0x74f7517b0cc0> = {}.get
+/home/kity/oclab/agate/.worktrees/agate-TAG0018/agate/tests/unit/test_dsh_preset.py:107: AssertionError: tool-fs-search 缺 config.sampleOverCapGlobResults: false（DSH schemastery 必填）
+=========================== short test summary info ============================
+FAILED agate/tests/unit/test_dsh_preset.py::test_dsh_tool_fs_search_has_required_config
+1 failed in 0.03s
+RED_EXIT: 1
+
+--- [GREEN] 恢复原始文件 ---
+恢复完成: md5=3aea0262252a11ac5755e40b50fc31ca
+--- 绿态：重跑同用例 + 全文件 8 用例（预期 PASS）---
+.                                                                        [100%]
+1 passed in 0.03s
+GREEN_SINGLE_EXIT: 0
+........                                                                 [100%]
+8 passed in 0.04s
+GREEN_ALL_EXIT: 0
+
+--- git 工作区干净性确认（agent.cordis.yml 应无 diff）---
+EXIT_CODE: 0
