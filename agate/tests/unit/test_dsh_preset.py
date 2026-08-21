@@ -23,7 +23,7 @@
 #   - BDD-17 用例 2 红/绿双态可复现（缺配置 FAIL / 在位 PASS）
 #
 # 平台无关原则（BDD-16，agate 测试核心约束）：
-#   1. 不写 /tmp —— 只读仓库内文件，无临时文件
+#   1. 不写系统临时目录 —— 只读仓库内文件，无临时文件
 #   2. 不假设符号链接语义 —— 不调用 islink、不创建链接；SETUP.md 里的 ln -sf 仅作文档文本断言
 #   3. 不调用 DSH —— 不 spawn 任何 DSH 进程；~/.dsh 仅作为 SETUP.md 文本断言的目标路径字面量
 #   4. 不依赖主目录路径 —— 仓库路径一律经 agate_root fixture 解析（conftest 上溯反推或 AGATE_ROOT 覆盖）
@@ -199,6 +199,8 @@ def test_dsh_setup_section_has_install_hook_call(agate_root):
     """
     setup = _read(agate_root, "SETUP.md")
     section = _dsh_section(setup)
-    assert "python3 ~/.agate/scripts/install-hook.py" in section, (
+    # 只断言脚本路径，不硬编码解释器名（python3/python，R2 平台无关约束——解释器名在
+    # Windows 上可能是 python，见 AGENTS.md 测试约定「不允许裸 python3」）
+    assert "~/.agate/scripts/install-hook.py" in section, (
         "SETUP.md DSH 章节缺 install-hook.py 调用（唯一安装脚本；不引入 per-platform installer）"
     )
