@@ -75,6 +75,7 @@ bash agate/tests/scripts/count-tests.sh
 | 测试 helper（PYTHON 探测）| unit/test_helpers_python.py | 3 |
 | check-platform-assumptions.py | agate/tests/scripts/test_check_platform_assumptions.py | 16 |
 | 文档/CI 断言（shellcheck/ruff/matrix）| unit/test_env_adapt_docs.py | 9 |
+| DSH 平台模板结构（TAG0018）| unit/test_dsh_preset.py | 8 |
 | 回归 (R1-R5) | regression/ | 17 |
 | commit-msg-self-gate | unit/test_commit_msg_self_gate.py | 4 |
 | commit-msg-self-gate（集成）| integration/test_commit_msg_self_gate_integration.py | 6 |
