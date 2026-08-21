@@ -10,6 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
+| TAG0018 | agate 原生支持 DSH 平台（RM-AG0030）：assets/templates/dsh/ orchestrator agent-preset + agate-protocol skill 模板 + SETUP.md「步骤 2-DSH」符号链接接入 + platform-notes.md DSH 条目 + test_dsh_preset.py 回归（实机已验证 preset 挂载/会话人格 2026-08-21，修复 tool-fs-search 缺必填配置）| 🔄 | P0 | 高 | — | 2026-08-21 | 2026-08-21 |
 
 ### 待开始
 
