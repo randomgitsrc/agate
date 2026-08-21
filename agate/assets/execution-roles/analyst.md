@@ -66,6 +66,7 @@ packages: [pkg-a]           # list，必填
 domains: [backend, frontend]  # list，必填
 # 跳过风险: 说明裁剪每个阶段的风险评估（裁剪声明必备）
 # 可选字段：仅在适用时写（不适用即省略，不写 null——presence 语义）
+# ceremony: standard            # thin/standard/full；缺省 standard（fail-closed，BDD-6/7/8）
 # design_trivial: true              # 若 P2 只需 1 个候选方案（简单/无争议）
 # follows_existing_pattern: [src/foo.py]  # 若 P2 遵循既有模式
 # implicit_coupling: true           # 若改动涉及隐式耦合（P7 裁剪时会拦截）

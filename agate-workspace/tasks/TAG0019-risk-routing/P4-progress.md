@@ -151,3 +151,8 @@
 - [x] fix2: test_docs_assertions.py:3 /tmp literal removed
 - [x] registry check: _DRIFT_SCRIPTS already has both new scripts; _GUARD_SCRIPTS not required (P2 0.2)
 - [x] self-run: 2/2 P5-failing cases green; platform 7-file set exit 0; consistency 0 ERROR (CHECK9 no warn); /tmp grep clean
+- [x] fix4: analyst.md frontmatter 样例块可选字段区 + ceremony: standard 行（thin/standard/full 缺省 standard fail-closed，BDD-6/7/8）
+- [x] fix4: task-files.md P1-requirements frontmatter 块可选字段区 + ceremony: standard 行（缺省 standard fail-closed；thin 需四要素 checklist）
+- [x] fix4: dispatch-protocol.md:931 评审检查项升级为风险分级/裁剪声明（risk_level/ceremony/phases）vs 实际 diff 证据（ceremony: full → phases 含 P7；thin 四要素 vs 文件规模）
+- [x] fix4: CODE-MAP.md scripts 模块描述末尾 + ceremony 路由族登记（agate-risk-score.py 客观信号算分 / check-routing.py ceremony 校验 pre-commit 2j.1 挂载，TAG0019）
+- [x] fix4: consistency self-run --strict-errors-only --root=. → 0 ERROR（318 WARNING 历史遗留），EXIT=0
