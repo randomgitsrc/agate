@@ -26,6 +26,7 @@
 | RM-AG0027 | 协议工具链修复批（TAG0016 复盘发现，DEBT0010/0011/0012/0014）：gate_commands 键解析脚本未排除 _timeout_seconds 后缀（4 脚本，P2/P3/P5 误判）+ SELF-GATE 审查文件纯日期命名跨任务同日覆盖历史记录 + check-protocol-consistency --strict 与 && 链路短路 + Windows Store python3 占位符命中 hook 探测循环（DEBT0014，跨项目反馈汇入）| done | TAG0016 复盘（2026-08-19）+ 用户跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-20 |
 | RM-AG0028 | env_constraints 声明性字段无执行/gate 绑定：deploy 类动作（UI 任务 windeployqt 构建 dist）只注入 subagent 上下文、不触发任何 gate 检查（agate-extract-context.py L107-109 只注入，check-gate.py grep deploy 零命中；TQC0001 实证 dist 从未主动产出直到用户提醒）| done | TQC0001 跨项目反馈（2026-08-19）| TAG0017 | 2026-08-19 | 2026-08-20 |
 | RM-AG0030 | agate 原生支持 DSH 平台（deepseek-harness）：DSH 无 .claude/agents 等价物，身份注册用 agent-preset——提供 assets/templates/dsh/ preset+skill 模板（身份薄、协议厚，persona 指向 orchestrator-template.md）+ SETUP.md「步骤 2-DSH」符号链接接入 + platform-notes.md DSH 条目 + preset 必填配置回归测试；实机验证 preset 挂载与会话人格（2026-08-21，修复 tool-fs-search 缺 sampleOverCapGlobResults）| done | DSH 集成研究（2026-08-20）| TAG0018 | 2026-08-21 | 2026-08-21 |
+| RM-AG0031 | 风险分路由（ceremony routing）：agate 成本高/速度慢，根因之一是复杂度判定依赖 agent 自报（self-authorization 陷阱，TAG0018 实证：analyst 声明 low 后 P5 仍抓真实违规；4 场 LLM 评审净收益≈0 而机械 gate 全胜）——改为客观信号脚本算分（agate-risk-score.py：文件类型/敏感路径/改动规模对齐 pruning 源码数≤5/域映射/影响面，analyst 只解释不决定）+ fail-closed 默认（thin 档=申请+checklist，不声明=standard）+ requirements-review 增"审声明"职责 + thin 档跳过 LLM 评审（M3 以实证数据验收）；配套 subagent 返回前自检 gate + 写时 schema 校验（联动 RM-AG0022）| backlog | 用户反馈（2026-08-21 成本/速度讨论，含设计提案）| — | 2026-08-21 | 2026-08-21 |
 
 ## 状态标识
 
