@@ -170,3 +170,25 @@ git config --global user.name  "Your Name"
 
 - **纯 cmd/PowerShell 无 bash**：**TAG0010 起成为可行选项**——gate 脚本已全部 Python 化，`python3 ~/.agate/scripts/xxx.py` 可直接运行（P0-P8 全程可执行）。唯一受限：git hook 入口薄壳仍需 sh 执行，无 bash 时 hook 不触发（可用 CI backstop 兜底 `--no-verify` 场景）。
 - **Cygwin（非 MSYS2）**：理论上可行但未测，不保证。推荐 Git for Windows。
+
+## DSH（deepseek-harness）
+
+> 接入步骤见 `SETUP.md`「步骤 2-DSH」（接入命令单一真相源，本条目只做能力差异说明）；preset/skill 模板文件在 `assets/templates/dsh/`。已实机验证（2026-08-21，DSH v0.1.0-rc.8）——新兴平台，机制可能随版本变化。
+
+**平台形态**：pnpm monorepo + cordis 插件框架；身份注册用 **agent-preset**（`agent.cordis.yml` + `preset.yml`），
+skill 是打包/分发单元（SKILL.md + frontmatter，自动进会话技能目录）。
+
+**能力差异（与 OpenCode/Claude Code 对照）**：
+
+| 能力 | OpenCode/Claude Code | DSH |
+|------|---------------------|-----|
+| orchestrator 身份注册 | `.agents/orchestrator.md` 软链（mode: primary）| agent-preset（persona.text + 工具行）|
+| 派发 subagent | task 工具 | `subagent` / `subagent_fork`（spawn/fork 两种上下文模式）|
+| 批量并行派发 | 手工多路 task | **workflow 脚本**（agent/pipeline/parallel/phase）|
+| 独立复核（judge）| 手工保证 fresh context | **ralph**（每轮全新 agent + bounded handoff）|
+| 跨轮续跑 | 手动重开会话 | **goal**（持久化目标，自动续轮）|
+| 实时 gate | 仅 git hook（commit 时）| 另可挂 **session hooks**（PostToolUse 每步触发）|
+
+**已知注意**：
+- 沙箱默认 workspace-write，协议本体目录可能只读（写仓库内文件 Errno 30）——任务工作区放可写位置
+- DSH 无 `.claude/agents/*.md` 等价物——不要试图把 orchestrator-template.md 软链进 DSH 目录，用 preset
