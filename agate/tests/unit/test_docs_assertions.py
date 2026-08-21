@@ -1,6 +1,6 @@
 # tests/unit/test_docs_assertions.py — 协议文档静态条文断言（TAG0019，BDD-11/12/14）
 # 断言 ceremony 新机制的文档条文可 grep（P4 实现落协议文档后应存在；当前未实现 → 红）。
-# 平台无关：读文件经 pathlib（agate_root fixture），无 shell / 无 /tmp / 无裸 python3。
+# 平台无关：读文件经 pathlib（agate_root fixture），无 shell / 无硬编码临时目录字面 / 无裸 python3。
 
 import re
 from pathlib import Path

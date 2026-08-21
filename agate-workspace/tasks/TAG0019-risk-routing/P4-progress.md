@@ -145,3 +145,9 @@
 - [x] Header status: rejected → approved（终裁）
 - [x] verdict: approved（主 Agent 可推进 P5，前置落实 I1 basetemp）
 - [x] wrote P4-implementation.md (header/implementation_dir/新增文件核对表/摘要/测试状态/评审)
+## P4 fix round 3 (P5 回退, implementer rev 3)
+- [x] read fix3 dispatch-context (CHECK 9 anchor + docs_assertions /tmp)
+- [x] fix1: SCRIPT_ALIGNMENT_ANCHORS + check-routing.py anchor (ceremony/git_ok + callers pre-commit-gate)
+- [x] fix2: test_docs_assertions.py:3 /tmp literal removed
+- [x] registry check: _DRIFT_SCRIPTS already has both new scripts; _GUARD_SCRIPTS not required (P2 0.2)
+- [x] self-run: 2/2 P5-failing cases green; platform 7-file set exit 0; consistency 0 ERROR (CHECK9 no warn); /tmp grep clean
