@@ -1,0 +1,8 @@
+BDD-13 PASS: DSH 条目含能力差异对照表（六项）与「已知注意」节（sandbox 只读 + 无 .claude/agents 等价物）
+  [OK] orchestrator 身份注册
+  [OK] 派发 subagent
+  [OK] 批量并行派发
+  [OK] 独立复核
+  [OK] 跨轮续跑
+  [OK] 实时 gate
+EXIT_CODE: 0

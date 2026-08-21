@@ -1,0 +1,5 @@
+BDD-4 PASS: preset.yml 解析成功且 name/description 非空
+  name: 'agate 编排者'
+  description: 'agate 编排 Agent（P0-P8 全流程管理，派发 subagent 执行，gate 硬边界验证）。'
+  order: 1
+EXIT_CODE: 0

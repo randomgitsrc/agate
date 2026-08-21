@@ -1,0 +1,16 @@
+===== BDD-1: agent.cordis.yml 合法 YAML 行列表，每行非空 id/name =====
+BDD-1 PASS: agent.cordis.yml 顶层行列表解析成功，共 13 行，每行 id/name 非空
+  - id='persona' name='@deepseek-ai/dsh-persona'
+  - id='agent-instructions' name='@deepseek-ai/dsh-agent-instructions'
+  - id='tool-bash' name='@deepseek-ai/dsh-tool-bash'
+  - id='tool-pwsh' name='@deepseek-ai/dsh-tool-pwsh'
+  - id='tool-fs' name='@deepseek-ai/dsh-tool-fs'
+  - id='tool-fs-search' name='@deepseek-ai/dsh-tool-fs-search'
+  - id='tool-jobs' name='@deepseek-ai/dsh-tool-jobs'
+  - id='skill-filesystem' name='@deepseek-ai/dsh-skill-filesystem'
+  - id='tool-skill' name='@deepseek-ai/dsh-tool-skill'
+  - id='tool-goal' name='@deepseek-ai/dsh-tool-goal'
+  - id='delegation' name='cordis:group'
+  - id='tool-ask-user' name='@deepseek-ai/dsh-tool-ask-user'
+  - id='tool-todo' name='@deepseek-ai/dsh-tool-todo'
+EXIT_CODE: 0

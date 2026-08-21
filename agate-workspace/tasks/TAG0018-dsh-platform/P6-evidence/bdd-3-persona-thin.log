@@ -1,0 +1,4 @@
+===== BDD-3: persona 薄身份（指向 orchestrator-template.md，不含模板正文 verbatim）=====
+BDD-3 PASS: persona 含 {agate_root}/orchestrator-template.md 引用，且不含模板首行标题「# Orchestrator（agate 编排 Agent）」verbatim
+persona.text 片段: 你是当前项目的 agate 编排 Agent（orchestrator），负责 P0-P8 全流程管理、派发 subagent 执行。 你的职责严格限定为四件事：读状态、派发 subagent、跑 gate 脚本（exit code 判定） ...
+EXIT_CODE: 0

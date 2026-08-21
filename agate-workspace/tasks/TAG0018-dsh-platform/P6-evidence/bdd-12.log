@@ -1,0 +1,3 @@
+BDD-12 PASS: platform-notes.md 含「## DSH（deepseek-harness）」条目，与既有平台条目同级
+  全部 h2 条目: ['OpenCode', 'Claude Code', 'Claude Project 会话（claude.ai）', 'Codex / Hermes / OpenClaw 等', 'Hardening-roadmap 跨平台适配（自 v0.4 引入，持续生效）', '验证记录', 'Windows 原生（Git for Windows，不用 WSL）', 'DSH（deepseek-harness）']
+EXIT_CODE: 0

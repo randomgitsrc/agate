@@ -1,0 +1,4 @@
+BDD-5 PASS: SKILL.md frontmatter name=agate-protocol 且 description 非空
+  name: 'agate-protocol'
+  description: 'agate 协议的 DSH 适配层——工具映射、平台注意、并行派发与独立 judge 的 DSH 原生食谱。由 agate 编排者（agent-preset）加载使用；也可供任何想在 DSH 上跑 agate 任务的 agent 加载。'
+EXIT_CODE: 0

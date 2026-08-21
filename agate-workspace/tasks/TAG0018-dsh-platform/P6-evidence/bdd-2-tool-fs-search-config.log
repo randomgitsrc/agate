@@ -1,0 +1,3 @@
+===== BDD-2: tool-fs-search 必填配置 sampleOverCapGlobResults: false =====
+BDD-2 PASS: tool-fs-search config.sampleOverCapGlobResults == false（schemastery 必填，实机缺陷回归）
+EXIT_CODE: 0

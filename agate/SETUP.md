@@ -141,6 +141,35 @@ cp ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 
 **5. CRLF / `core.autocrlf` 处理**：仓库已含 `.gitattributes` 强制 LF（`*.md` 等文本规则除外，历史 review 文件保持 CRLF，见仓库根 `.gitattributes` 文件头注释）；若 clone 的是旧版本仓库（无该文件），手动 `git config core.autocrlf false` 再重新 checkout。已物化 CRLF 的工作区执行 `git add --renormalize .` 重规范化，否则 3 个 hook 薄壳 `.sh` 报 `\r` 语法错、卡片 sha256 校验 mismatch（py 文件已显式 `encoding="utf-8"` 读写，免疫）。
 
+### 步骤 2-DSH：deepseek-harness（DSH）接入
+
+DSH 的接入方式与 OpenCode/Claude Code **完全同构**——注册 orchestrator 身份就是**符号链接**：
+DSH 的身份注册机制是 **agent-preset**（`agent.cordis.yml` + `preset.yml`，声明式 agent 组合），
+协议模板文件在 `{agate_root}/assets/templates/dsh/`（与 `assets/templates/` 下其他模板同属模板目录）：
+
+```bash
+# 1. 注册 orchestrator 身份（DSH preset，等价 .claude/agents/orchestrator.md 软链）
+mkdir -p ~/.dsh/.agent-presets/agate ~/.dsh/skills/agate-protocol
+ln -sf ~/.agate/assets/templates/dsh/agent.cordis.yml ~/.dsh/.agent-presets/agate/agent.cordis.yml
+ln -sf ~/.agate/assets/templates/dsh/preset.yml ~/.dsh/.agent-presets/agate/preset.yml
+ln -sf ~/.agate/assets/templates/dsh/SKILL.md ~/.dsh/skills/agate-protocol/SKILL.md
+
+# 2. 装 hook（与所有平台一致，唯一安装脚本）
+python3 ~/.agate/scripts/install-hook.py
+```
+
+**身份薄、协议厚**：preset 的 persona 只写"你是谁 + 会话开始步骤 + DSH 工具映射"，行为规范仍指向
+`{agate_root}/orchestrator-template.md`——模板随 `~/.agate`（→ 仓库软链）升级自动更新；
+符号链接方式升级后什么都不用做；**Windows 无符号链接权限时退复制模式，升级后需重跑上述 `ln` 命令对应的 `cp`**（复制模式代价：模板升级后不会自动同步，与既有平台小节一致）。
+
+**使用**：打开 DSH 会话，在会话选择器选「agate 编排者」（对应 `claude --agent orchestrator`），
+然后执行 orchestrator-template.md 的「开始」几步验证。
+
+> 版本敏感提示：本接入已实机验证（2026-08-21，DSH v0.1.0-rc.8：preset 软链安装 → 热发现 →
+> 会话选择器出现「agate 编排者 · 自定义」→ 新会话以 agate 编排者人格启动）。DSH 是新兴平台，
+> preset/skill 发现机制可能随版本变化——升级 DSH 后若会话选择器找不到「agate 编排者」，
+> 重跑上方命令块即可。
+
 ## 步骤 3（可选）：设成默认 agent
 
 不设的话，每次开会话需要手动选/指定 orchestrator；设了之后新会话默认就是它。
