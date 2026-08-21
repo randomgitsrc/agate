@@ -1,3 +1,60 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0019
+role: review
+revision: 2
+---
+
+<dispatch_guide>
+> ⚠️ 本文件是 P4 实现复审轮（⑩迭代第 3 轮）的强制指令。增量模式：确认上轮 rejected 的 C1-C3/F1/F2 修复到位，全量复评。
+
+### 上轮结论与修复声明
+
+- 组长汇总 P4-review.md（status: rejected）：C1-C3 CRITICAL + F1/F2 MEDIUM
+- implementer 修复轮已完成（P4-review.md 的修复要求 1-5 条），声明：
+  - **C1** → agate-md-field-get.py ceremony 移入 NO_FALLBACK_STRING_FIELDS（frontmatter-only），删 _regex_fallback ceremony 分支；回归测试 test_c1_ceremony_prose_in_body_not_misread_exit_0（正文散文 "ceremony: xxx" → exit 0）
+  - **C2** → 两测试头注释去字面 /tmp；check-platform-assumptions 全 7 文件变更集 0 命中 exit 0
+  - **C3** → test_check_frontmatter.py（ceremony: light → exit 1）+ test_agate_md_field_get.py（读出/空/不误判 3 用例）+ test_pre_commit_hook.py（2j.1 挂载链集成用例，55 过）
+  - **F2** → 敏感关键词扩充 + api|auth|token|net 词界化
+  - **F1** → 影响面扫描跳过 P[0-8]-*.md 与 agate-workspace/tasks/** 树
+- 测试状态：单元 60/61（1 环境前提 test_bdd_7 git_ok:false 待 P5 非 git basetemp）+ 集成 55 + 回归 68 全过 + platform 0 命中
+
+### 复审任务
+
+1. 独立复核 C1：agate-md-field-get.py 确认 ceremony 在 NO_FALLBACK_STRING_FIELDS（非 STRING_FIELDS）、无 _regex_fallback ceremony 分支；跑回归测试确认正文散文不误读（check-routing exit 0）
+2. 独立复核 C2：grep 两测试头无 "/tmp" 字面；跑 check-platform-assumptions 变更文件集 0 命中
+3. 独立复核 C3：三测试文件存在 + frontmatter-check ceremony enums / md-field-get ceremony / pre-commit 2j.1 挂载链
+4. 独立复核 F2/F1：敏感关键词集 + 词界 + 任务文档跳过逻辑
+5. 全量复评（防修复引入新问题）：fail-closed 主链 / importlib 复用 / 平台无关 / 注册点 / 既有用例零回归
+6. 产出更新版 P4-review-eng.md（覆盖更新，Header status: approved / rejected）
+
+### 输入文件
+
+- {AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review.md（上轮意见）
+- {AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review-eng.md（你的上轮文件）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/agate-md-field-get.py / agate-risk-score.py / check-routing.py / agate-frontmatter-check.py / pre-commit-gate.py（修复后代码）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/tests/unit/ 与 integration/（修复后测试）
+- /home/kity/oclab/agate/agate/assets/review-roles/review.md（角色定义）
+
+路径：{AGATE_WORKSPACE} = /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate-workspace。
+
+### 约束
+
+- /tmp 只读；读卡片/角色用 ~/.agate；bash 一律 timeout 90s；[PROD_NOT_TOUCHED]
+- 产出路径硬约束：`{AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review-eng.md`（覆盖更新）
+- 分阶段落盘：追加 P4-progress.md；不直接改代码
+
+### 返回
+
+只返回两行：① P4-review-eng.md 路径；② Status: <approved|rejected>（与 Header 一致）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -92,7 +149,6 @@ implementer 为本阶段**每个新增文件**填一行：
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
 | risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
-| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -171,3 +227,4 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->

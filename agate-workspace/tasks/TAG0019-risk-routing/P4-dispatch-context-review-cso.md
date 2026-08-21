@@ -1,3 +1,62 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0019
+role: cso
+---
+
+<dispatch_guide>
+> ⚠️ 本文件是 P4 实现评审的强制指令（专家组 role: cso — 安全官）。
+
+### 目标
+
+评审 TAG0019 P4 实现代码的 security 维度（domains 含 security），产出 `P4-review-cso.md`。你将与 backend 域 review 并行，组长汇总后统一 P4-review.md。
+
+### 实现范围（core 批，评审对象）
+
+- `agate/scripts/agate-risk-score.py`（新）——客观信号算分：文件类型/敏感路径/改动规模/影响面 4 信号 + tier + git_ok；**敏感路径信号含 security/auth/permission/data-model/secret/credential/token/network/socket/api 关键词 → high + security 域标注**
+- `agate/scripts/check-routing.py`（新）——ceremony 声明校验（exit 0/1/2），fail-closed 语义
+- 注册点与挂载（pre-commit-gate.py 2j.1）
+
+### 评审重点（cso 角色 + 本任务安全语义）
+
+- **输入验证**：check-routing / risk-score 对异常输入（无效 ceremony 值/缺 P1/空暂存区）是否安全处理，无注入/越界
+- **敏感路径信号正确性**：安全关键词匹配是否过宽/过窄（误标 security 或漏标核心安全路径）；domain-markers 输出是否仅标注不越权
+- **fail-closed 语义完整性**（本任务核心安全属性）：thin 档在整个链条（risk-score 算分 → check-routing 校验 → pre-commit 挂载）是否真正无法被"凑低分"绕过；git_ok:false 时 thin 是否被拒（防算分偏薄误放行）
+- **信任边界**：importlib 加载 check-pruning/agate-risk-score 的路径是否可信（无任意代码执行面）
+- **路径穿越**：影响面反向引用扫描的路径处理是否干净（relpath 归一化）
+- **信息泄漏**：CLI 输出是否可能泄漏敏感信息（evidence 行暴露文件内容）
+- STRIDE 矩阵输出 + 严重性分级（CRITICAL/HIGH/MEDIUM/LOW）
+
+### 输入文件
+
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/agate-risk-score.py
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/check-routing.py
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/agate-frontmatter-check.py / agate-md-field-get.py / pre-commit-gate.py
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate-workspace/tasks/TAG0019-risk-routing/P2-design.md（§2.1/2.3）
+- /home/kity/oclab/agate/agate/assets/review-roles/cso.md（角色定义，稳定版）
+
+### 约束
+
+- /tmp 只读；读卡片/角色用 ~/.agate；bash 一律 timeout 90s；[PROD_NOT_TOUCHED]
+- 评审产出路径：`{AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review-cso.md`
+- 分阶段落盘：关键步骤追加 P4-progress.md；**不直接改代码**
+
+### 门槛产出（cso 角色）
+
+- Header：phase: P4 / task_id: TAG0019-risk-routing / type: review / parent: P4-implementation.md / trace_id: TAG0019-P4-20260821 / status: approved|rejected|needs-revision / created: 2026-08-21 / agent: cso
+- 结论须引用具体锚点（文件/行号/函数）+ STRIDE 矩阵
+
+### 返回
+
+只返回两行：① P4-review-cso.md 路径；② Status: <approved|rejected|needs-revision>（与 Header 一致）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -92,7 +151,6 @@ implementer 为本阶段**每个新增文件**填一行：
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
 | risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
-| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -171,3 +229,4 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->

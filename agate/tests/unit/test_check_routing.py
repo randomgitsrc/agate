@@ -8,7 +8,7 @@
 #   coupling_checklist 流式 / 跳过风险 判据——无第二份实现。
 # TDD 红灯：模块 P4 前未实现 → CLI "can't open file" exit 2；被迫期望返码的用例断言失败 = 真红灯。
 #
-# 平台无关：无裸 python3 / 无 /tmp / 无 POSIX symlink 字面；git 经 run_git（被测脚本）。
+# 平台无关：无裸 python3 / 无硬编码临时目录字面 / 无 POSIX symlink 字面；git 经 run_git（被测脚本）。
 
 import importlib.util
 import shutil
@@ -238,3 +238,22 @@ def test_bdd_10_importlib_context_agate_common_importable_reuse(agate_scripts, t
     assert callable(getattr(cr_mod, "_staged_source_count", None))
     assert callable(agate_common.run_git)
     assert callable(getattr(cp_mod, "_staged_source_count", None))
+
+
+# ===== C1 回归（P4-review）：正文散文不误判 ceremony（无声明 = standard，BDD-8） =====
+
+def test_c1_ceremony_prose_in_body_not_misread_exit_0(
+    tmp_path, agate_scripts, python_exe, run_cli
+):
+    """C1（P4-review CRITICAL）：frontmatter 无 ceremony 且正文散文含 'ceremony: xxx' →
+    不得被正则回退误读为非法值 → check-routing exit 0（不声明 = standard，BDD-8）。"""
+    d = tmp_path / "task"
+    d.mkdir()
+    text = (
+        "---\nagent: test\nrisk_level: low\n"
+        "phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]\n---\n"
+        "按 ceremony: thin 的 checklist 逐项确认，随后跳过风险评估。\n"
+    )
+    (d / "P1-requirements.md").write_text(text, encoding="utf-8")
+    result = _run_routing(agate_scripts, python_exe, run_cli, str(d))
+    _assert_exit(result, 0)

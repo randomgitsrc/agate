@@ -1,3 +1,59 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0019
+role: review
+deliverable: P4-review.md 组长汇总
+---
+
+<dispatch_guide>
+> ⚠️ 本文件是 P4 评审专家组组长的强制指令。你的角色是「专家组组长」（review 角色担任组长），只汇总不发表新意见。
+
+### 目标
+
+汇总两位专家评审意见，产出统一 **P4-review.md**（Header status: approved / rejected）。
+
+### 专家评审输入（均已产出）
+
+1. **backend 域 review**：{AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review-eng.md —— status: **rejected**，3 CRITICAL：
+   - C1：agate-md-field-get.py:123/198-202 ceremony 走 STRING_FIELDS 正则回退，正文散文含 "ceremony: xxx" 即被误读为非法值 → check-routing exit 1 拦截不声明任务（违反 BDD-8）；修复：移 ceremony 入 NO_FALLBACK_STRING_FIELDS + 回归测试
+   - C2：P5_platform gate 必红——两个新测试文件头注释含字面 /tmp，check-platform-assumptions R4 命中（P2 §4 命令含此二文件）
+   - C3：P2 D 表 3 个测试交付物缺失（test_check_frontmatter ceremony enums / test_agate_md_field_get ceremony / test_pre_commit_hook 2j.1 挂载链）
+   - 另有 6 项 INFORMATIONAL；fail-closed 主链/git_ok:false/P1 缺失 exit 2/importlib 复用/三节点注册/2j.1 挂载均已实测核验通过
+2. **security 域 cso**：{AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review-cso.md —— status: **needs-revision**，无 CRITICAL/BLOCKER：
+   - F2（MEDIUM）：agate-risk-score.py:62-65 敏感路径关键词集缺 password/login/session/crypto/vault 等 → 独立安全路径可被判 thin（fail-open）
+   - F1（MEDIUM）：impact 扫描对 P1-requirements 定名文档假阳性 → thin 档在 dogfood/多任务工作区 P1 commit 必被拒
+   - F3-F7 LOW（auth 子串误标/全仓扫描 DoS/分批稀释/backstop 不含 check-routing/count 无 cwd）
+
+### 组长规则
+
+- 不发表新意见，只汇总
+- 任何专家标 CRITICAL/BLOCKER → status: **rejected**
+- 多位专家分歧 → 标「专家组分歧」交人工（本任务无分歧——eng rejected 与 cso needs-revision 是不同严重级，无冲突）
+- 全票无 BLOCKER → approved
+- 产出文件 Header agent 字段必须是组长角色名（非 main）
+
+### 产出
+
+- {AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review.md
+- Header：phase: P4 / task_id: TAG0019-risk-routing / type: review / parent: P4-implementation.md / trace_id: TAG0019-P4-20260821 / status: rejected / created: 2026-08-21 / agent: review
+- 内容：汇总 C1-C3（CRITICAL，必改）+ F1/F2（MEDIUM，建议改）+ 其余 LOW/INFORMATIONAL 清单 + 修复要求
+
+### 约束
+
+- /tmp 只读；读卡片/角色用 ~/.agate；bash 一律 timeout 90s；[PROD_NOT_TOUCHED]
+- 分阶段落盘：追加 P4-progress.md
+
+### 返回
+
+只返回两行：① P4-review.md 路径；② Status: <approved|rejected>。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -92,7 +148,6 @@ implementer 为本阶段**每个新增文件**填一行：
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
 | risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
-| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -171,3 +226,4 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->

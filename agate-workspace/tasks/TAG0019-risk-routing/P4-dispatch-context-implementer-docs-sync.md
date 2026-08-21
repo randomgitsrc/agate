@@ -1,3 +1,45 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0019
+role: implementer
+batch: docs-sync
+---
+
+<dispatch_guide>
+> ⚠️ 本文件是 P4 实现 docs-sync 批（中复杂度）的强制指令。P2 dispatch_plan = static-batch 2 批（core / docs-sync），本批只做文档同步（core 批负责新脚本与注册点）。
+
+### 目标（docs-sync 批：10 处协议文档 ceremony 机制同步）
+
+按 P2-design §0.1 C 表（10 处文档）实现 ceremony 机制文档化同步，关联 BDD-15（消费点文档同步防漂移）：
+
+1. **agate/phase-cards/P1-requirements.md**（D2）：① 产出规格节增 `ceremony:` 字段条目（thin/standard/full + fail-closed 语义一句）；② frontmatter 样例块加 `ceremony: standard` 行；③ 新增「ceremony fail-closed 声明 checklist」小节（thin 四要素：ceremony 声明 + coupling_checklist 流式 + 跳过风险: + P5/P6 保留，缺一回退 standard）；④ M3 验收锚度量协议小节（BDD-12 四要素）
+2. **agate/scripts/README.md**：工具清单补 agate-risk-score.py / check-routing.py 行
+3. **agate/tests/README.md**：用例映射补本任务新测试文件
+4. **agate/agate-summary.py** drift 脚本清单：追加 agate-risk-score.py / check-routing.py
+5. **agate/WORKFLOW.md**：gate 表补 check-routing
+6. **agate/role-system.md:54-70 + agate/rules/review-mapping.md:13-15 + P2 卡 + P4 卡**：评审映射补 full 档维度（tier=full 或 ceremony: full → P2 强制 plan-eng-review + cso + P7 不可裁，对齐 risk_level=high）
+7. **agate/CONTEXT.md** 词条区：新增 ceremony 词条
+8. **agate/phase-cards/P2-design.md:182-186** 与 **P4-implementation.md:84-86**（同属本项）
+9. **agate/assets/review-roles/requirements-review.md**（D4）：增"审声明"职责——真实核对项"风险分级/裁剪声明 vs diff 证据"（含 ceremony: full → phases 含 P7 逐信号核对）
+10. **agate/UPGRADING.md**：新增本版本破坏性变更章节占位（P8 正式填版本号）
+
+### 约束
+- 只改文档；不碰 core 批已实现的脚本（agate-risk-score.py / check-routing.py / 注册点）
+- 文档节内引用与 P2-design §0.1 C 表行号一致；不改动既有协议语义（纯增量）
+- 平台无关；bash 一律 timeout；读文件用 read/grep 工具
+- [PROD_NOT_TOUCHED]；分阶段落盘：**每完成 1 处文档立即追加 P4-progress.md（文件名 + 改了什么）**
+- 产出路径：worktree 下 agate/ 各文档
+
+### 返回
+只返回两行：① 修改文件路径清单（逗号分隔）；② 一句话摘要（文件数 + 覆盖处数）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -92,7 +134,6 @@ implementer 为本阶段**每个新增文件**填一行：
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
 | risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
-| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -171,3 +212,4 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->

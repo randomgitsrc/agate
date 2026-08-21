@@ -7,14 +7,14 @@
 #   impact。tier 合成：任一 high→full；全 low→thin；其余→standard。
 # TDD 红灯：模块 P4 前未实现 → CLI exit 非 0（本组全期望 exit 0）= 真红灯。
 #
-# 平台无关：无裸 python3 / 无 /tmp / 无 POSIX symlink 字面；git 经 run_git（被测脚本）。
+# 平台无关：无裸 python3 / 无硬编码临时目录字面 / 无 POSIX symlink 字面；git 经 run_git（被测脚本）。
 
 import re
 import shutil
 
 import pytest
 
-from conftest import add_p1_field
+from conftest import GitRepo, add_p1_field
 
 # 信号级别 → 数值（BDD-2 分级可区分性比较）
 _LEVEL_NUM = {"high": 3, "medium": 2, "low": 1}
@@ -101,12 +101,13 @@ def test_bdd_2_file_type_a_scores_strictly_higher_than_b(
     git_repo, task_dir, agate_scripts, python_exe, run_cli, tmp_path
 ):
     """BDD-2：A 类文件类型信号位评分严格高于 B 类（分级不可区分 = FAIL）。"""
-    # A 类暂存区
+    # A 类暂存区（独立仓库 1：git_repo fixture）
     ra = _repo_with_staged(git_repo, task_dir, {"agate/scripts/foo.py": "x = 1\n"})
     res_a = _run_score(agate_scripts, python_exe, run_cli, "task", cwd=str(ra))
-    # B 类暂存区（独立仓库）
+    # B 类暂存区（独立仓库 2：不复用 git_repo，避免 repo/task 已存在的 copytree 冲突）
+    repo_b = GitRepo(tmp_path / "repo_b")
     rb = _repo_with_staged(
-        git_repo, task_dir, {"agate/tests/unit/test_foo.py": "def test_x():\n    pass\n"}
+        repo_b, task_dir, {"agate/tests/unit/test_foo.py": "def test_x():\n    pass\n"}
     )
     res_b = _run_score(agate_scripts, python_exe, run_cli, "task", cwd=str(rb))
     assert res_a.returncode == 0 and res_b.returncode == 0
@@ -194,8 +195,46 @@ def test_bdd_5_domain_marker_from_declared_scope(
     (repo / "README.md").write_text("init\n", encoding="utf-8")
     git_repo.commit("init")
     shutil.copytree(td, repo / "task")
-    (repo / "src" / "hello.py").write_text("print(1)\n", encoding="utf-8")
-    git_repo.stage("src/hello.py")
+    _stage(repo, git_repo, "src/hello.py", "print(1)\n")  # _stage 自建父目录 src/
     result = _run_score(agate_scripts, python_exe, run_cli, "task", cwd=str(repo))
     assert result.returncode == 0
     assert "security" in result.output.lower(), f"声明 security 域却无域映射标注: {result.output!r}"
+
+
+# ===== F2（P4 复审二轮 cso）：复数/下划线拼接/词干形态敏感路径（BDD-3） =====
+
+@pytest.mark.parametrize("path", [
+    "secrets/vault.yaml", "credentials/creds.json", "passwords.txt",
+    "tokens.db", "permissions/policy.yaml", "logins.py",
+    "apis/client.py", "socket_io/events.py", "secret_store/backing.py",
+    "api_key.py", "auth_keys.py", "authorization.py", "oauth2.py",
+    "jwt_auth/verify.py", "tls_config.py", "ssl_key.py",
+    "encryption/aes.py", "decryptor.py", "vaulting.py",
+    "pii_dump.py", "privacy_policy.py",
+])
+def test_f2_plurals_concat_stem_forms_high(
+    path, git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """F2（cso 二轮）：复数/下划线拼接/词干形态 → sensitive-path high
+    （整组尾部 \\b 词界方案对 secrets/tokens/api_key/authorization 等净回退 → fail-open）。"""
+    repo = _repo_with_staged(git_repo, task_dir, {path: "x = 1\n"})
+    result = _run_score(agate_scripts, python_exe, run_cli, "task", cwd=str(repo))
+    assert result.returncode == 0
+    assert _signal_level(result.output, "sensitive-path") == "high", \
+        f"形态漏标（fail-open）: {path!r} -> {result.output!r}"
+
+
+@pytest.mark.parametrize("path", [
+    "AUTHORS.md", "author/notes.md", "graphic/logo.png",
+    "rapid/proto.py", "apiary/design.md", "xmlns/mapping.xml", "innetwork/route.py",
+])
+def test_f2_false_positive_forms_low(
+    path, git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """F2（cso 二轮）+ F3 误标防护：author/AUTHORS/apiary/graphic/rapid/xmlns/innetwork
+    → sensitive-path low（左锚 + 词干区分，误标消除不回退）。"""
+    repo = _repo_with_staged(git_repo, task_dir, {path: "x = 1\n"})
+    result = _run_score(agate_scripts, python_exe, run_cli, "task", cwd=str(repo))
+    assert result.returncode == 0
+    assert _signal_level(result.output, "sensitive-path") == "low", \
+        f"误标回升: {path!r} -> {result.output!r}"

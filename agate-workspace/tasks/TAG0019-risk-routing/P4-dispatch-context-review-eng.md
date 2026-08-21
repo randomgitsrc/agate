@@ -1,3 +1,73 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0019
+role: review
+---
+
+<dispatch_guide>
+> ⚠️ 本文件是 P4 实现评审的强制指令（专家组 role: review — 偏执 Staff Engineer）。
+
+### 目标
+
+评审 TAG0019 P4 实现代码（core 批），产出评审意见文件 `P4-review-eng.md`。你将与 security 域的 cso 评审并行，组长汇总后统一 P4-review.md。
+
+### 实现范围（core 批，评审对象）
+
+- `agate/scripts/agate-risk-score.py`（新）——score_task(task_dir)->dict（文件类型/敏感路径/改动规模/影响面 4 信号 + domain-markers + risk_score + tier + git_ok）+ CLI 薄壳；importlib 复用 check-pruning._staged_source_count；run_git 通道；git_ok:false 不静默降级
+- `agate/scripts/check-routing.py`（新）——ceremony 声明校验（exit 0/1/2）：P1 缺失 exit 2 / 不声明=standard exit 0 / 非法值 exit 1 / thin 四要素缺 exit 1 / 声明薄于算分 exit 1 / thin+git_ok:false exit 1 / standard/full exit 0；importlib 复用 check-pruning 同源函数
+- 注册点：agate-frontmatter-check.py（P1 schema ceremony 枚举）、agate-md-field-get.py（STRING_FIELDS ceremony）、pre-commit-gate.py（2j.1 挂载 check-routing）
+
+### 评审重点（P4 review 角色 + TAG0019 特性）
+
+通用（review 角色 Pass 1/2）：
+- 数据安全与正确性：check-routing 的 exit 分支是否全部正确实现（无逻辑短路/遗漏）
+- 消费方同步：ceremony 字段新增后 frontmatter-check/md-field-get 是否都处理（enum 未处理分支）
+- importlib 复用是否真实（无第二份实现）
+- 资源/异常：run_git 失败路径、agate_common 不可导入路径是否安全降级
+- 错误被吞、竞态、O(n²)（影响面反向引用扫描的性能）
+
+TAG0019 特性专审：
+1. **fail-closed 三 BDD**（BDD-7/8/9）：thin 四要素缺一 exit 1 / 不声明 exit 0 / 声明薄于算分 exit 1——实现与 P2 §2.3 判定流是否一致
+2. **P1 缺失 exit 2**（对齐 check-pruning）——实现是否正确区分"任务目录破损"与"不声明"
+3. **git_ok:false fail-closed**（NB-2②）：run_git 失败时 score_task 是否输出 git_ok:false 非静默 0；check-routing 对 thin+git_ok:false 是否 exit 1
+4. **复用不重造**（BDD-10）：check-routing 是否 import 复用 check-pruning._md_field/_read_p1/_staged_source_count（无复制粘贴）
+5. **平台无关**（BDD-13）:新脚本无硬编码 PATH/裸解释器/字面 /tmp/POSIX symlink
+
+### 输入文件
+
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/agate-risk-score.py（评审对象）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/check-routing.py（评审对象）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/agate-frontmatter-check.py 与 agate-md-field-get.py（注册点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/pre-commit-gate.py（2j.1 挂载）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate-workspace/tasks/TAG0019-risk-routing/P2-design.md（§2.1/2.3 权威逻辑）
+- /home/kity/oclab/agate/agate/assets/review-roles/review.md（角色定义，稳定版）
+- /home/kity/oclab/agate/agate/tests/unit/test_agate_risk_score.py 与 test_check_routing.py（测试印证）
+
+路径说明：{AGATE_WORKSPACE} = /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate-workspace；{agate_root} = /home/kity/oclab/agate/agate。
+
+### 约束
+
+- /tmp 只读；读卡片/角色用 ~/.agate；bash 一律 timeout 90s；单步串行
+- [PROD_NOT_TOUCHED]；评审产出路径：`{AGATE_WORKSPACE}/tasks/TAG0019-risk-routing/P4-review-eng.md`
+- 分阶段落盘：关键步骤追加 P4-progress.md
+- **不直接改代码**——只写评审意见（说怎么改，不落地）；修复由主 Agent 回派 implementer
+
+### 门槛产出（review 角色）
+
+- Header：phase: P4 / task_id: TAG0019-risk-routing / type: review / parent: P4-implementation.md / trace_id: TAG0019-P4-20260821 / status: approved|rejected|needs-revision / created: 2026-08-21 / agent: review
+- 结论须引用具体锚点（文件/行号/函数），禁裸 approved
+
+### 返回
+
+只返回两行：① P4-review-eng.md 路径；② Status: <approved|rejected|needs-revision>（与 Header 一致）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -92,7 +162,6 @@ implementer 为本阶段**每个新增文件**填一行：
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
 | risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
-| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -171,3 +240,4 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->

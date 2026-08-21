@@ -1,3 +1,47 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0019
+role: implementer
+revision: 2
+---
+
+<dispatch_guide>
+> ⚠️ 本文件是 P4 实现修复轮第 2 次（⑩迭代第 3 轮）的强制指令。增量模式：只修本轮唯一目标 F2 词界方案。
+
+### 上轮结论
+
+P4-review.md（组长汇总二轮）status: **rejected**——仅 1 项：**F2 敏感关键词词界方案净回退**（eng approved；cso rejected）。评审全文：/home/kity/oclab/agate/.worktrees/agate-TAG0019/agate-workspace/tasks/TAG0019-risk-routing/P4-review.md，cso 详情：P4-review-cso.md。
+
+### F2 修复目标（唯一）
+
+**问题**：agate-risk-score.py:65-70 当前整组 `\b(?:…)\b` 词界锚定过矫正——复数（secrets/credentials/passwords/tokens/permissions/logins）、下划线拼接（secret_store/api_key/auth_keys/credential_store/socket_io/tls_config/ssl_key/jwt_auth）、词干（authorization/authz/oauth2）形态全部漏标（→low）。其中 secrets/tokens/permissions/apis/api_key 等在修复前本可 sub-string 命中判 high，属净回退。fail-open 边缘（独立安全路径四信号全 low → tier=thin → M3 跳过 LLM 评审）未关闭。
+
+**修复方案（采纳 cso 建议）**：
+- 敏感关键词匹配改为**左锚 `(?<![A-Za-z0-9_])` + 词干 + `\w*` 尾随**（覆盖复数/下划线拼接/数字后缀/词干形态），替换当前整组尾部 `\b`
+- 保持 F3 误标消除（AUTHORS.md/author/graphic/rapid/apiary 等 → low 不能回退）
+- 示例形态须判 high：secrets/credentials/passwords/tokens/permissions/logins/apis/socket_io/secret_store/api_key/auth_keys/authorization/oauth2/jwt_auth/tls_config/ssl_key/encryption/decryptor/vaulting/pii_dump/privacy_policy
+- 示例形态须判 low（误标防护）：AUTHORS.md/author/graphic/rapid/apiary/xmlns/innetwork
+
+**补回归测试**：在现有 test_agate_risk_score.py 增 plurals/concat/stem 形态用例（BDD-3 敏感路径信号），断言上述 high/low 形态。
+
+### 约束（沿用）
+
+- 只改 agate-risk-score.py + test_agate_risk_score.py；不改其余文件
+- 平台无关；bash 一律 timeout 90s；[PROD_NOT_TOUCHED]
+- 自跑 test_agate_risk_score.py 确认新增用例 + 既有用例全绿（用可写 basetemp）
+- 每完成 1 文件立即追加 P4-progress.md；超 12 分钟无落盘立即停止返回
+
+### 返回
+
+只返回两行：① 修改文件路径清单；② 一句话摘要（F2 方案 + 测试状态）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -92,7 +136,6 @@ implementer 为本阶段**每个新增文件**填一行：
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
 | risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
-| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -171,3 +214,4 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->

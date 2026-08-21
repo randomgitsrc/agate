@@ -1,3 +1,55 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0019
+role: implementer
+batch: core
+---
+
+<dispatch_guide>
+> ⚠️ 本文件是 P4 实现 core 批（高复杂度）的强制指令。P2 dispatch_plan = static-batch 2 批（core / docs-sync），本批只做 core。
+
+### 目标（core 批：新脚本 + 注册点）
+
+按 P3 测试（test_agate_risk_score.py / test_check_routing.py）驱动，实现：
+1. **`agate/scripts/agate-risk-score.py`**（新）——客观信号算分：`score_task(task_dir) -> dict`（file_type/sensitive_path/scale/domain/impact 信号 + risk_score + tier + 证据行）+ CLI 薄壳。四信号逻辑见 P2-design §2.1（文件类型分级 A/B、敏感路径 security 域、规模>5 对齐 check-pruning、域映射与影响面）。用 `agate_common.run_git` 走平台无关 git 通道；路径 `os.path.relpath().replace("\\","/")`；行数逐行 `.rstrip("\r")`。**异常时输出 `git_ok:false` 不静默降级，thin 声明 → exit 1 fail-closed（P2 §2.3）**
+2. **`agate/scripts/check-routing.py`**（新）——ceremony 声明校验：P1 缺失 → exit 2（对齐 check-pruning）；不声明 ceremony → exit 0（=standard）；声明 thin → 校验四要素（ceremony 声明 + coupling_checklist 流式 + 跳过风险: + P5/P6 保留），缺任一 → exit 1（回退 standard）；声明薄于算分（fail-closed 单向）→ exit 1；full → 校验 phases 含 P7。**复用 check-pruning 同源函数**（import `_md_field/_read_p1/_staged_source_count`），不得重写
+3. **注册点（core 部分）**：agate-frontmatter-check.py（P1 schema 加 ceremony allowed/enums/types）、agate-md-field-get.py（STRING_FIELDS 加 ceremony）、agate_common.py（如需可复用函数）
+
+### 测试驱动（TDD）
+- P3 测试已就绪：`agate/tests/unit/test_agate_risk_score.py`（BDD-1..5，11 用例）、`agate/tests/unit/test_check_routing.py`（BDD-6..10，15 用例）——当前全红（被测模块未实现）
+- 实现后自跑这两文件确认转绿（自查，≠ P5 gate）：`timeout 90s /usr/bin/python3 -m pytest agate/tests/unit/test_agate_risk_score.py agate/tests/unit/test_check_routing.py -q -p no:cacheprovider --basetemp=/home/kity/oclab/agate/.ptmp-scratch`（ptmp 只读，用 scratch）
+- **不要改测试代码**（测试是验收口径）；只实现被测模块
+
+### 输入文件（files_to_read，勿乱搜）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate-workspace/tasks/TAG0019-risk-routing/P2-design.md（方案 B + §2.1/2.3 逻辑 + §4）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/check-pruning.py:30-81,134-157（复用源）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/agate_common.py:49-63（run_git 通道）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/scripts/agate-frontmatter-check.py:31-50（ceremony 注册点）
+- /home/kity/oclab/agate/.worktrees/agate-TAG0019/agate/tests/unit/test_agate_risk_score.py 与 test_check_routing.py（测试驱动）
+
+### 环境纪律
+- /tmp 只读 + ptmp 只读：pytest 用 `/home/kity/oclab/agate/.ptmp-scratch`（写后清理）
+- 读卡片/角色用 ~/.agate 稳定版（=/home/kity/oclab/agate/agate）
+- bash 一律外层 timeout（90s）；读文件用 read/grep 工具；单步串行不并行
+- [PROD_NOT_TOUCHED]；产出路径硬约束：worktree 下 agate/scripts/ 与 agate/tests/
+- 平台无关：新脚本无硬编码 PATH/裸解释器/字面 /tmp/POSIX symlink 假设
+- 分阶段落盘：关键步骤追加 P4-progress.md（**每完成一个文件立即追加**，防长时间无产出）
+
+### 产出规格
+- P4-implementation.md 声明 `implementation_dir: agate/scripts`（batch: core）
+- 遵守 P2-design 方案 + agate 脚本约定（set -euo pipefail 不适 py；py 用 argparse/标准库）
+- 不加范围外改动；发现需要 → 标 [SCOPE+] 报告
+
+### 返回
+只返回两行：① 新增/修改文件路径清单；② 一句话摘要（文件数 + 测试转绿情况）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -92,7 +144,6 @@ implementer 为本阶段**每个新增文件**填一行：
 | mcp | review（关注 MCP 接口契约）| P4-review.md |
 | security | cso | P4-review.md |
 | risk=high | P4 实现评审（按 domains 派 review/design-review/cso；P2 plan-eng-review 已审方案，P4 实现评审不可省）| P4-review.md |
-| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
 
 多个评审角色 `专家组并行` → 所有返回后派组长汇总 → 统一 P4-review.md（status: approved / rejected）。
 详见 `agate/rules/review-mapping.md`。
@@ -171,3 +222,4 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
