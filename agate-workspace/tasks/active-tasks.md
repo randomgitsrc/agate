@@ -10,7 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0019 | 风险分路由（RM-AG0031）：agate-risk-score.py 客观信号算分 + ceremony 档位（thin/standard/full）+ fail-closed 声明 checklist + requirements-review 审声明；TAG0018 实证成本账（LLM 评审≈0 净收益）为验收锚 | 🔄 | P5 | 高 | — | 2026-08-21 | 2026-08-22 |
+| TAG0019 | 风险分路由（RM-AG0031）：agate-risk-score.py 客观信号算分 + ceremony 档位（thin/standard/full）+ fail-closed 声明 checklist + requirements-review 审声明；TAG0018 实证成本账（LLM 评审≈0 净收益）为验收锚 | 🔄 | P6 | 高 | — | 2026-08-21 | 2026-08-22 |
 
 ### 待开始
 

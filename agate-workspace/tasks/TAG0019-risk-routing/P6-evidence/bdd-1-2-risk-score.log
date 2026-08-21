@@ -1,0 +1,33 @@
+=== BDD-1: agate-risk-score.py 对真实形状 repo（协议本体+gate 脚本+测试暂存区）===
+risk_score: 10
+tier: full
+file-type: high (agate/phase-cards/P1-requirements.md 属协议本体/gate 逻辑)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=3 <= 5)
+impact: low (无反向引用)
+domain-markers: [backend, security]
+git_ok: true
+[exit=0]
+
+=== BDD-2 A 类: agate/scripts/foo.py（gate 逻辑）===
+risk_score: 0
+tier: standard
+file-type: low (git 通道不可用，未算分)
+sensitive-path: low (git 通道不可用，未算分)
+change-size: low (git 通道不可用，未算分)
+impact: low (git 通道不可用，未算分)
+domain-markers: []
+git_ok: false
+[exit=0]
+
+=== BDD-2 B 类: agate/tests/unit/test_foo.py（纯测试）===
+risk_score: 0
+tier: standard
+file-type: low (git 通道不可用，未算分)
+sensitive-path: low (git 通道不可用，未算分)
+change-size: low (git 通道不可用，未算分)
+impact: low (git 通道不可用，未算分)
+domain-markers: []
+git_ok: false
+[exit=0]
+EXIT_CODE: 0

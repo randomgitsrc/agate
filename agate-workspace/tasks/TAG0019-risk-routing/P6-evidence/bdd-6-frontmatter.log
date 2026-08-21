@@ -1,0 +1,10 @@
+=== BDD-6 frontmatter schema（完整必填字段 fixture）===
+--- ceremony: thin → 应通过（无输出）---
+[exit=0]
+--- ceremony: light → 应拦（ceremony 非法值）---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:ceremony: 非法值 'light'（合法值: thin, standard, full）
+[exit=1]
+--- 无 ceremony → 应通过（无输出）---
+[exit=0]
+EXIT_CODE: 0

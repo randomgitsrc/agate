@@ -1,0 +1,19 @@
+=== BDD-11: requirements-review 审声明职责（检查清单含核对应 + needs-revision/rejected 结论规则）===
+53:**审声明（风险分级/裁剪声明 vs diff 证据，TAG0019）：**
+55:- `ceremony: full` 时 `phases` 是否含 P7（full 档 P7 不可裁，逐信号核对）
+56:- 声明与实际不一致时，结论必须为 `needs-revision` 或 `rejected`（不得 approved）
+71:| 审声明核对通过 | 引用的 diff 证据（文件类型/规模/域）+ `ceremony: full` 时 `phases` 含 P7 的核对记录 |
+91:## 审声明（风险分级/裁剪声明 vs diff 证据）
+93:- ceremony: full → phases 含 P7（逐信号核对）：<通过/缺失>
+101:- 打回 → `status: rejected`
+102:- 需修改 → `status: needs-revision`（计入重试）
+104:返回给主 Agent 时同时报告：`File: <路径>` + `Status: <approved|rejected|needs-revision>`
+
+=== BDD-12: M3 验收锚度量协议四要素（P1 卡机制文档）===
+122:### M3 验收锚度量协议（BDD-12，机制文档供提取）
+124:thin 档跳过 LLM 评审的 M3 验收锚四要素：
+126:1. **评审轮数**指标：任务在 P2/P4 阶段派发的 LLM 评审 subagent 轮数（含重试轮）
+127:2. **真实发现数**指标：评审产出中被采纳或阻止了真实问题的条数（排除非阻塞建议、排除机械检查可抓项）
+128:3. **TAG0018 基线值**：4 场 LLM 评审 ≈0 净收益（17 条非阻塞 + 1 条真实发现且机械检查可抓）
+129:4. **不达标决策规则**：「LLM 评审真实发现 ≈ 0 且机械 gate 已覆盖 → 回滚 standard」
+EXIT_CODE: 0

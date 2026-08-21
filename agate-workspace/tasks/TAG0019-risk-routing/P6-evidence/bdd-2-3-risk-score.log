@@ -1,0 +1,44 @@
+=== BDD-2 A 类: agate/scripts/foo.py（gate 逻辑）===
+risk_score: 10
+tier: full
+file-type: high (agate/scripts/foo.py 属协议本体/gate 逻辑)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-2 B 类: agate/tests/unit/test_foo.py（纯测试）===
+risk_score: 6
+tier: thin
+file-type: low (agate/tests/unit/test_foo.py 属测试/配置)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-3 敏感: auth/login.py ===
+risk_score: 12
+tier: full
+file-type: medium (auth/login.py 属普通源码)
+sensitive-path: high (auth/login.py 命中敏感关键词(auth) -> domain: security)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: [security]
+git_ok: true
+[exit=0]
+
+=== BDD-3 无敏感: src/hello.py ===
+risk_score: 8
+tier: standard
+file-type: medium (src/hello.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+EXIT_CODE: 0

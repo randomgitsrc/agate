@@ -1,0 +1,23 @@
+=== BDD-10 同源判定：同一 fixture，check-routing vs check-pruning 判定一致 ===
+--- fixture: rt_thin_ok（ceremony: thin 四要素齐全 + tests 类暂存）---
+[check-routing]
+[exit=0]
+[check-pruning]
+[exit=0]
+--- fixture: rt_no_p1（P1 缺失）两脚本同 exit 2 ---
+[check-routing]
+[exit=2]
+[check-pruning]
+[exit=2]
+
+=== BDD-10 源码复用（无第二份实现）：check-routing 经 importlib 复用 check-pruning 同源函数 ===
+23:同源复用（R1/BDD-10）：importlib 加载 check-pruning.py 复用 _md_field / _read_p1 /
+24:_staged_source_count 与 coupling_checklist 流式判据（^coupling_checklist:\\s*\\[）/ 跳过风险判据
+56:_check_pruning = _load_script("check-pruning")
+57:_md_field = _check_pruning._md_field
+58:_read_p1 = _check_pruning._read_p1
+59:_staged_source_count = _check_pruning._staged_source_count
+79:    ceremony = _md_field("ceremony", p1_file).strip()
+97:    p1_text = _read_p1(p1_file)
+109:    phases = _md_field("phases", p1_file).split()
+EXIT_CODE: 0

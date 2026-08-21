@@ -1,0 +1,37 @@
+=== BDD-6/7/8/9: check-routing 场景矩阵（exit code = 判定）===
+--- thin 四要素齐全 → exit 0 (rt_thin_ok) ---
+[exit=0]
+--- thin 缺 coupling_checklist → exit 1 (rt_thin_no_coupling) ---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 coupling_checklist: [...] 逐信号 checklist（^coupling_checklist:\s*\[ 判据）
+[exit=1]
+--- thin 缺 跳过风险 → exit 1 (rt_thin_no_skiprisk) ---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 '跳过风险:' 跳过风险评估声明
+[exit=1]
+--- thin 缺 P5/P6 → exit 1 (rt_thin_no_p56) ---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 phases 含 P5 与 P6（P5/P6 保留，薄化仪式不薄化验证）
+[exit=1]
+--- ceremony: standard → exit 0 (rt_valid_std) ---
+[exit=0]
+--- ceremony: full → exit 0 (rt_valid_full) ---
+[exit=0]
+--- ceremony: light 非法 → exit 1 (rt_invalid_light) ---
+GATE ROUTING: ceremony 非法值 'light'（仅 thin/standard/full）
+[exit=1]
+--- 无 ceremony 字段 → exit 0 (rt_no_ceremony) ---
+[exit=0]
+--- thin 但算分 standard → exit 1 (rt_thin_vs_standard) ---
+GATE ROUTING: ceremony: thin 但算分 tier=standard，声明薄于算分，回退 standard
+[exit=1]
+--- 算分 thin 声明 standard → exit 0 (rt_conservative) ---
+[exit=0]
+--- P1 缺失 → exit 2 (rt_no_p1) ---
+[exit=2]
+=== BDD-7 双闸兜底：thin 缺 P5/P6 时 check-pruning 检查 3（P6 不可裁）+ 检查 5（P5 不可裁）同样拦截 ===
+GATE PRUNING: 裁剪条件不满足：
+  - P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6
+  - P5 不可裁剪——验证是交付底线，无验证则无可发布产物
+[exit=1]
+EXIT_CODE: 0

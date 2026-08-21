@@ -1,0 +1,12 @@
+=== BDD-14: full 档强制项四处消费点（P2 plan-eng-review + cso(security) + P7 不可裁）===
+--- role-system.md C8 映射表 ---
+63:| 任意 | **full**（算分 tier=full 或声明 `ceremony: full`）| **plan-eng-review 必须派发**（P2，对齐 risk_level=high 硬规则）+ **cso**（security 域）+ **P7 不可裁**（full 档任务 P7 为强制阶段，去重规则同本表）|
+66:**去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。**full 档（tier=full 或 `ceremony: full`）与 risk_level=high 命中同一角色时同样只派 1 次**。
+--- rules/review-mapping.md ---
+24:| 任意 | **full**（tier=full 或声明 `ceremony: full`）| plan-eng-review（P2）+ cso（security 域）+ P7 不可裁 | P2 + P4 |
+27:> **去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。**full 档（tier=full 或声明 `ceremony: full`）与 risk_level=high 命中同一角色时同样只派 1 次**。
+--- phase-cards/P2-design.md ---
+191:| 任意 | full（tier=full 或声明 ceremony: full）| plan-eng-review（硬规则，必须派独立 subagent）+ cso（security 域）+ P7 不可裁 |
+--- phase-cards/P4-implementation.md ---
+95:| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
+EXIT_CODE: 0
