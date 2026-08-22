@@ -164,3 +164,4 @@
 - **P5 真失败 1 条**：`test_bdd_5_all_test_py_text_io_explicit_encoding` 命中 TAG0020 新增 `agate/tests/unit/test_agate_common.py` 的 `-c` 片段内 4 处 `open()` 缺 `encoding=`（L75/86/98/100，BDD-5 守卫：非注释行 `open(` 无 `encoding=` 即违规，仅 rb/wb 豁免）。
 - **修复**：4 处 open() 全部补 `encoding='utf-8'`（含 `'w'` 写模式）；只改测试文件 test_agate_common.py，未触碰被测模块/协议文档（[PROD_NOT_TOUCHED]）。
 - **验证**：`test_bdd_5_all_test_py_text_io_explicit_encoding` 转绿（守卫扫描全 tests/**/*.py 零命中）；`pytest test_agate_common.py` 17/17 绿（12 既有 + 5 新增——append_event/read_judge_verdict 已由 P4 实现落地，断言后真实转绿）；无回归。
+- ✅ **agate-workspace/agents/CODE-MAP.md**（修改，P7 CODE_MAP_DRIFT 补登记）：scripts 模块 ceremony 路由族行后新增「judge 机制族（新增 TAG0020）：check-judge-verdict.py（judge verdict 门槛校验，P6.5 强门槛）、check-events.py（gate-events.jsonl 事件账本审计，append-only 哈希链）」（对齐 ceremony 路由族追加风格）；review-roles 模块描述 10 → 11 个评审角色（列表增 judge，注明"所有任务强制、不进 C8 表"与 role-system.md 一致）。纯增量，未覆盖既有条目。
