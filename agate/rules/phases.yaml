@@ -1,0 +1,105 @@
+# agate/rules/phases.yaml — 阶段定义权威源（TAG0021 M0，数据面）
+#
+# 数据边界（P2-design §3.1）：YAML 只承载可判定规则（阶段 id/名称/执行角色/产出/门槛/
+# 重试上限/机器字段声明）；阶段叙事（为什么存在/注意事项/散文式口径）留 md（WORKFLOW.md、
+# phase-cards/*.md）。
+# 事实基线：阶段集与名称 = WORKFLOW.md《P1-P8 阶段总览》表（287-299 行）；retry_cap 与
+# agate_common.MAX_RETRY_MAP 一致（P8=2/P6.5=2 等）；task_fields 与 agate-frontmatter-check.py
+# 的 SCHEMAS migrated_keys 及 P2/P4 卡片机器字段声明一致。
+# 一致性 gate：check-structure-consistency.py S-1（YAML→md）/S-2（md→YAML）以本文件为
+# YAML 侧锚点；check-yaml-schema.py S-5 校验本文件过 schema。
+
+schema_version: 1
+phases:
+  - id: P0
+    name: 任务简报
+    exec_role: main-agent
+    outputs:
+      - {file: P0-brief.md, required: true}
+    gates:
+      - {check: "P0-brief.md 完成，含 debug_env + known_risks"}
+    retry_cap: 3
+    task_fields: []
+  - id: P1
+    name: 需求基线
+    exec_role: analyst
+    outputs:
+      - {file: P1-requirements.md, required: true}
+      - {file: P1-review.md, required: true, status_field: status}
+    gates:
+      - {check: "P1-requirements.md 存在且含 BDD；P1-review.md status == approved"}
+    retry_cap: 3
+    task_fields: [risk_level, phases, packages, domains]
+  - id: P2
+    name: 方案设计层
+    exec_role: architect
+    outputs:
+      - {file: P2-design.md, required: true}
+      - {file: P2-review.md, required: true, status_field: status}
+    gates:
+      - {check: "P2-review.md status == approved；四字段齐全（packages/domains/ui_affected/gate_commands）"}
+    retry_cap: 3
+    task_fields: [candidate_count, packages, domains, ui_affected, gate_commands]
+  - id: P3
+    name: 测试设计
+    exec_role: test-designer
+    outputs:
+      - {file: P3-test-cases.md, required: true}
+    gates:
+      - {check: "check-tdd-red.py exit 0（测试先于实现，真红灯）"}
+    retry_cap: 2
+    task_fields: [test_code_dir]
+  - id: P4
+    name: 代码实现
+    exec_role: implementer
+    outputs:
+      - {file: P4-implementation.md, required: true}
+    gates:
+      - {check: "暂存区含非 md/yaml 代码文件（git diff --cached --name-only）"}
+    retry_cap: 3
+    task_fields: [implementation_dir]
+  - id: P5
+    name: 技术验证
+    exec_role: verifier
+    outputs:
+      - {file: P5-test-results/unit.md, required: true}
+    gates:
+      - {check: "gate_commands.P5 exit 0 AND failed==0"}
+    retry_cap: 2
+    task_fields: []
+  - id: P6
+    name: 验收
+    exec_role: verifier
+    outputs:
+      - {file: P6-acceptance.md, required: true}
+    gates:
+      - {check: "check-gate.py P6 exit 2 + check-p6-evidence/check-p6-provenance exit 0"}
+    retry_cap: 2
+    task_fields: [pass, fail, ui_affected]
+  - id: P6.5
+    name: 独立 Judge 复核
+    exec_role: judge
+    outputs:
+      - {file: P6.5-judge-verdict.md, required: true}
+    gates:
+      - {check: "check-judge-verdict.py + check-events.py exit 0"}
+    retry_cap: 2
+    task_fields: [status, criteria_total, criteria_passed, verdict_evidence]
+  - id: P7
+    name: 一致性检查
+    exec_role: consistency-reviewer
+    outputs:
+      - {file: P7-consistency.md, required: true}
+    gates:
+      - {check: "[BLOCKER] 与 [DEVIATION-CRITICAL] 计数 = 0"}
+    retry_cap: 2
+    task_fields: [blocker_count, deviation_count, deviation_critical_count, design_gap_count, design_gap_reviewed_count]
+  - id: P8
+    name: 发布准备
+    exec_role: implementer
+    outputs:
+      - {file: P8-release.md, required: true}
+    gates:
+      - {check: "check-gate.py P8 + gate_commands 逐包 exit 0"}
+    retry_cap: 2
+    task_fields: [bump_type]

@@ -1,0 +1,28 @@
+## BDD-2 反例 A (S-1 YAML→md 漂移: phases.yaml P2 name 篡改)
+命令: check-structure-consistency.py AGATE_ROOT=dist/p6-drift-s1
+输出:
+S1-phases: ERROR phase P2 name 不一致：phases.yaml='方案设计层-漂移' vs WORKFLOW 表='方案设计层'
+S2-workflow: OK
+S3-cards: OK
+S4-scripts: OK
+S5-schema: OK
+S6-references: OK
+S0-numbers: OK
+RAW_EXIT_CODE: 1
+## BDD-2 反例 B (S-2 md→YAML 漂移: WORKFLOW 表插入 P9 行)
+命令: check-structure-consistency.py AGATE_ROOT=dist/p6-drift-s2
+输出:
+S1-phases: OK
+S2-workflow: ERROR WORKFLOW 总览表阶段 P9 未在 phases.yaml 定义（S-2 md→YAML）
+S3-cards: OK
+S4-scripts: OK
+S5-schema: OK
+S6-references: OK
+S0-numbers: OK
+RAW_EXIT_CODE: 1
+
+---- 验收断言 (BDD-2 反例) ----
+断言: S-1 漂移(YAML→md) 检出 exit 非0: PASS (RAW_EXIT_CODE: 1)
+断言: S-2 漂移(md→YAML) 检出 exit 非0: PASS (RAW_EXIT_CODE: 1)
+断言: 与 TEST 判据「两侧无差异时退出码为 0; 漂移非 0」一致
+EXIT_CODE: 0

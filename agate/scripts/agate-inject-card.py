@@ -6,6 +6,12 @@
 取 agate-next-card.py 输出的当前阶段卡片全文，逐个注入
 ${PHASE}-dispatch-context-*.md（无匹配时回退旧格式 ${PHASE}-dispatch-context.md）。
 
+M3 渲染化（TAG0021，P2-design §3.6 + BDD-12/13）：卡片内容经 agate-next-card.py
+输出——正式卡片原样透传（git 管理渲染产物）；裸模板卡片由 next-card 内嵌渲染器
+从 AGATE_ROOT 解析的 rules/phases.yaml 渲染可判定节（产出/派发/gate/retry）。
+注入的卡片块与 YAML 渲染结果一致；渲染只读 resolve_agate_root 解析到的 YAML
+（稳定版隔离：worktree 未发布 rules/*.yaml 不污染 ~/.agate 稳定版注入）。
+
 exit 0 = 全部注入完成；exit 1 = 参数缺失 / agate-next-card.py 不可用或输出为空 /
     dispatch-context 不存在 / 占位符缺失（agate-card-inject.py 非零退出）。
 

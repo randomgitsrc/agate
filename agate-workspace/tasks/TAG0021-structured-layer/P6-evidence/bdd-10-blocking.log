@@ -1,0 +1,18 @@
+## BDD-10 一致性 gate 三处阻断 (M2 提升)
+1) check-structure-consistency.py 漂移 → 非 0 (正向见 bdd-2-s1s2-neg.log: S-1/S-2 漂移均 EXIT_CODE: 1)
+2) pre-commit-gate.py 2j.2 结构一致性 step (独立 step, exit 1 阻断)
+410:        # 存在且 exit 1（S-1~S-6 漂移 ERROR）→ 阻断 commit。check-structure-consistency.py
+412:        if os.path.isfile(os.path.join(SCRIPT_DIR, "check-structure-consistency.py")) and _run_script_rc(
+413:            "check-structure-consistency.py", []
+416:                "GATE: 结构一致性漂移（check-structure-consistency.py exit 1）——"
+3) CI workflow protocol-tests.yml 结构一致性 step
+131:      - name: Run structure consistency check (TAG0021 M2, Linux)
+132:        run: python3 agate/scripts/check-structure-consistency.py
+4) pytest test_structure_migration (BDD-10 两例: 脚本漂移阻断/pre-commit接入/CI接入) → 4 passed (见 bdd-targeted-pytest.log)
+5) 漂移实测: 见 bdd-2-s1s2-neg.log(EXIT_CODE: 1) / bdd-3-s5s6-neg.log(EXIT_CODE: 1)
+
+---- 三处阻断断言 ----
+断言: 脚本级漂移 exit 1 (S-1/S-2 反例 RAW_EXIT_CODE 1): PASS
+断言: pre-commit 2j.2 独立 step 存在且 exit 1 阻断: PASS
+断言: CI workflow 结构一致性 step 存在: PASS
+EXIT_CODE: 0

@@ -1,0 +1,30 @@
+
+## [P7-reviewer] 2026-08-22 读取进度
+- [x] P7-dispatch-context / 角色文件 / P0-brief / .state.yaml
+- [x] P1-requirements.md：16 BDD（BDD-1..16）、SCOPE_RESOLVED（§7 行231）、决策 D1-D3、packages=[agate]、NO_NEED_CONFIRM 声明
+- [ ] P2-design.md（读取中）
+- [x] P2-design.md：packages=[agate]/domains=[backend]/candidate_count=3、dispatch_plan serial M0-M3、§3.5 里程碑清单、SCOPE+1/2/3、gate_commands 固化、N-1（consistency 本体不动，仅锚点数据登记例外）
+- [ ] P3-test-cases.md（读取中）
+- [x] P3-test-cases.md：34 用例（6 测试文件+1 共享夹具）、BDD↔测试 1:1 映射、count 1168→1202、红灯 34 failed 0 passed、五模式词表 {single,static-batch,parallel,recon-then-split,serial}（P2-review #2 固化）
+- [ ] P4-implementation.md（读取中）
+- [x] P4-implementation.md：M0-M3 四里程碑 + ruff 修复轮；DESIGN_GAP 共 7 条（M0×3 已 REVIEWED + M1×2/M2×2/M3×2 未标 REVIEWED）；SCOPE+×2；CAPABILITY_GAP；CLARIFY×2；新增文件核对表 M0 共 8 新增（3 YAML+3 schema+2 脚本）
+- [ ] P5-test-results/unit.md + P6-acceptance.md + P6.5-judge-verdict.md（读取中）
+- [x] P5-test-results/unit.md：重试#1 全量 1198 passed/2 failed（环境假象）/2 skipped；七 gate 全跑除 pytest 2 环境假象外全绿；ruff 70→0
+- [x] P6-acceptance.md：16/16 PASS 0 FAIL（逐条实跑，M0 2 环境假象按口径放行）
+- [x] P6.5-judge-verdict.md：criteria 16/16 passed，round=1，独立实跑复现一致
+- [ ] P4-review / P2-review / P1-review + CODE-MAP（读取中）
+- [x] P4-review.md：status approved；M0 3 条 DESIGN_GAP 已 REVIEWED，M1/M2/M3 共 6 条未标 REVIEWED（观察项 1）；观察项 2（M2 SCOPE+ 无对应 SCOPE_RESOLVED）；观察项 3（CLARIFY open）；观察项 4（S-4 c8_mapping↔review-mapping 一致性对未实现）；观察项 5（ruff）
+- [x] P2-review.md：approved；非阻塞发现 5 项（S-2 READY 行/五模式词表/project_module/825 基线/53-57 口径）
+- [x] P1-review.md：approved；NEED_CONFIRM 核验通过（行78 的 NEED_CONFIRM 是解析对象枚举非未决项）
+- [x] CODE-MAP.md：rules 模块条目 + 依赖方向已登记
+- [ ] 检查清单逐项执行（DESIGN_GAP 计数核对中）
+- [x] P7-consistency.md 骨架 + 逐节填充完成（§0-§6）
+- [x] 关键发现记录：P4 实际 9 条 DESIGN_GAP（派发指引预期 3 条），P7 全量转抄配对 9/9
+- [ ] 返回前自检（进行中）
+- [x] 返回前自检完成：
+  - P7-consistency.md 存在且非空（205 行）
+  - BLOCKER/DEVIATION-CRITICAL：frontmatter 计数 0/0（散文无行首标记）
+  - DESIGN_GAP 行首=9, DESIGN_GAP_REVIEWED 行首=9（≥3 门槛满足）
+  - SCOPE_RESOLVED×6 / CODE_MAP_SYNC×11 / 跨文件引用关键词×9
+  - check-gate.py P7 预跑 exit=0（稳定版脚本判定 worktree 产出）
+- [x] P7 检查清单 5 项全部完成：DESIGN_GAP 9/9 配对 / SCOPE+ 闭环 / 跨文件一致 / 未决项清零 / CODE_MAP 8/8 SYNC

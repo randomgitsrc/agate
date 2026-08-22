@@ -34,6 +34,13 @@ agate 协议本体划分为五大模块：
   `tech-debt-template.md`、`retrospective-template.md`、`roadmap-template.md`、
   `active-tasks-template.md`、`custom-role.md`、`handoff-template.md`、`project.md` 等），给
   角色/主 Agent 提供可复制的产出格式。
+- **rules**（`agate/rules/`，TAG0021 新增结构化层）：**数据面**——`phases.yaml`（阶段定义/
+  门槛/产出/retry_cap/机器字段声明）、`dispatch.yaml`（三铁律/五模式/gate_commands 语法/字段
+  读取登记）、`roles.yaml`（双层角色/C8 机械映射/脚本注册表）+ `schema/*.json`（draft-07 子集
+  schema）。YAML 只承载可判定规则，叙事留 md（WORKFLOW/phase-cards/rules/*.md 既有提取物
+  review-mapping.md、state-transitions.md 与本目录 YAML 并存不合并）；一致性由
+  `check-structure-consistency.py`（S-1~S-6）与 `check-yaml-schema.py`（S-5 校验器）双向 gate
+  （M2 起进 pre-commit + CI）。
 
 ## 层
 
@@ -57,6 +64,10 @@ agate 协议本体划分为五大模块：
   `gate_p7` 读 `P7-consistency.md` frontmatter 里的 `design_gap_count` /
   `code_map_new_files_count` 等字段名，这些字段名由 phase-cards「产出规格」节和 templates 定义，
   scripts 是下游消费方，不定义字段名本身。
+- **scripts 消费 rules/*.yaml 声明做判定（TAG0021 起）**：`check-structure-consistency.py` /
+  `check-yaml-schema.py` 读 `rules/` 数据面（S-1~S-6 一致性 + schema 校验）；M1 起既有 grep
+  解析脚本以对账模式读 YAML，M2 起切换为权威源。依赖方向单向（rules → scripts 消费），
+  禁止 scripts 反向定义 rules 数据语义。
 - **execution-roles / review-roles 消费 phase-cards 声明的职责边界，不反向定义流程**：角色文件
   里的"输出"节描述的产出物必须对应某张 phase-card 的「产出规格」，角色不能自行发明流程之外的
   产出要求。

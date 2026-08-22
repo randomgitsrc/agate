@@ -40,6 +40,57 @@ except ImportError:
     read_vision_tri_state = None
     run_git = None
 
+try:
+    from agate_common import (
+        body_field_value,
+        count_p2_declared_fields,
+        fm_field_value,
+        is_legal_gate_key,
+        known_phase_ids,
+        parse_gate_commands_block,
+        reconcile_enabled,
+        reconcile_field,
+        reconcile_summary,
+        resolve_rules_root,
+        split_frontmatter,
+    )
+except ImportError:
+    # M1 对账辅助缺失 → 对账降级为关闭（对账是叠加层，不影响原判定语义）
+    def reconcile_enabled():
+        return False
+
+    def reconcile_field(_op, _field, _grep_val, _structured_val):
+        return True
+
+    def reconcile_summary():
+        return None
+
+    def split_frontmatter(text):
+        return (None, text)
+
+    def body_field_value(body, field):
+        return ""
+
+    def fm_field_value(fm, field):
+        return ""
+
+    def known_phase_ids(rules_root):
+        return frozenset()
+
+    def is_legal_gate_key(key, phase_ids=None):
+        return True
+
+    def resolve_rules_root(script_path):
+        return ""
+
+    # M2 共享解析（BDD-9：已迁移解析点不在本文件字面出现，落在 agate_common 单点）；
+    # agate_common 缺失时按数据缺失降级（块解析 → 无块；四字段 → 0，P2 分支 fail-closed）
+    def parse_gate_commands_block(text):
+        return (False, [])
+
+    def count_p2_declared_fields(text):
+        return 0
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MD_FIELD_GET = os.path.join(SCRIPT_DIR, "agate-md-field-get.py")
 GATE_MISSING_CMDS = os.path.join(SCRIPT_DIR, "agate-gate-missing-cmds.py")
@@ -587,6 +638,44 @@ def _gate_p2_dispatch_plan(p2_file):
     return None
 
 
+def _gate_commands_block_keys(p2_text):
+    """提取 P2-design.md gate_commands 多行块内所有 key（无块/空块 → []）。
+
+    M2 起经 agate_common.parse_gate_commands_block 共享解析（BDD-9：块正则不在
+    本文件字面出现，落在公共库单点）。
+    """
+    _has_block, entries = parse_gate_commands_block(p2_text)
+    return [k for k, _v in entries]
+
+
+def _reconcile_p2_fields(p2_file, p2_text):
+    """M1 对账（P2-design §3.4，BDD-6/7）：P2 分支四字段/candidate_count 双读 + gate_commands 键集。
+
+    - candidate_count/packages/domains/ui_affected：正文 raw 正则读取 vs frontmatter 结构化
+      读取（正文有声明才比对，防"仅 frontmatter 声明"误报）
+    - gate_commands：块内键集 vs 声明语法（project_module 特判 / is_gate_meta_key /
+      P{阶段} 键，阶段集来自 phases.yaml ∪ 内置 P0-P8）
+    差异 → stderr `RECONCILE WARNING` + 汇总计数（可重定向进日志）；对账不改变 gate_p2
+    退出码语义（0/1/2 不变，BDD-6）；任何异常 fail-open（不阻断原判定）。
+    """
+    if not reconcile_enabled():
+        return
+    try:
+        fm, body = split_frontmatter(p2_text)
+        for field in ("candidate_count", "packages", "domains", "ui_affected"):
+            body_val = body_field_value(body, field)
+            if body_val:
+                reconcile_field("check-gate-P2", field, body_val, fm_field_value(fm, field))
+        keys = _gate_commands_block_keys(p2_text)
+        phase_ids = known_phase_ids(resolve_rules_root(__file__))
+        for key in keys:
+            if not is_legal_gate_key(key, phase_ids):
+                reconcile_field("check-gate-P2", "gate_commands." + key, key, "(未声明)")
+        reconcile_summary()
+    except Exception:
+        pass
+
+
 def gate_p2(task_dir):
     p2_file = os.path.join(task_dir, "P2-design.md")
     if not os.path.isfile(p2_file):
@@ -595,6 +684,8 @@ def gate_p2(task_dir):
 
     p2_text = _read_text(p2_file)
     p2_lines = _lines(p2_text)
+
+    _reconcile_p2_fields(p2_file, p2_text)
 
     # v0.31.0：候选方案数显式 candidate_count 字段（纯强制，不再用正则数标题）
     candidate_count = 0
@@ -636,7 +727,7 @@ def gate_p2(task_dir):
         sys.stderr.write("GATE P2: P2-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）\n")
         return 1
 
-    field_count = sum(1 for line in p2_lines if re.match(r"^(packages|domains|ui_affected|gate_commands):", line))
+    field_count = count_p2_declared_fields(p2_text)
     if field_count < 4:
         sys.stderr.write(f"GATE P2: P2-design.md 缺字段（需 packages/domains/ui_affected/gate_commands 四字段，实际 {field_count}）\n")
         return 1

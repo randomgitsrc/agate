@@ -1,0 +1,29 @@
+## BDD-3 反例 A (S-5 schema 枚举非法: phases.yaml P1 exec_role=bogus-role)
+命令: check-structure-consistency.py AGATE_ROOT=dist/p6-drift-s5
+输出:
+S1-phases: ERROR phase P1 exec_role 不一致：phases.yaml='bogus-role' vs WORKFLOW 表列='analyst（需求质疑模式）'
+S2-workflow: OK
+S3-cards: ERROR phase P1 exec_role bogus-role 未出现在卡片派发节（S-3 YAML→cards 渲染一致）
+S4-scripts: OK
+S5-schema: ERROR rules/*.yaml 未过 schema（S-5 schema，check-yaml-schema.py exit 1）：SCHEMA-phases: ERROR phases[1].exec_role 值 'bogus-role' 不在枚举 ['analyst', 'architect', 'test-designer', 'implementer', 'verifier', 'consistency-reviewer', 'judge', 'releaser', 'main-agent']
+SCHEMA-dispatch: OK
+SCHEMA-roles: OK
+S6-references: OK
+S0-numbers: OK
+RAW_EXIT_CODE: 1
+## BDD-3 反例 B (S-6 引用缺失: roles.yaml analyst file→nonexistent.md)
+命令: check-structure-consistency.py AGATE_ROOT=dist/p6-drift-s6
+输出:
+S1-phases: OK
+S2-workflow: OK
+S3-cards: OK
+S4-scripts: OK
+S5-schema: OK
+S6-references: ERROR roles.execution_roles[].file 引用 assets/execution-roles/nonexistent.md 在协议根下不存在（S-6 引用完整性）
+S0-numbers: OK
+RAW_EXIT_CODE: 1
+
+---- 验收断言 (BDD-3 反例) ----
+断言: S-5 schema 枚举非法检出 exit 非0: PASS (RAW_EXIT_CODE: 1)
+断言: S-6 引用缺失检出 exit 非0: PASS (RAW_EXIT_CODE: 1)
+EXIT_CODE: 0

@@ -1,0 +1,10 @@
+## BDD-3 正向 (S-5/S-6 合法)
+命令: 同上 (S5-schema / S6-references 行)
+S1-phases: OK
+S2-workflow: OK
+S3-cards: OK
+S4-scripts: OK
+S5-schema: OK
+S6-references: OK
+S0-numbers: OK
+EXIT_CODE: 0

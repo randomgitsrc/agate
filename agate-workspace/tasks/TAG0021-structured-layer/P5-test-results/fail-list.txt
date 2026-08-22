@@ -1,0 +1,6 @@
+FAILED agate/tests/unit/test_check_routing.py::test_bdd_7_thin_score_anomaly_git_ok_false_exit_1
+FAILED agate/tests/unit/test_env_adapt_docs.py::test_bdd_25_consistency_zero_error
+# 注（重试 #1）：以上 2 项为沙箱环境假象（P4 已登记，隔离复跑复核一致）——
+#   test_bdd_7  = [CAPABILITY_GAP] basetemp 必须在 git 仓库内（沙箱 /tmp、ptmp 只读）→ git_ok:true 破坏预期；隔离复跑仍红，CI basetemp=/tmp 在仓库外通过。
+#   test_bdd_25 = 共享 basetemp（dist/）污染，全量序下测试产物 md 被一致性扫描纳入；清空 dist/ 后隔离复跑转绿，CI 无此干扰通过。
+# 本轮无真失败：ruff 首轮 70 errors（真失败）已由 P4 修复 → 重试 #1 All checks passed（0 error）。

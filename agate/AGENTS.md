@@ -20,6 +20,7 @@
 |------|------|
 | 第一次接入 agate 到我的项目（把 orchestrator 注册成可调用的 agent）| `SETUP.md`（平台相关的具体步骤，从这里开始）|
 | 理解 P0-P8 阶段流程与裁剪规则 | `WORKFLOW.md`（主流程，主入口） |
+| 查跨阶段规则（retry 上限 / 状态转移 / C8 评审映射）| `rules/`（phases.yaml / dispatch.yaml / roles.yaml 权威源 + schema/ + 既有 review-mapping.md / state-transitions.md md）|
 | 理解 orchestrator-template.md 本身该怎么用 | `orchestrator-template.md`（对所有项目内容完全一致，符号链接，不拷贝——项目特定信息写 `assets/templates/project.md`）|
 | 派发 subagent 的细节 | `dispatch-protocol.md` |
 | 状态机/转移规则/重试上限 | `state-machine.md` |
