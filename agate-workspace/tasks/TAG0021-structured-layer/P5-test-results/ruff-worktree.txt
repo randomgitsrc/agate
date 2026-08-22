@@ -1,0 +1,72 @@
+agate/scripts/agate-next-card.py:105:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/agate-read-gate-commands.py:45:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/agate_common.py:617:12: PLW0603 Using the global statement to update `_RECONCILE_MISMATCHES` is discouraged
+agate/scripts/agate_common.py:617:35: PLW0603 Using the global statement to update `_RECONCILE_FIELDS` is discouraged
+agate/scripts/agate_common.py:624:13: UP031 Use format specifiers instead of percent format
+agate/scripts/agate_common.py:636:9: UP031 Use format specifiers instead of percent format
+agate/scripts/agate_common.py:649:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/agate_common.py:665:28: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/agate_common.py:715:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-gate.py:68:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:69:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:70:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:71:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:72:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:73:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:76:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:77:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-gate.py:660:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-pruning.py:46:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-pruning.py:47:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-pruning.py:48:5: E731 Do not assign a `lambda` expression, use a `def`
+agate/scripts/check-pruning.py:127:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-structure-consistency.py:37:8: F401 [*] `json` imported but unused
+agate/scripts/check-structure-consistency.py:44:5: I001 [*] Import block is un-sorted or un-formatted
+agate/scripts/check-structure-consistency.py:98:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-structure-consistency.py:109:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-structure-consistency.py:159:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:164:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:167:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:176:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:206:21: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:226:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:233:17: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:290:29: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:294:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:305:33: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:311:33: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:330:31: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-structure-consistency.py:331:17: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:334:17: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:351:34: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:363:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:376:21: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:381:25: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:394:26: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:436:34: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:438:30: UP031 Use format specifiers instead of percent format
+agate/scripts/check-structure-consistency.py:443:11: W292 [*] No newline at end of file
+agate/scripts/check-yaml-schema.py:32:5: I001 [*] Import block is un-sorted or un-formatted
+agate/scripts/check-yaml-schema.py:65:30: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:68:30: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:72:38: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:75:21: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:79:38: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:82:34: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:86:46: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:106:34: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:116:28: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:121:35: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-yaml-schema.py:122:32: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:124:28: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:129:35: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-yaml-schema.py:130:32: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:145:24: RUF100 [*] Unused `noqa` directive (non-enabled: `BLE001`)
+agate/scripts/check-yaml-schema.py:156:26: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:167:23: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:168:34: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:170:30: UP031 Use format specifiers instead of percent format
+agate/scripts/check-yaml-schema.py:175:11: W292 [*] No newline at end of file
+agate/scripts/pre-commit-gate.py:412:9: SIM102 Use a single `if` statement instead of nested `if` statements
+Found 70 errors.
+[*] 18 fixable with the `--fix` option (45 hidden fixes can be enabled with the `--unsafe-fixes` option).

@@ -1,0 +1,6 @@
+## BDD 定向 pytest (BDD-1/2/3/5/6/7/8/9/10/12/13)
+命令: pytest 5 文件: test_check_yaml_schema / test_check_structure_consistency / test_check_reconcile / test_structure_migration / test_card_render
+输出:
+.................................                                        [100%]
+33 passed in 2.57s
+EXIT_CODE: 0

@@ -1,0 +1,16 @@
+## BDD-9 已迁移解析点静态零命中
+扫描 4 个已迁移脚本: agate-read-gate-commands / check-pruning / check-gate / agate-md-field-get
+禁令字面量 A: ^(packages|domains|ui_affected|gate_commands):  禁令字面量 B: ^gate_commands:[ \t]*$
+agate-read-gate-commands.py: 字面量A命中=0 字面量B命中=0
+check-pruning.py: 字面量A命中=0 字面量B命中=0
+check-gate.py: 字面量A命中=0 字面量B命中=0
+agate-md-field-get.py: 字面量A命中=0 字面量B命中=0
+--- 对照: 公共库 agate_common.py 承载迁移后的单点实现 ---
+784:def parse_gate_commands_block(text):
+798:def count_p2_declared_fields(text):
+--- pytest test_structure_migration::bdd_9 (先红后绿断言) ---
+
+---- 扫描断言 ----
+断言: 4 脚本两禁令字面量均 0 命中: PASS
+断言: 解析逻辑单点化 agate_common (parse_gate_commands_block / count_p2_declared_fields): PASS
+EXIT_CODE: 0

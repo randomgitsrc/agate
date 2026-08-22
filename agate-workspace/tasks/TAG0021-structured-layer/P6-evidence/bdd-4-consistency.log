@@ -1,0 +1,9 @@
+## BDD-4/11/14 - check-protocol-consistency (0 ERROR 基线)
+命令: python3 agate/scripts/check-protocol-consistency.py --strict-errors-only (AGATE_ROOT=worktree/agate)
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: docs/reviews/postmortem-template.md [docs/reviews/agate-alignment-review-2026-08-19.md:212]
+    ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: docs/reviews/postmortem-template.md [docs/reviews/agate-alignment-review-2026-08-20-TAG0007.md:141]
+    ⚠️  叙事文件含无法解析的脚本名引用（聚合提醒）: check-windows-smoke.sh [CHANGELOG.md:417]
+
+  仅有 318 个 WARNING，无 ERROR。
+
+EXIT_CODE: 0

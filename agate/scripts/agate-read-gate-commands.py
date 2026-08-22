@@ -10,32 +10,61 @@ GATE_FILE 不存在/不可读 → 抛异常 → 非零退出（由 bash 调用�
 
 import json
 import os
-import re
 import sys
 
-from agate_common import is_gate_meta_key
+from agate_common import (
+    is_gate_meta_key,
+    is_legal_gate_key,
+    known_phase_ids,
+    parse_gate_commands_block,
+    reconcile_enabled,
+    reconcile_field,
+    reconcile_summary,
+    resolve_rules_root,
+)
+
+
+def _reconcile_block_keys(entries):
+    """M1 对账（P2-design §3.4，BDD-6/7）：gate_commands 块键集 vs 声明语法。
+
+    块内出现未声明 key（project_module 特判 / is_gate_meta_key 后缀 / P{阶段} 键之外）
+    → stderr `RECONCILE WARNING` + 计数（可进日志）；对账不改变本脚本退出码语义（0 不变）。
+    对账关闭（AGATE_RECONCILE=off）或无键时不输出。任何异常 fail-open（不阻断原判定）。
+    """
+    if not reconcile_enabled():
+        return
+    try:
+        keys = [k for k, _v in entries]
+        if not keys:
+            return
+        phase_ids = known_phase_ids(resolve_rules_root(__file__))
+        for key in keys:
+            if not is_legal_gate_key(key, phase_ids):
+                reconcile_field("read-gate-commands", "gate_commands." + key, key, "(未声明)")
+        reconcile_summary()
+    except Exception:
+        pass
+
 
 content = open(os.environ["GATE_FILE"], encoding="utf-8").read()
-if not content.endswith(chr(10)):
-    content += chr(10)
-m = re.search(r"^gate_commands:[ \t]*\n((?:  .*\n|\s*\n)*)", content, re.MULTILINE)
-if not m:
+has_block, entries = parse_gate_commands_block(content)
+if not has_block:
     print(json.dumps({"commands": [], "project_module": ""}))
     sys.exit(0)
-block = m.group(1)
 commands = []
 project_module = ""
-for line in re.findall(r"^  (\w+):\s*(.+)$", block, re.MULTILINE):
-    key = line[0]
-    val = line[1].strip().strip(chr(34)).strip(chr(39))
+for key, raw in entries:
+    val = raw.strip().strip(chr(34)).strip(chr(39))
     if key == "project_module":
         project_module = val
     elif key.startswith("P3") and not is_gate_meta_key(key):
         suffix = key[2:] if len(key) > 2 else ""
         fmt_key = "P3" + suffix + "_formatter"
         fmt_val = ""
-        for line2 in re.findall(r"^  (" + re.escape(fmt_key) + r"):\s*(.+)$", block, re.MULTILINE):
-            fmt_val = line2[1].strip().strip(chr(34)).strip(chr(39))
+        for key2, raw2 in entries:
+            if key2 == fmt_key:
+                fmt_val = raw2.strip().strip(chr(34)).strip(chr(39))
         commands.append({"cmd": val, "formatter": fmt_val, "suffix": suffix})
 result = {"commands": commands, "project_module": project_module}
+_reconcile_block_keys(entries)
 print(json.dumps(result))

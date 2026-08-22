@@ -89,6 +89,49 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.60.0 — 协议结构化层（TAG0021/RM-AG0022，M0-M2：破坏性变更）
+
+> **本版本含破坏性变更**（M2 切权威源 + 一致性 gate 提升阻断）。升级前先逐条对照，
+> 判断你的项目是否触及；未触及项零动作（"不动则无感"原则不变）。
+
+**① 三脚本从"grep 解析任务 md"切换为"读 YAML 权威源为主 + 对账兜底"（影响：所有进行中任务 + 运行 gate 的 CI/批处理）**
+
+| 脚本 | 升级前（v0.59.x） | 升级后（v0.60.0） |
+|------|-------------------|-------------------|
+| `agate-read-gate-commands.py` | 内联正则解析 P2-design.md 的 `gate_commands:` 块 | 块解析迁至 `agate_common.parse_gate_commands_block`（公共库单点）；gate_commands 合法 key 判定读 `rules/dispatch.yaml`（`gate_commands_syntax`）+ `rules/phases.yaml`（阶段集） |
+| `check-pruning.py` | risk_level/phases 经 agate-md-field-get 双读 | 同前（frontmatter 结构化优先本就成立）；协议规则读 rules/*.yaml，正文 grep 降级为对账兜底 |
+| `check-gate.py`（P2 分支） | 内联四字段正则 + 内联 gate_commands 块正则 | 四字段计数/块解析迁至 `agate_common` 共享助手（`count_p2_declared_fields`/`parse_gate_commands_block`）；gate 判定读 rules/*.yaml |
+
+- **迁移后判定语义不变**：退出码 0/1/2 语义、P2 四字段门槛、P3 命令输出 JSON 结构均与
+  v0.59.x 一致；差异只在解析实现位置（消费脚本 → 公共库）与协议规则来源（md 内嵌 → rules/*.yaml）。
+- **对账兜底**：M1 双跑对账（`RECONCILE WARNING`/`RECONCILE SUMMARY`，stderr，`AGATE_RECONCILE`
+  可关）保留——旧格式 md 正文字段（frontmatter 之外）仍被读取用于对账比对，旧任务继续可跑。
+- 升级动作：**进行中任务**的 P2-design.md / P1-requirements.md 若用旧正文格式声明四字段 /
+  risk_level / phases / gate_commands，建议迁移到 frontmatter（v2.0 机器字段）；不迁移也可跑
+  （对账兜底不阻断），但会持续输出 RECONCILE 差异告警。
+
+**② 一致性 gate 提升阻断（影响：commit 流程 + CI）**
+
+- `check-structure-consistency.py`（S-1~S-6 双向一致性，ERROR 即 exit 1）从"仅 P5 gate + 手动"
+  提升为 **pre-commit 独立 step + CI consistency job 追加步骤**（P2-design §3.3 触发点时间线 M2 起）。
+- **漂移即阻断**：若 `rules/{phases,dispatch,roles}.yaml` 与协议 md（WORKFLOW 阶段总览表 /
+  phase-cards / scripts 登记）出现不一致（如改 WORKFLOW 表忘改 phases.yaml），pre-commit 与 CI
+  均会 exit 1 阻断。
+- 升级动作：无（协议自带 rules/*.yaml 与 md 已一致；若你的项目对 `AGATE_ROOT` 做了自定义覆盖，
+  确保覆盖的协议根含 `rules/` 目录，否则 pre-commit 结构检查 FATAL 阻断——见 ① 注释）。
+
+**③ 新增协议规则数据层 `rules/*.yaml` + schema（纯增量）**
+
+- 新增 `agate/rules/{phases,dispatch,roles}.yaml` + `agate/rules/schema/*.json` +
+  `check-yaml-schema.py` / `check-structure-consistency.py`——全部纯新增文件，不改变既有
+  协议文件语义；既有 `agate/rules/*.md`（review-mapping.md / state-transitions.md）保留不动
+  （S-2 对账面仅 WORKFLOW 总览表）。
+- 升级动作：无。
+
+**通用升级动作**：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS
+符号链接模式自动跟随，不放心可重跑确认；Windows 复制模式必须重跑——新 pre-commit 含结构一致性
+step，复制模式不重跑则旧 hook 不生效）。
+
 ### v0.59.0 — 独立 Judge 机制（无破坏性变更）
 
 **本版本无破坏性变更，无需迁移动作。**

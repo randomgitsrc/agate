@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 """从 P1/P2 markdown 提取字段（py 抽离共享工具，v2.0 T001 流 A 双读改造）。
 
+== 两类字段（M2/TAG0021 结构化层，P2-design §3.5 M2-2）==
+本工具是**任务数据字段**的统一读取入口：本文件全部 KNOWN_OPS（risk_level / phases /
+candidate_count / packages / domains / ui_affected / gate 汇总计数 / 标记状态等）都是
+任务文件（P1/P2/P6/P7 产出 md）中由用户/前序阶段声明的**任务数据**，读取路径 =
+frontmatter（结构化优先，v2.0 机器字段）→ 正文正则回退（旧格式兼容）。
+**协议规则字段**（阶段门槛 / 产出声明 / gate 语法 / retry 上限——存于 {agate_root}/rules/
+*.yaml）**不经本工具读取**：消费脚本经 agate_common.read_rules_yaml 直接读 YAML 权威源
+（check-gate / check-pruning 等的 gate_commands 合法 key 判定、阶段集即此路径）。
+两类字段边界：任务数据随任务走（本文件），协议规则随协议版本走（rules/*.yaml）——
+M2 切换权威源后二者不再混读，防止"同一规则多处解析"漂移（P1 §4.1 B 组实证）。
+
 从 FILE 环境变量读文件路径，按子命令（op）提取字段值。FILE 不存在/不可读时
 抛异常（FileNotFoundError）→非零退出（由 bash 调用方 2>/dev/null || echo 兜底）。
 

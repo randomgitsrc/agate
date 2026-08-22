@@ -1,0 +1,33 @@
+## BDD-1 实跑 (2026-08-22)
+命令: ls rules/ + schema/; check-yaml-schema.py (AGATE_ROOT=/home/kity/oclab/agate/.worktrees/agate-TAG0021/agate)
+/home/kity/oclab/agate/.worktrees/agate-TAG0021/agate/rules/:
+总计 36
+drwxrwxr-x 3 kity kity 4096  8月 22 17:52 .
+drwxrwxr-x 7 kity kity 4096  8月 22 19:20 ..
+-rw------- 1 kity kity 2110  8月 22 17:52 dispatch.yaml
+-rw------- 1 kity kity 3794  8月 22 17:52 phases.yaml
+-rw-rw-r-- 1 kity kity 2882  8月 22 15:41 review-mapping.md
+-rw------- 1 kity kity 3542  8月 22 17:52 roles.yaml
+drwxrwxr-x 2 kity kity 4096  8月 22 17:52 schema
+-rw-rw-r-- 1 kity kity 6626  8月 21 12:49 state-transitions.md
+
+/home/kity/oclab/agate/.worktrees/agate-TAG0021/agate/rules/schema/:
+总计 20
+drwxrwxr-x 2 kity kity 4096  8月 22 17:52 .
+drwxrwxr-x 3 kity kity 4096  8月 22 17:52 ..
+-rw------- 1 kity kity 1865  8月 22 17:52 dispatch.schema.json
+-rw------- 1 kity kity 1841  8月 22 17:52 phases.schema.json
+-rw------- 1 kity kity 1899  8月 22 17:52 roles.schema.json
+EXIT_CODE: 0
+--- 文件存在性确认 ---
+OK rules/phases.yaml
+OK rules/dispatch.yaml
+OK rules/roles.yaml
+OK schema/phases.schema.json
+OK schema/dispatch.schema.json
+OK schema/roles.schema.json
+--- check-yaml-schema.py ---
+SCHEMA-phases: OK
+SCHEMA-dispatch: OK
+SCHEMA-roles: OK
+EXIT_CODE: 0

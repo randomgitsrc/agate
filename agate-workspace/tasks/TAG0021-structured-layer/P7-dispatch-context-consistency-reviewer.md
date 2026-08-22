@@ -1,0 +1,188 @@
+---
+phase: P7
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0021
+role: consistency-reviewer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+执行 TAG0021「协议结构化层（RM-AG0022）」P7 一致性交叉检查：对照 P1-P6 产出做跨文件一致性审查（DESIGN_GAP 配对 / SCOPE+ 闭环 / 跨文件一致性 / 未决项清零 / CODE-MAP 核对），产出 `P7-consistency.md`（BLOCKER=0 + DESIGN_GAP 全配对 REVIEWED + SCOPE+ 闭环）。
+
+### 输入文件（P7 特例：输入文件数量豁免，全部源文件同时可见）
+
+1. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P1-requirements.md（需求基线：16 BDD + SCOPE_RESOLVED + 决策 D1-D3）
+2. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P2-design.md（方案：C1 §3.1-3.7 + packages/domains + dispatch_plan）
+3. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P3-test-cases.md（测试设计：34 用例映射）
+4. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P4-implementation.md（实现记录：M0-M3 + DESIGN_GAP×3 + SCOPE+ + CAPABILITY_GAP + CLARIFY + ruff 修复轮 + 核对表）
+5. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P5-test-results/unit.md（验证结果）
+6. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P6-acceptance.md（验收：16/16 PASS）+ P6.5-judge-verdict.md（judge 16/16）
+7. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P4-review.md + P2-review.md + P1-review.md（评审轨迹）
+8. {AGATE_WORKSPACE}/agents/CODE-MAP.md（CODE-MAP 核对基准）
+9. {AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/.state.yaml（phase=P7, p5_pass_commit, judge）
+10. {agate_root}/phase-cards/P7-consistency.md（随本上下文已注入卡片全文）
+
+路径说明：{AGATE_WORKSPACE} = `/home/kity/oclab/agate/.worktrees/agate-TAG0021/agate-workspace`；{agate_root} = `/home/kity/oclab/agate/agate`（~/.agate 稳定版）；被核对对象 = worktree `/home/kity/oclab/agate/.worktrees/agate-TAG0021`。
+
+### 检查清单（P7 卡）
+
+1. **DESIGN_GAP 配对**：P4-implementation.md 的 3 条 [DESIGN_GAP]（S-4 字段词表 / P0 main-agent / S-3 整卡级）→ 逐条转抄 + 配 `[DESIGN_GAP_REVIEWED]` 标记（主 Agent 已确认采纳，P4 内已标，P7 转抄配对）
+2. **SCOPE+ 闭环**：P1-requirements.md 有 [SCOPE_RESOLVED]（check-protocol-consistency 锚点数据登记），确认闭环
+3. **跨文件一致性**（逐项实查 + 源文件节名引用）：
+   - P2 packages=[agate] ↔ P8 release bump 范围一致（本任务 P8 将 bump agate 协议本体）
+   - P1 16 条 BDD ↔ P6 16 PASS 对照（数量+内容映射正确，无张冠李戴）
+   - P4 实现路径 ↔ P2 方案设计吻合（M0-M3 落点逐一对上 §3.5 里程碑清单）
+   - P3 34 用例 ↔ P4 全转绿 + P5 1198 过（数理一致）
+   - .state.yaml phase=p7 与产出状态一致；judge 已启用 round=1
+4. **未决项清零**：P1-requirements 无残留行首 [NEED_CONFIRM]/[BLOCKER]/[DEVIATION-CRITICAL]
+5. **CODE-MAP 核对**：对照 CODE-MAP.md 与 P4「新增文件核对表」逐条核对（rules 模块/2 新脚本/3 schema 等新增文件登记），核对通过标 `[CODE_MAP_SYNC:]`；发现依赖方向偏离标 `[CODE_MAP_DRIFT:]`（WARNING）
+
+### 产出规格（P7 卡）
+
+- `P7-consistency.md`：frontmatter + 
+  - `phase: P7` / `task_id: TAG0021-structured-layer` / `type: consistency` / `parent: P2-design.md` / `trace_id: TAG0021-P7-20260822` / `status: draft` / `created: 2026-08-22` / `agent: consistency-reviewer`
+  - 机器计数：`blocker_count: 0` / `deviation_count:` / `deviation_critical_count: 0` / `design_gap_count: 3` / `design_gap_reviewed_count: 3` / `code_map_new_files_count:` / `code_map_reviewed_count:`
+- 正文：逐条检查结论 + 跨文件引用关键词（`P2§packages`、`P4§impl-path` 等源文件节名）+ DESIGN_GAP 配对行（含 REVIEWED）+ SCOPE+ 闭环 + CODE-MAP 核对结论
+- 状态标记：`[PROD_NOT_TOUCHED]`
+- 分阶段落盘：`{AGATE_WORKSPACE}/tasks/TAG0021-structured-layer/P7-progress.md`
+
+### 硬约束
+
+- 只读检查：不修改任何产出/代码文件；唯一写操作是产出 P7-consistency.md + P7-progress.md
+- bash 一律外层 timeout（30-90s）；读文件优先 read/grep 工具；单步串行
+
+### 返回
+
+只返回两行：① P7-consistency.md 路径；② 一句话摘要（≤30 字，含 BLOCKER/DEVIATION 计数）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P7
+
+路径：phase-cards/P7-consistency.md
+---
+# P7 — 一致性检查
+
+> 当前状态：[首次 / 重试 #N / 裁剪跳阶]
+> 裁剪跳阶 → 确认 P1 phases 不含 P7 + 源文件数 ≤5 + 无 implicit_coupling + 有 coupling_checklist（须列出至少 2 个已检查的耦合点，空清单不合规）→ 跳过，读 P8 卡片
+> ⑨ P7 subagent 化
+
+## 如果是首次进入本阶段
+
+1. 主 Agent 派发 consistency-reviewer subagent 执行交叉检查
+   1.1 写 P7-dispatch-context-consistency-reviewer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
+2. 对照 P1-P6 产出做跨文件一致性审查
+3. 产出 P7-consistency.md
+4. 预跑 check-gate.py P7
+5. git add {AGATE_WORKSPACE}/tasks/{Txxx}/（含 .state.yaml + 产出文件，若 .gitignore 忽略需 git add -f）
+   ⚠️ 此时 .state.yaml 的 phase 保持 P7，不要提前写 P8——phase = 本 commit 的产出阶段
+6. git commit -m "wf({Txxx}-P7): {摘要}"（phase=P7，P7 产出含 P7-consistency.md）
+7. P7 commit 完成后进入 P8：**phase 推进 P8 随 P8 产出 commit 一起**（P8-release.md 就绪后），不是单独 phase commit
+
+## 如果是重试
+
+→ 读 agate/rules/state-transitions.md 确认 retry 上限（P7 MAX=2）
+
+## 前置条件
+
+- [ ] P1-P6 全部产出文件就绪
+
+## 执行方式
+
+consistency-reviewer subagent 执行。检查清单：
+
+1. **DESIGN_GAP 配对**：P4-implementation.md 中的 DESIGN_GAP 声明 → 必须在 P7-consistency.md 中逐条转抄 + 配 REVIEWED 标记。未配对 → gate 不通过
+2. **SCOPE+ 闭环**：P1-requirements.md 有 [SCOPE_RESOLVED] 标记，确认所有 SCOPE+ 增补已纳入基线
+3. **跨文件一致性**：P2 声明的 packages 与 P8 release 的 bump 范围一致？P1 的 BDD 和 P6 的验收结果数量匹配？P4 的实现路径和 P2 的方案设计吻合？
+4. **未决项清零**：P1-requirements.md 无残留行首 [NEED_CONFIRM]（P6 不再有 NEED_CONFIRM）、[BLOCKER]、[DEVIATION-CRITICAL]
+5. **CODE-MAP 核对**：对照 `{AGATE_WORKSPACE}/agents/CODE-MAP.md` 与 P4「新增文件核对表」逐条核对，发现依赖方向偏离标 `[CODE_MAP_DRIFT:]`（WARNING 级，不阻断）；核对通过标 `[CODE_MAP_SYNC:]`
+
+## 实质锚点要求（N3⑨）
+
+| gate 断言 | 实质锚点（P7 产出须包含） |
+|-----------|--------------------------|
+| BLOCKER=0 | DESIGN_GAP 配对项 + REVIEWED 标记 |
+| CRITICAL=0 | 跨文件检查项 + 源文件节名 |
+| SCOPE+ 闭环 | 条目 + SCOPE_RESOLVED |
+
+gate 脚本校验说明：
+- DESIGN_GAP_REVIEWED：P4 声明的每条 DESIGN_GAP 在 P7 产出中须有对应行含 `DESIGN_GAP_REVIEWED`
+- 跨文件引用关键词：P7 产出中须含源文件节名（如 `P2§packages`、`P4§impl-path`），否则 WARNING
+
+## 产出规格
+
+- P7-consistency.md：一致性审查结论
+- 逐条检查结果，无 [BLOCKER] 标记
+
+`blocker_count`/`deviation_count`/`deviation_critical_count`/`design_gap_count`/
+`design_gap_reviewed_count`/`code_map_new_files_count`/`code_map_reviewed_count` 写在文件头
+**frontmatter**（`---` 分隔块），不写正文；正文
+`[BLOCKER]`/`[DEVIATION-CRITICAL]`/`[DESIGN_GAP]`/`[DESIGN_GAP_REVIEWED]` 散文标记保留为
+人类痕迹（不迁移），gate 判定改读 frontmatter 结构化计数。**可直接复制的完整样例**：
+```yaml
+---
+phase: P7
+task_id: TAG0001           # 替换为实际任务编号
+type: consistency
+parent: P2-design.md
+trace_id: T001-P7-20260101 # {task_id}-P7-{YYYYMMDD}
+status: draft
+created: 2026-01-01
+agent: consistency-reviewer
+# ── v2.0 机器计数 ──
+blocker_count: 0                  # int ≥0
+deviation_count: 0                # int ≥0
+deviation_critical_count: 0       # int ≥0
+design_gap_count: 0                # int ≥0
+design_gap_reviewed_count: 0       # int ≥0
+code_map_new_files_count: 0        # int ≥0（可选，仅骨架/CODE-MAP 机制已采用时填）
+code_map_reviewed_count: 0         # int ≥0（可选，语义对应 design_gap_reviewed_count）
+---
+```
+
+## gate 规则
+
+```bash
+check-gate.py P7 $TASK_DIR
+```
+
+- [BLOCKER] 存在 → exit 1
+- [DEVIATION-CRITICAL] 存在 → exit 1
+- DESIGN_GAP 未配对（P4 有但 P7 无 REVIEWED）→ exit 1
+- CODE-MAP 未配对（code_map_reviewed_count < code_map_new_files_count，或 P4 实际标记数 > code_map_new_files_count）→ exit 1（两字段均缺失时机制未采用，跳过）
+- 含 DESIGN_GAP_REVIEWED 但缺跨文件引用关键词 → WARNING（不改变 exit code）
+- 全部通过 → exit 0
+
+BLOCKER → consistency-reviewer 修改 → 再验 gate → … → 通过（⑩迭代循环，review 和 gate 重试共享 retry 预算）
+
+## 推进条件（全部满足才写 phase: P8）
+
+- [ ] P7-consistency.md 存在
+- [ ] 无 [BLOCKER] / [DEVIATION-CRITICAL]
+- [ ] DESIGN_GAP 全部 REVIEWED 配对
+- [ ] SCOPE+ 闭环（P1 有 [SCOPE_RESOLVED]）
+
+## P7 输入文件数量
+
+P7 是输入文件数量限制的例外（模式 1 单发 + 输入数量豁免特例，见 dispatch-protocol「派发编排机制」全阶段适用表），不拆分。原因：
+1. 跨文件一致性比较需要全部源文件同时可见
+2. 角色文件（consistency-reviewer）已列出所需输入清单
+3. dispatch-context 为 subagent 提供摘要，无需逐文件全文注入
+
+## 常见错误
+
+1. **漏转抄 P4 的 DESIGN_GAP**：P4 implementer 声明了实现偏差但 P7 没转抄 → gate 拦截
+2. **一致性检查只看标题不对内容**：P1 BDD 数 = 15，P6 PASS 数 = 15 → 数量对，但 BDD-8 的内容在 P6 里被映射到错误的验收结果
+3. **裸 'BLOCKER=0' 不引用锚点**：未做实质交叉检查，只写 '一致' → gate WARNING 提醒
+
+gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你。正确动作是诊断→退回/重试/PAUSED，不是修改产出让它变绿。
+
+## 下游影响
+
+- P8 发布前最后一道质量门——P7 通过后进入机械发布步骤
+
+> 完成 → 读 phase-cards/P8-release.md
+<!-- AGATE_CARD_END -->

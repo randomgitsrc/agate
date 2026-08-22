@@ -1,0 +1,25 @@
+## BDD-7 对账覆盖面 (≥3 脚本 + 3 类解析点)
+接入对账的脚本 (grep reconcile_field/reconcile_summary 调用点):
+  agate-read-gate-commands.py: 6 处对账调用
+  check-pruning.py: 10 处对账调用
+  check-gate.py: 10 处对账调用
+
+三类解析点覆盖:
+  ① gate_commands 块 (agate-read-gate-commands.py 对账 block 键集)
+  ② P1 裁剪字段 risk_level/phases (check-pruning.py frontmatter↔正文双读对账)
+  ③ P2 四字段 packages/domains/ui_affected + candidate_count (check-gate.py P2 分支 gate_p2/_reconcile_p2_fields)
+
+pytest test_check_reconcile.py (BDD-6/7/8) → 7 passed (见 bdd-targeted-pytest.log)
+--- 对账工具函数 (agate_common) ---
+598:def reconcile_enabled():
+610:def reconcile_field(op, field, grep_val, structured_val):
+628:def reconcile_summary():
+637:def read_rules_yaml(rules_root, name):
+649:def resolve_rules_root(script_path):
+669:def known_phase_ids(rules_root):
+679:def is_legal_gate_key(key, phase_ids=None):
+
+---- 覆盖断言 ----
+断言: 3 脚本 (read-gate-commands/pruning/check-gate) 均接入对账: PASS
+断言: 3 类解析点 (gate_commands 块 / P1 裁剪字段 / P2 四字段) 覆盖: PASS
+EXIT_CODE: 0

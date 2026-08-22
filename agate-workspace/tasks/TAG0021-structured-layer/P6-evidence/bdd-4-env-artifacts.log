@@ -1,0 +1,20 @@
+## BDD-4 环境假象隔离复跑复核 (清空 dist/ 后)
+1) test_bdd_25 隔离 (共享 basetemp 污染消除)
+.                                                                        [100%]
+1 passed in 0.69s
+RAW_EXIT_CODE: 0
+2) test_bdd_7 隔离 (CAPABILITY_GAP 固有: basetemp 须在 git 仓库内 → git_ok:true → 隔离仍红, 与改动零耦合; CI /tmp 在仓库外通过)
+F                                                                        [100%]
+=================================== FAILURES ===================================
+E   assert 0 == 1
+     +  where 0 = <conftest.CommandResult object at 0x724e00c154f0>.returncode
+/home/kity/oclab/agate/.worktrees/agate-TAG0021/agate/tests/unit/test_check_routing.py:32: assert 0 == 1
+=========================== short test summary info ============================
+FAILED agate/tests/unit/test_check_routing.py::test_bdd_7_thin_score_anomaly_git_ok_false_exit_1
+1 failed in 0.13s
+RAW_EXIT_CODE: 1
+
+---- 验收断言 (BDD-4 环境假象复核) ----
+断言: test_bdd_25 隔离 (清空 dist) 1 passed → 转绿, 确认为共享 basetemp 污染: PASS
+断言: test_bdd_7 隔离仍红 → 固有 CAPABILITY_GAP (沙箱路径约束), 非本任务回归: 固有
+EXIT_CODE: 0

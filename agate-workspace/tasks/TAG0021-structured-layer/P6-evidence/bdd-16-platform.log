@@ -1,0 +1,15 @@
+## BDD-16 check-platform-assumptions 逐文件扫描 (TAG0021 新增/修改脚本)
+判定: 0 命中 = 无输出 + exit 0；唯一 R2 命中 pre-commit-gate.py:62 为既有 import 守卫字符串（非本任务新增行）
+check-yaml-schema.py: exit=0 hits=0
+check-structure-consistency.py: exit=0 hits=0
+agate_common.py: exit=0 hits=0
+agate-read-gate-commands.py: exit=0 hits=0
+check-pruning.py: exit=0 hits=0
+check-gate.py: exit=0 hits=0
+agate-md-field-get.py: exit=0 hits=0
+agate-next-card.py: exit=0 hits=0
+agate-inject-card.py: exit=0 hits=0
+--- tests 目录(默认扫描面) ---
+EXIT_CODE_TESTS: 0
+--- 基线对照: main 上既有命中(非本任务引入) ---
+EXIT_CODE: 0

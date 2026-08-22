@@ -1,0 +1,38 @@
+# agate/rules/dispatch.yaml — 派发定义权威源（TAG0021 M0，数据面）
+#
+# 数据边界（P2-design §3.1）：承载派发三铁律（结构化 rule 串）、模板字段清单、
+# gate_commands 语法声明、五模式编排枚举、字段读取登记表（field_readers）、gate 表。
+# 派发 prompt 模板正文保留 assets/templates/dispatch-prompt.md（叙事渲染骨架），本文件只
+# 声明 context_fields。
+# 事实基线：五模式词表 = dispatch-protocol.md《五模式编排》（模式 1-5 对齐）：
+#   single(单发) / static-batch(静态拆批) / parallel(并行) / recon-then-split(先理解后拆) / serial(串行链)。
+# gate_commands 合法 key 判据 = agate_common.is_gate_meta_key（_formatter/_timeout_seconds
+# 后缀）OR project_module 特判（P2-review 发现 #3，S-4 校验本声明与判据一致）。
+
+schema_version: 1
+modes: [single, static-batch, parallel, recon-then-split, serial]
+iron_laws:
+  - {id: law-1, rule: "用 task 工具派发，动词是派发不是执行"}
+  - {id: law-2, rule: "prompt 只传文件路径，不传文件内容"}
+  - {id: law-3, rule: "subagent 只返回路径 + 一句话摘要"}
+templates:
+  - {name: dispatch-prompt, file: assets/templates/dispatch-prompt.md}
+  - {name: dispatch-context, file: assets/templates/dispatch-context.md}
+gate_commands_syntax:
+  pattern: "^P[0-9]+"
+  meta_suffixes: [_formatter, _timeout_seconds]
+  special_keys: [project_module]
+field_readers:
+  - {script: agate-read-gate-commands.py, phase: P2, fields: [gate_commands]}
+  - {script: check-pruning.py, phase: P1, fields: [risk_level, phases]}
+  - {script: check-gate.py, phase: P2, fields: [candidate_count, packages, domains, ui_affected, gate_commands]}
+gates:
+  - {phase: P1, script: check-gate.py}
+  - {phase: P2, script: check-gate.py}
+  - {phase: P3, script: check-tdd-red.py}
+  - {phase: P4, script: check-gate.py}
+  - {phase: P5, script: gate_commands.P5}
+  - {phase: P6, script: check-gate.py}
+  - {phase: P6.5, script: check-judge-verdict.py}
+  - {phase: P7, script: check-gate.py}
+  - {phase: P8, script: check-gate.py}
