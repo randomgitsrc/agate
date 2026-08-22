@@ -38,3 +38,20 @@
 |------|------|------|
 | 协议工具操作 git 时必须显式考虑 `core.hooksPath`/`--no-verify`/pathspec——迁移工具自动 commit 被自身 hook 拦截（D1），与"dogfooding 项目装有 agate hook"冲突是必然现实 | TAG0003 | 2026-08-12 |
 | 新增机器字段若无历史正文格式，一律 frontmatter-only——`_regex_fallback` 全文扫描会把正文提及字段名的文档误判（D2） | TAG0002 | 2026-08-12 |
+
+---
+
+## 2026-08-22（TAG0021）
+
+### 测试
+
+| 教训 | 来源 | 日期 |
+|------|------|------|
+| 环境假象要用可复现证据分类而非凭记录放行：P5/P6 记录的 basetemp 环境假象（test_bdd_7「basetemp 在 git 仓库外」语义、test_bdd_25「共享 basetemp 污染一致扫描」）在 P8 全量重跑原样复现，各自换 basetemp 位置/清共享根后转绿才记"非回归"——防止把真实回归误放行 | TAG0021 | 2026-08-22 |
+
+### 流程
+
+| 教训 | 来源 | 日期 |
+|------|------|------|
+| `--basetemp` 指向 git 仓库内目录有双重副作用（git 解析上溯命中仓库破坏"非 git 上下文"测试语义 + 共享根目录 fixture 残留污染后跑测试扫描面），测试设计应避免隐含"cwd 在 git 仓库外"假设，P2 env_constraints 显式声明 basetemp 位置对 git 语义的影响 | TAG0021 | 2026-08-22 |
+| 非交互 shell 不读 bashrc，工具路径要写绝对路径（ruff 不在 PATH 需 /home/kity/.local/bin/ruff，与 DEBT0014 python 探测同类）——发布检查命令显式写解释器/工具绝对路径或可执行性探测，避免 exit 127 被误判为回归 | TAG0021 | 2026-08-22 |
