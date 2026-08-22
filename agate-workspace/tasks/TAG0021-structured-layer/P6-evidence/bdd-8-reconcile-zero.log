@@ -1,0 +1,12 @@
+## BDD-8 对账清零: 真实任务 check-gate.py P2 (无制造差异 → 0 mismatches)
+命令: check-gate.py P2 <TAG0021 任务目录>
+对照: BDD-6 差异夹具同命令 exit=2 (退出码 = 原 grep 判定语义, 对账不新增阻断)
+RECONCILE SUMMARY: 0 mismatches across 1 fields
+GATE P2 WARNING: gate_commands.P5_ruff 命令 'ruff' 不存在于当前环境——请确认使用完整路径（如 .venv/bin/pytest）或安装依赖。T075 教训：python 不存在导致 P3 gate exit 127
+GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定
+RAW_EXIT_CODE: 2
+
+---- 验收断言 (BDD-8) ----
+断言: RECONCILE SUMMARY: 0 mismatches across 1 fields (对账清零): PASS
+断言: RAW_EXIT_CODE: 2 = P2 gate 原判定语义, 切换权威源后判定不变: PASS
+EXIT_CODE: 0

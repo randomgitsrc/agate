@@ -1,0 +1,10 @@
+## BDD-5 正向 (S-3/S-4 三方一致)
+命令: 同上 (S3-cards / S4-scripts 行)
+S1-phases: OK
+S2-workflow: OK
+S3-cards: OK
+S4-scripts: OK
+S5-schema: OK
+S6-references: OK
+S0-numbers: OK
+EXIT_CODE: 0

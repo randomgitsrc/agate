@@ -1,0 +1,34 @@
+# P6-progress.md (TAG0021-structured-layer)
+
+- [x] 读 verifier.md 角色定义
+- [x] 读 P6-dispatch-context-verifier.md 派发指引
+- [x] 读 P1-requirements.md (16 BDD)
+- [x] 读 P2-design.md
+- [x] 读 P5-test-results/unit.md
+- [x] 读 P4-implementation.md
+- [x] 读 P0-brief.md
+- [x] 实跑 16 条 BDD
+- [x] 产出 P6-evidence/
+- [x] 产出 P6-acceptance.md
+- [x] check-p6-format 归一化
+- [x] 读 P1-requirements.md (16 BDD: BDD-1..16, M0/M1/M2/M3/跨里程碑)
+- [x] 读 P2-design.md
+- [x] 读 P2-design.md (gate_commands + §3.7 完成标志)
+- [x] 读 P5-test-results/unit.md
+- [x] 读 P5-test-results/unit.md (1198 passed / 2 环境假象 / 7 命令签名)
+- [x] 读 P4-implementation.md
+- [x] 读 P4-implementation.md (M0-M3 + 环境假象 + ruff 修复)
+- [x] 读 P0-brief.md
+- [x] 实跑 16 条 BDD
+- [x] 读 P0-brief.md (约束)
+- [x] 输入文件全部读完
+- [x] 检查验收环境（AGATE_ROOT 解析 / git 状态）
+- [x] BDD-1..16 逐条实跑/实查完成 (证据已落 P6-evidence/)
+- [x] 产出 P6-acceptance.md 骨架
+- [x] 骨架追加逐条描述
+- [x] check-p6-format 归一化 + 自检
+
+- 16/16 PASS, 0 FAIL (逐条实跑/实查)
+- 三预检全绿: check-p6-format 0 / check-p6-evidence 0 (16 BDD) / check-p6-provenance 0
+- check-gate P6: FAIL=0 NC=0 P6_TOTAL=16 exit 2 (P6 自写 gate 预期态)
+- [PROD_NOT_TOUCHED]: 无代码/协议改动, 临时漂移副本已清理

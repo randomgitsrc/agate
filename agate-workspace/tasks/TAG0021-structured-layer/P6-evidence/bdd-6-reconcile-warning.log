@@ -1,0 +1,13 @@
+## BDD-6 对账模式: 含已知差异夹具 (P9_custom 未声明 key 注入副本 P2-design.md)
+命令: check-gate.py P2 dist/p6-recon-task
+RECONCILE WARNING: check-gate-P2 gate_commands.P9_custom: grep=P9_custom structured=(未声明)
+RECONCILE SUMMARY: 1 mismatches across 2 fields
+GATE P2 WARNING: gate_commands.P5_ruff 命令 'ruff' 不存在于当前环境——请确认使用完整路径（如 .venv/bin/pytest）或安装依赖。T075 教训：python 不存在导致 P3 gate exit 127
+GATE P2: 需从 P2-design.md gate_commands 动态读取，主 Agent 自行判定
+RAW_EXIT_CODE: 2
+
+---- 验收断言 (BDD-6) ----
+断言: stderr 含 RECONCILE WARNING (check-gate-P2 gate_commands.P9_custom): PASS
+断言: stderr 含 RECONCILE SUMMARY 差异计数 (1 mismatches across 2 fields): PASS
+断言: 退出码 2 = 原 grep 判定语义 (对照真实任务同命令亦 exit 2), 对账不新增阻断: PASS
+EXIT_CODE: 0
