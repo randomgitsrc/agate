@@ -8,3 +8,7 @@
 {"event":"state_transition","from":"P3","phase":"P4","prev_hash":"423f861fe70b3d3c3fa0680048817ab12504b143113e134b5dae084a696822cd","to":"P4","ts":"2026-08-22T13:32:44.165331Z"}
 {"cmd":"check-gate.py P5","event":"gate_run","exit":2,"phase":"P5","prev_hash":"806cc6f7cb3700b9aacb8e57753eb5748eade13f69cd86313f1961b9182e8f98","runner":"pre-commit","ts":"2026-08-22T15:20:18.258553Z"}
 {"event":"state_transition","from":"P4","phase":"P5","prev_hash":"43f4c42bbbeb107a6be0be4939424b99a1d014af8100e8c4a0df2f536affce85","to":"P5","ts":"2026-08-22T15:20:18.258640Z"}
+{"cmd":"check-gate.py P6","event":"gate_run","exit":2,"phase":"P6","prev_hash":"892efafd452d9dd38bdd3ed2e7e17e7c387674bc913ff6155016076a8b120f7e","runner":"pre-commit","ts":"2026-08-22T15:41:35.500725Z"}
+{"event":"state_transition","from":"P5","phase":"P6","prev_hash":"60e446764d9db3632efa473c881476420c7bbf1a68bd00a8e9b6f2e5acedc1d3","to":"P6","ts":"2026-08-22T15:41:35.502732Z"}
+{"criteria_passed":16,"criteria_total":16,"event":"judge_verdict","partial":false,"phase":"P6.5","prev_hash":"9e4d85aa352a23da7ccb9cc6798421a6edadea772d69fdaa3247d44c851731d0","ts":"2026-08-22T16:23:39.406179Z","verdict":"passed","verdict_hash":"e9289362d608f46313466cbc5c3372e4ada1f48db6156d822ffec6c4b855a8b5"}
+{"criteria_passed":16,"criteria_total":16,"event":"judge_verdict","partial":false,"phase":"P6.5","prev_hash":"1721175abdf825344bfa110d139d5993670755815aa50b9b4e4df0cd6591c3bb","ts":"2026-08-22T16:24:15.004884Z","verdict":"passed","verdict_hash":"e9289362d608f46313466cbc5c3372e4ada1f48db6156d822ffec6c4b855a8b5"}
