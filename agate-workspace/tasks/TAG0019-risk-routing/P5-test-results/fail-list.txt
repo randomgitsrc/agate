@@ -1,0 +1,1 @@
+FAILED agate/tests/unit/test_check_routing.py::test_bdd_7_thin_score_anomaly_git_ok_false_exit_1 [环境前提 I1：沙箱无 git 仓库外可写 basetemp → run_git 必成功（exit 0 而非 1）；实现已两轮 GIT_DIR=/nonexistent 探针验证 git_ok:false + thin → exit 1 fail-closed 正确，非缺陷]

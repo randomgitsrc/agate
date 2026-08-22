@@ -1,0 +1,33 @@
+=== BDD-15: check-protocol-consistency.py --strict-errors-only（worktree 脚本 + worktree root）===
+[exit=0]
+  ✅ PASS  CHECK 1  YAML 代码块可解析
+  ⚠️  WARN  CHECK 2  仓库内文件引用存在
+  ✅ PASS  CHECK 3  协议文件无硬编码行号
+  ✅ PASS  CHECK 4  gate_commands 键集合一致
+  ✅ PASS  CHECK 6  LICENSE 与 gstack 归属
+  ✅ PASS  CHECK 7  version badge 与 git tag
+  ✅ PASS  CHECK 8  v0.6 关键词存在性
+  ✅ PASS  CHECK 9  协议-脚本结构对齐
+  ⚠️  WARN  CHECK 10 协议文档脚本名引用漂移
+  ✅ PASS  CHECK 11 UI/UX 机制条文跨文档一致
+  ✅ PASS  CHECK 12 权威数值/规则跨文件一致性
+  WARNING (318):
+  仅有 318 个 WARNING，无 ERROR。
+
+=== BDD-15 消费点同步核查 ===
+--- scripts/README.md 工具清单 ---
+37:| `check-routing.py` (2j.1/2.7.1) | ceremony 路由校验（TAG0019 D3，BDD-7/8/9/10）：声明 ceremony 与算分 tier 一致性（单向 fail-closed）+ thin 四要素 checklist（coupling_checklist 流式 / 跳过风险 / P5/P6 保留）+ 不声明回退 standard | 0=通过, 1=拦截（四要素缺一 / 声明薄于算分 / thin 且 git_ok:false），2=P1-requirements.md 缺失（任务目录破损，交人工）|
+38:| `agate-risk-score.py` | 客观信号算分（TAG0019 D1，BDD-1..5）：四信号分级（文件类型 / 敏感路径 / 改动规模 / 影响面）+ risk_score + tier（thin/standard/full）+ 逐信号证据行；信号来自 `git diff --cached` 客观事实（`agate_common.run_git` 通道，不可伪造）；提供可 import 的 `score_task(task_dir) -> dict` + CLI 薄壳（`agate-risk-score.py TASK_DIR`，输出 risk_score/tier/四信号/domain-markers/git_ok 行）| 0=成功, 1=参数缺失（CLI）|
+--- tests/README.md 用例映射 ---
+32:| agate-risk-score.py | unit/test_agate_risk_score.py | 11 |
+33:| check-routing.py | unit/test_check_routing.py | 13 |
+--- agate-summary.py _DRIFT_SCRIPTS ---
+46:    "agate-risk-score.py",
+47:    "check-routing.py",
+--- WORKFLOW.md gate 表 ---
+321:| 2.7.1 | `check-routing.py` | gate 通过后 | 阶段级 | ceremony 路由校验（TAG0019）：声明 ceremony 与算分 tier 一致性（单向 fail-closed）+ thin 四要素 checklist（coupling_checklist 流式 / 跳过风险 / P5/P6 保留）缺一拦截；不声明 = standard 不拦截（BDD-7/8/9）|
+--- pre-commit-gate.py 2j/2j.1 ---
+338:        if gate_exit != 1 and _run_script_rc("check-pruning.py", [task_dir]) == 1:
+341:        # 2j.1. ceremony 路由校验（TAG0019 D3，BDD-7/9）：与 2j check-pruning 并列；
+343:        if gate_exit != 1 and _run_script_rc("check-routing.py", [task_dir]) == 1:
+EXIT_CODE: 0

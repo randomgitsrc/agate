@@ -1,0 +1,17 @@
+=== BDD-13: check-platform-assumptions.py 对变更文件集 R1-R5 扫描（P2 P5_platform 口径）===
+[exit=0]
+
+=== BDD-13 补充：新脚本 git/路径处理平台无关性静态核查 ===
+22:平台无关（BDD-13）：git 全经 agate_common.run_git；路径 os.path.relpath(...).replace("\\\\","/")；
+25:异常语义（P2-design §2.3 NB-2②）：run_git 失败或 agate_common 不可导入时 → 输出 git_ok: false
+37:    from agate_common import run_git
+39:    run_git = None
+48:    path = os.path.join(SCRIPT_DIR, name + ".py")
+88:    return path.replace("\\", "/")
+157:        f_abs = os.path.realpath(os.path.join(repo_root_abs, p))
+171:            and not (task_abs and os.path.realpath(os.path.join(dirpath, d)) == task_abs)
+174:            rel_dir = os.path.relpath(dirpath, repo_root_abs).replace("\\", "/")
+181:            path = os.path.join(dirpath, fn)
+196:    p1_file = os.path.join(task_dir, "P1-requirements.md")
+216:    if run_git is None:
+EXIT_CODE: 0

@@ -928,7 +928,7 @@ P1 完成后**必须**派发 requirements-review subagent 评审（与 P2 design
 - BDD 条件是否可二值判定
 - 隐含需求是否按维度覆盖
 - 裁剪跳过的阶段理由是否充分
-- risk_level 是否与实际风险匹配
+- 风险分级/裁剪声明（risk_level / ceremony / phases）是否与实际 diff 证据匹配（ceremony: full → phases 含 P7；thin 四要素 vs 文件规模）
 - 有无掺入解决方案设计
 
 P1 评审不可裁——所有任务都走独立 requirements-review，无例外。微任务的泄压在更高层（agate 适用边界："微任务可不走 agate 全流程"），而非裁剪 P1 评审。

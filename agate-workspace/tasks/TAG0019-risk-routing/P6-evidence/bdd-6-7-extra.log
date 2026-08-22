@@ -1,0 +1,26 @@
+=== BDD-6 frontmatter schema（check-frontmatter.py，stdout 空=通过，非空=拦）===
+--- ceremony: thin (rt_thin_ok) ---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:packages: 缺必填字段 packages
+  - P1-requirements.md:domains: 缺必填字段 domains
+[exit=1] (期望: 应通过)
+--- ceremony: light (rt_invalid_light) ---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:packages: 缺必填字段 packages
+  - P1-requirements.md:domains: 缺必填字段 domains
+  - P1-requirements.md:ceremony: 非法值 'light'（合法值: thin, standard, full）
+[exit=1] (期望: 应拦截)
+--- 无 ceremony 字段 (rt_no_ceremony) ---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:packages: 缺必填字段 packages
+  - P1-requirements.md:domains: 缺必填字段 domains
+[exit=1] (期望: 应通过)
+
+=== BDD-6 字段读取（agate-md-field-get.py ceremony op）===
+thin
+[exit=0] 读得值应=thin
+
+=== BDD-7 算分异常 fail-closed（GIT_DIR=/nonexistent 探针）===
+GATE ROUTING: ceremony: thin 但算分 git 通道不可用（git_ok: false），fail-closed 回退 standard
+[exit=1]
+EXIT_CODE: 0

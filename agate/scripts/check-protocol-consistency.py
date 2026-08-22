@@ -681,6 +681,12 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-platform-assumptions.py",
         "keywords": ["平台假设", "R1", "R2"],
     },
+    {
+        "desc": "ceremony 路由校验（fail-closed：thin 四要素 + 声明 vs 算分单向，git_ok:false 兜底）",
+        "script": "agate/scripts/check-routing.py",
+        "keywords": ["ceremony", "git_ok"],
+        "callers": ["agate/scripts/pre-commit-gate.py"],
+    },
 ]
 
 

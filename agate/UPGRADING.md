@@ -89,6 +89,15 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.58.0 — TAG0019 风险分路由（无破坏性变更）
+
+**本版本无破坏性变更，无需迁移动作。**
+
+- 新增 `ceremony:` 声明字段（P1 frontmatter 可选，thin / standard / full）：缺省 standard（fail-closed——不声明或声明要素不满足一律按 standard 处理，不做薄化）；声明 thin 须四要素 checklist（coupling_checklist 流式 + 跳过风险 + P5/P6 保留）；`ceremony: full` 任务 phases 必须含 P7（P7 不可裁）。
+- 新增 `check-routing.py` gate 挂载（pre-commit 2.7.1）：ceremony 路由校验——声明与算分 tier 一致性（单向 fail-closed）+ thin 四要素 checklist，不声明回退 standard。
+- 新增 `agate-risk-score.py` 新工具：客观信号算分（文件类型 / 敏感路径 / 改动规模 / 影响面），输出 risk_score / tier（thin/standard/full）+ 逐信号证据行；提供可 import 的 `score_task(task_dir)` 与 CLI 薄壳。
+- 已有项目升级：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS 符号链接模式自动跟随，不放心可重跑确认；Windows 复制模式必须重跑）。
+
 ### v0.57.0 — DSH 平台支持（无破坏性变更）
 
 **本版本无破坏性变更，无需迁移动作。**

@@ -34,6 +34,8 @@ agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）�
 | `check-gate.py`（再续） | gate_p2 新增 project_phase:bootstrap → P2-skeleton.md 存在性校验；gate_p4 新增 骨架/CODE-MAP 机制已采用时缺「新增文件核对表」WARNING；gate_p7 新增 CODE-MAP 两层 pairing 硬校验 | |
 | `check-state-transition.py` (P2.3-P2.5) | 状态转移合法性 + 重试上限 | 0=通过, 1=非法转移 |
 | `check-pruning.py` (P2.7-P2.9) | 裁剪条件 + override 校验 | 0=通过, 1=不一致 |
+| `check-routing.py` (2j.1/2.7.1) | ceremony 路由校验（TAG0019 D3，BDD-7/8/9/10）：声明 ceremony 与算分 tier 一致性（单向 fail-closed）+ thin 四要素 checklist（coupling_checklist 流式 / 跳过风险 / P5/P6 保留）+ 不声明回退 standard | 0=通过, 1=拦截（四要素缺一 / 声明薄于算分 / thin 且 git_ok:false），2=P1-requirements.md 缺失（任务目录破损，交人工）|
+| `agate-risk-score.py` | 客观信号算分（TAG0019 D1，BDD-1..5）：四信号分级（文件类型 / 敏感路径 / 改动规模 / 影响面）+ risk_score + tier（thin/standard/full）+ 逐信号证据行；信号来自 `git diff --cached` 客观事实（`agate_common.run_git` 通道，不可伪造）；提供可 import 的 `score_task(task_dir) -> dict` + CLI 薄壳（`agate-risk-score.py TASK_DIR`，输出 risk_score/tier/四信号/domain-markers/git_ok 行）| 0=成功, 1=参数缺失（CLI）|
 | `check-scope-resolved.py` (P2.11) | `[SCOPE+]` 标记追踪 | 0=通过, 1=未标记 |
 | `check-retrospective.py` (P2.12) | 异常模式提醒（不阻塞）；另检测到 DEBT/roadmap 已登记本任务（机制缺口信号，TAG0015）→ 追加提醒 | 0=总是通过 |
 | `agate-feedback.py` | 跨项目反馈提取（AG0021，opt-in，AGATE_FEEDBACK=on）| 手动触发，非 gate/非 pre-commit |
