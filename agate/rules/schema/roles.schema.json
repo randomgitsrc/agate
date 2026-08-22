@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "agate/rules/roles.yaml schema (draft-07 subset)",
+  "type": "object",
+  "required": ["schema_version"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1]
+    },
+    "execution_roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "file"],
+        "properties": {
+          "id": {"type": "string"},
+          "file": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "review_roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "file"],
+        "properties": {
+          "id": {"type": "string"},
+          "file": {"type": "string"},
+          "insert_after": {"type": "string"},
+          "mandatory_for": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "status_mapping": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["conclusion", "status"],
+        "properties": {
+          "conclusion": {"type": "string"},
+          "status": {"type": "string"}
+        }
+      }
+    },
+    "c8_mapping": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["domain", "role", "phase"],
+        "properties": {
+          "domain": {"type": "string"},
+          "risk_level": {"type": "string"},
+          "trigger": {"type": "string"},
+          "role": {"type": "string"},
+          "phase": {"type": "string"}
+        }
+      }
+    },
+    "scripts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["script", "path"],
+        "properties": {
+          "script": {"type": "string"},
+          "path": {"type": "string"}
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

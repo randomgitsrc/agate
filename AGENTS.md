@@ -24,6 +24,7 @@
     │   ├── execution-roles/     # analyst / architect / test-designer / implementer / verifier / vision-analyst / consistency-reviewer
     │   ├── review-roles/        # review / design-review / cso / qa / investigate / protocol-alignment-review / requirements-review / plan-*-review
     │   └── templates/           # active-tasks、dispatch-prompt、dispatch-context、task-files 等模板
+    ├── rules/                   # 可判定规则权威源（TAG0021 结构化层）：phases.yaml / dispatch.yaml / roles.yaml + schema/*.json，与既有规则 md（review-mapping.md、state-transitions.md）并列；S-1~S-6 双向一致性 gate 防 md↔YAML 漂移
     ├── scripts/                 # gate 逻辑：*.py 是产品逻辑（check-*.py / agate-*.py + agate_common.py 公共函数库）；3 个 hook 保留 sh 薄壳（pre-commit-gate.sh 等，经 install-hook.py 软链安装）
     └── tests/                   # pytest 套件（unit/regression/integration/sanity），见 agate/tests/README.md
 ```

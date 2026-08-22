@@ -284,6 +284,9 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 > 本表为角色/评审映射颗粒度；逐条可执行判定命令见 `dispatch-protocol.md`《可判定门槛规范》。
 
+<!-- S1S2-ANCHOR-START：本表是 `check-structure-consistency.py` S-1（YAML→md）/S-2（md→YAML）双向一致性检查的 md 侧锚点（数据面 = `rules/phases.yaml`） -->
+> **S-1/S-2 锚点**：表行三段式 `| P{N} | 名称 | 执行角色 | …`；S-1 比对 phases.yaml 的 id/name/exec_role，S-2 只匹配 `P` 数字/P6.5 前缀行（READY 行与表外行排除）。新增/改名阶段须同步 `rules/phases.yaml`。
+
 | 阶段 | 名称 | 执行角色 | 评审角色 | 门槛（进入下一阶段的条件）|
 |------|------|----------|----------|--------------------------|
 | P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks |
@@ -297,6 +300,8 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | P7 | 一致性检查 | consistency-reviewer（subagent 派发）| gate 自检 + N3⑨ 实质锚点（跨文件引用关键词）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
 | P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.py P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；version 双路径检查（暂存区或最近 5 commit，WARNING）；CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）；`check-pruning.py` 验证裁剪 P8 时有 `internal_only: true` 声明 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
+
+<!-- S1S2-ANCHOR-END：阶段总览表 S-1/S-2 锚点终点（表行增删须同步 `rules/phases.yaml`，否则 check-structure-consistency.py S-1/S-2 报 ERROR） -->
 
 **P1 与 P6 的关系**：P1 用 BDD（Given/When/Then）写下"做完之后应该表现成什么样"，P6 把这些条件逐条实际跑一遍、把结果翻译成人能看懂的行为描述。P1 是"约定"，P6 是"兑现验证"。
 

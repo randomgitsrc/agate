@@ -1,0 +1,50 @@
+# agate/rules/roles.yaml — 角色定义权威源（TAG0021 M0，数据面）
+#
+# 数据边界（P2-design §3.1）：执行角色（id/file）、评审角色（id/file/insert_after/
+# mandatory_for）、status 映射、C8 机械映射表（与 rules/review-mapping.md 同源，一致性
+# 由 S-4 登记表在 M2 起校验）、脚本注册表（scripts 的 path 供 S-6 引用完整性检查）。
+# 角色职责散文保留 assets/execution-roles/*.md 与 assets/review-roles/*.md（文本层不动）。
+
+schema_version: 1
+execution_roles:
+  - {id: analyst, file: assets/execution-roles/analyst.md}
+  - {id: architect, file: assets/execution-roles/architect.md}
+  - {id: test-designer, file: assets/execution-roles/test-designer.md}
+  - {id: implementer, file: assets/execution-roles/implementer.md}
+  - {id: verifier, file: assets/execution-roles/verifier.md}
+  - {id: consistency-reviewer, file: assets/execution-roles/consistency-reviewer.md}
+  - {id: vision-analyst, file: assets/execution-roles/vision-analyst.md}
+review_roles:
+  - {id: review, file: assets/review-roles/review.md, insert_after: P4, mandatory_for: [backend, mcp]}
+  - {id: design-review, file: assets/review-roles/design-review.md, insert_after: P4, mandatory_for: [frontend]}
+  - {id: plan-eng-review, file: assets/review-roles/plan-eng-review.md, insert_after: P2, mandatory_for: [backend, high]}
+  - {id: plan-design-review, file: assets/review-roles/plan-design-review.md, insert_after: P2, mandatory_for: [frontend]}
+  - {id: plan-ceo-review, file: assets/review-roles/plan-ceo-review.md, insert_after: P2, mandatory_for: [need_confirm]}
+  - {id: cso, file: assets/review-roles/cso.md, insert_after: P4, mandatory_for: [security]}
+  - {id: qa, file: assets/review-roles/qa.md, insert_after: P5, mandatory_for: []}
+  - {id: investigate, file: assets/review-roles/investigate.md, insert_after: P7, mandatory_for: []}
+  - {id: protocol-alignment-review, file: assets/review-roles/protocol-alignment-review.md, insert_after: P7, mandatory_for: []}
+  - {id: requirements-review, file: assets/review-roles/requirements-review.md, insert_after: P1, mandatory_for: [all]}
+  - {id: judge, file: assets/review-roles/judge.md, insert_after: P6, mandatory_for: [all]}
+status_mapping:
+  - {conclusion: approved, status: approved}
+  - {conclusion: rejected, status: rejected}
+  - {conclusion: needs-revision, status: needs-revision}
+c8_mapping:
+  - {domain: backend, risk_level: any, role: plan-eng-review, phase: P2}
+  - {domain: backend, risk_level: any, role: review, phase: P4}
+  - {domain: frontend, risk_level: any, role: plan-design-review, phase: P2}
+  - {domain: frontend, risk_level: any, role: design-review, phase: P4}
+  - {domain: mcp, risk_level: any, role: review, phase: P4}
+  - {domain: security, risk_level: any, role: cso, phase: P4}
+  - {domain: any, risk_level: high, role: plan-eng-review, phase: P2}
+  - {domain: any, risk_level: full, role: plan-eng-review, phase: P2}
+  - {domain: any, risk_level: full, role: cso, phase: P4}
+  - {domain: any, trigger: need_confirm, role: plan-ceo-review, phase: P2}
+scripts:
+  - {script: check-gate.py, path: scripts/check-gate.py}
+  - {script: check-pruning.py, path: scripts/check-pruning.py}
+  - {script: agate-read-gate-commands.py, path: scripts/agate-read-gate-commands.py}
+  - {script: agate-md-field-get.py, path: scripts/agate-md-field-get.py}
+  - {script: check-yaml-schema.py, path: scripts/check-yaml-schema.py}
+  - {script: check-structure-consistency.py, path: scripts/check-structure-consistency.py}

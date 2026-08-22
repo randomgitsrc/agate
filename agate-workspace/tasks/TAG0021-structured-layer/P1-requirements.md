@@ -228,6 +228,8 @@ domains: [backend]            # 纯协议/脚本/数据层改造，无 frontend�
 
 `[NO_NEED_CONFIRM]` —— 无待确认项。所有方向性选择均已由设计文档/派发指引/客观判据定案，倾向项以下列 `[SUGGEST]` 形式留审计痕迹（主 Agent 无异议即采纳，均不阻塞推进）：
 
+`[SCOPE_RESOLVED: P4-M0 实现期 SCOPE+——check-protocol-consistency.py 锚点表（SCRIPT_ALIGNMENT_ANCHORS）追加 2 条纯数据登记以满足 tests/integration/test_protocol_alignment_review.py::test_sg_6 既有不变式（scripts/ 全部 check-*.py 须在锚点表登记）；无检查逻辑改动，P2 §1.2 N-1 表述修订为「除锚点数据登记外不改动一致性脚本」]`
+
 - `[SUGGEST: 决策 D1 —— S-1~S-6 独立脚本 + 独立编号空间，不并入 check-protocol-consistency CHECKS；理由：M0 纯增量/可回退优先，合并评估留 M2]`
 - `[SUGGEST: 决策 D2 —— BDD 连续数字编号 + (M0)-(M3) 标题后缀 + 组标题标注阶段；理由：gate 机械正则只认数字编号（scan 3/B2 佐证），前缀式会破坏 P1 gate 锚点与 P6/P6.5 计数]`
 - `[SUGGEST: 决策 D3 —— M1 对账首批 = agate-read-gate-commands / check-pruning / check-gate；理由：B 组 5 处重复正则（DEBT0010 同族）+ A 组消费链最广]`

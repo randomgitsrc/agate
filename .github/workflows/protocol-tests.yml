@@ -128,6 +128,8 @@ jobs:
         run: pip install pyyaml
       - name: Run consistency check (Linux)
         run: python3 agate/scripts/check-protocol-consistency.py
+      - name: Run structure consistency check (TAG0021 M2, Linux)
+        run: python3 agate/scripts/check-structure-consistency.py
 
   gate-backstop:
     name: gate-backstop

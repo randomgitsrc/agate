@@ -23,6 +23,30 @@ try:
 except ImportError:
     run_git = None
 
+try:
+    from agate_common import (
+        body_field_value,
+        fm_field_value,
+        reconcile_enabled,
+        reconcile_field,
+        reconcile_summary,
+        split_frontmatter,
+    )
+except ImportError:
+    # M1 对账辅助缺失 → 对账降级为关闭（对账是叠加层，不影响原判定语义）
+    def reconcile_enabled():
+        return False
+
+    def reconcile_field(_op, _field, _grep_val, _structured_val):
+        return True
+
+    def reconcile_summary():
+        return None
+
+    split_frontmatter = lambda text: (None, text)
+    body_field_value = lambda body, field: ""
+    fm_field_value = lambda fm, field: ""
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MD_FIELD_GET = os.path.join(SCRIPT_DIR, "agate-md-field-get.py")
 
@@ -81,6 +105,29 @@ def _staged_source_count(task_dir):
     return count
 
 
+def _reconcile_p1_fields(p1_text):
+    """M1 对账（P2-design §3.4，BDD-6/7）：frontmatter（结构化）↔ 正文（grep）双读对账。
+
+    risk_level/phases 字段：正文声明值 vs frontmatter 声明值不一致 → stderr
+    `RECONCILE WARNING` + 计数汇总（可重定向进日志）；正文无该字段（仅 frontmatter 声明）
+    或两值归一化等价（list 内联/块式 vs 空格连接）→ 不告警（BDD-8 归一化口径）。
+    对账不改变本脚本退出码语义（原判定 0/1/2 不变）；任何异常 fail-open。
+    """
+    if not reconcile_enabled():
+        return
+    try:
+        fm, body = split_frontmatter(p1_text)
+        body_risk = body_field_value(body, "risk_level")
+        if body_risk:
+            reconcile_field("check-pruning", "risk_level", body_risk, fm_field_value(fm, "risk_level"))
+        body_phases = body_field_value(body, "phases")
+        if body_phases:
+            reconcile_field("check-pruning", "phases", body_phases, fm_field_value(fm, "phases"))
+        reconcile_summary()
+    except Exception:  # noqa: BLE001  对账失败不阻断原判定（fail-open，BDD-6 二值语义）
+        pass
+
+
 def main():
     if len(sys.argv) < 2:
         sys.stderr.write("用法: check-pruning.py TASK_DIR\n")
@@ -95,6 +142,8 @@ def main():
     p1_text = _read_p1(p1_file)
     has_override = len(re.findall(r"^override:", p1_text, re.MULTILINE))
     phases = phases_declared.split()
+
+    _reconcile_p1_fields(p1_text)
 
     errors = []
 

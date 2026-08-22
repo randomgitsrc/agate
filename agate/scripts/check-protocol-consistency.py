@@ -699,6 +699,16 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "keywords": ["prev_hash", "GENESIS"],
         "callers": ["agate/scripts/check-gate.py", "agate/scripts/pre-commit-gate.py", "agate/scripts/ci-gate-backstop.py"],
     },
+    {
+        "desc": "rules/*.yaml 对 schema 校验（TAG0021 结构化层 M0，S-5 校验器）",
+        "script": "agate/scripts/check-yaml-schema.py",
+        "keywords": ["draft-07", "rules/schema"],
+    },
+    {
+        "desc": "协议结构一致性 S-1~S-6 双向 gate（TAG0021 结构化层 M0，YAML↔md↔cards↔scripts↔schema↔引用完整性）",
+        "script": "agate/scripts/check-structure-consistency.py",
+        "keywords": ["S-1", "check-yaml-schema.py"],
+    },
 ]
 
 

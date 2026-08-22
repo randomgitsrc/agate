@@ -72,6 +72,7 @@ See [`agate/platform-notes.md`](agate/platform-notes.md) for platform-specific a
 |-----------------|------|
 | Integrate agate into a project for the first time | [`agate/SETUP.md`](agate/SETUP.md) |
 | Understand the P0-P8 phase workflow and pruning rules | [`agate/WORKFLOW.md`](agate/WORKFLOW.md) |
+| Look up cross-phase rules (retry caps / state transitions / C8 review mapping) | `agate/rules/`（phases.yaml / dispatch.yaml / roles.yaml + schema/，与既有规则 md 并列） |
 | Read the protocol body entry point (for agents and deep users) | [`agate/AGENTS.md`](agate/AGENTS.md) |
 | Adapt agate to your platform (OpenCode / Claude Code / Windows) | [`agate/platform-notes.md`](agate/platform-notes.md) |
 | Understand known structural limitations | [`agate/LIMITATIONS.md`](agate/LIMITATIONS.md) |
