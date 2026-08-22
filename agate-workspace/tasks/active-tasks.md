@@ -10,7 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0020 | 独立 Judge 机制（RM-AG0032）：P6.5 验收独立裁判（judge 角色 fresh context 信息隔离 + 三层防造假 + append-only 事件账本 + 三档预算）；TAG0018 实证 LLM 评审≈0 净收益为立项锚 | 🔄 | P2 | 高 | TAG0019 | 2026-08-21 | 2026-08-22 |
+| TAG0020 | 独立 Judge 机制（RM-AG0032）：P6.5 验收独立裁判（judge 角色 fresh context 信息隔离 + 三层防造假 + append-only 事件账本 + 三档预算）；TAG0018 实证 LLM 评审≈0 净收益为立项锚 | 🔄 | P3 | 高 | TAG0019 | 2026-08-21 | 2026-08-22 |
 | TAG0019 | 风险分路由（RM-AG0031）：agate-risk-score.py 客观信号算分 + ceremony 档位（thin/standard/full）+ fail-closed 声明 checklist + requirements-review 审声明；TAG0018 实证成本账（LLM 评审≈0 净收益）为验收锚 | ✅✅ | READY | 高 | — | 2026-08-21 | 2026-08-22 |
 
 ### 待开始
