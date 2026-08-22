@@ -158,3 +158,9 @@
 - 次要项：I-1 绝对路径白名单 exit 0 + 绝对路径黑名单仍 exit 1（无放水）；I-2 括号描述不误取（exit 0）；I-3/4/5 取舍记录合理
 - 测试：63（judge/events/common）+ 165（check_gate 全量）+ 55（pre_commit_hook integration）；consistency 0 ERROR/318 WARNING；count-tests 1168 无漂移
 - 复评结论：approved（无 CRITICAL/BLOCKER；3 条 INFORMATIONAL 残留 R-1/R-2/R-3 见 P4-review.md PASS 2）
+
+## P5 回修记录（2026-08-22，test-designer 修复测试文件）
+
+- **P5 真失败 1 条**：`test_bdd_5_all_test_py_text_io_explicit_encoding` 命中 TAG0020 新增 `agate/tests/unit/test_agate_common.py` 的 `-c` 片段内 4 处 `open()` 缺 `encoding=`（L75/86/98/100，BDD-5 守卫：非注释行 `open(` 无 `encoding=` 即违规，仅 rb/wb 豁免）。
+- **修复**：4 处 open() 全部补 `encoding='utf-8'`（含 `'w'` 写模式）；只改测试文件 test_agate_common.py，未触碰被测模块/协议文档（[PROD_NOT_TOUCHED]）。
+- **验证**：`test_bdd_5_all_test_py_text_io_explicit_encoding` 转绿（守卫扫描全 tests/**/*.py 零命中）；`pytest test_agate_common.py` 17/17 绿（12 既有 + 5 新增——append_event/read_judge_verdict 已由 P4 实现落地，断言后真实转绿）；无回归。
