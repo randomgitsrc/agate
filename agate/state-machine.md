@@ -71,6 +71,11 @@ status: approved        # ← 门槛判定字段
 ```
 状态集合：{ P0, P1, P2, P3, P4, P5, P6, P7, P8, READY, DONE, PAUSED }
 （P0 是主 Agent 亲自执行的简报阶段，不派发 subagent，完成后直接进入 P1）
+（P6.5 是挂载于 P6→P7 转移上的**强门槛子阶段**，不是独立 phase 值：.state.yaml 的
+  phase 保持 P6 直至 P7，避免扩展 valid_phases / 重试表 / 卡片枚举的连锁改动面；
+  P6.5 的推进判定 = check-gate.py P6.5（=`check-judge-verdict.py` + `check-events.py`
+  双脚本 exit 0），judge 轮次预算由 .state.yaml `judge.rounds` + 账本
+  `judge_verdict` 事件计数（≤2）承载，不用 retries.P6.5 键）
 
 转移规则（主 Agent 亲自跑命令验证，不靠读 subagent 产出文件字段）：
 注意：所有"文件存在"判定 = 文件存在 AND 含合法 Header AND 有实质内容
@@ -131,7 +136,7 @@ P5 --[failed>0 && retry<MAX]--> P4 (retry+1)
 P5 --[有 PROD_TOUCHED]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 P5 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P6 --[scripts/check-gate.py P6 exit 2（FAIL=0/证据非空）AND scripts/check-p6-provenance.py exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻）]--> P7
+P6 --[scripts/check-gate.py P6 exit 2（FAIL=0/证据非空）AND scripts/check-p6-provenance.py exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行，P1 `#### BDD-NN` 标题数与 P6 结果数不符时 exit 1 硬阻）]--> P6.5（judge 复核）
      ⚠️ self-authored（降级缓解：provenance 审计，根治待 Phase 3 平台支持独立 git author）
      （验收 = 把 P1 的 BDD 条件逐条实际跑一遍，结果翻译成人能看懂的行为描述）
      （涉及显示/交互的 BDD 条件：必须 Playwright 实跑 + 截图佐证，不接受"应该能工作"）
@@ -142,6 +147,14 @@ P6 --[scripts/check-gate.py P6 exit 2（FAIL=0/证据非空）AND scripts/check-
      （"⚠️ 调整"等中间态不合法——T019 教训：BDD-4 标"⚠️ 调整"就推进到 P7）
 P6 --[任何 BDD 标 FAIL && retry<MAX]--> P4 (retry+1)（行为不符 → 回实现）
 P6 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
+
+P6.5 --[judge 启用任务：存在 P6.5-judge-verdict.md AND scripts/check-judge-verdict.py exit 0（Header 字段完备 + criteria_total==P1 BDD 数 + 结论编号集零挑验 + 证据交叉核对 + 信息隔离白名单 + 预算交叉）AND scripts/check-events.py exit 0（事件账本哈希链 + ts 单调 + judge_verdict 计数 ≤2）]--> P7（TAG0020：judge 以 fresh context 逐条重验所有 BDD，只信证据与 git log，`status: passed` 才放行）
+     （P6.5 是挂载于 P6→P7 的强门槛子阶段，非独立 phase 值——.state.yaml phase 保持 P6 直至 P7；
+       commit-time 由 pre-commit-gate 2i.1 注入硬边界（judge.enabled && verdict 存在 → 双脚本任一
+       exit 1 → 阻断 commit）；CI 由 ci-gate-backstop 兜底重跑；历史任务（.state.yaml 无
+       judge.enabled: true）→ check-gate.py P6.5 早退 0，全链跳过（BDD-2））
+P6.5 --[status: needs-revision / rejected]--> P6 重验（judge 复核轮次 +1；
+     judge.rounds 递增 + 账本 judge_verdict 事件计数 ≤2 机械兜底；超限 → 人工接管）
 
 P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$' → =0 AND 同理 [DEVIATION-CRITICAL] → =0 AND (grep -cE '\[DESIGN_GAP:' P7-consistency.md) == (grep -cE '\[DESIGN_GAP_REVIEWED' P7-consistency.md)（v0.6：P4 implementer 自主决策偏差声明，主 Agent 审查后追加 REVIEWED 配对标记，未配对 → gate 不通过；声明行如 `[BLOCKER]: 0 条` 被排除）]--> P8
     （已知限制：P7 定性分析不可全自动验证。主 Agent 可抽查 1-2 条一致性声明，
@@ -398,6 +411,12 @@ function 执行一步(task_id):
 | P7 | 2 | 一致性检查，少轮次 |
 | P8 | 2 | 发布准备，少轮次 |
 
+**P6.5 judge 复核轮次预算（≤2 轮，TAG0020）**：judge 轮次是**复核预算**而非状态机重试，**不新增
+`| P6.5 | N |` 表行、不使用 `retries.P6.5` 键**（保持 CHECK 12 重试表锚点与
+`agate-state-yaml-check.py` 的 `^P\d+$` retries key 校验零漂移）。机械兜底 = 事件账本
+`judge_verdict` 事件计数 ≤2（`check-events.py` 审计）+ `.state.yaml` `judge.rounds` 信息字段；
+P6.5(needs-revision/rejected) 弹回 P6 重验计入该预算，超限 → 人工接管（BDD-8）。
+
 重试记录按阶段独立存储于 `.state.yaml` 的 `retries` 字段，不因进入新阶段而清零。
 
 ---
@@ -417,6 +436,16 @@ status: in_progress
 # 不重跑"）。字段可选——缺失时 check-p6-provenance.py 审计 7 回退为强制重跑，不报错，
 # 存量任务（无此字段）天然兼容。
 p5_pass_commit: <40 位 git 提交哈希，可选字段>
+
+# ── judge 机制字段（TAG0020 P6.5；历史任务无 judge 块 → P6.5 门槛全链跳过，BDD-2）──
+# 未知顶层键不触发 agate-state-yaml-check 告警（其只校验 task_id/phase/status/retries）
+judge:
+  enabled: true            # 机制启用标记（P1 初始化时主 Agent 写入；缺失/false = 历史任务）
+  rounds: 1                # 已用复核轮次（主 Agent 维护；机械兜底 = 账本 judge_verdict 事件计数 ≤2）
+  last_verdict: passed     # 上次 verdict status（信息用途，passed/rejected/needs-revision）
+  partial: false           # 是否 partial 降级（预算超限诚实降级标记）
+  judge_token_budget: 100000  # 可选：token 预算覆盖（默认 100k token）
+  # 可选（高风险任务人工指定）：double_judge: true —— 文档级可选，本轮无机器校验
 
 # ── 重试记录（T016 教训：整数计数无法区分"原样重试"和"调整策略后重试"）──
 retries:
@@ -450,6 +479,10 @@ env_state:
 - `p5_pass_commit`（可选）：P5 gate 通过、`git add` 之前写入的父提交哈希（见
   `phase-cards/P5-verification.md`「如果是首次进入本阶段」）。缺失 → 回退语义为"无法声明
   复用，强制重跑"，不视为错误（存量任务兼容，TAG0016 BDD-12）
+- `judge`（可选，TAG0020）：P6.5 独立 Judge 机制字段块。`enabled: true` ⇒ 该任务启用
+  judge 门槛（P6→P7 须 check-gate.py P6.5 通过）；缺失/`false` = 历史任务，P6.5 全链跳过。
+  `rounds` = 已用复核轮次（弹回 P6 重验时递增）；`last_verdict` / `partial` 为信息与降级
+  标记；`judge_token_budget` 覆盖默认 token 预算（100k）。机械兜底见「重试上限」节 prose。
 - `retries[Pn]`：列表，每次重试追加一条记录，`len(retries[Pn])` 即重试次数
 - `retry_count`：派生字段，从 `retries` 计算，保留是为了 active-tasks.md 看板兼容
 - `failure_mode`：失败模式（`quality` / `empty_return` / `timeout`），区分"产出了但不够好"和"根本没产出"

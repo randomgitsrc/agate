@@ -245,3 +245,44 @@ def test_bdd_8_judge_verdict_count_two_exit_0(task_dir, agate_scripts, python_ex
 
     result = _run_events(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 0
+
+
+def test_bdd_8_judge_verdict_same_hash_dedupe_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    """CRITICAL-1 回归：3 条 judge_verdict 事件仅 2 个不同 verdict_hash（同一 verdict 被
+    多处 gate 执行重跑）→ 去重后轮次=2 → exit 0（P6.5→P7 正常流程不再自锁）。"""
+    td = task_dir()
+    same_hash = "a" * 64
+    _write_ledger(
+        td,
+        [
+            {"ts": "2026-08-22T10:00:01.000001Z", "event": "judge_verdict",
+             "phase": "P6.5", "verdict": "passed", "criteria_total": 10,
+             "criteria_passed": 10, "partial": False, "verdict_hash": same_hash},
+            {"ts": "2026-08-22T10:00:02.000001Z", "event": "judge_verdict",
+             "phase": "P6.5", "verdict": "passed", "criteria_total": 10,
+             "criteria_passed": 10, "partial": False, "verdict_hash": same_hash},
+            {"ts": "2026-08-22T10:00:03.000001Z", "event": "judge_verdict",
+             "phase": "P6.5", "verdict": "passed", "criteria_total": 10,
+             "criteria_passed": 10, "partial": False, "verdict_hash": "b" * 64},
+        ],
+    )
+
+    result = _run_events(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_bdd_8_judge_verdict_three_distinct_hashes_exit_1(task_dir, agate_scripts, python_exe, run_cli):
+    """CRITICAL-1 边界：3 条 judge_verdict 事件 3 个不同 verdict_hash（3 次真实复核）→ exit 1。"""
+    td = task_dir()
+    _write_ledger(
+        td,
+        [
+            {"ts": f"2026-08-22T10:00:0{i}.000001Z", "event": "judge_verdict",
+             "phase": "P6.5", "verdict": "needs-revision", "criteria_total": 10,
+             "criteria_passed": 9, "partial": True, "verdict_hash": chr(96 + i) * 64}
+            for i in range(1, 4)
+        ],
+    )
+
+    result = _run_events(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 1

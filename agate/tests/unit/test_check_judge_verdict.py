@@ -509,3 +509,57 @@ def test_bdd_9_passed_but_evidence_missing_exit_1(task_dir, agate_scripts, pytho
 
     result = _run_judge(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 1
+
+
+def test_bdd_8_rerun_same_verdict_round_not_increment(task_dir, agate_scripts, python_exe, run_cli):
+    """CRITICAL-1 生命周期回归：同一合规 verdict 连续 2 次跑 check-judge-verdict
+    （等价"手动 check-gate P6.5 + verdict commit"两处执行点）→ 账本 2 条 judge_verdict
+    事件但 verdict_hash 相同 → 事件 hash == sha256(verdict 文件内容)，check-events 去重后
+    轮次=1 → exit 0（正常 P6→P7 流程不再自锁；真实复核才 +1 轮）。"""
+    td = task_dir()
+    _write_judge_fixture(td)
+
+    r1 = _run_judge(agate_scripts, python_exe, run_cli, td)
+    assert r1.returncode == 0
+    r2 = _run_judge(agate_scripts, python_exe, run_cli, td)
+    assert r2.returncode == 0
+
+    verdict_text = (td / "P6.5-judge-verdict.md").read_text(encoding="utf-8")
+    expected_hash = hashlib.sha256(verdict_text.encode("utf-8")).hexdigest()
+    ledger_events = []
+    for line in (td / "gate-events.jsonl").read_text(encoding="utf-8").splitlines():
+        ev = json.loads(line)
+        if ev.get("event") == "judge_verdict":
+            ledger_events.append(ev)
+    assert len(ledger_events) == 2
+    assert ledger_events[0]["verdict_hash"] == expected_hash == ledger_events[1]["verdict_hash"]
+
+    # check-events 按 verdict_hash 去重 → 轮次=1，不触发 ≤2 预算自锁
+    events_result = run_cli(python_exe, str(agate_scripts / "check-events.py"), str(td))
+    assert events_result.returncode == 0
+
+
+def test_bdd_4_whitelist_abs_path_not_flagged_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    """I-1 回归：『输入文件』节以绝对路径引用白名单文件（仓库路径书写惯例）→
+    basename 归一后不误报 → exit 0。"""
+    td = task_dir()
+    abs_p1 = str(td / "P1-requirements.md")
+    _write_judge_fixture(td, context_kwargs={"inputs": [abs_p1, "P6-evidence/"]})
+
+    result = _run_judge(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0
+
+
+def test_bdd_6_desc_parens_not_misparsed_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+    """I-2 回归：结论描述含任意括号（如 "(as discussed earlier)"）但证据引用括号为
+    明确文件路径形态 → 引用提取收敛到路径形态，不误取描述 token → exit 0。"""
+    td = task_dir()
+    _write_judge_fixture(
+        td,
+        verdict_kwargs={
+            "conclusions": ["- PASS BDD-1: verified (as discussed earlier) (e1.json)"],
+        },
+    )
+
+    result = _run_judge(agate_scripts, python_exe, run_cli, td)
+    assert result.returncode == 0

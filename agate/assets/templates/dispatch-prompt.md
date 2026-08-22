@@ -199,6 +199,26 @@ P6 verifier 交付的验证脚本（Playwright / shell / 测试框架）应由�
 仅输出 INFO 提示"日志缺少标准 EXIT_CODE 尾行，无法自动核验一致性"。
 ```
 
+### Judge 派发追加（P6.5，强制所有任务）
+
+```
+## P6.5 Judge 信息隔离（强制）
+你的输入只传路径，且只允许白名单：P1-requirements.md / P2-design.md（仅验收相关节）/
+P6-evidence/ 目录 / .state.yaml / gate-events.jsonl（另授 git log 查询权）。
+禁止输入（黑名单，禁含于 dispatch-context 也禁读）：P6-acceptance.md、P6|P5|P4-dispatch-context-*.md、
+P4-implementation.md、P4-review.md、P5-test-results/——verifier/implementer 的自述与派发上下文一律不读。
+## 三档预算（超限诚实降级）
+轮次 ≤2 / token 100k（judge_token_budget 可覆盖）/ 时间 30min。任一预算耗尽 → 立即停止，
+按已验条目落盘 verdict，必须 status: needs-revision + partial: true，禁止 status: passed 静默放行。
+## 认知约束（只信证据与 git log）
+逐条重验所有 BDD（含 P6 已判 PASS 项，零挑验）；每条结论必须引用 P6-evidence/ 下真实存在且非空的
+证据文件（verdict_evidence 清单内）；禁止"看起来没问题"式结论；git log 可查证执行留痕。
+## verdict 产出格式
+{AGATE_WORKSPACE}/tasks/{Txxx}/P6.5-judge-verdict.md：Header 含 status（passed/rejected/needs-revision）+
+criteria_total + criteria_passed + verdict_evidence [JSON 列表]（+ partial 可选）；正文每条 BDD 一行
+`- (PASS|FAIL|NEEDS-REVISION) BDD-NN: 描述 (证据路径)`；criteria_total 必须等于 P1 #### BDD-NN: 标题数。
+```
+
 ### P4 回退派发追加（P5/P6 失败回退时使用）
 
 ```
