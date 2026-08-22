@@ -17,6 +17,7 @@
 agate-state-get.py）。Python 3.8+（禁 match / str.removeprefix）。
 """
 
+import hashlib
 import json
 import os
 import re
@@ -296,6 +297,92 @@ def read_state_task_id(state_file):
     """读 .state.yaml 的 task_id；文件不存在/解析失败返回 ""。"""
     data = _read_state(state_file)
     return data.get("task_id", "") if data else ""
+
+
+# ---------- 事件账本（TAG0020：P6.5 独立 Judge 机制） ----------
+# append-only 哈希链账本 gate-events.jsonl（P2-design §3.2）：每行 JSON 事件，
+# prev_hash = sha256(上一行原始文本 UTF-8).hexdigest()，首行 = GENESIS_HASH。
+# append_event 是唯一写路径（hook/gate 统一走它）；check-events.py 审计链完整性。
+GENESIS_HASH = hashlib.sha256(b"").hexdigest()
+
+
+def append_event(task_dir, event):
+    """向 {task_dir}/gate-events.jsonl 追加一条事件（append-only 哈希链账本）。
+
+    - 自动补 ts（UTC ISO8601 微秒）与 prev_hash：首行 = GENESIS_HASH，
+      后续行 = sha256(上一行原始文本 UTF-8).hexdigest()（行间哈希链，防改写）
+    - ts 单调兜底：尾行 ts 晚于当前时刻时沿用尾行 ts（同格式字符串比较，
+      保证单调不减；check-events 判定用 <= 放宽微秒精度，P2 R7）
+    - 文件不存在/为空 → 直接写首事件（prev_hash = GENESIS_HASH）
+    - 失败（IOError 等）→ stderr WARNING 不抛：gate 主判定不依赖写账本成功，
+      账本审计是辅助防线（P2-design §3.2；judge_verdict 事件写入失败也仅告警）
+    """
+    try:
+        path = os.path.join(task_dir, "gate-events.jsonl")
+        prev_hash = GENESIS_HASH
+        tail_ts = None
+        if os.path.isfile(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    raw_lines = f.read().splitlines()
+            except OSError:
+                raw_lines = []
+            if raw_lines:
+                # 链始终接续到文件尾行原始文本（即使尾行 JSON 损坏，防改写链不破）
+                prev_hash = hashlib.sha256(raw_lines[-1].encode("utf-8")).hexdigest()
+                try:
+                    tail_ts = json.loads(raw_lines[-1]).get("ts")
+                except Exception:
+                    tail_ts = None
+        now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        ts = now_ts
+        if tail_ts and tail_ts > now_ts:
+            ts = tail_ts
+        row = dict(event)
+        row.pop("prev_hash", None)
+        row["ts"] = ts
+        row["prev_hash"] = prev_hash
+        line = json.dumps(row, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except Exception as exc:  # noqa: BLE001 —— 写账本失败不阻断 gate 主判定
+        sys.stderr.write(
+            f"agate_common: append_event WARNING: 账本事件写入失败（不阻断主判定）: {exc}\n"
+        )
+
+
+def read_judge_verdict(task_dir):
+    """解析 {task_dir}/P6.5-judge-verdict.md 的 frontmatter（--- 块）。
+
+    返回 dict {status, criteria_total, criteria_passed, verdict_evidence, partial}；
+    文件缺失 / 无 frontmatter / 解析失败 → None（调用方按缺失处理，fail-closed）。
+    partial 为可选降级标记字段：缺省 False（BDD-5 必需字段仅
+    status/criteria_total/criteria_passed/verdict_evidence 四项）。
+    """
+    path = os.path.join(task_dir, "P6.5-judge-verdict.md")
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return None
+    m = re.match(r"^---\s*\n(.*?)\n---", text, re.DOTALL)
+    if not m:
+        return None
+    try:
+        data = yaml.safe_load(m.group(1))
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    return {
+        "status": data.get("status"),
+        "criteria_total": data.get("criteria_total"),
+        "criteria_passed": data.get("criteria_passed"),
+        "verdict_evidence": data.get("verdict_evidence"),
+        "partial": bool(data.get("partial", False)),
+    }
 
 
 def read_vision_tri_state(p1_file):

@@ -32,6 +32,8 @@ T026 事故：主 Agent 编造 11/16 条 BDD 验收结果（不跑验证脚本�
 
 **现状**：部分缓解，未根治。已落地的应对分两类：(1) 针对具体已知风险的强制客观信号（如 `[PROD_TOUCHED]` 标记，二值格式：触发写 `[PROD_TOUCHED] {描述}`，未触发写 `[PROD_NOT_TOUCHED]`，消除"无 PROD_TOUCHED"的模糊表述）；(2) 结构性绑定（如状态标记必须绑定 gate 验证、跨阶段回退 phase 跳变检测）；(3) self-authored gate 的证据存在性检查（P6-evidence/ 非空）。前者能拦住已知风险模式，后者不依赖主 Agent 主动遵守。但下一个没被预见到的风险模式，仍然完全依赖主 Agent 当时的判断力。"确定性脚本扫描历史生成异常模式报告"方向曾被认为是值得探索的，但经分析发现其数据源（.state.yaml / commit message）全部由主 Agent 自己写，数据源与监督对象同源，前提未解决，归类为开放问题（详见 `docs/design-notes/main-agent-oversight.md`）。
 
+**P6.5 独立 Judge 缓解链（TAG0020 已落地）**：自写 gate（P6/P7）的作者与评判者同信任链是局限 3 的核心弱点——机制层补一层**独立第第三方复核**：judge 在 P6 之后以 fresh context 逐条重验所有 BDD（含已 PASS 项，零挑验），只信 `P6-evidence/` 证据与 git log，信息隔离白名单（dispatch-context 禁含 verifier/implementer 自述）由 `check-judge-verdict.py` 机械校验；三条防线（信息隔离 / 证据交叉核对与 BDD 计数对照 / append-only 事件账本 `gate-events.jsonl` 哈希链审计 `check-events.py`）把"作者与裁判同一人"的造假成本进一步抬高；judge 的 LLM 结论仍不单独放行——**exit code（check-judge-verdict + check-events 双脚本）才是门槛**（BDD-9 哲学红线）。这仍是缓解（提高成本 + 留痕审计）而非硬保证——judge 自身的结论仍可被其实现者左右，机械核对面不覆盖 verdict 正文语义，局限 3 的"无法根治"结论不变。
+
 **方向性错配**：agate 的防御机器（五步校验、gate 亲跑、上下文隔离）主要布置在 subagent 一侧——而 subagent 是廉价的、可无限重派的、失败即被打回的一方。主 Agent 一侧——握有全部最终裁量权（裁剪、gate 算不算过、SCOPE+ 范围）且被实证是主要事故源（T005/T006/T016/T019 根因全是主 Agent）——几乎没有任何外部约束。这个错配是"纯文档协议 + 单编排者"这条路线的结构性产物：只要主 Agent 是唯一最终裁判且它写的东西是唯一事实源，就不可能从内部约束它。承认这一点，比继续往 subagent 侧加检查更重要。
 
 **降级缓解（v2 客观行为审计，已实现）**：
