@@ -1,0 +1,2 @@
+FAILED agate/tests/unit/test_check_routing.py::test_bdd_7_thin_score_anomaly_git_ok_false_exit_1
+FAILED agate/tests/unit/test_env_adapt_docs.py::test_bdd_25_consistency_zero_error

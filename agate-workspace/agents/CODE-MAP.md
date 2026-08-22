@@ -16,9 +16,10 @@ agate 协议本体划分为五大模块：
 - **execution-roles**（`agate/assets/execution-roles/`）：7 个执行角色（analyst / architect /
   test-designer / implementer / verifier / consistency-reviewer / vision-analyst），定义
   P1-P8 各阶段"谁来做、怎么做"的行为规范，供 subagent 派发时读取。
-- **review-roles**（`agate/assets/review-roles/`）：10 个评审角色（review / plan-ceo-review /
+- **review-roles**（`agate/assets/review-roles/`）：11 个评审角色（review / plan-ceo-review /
   plan-eng-review / design-review / plan-design-review / qa / investigate / cso /
-  protocol-alignment-review / requirements-review），供 C8 机械映射按 domain/risk_level 派发。
+  protocol-alignment-review / requirements-review / judge），供 C8 机械映射按 domain/risk_level
+  派发（judge 除外：P6.5 验收独立裁判，**所有任务强制**，不进 C8 表，见 role-system.md）。
 - **scripts**（`agate/scripts/`）：gate / 一致性 / 状态三大脚本家族——
   gate 族（`check-gate.py`、`pre-commit-gate.py`、`pre-push-gate.py` 等）判定各阶段能否推进；
   一致性族（`check-protocol-consistency.py`、`check-p6-provenance.py`、`check-p6-evidence.py`
@@ -27,6 +28,7 @@ agate 协议本体划分为五大模块：
   `.state.yaml` 状态转移。三族之外还有编排辅助脚本（`agate-inject-card.py`、
   `agate-render-dispatch-prompt.py`、`agate-next-card.py`、`agate_common.py` 公共函数库等）。
   ceremony 路由族（新增 TAG0019）：agate-risk-score.py（客观信号算分）、check-routing.py（ceremony 声明校验，pre-commit 2j.1 挂载）。
+  judge 机制族（新增 TAG0020）：check-judge-verdict.py（judge verdict 门槛校验，P6.5 强门槛）、check-events.py（gate-events.jsonl 事件账本审计，append-only 哈希链）。
 - **templates**（`agate/assets/templates/`）：模板文件（`dispatch-prompt.md`、
   `dispatch-context.md`、`task-files.md`、`code-map-template.md`、`skeleton-template.md`、
   `tech-debt-template.md`、`retrospective-template.md`、`roadmap-template.md`、

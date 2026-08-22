@@ -45,6 +45,8 @@ _DRIFT_SCRIPTS = [
     "check-pruning.py",
     "agate-risk-score.py",
     "check-routing.py",
+    "check-judge-verdict.py",
+    "check-events.py",
 ]
 
 

@@ -48,6 +48,7 @@ agate 的角色体系把角色分成两层：
 | QA 工程师 | qa.md | P5 | 功能跑通、找 bug |
 | 调试专家 | investigate.md | 任意（出 bug 时）| 根因 |
 | 安全官 | cso.md | P4 后（涉敏感）| 安全审计 |
+| 验收独立裁判 | judge.md | P6.5（**所有任务强制**）| fresh context 逐条重验全部 BDD（含已 PASS 项，零挑验），只信证据与 git log，防 self-authored gate 锚定（TAG0020）|
 
 ### 评审角色机械映射（C8 — 不靠主 Agent 临场判断）
 
@@ -114,6 +115,8 @@ subagent 读取角色文件，按角色定义的方式工作。
 | 需补充 / needs revision | `needs-revision`（计入重试）|
 
 例如 plan-ceo-review 的结论是"转向"，映射为 `status: rejected`；plan-eng-review 的"approved"直接就是 `status: approved`。无论用哪个评审角色做门槛，主 Agent 都只读 `status` 字段判定，不需要理解各角色的具体结论语义。
+
+**judge（P6.5）verdict 三值复用同一映射**（TAG0020）：`passed → approved`（P6→P7 放行）/ `needs-revision → needs-revision`（弹回 P6 重验，judge 轮次 +1）/ `rejected → rejected`（弹回 P6 或交人工）。judge 是**所有任务强制**的常态门槛评审（插入点固定为 P6 之后），**不进 C8 机械映射表**——C8 按 domain/risk 触发，与"强制所有任务"语义不同。
 
 **非门槛评审**（如纯参考的方向建议）不强制 status，但也不参与门槛判定。
 

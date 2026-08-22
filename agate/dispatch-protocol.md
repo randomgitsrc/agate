@@ -382,6 +382,33 @@ role: {角色名，如 analyst / requirements-review / implementer}
 - 主 Agent 不读产出文件全文——约束的信息来源是 P0-brief + gate 诊断 + subagent 摘要 + P2 结构化字段 grep，不是主 Agent 读完 P1-requirements.md 后的提炼
 - P2 结构化字段的 grep 提取是**读特定字段**，不是读全文——`grep -E '^(packages|domains|ui_affected|gate_commands|files_to_read):' P2-design.md`
 
+### Judge 信息隔离（P6.5，TAG0020）
+
+P6.5 judge 派发以 **fresh context** 独立复核（防"评审者与作者同信任链"的锚定），dispatch-context 是信息隔离的唯一载体，由 `check-judge-verdict.py` 机械校验（任一违规 → exit 1，P6.5 门槛不通过）。
+
+**文件名**：`P6.5-dispatch-context-judge.md`（沿用 `P{N}-dispatch-context-{role}.md` 命名；2p dispatch-context glob 按 phase 匹配不覆盖 `P6.5-*`，卡片 hash 校验不强制——内容合规由 check-judge-verdict 白名单扫描承担）。
+
+**白名单输入**（『输入文件』『上游关联』两节只允许）：`P1-requirements.md` / `P2-design.md`（仅验收相关节）/ `P6-evidence/` 目录 / `.state.yaml` / `gate-events.jsonl` / judge 自身产出 `P6.5-judge-verdict.md`；另授 git log 查询权（非路径）。
+
+**黑名单禁注入**（两节禁含，大小写不敏感；与 check-judge-verdict.py 实现同源）：
+- `P6-acceptance.md`（verifier 自述，防锚定）
+- `P6-dispatch-context-*.md` / `P5-dispatch-context-*.md` / `P4-dispatch-context-*.md`（实现者/验收者派发上下文）
+- `P4-implementation.md` / `P4-review.md` / `P5-test-results/`（实现/评审/技术验证产出）
+
+**AGATE_CARD 排除**：dispatch-context 仍含 AGATE_CARD 注入块，白名单扫描排除该块 + frontmatter（复用 check-p6-provenance 审计 2 的双排除 L318-355），卡片内说明文本不误报。
+
+**上游关联注入面防泄漏**：`agate-extract-context.py` 在上游关联节的结构化提取注入在 **P6.5 禁用**，或净化为仅注入白名单路径（不含 verifier 产出结论叙述）；主 Agent 派发时同样不得把黑名单路径 / 验收结论传入。全文行首 `- PASS|FAIL` 验收结论预判（继承审计 2 语义）→ 违规。
+
+**P6.5 派发流程**：
+1. P6 commit 完成（phase=P6，P6-acceptance.md + P6-evidence/ 落库）后，主 Agent 写 `P6.5-dispatch-context-judge.md`（白名单输入 + AGATE_CARD 注入 + 派发后冻结）
+2. 派发 judge（方法 B：general subagent + 角色文件注入，见 role-system.md「自定义角色怎么用」）
+3. judge 产出 `P6.5-judge-verdict.md`（Header status/criteria_total/criteria_passed/verdict_evidence[/partial] + 逐 BDD 结论）
+4. 主 Agent 跑 `check-gate.py P6.5 $TASK_DIR`（= check-judge-verdict.py + check-events.py 双 exit 0；历史任务无 `judge.enabled: true` 早退跳过）
+5. 通过后 verdict（+dispatch-context）随 commit 落库——.state.yaml phase **保持 P6**（P6.5 非独立 phase 值），pre-commit hook 在 verdict 存在后自动重验双脚本；全部通过 → 写 `phase: P7` 随 P7 commit
+6. `status: needs-revision / rejected` → 弹回 P6 重验（judge 轮次 +1，账本 `judge_verdict` 事件计数 ≤2 机械兜底，超限交人工）
+
+**预算与账本交叉（BDD-8）**：judge 复核轮次 ≤2 / token 100k（`judge_token_budget` 可覆盖）/ 时间 30min。预算耗尽时 judge 必须落盘 `status: needs-revision` + `partial: true`，并在账本 `judge_verdict` 事件记录 `reason: budget_exhausted`（append-only 账本预算留痕）；check-judge-verdict.py 对账本 budget_exhausted 事件与 verdict 状态做机械交叉（verdict 非 needs-revision+partial → exit 1，不静默放行）。
+
 ### gate 诊断落盘
 
 gate 失败后，主 Agent 的诊断结果**写入单独的 `P{N}-gate-diagnosis.md`**，不追加到 dispatch-context 文件（后者派发后冻结，见 ⑪）。

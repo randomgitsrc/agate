@@ -57,7 +57,8 @@ agate 建立在两条主线上：
     │   ├── plan-design-review.md
     │   ├── qa.md                # /qa QA 工程师
     │   ├── investigate.md       # /investigate 调试专家
-    │   └── cso.md               # /cso 安全官
+    │   ├── cso.md               # /cso 安全官
+    │   └── judge.md             # /judge 验收独立裁判（P6.5，所有任务强制）
     ├── execution-roles/         # 执行角色库
     │   ├── analyst.md           # P1 需求分析师（需求质疑 + BDD 基线 + 能力预检）
     │   ├── architect.md         # P2 方案设计师（设计 + P7 一致性检查）
@@ -291,7 +292,8 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | P3 | 测试设计 | test-designer | gate 自检（文件存在）+ TDD 红灯独立确认 | check-gate.py P3 exit 2（文件存在）+ scripts/check-tdd-red.py exit 0（主 Agent 手动 + CI backstop 兜底）|
 | P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
 | P5 | 技术验证 | verifier（P5 模式，subagent 派发）| gate 自检 + N5 最小校验（test runner 输出签名）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；行首锚点扫描（主 Agent 参照 pre-commit 三步逻辑手动判断：正向→PAUSED / 不合规→修正 / 缺失→静默通过） |
-| P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.py P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.py` UI 截图 > 1KB（R1a 客观证据 barrier）+ 渲染形态证据形式匹配（帧序列/渲染输出对比/时序截图）+ avg-hash 雷同降级待复核；`scripts/check-p6-provenance.py` exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行 + R1b vision YAML 审计的 GAP 放宽）；UI 条件按 P1 vision 能力三态分档双证据（available/supplementable→vision YAML blocker_count==0；GAP→截图/帧序列+人工复核记录；证据形式按渲染形态选择）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查，根治待 Phase 3） |
+| P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.py P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.py` UI 截图 > 1KB（R1a 客观证据 barrier）+ 渲染形态证据形式匹配（帧序列/渲染输出对比/时序截图）+ avg-hash 雷同降级待复核；`scripts/check-p6-provenance.py` exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行 + R1b vision YAML 审计的 GAP 放宽）；UI 条件按 P1 vision 能力三态分档双证据（available/supplementable→vision YAML blocker_count==0；GAP→截图/帧序列+人工复核记录；证据形式按渲染形态选择）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查；**P6.5 judge 独立复核强化缓解**，机制见下） |
+| P6.5 | 独立 Judge 复核 | judge（**强制，所有任务**；fresh context 逐条重验全部 BDD，只信证据与 git log）| — | `P6.5-judge-verdict.md` 存在 + `scripts/check-judge-verdict.py` exit 0（Header 字段/criteria_total==P1 BDD 数/结论编号集零挑验/证据交叉核对/信息隔离白名单/预算交叉）+ `scripts/check-events.py` exit 0（事件账本哈希链/ts 单调/轮次计数）；历史任务（.state.yaml 无 `judge.enabled: true`）→ check-gate.py P6.5 早退跳过（BDD-2）；主 Agent 跑 `check-gate.py P6.5 $TASK_DIR` 判定 |
 | P7 | 一致性检查 | consistency-reviewer（subagent 派发）| gate 自检 + N3⑨ 实质锚点（跨文件引用关键词）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
 | P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.py P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；version 双路径检查（暂存区或最近 5 commit，WARNING）；CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）；`check-pruning.py` 验证裁剪 P8 时有 `internal_only: true` 声明 |
 | READY | 待发布 | — | — | 人手动 `make publish` → DONE |
@@ -299,6 +301,8 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 **P1 与 P6 的关系**：P1 用 BDD（Given/When/Then）写下"做完之后应该表现成什么样"，P6 把这些条件逐条实际跑一遍、把结果翻译成人能看懂的行为描述。P1 是"约定"，P6 是"兑现验证"。
 
 **P6 vs P7 的区别**：P6 验收是"行为对不对"（用户视角，BDD 条件是否满足）；P7 一致性是"实现和设计一致不一致"（技术视角，代码是否偏离 P2）。两者关注点不同，不可互相替代。
+
+**P6.5 judge 复核（强制）**：P6 commit 完成后、P7 之前，主 Agent 派发 judge（所有任务强制）。judge 以 fresh context 逐条重验**全部** BDD（含 P6 已判 PASS 项，零挑验），只信 `P6-evidence/` 证据与 git log，**不阅读** P6-acceptance.md 与 implementer/verifier 的任何自述（信息隔离白名单）。产出 `P6.5-judge-verdict.md` 后，主 Agent 跑 `check-gate.py P6.5 $TASK_DIR`（= check-judge-verdict.py + check-events.py 双 exit 0，历史任务早退跳过）→ 通过才可写 phase: P7。judge verdict 是行为描述输入，**exit code 才是门槛**（哲学红线，BDD-9）；commit-time 由 pre-commit-gate 注入硬边界 + CI backstop 兜底。预算：轮次 ≤2 / token 100k（`judge_token_budget` 可覆盖）/ 时间 30min，超限诚实降级 `partial: true` → needs-revision（BDD-8）。
 
 详细派发方式见 `dispatch-protocol.md`，角色定义见 `assets/`。
 

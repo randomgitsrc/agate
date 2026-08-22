@@ -97,6 +97,26 @@ def _read_p1_change_type(task_dir: str) -> str:
     return result.stdout.strip()
 
 
+def _judge_enabled(task_dir: str) -> bool:
+    """读任务 .state.yaml 的 judge.enabled（TAG0020；缺失/无 judge 块/解析失败 → False）。
+
+    False = 历史任务（未启用 judge 机制），P6.5 judge/events 兜底跳过（BDD-2 兼容）。
+    """
+    state_file = Path(task_dir) / ".state.yaml"
+    if not state_file.exists():
+        return False
+    try:
+        import yaml
+        with open(state_file, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except Exception:
+        return False
+    if not isinstance(data, dict):
+        return False
+    judge = data.get("judge")
+    return bool(isinstance(judge, dict) and judge.get("enabled"))
+
+
 def main() -> int:
     platform = detect_ci_platform()
     print(f"CI platform: {platform}")
@@ -242,6 +262,24 @@ def main() -> int:
             print(f"FAIL: check-p6-provenance.py 重跑未通过：\n{prov_result.stdout}{prov_result.stderr}")
             return 1
         print("PASS: provenance 审计 CI 层重跑通过")
+
+    # judge/events 兜底（TAG0020 BDD-1/10：--no-verify 绕过 hook 时 backstop 层补跑 P6.5 门槛）
+    # 注入条件与 pre-commit 2i.1 一致：judge.enabled == true 且 P6.5-judge-verdict.md 存在
+    if task_dir and _judge_enabled(task_dir) \
+            and Path(task_dir, "P6.5-judge-verdict.md").exists():
+        for script_name in ("check-judge-verdict.py", "check-events.py"):
+            script = _AGATE_ROOT / "scripts" / script_name
+            if not script.exists():
+                print(f"FAIL: {script_name} 不存在（P6.5 judge/events 兜底无法执行）")
+                return 1
+            jr = subprocess.run(
+                _run_python([str(script), task_dir]),
+                capture_output=True, text=True, encoding="utf-8", errors="replace"
+            )
+            if jr.returncode == 1:
+                print(f"FAIL: {script_name} 重跑未通过：\n{jr.stdout}{jr.stderr}")
+                return 1
+            print(f"PASS: {script_name} CI 层重跑通过")
 
     return 0
 

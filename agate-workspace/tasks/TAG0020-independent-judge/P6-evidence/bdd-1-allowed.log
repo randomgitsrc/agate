@@ -1,0 +1,4 @@
+GATE JUDGE-VERDICT: 校验通过（status=passed, criteria 1/1），judge_verdict 事件已记账
+GATE EVENTS: 账本审计通过（1 行，哈希链完整，ts 单调，judge 轮次×1）
+GATE P6.5: judge 复核 + 账本审计通过
+EXIT_CODE: 0
