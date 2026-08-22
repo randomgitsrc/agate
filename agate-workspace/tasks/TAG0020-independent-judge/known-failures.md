@@ -20,3 +20,9 @@ generated_by: verifier (P5)
   - 条目 1（bdd_7）：隔离重跑仍 FAIL（git 仓库内 basetemp，"非 git 上下文"前提失效）——环境前提确认。
   - 条目 2（bdd_25）：清理 scratch 后隔离重跑 **PASS**——环境干扰归属实证；全量会话中仍失败（会话内 .pytest-tmp 复被预存测试填充）。
 - 结论：本任务引入的失败已清零；剩余 2 条均为预存环境失败，与本任务无关。
+
+## 重跑确认（r3，P8 发布前 2026-08-22，tag v0.59.0）
+
+- P8 发布前完整重跑（audit7 reuse_blocked）：全量 pytest **2 failed / 1164 passed / 2 skipped**，两条预存环境失败复现且归属不变（隔离复证：bdd_7 仍 FAIL / bdd_25 干净态 PASS）。
+- consistency 干净态 **0 ERROR / 318 WARNING**（CHECK 7 badge v0.59.0 vs tag v0.59.0 通过）；count 1168 ≥ 749 无漂移。
+- 结论：发布门槛状态不变——本次引入失败 = 0，剩余 2 条预存环境失败（非缺陷，CI 兜底），known-failures 登记完整、三轮（r1/r2/r3）归属一致。

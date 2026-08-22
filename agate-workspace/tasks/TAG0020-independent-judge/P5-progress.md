@@ -51,3 +51,17 @@
 - P5-test-results/unit.md 覆盖: failed=2（全预存环境，0 本次引入）+ 签名（grep -cE 命中=8）+ P4 修复闭环确认
 - P5-test-results/fail-list.txt 覆盖: 2 行 FAILED id
 - known-failures.md: 补「重跑确认（r2）」节（两条目归属不变，bdd_25 干净态 PASS 实证）
+
+### S7 P5 重跑 r3（P8 发布前，2026-08-22）
+- 前置核对：HEAD=500e1ea（P8 发布 commit），tag v0.59.0 精确指向 HEAD，README badge=v0.59.0，worktree 干净
+- 清理 scratch → P5 全量 pytest: **2 failed, 1164 passed, 2 skipped**（exit 1，112.84s，日志 full-run-4.log）
+  - test_bdd_5 保持绿（P4 修复随 commit 741727d 落地）；bdd_7 / bdd_25 仍失败（预存环境）
+- P5_consistency 原样（.pytest-tmp 残留）: exit 1，ERROR(12) 全为 .pytest-tmp 误收（consistency-dirty-3.log）
+- 清理 scratch → P5_consistency 干净态: **exit 0，0 ERROR / 318 WARNING，CHECK 7 PASS**（consistency-clean-3.log）
+- 隔离复证: bdd_7 FAIL（环境前提）/ bdd_25 PASS（干净态，环境干扰实证）
+- P5_count_tests: **exit 0**，1168 ≥ 749 无漂移
+
+### S8 r3 交付物更新（2026-08-22）
+- P5-test-results/unit.md 覆盖: failed=2（全预存环境，0 本次引入）+ 签名（grep -cE 命中=8）+ P8 发布门槛状态
+- P5-test-results/fail-list.txt 覆盖: 2 行 FAILED id（与 r2 相同，无新增）
+- known-failures.md: 补「重跑确认（r3）」节（两条目归属三轮一致）
