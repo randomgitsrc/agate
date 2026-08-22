@@ -8,6 +8,26 @@
 
 ---
 
+## [0.58.0] - 2026-08-21
+
+### 新增（TAG0019：风险分路由 ceremony routing，RM-AG0031）
+
+- **ceremony 声明字段**（P1 frontmatter 可选，thin / standard / full，缺省 standard fail-closed）：
+  声明 thin 须四要素 checklist（coupling_checklist 流式 + 跳过风险 + P5/P6 保留），缺一回退 standard；
+  `ceremony: full` 任务 phases 必须含 P7（P7 不可裁，声明层 + 评审层双重保证）。
+- **check-routing.py gate**（pre-commit 链 2j.1）：ceremony 路由校验——声明与算分 tier 单向 fail-closed
+  （声明 thin 而算分 standard/full → 拦截）+ thin 四要素 checklist + 非法值 / P1 缺失边界（exit 0/1/2）；
+  不声明 ceremony 的存量任务 exit 0 不拦截（向后兼容）；importlib 复用 check-pruning 同源函数（BDD-10）。
+- **agate-risk-score.py 客观信号算分**：文件类型 / 敏感路径（词干匹配 + 左锚防误标）/ 改动规模 /
+  影响面（反向引用，跳过任务产出文档）四信号 → risk_score / tier（thin|standard|full）+ 逐信号证据行 +
+  域映射；提供可 import 的 `score_task(task_dir)` 与 CLI 薄壳；git 通道异常输出 `git_ok: false` 不静默降级。
+- **requirements-review 审声明职责**：评审核对「风险分级/裁剪声明（risk_level/ceremony/phases）vs
+  暂存区 diff 证据」，不一致 → needs-revision / rejected。
+- **M3 验收锚度量协议**：评审轮数 vs 真实发现数双指标 + TAG0018 基线（4 场 LLM 评审 ≈0 净收益）+
+  不达标回滚规则（机制文档，M3 主体不在本任务实行）。
+- 修复：check-protocol-consistency CHECK 9 锚点表补 check-routing（反向覆盖）；测试注释 `/tmp` 字面
+  清理（platform-assumptions 变更文件集 0 命中）。
+
 ## [0.57.0] - 2026-08-21
 
 ### 新增（TAG0018：agate 原生支持 DSH 平台，RM-AG0030）

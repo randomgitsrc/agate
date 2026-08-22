@@ -156,3 +156,8 @@
 - [x] fix4: dispatch-protocol.md:931 评审检查项升级为风险分级/裁剪声明（risk_level/ceremony/phases）vs 实际 diff 证据（ceremony: full → phases 含 P7；thin 四要素 vs 文件规模）
 - [x] fix4: CODE-MAP.md scripts 模块描述末尾 + ceremony 路由族登记（agate-risk-score.py 客观信号算分 / check-routing.py ceremony 校验 pre-commit 2j.1 挂载，TAG0019）
 - [x] fix4: consistency self-run --strict-errors-only --root=. → 0 ERROR（318 WARNING 历史遗留），EXIT=0
+## P4 fix round 4 (P7 收尾) + P8
+- [x] read fix4 + P8 dispatch-context
+- [x] check analyst.md:69 ceremony present (docs-sync done), dispatch-protocol.md:931 upgraded (done)
+- [x] fix4 check: 4 items all landed in P7 commit f0ac5e6 (no re-write needed); consistency --strict-errors-only EXIT=0 (0 ERROR)
+- [x] P8: read inputs (P7-consistency / README badge / CHANGELOG / UPGRADING / tech-debt)
