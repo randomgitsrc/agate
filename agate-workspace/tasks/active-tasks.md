@@ -11,7 +11,6 @@
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
 | TAG0020 | 独立 Judge 机制（RM-AG0032）：P6.5 验收独立裁判（judge 角色 fresh context 信息隔离 + 三层防造假 + append-only 事件账本 + 三档预算）；TAG0018 实证 LLM 评审≈0 净收益为立项锚 | ✅✅ | READY | 高 | TAG0019 | 2026-08-21 | 2026-08-22 |
-| TAG0019 | 风险分路由（RM-AG0031）：agate-risk-score.py 客观信号算分 + ceremony 档位（thin/standard/full）+ fail-closed 声明 checklist + requirements-review 审声明；TAG0018 实证成本账（LLM 评审≈0 净收益）为验收锚 | ✅✅ | READY | 高 | — | 2026-08-21 | 2026-08-22 |
 
 ### 待开始
 
@@ -25,6 +24,7 @@
 
 | 编号 | 任务名称 | 状态 | 最终阶段 | 优先级 | 完成日期 |
 |------|----------|------|----------|--------|----------|
+| TAG0019 | 风险分路由（RM-AG0031，ceremony routing）：agate-risk-score.py 客观信号算分 + ceremony 档位（thin/standard/full：客观信号脚本算分，analyst 只解释不决定）+ fail-closed 声明 checklist + requirements-review 审声明 + thin 档跳过 LLM 评审（M3 实证数据验收，TAG0018 成本账 LLM 评审≈0 净收益）；配套 subagent 返回前自检 gate + 写时 schema 校验（联动 RM-AG0022）：15 条 BDD 全 PASS，P4 review approved，P8 发布检查全绿 → v0.58.0 | ✅✅ | READY | 高 | 2026-08-22 |
 | TAG0018 | agate 原生支持 DSH 平台（RM-AG0030）：assets/templates/dsh/ 三件套 + SETUP.md 步骤 2-DSH + platform-notes DSH 条目 + test_dsh_preset.py 8 用例（实机验证 preset 挂载/人格，修复 tool-fs-search 缺必填配置）：19 条 BDD 全 PASS，P4 review approved + self-gate review aligned → v0.57.0 | ✅✅ | READY | 高 | 2026-08-21 |
 | TAG0007 | agate 项目结构管理机制（RM-AG0008 0→1 骨架脚手架 + RM-AG0009 CODE-MAP 架构演进纪律）：P1 需求 needs-revision 1 轮修复、P2 方案 rejected 1 轮修复（gate_p7 pairing 字段对应关系）、P4 实现 4 批并行（skeleton-docs/code-map-docs/gate-script-both/dogfood-bootstrap）review 一次通过、P7 一致性发现 gate_p4 自指假阴性登记 DEBT0017：11 条 BDD 全 PASS → v0.56.0 | ✅✅ | READY | 高 | 2026-08-20 |
 | TAG0017 | agate 协议工具链修复批（RM-AG0027/0028，TAG0016 复盘 + TQC0001 跨项目反馈）：DEBT0010 gate_commands 解析未排除 _timeout_seconds（4 脚本 + is_gate_meta_key 共享判据函数，修复 P2/P3/P5 误判）+ DEBT0011 SELF-GATE 审查文件命名补 {task_id} 防跨任务覆盖 + DEBT0012 check-protocol-consistency.py 新增 --strict-errors-only 消除 --strict 与 && 链路短路 + DEBT0014 Windows Store python3 占位符命中 hook 探测循环（AGATE_PYTHON 显式覆盖 + 候选可执行性小测试）+ DEBT0015 env_constraints 声明性/执行性边界文档化：12 条 BDD 全 PASS，5 批并行 + 3 轮 review/self-gate 迭代修复 → v0.55.0 | ✅✅ | READY | 高 | 2026-08-20 |
