@@ -53,6 +53,7 @@ P1-requirements.md 必须包含：
 - `domains:` 声明（backend / frontend / mcp / security）
 - `packages:` 声明（受影响的包/模块）
 - `risk_level:` 声明（low / medium / high）→ 决定 P2 评审强度
+- `ceremony:` 声明（thin / standard / full）→ 仪式深度档位（可选，缺省 standard，fail-closed：不声明或声明要素不满足一律按 standard 处理，不做薄化）
 - `phases:` 裁剪声明（跳过哪些阶段 + 理由）
 - `capability_requirements:` 能力需求声明（available / supplementable / GAP 三态）
 - 无未决 `[NEED_CONFIRM]`（有则 PAUSED）；无待确认项时写 `[NO_NEED_CONFIRM]`
@@ -71,6 +72,7 @@ created: 2026-01-01
 agent: analyst
 # ── v2.0 机器字段 ──
 risk_level: low             # low / medium / high，必填
+ceremony: standard          # thin / standard / full，可选；缺省 standard（fail-closed）
 phases: [P1, P4, P5, P6, P8]   # list of P\d+，必填
 packages: [pkg-a]           # list，必填
 domains: [backend, frontend]  # list，必填
@@ -105,6 +107,26 @@ P1 gate 在"声明了形态但维度为空"或"维度不在分类框架且未在
 **NEED_CONFIRM 分级**：
 - `[SUGGEST: 推荐 X，理由 Y]` - 有倾向但求确认。主 Agent 可自行采纳倾向（除非涉及破坏性变更/业务方向），不必问用户
 - `[NEED_CONFIRM]` - 真无方向需人定夺。阻塞推进，主 Agent 问用户
+
+## ceremony fail-closed 声明 checklist（TAG0019，BDD-7/8/9）
+
+`ceremony:` 声明仪式深度档位（thin / standard / full），缺省 standard（fail-closed——不声明或声明要素不满足一律按 standard 处理）。声明 **thin**（薄仪式）时，P1 必须连同以下四要素一起声明，缺一 → check-routing exit 1，档位回退 standard：
+
+1. **申请**：`ceremony: thin` 显式声明
+2. **逐信号 checklist**：`coupling_checklist: [...]` 流式声明（判据 `^coupling_checklist:\s*\[`，复用 check-pruning）
+3. **跳过风险评估**：`跳过风险:` 声明（复用 check-pruning 判据）
+4. **P5/P6 保留**：`phases` 含 P5 与 P6（薄化仪式不薄化验证，P5/P6 由 check-routing / check-pruning 双闸兜底）
+
+不声明（存量/新任务缺 ceremony 字段）→ standard，不拦截。`ceremony: full` 的任务 `phases` 必须含 P7（P7 不可裁，缺失由 requirements-review 审声明拦截，BDD-14）。
+
+### M3 验收锚度量协议（BDD-12，机制文档供提取）
+
+thin 档跳过 LLM 评审的 M3 验收锚四要素：
+
+1. **评审轮数**指标：任务在 P2/P4 阶段派发的 LLM 评审 subagent 轮数（含重试轮）
+2. **真实发现数**指标：评审产出中被采纳或阻止了真实问题的条数（排除非阻塞建议、排除机械检查可抓项）
+3. **TAG0018 基线值**：4 场 LLM 评审 ≈0 净收益（17 条非阻塞 + 1 条真实发现且机械检查可抓）
+4. **不达标决策规则**：「LLM 评审真实发现 ≈ 0 且机械 gate 已覆盖 → 回滚 standard」
 
 ## 同类扫描（强制节）
 

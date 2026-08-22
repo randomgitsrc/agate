@@ -50,6 +50,11 @@ agent: requirements-review
 - risk_level 是否与实际风险匹配
 - capability_requirements 三态判断是否正确
 
+**审声明（风险分级/裁剪声明 vs diff 证据，TAG0019）：**
+- 真实核对项：analyst 的 `risk_level` / `ceremony` / `phases` 声明是否与暂存区实际改动匹配（`git diff --cached` 证据：文件类型 / 规模 / 域）
+- `ceremony: full` 时 `phases` 是否含 P7（full 档 P7 不可裁，逐信号核对）
+- 声明与实际不一致时，结论必须为 `needs-revision` 或 `rejected`（不得 approved）
+
 **P1 纯净性：**
 - 有无掺入解决方案设计（P1 只定义问题，P2 才设计方案）
 - 有无混入实现细节（P1 不关心怎么做，只关心做什么）
@@ -63,6 +68,7 @@ review 结论必须引用具体产物锚点，而非裸 "approved" 或 "BLOCKER=
 | approved | 每条 BDD 编号 + 覆盖维度清单（数据/前端/多端/边界/兼容逐项标注） |
 | 隐含需求覆盖 OK | 列出覆盖的隐含需求条目编号 |
 | 裁剪合理 | 逐个跳过阶段 + 理由 |
+| 审声明核对通过 | 引用的 diff 证据（文件类型/规模/域）+ `ceremony: full` 时 `phases` 含 P7 的核对记录 |
 
 不引用 BDD 编号的裸 "approved" 极可能是假完成——gate 脚本会检查锚点存在性。
 
@@ -80,6 +86,11 @@ review 结论必须引用具体产物锚点，而非裸 "approved" 或 "BLOCKER=
 
 ## 裁剪评审（如有裁剪）
 - 跳过 P3：<理由是否充分>
+...
+
+## 审声明（风险分级/裁剪声明 vs diff 证据）
+- risk_level / ceremony / phases 声明 vs 暂存区实际改动（文件类型/规模/域）：<匹配/不一致>
+- ceremony: full → phases 含 P7（逐信号核对）：<通过/缺失>
 ...
 ```
 

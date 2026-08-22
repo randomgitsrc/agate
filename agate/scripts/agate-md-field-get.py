@@ -81,7 +81,10 @@ NO_FALLBACK_BOOL_FIELDS = frozenset({"regression_pass", "feedback_ready"})
 # 无向后兼容需求）。正文散文提及 `change_type: refactor`（如"change_type: refactor 是可选
 # 字段"、"本任务不涉及 change_type: refactor 机制"）不得被误判为 refactor 任务（否则违反
 # BDD-2"未声明 change_type 的任务验收行为与改造前完全一致"）。
-NO_FALLBACK_STRING_FIELDS = frozenset({"change_type"})
+# TAG0019（P4-review C1 修复）：ceremony 同因移入——全新 P1 机器字段（thin/standard/full），
+# 无旧正文格式回退需求；frontmatter 未声明 ceremony 的任务，正文散文提及 `ceremony: xxx`
+# （如薄化叙述/checklist 引用）不得被误读为非法值（否则违反 BDD-8"不声明 = standard 不拦截"）。
+NO_FALLBACK_STRING_FIELDS = frozenset({"change_type", "ceremony"})
 
 # list 字段：frontmatter 值（YAML list）格式化为空格连接字符串。
 # ui_ux_dimensions（TAG0006 P2 §2.15.1）：P1 维度选择可选字段，presence 语义（缺失=未声明）；
@@ -115,7 +118,8 @@ NO_FALLBACK_LIST_FIELDS = frozenset({
 })
 
 # presence 语义的纯字符串字段：key 存在且值非 null → 输出值原样，否则空。
-# 注意：change_type 不在其中——它走 NO_FALLBACK_STRING_FIELDS（frontmatter-only，无正文回退）。
+# 注意：change_type/ceremony 不在其中——它们走 NO_FALLBACK_STRING_FIELDS（frontmatter-only，
+# 无正文回退，防散文误读）。
 # ui_render_shape（TAG0006 P2 §2.15.1）：P1 渲染形态声明可选字段（规范值，开放集合），
 # presence 语义——缺失 = 常规布局型默认，不做必填校验；正文回退供旧格式兼容。
 STRING_FIELDS = frozenset({

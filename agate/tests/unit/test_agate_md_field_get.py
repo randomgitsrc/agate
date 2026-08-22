@@ -188,3 +188,46 @@ def test_mdf_17_dispatch_plan_dict_json_output(agate_scripts, python_exe, run_cl
     assert isinstance(plan, dict)
     assert plan["mode"] == "single"
     assert "'" not in output
+
+
+# ===== TAG0019 ceremony 读取（P4-review C3/C1：frontmatter-only 无正文回退） =====
+
+def test_mdf_18_ceremony_from_frontmatter(agate_scripts, python_exe, run_cli, tmp_path):
+    """BDD-6 读侧（TAG0019）：frontmatter 声明 ceremony: thin → 读出原值。"""
+    md_file = tmp_path / "P1.md"
+    md_file.write_text(
+        "---\nagent: test\nrisk_level: medium\nceremony: thin\n---\nbody\n",
+        encoding="utf-8",
+    )
+    result = _run_mdf(agate_scripts, python_exe, run_cli, "ceremony", md_file)
+    assert result.returncode == 0
+    assert result.output.strip() == "thin"
+
+
+def test_mdf_19_ceremony_no_declaration_empty(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """BDD-8 读侧（TAG0019）：frontmatter 无 ceremony → 空（不声明 = standard）。"""
+    md_file = tmp_path / "P1.md"
+    md_file.write_text(
+        "---\nagent: test\nrisk_level: medium\n---\nbody\n", encoding="utf-8"
+    )
+    result = _run_mdf(agate_scripts, python_exe, run_cli, "ceremony", md_file)
+    assert result.returncode == 0
+    assert result.output.strip() == ""
+
+
+def test_mdf_20_ceremony_prose_not_misread(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """C1（P4-review CRITICAL）：frontmatter 无 ceremony + 正文散文 'ceremony: xxx'
+    → 输出空（frontmatter-only 无正文回退，正文不误判）。"""
+    md_file = tmp_path / "P1.md"
+    md_file.write_text(
+        "---\nagent: test\nrisk_level: medium\n---\n"
+        "按 ceremony: thin 的 checklist 逐项确认。\n",
+        encoding="utf-8",
+    )
+    result = _run_mdf(agate_scripts, python_exe, run_cli, "ceremony", md_file)
+    assert result.returncode == 0
+    assert result.output.strip() == ""

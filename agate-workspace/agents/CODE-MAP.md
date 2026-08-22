@@ -26,6 +26,7 @@ agate 协议本体划分为五大模块：
   `check-state-transition.py`、`check-state-yaml.py`、`agate-retreat-state.py` 等）读写和校验
   `.state.yaml` 状态转移。三族之外还有编排辅助脚本（`agate-inject-card.py`、
   `agate-render-dispatch-prompt.py`、`agate-next-card.py`、`agate_common.py` 公共函数库等）。
+  ceremony 路由族（新增 TAG0019）：agate-risk-score.py（客观信号算分）、check-routing.py（ceremony 声明校验，pre-commit 2j.1 挂载）。
 - **templates**（`agate/assets/templates/`）：模板文件（`dispatch-prompt.md`、
   `dispatch-context.md`、`task-files.md`、`code-map-template.md`、`skeleton-template.md`、
   `tech-debt-template.md`、`retrospective-template.md`、`roadmap-template.md`、

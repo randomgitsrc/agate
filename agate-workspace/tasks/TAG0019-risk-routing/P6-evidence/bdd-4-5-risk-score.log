@@ -1,0 +1,105 @@
+=== BDD-4 规模>5: 6 个 src 文件 ===
+risk_score: 10
+tier: full
+file-type: medium (src/mod_0.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: high (source files=6 > 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-4 规模<=5: 3 个 src 文件 ===
+risk_score: 8
+tier: standard
+file-type: medium (src/mod_0.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=3 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-4 口径对拍: 同 repo（size6），score 的 change-size 口径 vs check-pruning._staged_source_count ===
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "<frozen os>", line 685, in __getitem__
+KeyError: 'PRUN_DIR'
+--- check-pruning 裁剪 P7（源码>5 拦截）: size6 + P1 phases 无 P7 ---
+GATE PRUNING: 裁剪条件不满足：
+  - 裁剪 P7 需源码文件数 ≤ 5，实际=6
+  - 裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）
+[exit=1]
+
+--- 同 repo check-routing（thin + 规模>5 → 算分应为 full，声明薄于算分拦截）---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 '跳过风险:' 跳过风险评估声明
+[exit=1]
+
+=== BDD-5 反向引用: core_logic.py + consumer.py ===
+risk_score: 10
+tier: full
+file-type: medium (consumer.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=2 <= 5)
+impact: high (module core_logic 被其他文件反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-5 无反向引用: isolated.py ===
+risk_score: 8
+tier: standard
+file-type: medium (isolated.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-5 域映射声明: P1 domains=security + src/hello.py ===
+risk_score: 8
+tier: standard
+file-type: medium (src/hello.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: [security]
+git_ok: true
+[exit=0]
+
+=== BDD-4 口径对拍（修正）：同 repo（size6 暂存区），check-routing 引入的 _staged_source_count（value = 6）vs check-pruning._staged_source_count（value = 6），两处同一口径 ===
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "<string>", line 6, in load
+  File "<frozen importlib._bootstrap_external>", line 991, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1128, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1186, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/home/kity/oclab/agate/.ptmp-scratch/p6/size6/check-pruning.py'
+[exit=1]
+check-pruning._staged_source_count(task) = 0
+check-routing 复用同源 _staged_source_count(task) = 6
+score change-size: high (source files=6 > 5)
+两脚本规模同口径且与 score 判定一致: 不一致
+=== BDD-4 no-contradiction：同暂存区（6 源码文件），check-routing vs check-pruning 均按 >5 拦截，判定不矛盾 ===
+--- check-routing（ceremony: thin 四要素齐全 → 算分 tier=full 声明薄于算分）---
+GATE ROUTING: ceremony: thin 但算分 tier=full，声明薄于算分，回退 standard
+[exit=1]
+--- check-pruning（裁剪 P7 → 源码数>5 拦截）---
+GATE PRUNING: 裁剪条件不满足：
+  - 裁剪 P7 需源码文件数 ≤ 5，实际=6
+[exit=1]
+--- agate-risk-score 同 repo bdd4_thin_fullscore ---
+risk_score: 10
+tier: full
+file-type: medium (src/mod_0.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: high (source files=6 > 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+NOTE：上列"0 vs 6"差异为验证脚本自身上下文假象（未先把 scripts 目录放入 sys.path 就 import check-pruning，致其 from agate_common import run_git 失败 → run_git=None → 返回 0）；check-routing 先自插 sys.path 再加载 check-pruning，故为 6。真实 CLI 运行（python3 check-pruning.py task）时 sys.path[0]=脚本目录，agate_common 可导入，计数=6（见下方 check-pruning 输出"实际=6"）。非实现分叉。
+EXIT_CODE: 0

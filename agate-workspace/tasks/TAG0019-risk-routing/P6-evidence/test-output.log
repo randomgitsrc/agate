@@ -1,0 +1,383 @@
+=== TAG0019 P6 验收验证主日志（test-output.log）===
+验证时间: 2026-08-21（P6 验收轮）；环境: worktree + 受控 fixture git 仓库（/home/kity/oclab/agate/.ptmp-scratch/p6）
+全部命令外层 timeout 30-80s；单步串行；[PROD_NOT_TOUCHED]
+
+===== 证据文件: bdd-1-2-risk-score.log =====
+=== BDD-1: agate-risk-score.py 对真实形状 repo（协议本体+gate 脚本+测试暂存区）===
+risk_score: 10
+tier: full
+file-type: high (agate/phase-cards/P1-requirements.md 属协议本体/gate 逻辑)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=3 <= 5)
+impact: low (无反向引用)
+domain-markers: [backend, security]
+git_ok: true
+[exit=0]
+
+=== BDD-2 A 类: agate/scripts/foo.py（gate 逻辑）===
+risk_score: 0
+tier: standard
+file-type: low (git 通道不可用，未算分)
+sensitive-path: low (git 通道不可用，未算分)
+change-size: low (git 通道不可用，未算分)
+impact: low (git 通道不可用，未算分)
+domain-markers: []
+git_ok: false
+[exit=0]
+
+=== BDD-2 B 类: agate/tests/unit/test_foo.py（纯测试）===
+risk_score: 0
+tier: standard
+file-type: low (git 通道不可用，未算分)
+sensitive-path: low (git 通道不可用，未算分)
+change-size: low (git 通道不可用，未算分)
+impact: low (git 通道不可用，未算分)
+domain-markers: []
+git_ok: false
+[exit=0]
+
+===== 证据文件: bdd-2-3-risk-score.log =====
+=== BDD-2 A 类: agate/scripts/foo.py（gate 逻辑）===
+risk_score: 10
+tier: full
+file-type: high (agate/scripts/foo.py 属协议本体/gate 逻辑)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-2 B 类: agate/tests/unit/test_foo.py（纯测试）===
+risk_score: 6
+tier: thin
+file-type: low (agate/tests/unit/test_foo.py 属测试/配置)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-3 敏感: auth/login.py ===
+risk_score: 12
+tier: full
+file-type: medium (auth/login.py 属普通源码)
+sensitive-path: high (auth/login.py 命中敏感关键词(auth) -> domain: security)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: [security]
+git_ok: true
+[exit=0]
+
+=== BDD-3 无敏感: src/hello.py ===
+risk_score: 8
+tier: standard
+file-type: medium (src/hello.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+===== 证据文件: bdd-4-5-risk-score.log =====
+=== BDD-4 规模>5: 6 个 src 文件 ===
+risk_score: 10
+tier: full
+file-type: medium (src/mod_0.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: high (source files=6 > 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-4 规模<=5: 3 个 src 文件 ===
+risk_score: 8
+tier: standard
+file-type: medium (src/mod_0.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=3 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-4 口径对拍: 同 repo（size6），score 的 change-size 口径 vs check-pruning._staged_source_count ===
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "<frozen os>", line 685, in __getitem__
+KeyError: 'PRUN_DIR'
+--- check-pruning 裁剪 P7（源码>5 拦截）: size6 + P1 phases 无 P7 ---
+GATE PRUNING: 裁剪条件不满足：
+  - 裁剪 P7 需源码文件数 ≤ 5，实际=6
+  - 裁剪声明缺'跳过风险:'评估（nudge：强制思考裁剪风险）
+[exit=1]
+
+--- 同 repo check-routing（thin + 规模>5 → 算分应为 full，声明薄于算分拦截）---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 '跳过风险:' 跳过风险评估声明
+[exit=1]
+
+=== BDD-5 反向引用: core_logic.py + consumer.py ===
+risk_score: 10
+tier: full
+file-type: medium (consumer.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=2 <= 5)
+impact: high (module core_logic 被其他文件反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-5 无反向引用: isolated.py ===
+risk_score: 8
+tier: standard
+file-type: medium (isolated.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+=== BDD-5 域映射声明: P1 domains=security + src/hello.py ===
+risk_score: 8
+tier: standard
+file-type: medium (src/hello.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: low (source files=1 <= 5)
+impact: low (无反向引用)
+domain-markers: [security]
+git_ok: true
+[exit=0]
+
+=== BDD-4 口径对拍（修正）：同 repo（size6 暂存区），check-routing 引入的 _staged_source_count（value = 6）vs check-pruning._staged_source_count（value = 6），两处同一口径 ===
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "<string>", line 6, in load
+  File "<frozen importlib._bootstrap_external>", line 991, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1128, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1186, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/home/kity/oclab/agate/.ptmp-scratch/p6/size6/check-pruning.py'
+[exit=1]
+check-pruning._staged_source_count(task) = 0
+check-routing 复用同源 _staged_source_count(task) = 6
+score change-size: high (source files=6 > 5)
+两脚本规模同口径且与 score 判定一致: 不一致
+=== BDD-4 no-contradiction：同暂存区（6 源码文件），check-routing vs check-pruning 均按 >5 拦截，判定不矛盾 ===
+--- check-routing（ceremony: thin 四要素齐全 → 算分 tier=full 声明薄于算分）---
+GATE ROUTING: ceremony: thin 但算分 tier=full，声明薄于算分，回退 standard
+[exit=1]
+--- check-pruning（裁剪 P7 → 源码数>5 拦截）---
+GATE PRUNING: 裁剪条件不满足：
+  - 裁剪 P7 需源码文件数 ≤ 5，实际=6
+[exit=1]
+--- agate-risk-score 同 repo bdd4_thin_fullscore ---
+risk_score: 10
+tier: full
+file-type: medium (src/mod_0.py 属普通源码)
+sensitive-path: low (无敏感关键词命中)
+change-size: high (source files=6 > 5)
+impact: low (无反向引用)
+domain-markers: []
+git_ok: true
+[exit=0]
+
+NOTE：上列"0 vs 6"差异为验证脚本自身上下文假象（未先把 scripts 目录放入 sys.path 就 import check-pruning，致其 from agate_common import run_git 失败 → run_git=None → 返回 0）；check-routing 先自插 sys.path 再加载 check-pruning，故为 6。真实 CLI 运行（python3 check-pruning.py task）时 sys.path[0]=脚本目录，agate_common 可导入，计数=6（见下方 check-pruning 输出"实际=6"）。非实现分叉。
+
+===== 证据文件: bdd-6-9-routing.log =====
+=== BDD-6/7/8/9: check-routing 场景矩阵（exit code = 判定）===
+--- thin 四要素齐全 → exit 0 (rt_thin_ok) ---
+[exit=0]
+--- thin 缺 coupling_checklist → exit 1 (rt_thin_no_coupling) ---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 coupling_checklist: [...] 逐信号 checklist（^coupling_checklist:\s*\[ 判据）
+[exit=1]
+--- thin 缺 跳过风险 → exit 1 (rt_thin_no_skiprisk) ---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 '跳过风险:' 跳过风险评估声明
+[exit=1]
+--- thin 缺 P5/P6 → exit 1 (rt_thin_no_p56) ---
+GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：
+  - thin 需 phases 含 P5 与 P6（P5/P6 保留，薄化仪式不薄化验证）
+[exit=1]
+--- ceremony: standard → exit 0 (rt_valid_std) ---
+[exit=0]
+--- ceremony: full → exit 0 (rt_valid_full) ---
+[exit=0]
+--- ceremony: light 非法 → exit 1 (rt_invalid_light) ---
+GATE ROUTING: ceremony 非法值 'light'（仅 thin/standard/full）
+[exit=1]
+--- 无 ceremony 字段 → exit 0 (rt_no_ceremony) ---
+[exit=0]
+--- thin 但算分 standard → exit 1 (rt_thin_vs_standard) ---
+GATE ROUTING: ceremony: thin 但算分 tier=standard，声明薄于算分，回退 standard
+[exit=1]
+--- 算分 thin 声明 standard → exit 0 (rt_conservative) ---
+[exit=0]
+--- P1 缺失 → exit 2 (rt_no_p1) ---
+[exit=2]
+=== BDD-7 双闸兜底：thin 缺 P5/P6 时 check-pruning 检查 3（P6 不可裁）+ 检查 5（P5 不可裁）同样拦截 ===
+GATE PRUNING: 裁剪条件不满足：
+  - P6 不可裁剪——验收是质量最后防线。no_behavior_change 可简化 P6（快速验收），不可省略 P6
+  - P5 不可裁剪——验证是交付底线，无验证则无可发布产物
+[exit=1]
+
+===== 证据文件: bdd-6-7-extra.log =====
+=== BDD-6 frontmatter schema（check-frontmatter.py，stdout 空=通过，非空=拦）===
+--- ceremony: thin (rt_thin_ok) ---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:packages: 缺必填字段 packages
+  - P1-requirements.md:domains: 缺必填字段 domains
+[exit=1] (期望: 应通过)
+--- ceremony: light (rt_invalid_light) ---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:packages: 缺必填字段 packages
+  - P1-requirements.md:domains: 缺必填字段 domains
+  - P1-requirements.md:ceremony: 非法值 'light'（合法值: thin, standard, full）
+[exit=1] (期望: 应拦截)
+--- 无 ceremony 字段 (rt_no_ceremony) ---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:packages: 缺必填字段 packages
+  - P1-requirements.md:domains: 缺必填字段 domains
+[exit=1] (期望: 应通过)
+
+=== BDD-6 字段读取（agate-md-field-get.py ceremony op）===
+thin
+[exit=0] 读得值应=thin
+
+=== BDD-7 算分异常 fail-closed（GIT_DIR=/nonexistent 探针）===
+GATE ROUTING: ceremony: thin 但算分 git 通道不可用（git_ok: false），fail-closed 回退 standard
+[exit=1]
+
+===== 证据文件: bdd-6-frontmatter.log =====
+=== BDD-6 frontmatter schema（完整必填字段 fixture）===
+--- ceremony: thin → 应通过（无输出）---
+[exit=0]
+--- ceremony: light → 应拦（ceremony 非法值）---
+GATE FRONTMATTER: task/P1-requirements.md frontmatter 格式错误：
+  - P1-requirements.md:ceremony: 非法值 'light'（合法值: thin, standard, full）
+[exit=1]
+--- 无 ceremony → 应通过（无输出）---
+[exit=0]
+
+===== 证据文件: bdd-10-same-source.log =====
+=== BDD-10 同源判定：同一 fixture，check-routing vs check-pruning 判定一致 ===
+--- fixture: rt_thin_ok（ceremony: thin 四要素齐全 + tests 类暂存）---
+[check-routing]
+[exit=0]
+[check-pruning]
+[exit=0]
+--- fixture: rt_no_p1（P1 缺失）两脚本同 exit 2 ---
+[check-routing]
+[exit=2]
+[check-pruning]
+[exit=2]
+
+=== BDD-10 源码复用（无第二份实现）：check-routing 经 importlib 复用 check-pruning 同源函数 ===
+23:同源复用（R1/BDD-10）：importlib 加载 check-pruning.py 复用 _md_field / _read_p1 /
+24:_staged_source_count 与 coupling_checklist 流式判据（^coupling_checklist:\\s*\\[）/ 跳过风险判据
+56:_check_pruning = _load_script("check-pruning")
+57:_md_field = _check_pruning._md_field
+58:_read_p1 = _check_pruning._read_p1
+59:_staged_source_count = _check_pruning._staged_source_count
+79:    ceremony = _md_field("ceremony", p1_file).strip()
+97:    p1_text = _read_p1(p1_file)
+109:    phases = _md_field("phases", p1_file).split()
+
+===== 证据文件: bdd-11-12-doc-assertions.log =====
+=== BDD-11: requirements-review 审声明职责（检查清单含核对应 + needs-revision/rejected 结论规则）===
+53:**审声明（风险分级/裁剪声明 vs diff 证据，TAG0019）：**
+55:- `ceremony: full` 时 `phases` 是否含 P7（full 档 P7 不可裁，逐信号核对）
+56:- 声明与实际不一致时，结论必须为 `needs-revision` 或 `rejected`（不得 approved）
+71:| 审声明核对通过 | 引用的 diff 证据（文件类型/规模/域）+ `ceremony: full` 时 `phases` 含 P7 的核对记录 |
+91:## 审声明（风险分级/裁剪声明 vs diff 证据）
+93:- ceremony: full → phases 含 P7（逐信号核对）：<通过/缺失>
+101:- 打回 → `status: rejected`
+102:- 需修改 → `status: needs-revision`（计入重试）
+104:返回给主 Agent 时同时报告：`File: <路径>` + `Status: <approved|rejected|needs-revision>`
+
+=== BDD-12: M3 验收锚度量协议四要素（P1 卡机制文档）===
+122:### M3 验收锚度量协议（BDD-12，机制文档供提取）
+124:thin 档跳过 LLM 评审的 M3 验收锚四要素：
+126:1. **评审轮数**指标：任务在 P2/P4 阶段派发的 LLM 评审 subagent 轮数（含重试轮）
+127:2. **真实发现数**指标：评审产出中被采纳或阻止了真实问题的条数（排除非阻塞建议、排除机械检查可抓项）
+128:3. **TAG0018 基线值**：4 场 LLM 评审 ≈0 净收益（17 条非阻塞 + 1 条真实发现且机械检查可抓）
+129:4. **不达标决策规则**：「LLM 评审真实发现 ≈ 0 且机械 gate 已覆盖 → 回滚 standard」
+
+===== 证据文件: bdd-13-platform.log =====
+=== BDD-13: check-platform-assumptions.py 对变更文件集 R1-R5 扫描（P2 P5_platform 口径）===
+[exit=0]
+
+=== BDD-13 补充：新脚本 git/路径处理平台无关性静态核查 ===
+22:平台无关（BDD-13）：git 全经 agate_common.run_git；路径 os.path.relpath(...).replace("\\\\","/")；
+25:异常语义（P2-design §2.3 NB-2②）：run_git 失败或 agate_common 不可导入时 → 输出 git_ok: false
+37:    from agate_common import run_git
+39:    run_git = None
+48:    path = os.path.join(SCRIPT_DIR, name + ".py")
+88:    return path.replace("\\", "/")
+157:        f_abs = os.path.realpath(os.path.join(repo_root_abs, p))
+171:            and not (task_abs and os.path.realpath(os.path.join(dirpath, d)) == task_abs)
+174:            rel_dir = os.path.relpath(dirpath, repo_root_abs).replace("\\", "/")
+181:            path = os.path.join(dirpath, fn)
+196:    p1_file = os.path.join(task_dir, "P1-requirements.md")
+216:    if run_git is None:
+
+===== 证据文件: bdd-14-doc-assertions.log =====
+=== BDD-14: full 档强制项四处消费点（P2 plan-eng-review + cso(security) + P7 不可裁）===
+--- role-system.md C8 映射表 ---
+63:| 任意 | **full**（算分 tier=full 或声明 `ceremony: full`）| **plan-eng-review 必须派发**（P2，对齐 risk_level=high 硬规则）+ **cso**（security 域）+ **P7 不可裁**（full 档任务 P7 为强制阶段，去重规则同本表）|
+66:**去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。**full 档（tier=full 或 `ceremony: full`）与 risk_level=high 命中同一角色时同样只派 1 次**。
+--- rules/review-mapping.md ---
+24:| 任意 | **full**（tier=full 或声明 `ceremony: full`）| plan-eng-review（P2）+ cso（security 域）+ P7 不可裁 | P2 + P4 |
+27:> **去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。**full 档（tier=full 或声明 `ceremony: full`）与 risk_level=high 命中同一角色时同样只派 1 次**。
+--- phase-cards/P2-design.md ---
+191:| 任意 | full（tier=full 或声明 ceremony: full）| plan-eng-review（硬规则，必须派独立 subagent）+ cso（security 域）+ P7 不可裁 |
+--- phase-cards/P4-implementation.md ---
+95:| full（tier=full 或声明 ceremony: full）| P4 实现评审（按 domains 派 review/design-review/cso，同 risk=high 不可省；P2 plan-eng-review 已审方案）+ cso（security 域）+ P7 不可裁（full 档任务 P7 为强制阶段）| P4-review.md |
+
+===== 证据文件: bdd-15-consistency.log =====
+=== BDD-15: check-protocol-consistency.py --strict-errors-only（worktree 脚本 + worktree root）===
+[exit=0]
+  ✅ PASS  CHECK 1  YAML 代码块可解析
+  ⚠️  WARN  CHECK 2  仓库内文件引用存在
+  ✅ PASS  CHECK 3  协议文件无硬编码行号
+  ✅ PASS  CHECK 4  gate_commands 键集合一致
+  ✅ PASS  CHECK 6  LICENSE 与 gstack 归属
+  ✅ PASS  CHECK 7  version badge 与 git tag
+  ✅ PASS  CHECK 8  v0.6 关键词存在性
+  ✅ PASS  CHECK 9  协议-脚本结构对齐
+  ⚠️  WARN  CHECK 10 协议文档脚本名引用漂移
+  ✅ PASS  CHECK 11 UI/UX 机制条文跨文档一致
+  ✅ PASS  CHECK 12 权威数值/规则跨文件一致性
+  WARNING (318):
+  仅有 318 个 WARNING，无 ERROR。
+
+=== BDD-15 消费点同步核查 ===
+--- scripts/README.md 工具清单 ---
+37:| `check-routing.py` (2j.1/2.7.1) | ceremony 路由校验（TAG0019 D3，BDD-7/8/9/10）：声明 ceremony 与算分 tier 一致性（单向 fail-closed）+ thin 四要素 checklist（coupling_checklist 流式 / 跳过风险 / P5/P6 保留）+ 不声明回退 standard | 0=通过, 1=拦截（四要素缺一 / 声明薄于算分 / thin 且 git_ok:false），2=P1-requirements.md 缺失（任务目录破损，交人工）|
+38:| `agate-risk-score.py` | 客观信号算分（TAG0019 D1，BDD-1..5）：四信号分级（文件类型 / 敏感路径 / 改动规模 / 影响面）+ risk_score + tier（thin/standard/full）+ 逐信号证据行；信号来自 `git diff --cached` 客观事实（`agate_common.run_git` 通道，不可伪造）；提供可 import 的 `score_task(task_dir) -> dict` + CLI 薄壳（`agate-risk-score.py TASK_DIR`，输出 risk_score/tier/四信号/domain-markers/git_ok 行）| 0=成功, 1=参数缺失（CLI）|
+--- tests/README.md 用例映射 ---
+32:| agate-risk-score.py | unit/test_agate_risk_score.py | 11 |
+33:| check-routing.py | unit/test_check_routing.py | 13 |
+--- agate-summary.py _DRIFT_SCRIPTS ---
+46:    "agate-risk-score.py",
+47:    "check-routing.py",
+--- WORKFLOW.md gate 表 ---
+321:| 2.7.1 | `check-routing.py` | gate 通过后 | 阶段级 | ceremony 路由校验（TAG0019）：声明 ceremony 与算分 tier 一致性（单向 fail-closed）+ thin 四要素 checklist（coupling_checklist 流式 / 跳过风险 / P5/P6 保留）缺一拦截；不声明 = standard 不拦截（BDD-7/8/9）|
+--- pre-commit-gate.py 2j/2j.1 ---
+338:        if gate_exit != 1 and _run_script_rc("check-pruning.py", [task_dir]) == 1:
+341:        # 2j.1. ceremony 路由校验（TAG0019 D3，BDD-7/9）：与 2j check-pruning 并列；
+343:        if gate_exit != 1 and _run_script_rc("check-routing.py", [task_dir]) == 1:
+
+===== 证据文件: pytest-bdd-mapped.log =====
+........................................................................ [ 81%]
+................                                                         [100%]
+88 passed, 1 deselected in 6.10s
+[exit=0]
+---
+说明：BDD 映射测试重跑（P6 佐证）；test_check_routing::test_bdd_7_git_ok_false 为 P5 记录的环境前提 I1（沙箱可写 basetemp 全在 git 仓库内 run_git 必成功），-k 排除；其行为已由 GIT_DIR=/nonexistent 探针实测验证（bdd-6-7-extra.log）
+
+EXIT_CODE: 0

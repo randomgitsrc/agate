@@ -338,6 +338,11 @@ def main():
         if gate_exit != 1 and _run_script_rc("check-pruning.py", [task_dir]) == 1:
             sys.exit(1)
 
+        # 2j.1. ceremony 路由校验（TAG0019 D3，BDD-7/9）：与 2j check-pruning 并列；
+        # 无 ceremony 声明 exit 0 不拦截（向后兼容，BDD-8）
+        if gate_exit != 1 and _run_script_rc("check-routing.py", [task_dir]) == 1:
+            sys.exit(1)
+
         # 2k. SCOPE+ 追踪检查（P2.11）
         if gate_exit != 1 and _run_script_rc("check-scope-resolved.py", [task_dir]) == 1:
             sys.exit(1)
