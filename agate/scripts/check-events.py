@@ -30,7 +30,7 @@ import sys
 
 # 与 append_event 同源取 GENESIS_HASH（P2 §3.2：首行 prev_hash 常量对齐 test_bdd_7）
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from agate_common import GENESIS_HASH  # noqa: E402
+from agate_common import GENESIS_HASH
 
 LEDGER_NAME = "gate-events.jsonl"
 
@@ -80,7 +80,7 @@ def main():
         if idx == 1:
             if ev.get("prev_hash") != GENESIS_HASH:
                 sys.stderr.write(
-                    f"GATE EVENTS: 首行 prev_hash != GENESIS_HASH（账本起始行被改写或伪造）\n")
+                    "GATE EVENTS: 首行 prev_hash != GENESIS_HASH（账本起始行被改写或伪造）\n")
                 sys.exit(1)
         else:
             # 4. 逐行 prev_hash == sha256(上一行原始文本)

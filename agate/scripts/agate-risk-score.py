@@ -102,10 +102,10 @@ def _file_type_level(path):
     """文件类型信号：agate/**/*.md / agate/scripts/*.py → high；tests/配置 → low；其余 → medium。"""
     p = _norm_rel(path)
     if re.match(r"^agate/.*\.md$", p) or re.match(r"^agate/scripts/.*\.py$", p):
-        return "high", "%s 属协议本体/gate 逻辑" % p
+        return "high", f"{p} 属协议本体/gate 逻辑"
     if p.startswith("agate/tests/") or _is_config(p):
-        return "low", "%s 属测试/配置" % p
-    return "medium", "%s 属普通源码" % p
+        return "low", f"{p} 属测试/配置"
+    return "medium", f"{p} 属普通源码"
 
 
 def _sensitive_level(path):
@@ -113,15 +113,15 @@ def _sensitive_level(path):
     p = _norm_rel(path)
     m = _SENSITIVE_RE.search(p.lower())
     if m:
-        return "high", "%s 命中敏感关键词(%s) -> domain: security" % (p, m.group(0))
+        return "high", f"{p} 命中敏感关键词({m.group(0)}) -> domain: security"
     return "low", "无敏感关键词命中"
 
 
 def _change_size_level(count):
     """改动规模信号：_staged_source_count（check-pruning 同口径）> 5 → high。"""
     if count > 5:
-        return "high", "source files=%d > 5" % count
-    return "low", "source files=%d <= 5" % count
+        return "high", f"source files={count} > 5"
+    return "low", f"source files={count} <= 5"
 
 
 def _is_task_artifact(path):
@@ -133,9 +133,7 @@ def _is_task_artifact(path):
     base = p.rsplit("/", 1)[-1]
     if re.match(r"^P[0-8]-.*\.md$", base):
         return True
-    if p.startswith("agate-workspace/tasks/"):
-        return True
-    return False
+    return bool(p.startswith("agate-workspace/tasks/"))
 
 
 def _impact_high(staged_files, repo_root, task_dir):
@@ -241,7 +239,7 @@ def score_task(task_dir):
     cs_level, cs_ev = _change_size_level(count)
     imp_found, imp_module = _impact_high(staged_files, repo_root, task_dir)
     if imp_found:
-        imp_level, imp_ev = "high", "module %s 被其他文件反向引用" % imp_module
+        imp_level, imp_ev = "high", f"module {imp_module} 被其他文件反向引用"
     else:
         imp_level, imp_ev = "low", "无反向引用"
 
@@ -272,10 +270,10 @@ def score_task(task_dir):
         "git_ok": True,
         "risk_score": risk_score,
         "tier": tier,
-        "file-type": "%s (%s)" % (ft_level, ft_ev),
-        "sensitive-path": "%s (%s)" % (sn_level, sn_ev),
-        "change-size": "%s (%s)" % (cs_level, cs_ev),
-        "impact": "%s (%s)" % (imp_level, imp_ev),
+        "file-type": f"{ft_level} ({ft_ev})",
+        "sensitive-path": f"{sn_level} ({sn_ev})",
+        "change-size": f"{cs_level} ({cs_ev})",
+        "impact": f"{imp_level} ({imp_ev})",
         "domain-markers": domain_markers,
     })
     return result
@@ -301,13 +299,13 @@ def main():
         sys.exit(1)
     task_dir = sys.argv[1]
     score = score_task(task_dir)
-    print("risk_score: %s" % score["risk_score"])
+    print("risk_score: {}".format(score["risk_score"]))
     print("tier: %s" % (score["tier"] if score["tier"] else "standard"))
-    print("file-type: %s" % score["file-type"])
-    print("sensitive-path: %s" % score["sensitive-path"])
-    print("change-size: %s" % score["change-size"])
-    print("impact: %s" % score["impact"])
-    print("domain-markers: [%s]" % ", ".join(score["domain-markers"]))
+    print("file-type: {}".format(score["file-type"]))
+    print("sensitive-path: {}".format(score["sensitive-path"]))
+    print("change-size: {}".format(score["change-size"]))
+    print("impact: {}".format(score["impact"]))
+    print("domain-markers: [{}]".format(", ".join(score["domain-markers"])))
     print("git_ok: %s" % ("true" if score["git_ok"] else "false"))
 
 

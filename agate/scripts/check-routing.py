@@ -85,7 +85,7 @@ def main():
     # 非法值兜底（frontmatter-check enums 已先拦，此处双保险，BDD-6）
     if ceremony not in _VALID_CEREMONY:
         sys.stderr.write(
-            "GATE ROUTING: ceremony 非法值 %r（仅 thin/standard/full）\n" % ceremony
+            f"GATE ROUTING: ceremony 非法值 {ceremony!r}（仅 thin/standard/full）\n"
         )
         sys.exit(1)
 
@@ -113,7 +113,7 @@ def main():
     if errors:
         sys.stderr.write("GATE ROUTING: ceremony: thin 四要素不满足，回退 standard：\n")
         for line in errors:
-            sys.stderr.write("  - %s\n" % line)
+            sys.stderr.write(f"  - {line}\n")
         sys.exit(1)
 
     # --- 算分对拍（单向 fail-closed，BDD-9 / NB-2②）---
@@ -131,7 +131,7 @@ def main():
     tier = score.get("tier")
     if tier in ("standard", "full"):
         sys.stderr.write(
-            "GATE ROUTING: ceremony: thin 但算分 tier=%s，声明薄于算分，回退 standard\n" % tier
+            f"GATE ROUTING: ceremony: thin 但算分 tier={tier}，声明薄于算分，回退 standard\n"
         )
         sys.exit(1)
 

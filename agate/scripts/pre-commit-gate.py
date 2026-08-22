@@ -390,10 +390,10 @@ def main():
         # 任何后续 commit（含 P7 commit）都会重验；历史任务（无 judge.enabled）天然跳过。
         if (gate_exit != 1
                 and _judge_enabled(task_dir)
-                and os.path.isfile(os.path.join(task_dir, "P6.5-judge-verdict.md"))):
-            if (_run_script_rc("check-judge-verdict.py", [task_dir]) == 1
-                    or _run_script_rc("check-events.py", [task_dir]) == 1):
-                sys.exit(1)
+                and os.path.isfile(os.path.join(task_dir, "P6.5-judge-verdict.md"))
+                and (_run_script_rc("check-judge-verdict.py", [task_dir]) == 1
+                     or _run_script_rc("check-events.py", [task_dir]) == 1)):
+            sys.exit(1)
 
         # 2j. 裁剪条件检查（P2.7-P2.9）
         if gate_exit != 1 and _run_script_rc("check-pruning.py", [task_dir]) == 1:
