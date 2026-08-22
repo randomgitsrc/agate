@@ -29,6 +29,9 @@ bash agate/tests/scripts/count-tests.sh
 | 脚本 | 测试文件 | 用例数 |
 |------|---------|-------|
 | check-pruning.py | unit/test_check_pruning.py | 29 |
+| agate-risk-score.py | unit/test_agate_risk_score.py | 11 |
+| check-routing.py | unit/test_check_routing.py | 13 |
+| ceremony 文档条文（TAG0019）| unit/test_docs_assertions.py | 4 |
 | check-gate.py | unit/test_check_gate.py | 144 |
 | check-gate.py 集成锚点 | unit/test_check_gate_p1_review.py | 9 |
 | check-gate.py P5 命令 diff | unit/test_check_gate_p5_diff.py | 13 |

@@ -176,6 +176,44 @@ def _gate_p5_count(gate_file):
     return main, aux
 
 
+def _load_state_yaml(task_dir):
+    """读 task_dir/.state.yaml 为 dict（TAG0020 gate_p65 用；仿 check-p6-provenance L209-221）。
+
+    文件缺失 / 无 pyyaml / 解析失败 → {}（静默回退，等价 provenance 的
+    no_reuse_claim_possible 静默空 dict 语义）。
+    """
+    state_path = os.path.join(task_dir, ".state.yaml")
+    if not os.path.isfile(state_path) or yaml is None:
+        return {}
+    try:
+        with open(state_path, encoding="utf-8", errors="replace") as f:
+            data = yaml.safe_load(f)
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _run_gate_script(script_name, task_dir):
+    """调 {SCRIPT_DIR}/{script_name} TASK_DIR（TAG0020 gate_p65 用）。
+
+    子脚本 stderr 透传（诊断可见）；脚本缺失/执行失败 → 非 0（fail-closed）。
+    """
+    path = os.path.join(SCRIPT_DIR, script_name)
+    if not os.path.isfile(path):
+        sys.stderr.write(f"GATE P6.5: 缺子脚本 {script_name}\n")
+        return 1
+    try:
+        proc = subprocess.run(
+            [sys.executable, path, task_dir],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+    except OSError:
+        return 1
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    return proc.returncode
+
+
 def _to_int(value, default=0):
     """安全转 int；失败回退 default（对应 bash 算术错误按 0 处理的口径）。"""
     try:
@@ -840,6 +878,33 @@ def gate_p6(task_dir):
     return 2
 
 
+def gate_p65(task_dir):
+    """P6.5 judge 强门槛子阶段（TAG0020，BDD-1/2/9；P2-design §3.5 候选 1）。
+
+    P6.5 是挂载于 P6→P7 转移上的强门槛子阶段，非独立 phase 值（.state.yaml phase
+    保持 P6 至 P7）。判定：
+    - judge 未启用（.state.yaml 无 judge.enabled: true / 历史任务）→ 早退 0（BDD-2）
+    - 启用但缺 P6.5-judge-verdict.md → exit 1（BDD-1 fail-closed，P6→P7 阻断）
+    - 否则依次调 check-judge-verdict.py + check-events.py，任一 exit 1 → exit 1
+      （BDD-9：机械核对 exit code 才是门槛，LLM verdict 不单独放行）
+    """
+    state_yaml = _load_state_yaml(task_dir)
+    judge = state_yaml.get("judge") if isinstance(state_yaml, dict) else None
+    if not (isinstance(judge, dict) and judge.get("enabled")):
+        sys.stderr.write("GATE P6.5: judge 机制未启用（历史任务），跳过\n")
+        return 0
+    verdict = os.path.join(task_dir, "P6.5-judge-verdict.md")
+    if not os.path.isfile(verdict):
+        sys.stderr.write("GATE P6.5: 缺 P6.5-judge-verdict.md（judge 未产出），P6→P7 阻断\n")
+        return 1
+    for script in ("check-judge-verdict.py", "check-events.py"):
+        if _run_gate_script(script, task_dir) != 0:
+            sys.stderr.write(f"GATE P6.5: {script} 未通过\n")
+            return 1
+    sys.stderr.write("GATE P6.5: judge 复核 + 账本审计通过\n")
+    return 0
+
+
 def gate_p7(task_dir):
     # v0.6：显式 if/elif/else；T001 v2.0 流 B（BDD-19/20，P2-design.md §3.2.2）：
     # frontmatter 声明 blocker_count/deviation_critical_count/design_gap_count/
@@ -1087,6 +1152,7 @@ def main():
         "P4": gate_p4,
         "P5": gate_p5,
         "P6": gate_p6,
+        "P6.5": gate_p65,
         "P7": gate_p7,
         "P8": gate_p8,
     }

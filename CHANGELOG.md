@@ -8,6 +8,52 @@
 
 ---
 
+## [0.59.0] - 2026-08-22
+
+### 新增（TAG0020：P6.5 独立 Judge 机制，RM-AG0032）
+
+- **新评审角色 judge**（`assets/review-roles/judge.md`，所有任务强制）：P6 验收后、P7 之前以 fresh
+  context 逐条重验**所有** BDD（含已 PASS 项，零挑验），只信 `P6-evidence/` 证据与 git log，不读
+  verifier/implementer 自述——补 self-authored gate（P6/P7）的作者与裁判同信任链弱点（LIMITATIONS.md
+  局限 3 缓解链）。
+- **三层防造假**：① 信息隔离白名单（judge 的 dispatch-context 仅允许白名单输入，`check-judge-
+  verdict.py` 机械校验黑名单路径引用集）② 证据交叉核对（BDD 计数对照「criteria_total == P1 标题数
+  + 编号集零挑验」/ 证据存在非空 / md5 去重 / 引用对称）③ append-only 事件账本
+  `gate-events.jsonl`（`agate_common.append_event` 单点写入，行间哈希链 + 时间戳单调，
+  `check-events.py` 审计）。
+- **新脚本**：`check-judge-verdict.py`（verdict 门槛判定九步链，通过后自记 `judge_verdict` 事件含
+  `verdict_hash` 内容寻址——同一 verdict 被多处 gate 执行重跑不增轮次）、`check-events.py`（账本
+  审计：哈希链完整 / ts 单调 / judge 复核轮次 ≤2 按 verdict_hash 去重）。
+- **P6.5 状态机挂载**：P6 → P6.5（judge 复核）→ P7；`.state.yaml` phase 保持 P6 直至 P7（P6.5 非独立
+  phase 值，valid_phases/重试表零扩展）；`check-gate.py` 新增 `P6.5` 分支（judge 未启用 → 早退跳过，
+  历史兼容）；pre-commit-gate 2i.1 + ci-gate-backstop judge/events 兜底。
+- **三档预算与诚实降级**：轮次 ≤2 / token 100k（`judge_token_budget` 可覆盖）/ 时间 30min；预算耗尽
+  → `partial: true` + `status: needs-revision`（账本 `reason: budget_exhausted` 交叉校验），不静默
+  放行。哲学红线保持：judge verdict 是行为描述输入，**机械核对（双脚本 exit 0）才是门槛**。
+- 文档：state-machine / WORKFLOW / dispatch-protocol（Judge 信息隔离节）/ P6 卡片（P6.5 门槛）/
+  dispatch-prompt（Judge 派发追加节）/ role-system（judge 登记）/ LIMITATIONS（局限 3 缓解链）/
+  AGENTS / CODE-MAP；CHECK 9 锚点 + `_DRIFT_SCRIPTS` 登记。
+
+## [0.58.0] - 2026-08-21
+
+### 新增（TAG0019：风险分路由 ceremony routing，RM-AG0031）
+
+- **ceremony 声明字段**（P1 frontmatter 可选，thin / standard / full，缺省 standard fail-closed）：
+  声明 thin 须四要素 checklist（coupling_checklist 流式 + 跳过风险 + P5/P6 保留），缺一回退 standard；
+  `ceremony: full` 任务 phases 必须含 P7（P7 不可裁，声明层 + 评审层双重保证）。
+- **check-routing.py gate**（pre-commit 链 2j.1）：ceremony 路由校验——声明与算分 tier 单向 fail-closed
+  （声明 thin 而算分 standard/full → 拦截）+ thin 四要素 checklist + 非法值 / P1 缺失边界（exit 0/1/2）；
+  不声明 ceremony 的存量任务 exit 0 不拦截（向后兼容）；importlib 复用 check-pruning 同源函数（BDD-10）。
+- **agate-risk-score.py 客观信号算分**：文件类型 / 敏感路径（词干匹配 + 左锚防误标）/ 改动规模 /
+  影响面（反向引用，跳过任务产出文档）四信号 → risk_score / tier（thin|standard|full）+ 逐信号证据行 +
+  域映射；提供可 import 的 `score_task(task_dir)` 与 CLI 薄壳；git 通道异常输出 `git_ok: false` 不静默降级。
+- **requirements-review 审声明职责**：评审核对「风险分级/裁剪声明（risk_level/ceremony/phases）vs
+  暂存区 diff 证据」，不一致 → needs-revision / rejected。
+- **M3 验收锚度量协议**：评审轮数 vs 真实发现数双指标 + TAG0018 基线（4 场 LLM 评审 ≈0 净收益）+
+  不达标回滚规则（机制文档，M3 主体不在本任务实行）。
+- 修复：check-protocol-consistency CHECK 9 锚点表补 check-routing（反向覆盖）；测试注释 `/tmp` 字面
+  清理（platform-assumptions 变更文件集 0 命中）。
+
 ## [0.57.0] - 2026-08-21
 
 ### 新增（TAG0018：agate 原生支持 DSH 平台，RM-AG0030）

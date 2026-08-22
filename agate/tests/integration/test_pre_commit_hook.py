@@ -1488,3 +1488,52 @@ def test_bdd_11_agate_python_explicit_override_skips_probe_loop(
         f"（{hook_filename}）：returncode={result.returncode} output={result.output!r}"
     )
     assert _PROBE_MARKER in result.output
+
+
+# ============================================================
+# TAG0019 2j.1 挂载链（P4-review C3 / P2 §0.3 R3 缓解）：
+# ceremony 路由校验在 pre-commit 链上（check-routing 与 2j check-pruning 并列）
+# ============================================================
+
+
+def test_it10_routing_2j1_thin_missing_element_blocks(
+    git_repo, agate_root, agate_scripts, python_exe, run_cli
+):
+    """TAG0019 C3（P2 §0.3 R3）：ceremony: thin 缺四要素（coupling_checklist）→
+    check-routing exit 1 → commit 被 2j.1 拦截（输出含 GATE ROUTING）。
+    若 2j.1 未挂载，本 commit 应成功 → 该用例失败，证明挂载链缺失。"""
+    repo = git_repo.path
+    _install_pre_commit_hook(repo, agate_scripts)
+    _init_commit(run_cli, agate_root, git_repo, repo)
+
+    task_dir = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    _write_state_yaml(task_dir, "TXX0001", "P2")
+    (task_dir / "P1-requirements.md").write_text(
+        "---\nagent: test\nceremony: thin\nrisk_level: low\n"
+        "phases: [P0, P1, P2, P3, P4, P5, P6, P7, P8]\n"
+        "packages: [pkg-a]\ndomains: [backend]\n---\n"
+        "### 主流程\n#### BDD-1: test\n",
+        encoding="utf-8",
+    )
+    (task_dir / "P2-design.md").write_text(
+        "---\nagent: test\nphase: P2\ntask_id: TXX0001\ntype: design\n"
+        "parent: P1-requirements.md\ntrace_id: T001-P2-20260708\n"
+        "status: approved\ncreated: 2026-07-08\n---\n"
+        "### 候选方案 A：方案一\n### 候选方案 B：方案二\n## 权衡\nA 简单 B 稳健\n"
+        "candidate_count: 2\npackages: [pkg-a]\ndomains: [backend]\n"
+        "ui_affected: false\ngate_commands: {}\n",
+        encoding="utf-8",
+    )
+    (task_dir / "P2-review.md").write_text(
+        "---\nstatus: approved\nagent: reviewer-subagent\n---\nP2 review approved.\n",
+        encoding="utf-8",
+    )
+    git_repo.stage("agate-workspace/tasks/T001/")
+    _write_min_valid_dispatch_context(
+        run_cli, python_exe, agate_scripts, agate_root, task_dir, "P2", "architect"
+    )
+    git_repo.stage("agate-workspace/tasks/T001/P2-dispatch-context-architect.md")
+    result = _git_commit(run_cli, agate_root, repo, "-m", "T001 P2 thin missing checklist")
+    assert result.returncode != 0
+    assert "GATE ROUTING" in result.output

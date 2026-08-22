@@ -1,0 +1,7 @@
+........................................................................ [ 81%]
+................                                                         [100%]
+88 passed, 1 deselected in 6.10s
+[exit=0]
+---
+说明：BDD 映射测试重跑（P6 佐证）；test_check_routing::test_bdd_7_git_ok_false 为 P5 记录的环境前提 I1（沙箱可写 basetemp 全在 git 仓库内 run_git 必成功），-k 排除；其行为已由 GIT_DIR=/nonexistent 探针实测验证（bdd-6-7-extra.log）
+EXIT_CODE: 0

@@ -681,6 +681,24 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-platform-assumptions.py",
         "keywords": ["平台假设", "R1", "R2"],
     },
+    {
+        "desc": "ceremony 路由校验（fail-closed：thin 四要素 + 声明 vs 算分单向，git_ok:false 兜底）",
+        "script": "agate/scripts/check-routing.py",
+        "keywords": ["ceremony", "git_ok"],
+        "callers": ["agate/scripts/pre-commit-gate.py"],
+    },
+    {
+        "desc": "judge verdict 门槛判定（P6.5）",
+        "script": "agate/scripts/check-judge-verdict.py",
+        "keywords": ["criteria_total", "judge"],
+        "callers": ["agate/scripts/check-gate.py", "agate/scripts/pre-commit-gate.py", "agate/scripts/ci-gate-backstop.py"],
+    },
+    {
+        "desc": "事件账本审计（append-only 哈希链）",
+        "script": "agate/scripts/check-events.py",
+        "keywords": ["prev_hash", "GENESIS"],
+        "callers": ["agate/scripts/check-gate.py", "agate/scripts/pre-commit-gate.py", "agate/scripts/ci-gate-backstop.py"],
+    },
 ]
 
 

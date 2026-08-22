@@ -48,6 +48,7 @@ agate 的角色体系把角色分成两层：
 | QA 工程师 | qa.md | P5 | 功能跑通、找 bug |
 | 调试专家 | investigate.md | 任意（出 bug 时）| 根因 |
 | 安全官 | cso.md | P4 后（涉敏感）| 安全审计 |
+| 验收独立裁判 | judge.md | P6.5（**所有任务强制**）| fresh context 逐条重验全部 BDD（含已 PASS 项，零挑验），只信证据与 git log，防 self-authored gate 锚定（TAG0020）|
 
 ### 评审角色机械映射（C8 — 不靠主 Agent 临场判断）
 
@@ -60,9 +61,10 @@ P1 在 requirements.md 声明 `domains:` 和 `risk_level:`，主 Agent **机械�
 | mcp | 任意 | review + 关注 MCP 接口契约（T005 教训：MCP 改动需专项评审）|
 | security | 任意 | cso（P4 后）|
 | 任意 | **high** | **plan-eng-review 必须派发**（P2.1 硬规则，check-gate.py 对 agent=main 硬拦截 exit 1）|
+| 任意 | **full**（算分 tier=full 或声明 `ceremony: full`）| **plan-eng-review 必须派发**（P2，对齐 risk_level=high 硬规则）+ **cso**（security 域）+ **P7 不可裁**（full 档任务 P7 为强制阶段，去重规则同本表）|
 | P1-requirements.md 含 [NEED_CONFIRM] 且涉及业务方向 | 任意 | plan-ceo-review（P1 后 / P2）|
 
-**去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。
+**去重说明**：同一任务命中多行且触发同一评审角色时，去重只派发一次（如 backend + high 均命中 plan-eng-review，只派 1 个 plan-eng-review，不重复派发）。**full 档（tier=full 或 `ceremony: full`）与 risk_level=high 命中同一角色时同样只派 1 次**。
 
 T005 漏 MCP 评审的根因：靠主 Agent 临场判断，它没有 MCP 评审意识。机械映射消除这个盲区。
 
@@ -113,6 +115,8 @@ subagent 读取角色文件，按角色定义的方式工作。
 | 需补充 / needs revision | `needs-revision`（计入重试）|
 
 例如 plan-ceo-review 的结论是"转向"，映射为 `status: rejected`；plan-eng-review 的"approved"直接就是 `status: approved`。无论用哪个评审角色做门槛，主 Agent 都只读 `status` 字段判定，不需要理解各角色的具体结论语义。
+
+**judge（P6.5）verdict 三值复用同一映射**（TAG0020）：`passed → approved`（P6→P7 放行）/ `needs-revision → needs-revision`（弹回 P6 重验，judge 轮次 +1）/ `rejected → rejected`（弹回 P6 或交人工）。judge 是**所有任务强制**的常态门槛评审（插入点固定为 P6 之后），**不进 C8 机械映射表**——C8 按 domain/risk 触发，与"强制所有任务"语义不同。
 
 **非门槛评审**（如纯参考的方向建议）不强制 status，但也不参与门槛判定。
 

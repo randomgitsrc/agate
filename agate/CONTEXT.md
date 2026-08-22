@@ -27,6 +27,7 @@
 | 自审 | agent=main 的评审，被 check-gate.py 硬拦截（exit 1） | orchestrator-template.md |
 | 裁剪说明 | P1-requirements.md 中声明跳过阶段及理由的节 | WORKFLOW.md §可裁剪的阶段 |
 | 风险等级 | P1 声明的 risk_level 字段（low/medium/high），影响裁剪和评审触发 | WORKFLOW.md §裁剪风险维度 |
+| ceremony | P1 frontmatter 声明的仪式深度档位（thin / standard / full），缺省 standard（fail-closed：不声明或声明要素不满足一律按 standard 处理，不做薄化）；声明 thin 须四要素 checklist（coupling_checklist 流式 + 跳过风险 + P5/P6 保留），缺一回退 standard；full 档任务 P7 不可裁 | phase-cards/P1-requirements.md §ceremony fail-closed 声明 checklist |
 | pytest | agate 测试框架（≥7）。开发者在 Linux 全量 `python3 -m pytest agate/tests/`，Windows 只跑冒烟 | AGENTS.md §测试约定 |
 | windows_smoke marker | `@pytest.mark.windows_smoke`，Windows CI 冒烟代表（每文件第 1 个用例 + 平台敏感关键词用例），Linux 全量覆盖、Windows 只验证平台敏感机制成立 | AGENTS.md §测试约定 |
 | conftest | agate/tests/conftest.py，全局 fixture（agate_root / task_dir / git_repo / run_cli / py_path），根目录自动加载，test_*.py 无需 load 语句 | tests/README.md |

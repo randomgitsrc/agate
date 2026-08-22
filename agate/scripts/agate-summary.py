@@ -39,7 +39,15 @@ _GUARD_SCRIPTS = [
     "check-retrospective.py",
 ]
 
-_DRIFT_SCRIPTS = ["check-tdd-red.py", "check-gate.py", "check-pruning.py"]
+_DRIFT_SCRIPTS = [
+    "check-tdd-red.py",
+    "check-gate.py",
+    "check-pruning.py",
+    "agate-risk-score.py",
+    "check-routing.py",
+    "check-judge-verdict.py",
+    "check-events.py",
+]
 
 
 def _build_guards(script_dir):

@@ -367,3 +367,25 @@ def test_cf_14_bdd_4_regression_pass_type_valid_empty_output(
     result = _run_frontmatter(agate_scripts, python_exe, run_cli, d / "P6-acceptance.md")
     assert result.returncode == 0
     assert result.output == ""
+
+
+def test_cf_15_bdd_6_ceremony_invalid_enum_rejected(
+    tmp_path, agate_scripts, python_exe, run_cli
+):
+    """BDD-6 写侧（TAG0019 C3）：ceremony: light（非 thin/standard/full）→ 非法值拦截 exit 1。"""
+    d = tmp_path / "cf-15"
+    d.mkdir()
+    (d / "P1-requirements.md").write_text(
+        _P1_HEAD
+        + "risk_level: medium\n"
+        + "phases: [P1, P2]\n"
+        + "packages: [agate]\n"
+        + "domains: [backend]\n"
+        + "ceremony: light\n"
+        + _P1_TAIL,
+        encoding="utf-8",
+    )
+
+    result = _run_frontmatter_wrapper(agate_scripts, python_exe, run_cli, d / "P1-requirements.md")
+    assert result.returncode == 1
+    assert "ceremony" in result.output

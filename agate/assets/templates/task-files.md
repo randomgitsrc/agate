@@ -141,6 +141,7 @@ phases: [P1, P2, P3, P4, P5, P6, P7, P8]   # list of P\d+，必填
 packages: [pkg-a]                 # list，必填
 domains: [backend, cli]           # list，必填
 # 可选字段：仅在适用时写（不适用即省略，不写 null——presence 语义）
+# ceremony: standard            # thin/standard/full；缺省 standard（fail-closed）；thin 需四要素 checklist
 # override: "P2 retained"         # 裁剪声明与执行不一致时
 # implicit_coupling: false        # bool；P7 裁剪时声明
 # coupling_checklist: [api-schema: checked]  # list；P7 裁剪时必填
