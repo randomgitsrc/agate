@@ -2621,3 +2621,115 @@ def test_bdd_10_gate_p7_refactor_not_exempt_pairing_check(
     result = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td))
     assert result.returncode == 1
     assert "CODE_MAP" in result.output
+
+
+# ─────────────────────────────────────────────
+# TAG0020 增补：gate_p65（P6.5 强门槛子阶段，BDD-1/2/9/10；P2-design §3.5）
+#   judge.enabled falsy（无 judge 字段 / 显式 false）→ 早退 exit 0（BDD-2 历史兼容）；
+#   启用但缺 P6.5-judge-verdict.md → exit 1（BDD-1 fail-closed）；
+#   否则依次调 check-judge-verdict / check-events，任一 exit 1 → exit 1（BDD-9）；
+#   gate_p6 语义不变，judge 产物（P6.5-*）不干扰 P6 gate（BDD-10）。
+# 未实现前 check-gate.py 对 "P6.5" 返回未知阶段 exit 2 → 本组新用例全部红灯（B 类）。
+
+
+def _write_state_judge(td, enabled):
+    """覆写 .state.yaml：phase=P6 + judge.enabled（BDD-1/2 judge 机制启用开关）。"""
+    (td / ".state.yaml").write_text(
+        "task_id: T001\nphase: P6\nstatus: active\nretries: {}\njudge:\n  enabled: "
+        + str(enabled).lower()
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_judge_pass_fixture(td):
+    """gate_p65 通过路径所需合规产物：verdict(passed 1/1) + dispatch-context(白名单合规) + 证据。"""
+    (td / "P6-evidence").mkdir(parents=True, exist_ok=True)
+    (td / "P6-evidence" / "e1.json").write_text("evidence\n", encoding="utf-8")
+    (td / "P6.5-judge-verdict.md").write_text(
+        "---\nstatus: passed\ncriteria_total: 1\ncriteria_passed: 1\n"
+        'verdict_evidence: ["e1.json"]\n---\n- PASS BDD-1: verified (e1.json)\n',
+        encoding="utf-8",
+    )
+    (td / "P6.5-dispatch-context-judge.md").write_text(
+        "---\nphase: P6.5\ntask_id: T001\n---\n\n"
+        "### 输入文件\n- P1-requirements.md\n- P6-evidence/\n\n"
+        "### 上游关联\n- gate-events.jsonl\n",
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.windows_smoke
+def test_bdd_2_gate_p65_judge_disabled_early_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-2：judge.enabled: false（历史任务显式关）→ P6.5 早退 exit 0，不要求 judge 产物。"""
+    td = task_dir()
+    _write_state_judge(td, enabled=False)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6.5", str(td))
+    assert result.returncode == 0
+    assert "跳过" in result.output
+
+
+def test_bdd_2_gate_p65_no_judge_field_early_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-2：.state.yaml 无 judge 字段（存量任务）→ 不要求 P6.5-judge-verdict/gate-events，早退 exit 0。"""
+    td = task_dir()  # create_task_dir 默认 .state.yaml 无 judge 键
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6.5", str(td))
+    assert result.returncode == 0
+    assert "跳过" in result.output
+
+
+def test_bdd_1_gate_p65_judge_enabled_verdict_missing_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-1：judge 启用 + verdict 缺失 → exit 1（P6→P7 阻断，fail-closed）。"""
+    td = task_dir()
+    _write_state_judge(td, enabled=True)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6.5", str(td))
+    assert result.returncode == 1
+    assert "P6.5-judge-verdict.md" in result.output
+
+
+def test_bdd_9_gate_p65_judge_checks_fail_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-9：judge 启用 + verdict 存在但机械核对失败（空 verdict）→ check-judge-verdict exit 1 → gate exit 1。"""
+    td = task_dir()
+    _write_state_judge(td, enabled=True)
+    (td / "P6.5-judge-verdict.md").write_text("", encoding="utf-8")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6.5", str(td))
+    assert result.returncode == 1
+
+
+def test_bdd_9_gate_p65_all_pass_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-1/9 正向：judge 启用 + verdict/dispatch-context/证据合规 → check-judge-verdict 与
+    check-events（账本缺失合法）均 exit 0 → gate_p65 exit 0（P6→P7 放行）。"""
+    td = task_dir()
+    _write_state_judge(td, enabled=True)
+    _write_judge_pass_fixture(td)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6.5", str(td))
+    assert result.returncode == 0
+
+
+def test_bdd_10_gate_p6_unaffected_by_judge_artifacts_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-10：judge 启用 + P6.5 产物齐全时，gate_p6 行为与基线一致（exit 2 主 Agent 自判），
+    P6.5-* 文件不被 P6 gate 误拦（参照 test_g6_5 基线形态）。"""
+    td = task_dir()
+    _write_state_judge(td, enabled=True)
+    _write_judge_pass_fixture(td)
+    _write_p6_acceptance(td, "- PASS BDD-1\n- PASS BDD-2\n")
+    _add_p6_evidence(td, "result.log")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result.returncode == 2

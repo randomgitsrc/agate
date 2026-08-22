@@ -72,7 +72,8 @@ assets/review-roles/
 ├── qa.md                 # 质量保障评审
 ├── investigate.md        # 事后排查
 ├── protocol-alignment-review.md  # 协议-脚本对齐审查（self-gate）
-└── requirements-review.md  # P1 需求基线评审
+├── requirements-review.md  # P1 需求基线评审
+└── judge.md              # P6.5 验收独立裁判（所有任务强制，fresh context 重验全部 BDD）
 ```
 
 ## 升级 agate

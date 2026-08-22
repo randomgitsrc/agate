@@ -46,6 +46,7 @@ if SCRIPT_DIR not in sys.path:
 
 try:
     from agate_common import (
+        append_event,
         read_state_phase,
         read_state_task_id,
         resolve_agate_root,
@@ -74,7 +75,9 @@ _PHASE_OUTPUT = {
 _PHASE_OUTPUT_DIR = {"P5": "P5-test-results"}
 
 # E3 证据文件例外前缀（sh grep -vE "^${TASK_REL}/(P[0-9]-evidence/|evidences/)"）
-_NON_MD_YAML_RE = re.compile(r"\.(md|yaml)$|^\.state")
+# gate-events.jsonl（TAG0020 事件账本）与 .state.yaml 同类 = gate 元数据文件：
+# 随任务目录落库（audit trail），不应被 2n.2/2p 的"非 md/yaml 源码文件"判定误拦。
+_NON_MD_YAML_RE = re.compile(r"\.(md|yaml)$|^\.state|gate-events\.jsonl$")
 _P_OUTPUT_RE = re.compile(r"P[0-8]-.*\.md$")
 _P_NUM_RE = re.compile(r"P[0-8]")
 _STATE_YAML_SUFFIX = ".state.yaml"
@@ -143,6 +146,26 @@ def _run_script_capture(script, args, merge=False, suppress_stderr=False, input_
     except OSError:
         return 1, ""
     return proc.returncode, (proc.stdout or "")
+
+
+def _judge_enabled(task_dir):
+    """读 .state.yaml 的 judge.enabled（TAG0020 P6.5 注入条件，BDD-2 历史兼容）。
+
+    缺失/无 judge 块/解析失败 → False（历史任务全链跳过 P6.5，不要求 judge 产物）。
+    """
+    state_file = os.path.join(task_dir, ".state.yaml")
+    if not os.path.isfile(state_file):
+        return False
+    try:
+        import yaml
+        with open(state_file, encoding="utf-8", errors="replace") as f:
+            data = yaml.safe_load(f)
+    except Exception:
+        return False
+    if not isinstance(data, dict):
+        return False
+    judge = data.get("judge")
+    return bool(isinstance(judge, dict) and judge.get("enabled"))
 
 
 def _extract_card(file_path):
@@ -330,8 +353,46 @@ def main():
         # 2h.1 写 gate 结果（供 CI backstop 检测 --no-verify 绕过）
         write_gate_result(phase, task_id, gate_exit, gate_output)
 
+        # 2h.1b 事件账本写入（TAG0020 BDD-7：gate_run 事件，append-only 哈希链单点）
+        # append_event 内部失败仅 WARNING；此处再兜一层异常，确保任何意外都不阻断 commit
+        try:
+            append_event(task_dir, {
+                "event": "gate_run",
+                "phase": phase,
+                "cmd": "check-gate.py " + phase,
+                "exit": gate_exit,
+                "runner": "pre-commit",
+            })
+        except Exception as exc:
+            sys.stderr.write(f"GATE WARNING: gate_run 事件写入失败（不阻断 commit）: {exc}\n")
+
+        # 2h.1c 状态转移事件（TAG0020 BDD-7：phase 变更时记 state_transition；.state.yaml
+        # 仍为权威状态源，事件只记录不改写——双写语义，P2 §3.2 R1）
+        if phase_changed:
+            try:
+                append_event(task_dir, {
+                    "event": "state_transition",
+                    "phase": phase,
+                    "from": old_phase or "",
+                    "to": phase,
+                })
+            except Exception as exc:
+                sys.stderr.write(f"GATE WARNING: state_transition 事件写入失败（不阻断 commit）: {exc}\n")
+
         # 2i. P6 客观行为审计（P2.1/P2.10）
         if gate_exit != 1 and _run_script_rc("check-p6-provenance.py", [task_dir]) == 1:
+            sys.exit(1)
+
+        # 2i.1 P6.5 judge 复核 + 事件账本审计（TAG0020，commit-time 硬边界；P2 §3.5 候选 1）
+        # judge 启用（.state.yaml judge.enabled == true）且 verdict 已产出 → 依次调
+        # check-judge-verdict + check-events，任一 exit 1 → 阻断 commit。
+        # enforcement 与 commit 位置解耦（注入条件不依赖 phase 值）：verdict 落库的
+        # 任何后续 commit（含 P7 commit）都会重验；历史任务（无 judge.enabled）天然跳过。
+        if (gate_exit != 1
+                and _judge_enabled(task_dir)
+                and os.path.isfile(os.path.join(task_dir, "P6.5-judge-verdict.md"))
+                and (_run_script_rc("check-judge-verdict.py", [task_dir]) == 1
+                     or _run_script_rc("check-events.py", [task_dir]) == 1)):
             sys.exit(1)
 
         # 2j. 裁剪条件检查（P2.7-P2.9）
