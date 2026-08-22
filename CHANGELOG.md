@@ -8,6 +8,34 @@
 
 ---
 
+## [0.60.0] - 2026-08-22
+
+### 新增（TAG0021：协议结构化层 rules/ + S-1~S-6 双向一致性，RM-AG0022）
+
+- **结构化规则权威源 `agate/rules/`（M0，纯增量）**：`phases.yaml` / `dispatch.yaml` / `roles.yaml`
+  承载可判定规则（阶段定义 / 派发三铁律 / 五模式编排 / gate_commands 语法 / 角色映射 / C8 机械映射），
+  markdown 保留为人类叙事层；配套 `rules/schema/*.schema.json`（draft-07 子集）+ 手写校验器
+  `check-yaml-schema.py`（不引入 jsonschema 依赖）。
+- **双向一致性 gate `check-structure-consistency.py`（S-1~S-6 + S0）**：phases↔WORKFLOW 总览表双向
+  对账（S-1/S-2）、YAML→卡片（S-3）、YAML→脚本登记（S-4）、schema 校验（S-5）、引用完整性（S-6）、
+  S 编号自校验（S0）；ERROR 即 exit 1。
+- **三脚本双跑对账模式（M1）**：`agate-read-gate-commands` / `check-pruning` / `check-gate`（P2 分支）
+  grep↔YAML 结构化双读，差异输出 stderr `RECONCILE WARNING` + 汇总计数，退出码语义不变（告警不阻断）；对账工具函数入 `agate_common`（reconcile_field / read_rules_yaml / is_legal_gate_key 等）。
+- **切换权威源 + 阻断提升（M2）**：gate_commands 块解析 / 四字段计数迁至 `agate_common` 共享助手单点，
+  删除消费脚本内联正则；协议规则读 rules/*.yaml；S-1/S-2 漂移进 **pre-commit 独立 step + CI
+  consistency job 追加步骤**（exit 1 阻断）——判定语义与 v0.59 逐字节等价（破坏性变更见
+  UPGRADING v0.60.0）。
+- **卡片渲染化 + 稳定版隔离（M3）**：`agate-next-card.py` 内嵌渲染器 render_card()，卡片门槛 / 产出 /
+  派发 / gate 规则 / retry 上限节由 phases.yaml 渲染（正式卡片字节稳定、sha256 契约保持）；S-3 升级为
+  全卡逐字段对账；渲染经 AGATE_ROOT 解析隔离（worktree 未发布 YAML 不污染稳定版注入）。
+- 新增 34 测试用例（count-tests 1168 → 1202，≥ 749 基线）；全量 pytest 1198 passed（2 环境假象已登记）。
+
+### 破坏性变更
+
+见 `agate/UPGRADING.md` v0.60.0 节：① 三脚本从 grep 解析 md 切为读 YAML 权威源 + 对账兜底（判定语义
+不变，旧正文格式任务靠对账可跑，会持续出 RECONCILE 差异告警）② 一致性 gate 提升为 pre-commit + CI 阻断
+③ rules/ 数据层纯增量，既有 rules/*.md 保留不动。
+
 ## [0.59.0] - 2026-08-22
 
 ### 新增（TAG0020：P6.5 独立 Judge 机制，RM-AG0032）
