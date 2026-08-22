@@ -8,6 +8,32 @@
 
 ---
 
+## [0.59.0] - 2026-08-22
+
+### 新增（TAG0020：P6.5 独立 Judge 机制，RM-AG0032）
+
+- **新评审角色 judge**（`assets/review-roles/judge.md`，所有任务强制）：P6 验收后、P7 之前以 fresh
+  context 逐条重验**所有** BDD（含已 PASS 项，零挑验），只信 `P6-evidence/` 证据与 git log，不读
+  verifier/implementer 自述——补 self-authored gate（P6/P7）的作者与裁判同信任链弱点（LIMITATIONS.md
+  局限 3 缓解链）。
+- **三层防造假**：① 信息隔离白名单（judge 的 dispatch-context 仅允许白名单输入，`check-judge-
+  verdict.py` 机械校验黑名单路径引用集）② 证据交叉核对（BDD 计数对照「criteria_total == P1 标题数
+  + 编号集零挑验」/ 证据存在非空 / md5 去重 / 引用对称）③ append-only 事件账本
+  `gate-events.jsonl`（`agate_common.append_event` 单点写入，行间哈希链 + 时间戳单调，
+  `check-events.py` 审计）。
+- **新脚本**：`check-judge-verdict.py`（verdict 门槛判定九步链，通过后自记 `judge_verdict` 事件含
+  `verdict_hash` 内容寻址——同一 verdict 被多处 gate 执行重跑不增轮次）、`check-events.py`（账本
+  审计：哈希链完整 / ts 单调 / judge 复核轮次 ≤2 按 verdict_hash 去重）。
+- **P6.5 状态机挂载**：P6 → P6.5（judge 复核）→ P7；`.state.yaml` phase 保持 P6 直至 P7（P6.5 非独立
+  phase 值，valid_phases/重试表零扩展）；`check-gate.py` 新增 `P6.5` 分支（judge 未启用 → 早退跳过，
+  历史兼容）；pre-commit-gate 2i.1 + ci-gate-backstop judge/events 兜底。
+- **三档预算与诚实降级**：轮次 ≤2 / token 100k（`judge_token_budget` 可覆盖）/ 时间 30min；预算耗尽
+  → `partial: true` + `status: needs-revision`（账本 `reason: budget_exhausted` 交叉校验），不静默
+  放行。哲学红线保持：judge verdict 是行为描述输入，**机械核对（双脚本 exit 0）才是门槛**。
+- 文档：state-machine / WORKFLOW / dispatch-protocol（Judge 信息隔离节）/ P6 卡片（P6.5 门槛）/
+  dispatch-prompt（Judge 派发追加节）/ role-system（judge 登记）/ LIMITATIONS（局限 3 缓解链）/
+  AGENTS / CODE-MAP；CHECK 9 锚点 + `_DRIFT_SCRIPTS` 登记。
+
 ## [0.58.0] - 2026-08-21
 
 ### 新增（TAG0019：风险分路由 ceremony routing，RM-AG0031）

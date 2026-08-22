@@ -89,6 +89,18 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.59.0 — 独立 Judge 机制（无破坏性变更）
+
+**本版本无破坏性变更，无需迁移动作。**
+
+- 新增 P6.5 独立 Judge 复核（P6 验收后、P7 之前，所有任务强制）：新角色 `assets/review-roles/judge.md`
+  以 fresh context 逐条重验所有 BDD（含已 PASS 项），只信 `P6-evidence/` 证据与 git log。
+- 新增检查脚本 `check-judge-verdict.py` + `check-events.py`；`check-gate.py` 增加 `P6.5` 分支——
+  **只对启用了 judge 机制的任务生效**（`.state.yaml` 含 `judge.enabled: true`）；历史任务/存量任务
+  无该字段 → P6.5 全链自动跳过（含 gate、pre-commit 注入、CI backstop 三处守卫一致）。
+- 新增 append-only 事件账本 `{AGATE_WORKSPACE}/tasks/{Txxx}/gate-events.jsonl`（`append_event`
+  单点写入，随任务目录落库）——仅新增文件，不改变既有 `.state.yaml` / 产出文件语义。
+
 ### v0.58.0 — TAG0019 风险分路由（无破坏性变更）
 
 **本版本无破坏性变更，无需迁移动作。**
