@@ -345,7 +345,7 @@ def append_event(task_dir, event):
         line = json.dumps(row, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
         with open(path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
-    except Exception as exc:  # noqa: BLE001 —— 写账本失败不阻断 gate 主判定
+    except Exception as exc:
         sys.stderr.write(
             f"agate_common: append_event WARNING: 账本事件写入失败（不阻断主判定）: {exc}\n"
         )
