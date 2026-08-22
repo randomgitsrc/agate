@@ -49,7 +49,7 @@ import sys
 # 引入同目录公共库：AGATE_CARD/frontmatter 双排除与 BDD 计数口径与 check-p6-provenance
 # 同款；append_event 是账本唯一写路径（P2 候选 C1）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from agate_common import append_event, read_judge_verdict  # noqa: E402
+from agate_common import append_event, read_judge_verdict
 
 # BDD-5：verdict Header status 合法三值
 _VALID_STATUS = {"passed", "rejected", "needs-revision"}
@@ -171,16 +171,16 @@ def _check_whitelist_outside(section_lines):
     low = "\n".join(section_lines).lower()
     outside = []
     for tok in re.findall(r"[\w./\-]+\.(?:md|yaml)", low):
-        tok = tok.strip()
-        if _is_whitelisted(tok):
+        stripped = tok.strip()
+        if _is_whitelisted(stripped):
             continue
-        outside.append(tok)
+        outside.append(stripped)
     for tok in re.findall(r"[\w./\-]+/", low):
-        tok = tok.strip()
-        if "p6-evidence/" in tok:
+        stripped = tok.strip()
+        if "p6-evidence/" in stripped:
             continue
-        if re.match(r"^p[0-9]", tok):
-            outside.append(tok)
+        if re.match(r"^p[0-9]", stripped):
+            outside.append(stripped)
     return outside
 
 
@@ -410,11 +410,10 @@ def main():
         sys.exit(1)
 
     # 8. 预算交叉（BDD-8）
-    if _ledger_budget_exhausted(task_dir):
-        if not partial or status != "needs-revision":
-            sys.stderr.write(
-                "GATE JUDGE-VERDICT: 账本存在 budget_exhausted 事件，verdict 必须 partial: true 且 status=needs-revision\n")
-            sys.exit(1)
+    if _ledger_budget_exhausted(task_dir) and (not partial or status != "needs-revision"):
+        sys.stderr.write(
+            "GATE JUDGE-VERDICT: 账本存在 budget_exhausted 事件，verdict 必须 partial: true 且 status=needs-revision\n")
+        sys.exit(1)
 
     # 9. 全部通过 → 账本自记 judge_verdict 事件（事件写入收敛单点，BDD-8 R8）
     #    事件带 verdict_hash（verdict 全文 sha256，内容寻址）：同一 verdict 被
