@@ -371,3 +371,35 @@ python3 -m pytest agate/tests/unit/test_card_render.py -q -p no:cacheprovider --
 | test_check_routing::test_bdd_7 + test_env_adapt_docs::test_bdd_25 = 2 项 | 沙箱环境假象（同上 [CAPABILITY_GAP] 分类：basetemp 须在 git 仓库内 / dist/ 测试夹具 md 被一致性扫描纳入；CI 默认 basetemp=/tmp 在仓库外，两项均通过） |
 
 **零真实回归**：唯一真实回归 `test_sg_6_check9_anchor_table_covers_all_gate_scripts` 经锚点表数据登记已修复转绿（首轮 15 failed → 末轮 14 failed，且 14 项全部为预期红灯/环境项）；既有 1168 用例基线中其余全部保持绿。
+## ruff 修复轮（P5 回退定向修复，纯 lint 行为等价重构）
+
+> 触发：P5_ruff（`ruff check agate/`）exit 1，70 errors 全部落在 TAG0021 diff 涉及脚本；main 同 scope 0 error——本任务引入的 lint 违规。策略同仓库历史 5befd57/0bec042 先例：纯 lint 行为等价重构，commit 走 `self-gate-skip: 纯 lint 行为等价重构`。
+
+### 修复文件清单（8 个脚本，70 处）
+
+| 文件 | 处数 | 规则类别 |
+|------|------|---------|
+| agate/scripts/check-structure-consistency.py | 20 | UP031（%→f-string，%r→!r） |
+| agate/scripts/check-yaml-schema.py | 16 | UP031（%→f-string，%r→!r） |
+| agate/scripts/check-gate.py | 8 | E731（lambda→def，except ImportError 降级块） |
+| agate/scripts/agate_common.py | 6 | PLW0603×2（global→模块级 _RECONCILE_STATE dict）、UP031×2、RUF010×2（str()→!s） |
+| agate/scripts/check-pruning.py | 3 | E731（lambda→def，降级块） |
+| agate/scripts/pre-commit-gate.py | 1 | SIM102（嵌套 if→and 合并，短路语义等价） |
+| agate/scripts/agate-next-card.py | 1 | （ruff --fix 自动） |
+| agate/scripts/agate-read-gate-commands.py | 1 | （ruff --fix 自动） |
+
+（ruff --fix 自动修复 18 处：RUF100 13 / I001 2 / W292 2 / F401 1；其余 52 处手修，逐处核对输出字节等价）
+
+### 修复后验证结果签名
+
+```
+1. ruff check agate/                          → 0 errors（exit 0）
+2. pytest agate/tests/unit/                   → 1067 passed, 2 failed, 2 skipped
+   2 failed 恰为已登记沙箱环境假象（test_bdd_7 / test_bdd_25，[CAPABILITY_GAP] M0/M1 已分类）——无新增失败
+3. check-protocol-consistency.py --strict-errors-only → 0 ERROR（exit 0；清 dist/ 测试产物后复跑，
+   12 个 ERROR 均为 dist/test_bdd_* fixture md 被 CHECK 2 扫描所致，非 lint 改动引入）
+4. check-structure-consistency.py             → S1-S6 + S0 全 OK（exit 0）
+5. bash agate/tests/scripts/count-tests.sh    → 1202（不漂移）
+```
+
+状态标记：`[PROD_NOT_TOUCHED]`（仅 worktree 下 agate/scripts/ 8 个脚本改动；主 checkout 与 ~/.agate 稳定版未动）

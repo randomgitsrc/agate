@@ -65,16 +65,31 @@ except ImportError:
     def reconcile_summary():
         return None
 
-    split_frontmatter = lambda text: (None, text)
-    body_field_value = lambda body, field: ""
-    fm_field_value = lambda fm, field: ""
-    known_phase_ids = lambda rules_root: frozenset()
-    is_legal_gate_key = lambda key, phase_ids=None: True
-    resolve_rules_root = lambda script_path: ""
+    def split_frontmatter(text):
+        return (None, text)
+
+    def body_field_value(body, field):
+        return ""
+
+    def fm_field_value(fm, field):
+        return ""
+
+    def known_phase_ids(rules_root):
+        return frozenset()
+
+    def is_legal_gate_key(key, phase_ids=None):
+        return True
+
+    def resolve_rules_root(script_path):
+        return ""
+
     # M2 共享解析（BDD-9：已迁移解析点不在本文件字面出现，落在 agate_common 单点）；
     # agate_common 缺失时按数据缺失降级（块解析 → 无块；四字段 → 0，P2 分支 fail-closed）
-    parse_gate_commands_block = lambda text: (False, [])
-    count_p2_declared_fields = lambda text: 0
+    def parse_gate_commands_block(text):
+        return (False, [])
+
+    def count_p2_declared_fields(text):
+        return 0
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MD_FIELD_GET = os.path.join(SCRIPT_DIR, "agate-md-field-get.py")
@@ -657,7 +672,7 @@ def _reconcile_p2_fields(p2_file, p2_text):
             if not is_legal_gate_key(key, phase_ids):
                 reconcile_field("check-gate-P2", "gate_commands." + key, key, "(未声明)")
         reconcile_summary()
-    except Exception:  # noqa: BLE001  对账失败不阻断原判定（fail-open，BDD-6 二值语义）
+    except Exception:
         pass
 
 

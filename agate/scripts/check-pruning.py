@@ -43,9 +43,14 @@ except ImportError:
     def reconcile_summary():
         return None
 
-    split_frontmatter = lambda text: (None, text)
-    body_field_value = lambda body, field: ""
-    fm_field_value = lambda fm, field: ""
+    def split_frontmatter(text):
+        return (None, text)
+
+    def body_field_value(body, field):
+        return ""
+
+    def fm_field_value(fm, field):
+        return ""
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MD_FIELD_GET = os.path.join(SCRIPT_DIR, "agate-md-field-get.py")
@@ -124,7 +129,7 @@ def _reconcile_p1_fields(p1_text):
         if body_phases:
             reconcile_field("check-pruning", "phases", body_phases, fm_field_value(fm, "phases"))
         reconcile_summary()
-    except Exception:  # noqa: BLE001  对账失败不阻断原判定（fail-open，BDD-6 二值语义）
+    except Exception:
         pass
 
 

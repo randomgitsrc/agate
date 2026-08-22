@@ -42,7 +42,7 @@ def _reconcile_block_keys(entries):
             if not is_legal_gate_key(key, phase_ids):
                 reconcile_field("read-gate-commands", "gate_commands." + key, key, "(未声明)")
         reconcile_summary()
-    except Exception:  # noqa: BLE001  对账失败不阻断原判定（fail-open，BDD-6 二值语义）
+    except Exception:
         pass
 
 

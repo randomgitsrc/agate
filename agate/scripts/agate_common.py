@@ -590,8 +590,7 @@ def resolve_workspace(project_root):
 # bool 小写）；正文内联/块式 list 与 frontmatter list 语义等价 → 0 差异（P3 BDD-8）。
 # 对账是叠加层：任何异常/失败均不阻断调用方原判定（fail-open），对账计数不改变退出码。
 
-_RECONCILE_MISMATCHES = 0
-_RECONCILE_FIELDS = 0
+_RECONCILE_STATE = {"mismatches": 0, "fields": 0}
 
 _RECONCILE_OFF_VALUES = frozenset({"", "0", "off", "false", "no", "disable"})
 
@@ -614,15 +613,13 @@ def reconcile_field(op, field, grep_val, structured_val):
     返回 True=一致 / False=不一致。对账不改变调用方退出码语义（原判定 0/2 不变）；
     对账关闭时不做任何输出并恒返回 True。
     """
-    global _RECONCILE_MISMATCHES, _RECONCILE_FIELDS
     if not reconcile_enabled():
         return True
-    _RECONCILE_FIELDS += 1
+    _RECONCILE_STATE["fields"] += 1
     if _reconcile_norm(grep_val) != _reconcile_norm(structured_val):
-        _RECONCILE_MISMATCHES += 1
+        _RECONCILE_STATE["mismatches"] += 1
         sys.stderr.write(
-            "RECONCILE WARNING: %s %s: grep=%s structured=%s\n"
-            % (op, field, str(grep_val), str(structured_val))
+            f"RECONCILE WARNING: {op} {field}: grep={grep_val!s} structured={structured_val!s}\n"
         )
         return False
     return True
@@ -633,8 +630,7 @@ def reconcile_summary():
     if not reconcile_enabled():
         return
     sys.stderr.write(
-        "RECONCILE SUMMARY: %d mismatches across %d fields\n"
-        % (_RECONCILE_MISMATCHES, _RECONCILE_FIELDS)
+        f"RECONCILE SUMMARY: {_RECONCILE_STATE['mismatches']} mismatches across {_RECONCILE_STATE['fields']} fields\n"
     )
 
 
@@ -646,7 +642,7 @@ def read_rules_yaml(rules_root, name):
     try:
         with open(path, encoding="utf-8") as fh:
             return yaml.safe_load(fh)
-    except Exception:  # noqa: BLE001  YAML 解析失败按缺失降级（对账不阻断）
+    except Exception:
         return None
 
 
@@ -662,7 +658,7 @@ def resolve_rules_root(script_path):
     else:
         try:
             root = resolve_agate_root(script_path)
-        except Exception:  # noqa: BLE001  agate_common 不可用时兜底脚本路径上溯
+        except Exception:
             root = os.path.dirname(os.path.dirname(os.path.abspath(script_path)))
     return os.path.join(root, "rules")
 
@@ -712,7 +708,7 @@ def split_frontmatter(text):
     body = text[end + 4:]
     try:
         fm = yaml.safe_load(fm_text)
-    except Exception:  # noqa: BLE001  解析失败按无 frontmatter 降级
+    except Exception:
         fm = None
     return fm, body
 

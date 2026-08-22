@@ -34,7 +34,6 @@ S 编号空间，与 check-protocol-consistency 的 CHECK 1-12 不重复）：
 Python 3.8+（无 match / str.removeprefix）。
 """
 
-import json
 import os
 import re
 import subprocess
@@ -42,6 +41,7 @@ import sys
 
 try:
     import yaml
+
     from agate_common import is_gate_meta_key, resolve_agate_root
 except ImportError:
     sys.stderr.write("check-structure-consistency.py: 需要 pyyaml 与 agate_common（agate 脚本公共库）。pip install pyyaml 或确认在 agate/scripts/ 下运行\n")
@@ -95,7 +95,7 @@ def _load_yaml(path):
         return None
     try:
         return yaml.safe_load(text)
-    except Exception:  # noqa: BLE001  YAML 解析失败按缺失降级，ERROR 由调用方报
+    except Exception:
         return None
 
 
@@ -106,7 +106,7 @@ def _resolve_root():
         return env_root
     try:
         return resolve_agate_root(__file__)
-    except Exception:  # noqa: BLE001  agate_common 不可用时兜底脚本路径上溯
+    except Exception:
         return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -156,15 +156,17 @@ def _check_s1(phases_by_id, workflow_text):
     rows_by_id = {pid: (name, role) for pid, name, role in rows}
     for pid, phase in phases_by_id.items():
         if pid not in rows_by_id:
-            errs.append("phase %s 在 WORKFLOW 阶段总览表无对应行（S-1 YAML→md）" % pid)
+            errs.append(f"phase {pid} 在 WORKFLOW 阶段总览表无对应行（S-1 YAML→md）")
             continue
         table_name, table_role = rows_by_id[pid]
         yaml_name = str(phase.get("name", ""))
         if yaml_name != table_name:
-            errs.append("phase %s name 不一致：phases.yaml=%r vs WORKFLOW 表=%r" % (pid, yaml_name, table_name))
+            errs.append(f"phase {pid} name 不一致：phases.yaml={yaml_name!r} vs WORKFLOW 表={table_name!r}")
         yaml_role = str(phase.get("exec_role", ""))
         if not _role_matches(yaml_role, table_role):
-            errs.append("phase %s exec_role 不一致：phases.yaml=%r vs WORKFLOW 表列=%r" % (pid, yaml_role, table_role))
+            errs.append(
+                f"phase {pid} exec_role 不一致：phases.yaml={yaml_role!r} vs WORKFLOW 表列={table_role!r}"
+            )
     return errs
 
 
@@ -173,7 +175,7 @@ def _check_s2(phases_by_id, workflow_text):
     errs = []
     for pid, _name, _role in _parse_workflow_rows(workflow_text):
         if pid not in phases_by_id:
-            errs.append("WORKFLOW 总览表阶段 %s 未在 phases.yaml 定义（S-2 md→YAML）" % pid)
+            errs.append(f"WORKFLOW 总览表阶段 {pid} 未在 phases.yaml 定义（S-2 md→YAML）")
     return errs
 
 
@@ -203,8 +205,7 @@ def _check_s3(phases_by_id, root):
             m = _CARD_PREFIX_RE.match(fname)
             if m and m.group(1) not in phases_by_id:
                 errs.append(
-                    "阶段卡片 %s 无对应 phases.yaml 定义（S-3 YAML→cards 渲染一致，人为删阶段/增卡片均检出）"
-                    % fname
+                    f"阶段卡片 {fname} 无对应 phases.yaml 定义（S-3 YAML→cards 渲染一致，人为删阶段/增卡片均检出）"
                 )
 
     # ② 逐阶段产出/派发对账（有卡片的阶段）
@@ -223,15 +224,13 @@ def _check_s3(phases_by_id, root):
                 fname = str(out["file"])
                 if fname not in card_text:
                     errs.append(
-                        "phase %s 产出 %s 未出现在 %s（S-3 YAML→cards 渲染一致）"
-                        % (pid, fname, os.path.basename(card_path))
+                        f"phase {pid} 产出 {fname} 未出现在 {os.path.basename(card_path)}（S-3 YAML→cards 渲染一致）"
                     )
         exec_role = str(phase.get("exec_role", ""))
         dispatch_block = _section_block(card_text, "## 派发")
         if dispatch_block is not None and exec_role and exec_role not in dispatch_block:
             errs.append(
-                "phase %s exec_role %s 未出现在卡片派发节（S-3 YAML→cards 渲染一致）"
-                % (pid, exec_role)
+                f"phase {pid} exec_role {exec_role} 未出现在卡片派发节（S-3 YAML→cards 渲染一致）"
             )
 
     # P2 试点锚点强制（M0 语义）：phases.yaml 必须定义 P2（S-3 抽检对象）
@@ -287,12 +286,13 @@ def _check_s4(dispatch, phases_by_id):
             script = reader.get("script", "")
             phase = reader.get("phase", "")
             if phase and phase not in phases_by_id:
-                errs.append("field_readers[%s] 引用未定义阶段 %s（S-4 YAML→scripts）" % (script, phase))
+                errs.append(
+                f"field_readers[{script}] 引用未定义阶段 {phase}（S-4 YAML→scripts）"
+            )
             for f in reader.get("fields", []) or []:
                 if str(f) not in allowed_fields:
                     errs.append(
-                        "field_readers[%s] 登记字段 %r 不在已知任务字段表（内置基线 ∪ phases.yaml task_fields）（S-4 YAML→scripts）"
-                        % (script, f)
+                        f"field_readers[{script}] 登记字段 {f!r} 不在已知任务字段表（内置基线 ∪ phases.yaml task_fields）（S-4 YAML→scripts）"
                     )
 
         syntax = dispatch.get("gate_commands_syntax")
@@ -302,13 +302,17 @@ def _check_s4(dispatch, phases_by_id):
                 errs.append("gate_commands_syntax.special_keys 缺 project_module 特判（合法 key = is_gate_meta_key OR project_module，S-4 YAML→scripts）")
             for suffix in syntax.get("meta_suffixes", []) or []:
                 if not is_gate_meta_key("P5" + str(suffix)):
-                    errs.append("gate_commands_syntax.meta_suffixes 声明 %r 与 is_gate_meta_key 判据不一致（S-4 YAML→scripts）" % suffix)
+                    errs.append(
+                    f"gate_commands_syntax.meta_suffixes 声明 {suffix!r} 与 is_gate_meta_key 判据不一致（S-4 YAML→scripts）"
+                )
             pattern = syntax.get("pattern")
             if pattern:
                 try:
                     re.compile(str(pattern))
                 except re.error as exc:
-                    errs.append("gate_commands_syntax.pattern %r 非合法正则（S-4 YAML→scripts）：%s" % (pattern, exc))
+                    errs.append(
+                    f"gate_commands_syntax.pattern {pattern!r} 非合法正则（S-4 YAML→scripts）：{exc}"
+                )
     else:
         errs.append("rules/dispatch.yaml 缺失或解析失败（S-4 判定不可用）")
     return errs
@@ -327,11 +331,13 @@ def _check_s5(root):
             [sys.executable, _CHECK_YAML_SCHEMA],
             capture_output=True, text=True, encoding="utf-8", env=env, timeout=120,
         )
-    except Exception as exc:  # noqa: BLE001  子进程拉起失败（超时/解释器异常）
-        return ["check-yaml-schema.py 运行失败（S-5 schema）：%s" % exc]
+    except Exception as exc:
+        return [f"check-yaml-schema.py 运行失败（S-5 schema）：{exc}"]
     if proc.returncode != 0:
         detail = ((proc.stdout or "") + (proc.stderr or "")).strip()
-        return ["rules/*.yaml 未过 schema（S-5 schema，check-yaml-schema.py exit %d）：%s" % (proc.returncode, detail[:300])]
+        return [
+            f"rules/*.yaml 未过 schema（S-5 schema，check-yaml-schema.py exit {proc.returncode}）：{detail[:300]}"
+        ]
     return []
 
 
@@ -348,7 +354,7 @@ def _collect_references(dispatch, roles):
         for key in ("execution_roles", "review_roles"):
             for entry in roles.get(key, []) or []:
                 if isinstance(entry, dict) and entry.get("file"):
-                    refs.append(("roles.%s[].file" % key, str(entry["file"])))
+                    refs.append((f"roles.{key}[].file", str(entry["file"])))
         for entry in roles.get("scripts", []) or []:
             if isinstance(entry, dict) and entry.get("path"):
                 refs.append(("roles.scripts[].path", str(entry["path"])))
@@ -360,7 +366,7 @@ def _check_s6(dispatch, roles, root):
     errs = []
     for loc, ref in _collect_references(dispatch, roles):
         if not os.path.isfile(os.path.join(root, ref)):
-            errs.append("%s 引用 %s 在协议根下不存在（S-6 引用完整性）" % (loc, ref))
+            errs.append(f"{loc} 引用 {ref} 在协议根下不存在（S-6 引用完整性）")
     return errs
 
 
@@ -373,12 +379,16 @@ def _check_s_numbering(root):
     used = set(re.findall(r"\b(S[0-9]+)-", own_text))
     overflow = (used - set(_S_IDS)) - {"S0"}
     if overflow:
-        errs.append("本脚本使用 S 编号 %s 超出保留空间 %s（S-0 编号自校验）" % (sorted(overflow), _S_IDS))
+        errs.append(
+            f"本脚本使用 S 编号 {sorted(overflow)} 超出保留空间 {_S_IDS}（S-0 编号自校验）"
+        )
     consistency = os.path.join(root, "scripts", "check-protocol-consistency.py")
     cons_text = _read_utf8(consistency)
     if cons_text is not None:
         for m in re.finditer(r"^S([0-9]+)[-:]", cons_text, re.M):
-            errs.append("check-protocol-consistency.py 使用 S 编号 S%s（与 S-1~S-6 空间冲突，S-0 编号自校验）" % m.group(1))
+            errs.append(
+                f"check-protocol-consistency.py 使用 S 编号 S{m.group(1)}（与 S-1~S-6 空间冲突，S-0 编号自校验）"
+            )
     return errs
 
 
@@ -391,7 +401,7 @@ def main():
         sys.exit(1)
     rules_dir = os.path.join(root, "rules")
     if not os.path.isdir(rules_dir):
-        sys.stderr.write("FATAL: AGATE_ROOT=%s 下缺少 rules/ 目录\n" % root)
+        sys.stderr.write(f"FATAL: AGATE_ROOT={root} 下缺少 rules/ 目录\n")
         sys.exit(1)
 
     phases_path = os.path.join(rules_dir, "phases.yaml")
@@ -433,9 +443,9 @@ def main():
         if errs:
             any_error = True
             for msg in errs:
-                sys.stdout.write("%s-%s: ERROR %s\n" % (sid, name, msg))
+                sys.stdout.write(f"{sid}-{name}: ERROR {msg}\n")
         else:
-            sys.stdout.write("%s-%s: OK\n" % (sid, name))
+            sys.stdout.write(f"{sid}-{name}: OK\n")
     sys.exit(1 if any_error else 0)
 
 

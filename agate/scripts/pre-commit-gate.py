@@ -409,13 +409,14 @@ def main():
         # 测试 fake 根未复制该脚本）→ fail-open 跳过（feature 未就位不阻断既有流程）；
         # 存在且 exit 1（S-1~S-6 漂移 ERROR）→ 阻断 commit。check-structure-consistency.py
         # 自身 --strict-errors-only 常开（P2-design §3.3）。
-        if os.path.isfile(os.path.join(SCRIPT_DIR, "check-structure-consistency.py")):
-            if _run_script_rc("check-structure-consistency.py", []) == 1:
-                sys.stderr.write(
-                    "GATE: 结构一致性漂移（check-structure-consistency.py exit 1）——"
-                    "rules/*.yaml 与协议 md 不一致，阻断 commit（TAG0021 BDD-10）\n"
-                )
-                sys.exit(1)
+        if os.path.isfile(os.path.join(SCRIPT_DIR, "check-structure-consistency.py")) and _run_script_rc(
+            "check-structure-consistency.py", []
+        ) == 1:
+            sys.stderr.write(
+                "GATE: 结构一致性漂移（check-structure-consistency.py exit 1）——"
+                "rules/*.yaml 与协议 md 不一致，阻断 commit（TAG0021 BDD-10）\n"
+            )
+            sys.exit(1)
 
         # 2k. SCOPE+ 追踪检查（P2.11）
         if gate_exit != 1 and _run_script_rc("check-scope-resolved.py", [task_dir]) == 1:

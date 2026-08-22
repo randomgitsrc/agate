@@ -102,7 +102,7 @@ def _load_phases(agate_root):
     try:
         with open(path, encoding="utf-8") as fh:
             data = _yaml.safe_load(fh)
-    except Exception:  # noqa: BLE001  YAML 解析失败按"无渲染数据"降级（原样输出）
+    except Exception:
         return None
     if not isinstance(data, dict):
         return None

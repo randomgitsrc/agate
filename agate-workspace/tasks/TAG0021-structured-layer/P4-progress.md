@@ -83,3 +83,25 @@
 - M3-3 自查：test_card_render.py 4 passed（BDD-13 两例转绿，BDD-12 两例保持）；test_agate_next_card + test_agate_inject_card + test_agate_card_inject 35 passed（字节稳定/注入 hash 契约未破坏）；test_check_structure_consistency 10 passed。
 - M3-4 自查：全量 pytest 1198 passed / 2 failed（均已登记 [CAPABILITY_GAP] 沙箱项：test_bdd_7 git-repo basetemp + test_bdd_25 dist 污染；隔离复跑前者仍红后者绿）/ 2 skipped——零真实回归；consistency 0 ERROR；structure S1-S6+S0 OK（0 漂移）；schema OK；count-tests 1202 ≥ 749；platform-assumptions 0 命中。
 - M3-5 状态标记：[PROD_NOT_TOUCHED]（仅 worktree 写；主 checkout 未动）。
+
+## ruff 修复轮（P5 回退，2026-xx）
+- [x] 读取 implementer.md + P4-dispatch-context-implementer.md + P0-brief.md
+- [x] 确认 ruff 状态：70 errors（UP031 38 / RUF100 13 / E731 11 / PLW0603 2 / I001 2 / W292 2 / F401 1 / SIM102 1），与诊断一致
+- [ ] 跑 ruff --fix 自动修复
+- [ ] 手修剩余（E731/SIM102/PLW0603 等）
+- [ ] 验证：ruff 0 errors + unit 无新增失败 + consistency 0 ERROR + structure S 全 OK + count-tests 1202
+- [ ] P4-implementation.md 追加修复轮小节
+
+- [x] 跑 ruff --fix 自动修复（18 处：RUF100 13 / I001 2 / W292 2 / F401 1）
+- [x] 手修 52 处：
+  - agate_common.py：PLW0603 2（global→_RECONCILE_STATE dict，行为等价）+ UP031 2 + RUF010 2（!s 修复）
+  - check-gate.py：E731 8（lambda→def）
+  - check-pruning.py：E731 3（lambda→def）
+  - pre-commit-gate.py：SIM102 1（嵌套 if→and 合并）
+  - check-structure-consistency.py：UP031 20（%→f-string，%r→!r）
+  - check-yaml-schema.py：UP031 16（%→f-string，%r→!r）
+- [x] ruff check agate/ = 0 errors（exit 0）
+- [ ] 验证：unit 无新增失败 + consistency 0 ERROR + structure S 全 OK + count-tests 1202
+- [x] 启动验证：unit pytest
+- [x] 验证完成：unit 2 failed（=允许的 test_bdd_7/25 环境假象，1067 passed 无新增失败）/ consistency 0 ERROR（清 dist 后 exit 0）/ structure S 全 OK / count-tests 1202
+- [x] P4-implementation.md 追加「ruff 修复轮」小节

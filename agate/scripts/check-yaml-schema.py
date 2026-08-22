@@ -30,6 +30,7 @@ import sys
 
 try:
     import yaml
+
     from agate_common import resolve_agate_root
 except ImportError:
     sys.stderr.write("check-yaml-schema.py: 需要 pyyaml 与 agate_common（agate 脚本公共库）。pip install pyyaml 或确认在 agate/scripts/ 下运行\n")
@@ -62,28 +63,28 @@ def _validate_value(value, schema, path, errors):
     """递归校验单个值 vs 子集 schema；错误追加到 errors（(path, msg) 列表）。"""
     type_name = schema.get("type")
     if type_name and not _type_ok(value, type_name):
-        errors.append((path, "类型应为 %s，实际 %s" % (type_name, type(value).__name__)))
+        errors.append((path, f"类型应为 {type_name}，实际 {type(value).__name__}"))
         return
     if "enum" in schema and value not in schema["enum"]:
-        errors.append((path, "值 %r 不在枚举 %s" % (value, schema["enum"])))
+        errors.append((path, f"值 {value!r} 不在枚举 {schema['enum']}"))
     if type_name == "object" and isinstance(value, dict):
         for key in schema.get("required", []):
             if key not in value:
-                errors.append((path, "缺 required 字段 %s" % key))
+                errors.append((path, f"缺 required 字段 {key}"))
         properties = schema.get("properties", {})
         for key, item in value.items():
-            child = "%s.%s" % (path, key) if path else key
+            child = f"{path}.{key}" if path else key
             if key in properties:
                 _validate_value(item, properties[key], child, errors)
             elif schema.get("additionalProperties") is False:
-                errors.append((path, "未知字段 %s（additionalProperties=false）" % key))
+                errors.append((path, f"未知字段 {key}（additionalProperties=false）"))
     elif type_name == "array" and isinstance(value, list):
         if "minItems" in schema and len(value) < schema["minItems"]:
-            errors.append((path, "数组长度 %d < minItems %d" % (len(value), schema["minItems"])))
+            errors.append((path, f"数组长度 {len(value)} < minItems {schema['minItems']}"))
         items = schema.get("items")
         if items:
             for idx, item in enumerate(value):
-                _validate_value(item, items, "%s[%d]" % (path, idx), errors)
+                _validate_value(item, items, f"{path}[{idx}]", errors)
 
 
 def _schema_self_check(file_name, schema):
@@ -103,7 +104,7 @@ def _schema_self_check(file_name, schema):
     elif isinstance(properties, dict):
         for key in required:
             if key not in properties:
-                errs.append(("", "required 字段 %s 未在 properties 中声明（schema 自相矛盾）" % key))
+                errs.append(("", f"required 字段 {key} 未在 properties 中声明（schema 自相矛盾）"))
     return errs
 
 
@@ -113,21 +114,21 @@ def _check_one(file_name, yaml_path, schema_path):
     data = None
     schema = None
     if not os.path.isfile(yaml_path):
-        errors.append(("", "文件缺失 %s" % os.path.relpath(yaml_path)))
+        errors.append(("", f"文件缺失 {os.path.relpath(yaml_path)}"))
     else:
         try:
             with open(yaml_path, encoding="utf-8") as fh:
                 data = yaml.safe_load(fh)
-        except Exception as exc:  # noqa: BLE001  YAML 解析失败（scanner/parser error）
-            errors.append(("", "YAML 解析失败: %s" % exc))
+        except Exception as exc:
+            errors.append(("", f"YAML 解析失败: {exc}"))
     if not os.path.isfile(schema_path):
-        errors.append(("", "文件缺失 %s" % os.path.relpath(schema_path)))
+        errors.append(("", f"文件缺失 {os.path.relpath(schema_path)}"))
     else:
         try:
             with open(schema_path, encoding="utf-8") as fh:
                 schema = json.load(fh)
-        except Exception as exc:  # noqa: BLE001  非法 JSON（R5 损坏 schema 兜底）
-            errors.append(("", "schema JSON 解析失败: %s" % exc))
+        except Exception as exc:
+            errors.append(("", f"schema JSON 解析失败: {exc}"))
     if schema is not None:
         errors.extend(_schema_self_check(file_name, schema))
         if data is not None and isinstance(schema, dict):
@@ -142,7 +143,7 @@ def _resolve_root():
         return env_root
     try:
         return resolve_agate_root(__file__)
-    except Exception:  # noqa: BLE001  agate_common 不可用时兜底脚本路径上溯
+    except Exception:
         return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -153,7 +154,7 @@ def main():
         sys.exit(1)
     rules_dir = os.path.join(root, "rules")
     if not os.path.isdir(rules_dir):
-        sys.stderr.write("FATAL: AGATE_ROOT=%s 下缺少 rules/ 目录\n" % root)
+        sys.stderr.write(f"FATAL: AGATE_ROOT={root} 下缺少 rules/ 目录\n")
         sys.exit(1)
 
     any_error = False
@@ -164,10 +165,10 @@ def main():
         if errors:
             any_error = True
             for path, msg in errors:
-                loc = "%s " % path if path else ""
-                sys.stdout.write("SCHEMA-%s: ERROR %s%s\n" % (file_name, loc, msg))
+                loc = f"{path} " if path else ""
+                sys.stdout.write(f"SCHEMA-{file_name}: ERROR {loc}{msg}\n")
         else:
-            sys.stdout.write("SCHEMA-%s: OK\n" % file_name)
+            sys.stdout.write(f"SCHEMA-{file_name}: OK\n")
     sys.exit(1 if any_error else 0)
 
 
