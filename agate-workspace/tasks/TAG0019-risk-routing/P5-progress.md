@@ -59,3 +59,26 @@
 - [x] `P5-test-results/unit.md` 覆盖更新（重试轮结果：failed=1 全为 I1）
 - [x] `P5-test-results/fail-list.txt` 覆盖更新（仅 1 条 + I1 标注）
 - [x] basetemp `.ptmp-scratch` 用后清理
+
+## P8 发布前重跑轮（audit7 reuse_blocked → 完整重跑 gate_commands.P5）
+
+> 变化：tag v0.58.0 已创建并推送（HEAD=44ed200，P8 release commit；本地 tag 已确认存在）→ consistency CHECK 7（badge vs tag）应 0 ERROR。验证对象 = 当前 HEAD（44ed200）。
+
+### P8 轮 CMD1: P5 全量测试（basetemp 同前，timeout 300s）
+- 结果: **1 failed, 1099 passed, 2 skipped**，EXIT_CODE=1，105.74s（与重试轮完全一致，无回归）
+- 唯一 failed：`test_bdd_7_thin_score_anomaly_git_ok_false_exit_1` = 环境前提 I1（非缺陷，同前判定）
+
+### P8 轮 CMD2: P5_consistency（worktree 脚本，timeout 90s）
+- 结果: **0 ERROR，318 WARNING，EXIT_CODE=0 → pass**（CHECK 7 badge vs tag 无 ERROR，tag v0.58.0 时序正确）
+- 待确认：CHECK 7 明细 grep（下方单独跑）
+
+### P8 轮 CMD3: P5_platform（7 文件变更集，timeout 90s）
+- 结果: **R1-R5 0 命中，EXIT_CODE=0 → pass**
+
+### P8 轮 CMD4: P5_count_tests（timeout 90s）
+- 结果: **1102 用例（≥ 749），EXIT_CODE=0 → pass**
+
+## P8 轮产出
+- [x] `P5-test-results/unit.md` 覆盖更新（P8 轮结果）
+- [x] `P5-test-results/fail-list.txt` 覆盖更新（仍仅 1 条 I1）
+- [x] basetemp `.ptmp-scratch` 用后清理
