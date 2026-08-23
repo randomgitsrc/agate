@@ -160,6 +160,8 @@ domains: [backend]            # 纯协议/脚本/CI/测试改造，无 frontend�
 
 > 本节约束为范围/边界决策，不涉及具体实现方案（候选方案与机制设计留 P2 architect）。
 
+[SCOPE_RESOLVED: P2-design.md §1.4 [SCOPE+]——M15（check-protocol-consistency.py `iter_md_files` 新增 opt-in 排除钩子 `AGATE_CONSISTENCY_SKIP_DIRS`，默认关闭、行为不变）为主 Agent 采纳：test_bdd_25 在「仓库内 basetemp」位置失败的根因是迭代扫描到 basetemp 下预存测试生成的坏引用 fixture .md（TAG0020 known-failures 条目 2 实证），M15 为 BDD-9「任意 basetemp 位置全量 0 失败」的必要使能；归属 BDD-9 验收口径内、不新增 BDD；该文件进入改动面（P4 期实现，dsh 沙箱 /tmp 只读下的仓库内位置验证口径以 P2 design §8 为准）]
+
 ## 6. BDD 验收条件
 
 > 编号连续 BDD-1..BDD-10，按 5 子项分组。每条独立可二值判定（PASS/FAIL），Given/When/Then 不绑定实现符号，全部以「运行命令后观察退出码/输出/文件」为客观判据。组标题标注归属子项。
