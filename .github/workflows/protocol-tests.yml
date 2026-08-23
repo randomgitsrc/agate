@@ -1,6 +1,34 @@
 name: Protocol Tests
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'agate-workspace/roadmap/**'
+      - 'agate-workspace/debt/**'
+      - 'archived/**'
+      - 'docs/**'
+      - 'HANDOFF-*.md'
+      - 'FIX-*.md'
+      - 'README.md'
+      - 'README.zh-CN.md'
+      - 'CHANGELOG.md'
+      - 'NOTICES.md'
+      - 'LICENSE'
+      - '.github/workflows/docs-check.yml'
+  pull_request:
+    paths-ignore:
+      - 'agate-workspace/roadmap/**'
+      - 'agate-workspace/debt/**'
+      - 'archived/**'
+      - 'docs/**'
+      - 'HANDOFF-*.md'
+      - 'FIX-*.md'
+      - 'README.md'
+      - 'README.zh-CN.md'
+      - 'CHANGELOG.md'
+      - 'NOTICES.md'
+      - 'LICENSE'
+      - '.github/workflows/docs-check.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
