@@ -89,6 +89,40 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.61.0 — 质量门禁收尾（TAG0022：RM-AG0037 ruff 合并强制；RM-AG0038/0039 条目见占位小节）
+
+> **本版本含破坏性变更**（RM-AG0038 权威源切换 / RM-AG0039 judge 强制化——条目由 C-migration /
+> B-judge 实现批在下方 ②③ 占位小节补充，合并发布前须补齐；RM-AG0037 为门禁配置步骤，无脚本行为变化）。
+
+**① CI ruff job 可被 PR required check 引用（RM-AG0037，维护者配置步骤）**
+
+- **背景**：ruff 此前只是 CI 普通 job，对 PR 合并非硬性——TAG0019/20 曾分别带 23/12 处 ruff
+  违规合并进 main（合并后实测共 35 处，靠事后 PR #183 补修）。v0.61.0 起 CI ruff job 的
+  `pip install ruff` 改为锁版本 `ruff==0.16.4`（与本地开发环境 `~/.venvs/agate-dev/bin/ruff`
+  对齐，BDD-2 对齐语义实体化），job name 保持稳定 `ruff`（可被 GitHub 分支保护按 check 名引用）。
+- **配置步骤（维护者/仓库管理员在 GitHub 仓库设置执行——required check 勾选是配置，非实现侧动作）**：
+  1. GitHub 仓库 → **Settings → Branches → 分支保护规则**（Branch protection rules）→ 选择受保护分支（如 `main`）；
+  2. 在 "Require status checks to pass before merging" 中**勾选 ruff** check（对应 CI `ruff:` job）；
+  3. 保存后，PR 合并前必须通过该 ruff check——`ruff check agate/`（`ruff==0.16.4`，项目根
+     `pyproject.toml` 规则集）exit 0（零违规）方可合并。
+- **升级动作**：无（纯 CI 配置 + 文档；已部署项目无迁移动作）。项目合并链路在 required check 勾选
+  生效后由 CI 自动强制。
+
+**② RM-AG0038 权威源切换（占位小节——C-migration 实现批补充）**
+
+> [占位] v0.61.0 含 RM-AG0038 破坏性变更：check-gate.py 等核心脚本的协议规则读取由「md/grep 双源」
+> 切为「rules/*.yaml 为规则唯一权威源、md 禁止承载可判定规则」（脚本行为破坏性变更），详细条目
+> （影响面 / 升级动作 / 对账兜底行为）由 C-migration 批（batch C）在本小节补充完整。
+
+**③ RM-AG0039 judge 强制化（占位小节——B-judge 实现批补充）**
+
+> [占位] v0.61.0 含 RM-AG0039 破坏性变更：机制后新任务（P1 `created` ≥ `judge_required_since`）
+> 必须声明 `judge.enabled: true`，check-gate P1 机械校验缺失即阻断；历史任务（机制前）跳过。
+> 详细条目（判据 / 历史兼容语义 / 升级动作）由 B-judge 批（batch B）在本小节补充完整。
+
+**通用升级动作**：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS
+符号链接模式自动跟随；Windows 复制模式必须重跑——②③ 补齐后若含 hook/脚本行为变更，以补齐条目为准）。
+
 ### v0.60.0 — 协议结构化层（TAG0021/RM-AG0022，M0-M2：破坏性变更）
 
 > **本版本含破坏性变更**（M2 切权威源 + 一致性 gate 提升阻断）。升级前先逐条对照，

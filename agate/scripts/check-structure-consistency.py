@@ -65,6 +65,7 @@ _TASK_FRONTMATTER_FIELDS = frozenset({
     "dispatch_plan", "pass", "fail", "regression_pass",
     "blocker_count", "deviation_count", "deviation_critical_count",
     "design_gap_count", "design_gap_reviewed_count",
+    "code_map_new_files_count", "code_map_reviewed_count",
 })
 
 # P0 执行角色 = 主 Agent 亲自写（WORKFLOW 表列 "**主 Agent 亲自写**（非 subagent）"）
@@ -233,6 +234,32 @@ def _check_s3(phases_by_id, root):
                 f"phase {pid} exec_role {exec_role} 未出现在卡片派发节（S-3 YAML→cards 渲染一致）"
             )
 
+        # S-3a（TAG0022，YAML→md 双向 gate 命令一致性）：gates[].check 中的机器可判定
+        # 命令串须在卡片 ## gate 规则（或推进条件）节出现；缺失 → ERROR（单侧漂移：
+        # YAML 侧加了命令串、卡片没写）。
+        yaml_cmd_refs = _yaml_gate_cmd_refs(phase)
+        if yaml_cmd_refs:
+            sec = _gate_rules_block(card_text, fallback_to_conditions=True)
+            sec_refs = _machine_gate_refs(sec) if sec else set()
+            missing = sorted(yaml_cmd_refs - sec_refs)
+            if missing:
+                errs.append(
+                    f"phase {pid} gates[].check 命令串 {missing} 未在 {os.path.basename(card_path)} ## gate 规则（或推进条件）节出现（S-3a YAML→md 双向 gate 命令一致性）"
+                )
+
+        # S-3b（TAG0022，md→YAML 双向 gate 命令一致性）：卡片 ## gate 规则 节中的
+        # 机器可判定命令行须在该阶段 gates[].check 有声明；未声明 → ERROR（单侧漂移：
+        # 卡片写了命令行、phases.yaml 没声明）。
+        card_sec = _gate_rules_block(card_text, fallback_to_conditions=False)
+        if card_sec:
+            card_refs = _machine_gate_refs(card_sec)
+            declared_refs = _yaml_gate_cmd_refs(phase)
+            undeclared = sorted(card_refs - declared_refs)
+            if undeclared:
+                errs.append(
+                    f"卡片 {os.path.basename(card_path)} ## gate 规则 节命令行 {undeclared} 未在 phases.yaml {pid} gates[].check 声明（S-3b md→YAML 双向 gate 命令一致性）"
+                )
+
     # P2 试点锚点强制（M0 语义）：phases.yaml 必须定义 P2（S-3 抽检对象）
     if "P2" not in phases_by_id:
         errs.append("phases.yaml 无 P2 定义（S-3 抽检对象缺失）")
@@ -266,6 +293,60 @@ def _section_block(text, heading):
             break
         block.append(line)
     return "\n".join(block)
+
+
+# ---- S-3a/S-3b：双向 gate 命令一致性（TAG0022 RM-AG0038，P2 §4.2.2 S-3a/S-3b；TG-1） ----
+# S-3a（YAML→md）：phases.yaml gates[].check 中的机器可判定命令串须在对应卡片
+#   `## gate 规则`（或推进条件）节出现——YAML 侧加了、md 侧没加 → ERROR。
+# S-3b（md→YAML）：卡片 `## gate 规则` 节中的机器可判定命令行须在该阶段
+#   gates[].check 有声明——md 侧加了、YAML 侧没加 → ERROR。
+# 机器可判定命令行模式（P2 §4.2.2）：check-gate.py P{n} / gate_commands.P{n} /
+#   check-*.py。NB-1：S-3a/S-3b 是叠加在既有 S-3 outputs/orphan/exec_role 检查下的
+#   新增子检查，不是重定义。NB-2：无卡片阶段（P6.5 无独立卡片）沿用既有跳过。
+
+_MACHINE_GATE_REF_RE = re.compile(
+    r"check-gate\.py P[0-9]+(?:\.[0-9]+)?"
+    r"|gate_commands\.P[0-9]+(?:\.[0-9]+)?"
+    r"|check-[A-Za-z0-9_-]+\.py"
+)
+
+
+def _machine_gate_refs(text):
+    """提取文本中的机器可判定 gate 命令引用（去重 set）。"""
+    if not text:
+        return set()
+    return {m.group(0) for m in _MACHINE_GATE_REF_RE.finditer(text)}
+
+
+def _yaml_gate_cmd_refs(phase):
+    """某阶段 phases.yaml gates[].check 声明中的机器可判定命令引用集。"""
+    refs = set()
+    for g in phase.get("gates", []) or []:
+        if isinstance(g, dict) and g.get("check"):
+            refs |= _machine_gate_refs(str(g["check"]))
+    return refs
+
+
+def _block_since(lines, i):
+    """自第 i 行起取到下一个 `## ` 标题的行块（卡内 `# 注释` 行不算节边界）。"""
+    out = []
+    for ln in lines[i + 1:]:
+        if ln.startswith("## "):
+            break
+        out.append(ln)
+    return "\n".join(out)
+
+
+def _gate_rules_block(text, fallback_to_conditions=False):
+    """取卡片 `## gate 规则` 节文本；fallback_to_conditions=True 时缺 gate 规则节
+    回退 `## 推进条件` 节；两节均无 → None（NB-2：无卡片阶段由调用方跳过）。"""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("## gate 规则"):
+            return _block_since(lines, i)
+        if fallback_to_conditions and line.startswith("## 推进条件"):
+            return _block_since(lines, i)
+    return None
 
 
 # ---- S-4：YAML→scripts（字段登记 + gate_commands 语法声明） ----

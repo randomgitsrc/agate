@@ -55,6 +55,7 @@ P1-requirements.md 必须包含：
 - `risk_level:` 声明（low / medium / high）→ 决定 P2 评审强度
 - `ceremony:` 声明（thin / standard / full）→ 仪式深度档位（可选，缺省 standard，fail-closed：不声明或声明要素不满足一律按 standard 处理，不做薄化）
 - `phases:` 裁剪声明（跳过哪些阶段 + 理由）
+- `judge:` 启用声明（RM-AG0039 强制）：机制后新任务（P1 `created` ≥ `judge_required_since`，见 `agate/rules/dispatch.yaml`）P1 初始化须在 `.state.yaml` 写 `judge.enabled: true`——check-gate P1 机械校验（缺失/未启用 → exit 1）；历史任务（created < 截止或未声明）缺块 → 跳过
 - `capability_requirements:` 能力需求声明（available / supplementable / GAP 三态）
 - 无未决 `[NEED_CONFIRM]`（有则 PAUSED）；无待确认项时写 `[NO_NEED_CONFIRM]`
 
@@ -78,6 +79,9 @@ packages: [pkg-a]           # list，必填
 domains: [backend, frontend]  # list，必填
 # 可选字段：override / implicit_coupling / coupling_checklist / internal_only /
 # internal_only_reason / 跳过风险 / design_trivial / follows_existing_pattern
+# ── RM-AG0039 judge 启用声明（写在 .state.yaml，非 P1 frontmatter）──
+# 机制后新任务（P1 created ≥ judge_required_since，rules/dispatch.yaml "2026-08-22"）必须
+# 在 .state.yaml 写 judge.enabled: true——check-gate P1 机械校验，缺失/未启用 → exit 1
 # ── v2.0 refactor 任务类型声明（可选，缺省 = 功能任务）──
 # change_type: refactor   # 当前仅支持 refactor；枚举非法值由 frontmatter schema 拦截
 # ── TAG0007 项目阶段声明（可选，缺省 = established，向后兼容）──

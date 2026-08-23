@@ -41,6 +41,13 @@ M2 切换权威源后二者不再混读，防止"同一规则多处解析"漂移
   blocker_count / deviation_count /
   deviation_critical_count / design_gap_count /
   design_gap_reviewed_count                      P7 int 计数字段（frontmatter-only，无正文回退）
+  code_map_new_files_count / code_map_reviewed_count  P7 CODE_MAP 配对 int 计数字段
+                                                    （frontmatter-only，无正文回退，TAG0022）
+  status / agent                                 P1/P2/P4 review 文件 frontmatter-only 字段
+                                                    （TAG0022：A 组迁移自 check-gate 本地读取）
+  project_phase                                  P1-requirements.md frontmatter-only 字段（TAG0022）
+  created                                        P1-requirements.md 日期字段（frontmatter-only，
+                                                    TAG0022 C 批注册，B 批 judge_required_since 判据用）
   need_confirm_resolved / suggest_resolved /
   scope_resolved                                 P1 流 C 标记状态字段（frontmatter-only，无正文回退，
                                                   换行连接，供调用方逐条匹配）
@@ -95,7 +102,15 @@ NO_FALLBACK_BOOL_FIELDS = frozenset({"regression_pass", "feedback_ready"})
 # TAG0019（P4-review C1 修复）：ceremony 同因移入——全新 P1 机器字段（thin/standard/full），
 # 无旧正文格式回退需求；frontmatter 未声明 ceremony 的任务，正文散文提及 `ceremony: xxx`
 # （如薄化叙述/checklist 引用）不得被误读为非法值（否则违反 BDD-8"不声明 = standard 不拦截"）。
-NO_FALLBACK_STRING_FIELDS = frozenset({"change_type", "ceremony"})
+# TAG0022（RM-AG0038，C 批）：status/agent（评审文件 P1/P2/P4-review.md）、project_phase
+# （P1-requirements.md）、created（P1 日期判据，B 批 judge_required_since 用）——全部是
+# frontmatter-only 字段，无正文回退：旧格式正文从未有这些字段的单行机器声明（review 文件的
+# status/agent 从 v0.35 起就只读 frontmatter 块），正文散文提及不得被误读。A 组迁移前由
+# check-gate.py 的 `_frontmatter_field`（sed 式行扫描）读取，迁移后统一走本 op（YAML 解析 +
+# NO_FALLBACK 语义，行为对 well-formed frontmatter 等价）。
+NO_FALLBACK_STRING_FIELDS = frozenset({
+    "change_type", "ceremony", "status", "agent", "project_phase", "created",
+})
 
 # list 字段：frontmatter 值（YAML list）格式化为空格连接字符串。
 # ui_ux_dimensions（TAG0006 P2 §2.15.1）：P1 维度选择可选字段，presence 语义（缺失=未声明）；
@@ -111,10 +126,15 @@ INT_FIELDS = frozenset({"candidate_count"})
 # P6/P7 结构化计数字段（流 B，P2-design.md §3.2）：int 格式化同 INT_FIELDS，
 # 但 frontmatter 无该字段时**不做正则回退**——直接输出空字符串（见模块 docstring
 # "无正文回退语义"）。调用方据此判断走 frontmatter 汇总还是旧格式正文 grep 计数。
+# TAG0022（RM-AG0038，C 批）：code_map_new_files_count / code_map_reviewed_count
+# （P7-consistency.md CODE_MAP 配对计数）移入——解 check-gate.py L1098-1107 DESIGN_GAP
+# 遗留（此前因 KNOWN_OPS 未注册无法经 _md_field_get 读取，改走本地 _frontmatter_field）。
+# 与 P7 其他计数同语义：frontmatter 无该字段 → 空字符串（机制未采用 → 调用方跳过配对校验）。
 NO_FALLBACK_INT_FIELDS = frozenset({
     "pass", "fail",
     "blocker_count", "deviation_count", "deviation_critical_count",
     "design_gap_count", "design_gap_reviewed_count",
+    "code_map_new_files_count", "code_map_reviewed_count",
 })
 
 # P1 流 C 标记"已解决/已确认"状态字段（P2-design.md §3.3.1）：list 字段，

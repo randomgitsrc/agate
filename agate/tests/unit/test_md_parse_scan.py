@@ -13,8 +13,8 @@
 # TDD 红灯：P3 现状 check-gate.py 未迁移 → 清单命中数 > 0 → 断言失败（B 类，被测模块行为未变更）。
 # P4 迁移后清单命中数 = 0 → 转绿。
 #
-# 平台无关（BDD-16/10）：无裸 python3 / 无 PATH 硬编码 / 无 POSIX symlink 假设 / 无 /tmp 字面；
-# 只做纯文本扫描（read_text + str.count），跨平台一致。
+# 平台无关（BDD-16/10）：无裸解释器字面量 / 无 PATH 硬编码 / 无 POSIX symlink 假设 /
+# 无临时目录字面量；只做纯文本扫描（read_text + str.count），跨平台一致。
 
 import pytest
 

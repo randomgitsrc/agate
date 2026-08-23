@@ -169,7 +169,7 @@ def test_bdd_32_pytest_collectible(agate_root, python_exe, run_cli):
 #   被测：agate/scripts/check-protocol-consistency.py iter_md_files 的 opt-in 排除钩子
 #   （env AGATE_CONSISTENCY_SKIP_DIRS=<相对根路径列表>，默认关闭、行为逐字节不变）。
 #   P3 现状 M15 未实现 → env 无效果 → 排除断言失败（红，B 类）；默认行为用例现即绿（回归守卫）。
-#   平台无关：无裸 python3 / 无 /tmp 字面（用 tmp_path）/ 无软链假设；rel 路径经 Path.relative_to
+#   平台无关：无裸 python3 / 无临时目录字面量（用 tmp_path）/ 无软链假设；rel 路径经 Path.relative_to
 #   + as_posix 归一（与 iter_md_files 既有 rel 处理一致，Windows 反斜杠归一）。
 
 

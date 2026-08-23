@@ -638,3 +638,45 @@ source: review
 created_at: 2026-08-20
 task_id: TAG0007
 ```
+
+## DEBT0018
+
+```yaml
+id: DEBT0018
+category: technical
+title: check-gate.py 的 agate_common import 降级 stub 返回 0/空——安装破损（agate_common 不可导入）边缘消费脚本呈 false-PASS 方向（gate 漏报而非误报）
+status: open
+priority: low
+evidence:
+  - ref: agate-workspace/tasks/TAG0022-confirmed-problems/P4-review.md
+    note: "INFORMATIONAL #2（Pass 2 I2，L93-96）：check-gate.py except ImportError 降级 stub 中
+      count_p7_markers → (0,0)、count_p6_pass_fail → (0,0)、count_code_map_lines → 0——若
+      agate_common 缺失/损坏（安装破损），gate_p7 的 BLOCKER/DEVIATION 计数与 CODE_MAP 转抄核对
+      会假通过；count_markers → 0 侧是 fail-closed（[NEED_CONFIRM] 字面 + nc_blocking==0 → exit 1）。
+      评审 Fix 建议：降级 stub 改显式失败（如 P7 分支检测 read_rules_yaml is None or count_p7_markers
+      is None 时输出「安装破损」错误并 return 1），或登记本债（低优先）"
+  - ref: agate/scripts/check-gate.py
+    note: "L73-160 except ImportError 降级 stub 块：count_p7_markers → (0,0)（L141-142）、
+      count_p6_pass_fail → (0,0)（L138-139）、count_code_map_lines → 0（L147-148）、
+      count_markers → 0（L114-115）；消费点（gate_p7 L1075-1076 / gate_p6 L1015-1016 /
+      gate_p4 L1168-1170）直接使用返回值，无安装破损检测——数据缺失即按 0/空降级（false-PASS 方向）；
+      方向不一致是既有降级先例 parse_gate_commands_block → (False, [])（L104-105）的延续，代码注释
+      （L110-112）已声明"
+  - ref: agate/scripts/agate_common.py
+    note: "共享读取器单点（count_p7_markers L951 等 M2-0038 节）——import 成功路径由 agate_common
+      提供；降级 stub 仅在 agate_common 整体不可导入（安装破损）时生效，正常安装不可达"
+impact: 仅在 agate_common 缺失/损坏（安装破损边缘）触发，正常安装不可达；方向为 gate 漏报而非误报——
+  破损安装下 gate_p7 BLOCKER/DEVIATION 计数与 P4 CODE_MAP 转抄核对静默假通过（0 ERROR 观感），且
+  与 count_markers 侧 fail-closed 方向不一致，排查「安装破损」问题时判断成本高
+recommendation: 降级 stub 改为显式失败（fail-closed）：消费分支检测关键读取器（read_rules_yaml /
+  count_p7_markers / count_p6_pass_fail / count_code_map_lines）为降级哨兵时输出「安装破损：
+  agate_common 不可导入」错误并 return 1；或将降级统一为显式异常/哨兵值而非 0/空
+closure_criteria:
+  - check-gate.py 在 agate_common 不可导入时，对依赖共享读取器的 gate 分支（gate_p7/gate_p6/gate_p4
+    CODE_MAP）输出显式「安装破损」错误并 return 1（fail-closed），不再静默 0/空假通过
+  - 新增回归测试覆盖 agate_common 缺失（模拟 import 失败）时上述分支的 fail-closed 行为
+  - 全量 pytest + consistency 0 ERROR
+source: review
+created_at: 2026-08-22
+task_id: null
+```

@@ -16,6 +16,10 @@
         "enum": ["single", "static-batch", "parallel", "recon-then-split", "serial"]
       }
     },
+    "judge_required_since": {
+      "type": "string",
+      "description": "RM-AG0039 judge 启用强制化截止日期（ISO 字符串，机制发布日）；check-gate.py P1 判据：P1 created >= 此值的新任务必须含 judge.enabled: true"
+    },
     "iron_laws": {
       "type": "array",
       "items": {

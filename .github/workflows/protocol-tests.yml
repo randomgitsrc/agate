@@ -113,7 +113,8 @@ jobs:
         with:
           python-version: '3.10'
       - name: Run ruff check (agate/, 项目根 pyproject.toml)
-        run: pip install ruff && ruff check agate/
+        # RM-AG0037: ruff 锁 0.16.4，与本地开发环境 ~/.venvs/agate-dev/bin/ruff 对齐（BDD-2 对齐语义实体化）
+        run: pip install ruff==0.16.4 && ruff check agate/
 
   consistency:
     name: consistency
