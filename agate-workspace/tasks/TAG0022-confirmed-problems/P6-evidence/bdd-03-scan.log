@@ -1,0 +1,28 @@
+BDD-3 验收证据: check-gate.py 协议规则类 md 解析清零（验收锚前半）
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+命令: timeout 300 python3 -m pytest agate/tests/unit/test_md_parse_scan.py -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0022
+
+输出:
+  .                                                                        [100%]
+  1 passed in 0.02s
+exit code: 0
+
+测试语义核对（agate/tests/unit/test_md_parse_scan.py，P3 固化的 BDD-3 静态扫描测试）：
+  - _MD_PARSE_PATTERNS = A 组（_frontmatter_field）/ B 组（_NC_RE/_SUGGEST_RE/_NO_NEED_RE/
+    _NC_DESC_RE/_SUGGEST_DESC_RE/_SUGGEST_TAIL_BT_RE/_SUGGEST_TAIL_BRACKET_RE）/ C 组（BDD 标题
+    正则、UI 设计节、candidate_count、design_trivial/follows、trade-off 权衡、fail-list 块、
+    known-failures 表格、P6 PASS/FAIL 行、P7 BLOCKER/DEVIATION-CRITICAL、DESIGN_GAP、
+    DESIGN_GAP_REVIEWED、P4 关键词、CODE_MAP_UPDATED/EXEMPT）/ D 组（```yaml|yml 内嵌块）
+  - 过滤规则：仅扫非注释代码行（行首 # 剔除）；E 组（.state.yaml）与 F 组（git/CHANGELOG 输出）
+    不计入（P1 D2 口径）
+  - 断言：hits 总数 == 0，否则列出残留模式与计数
+
+断言通过（total hits = 0）→ check-gate.py 内 A/B/C/D 组协议规则类 md 解析点清零。
+
+=== 结论 ===
+BDD-3: PASS —— 静态扫描测试 test_bdd_3_check_gate_no_protocol_md_parse_points 通过
+（1 passed, exit 0；A/B/C/D 组模式命中数 = 0）。

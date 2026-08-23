@@ -1,0 +1,28 @@
+BDD-10 验收证据: 平台无关原则不破坏（回归拦截）
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+=== 检查 1: check-platform-assumptions.py 全树扫描 ===
+命令: timeout 120 python3 agate/scripts/check-platform-assumptions.py
+工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0022
+输出: （无输出 = R1-R5 0 命中）
+exit code: 0
+
+=== 检查 2: 修改点 diff 人工核对（git diff bde3bfd..HEAD，test_bdd_7 / test_bdd_25 修改点） ===
+2a. agate/tests/unit/test_check_routing.py test_bdd_7_thin_score_anomaly_git_ok_false_exit_1（L151-171）:
+    - _run_routing 增 env 透传（conftest _run_cli_impl 已支持 env）
+    - 注入 {"GIT_CEILING_DIRECTORIES": str(tmp_path)} —— git 核心机制（跨平台 Git 都支持），
+      非 git 上下文确定性制造；无裸 PATH=/裸 python3/POSIX symlink 硬假设//tmp 字面量 ✓
+2b. agate/tests/unit/test_env_adapt_docs.py test_bdd_25_consistency_zero_error（L48-79）:
+    - basetemp 在仓库根下时经 Path(basetemp).relative_to(repo_root) 计算 rel 路径，注入
+      AGATE_CONSISTENCY_SKIP_DIRS（rel 经 as_posix 正斜杠归一，Windows 反斜杠归一）✓
+    - basetemp 在仓库外时不注入（基线行为零改动）✓
+    - M15 排除钩子单测（L162+）：importlib 加载 + monkeypatch env；无 Unix 假设 ✓
+
+判定: 扫描器 R1-R5 0 命中（exit 0）+ 修改点 diff 无裸 PATH= / 裸 python3 / POSIX symlink 硬假设 /
+       /tmp 字面量 → 平台无关原则未破坏。
+
+=== 结论 ===
+BDD-10: PASS —— check-platform-assumptions.py exit 0（R1-R5 0 命中）；修改点 diff 人工核对
+无单平台假设（平台差异按分支/env 注入覆盖）。

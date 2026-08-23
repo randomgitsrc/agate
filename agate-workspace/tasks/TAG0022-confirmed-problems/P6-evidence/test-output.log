@@ -1,0 +1,56 @@
+P6 验收验证脚本执行日志（所有任务通用，test-output.log）
+验收时间: 2026-08-23
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+=== 执行命令序列（全部 timeout 包裹，exit code 记录） ===
+
+1. BDD-1 核对 workflow + 文档:
+   read .github/workflows/protocol-tests.yml（L106-117: name: ruff job + ruff==0.16.4 锁版本）
+   grep UPGRADING.md（L97-109: required check 配置步骤）; grep AGENTS.md（L157: ruff required check 验证）
+   → 结果写入 bdd-01-workflow-docs.log
+
+2. BDD-2 ruff 双跑:
+   timeout 120 /home/kity/.venvs/agate-dev/bin/ruff check agate/  → run1 exit 0
+   timeout 120 /home/kity/.venvs/agate-dev/bin/ruff check agate/  → run2 exit 0
+   ruff --version → 0.16.4（与 CI ruff==0.16.4 一致）
+   → bdd-02-ruff.log
+
+3. BDD-3 静态扫描测试:
+   timeout 300 python3 -m pytest agate/tests/unit/test_md_parse_scan.py -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+   → 1 passed, exit 0 → bdd-03-scan.log
+
+4. BDD-4 验证命令集:
+   4a. timeout 900 python3 -m pytest agate/tests/ -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+       → 1213 passed, 2 skipped, exit 0 → bdd-04-full-pytest.log
+   4b. timeout 120 bash agate/tests/scripts/count-tests.sh → 1215 ≥ 1202, exit 0
+   4c. timeout 120 python3 agate/scripts/check-protocol-consistency.py --strict-errors-only → 0 ERROR, exit 0
+   4d. timeout 120 python3 agate/scripts/check-structure-consistency.py → S0-S6 全 OK, exit 0
+       → bdd-04-gates.log
+
+5. BDD-5 S-3 收紧测试:
+   timeout 300 python3 -m pytest agate/tests/unit/test_check_structure_consistency.py -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsworkspace/ptmp
+   → 13 passed, exit 0（含 S-3a/S-3b 漂移 + 双侧一致用例）→ bdd-05-s3.log
+
+6. BDD-6/7 judge P1 校验测试:
+   timeout 600 python3 -m pytest agate/tests/unit/test_check_gate.py -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+   → 172 passed, exit 0（judge P1 六用例 + gate_p65 三态）→ bdd-06-07-judge.log
+
+7. BDD-8 实证计划核对:
+   read P2-design.md §4.4.1（L203-211 四要素+触发条件；L213 已知边界）→ bdd-08-plan-check.md
+
+8. BDD-9 双位置全量 pytest:
+   位置1: timeout 900 python3 -m pytest agate/tests/ -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+          → 1213 passed, 2 skipped, exit 0
+   位置2: timeout 900 python3 -m pytest agate/tests/ -q -p no:cacheprovider --basetemp=agate/.bt-p6-verify
+          → 1213 passed, 2 skipped, exit 0（跑完 rm -rf agate/.bt-p6-verify 已清理，git 状态干净）
+   → bdd-09-dual-position.log
+
+9. BDD-10 平台无关扫描:
+   timeout 120 python3 agate/scripts/check-platform-assumptions.py → exit 0（R1-R5 0 命中）
+   git diff bde3bfd..HEAD（test_bdd_7/test_bdd_25 修改点）人工核对无单平台假设 → bdd-10-platform.log
+
+=== 汇总 ===
+全量 pytest 外部位置: 1213 passed, 2 skipped（设计内）, 0 failed
+全量 pytest 仓库内位置: 1213 passed, 2 skipped（设计内）, 0 failed
+BDD 验收: 10/10 PASS

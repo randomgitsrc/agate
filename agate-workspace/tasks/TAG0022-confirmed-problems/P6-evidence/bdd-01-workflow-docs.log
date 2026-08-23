@@ -1,0 +1,46 @@
+BDD-1 验收证据: CI ruff job 可被 required check 引用且配置步骤文档化
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+=== 检查 1: .github/workflows/protocol-tests.yml 存在稳定 name: ruff job ===
+文件: /home/kity/oclab/agate/.worktrees/agate-TAG0022/.github/workflows/protocol-tests.yml
+L106-117 (原文摘录):
+  106:   ruff:
+  107:     name: ruff
+  108:     runs-on: ubuntu-latest
+  109:     timeout-minutes: 10
+  110:     steps:
+  111:       - uses: actions/checkout@v4
+  112:       - uses: actions/setup-python@v5
+  113:         with:
+  114:           python-version: '3.10'
+  115:       - name: Run ruff check (agate/, 项目根 pyproject.toml)
+  116:         # RM-AG0037: ruff 锁 0.16.4，与本地开发环境 ~/.venvs/agate-dev/bin/ruff 对齐（BDD-2 对齐语义实体化）
+  117:         run: pip install ruff==0.16.4 && ruff check agate/
+
+判定: job name = "ruff"（稳定、无歧义改名，可被 GitHub 分支保护按 check 名引用）✓
+       ruff==0.16.4 锁版本（与本地 ~/.venvs/agate-dev/bin/ruff 对齐）✓
+
+=== 检查 2: 文档含「将 ruff job 设为 PR required check（维护者在仓库设置勾选）」配置步骤 ===
+2a. agate/UPGRADING.md v0.61.0 章节 (L97-109, 原文摘录):
+    L97:  **① CI ruff job 可被 PR required check 引用（RM-AG0037，维护者配置步骤）**
+    L100-102: v0.61.0 起 CI ruff job 的 pip install ruff 改为锁版本 ruff==0.16.4
+              （与本地开发环境 ~/.venvs/agate-dev/bin/ruff 对齐，BDD-2 对齐语义实体化），
+              job name 保持稳定 ruff（可被 GitHub 分支保护按 check 名引用）。
+    L103:  **配置步骤（维护者/仓库管理员在 GitHub 仓库设置执行——required check 勾选是配置，非实现侧动作）**：
+    L104:  1. GitHub 仓库 → Settings → Branches → 分支保护规则（Branch protection rules）→ 选择受保护分支（如 main）；
+    L105:  2. 在 "Require status checks to pass before merging" 中勾选 ruff check（对应 CI ruff: job）；
+    L106-107: 3. 保存后，PR 合并前必须通过该 ruff check——ruff check agate/（ruff==0.16.4，项目根 pyproject.toml 规则集）exit 0（零违规）方可合并。
+
+2b. AGENTS.md L157 (原文摘录):
+    L157: **CI ruff job（RM-AG0037 required check）验证**：合并前确认分支保护已将 ruff 勾选为
+          PR required check，或在第 5 步后验证 CI ruff job 绿（ruff==0.16.4 锁版本，与本地
+          ~/.venvs/agate-dev/bin/ruff 对齐）——防带 ruff 违规合并复发（TAG0019/20 教训）
+
+判定: workflow 稳定 job name + 文档明确 required check 配置步骤（UPGRADING L97-109 + AGENTS L157）→ 两项同时成立 ✓
+
+=== 结论 ===
+BDD-1: PASS —— workflow 中 ruff job 以稳定 job name 存在（无歧义改名），且文档含明确的
+「将 ruff job 设为 PR required check（维护者在仓库设置勾选）」配置步骤；二者同时成立。
+（required 勾选本身由维护者配置，不设为本 BDD 的 When 动作——与 P1 BDD-1 口径一致）
