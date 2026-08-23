@@ -89,10 +89,11 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
-### v0.61.0 — 质量门禁收尾（TAG0022：RM-AG0037 ruff 合并强制；RM-AG0038/0039 条目见占位小节）
+### v0.61.0 — 质量门禁收尾（TAG0022：RM-AG0037 ruff 合并强制 / RM-AG0038 权威源切换 / RM-AG0039 judge 强制化）
 
-> **本版本含破坏性变更**（RM-AG0038 权威源切换 / RM-AG0039 judge 强制化——条目由 C-migration /
-> B-judge 实现批在下方 ②③ 占位小节补充，合并发布前须补齐；RM-AG0037 为门禁配置步骤，无脚本行为变化）。
+> **本版本含破坏性变更**（RM-AG0038 权威源切换 / RM-AG0039 judge 强制化，详细条目见下方
+> ②③；RM-AG0037 为门禁配置步骤，无脚本行为变化）。升级前先逐条对照，判断你的项目是否触及；
+> 未触及项零动作（"不动则无感"原则不变）。
 
 **① CI ruff job 可被 PR required check 引用（RM-AG0037，维护者配置步骤）**
 
@@ -108,17 +109,38 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 - **升级动作**：无（纯 CI 配置 + 文档；已部署项目无迁移动作）。项目合并链路在 required check 勾选
   生效后由 CI 自动强制。
 
-**② RM-AG0038 权威源切换（占位小节——C-migration 实现批补充）**
+**② RM-AG0038 权威源切换（check-gate 规则读取闭环）**
 
-> [占位] v0.61.0 含 RM-AG0038 破坏性变更：check-gate.py 等核心脚本的协议规则读取由「md/grep 双源」
-> 切为「rules/*.yaml 为规则唯一权威源、md 禁止承载可判定规则」（脚本行为破坏性变更），详细条目
-> （影响面 / 升级动作 / 对账兜底行为）由 C-migration 批（batch C）在本小节补充完整。
+- **影响面**：`check-gate.py`（P1/P2/P6/P7/P6.5 分支的协议规则类 md/grep 解析点清零）+ `agate_common.py`
+  （新增共享读取器：count_markers / extract_bdd_titles / parse_ui_design_section / count_p6_pass_fail /
+  count_p7_markers / count_design_gap / count_code_map_lines / parse_fail_list_block / count_kf_entries /
+  extract_embedded_yaml_blocks 等）+ `agate-md-field-get.py`（新 op：status / agent / project_phase /
+  code_map_new_files_count / code_map_reviewed_count / created）+ `check-structure-consistency.py`
+  （S-3 双向收紧：S-3a YAML→卡片、S-3b 卡片→YAML 的 gate 命令一致性）+ `agate/rules/phases.yaml`
+  （各阶段 gates[].check 增补实际命令串）。`.state.yaml` 读取与 git/CHANGELOG 输出解析（E/F 组）不在迁移面。
+- **行为变化**：协议可判定规则声明**只从 `rules/*.yaml` 读取**，协议 md / phase-cards 中新增可判定规则
+  （如 gate 命令行）不再被脚本消费——S-3 双向检查拦截 md 侧新增规则未入 YAML（ERROR）。任务产出文件
+  （P1/P2/P6/P7 格式判定）读取走共享读取器，**判定口径与旧版逐字节等价**（well-formed 输入；畸形/带引号
+  frontmatter 边界按 fail-closed/更正确方向处理，不产生假 PASS）。
+- **升级动作**：`git pull` + 重跑 `install-hook.py` 即可；**无存量任务迁移动作**——旧格式任务产出
+  （无新字段）靠共享读取器正文回退，语义不变（「不动则无感」原则保持）。
+- **对账兜底行为**：迁移保留双轨（frontmatter 优先 + 正文回退），旧正文格式任务可照常跑 gate；
+  本版本为判定口径等价迁移，无 v0.60.0 M1 型对账叠加。
 
-**③ RM-AG0039 judge 强制化（占位小节——B-judge 实现批补充）**
+**③ RM-AG0039 judge 强制化（机制后新任务 P1 机械校验）**
 
-> [占位] v0.61.0 含 RM-AG0039 破坏性变更：机制后新任务（P1 `created` ≥ `judge_required_since`）
-> 必须声明 `judge.enabled: true`，check-gate P1 机械校验缺失即阻断；历史任务（机制前）跳过。
-> 详细条目（判据 / 历史兼容语义 / 升级动作）由 B-judge 批（batch B）在本小节补充完整。
+- **判据**：`agate/rules/dispatch.yaml` 新增 `judge_required_since: "2026-08-22"`（机制发布日，ISO）；
+  `check-gate.py` gate_p1 读 `.state.yaml` judge 块 + P1 frontmatter `created`（`agate-md-field-get` created op，
+  ISO 字典序比较）+ rules 截止日期。
+- **判定语义**：机制后新任务（`created` ≥ `2026-08-22`）缺 judge 块或 `judge.enabled` 非 true →
+  **P1 gate exit 1 阻断**（fail-closed，stderr 提示「机制后新任务须在 .state.yaml 写 judge.enabled: true」）；
+  含 `judge.enabled: true` → 原语义放行；`judge.enabled` falsy 与缺失同走 created 判据（falsy + created ≥
+  截止 → exit 1；falsy + pre-cutoff → 跳过）；judge 非 dict（如 `judge: true`）按缺失处理；历史任务
+  （created < 截止 / created 缺失或非 ISO）无 judge 块 → **跳过不被拦**（fail-open，兼容存量）。
+- **升级动作**：进行中任务（created < 2026-08-22）零动作；**新任务 P1 初始化必须写 `judge.enabled: true`**
+  （P1 卡产出规格已加 checklist，state-machine L442-443 模板语义已同步）；机制后存量任务若 P1 缺 judge 块
+  且 created ≥ 截止，需补写 judge 块再推进。
+- **不动面**：P6.5 消费链（pre-commit-gate 2i.1 / ci-gate-backstop / gate_p65 早退语义）逐字节不变。
 
 **通用升级动作**：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`（Linux/macOS
 符号链接模式自动跟随；Windows 复制模式必须重跑——②③ 补齐后若含 hook/脚本行为变更，以补齐条目为准）。
