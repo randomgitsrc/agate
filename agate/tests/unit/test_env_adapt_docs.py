@@ -208,7 +208,7 @@ def test_m15_iter_md_files_skip_dirs_injected_excluded(tmp_path, agate_scripts, 
     monkeypatch.setenv("AGATE_CONSISTENCY_SKIP_DIRS", "skip-dir")
     mod = _load_protocol_consistency_mod(agate_scripts, "injected")
     root = _fake_root_with_skip(tmp_path)
-    got = {str(p.relative_to(root)) for p in mod.iter_md_files(root)}
+    got = {p.relative_to(root).as_posix() for p in mod.iter_md_files(root)}
     assert "skip-dir/c.md" not in got, f"M15 未生效：被排除路径仍产出 {sorted(got)}"
     assert "a.md" in got and "sub/b.md" in got
 
@@ -220,5 +220,5 @@ def test_m15_iter_md_files_default_unchanged(tmp_path, agate_scripts, monkeypatc
     monkeypatch.delenv("AGATE_CONSISTENCY_SKIP_DIRS", raising=False)
     mod = _load_protocol_consistency_mod(agate_scripts, "default")
     root = _fake_root_with_skip(tmp_path)
-    got = sorted(str(p.relative_to(root)) for p in mod.iter_md_files(root))
+    got = sorted(p.relative_to(root).as_posix() for p in mod.iter_md_files(root))
     assert got == ["a.md", "skip-dir/c.md", "sub/b.md"]

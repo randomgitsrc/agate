@@ -192,3 +192,31 @@ test_bdd_20；test_pre_commit_hook.py 的 test_b3 等）向 basetemp 下写入�
 - 仓库内 basetemp 下无其他同类位置依赖失败（位置 2 全量 1213 passed 覆盖，test_bdd_25 走 M15 注入分支正常）。
 - 注：git status 中 `gate-events.jsonl` 的 +2 与未跟踪的 P5-* 文件为 P5 verifier/主 Agent 既有产物，非本修复轮改动。
 - 状态标记：`[PROD_TOUCHED]`（改动仅限测试文件；协议文档/生产脚本/稳定版 ~/.agate 未动）。
+
+---
+
+# P4-progress（CI 平台修复轮：Windows pytest 失败，implementer）
+
+## 2026-08-24 缺陷与根因
+
+PR #187 Windows CI pytest 失败 1 例：`test_m15_iter_md_files_default_unchanged` 断言
+`['a.md', 'skip-dir/c.md', 'sub/b.md'] == ['a.md', ..., 'sub\\b.md']`。根因：两个 M15 测试用
+`str(p.relative_to(root))` 生成路径字符串，Windows 上 `Path.relative_to` 的 `str()` 产生原生分隔符
+（`sub\b.md`），断言却写死 posix 分隔符（`sub/b.md`）；Linux 原生分隔符即 `/`，故本地全绿、Windows 暴露
+平台依赖（TAG0009 测试平台无关原则 + BDD-10 守卫）。
+
+## 2026-08-24 修复（仅 `agate/tests/unit/test_env_adapt_docs.py`，只改路径生成侧，断言/排除逻辑不动）
+
+- L211 `test_m15_iter_md_files_skip_dirs_injected_excluded`：`str(p.relative_to(root))` →
+  `p.relative_to(root).as_posix()`
+- L223 `test_m15_iter_md_files_default_unchanged`：同改（sorted 列表推导内）
+- 生产代码 iter_md_files 排除逻辑未动；断言内容未动。
+
+## 2026-08-24 验证
+
+- [x] 本地复跑 `python3 -m pytest agate/tests/unit/test_env_adapt_docs.py -q -p no:cacheprovider
+  --basetemp=/home/kity/oclab/dsh-workspace/ptmp`：**11 passed**（含两个 M15 测试 + test_bdd_25，exit 0）
+- [x] 平台语义模拟（不引入平台假设）：`PureWindowsPath` 模拟确认 Windows `relative_to` 得
+  `sub\b.md`、`as_posix()` 归一化为 `sub/b.md`；POSIX 上 `str == as_posix`（无回归）
+- [x] `python3 agate/scripts/check-platform-assumptions.py`：exit 0（未引入新平台假设）
+- 状态标记：`[PROD_NOT_TOUCHED]`（改动仅 2 个测试函数内路径生成侧；生产代码/稳定版 ~/.agate 未动）。
