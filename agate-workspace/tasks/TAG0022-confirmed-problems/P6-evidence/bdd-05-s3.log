@@ -1,0 +1,24 @@
+BDD-5 验收证据: S-1~S-6 收紧为「YAML 权威、md 禁止承载可判定规则」
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+命令: timeout 300 python3 -m pytest agate/tests/unit/test_check_structure_consistency.py -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0022
+
+输出:
+  .............                                                            [100%]
+  13 passed in 1.46s
+exit code: 0
+
+S-3 双向收紧用例核对（grep def test_ 于 test_check_structure_consistency.py）：
+  - test_bdd_5_s3a_yaml_gate_cmd_not_in_card_exit_1（L182）  ← S-3a 单侧漂移：YAML gate 命令未在卡片 → exit 1
+  - test_bdd_5_s3b_card_gate_cmd_not_in_yaml_exit_1（L196）  ← S-3b 单侧漂移：卡片 gate 命令未在 YAML → exit 1
+  - test_bdd_5_s3a_s3b_both_sides_consistent_exit_0（L209）  ← 双侧一致 → exit 0
+  - 其余 S1/S2/S4/S5/S6 收紧用例（test_bdd_2_s1_s2_consistent_exit_0 等）亦全部通过
+
+单侧漂移（md 侧新增可判定规则未入 YAML / 改 YAML 不动 md）→ 非 0 退出报告 S-* 漂移 ✓
+双侧一致 → exit 0 ✓
+
+=== 结论 ===
+BDD-5: PASS —— S-3a/S-3b 漂移用例 + 双侧一致用例全部通过（13 passed, exit 0）。

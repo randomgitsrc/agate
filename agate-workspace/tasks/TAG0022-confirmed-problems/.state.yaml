@@ -1,0 +1,10 @@
+task_id: TAG0022
+phase: READY
+status: active
+retries: {}
+judge:
+  enabled: true
+  rounds: 1
+  last_verdict: passed
+  partial: false
+p5_pass_commit: f724e487a1e5a427f65e7deefaf2088397109498

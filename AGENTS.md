@@ -154,6 +154,7 @@ commit 时 `commit-msg-self-gate.sh` hook 会检查：暂存区含触发文件�
 4. `git tag vN.N.0 && git push origin vN.N.0` — **`git push`（不带 tag）默认不推送 tag**，必须显式 `git push origin vN.N.0`（v0.51.0 教训：本地 tag 存在但从未推送 → CI merge-ref `git describe` 只见旧版 → CHECK 7 FAIL）
    - 推送后**验证远端到达**：`git ls-remote --tags origin vN.N.0` 必须显示该 tag（静默失败点：本地验证全绿但 CI 红，见下方诊断纪律）
 5. CHECK 7（version badge vs git tag）自动通过
+   - **CI ruff job（RM-AG0037 required check）验证**：合并前确认分支保护已将 `ruff` 勾选为 PR required check，或在第 5 步后验证 CI ruff job 绿（ruff==0.16.4 锁版本，与本地 `~/.venvs/agate-dev/bin/ruff` 对齐）——防带 ruff 违规合并复发（TAG0019/20 教训）
 6. **release PR 合并后最终验证（G-5，合并产物验证清单）**：
    - `git fetch origin && git describe --tags origin/main` == vN.N.0（describe 命中新 tag）
    - `git merge-base --is-ancestor vN.N.0 origin/main` 返回 0（tag 是 main 祖先）

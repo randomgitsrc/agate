@@ -8,6 +8,39 @@
 
 ---
 
+## [0.61.0] - 2026-08-22
+
+### 新增（TAG0022：质量门禁与迁移收尾批，RM-AG0037~RM-AG0041）
+
+- **ruff 合并强制（RM-AG0037）**：CI `ruff` job 锁版本 `ruff==0.16.4`（与本地开发环境
+  `~/.venvs/agate-dev/bin/ruff` 对齐）+ job name 固化 `ruff`（可被 GitHub 分支保护按 check 名引用）；
+  UPGRADING/AGENTS.md 写入「将 ruff 设为 PR required check（维护者在仓库设置勾选）」配置步骤——
+  TAG0019/20 曾带 23/12 处违规合并的复发防线（required 勾选为维护者配置，非实现侧动作）。
+- **check-gate 权威源切换闭环（RM-AG0038，M2 二期）**：check-gate.py 协议规则类 md/grep 解析清零——
+  A 组 frontmatter 字段改走 `agate-md-field-get` 新 op（status/agent/project_phase/code_map_*/created）、
+  B/C/D 组标记与产出格式判定迁 `agate_common` 共享读取器单点（判定口径不变、well-formed 等价、旧格式
+  正文回退保留）；S-3 双向收紧（S-3a YAML→卡片、S-3b 卡片→YAML 的 gate 命令一致性，md 禁止承载
+  可判定规则）——「YAML 权威、md 禁止承载可判定规则」落地（破坏性变更见 UPGRADING v0.61.0 ②）。
+- **judge 启用强制化（RM-AG0039）**：check-gate P1 新增 judge 校验——机制后新任务（P1 `created` ≥
+  `judge_required_since: "2026-08-22"`）缺 `.state.yaml` 的 `judge.enabled: true` → exit 1 阻断；
+  历史任务（created < 截止或未声明）跳过（向后兼容，与 gate_p65 历史语义一致）；state-machine /
+  P1 卡模板语义同步（破坏性变更见 UPGRADING v0.61.0 ③）。
+- **ceremony: thin 实证收尾（RM-AG0040）**：M3 实证执行计划 + 触发条件落盘（P2 §4.4：评审轮数 /
+  真实发现数 / TAG0018 基线 / 不达标回滚 standard / 触发条件 = 下一 low 薄任务），薄任务实战后产出
+  对比报告。
+- **环境假象测试根治（RM-AG0041）**：test_bdd_7 改 `GIT_CEILING_DIRECTORIES` 注入确定化非 git
+  上下文；test_bdd_25 改位置感知 + `check-protocol-consistency.py` `iter_md_files` 新增 opt-in
+  排除钩子 `AGATE_CONSISTENCY_SKIP_DIRS`（默认关闭、行为不变）——任意 basetemp 位置全量 0 失败
+  （TAG0020/21 反复复现的 2 条 known-failures 根治）。
+- 新增 13 测试用例（count-tests 1202 → 1215）；全量 pytest 1213 passed / 2 skipped / 0 failed
+  （P5/P6 双位置验证）；consistency 0 ERROR；structure S0-S6 0 漂移；ruff×2 0 违规。
+
+### 破坏性变更
+
+见 `agate/UPGRADING.md` v0.61.0 节：① ruff job 锁版本 + required check 配置步骤（纯 CI 配置 +
+文档，无升级动作）② check-gate 规则读取切 YAML 唯一权威源（判定口径不变、旧格式任务靠正文回退，
+对账兜底行为见 UPGRADING）③ 机制后新任务 P1 强制 `judge.enabled: true`（历史任务跳过）。
+
 ## [0.60.0] - 2026-08-22
 
 ### 新增（TAG0021：协议结构化层 rules/ + S-1~S-6 双向一致性，RM-AG0022）

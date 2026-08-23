@@ -1,0 +1,21 @@
+BDD-2 验收证据: 新任务合并时 ruff 零违规（验收锚，防复发）
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+命令: /home/kity/.venvs/agate-dev/bin/ruff check agate/（0.16.4 对齐 CI 锁版本 ruff==0.16.4）
+工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0022
+
+run 1:
+  stdout: All checks passed!
+  exit code: 0
+
+run 2:
+  stdout: All checks passed!
+  exit code: 0
+
+ruff 版本核对: /home/kity/.venvs/agate-dev/bin/ruff --version → ruff 0.16.4
+  （与 .github/workflows/protocol-tests.yml L117 `pip install ruff==0.16.4` 锁版本一致）
+
+=== 结论 ===
+BDD-2: PASS —— 两次运行均 exit 0（All checks passed，0 违规）；本地 ruff 0.16.4 与 CI 锁版本一致。

@@ -1,0 +1,38 @@
+BDD-4 验收证据: 迁移后全量测试绿（验收锚后半）——count-tests / consistency / structure
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+=== 子项 2: count-tests.sh（用例数只增不减，≥ 立项基线 1202） ===
+命令: timeout 120 bash agate/tests/scripts/count-tests.sh
+工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0022
+输出:
+  === pytest 用例覆盖度自检 ===
+  总计：1215 个测试用例（pytest collect-only 口径）
+  目标：≥ 749（TAG0011 迁移基线，BDD-1）
+exit code: 0
+判定: 1215 ≥ 1202（N3 冻结基线）且只增不减 ✓
+
+=== 子项 3: check-protocol-consistency.py --strict-errors-only ===
+命令: timeout 120 python3 agate/scripts/check-protocol-consistency.py --strict-errors-only
+输出（尾部）:
+  ⚠️  引用的文件不存在（叙事文件，可能是引述旧问题）: docs/reviews/postmortem-template.md [...]
+  ⚠️  叙事文件含无法解析的脚本名引用（聚合提醒）: check-windows-smoke.sh [CHANGELOG.md:445]
+  仅有 321 个 WARNING，无 ERROR。
+exit code: 0
+判定: 0 ERROR ✓（321 WARNING 为历史引用类，非本任务引入）
+
+=== 子项 4: check-structure-consistency.py ===
+命令: timeout 120 python3 agate/scripts/check-structure-consistency.py
+输出:
+  S1-phases: OK
+  S2-workflow: OK
+  S3-cards: OK
+  S4-scripts: OK
+  S5-schema: OK
+  S6-references: OK
+  S0-numbers: OK
+exit code: 0
+判定: S1~S6+S0 全 OK，0 漂移 ✓
+
+（子项 1 全量 pytest 输出见 bdd-04-full-pytest.log，同一 PASS 行引用）

@@ -1,0 +1,31 @@
+BDD-9 验收证据: 任意 basetemp 位置下全量 pytest 0 失败（验收锚）
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+=== 位置 1: 仓库外显式 basetemp ===
+命令: timeout 900 python3 -m pytest agate/tests/ -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+输出（尾部）:
+  ...............................................................          [100%]
+  1213 passed, 2 skipped in 127.74s (0:02:07)
+exit code: 0
+判定: 0 failed（1213 passed, 2 设计内 skip）✓
+
+=== 位置 2: 仓库内 basetemp ===
+命令: timeout 900 python3 -m pytest agate/tests/ -q -p no:cacheprovider --basetemp=agate/.bt-p6-verify
+输出（尾部）:
+  ...............................................................          [100%]
+  1213 passed, 2 skipped in 128.28s (0:02:08)
+exit code: 0
+判定: 0 failed（1213 passed, 2 设计内 skip）✓
+
+=== 清理确认 ===
+- `rm -rf agate/.bt-p6-verify` 已执行，目录不存在确认
+- `git status --short` 过滤 agate-workspace 后无任何改动——未误删/未残留仓库文件
+
+判定: test_bdd_7（GIT_CEILING_DIRECTORIES 确定化）/ test_bdd_25（位置感知排除注入）不再依赖
+basetemp 位置；两位置均 0 failed。
+
+=== 结论 ===
+BDD-9: PASS —— 仓库内默认 basetemp 与仓库外显式 basetemp 两种位置全量 pytest 均 0 failed
+（1213 passed, 2 skipped, exit 0；测试后仓库内 basetemp 已清理，git 状态干净）。

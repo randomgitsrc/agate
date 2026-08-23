@@ -805,6 +805,230 @@ def count_p2_declared_fields(text):
     return sum(1 for line in text.splitlines() if _P2_FIELD_LINE_RE.match(line))
 
 
+# ---------- M2-0038：task md 共享读取器（TAG0022 RM-AG0038，BDD-3/4/5） ----------
+# 已迁移解析点（P1 §4.2 B/C/D 组）从 check-gate.py 抽到公共库单点（对齐 M2 的
+# parse_gate_commands_block 先例）：BDD-3 静态扫描（test_md_parse_scan.py）要求这些
+# 模式在消费脚本（check-gate.py）非注释代码行中字面命中数 = 0，共享解析落在本库
+# （不在扫描清单内）。行为与原内联实现逐字节等价（well-formed 输入口径）：
+#   * B 组 = P1 行首标记（RM-AG0001 可选反引号前缀）+ 计数/描述提取
+#   * C 组 = 任务产出格式判定（BDD 标题 / UI 节 / 候选数 / P6/P7 计数 / DESIGN_GAP /
+#            CODE_MAP / fail-list / known-failures / 关键词 presence）
+#   * D 组 = md 内嵌 ```yaml/```yml 围栏块提取
+
+# B 组：P1 行首标记（与 sh grep -cE 逐行语义一致；`*-? `* = 可选反引号 + dash 前缀，
+# RM-AG0001：反引号包裹标记不再漏计，含 - `[..]` 反引号在 dash 之后的形态）。
+_NC_RE = re.compile(r"^\s*`*-?\s*`*\[NEED_CONFIRM\]")
+_SUGGEST_RE = re.compile(r"^\s*`*-?\s*`*\[SUGGEST:")
+_NO_NEED_RE = re.compile(r"^\s*`*-?\s*`*\[NO_NEED_CONFIRM\]")
+
+# P1 流 C 描述提取（sed -E s/^...// 等价）：NEED_CONFIRM 单段剥离（含后续空白）；
+# SUGGEST 三连 s/// 等价：剥离前缀 → 剥尾部反引号+空白 → 剥尾部 ]。
+_NC_DESC_RE = re.compile(r"^\s*`*-?\s*`*\[NEED_CONFIRM\]\s*")
+_SUGGEST_DESC_RE = re.compile(r"^\s*`*-?\s*`*\[SUGGEST:\s*")
+_SUGGEST_TAIL_BT_RE = re.compile(r"`\s*$")
+_SUGGEST_TAIL_BRACKET_RE = re.compile(r"\]\s*$")
+
+
+def count_markers(text, kind):
+    """P1 正文行首标记计数（kind ∈ NC/SUGGEST/NO_NEED）；未知 kind → 0。
+
+    M2-0038 B 组：原 check-gate gate_p1 `sum(1 for line in lines if _X_RE.search(line))`
+    逐行语义等价（splitlines 剥尾 \\r，与 check-gate _lines 同）。
+    """
+    if not text:
+        return 0
+    lines = text.splitlines()
+    if kind == "NC":
+        return sum(1 for line in lines if _NC_RE.search(line))
+    if kind == "SUGGEST":
+        return sum(1 for line in lines if _SUGGEST_RE.search(line))
+    if kind == "NO_NEED":
+        return sum(1 for line in lines if _NO_NEED_RE.search(line))
+    return 0
+
+
+def has_marker(line, kind):
+    """单行是否含 P1 行首标记（kind ∈ NC/SUGGEST/NO_NEED）。"""
+    if kind == "NC":
+        return bool(_NC_RE.search(line))
+    if kind == "SUGGEST":
+        return bool(_SUGGEST_RE.search(line))
+    if kind == "NO_NEED":
+        return bool(_NO_NEED_RE.search(line))
+    return False
+
+
+def extract_marker_desc(line, kind):
+    """提取 P1 标记行描述：NC = 剥离前缀（含后续空白）；SUGGEST = 三连剥离；其他原样。"""
+    if kind == "NC":
+        return _NC_DESC_RE.sub("", line)
+    if kind == "SUGGEST":
+        desc = _SUGGEST_DESC_RE.sub("", line)
+        desc = _SUGGEST_TAIL_BT_RE.sub("", desc)
+        desc = _SUGGEST_TAIL_BRACKET_RE.sub("", desc)
+        return desc
+    return line
+
+
+# C 组：任务产出格式判定读取器
+
+def extract_bdd_titles(text):
+    """提取 md BDD 标题行（`##`~`#####` 级 `BDD-N:` 标题）→ 换行连接字符串。
+
+    P1 UI 维度合法性判定用（维度扩展名须在 UX 类别 BDD 标题出现）。与原内联
+    `"\n".join(re.findall(r"^#{2,5}\\s+BDD-[0-9]+.*$", text, re.MULTILINE))` 等价。
+    """
+    return "\n".join(re.findall(r"^#{2,5}\s+BDD-[0-9]+.*$", text, re.MULTILINE))
+
+
+def parse_ui_design_section(text):
+    """解析 P2-design.md UI 设计节 → (ui_block, shape_line, dim_line)。
+
+    无 `#{2,3} UI 设计` 节标题 → (None, "", "")。ui_block = 节标题起全文（含标题行）；
+    shape_line / dim_line = 节内首条 `渲染形态:` / `适用维度:` 声明行内容（剥 list 前缀）。
+    """
+    m = re.search(r"^#{2,3}\s+UI 设计", text, re.MULTILINE)
+    if not m:
+        return None, "", ""
+    ui_block = text[m.start():]
+    shape_line = ""
+    dim_line = ""
+    for line in ui_block.splitlines():
+        mm = re.match(r"^\s*[-*]?\s*渲染形态\s*[:：]\s*(.+)$", line)
+        if mm and not shape_line:
+            shape_line = mm.group(1).strip()
+        mm = re.match(r"^\s*[-*]?\s*适用维度\s*[:：]\s*(.+)$", line)
+        if mm and not dim_line:
+            dim_line = mm.group(1).strip()
+    return ui_block, shape_line, dim_line
+
+
+def candidate_count_value(line):
+    """扫描 P2-design.md `candidate_count:` 行首声明 → 行内首个数字串 int。
+
+    行首不匹配 → None；匹配但无数字 → 0（与原 check-gate P2 分支内联循环
+    `if re.match(...): m = re.search(...); if m: candidate_count = int(...)` + break 等价）。
+    """
+    if re.match(r"^candidate_count:", line):
+        m = re.search(r"[0-9]+", line)
+        return int(m.group(0)) if m else 0
+    return None
+
+
+def design_trivial_declared(line):
+    """P1-requirements.md 行首 `design_trivial:` / `follows_existing_pattern:` 声明 presence。"""
+    return bool(re.search(r"^(design_trivial|follows_existing_pattern):\s*\S", line))
+
+
+def has_keyword(text, kind):
+    """任务产出关键词 presence 判定（kind ∈ tradeoff / choice_and_reason / design_gap）。"""
+    if kind == "tradeoff":
+        return bool(re.search(r"权衡|选择理由|取舍|考量|trade-?off|理由与权衡", text))
+    if kind == "choice_and_reason":
+        return bool(re.search(r"选择", text) and re.search(r"理由|原因|因为", text))
+    if kind == "design_gap":
+        return bool(re.search(r"设计偏差|design gap|未列入|gap:", text, re.IGNORECASE))
+    return False
+
+
+def count_p6_pass_fail(text):
+    """P6-acceptance.md 旧格式正文行首 PASS/FAIL 计数（须含 BDD 编号，大小写不敏感）。
+
+    返回 (total, fail)。与原 check-gate gate_p6 旧格式回退两行 sum 等价。
+    """
+    lines = text.splitlines()
+    total = sum(
+        1 for line in lines
+        if re.search(r"^\s*- (PASS|FAIL)\b.*BDD-[0-9]", line, re.IGNORECASE)
+    )
+    fail = sum(
+        1 for line in lines
+        if re.search(r"^\s*- FAIL\b.*BDD-[0-9]", line, re.IGNORECASE)
+    )
+    return total, fail
+
+
+def count_p7_markers(text):
+    """P7-consistency.md 旧格式正文 BLOCKER/DEVIATION-CRITICAL 计数 → (blockers, devcrit)。
+
+    排除 `[BLOCKER]: N 条` / `[DEVIATION-CRITICAL]: N 条` 汇总行（M4：[:：] 全角冒号
+    alternation，POSIX locale 不匹配全角冒号的问题）。
+    """
+    lines = text.splitlines()
+    blockers = 0
+    devcrit = 0
+    for line in lines:
+        if re.search(r"^\s*-?\s*\[BLOCKER\]", line) and not re.search(
+            r"\[BLOCKER\](:|：)?\s*[0-9]+\s*条?\s*$", line
+        ):
+            blockers += 1
+        if re.search(r"^\s*-?\s*\[DEVIATION-CRITICAL\]", line) and not re.search(
+            r"\[DEVIATION-CRITICAL\](:|：)?\s*[0-9]+\s*条?\s*$", line
+        ):
+            devcrit += 1
+    return blockers, devcrit
+
+
+def count_design_gap(text, allow_blockquote=True):
+    """P7/P4 正文 DESIGN_GAP / DESIGN_GAP_REVIEWED 行首标记计数 → (count, reviewed)。
+
+    allow_blockquote=True（P7 口径）：`^\\s*>?\\s*-?\\s*\\[DESIGN_GAP:`（含 blockquote
+    前缀）；False（P4 转抄核对口径）：仅 `^\\s*-?\\s*\\[DESIGN_GAP:`（与 grep -cE 等价）。
+    """
+    pattern = r"^\s*>?\s*-?\s*\[DESIGN_GAP:" if allow_blockquote else r"^\s*-?\s*\[DESIGN_GAP:"
+    count = sum(1 for line in text.splitlines() if re.search(pattern, line))
+    reviewed = sum(
+        1 for line in text.splitlines()
+        if re.search(r"^\s*>?\s*-?\s*\[DESIGN_GAP_REVIEWED", line)
+    )
+    return count, reviewed
+
+
+def count_code_map_lines(text):
+    """P4-implementation.md 正文 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT] 行首标记计数。"""
+    return sum(
+        1 for line in text.splitlines()
+        if re.search(r"^\s*-?\s*\[CODE_MAP_UPDATED\]", line)
+        or re.search(r"^\s*-?\s*\[CODE_MAP_EXEMPT", line)
+    )
+
+
+def parse_fail_list_block(text):
+    """解析 pre-task-baseline.md ```fail-list 代码块 → 行列表（剥首尾 ``` 与空行）。
+
+    等价 sed -n '/```fail-list/,/```/p' | sed '1d;$d' | grep -v '^$'。
+    """
+    lines = text.splitlines()
+    start = next((i for i, line in enumerate(lines) if "```fail-list" in line), None)
+    if start is None:
+        return []
+    end = next((i for i in range(start + 1, len(lines)) if "```" in lines[i]), None)
+    end = len(lines) if end is None else end + 1
+    pre = lines[start:end]
+    if len(pre) > 0:
+        pre = pre[1:]
+    if len(pre) > 0:
+        pre = pre[:-1]
+    return [line for line in pre if line]
+
+
+def count_kf_entries(text):
+    """known-failures.md 登记表条目计数（行首 `| N |`）。"""
+    return sum(1 for line in text.splitlines() if re.search(r"^\|\s*[0-9]+\s*\|", line))
+
+
+# D 组：md 内嵌 yaml/yml 围栏块提取（read_vision_tri_state 与 check-gate 兜底共用单点）
+_EMBEDDED_YAML_BLOCK_RE = re.compile(r"```(?:yaml|yml)\s*\n(.*?)```", re.DOTALL)
+
+
+def extract_embedded_yaml_blocks(text):
+    """提取 md 内嵌 ```yaml/```yml 围栏块内容列表（含 content，不含围栏）。
+
+    与原 check-gate `_gate_p1_vision_capability` 兜底 `re.finditer(...)` 循环同正则单点。
+    """
+    return [m.group(1) for m in _EMBEDDED_YAML_BLOCK_RE.finditer(text)]
+
+
 if __name__ == "__main__":
     project_root = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
     workspace, tasks_dir = resolve_workspace(project_root)

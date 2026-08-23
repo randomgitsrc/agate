@@ -21,6 +21,7 @@
 
 import re
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -1801,12 +1802,19 @@ def test_tag0005_bdd_2_p2_review_unconditional_gate(agate_root):
     assert "P2-review.md frontmatter status 非 approved" in content
 
 
-def test_tag0005_bdd_9_review_role_instruction_single_file(agate_root):
-    hits = [
-        p
-        for p in agate_root.rglob("*.md")
-        if "Review 角色特别指令" in _read_text(p)
-    ]
+def test_tag0005_bdd_9_review_role_instruction_single_file(agate_root, tmp_path_factory):
+    # TAG0022 RM-AG0041（P5→P4 回退修复轮）：basetemp 位置无关——pytest basetemp 位于
+    # 协议目录内时（如 agate/.bt-fix），同会话其他测试渲染的 dispatch-prompt .md 产物
+    # 会被 rglob 全树扫描误收；排除 basetemp 子树后断言协议目录内「Review 角色特别指令」
+    # 恰 1 处（dispatch-prompt.md 模板），断言语义不变（P5 verifier 实测，unit.md 记录）。
+    basetemp = Path(tmp_path_factory.getbasetemp())
+    hits = []
+    for p in agate_root.rglob("*.md"):
+        try:
+            p.relative_to(basetemp)
+        except ValueError:
+            if "Review 角色特别指令" in _read_text(p):
+                hits.append(p)
     assert len(hits) == 1
     assert "assets/templates/dispatch-prompt.md" in str(hits[0])
 
@@ -2733,3 +2741,129 @@ def test_bdd_10_gate_p6_unaffected_by_judge_artifacts_exit_2(
 
     result = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
     assert result.returncode == 2
+
+
+# ─────────────────────────────────────────────
+# TAG0022 增补：gate_p1 judge 启用强制化（RM-AG0039，BDD-6/7；P2 §4.3 + P2-review NB-4 推荐口径）
+#   判据（P2-review 锁定决策 2 + NB-4）：judge 块 presence + P1 created（ISO）≥ judge_required_since
+#   （rules/dispatch.yaml "2026-08-22"）：
+#     - judge dict + enabled truthy → 放行（原 P1 判定 exit 2 语义不变）
+#     - judge dict + enabled falsy → 与缺失同走 created 判据（falsy + created ≥ cutoff → exit 1；
+#       falsy + pre-cutoff → 跳过）
+#     - judge 缺失 → created ≥ cutoff → exit 1；否则（pre-cutoff / created 缺失或非 ISO）→ 跳过（fail-open）
+#     - judge 非 dict（如 judge: true）→ 按缺失处理（fail-open）
+#   P3 现状无该校验 → 机制后缺/未启用用例现为 exit 2 → 红灯（B 类）；历史兼容用例现即绿（回归守卫）。
+#   既有 gate_p65 judge 三态用例（L2662-2735）语义不动（锁定决策 5），本组不触碰。
+
+
+def _write_p1_review_approved(td):
+    """gate_p1 前置合规 P1-review.md：status approved + agent≠main + 含 BDD 编号引用。"""
+    (td / "P1-review.md").write_text(
+        "---\nstatus: approved\nagent: reviewer-subagent\n---\nP1 review：BDD-1 已核对通过。\n",
+        encoding="utf-8",
+    )
+
+
+def _write_state_yaml_p1(td, judge_block=None):
+    """覆写 .state.yaml：phase=P1（P1 gate 上下文）；可选 judge 块（judge_block 为多行字符串）。"""
+    lines = ["task_id: T001", "phase: P1", "status: active", "retries: {}"]
+    if judge_block is not None:
+        lines.append(judge_block)
+    (td / ".state.yaml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_bdd_6_gate_p1_new_task_missing_judge_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-6：机制后新任务（created 2026-08-22 ≥ judge_required_since）且 .state.yaml 无 judge 块 → exit 1。
+    TDD：P3 现状无 judge 校验 → exit 2 → 红灯（B 类，行为未实现）。"""
+    td = task_dir()
+    _write_p1_review_approved(td)
+    add_p1_field(td, "created", "2026-08-22")
+    _write_state_yaml_p1(td)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1, result.output
+
+
+def test_bdd_6_gate_p1_new_task_judge_enabled_true_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-6 正向：机制后新任务含 judge.enabled: true → 放行（原 P1 判定 exit 2 语义不变）。
+    回归守卫：P3 现状即绿。"""
+    td = task_dir()
+    _write_p1_review_approved(td)
+    add_p1_field(td, "created", "2026-08-22")
+    _write_state_yaml_p1(td, judge_block="judge:\n  enabled: true")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2, result.output
+
+
+def test_bdd_6_gate_p1_judge_disabled_after_cutoff_exit_1(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-6：judge.enabled: false 且机制后（created ≥ cutoff）→ exit 1（NB-4：falsy 同走 created 判据）。
+    TDD：P3 现状无校验 → exit 2 → 红灯（B 类）。"""
+    td = task_dir()
+    _write_p1_review_approved(td)
+    add_p1_field(td, "created", "2026-08-22")
+    _write_state_yaml_p1(td, judge_block="judge:\n  enabled: false")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 1, result.output
+
+
+def test_bdd_7_gate_p1_historical_pre_cutoff_no_judge_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-7：历史任务（created 2026-08-19 < cutoff）无 judge 块 → 不被拦（exit 2）。
+    回归守卫：P3 现状即绿。"""
+    td = task_dir()
+    _write_p1_review_approved(td)
+    add_p1_field(td, "created", "2026-08-19")
+    _write_state_yaml_p1(td)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2, result.output
+
+
+def test_bdd_7_gate_p1_historical_no_created_fail_open_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-7：历史任务（无 created 字段）无 judge 块 → fail-open 不拦（exit 2）。
+    回归守卫：P3 现状即绿。"""
+    td = task_dir()
+    _write_p1_review_approved(td)
+    _write_state_yaml_p1(td)
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2, result.output
+
+
+def test_bdd_7_gate_p1_judge_disabled_pre_cutoff_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-7：judge.enabled: false 且 pre-cutoff（created 2026-08-19）→ 跳过不拦（NB-4 推荐口径）。
+    回归守卫：P3 现状即绿（P4 按 NB-4 实现后仍 exit 2）。"""
+    td = task_dir()
+    _write_p1_review_approved(td)
+    add_p1_field(td, "created", "2026-08-19")
+    _write_state_yaml_p1(td, judge_block="judge:\n  enabled: false")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2, result.output
+
+
+def test_bdd_7_gate_p1_judge_non_dict_malformed_fail_open_exit_2(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-7（TG-2）：.state.yaml judge 为 bool（judge: true，非 dict）→ 按缺失处理（fail-open 不拦）。
+    断言口径：dispatch-context「judge 非 dict → 按缺失处理（fail-open）」；P1 created 缺失 → 更不会拦。
+    回归守卫：P3 现状即绿。"""
+    td = task_dir()
+    _write_p1_review_approved(td)
+    _write_state_yaml_p1(td, judge_block="judge: true")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
+    assert result.returncode == 2, result.output

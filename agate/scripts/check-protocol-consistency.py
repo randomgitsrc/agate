@@ -116,7 +116,29 @@ class Report:
         self.passed.append(check)
 
 
+def _env_skip_dir_prefixes():
+    """[SCOPE+] M15（RM-AG0041/BDD-9）opt-in 排除钩子：解析 env
+    `AGATE_CONSISTENCY_SKIP_DIRS=<相对根路径列表>`（分隔符 os.pathsep，正斜杠归一），
+    返回分量前缀元组（如 "skip-dir" → (("skip-dir",),)）。
+
+    - 默认未设置 / 空值 → () → iter_md_files 行为逐字节不变（R6）。
+    - call-time 读取：避免 import 时刻缓存导致后注入的环境变量不生效
+      （测试对 import-time / call-time 两种实现均稳健，P3 §5 契约注解 3）。
+    - 分隔符 os.pathsep（POSIX ':' / Windows ';'），沿用仓库既有
+      `os.environ.get("AGATE_*", 默认)` 解析惯例，无 Unix 路径假设。
+    """
+    raw = os.environ.get("AGATE_CONSISTENCY_SKIP_DIRS", "")
+    out = []
+    for entry in raw.split(os.pathsep):
+        normalized = entry.strip().replace(os.sep, "/")
+        if not normalized:
+            continue
+        out.append(tuple(normalized.split("/")))
+    return tuple(out)
+
+
 def iter_md_files(root: Path):
+    skip_prefixes = _env_skip_dir_prefixes()
     for p in sorted(root.rglob("*.md")):
         # 用相对 root 的路径判断排除项——绝对路径判断在 worktree 开发场景会把
         # worktree 自身（路径含 .worktrees/）的所有文件误排除，导致 consistency 空转
@@ -134,6 +156,12 @@ def iter_md_files(root: Path):
             continue
         # bats 框架自身（CI 克隆到仓库根的 bats/ 目录，含自带 docs/README 引用非 agate 文件）
         if "bats" in rel_parts:
+            continue
+        # [SCOPE+] M15（RM-AG0041/BDD-9）：opt-in 排除钩子——env AGATE_CONSISTENCY_SKIP_DIRS
+        # 声明的相对根路径按分量前缀命中即跳过，与既有 rel_parts 排除链同层（均相对 root
+        # 判定；绝对路径判定在 worktree 场景会误排除含 .worktrees/ 的路径）。分量级匹配
+        # 避免 "foo" 误伤 "foobar.md"；默认未设置 → 空元组 → 行为逐字节不变（R6）。
+        if any(rel_parts[: len(sp)] == sp for sp in skip_prefixes):
             continue
         yield p
 

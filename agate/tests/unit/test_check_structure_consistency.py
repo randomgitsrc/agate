@@ -17,6 +17,7 @@
 import pytest
 from _rules_test_utils import (
     DEFAULT_DISPATCH_YAML,
+    DEFAULT_P2_CARD,
     DEFAULT_PHASES_YAML,
     make_fake_root,
 )
@@ -147,3 +148,75 @@ def test_bdd_5_initial_consistency_exit_0(agate_scripts, python_exe, run_cli, tm
     assert result.returncode == 0, result.output
     assert "S3" in result.output, "未输出 S-3 检查项（卡片↔YAML 一致判定缺失）"
     assert "S4" in result.output, "未输出 S-4 检查项（脚本字段登记一致判定缺失）"
+
+
+# ─────────────────────────────────────────────
+# TAG0022 增补：S-3 双向 gate 命令一致性（RM-AG0038 / BDD-5，P2 §4.2.2 S-3a/S-3b；TG-1）
+#   S-3a（YAML→md）：phases.yaml gates[].check 中的命令串须在对应卡片 ## gate 规则
+#                    （或推进条件）节出现；缺失 → ERROR（单侧漂移：YAML 侧加了，md 侧没加）。
+#   S-3b（md→YAML）：卡片 ## gate 规则 节中机器可判定命令行（check-gate.py P\d+ /
+#                    gate_commands.P\d+ / check-[\w-]+\.py）须在 gates[].check 有声明；
+#                    未声明 → ERROR（单侧漂移：md 侧加了，YAML 侧没加）。
+#   P3 现状 S-3a/S-3b 未实现 → 单侧漂移不报 → exit 0 → 断言非 0 失败 = 真红灯（B 类，行为未实现）；
+#   双侧一致 → 现 exit 0（回归守卫，P4 实现后仍 exit 0）。
+#   NB-1：S-3a/S-3b 是叠加在既有 S-3 outputs/orphan/exec_role 下的新增子检查——本组用例
+#   不触碰产出规格/派发节，既有 S-3 用例保持绿。
+#   S-3a 口径：卡片 ## gate 规则 节内须同时出现 P2 的全部 gates[].check 串（含散文描述），
+#   故双侧一致用例把两条 gate 串都放进节内，对「命令串专属」或「全部串」两种实现语义均稳健。
+
+
+def _phases_with_p2_gate_cmd():
+    """DEFAULT_PHASES_YAML + P2 gates 增补机器可判定 gate 命令串（S-3a/S-3b 对账对象）。"""
+    return DEFAULT_PHASES_YAML.replace(
+        "      - {check: P2-review.md status == approved}\n",
+        "      - {check: P2-review.md status == approved}\n"
+        "      - {check: check-gate.py P2 $TASK_DIR}\n",
+    )
+
+
+def _card_with_gate_rules(extra_lines):
+    """DEFAULT_P2_CARD + `## gate 规则` 节（节内行可含机器可判定命令行）。"""
+    return DEFAULT_P2_CARD + "## gate 规则\n" + extra_lines
+
+
+def test_bdd_5_s3a_yaml_gate_cmd_not_in_card_exit_1(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """BDD-5 S-3a：YAML gates 增补命令串但卡片 ## gate 规则 未出现 → 非 0（YAML 侧漂移）。
+    TDD：P3 现状 S-3a 未实现 → exit 0 → 红灯（B 类）。"""
+    root = make_fake_root(
+        tmp_path,
+        phases_text=_phases_with_p2_gate_cmd(),
+        card_text=_card_with_gate_rules("- P3-test-cases.md 声明 test_code_dir\n"),
+    )
+    result = _run_structure(agate_scripts, python_exe, run_cli, root)
+    assert result.returncode != 0, result.output
+
+
+def test_bdd_5_s3b_card_gate_cmd_not_in_yaml_exit_1(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """BDD-5 S-3b：卡片 ## gate 规则 含机器可判定命令行但 YAML gates 未声明 → 非 0（md 侧漂移）。
+    TDD：P3 现状 S-3b 未实现 → exit 0 → 红灯（B 类）。"""
+    root = make_fake_root(
+        tmp_path,
+        card_text=_card_with_gate_rules("- check-gate.py P2 $TASK_DIR\n"),
+    )
+    result = _run_structure(agate_scripts, python_exe, run_cli, root)
+    assert result.returncode != 0, result.output
+
+
+def test_bdd_5_s3a_s3b_both_sides_consistent_exit_0(
+    agate_scripts, python_exe, run_cli, tmp_path
+):
+    """BDD-5 双侧一致：YAML gates 声明命令串 + 卡片 ## gate 规则 含对应命令行 → exit 0
+    （S-3a/S-3b 同时通过）。回归守卫：P3 现状即 exit 0（无 S-3a/b）；P4 实现后双侧一致仍 exit 0。"""
+    root = make_fake_root(
+        tmp_path,
+        phases_text=_phases_with_p2_gate_cmd(),
+        card_text=_card_with_gate_rules(
+            "- check-gate.py P2 $TASK_DIR\n- P2-review.md status == approved\n"
+        ),
+    )
+    result = _run_structure(agate_scripts, python_exe, run_cli, root)
+    assert result.returncode == 0, result.output

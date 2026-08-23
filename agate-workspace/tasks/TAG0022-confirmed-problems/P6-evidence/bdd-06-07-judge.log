@@ -1,0 +1,38 @@
+BDD-6/7 验收证据: judge 启用强制化——机制后新任务不写 judge 即被拦；历史任务跳过
+验收时间: 2026-08-23 (P6 验收轮)
+验收人: verifier (P6 模式)
+[PROD_NOT_TOUCHED]
+
+命令: timeout 600 python3 -m pytest agate/tests/unit/test_check_gate.py -q -p no:cacheprovider --basetemp=/home/kity/oclab/dsh-workspace/ptmp
+工作目录: /home/kity/oclab/agate/.worktrees/agate-TAG0022
+
+输出:
+  ........................................................................ [ 41%]
+  ........................................................................ [ 83%]
+  ............................                                             [100%]
+  172 passed in 23.20s
+exit code: 0
+
+judge P1 校验用例核对（grep def test_.*judge 于 test_check_gate.py）：
+  BDD-6（机制后新任务被拦）:
+    - test_bdd_6_gate_p1_new_task_missing_judge_exit_1（L2775）    机制后新任务缺 judge 块 → exit 1（阻断）
+    - test_bdd_6_gate_p1_new_task_judge_enabled_true_exit_2（L2789）含 judge.enabled: true → exit 2（原语义放行）
+    - test_bdd_6_gate_p1_judge_disabled_after_cutoff_exit_1（L2803）judge 声明但未启用（cutoff 后）→ exit 1
+  BDD-7（历史任务跳过）:
+    - test_bdd_7_gate_p1_historical_pre_cutoff_no_judge_exit_2（L2817）机制前任务无 judge 块 → exit 2（不被拦）
+    - test_bdd_7_gate_p1_judge_disabled_pre_cutoff_exit_2（L2844）机制前禁用 → exit 2
+    - test_bdd_7_gate_p1_judge_non_dict_malformed_fail_open_exit_2（L2858）非 dict 畸形 → fail-open exit 2
+  gate_p65 三态（既有语义保持）:
+    - test_bdd_2_gate_p65_judge_disabled_early_exit_0（L2671）/ test_bdd_2_gate_p65_no_judge_field_early_exit_0（L2683）
+    - test_bdd_1_gate_p65_judge_enabled_verdict_missing_exit_1（L2694）/ test_bdd_9_gate_p65_judge_checks_fail_exit_1（L2706）
+    - test_bdd_10_gate_p6_unaffected_by_judge_artifacts_exit_2（L2731）
+
+判定：
+  - 机制后新任务（created ≥ judge_required_since）缺/未启用 judge → exit 1（阻断）✓
+  - 含 judge.enabled: true → 原语义放行（exit 2）✓
+  - 历史任务（pre-cutoff / created 缺失 / 非 dict）→ 不被拦（exit 2）✓
+  - gate_p65 既有三态语义逐字节保持 ✓
+
+=== 结论 ===
+BDD-6: PASS —— 机制后新任务 P1 不写 judge 即被拦（exit 1），含 judge.enabled: true 放行。
+BDD-7: PASS —— 历史任务（机制前）跳过，存量不挂（exit 2 不被拦）。

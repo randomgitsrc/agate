@@ -11,6 +11,7 @@
 
 import re
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -44,18 +45,40 @@ def test_bdd_24_git_integration_rule2_semantics(agate_root):
     assert "不得提前写下一阶段" in text
 
 
-def test_bdd_25_consistency_zero_error(agate_scripts, agate_root, python_exe, run_cli):
+def test_bdd_25_consistency_zero_error(
+    agate_scripts, agate_root, python_exe, run_cli, tmp_path_factory
+):
     """bdd-25：修复后协议一致性检查 0 ERROR（worktree 自己的脚本，Q2）。
 
     等价 bats `run $PYTHON "$(py_path "$AGATE_ROOT/scripts/check-protocol-consistency.py")"`
     （bats 以仓库根为 cwd 默认 `--root .`）；pytest 用 `--root agate_root.parent` 显式指定，
     行为等价（批次 14 test_consistency 同口径）。exit 0 = 无 ERROR。
+
+    TAG0022 RM-AG0041（P2 §4.5.2 + [SCOPE+] M15）：basetemp 位于仓库根下时注入
+    `AGATE_CONSISTENCY_SKIP_DIRS=<basetemp 相对根 rel 路径>`，使 iter_md_files 免疫
+    basetemp 污染（TAG0020 known-failures 条目 2：预存测试生成的坏引用 fixture .md 被
+    CHECK 2 误收）；basetemp 在仓库外时不注入（行为与基线一致，零改动）。
+    两种位置断言口径：仓库内=注入后 0 ERROR（P3 现状 M15 未实现 → env 无效果 → 红）；
+    仓库外=不注入 0 ERROR（P3 现状即绿）。
     """
+    repo_root = agate_root.parent
+    basetemp = Path(tmp_path_factory.getbasetemp())
+    env = None
+    try:
+        rel_bt = Path(basetemp).relative_to(repo_root)
+        env = {"AGATE_CONSISTENCY_SKIP_DIRS": rel_bt.as_posix()}
+    except ValueError:
+        env = None  # basetemp 在仓库外 → 不注入（基线行为）
+
+    kwargs = {}
+    if env is not None:
+        kwargs["env"] = env
     result = run_cli(
         python_exe,
         str(agate_scripts / "check-protocol-consistency.py"),
         "--root",
-        str(agate_root.parent),
+        str(repo_root),
+        **kwargs,
     )
     assert result.returncode == 0, result.output
 
@@ -139,3 +162,63 @@ def test_bdd_32_pytest_collectible(agate_root, python_exe, run_cli):
         str(agate_root / "tests"),
     )
     assert result.returncode == 0, result.output
+
+
+# ─────────────────────────────────────────────
+# TAG0022 增补：M15 排除钩子单测（RM-AG0041 [SCOPE+] / BDD-9，TG-3；P2 §4.5.2 + §8 minimal_validation）
+#   被测：agate/scripts/check-protocol-consistency.py iter_md_files 的 opt-in 排除钩子
+#   （env AGATE_CONSISTENCY_SKIP_DIRS=<相对根路径列表>，默认关闭、行为逐字节不变）。
+#   P3 现状 M15 未实现 → env 无效果 → 排除断言失败（红，B 类）；默认行为用例现即绿（回归守卫）。
+#   平台无关：无裸 python3 / 无临时目录字面量（用 tmp_path）/ 无软链假设；rel 路径经 Path.relative_to
+#   + as_posix 归一（与 iter_md_files 既有 rel 处理一致，Windows 反斜杠归一）。
+
+
+def _load_protocol_consistency_mod(agate_scripts, suffix):
+    """importlib 加载 check-protocol-consistency.py（__name__ ≠ __main__ → main 不跑）。
+
+    每次测试用唯一模块名加载（env 在 exec_module 前由 monkeypatch 设置）——
+    对「import-time 读 env」或「call-time 读 env」两种 M15 实现方式均能正确捕获。
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "agate_consistency_" + suffix,
+        str(agate_scripts / "check-protocol-consistency.py"),
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _fake_root_with_skip(tmp_path):
+    """含被排除目录的最小根：a.md + sub/b.md + skip-dir/c.md（c.md 是排除对象）。"""
+    root = tmp_path / "fake-root"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "a.md").write_text("a", encoding="utf-8")
+    (root / "sub").mkdir()
+    (root / "sub" / "b.md").write_text("b", encoding="utf-8")
+    (root / "skip-dir").mkdir()
+    (root / "skip-dir" / "c.md").write_text("c", encoding="utf-8")
+    return root
+
+
+def test_m15_iter_md_files_skip_dirs_injected_excluded(tmp_path, agate_scripts, monkeypatch):
+    """M15（TG-3）：注入 AGATE_CONSISTENCY_SKIP_DIRS 后 iter_md_files 不产出被排除路径。
+    TDD：P3 现状 M15 未实现 → env 无效果 → skip-dir/c.md 仍产出 → 断言失败（红，B 类）。"""
+    monkeypatch.setenv("AGATE_CONSISTENCY_SKIP_DIRS", "skip-dir")
+    mod = _load_protocol_consistency_mod(agate_scripts, "injected")
+    root = _fake_root_with_skip(tmp_path)
+    got = {p.relative_to(root).as_posix() for p in mod.iter_md_files(root)}
+    assert "skip-dir/c.md" not in got, f"M15 未生效：被排除路径仍产出 {sorted(got)}"
+    assert "a.md" in got and "sub/b.md" in got
+
+
+@pytest.mark.windows_smoke
+def test_m15_iter_md_files_default_unchanged(tmp_path, agate_scripts, monkeypatch):
+    """M15（TG-3）：默认未设置 AGATE_CONSISTENCY_SKIP_DIRS 时行为不变（扫面变化可观测）——
+    iter_md_files 产出全部 .md（无排除）。回归守卫：P3 现状即绿；P4 实现后（默认关闭）仍绿。"""
+    monkeypatch.delenv("AGATE_CONSISTENCY_SKIP_DIRS", raising=False)
+    mod = _load_protocol_consistency_mod(agate_scripts, "default")
+    root = _fake_root_with_skip(tmp_path)
+    got = sorted(p.relative_to(root).as_posix() for p in mod.iter_md_files(root))
+    assert got == ["a.md", "skip-dir/c.md", "sub/b.md"]

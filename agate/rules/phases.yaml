@@ -28,6 +28,7 @@ phases:
       - {file: P1-review.md, required: true, status_field: status}
     gates:
       - {check: "P1-requirements.md 存在且含 BDD；P1-review.md status == approved"}
+      - {check: "check-gate.py P1 $TASK_DIR"}
     retry_cap: 3
     task_fields: [risk_level, phases, packages, domains]
   - id: P2
@@ -38,6 +39,8 @@ phases:
       - {file: P2-review.md, required: true, status_field: status}
     gates:
       - {check: "P2-review.md status == approved；四字段齐全（packages/domains/ui_affected/gate_commands）"}
+      - {check: "check-gate.py P2 $TASK_DIR"}
+      - {check: "gate_commands.P3 可选声明（供 check-tdd-red.py 自动读取测试运行器）"}
     retry_cap: 3
     task_fields: [candidate_count, packages, domains, ui_affected, gate_commands]
   - id: P3
@@ -47,6 +50,8 @@ phases:
       - {file: P3-test-cases.md, required: true}
     gates:
       - {check: "check-tdd-red.py exit 0（测试先于实现，真红灯）"}
+      - {check: "check-gate.py P3 $TASK_DIR（P3-test-cases.md 存在）"}
+      - {check: "check-tdd-red.py $TASK_DIR exit 0；gate_commands.P3 声明测试运行器（可选）"}
     retry_cap: 2
     task_fields: [test_code_dir]
   - id: P4
@@ -56,6 +61,7 @@ phases:
       - {file: P4-implementation.md, required: true}
     gates:
       - {check: "暂存区含非 md/yaml 代码文件（git diff --cached --name-only）"}
+      - {check: "check-gate.py P4 $TASK_DIR"}
     retry_cap: 3
     task_fields: [implementation_dir]
   - id: P5
@@ -64,7 +70,8 @@ phases:
     outputs:
       - {file: P5-test-results/unit.md, required: true}
     gates:
-      - {check: "gate_commands.P5 exit 0 AND failed==0"}
+      - {check: "P2 声明的验证命令全部 exit 0 AND failed==0"}
+      - {check: "check-gate.py P5 $TASK_DIR"}
     retry_cap: 2
     task_fields: []
   - id: P6
@@ -73,7 +80,9 @@ phases:
     outputs:
       - {file: P6-acceptance.md, required: true}
     gates:
-      - {check: "check-gate.py P6 exit 2 + check-p6-evidence/check-p6-provenance exit 0"}
+      - {check: "check-gate.py P6 exit 2 + check-p6-evidence.py / check-p6-provenance.py exit 0"}
+      - {check: "check-p6-format.py --fix 归一化（verifier 产出后、gate 前）"}
+      - {check: "check-gate.py P6.5 $TASK_DIR（= check-judge-verdict.py + check-events.py 双 exit 0；历史任务自动跳过）"}
     retry_cap: 2
     task_fields: [pass, fail, ui_affected]
   - id: P6.5
@@ -83,6 +92,7 @@ phases:
       - {file: P6.5-judge-verdict.md, required: true}
     gates:
       - {check: "check-judge-verdict.py + check-events.py exit 0"}
+      - {check: "check-gate.py P6.5 $TASK_DIR"}
     retry_cap: 2
     task_fields: [status, criteria_total, criteria_passed, verdict_evidence]
   - id: P7
@@ -92,6 +102,7 @@ phases:
       - {file: P7-consistency.md, required: true}
     gates:
       - {check: "[BLOCKER] 与 [DEVIATION-CRITICAL] 计数 = 0"}
+      - {check: "check-gate.py P7 $TASK_DIR"}
     retry_cap: 2
     task_fields: [blocker_count, deviation_count, deviation_critical_count, design_gap_count, design_gap_reviewed_count]
   - id: P8
@@ -101,5 +112,8 @@ phases:
       - {file: P8-release.md, required: true}
     gates:
       - {check: "check-gate.py P8 + gate_commands 逐包 exit 0"}
+      - {check: "check-gate.py P8 $TASK_DIR：bump_type/debt_check 字段 + version/CHANGELOG/tag 检查"}
+      - {check: "check-p6-provenance.py --audit7-only $TASK_DIR 判定 P5 证据复用；gate_commands.P5 逐包 exit 0 + failed==0"}
+      - {check: "gate_commands.P5 链路含 check-protocol-consistency.py 时先 tag 后重跑（DEBT0013）"}
     retry_cap: 2
     task_fields: [bump_type]

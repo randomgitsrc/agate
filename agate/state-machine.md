@@ -440,7 +440,10 @@ p5_pass_commit: <40 位 git 提交哈希，可选字段>
 # ── judge 机制字段（TAG0020 P6.5；历史任务无 judge 块 → P6.5 门槛全链跳过，BDD-2）──
 # 未知顶层键不触发 agate-state-yaml-check 告警（其只校验 task_id/phase/status/retries）
 judge:
-  enabled: true            # 机制启用标记（P1 初始化时主 Agent 写入；缺失/false = 历史任务）
+  enabled: true            # 机制启用标记（RM-AG0039 强制化：机制后新任务——P1 created ≥
+                           #   judge_required_since（rules/dispatch.yaml "2026-08-22"）——必须含
+                           #   judge.enabled: true，check-gate P1 机械校验 exit 1；
+                           #   历史任务（created < 截止或未声明）缺块 → 跳过）
   rounds: 1                # 已用复核轮次（主 Agent 维护；机械兜底 = 账本 judge_verdict 事件计数 ≤2）
   last_verdict: passed     # 上次 verdict status（信息用途，passed/rejected/needs-revision）
   partial: false           # 是否 partial 降级（预算超限诚实降级标记）

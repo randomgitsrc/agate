@@ -43,11 +43,27 @@ except ImportError:
 try:
     from agate_common import (
         body_field_value,
+        candidate_count_value,
+        count_code_map_lines,
+        count_design_gap,
+        count_kf_entries,
+        count_markers,
         count_p2_declared_fields,
+        count_p6_pass_fail,
+        count_p7_markers,
+        design_trivial_declared,
+        extract_bdd_titles,
+        extract_embedded_yaml_blocks,
+        extract_marker_desc,
         fm_field_value,
+        has_keyword,
+        has_marker,
         is_legal_gate_key,
         known_phase_ids,
+        parse_fail_list_block,
         parse_gate_commands_block,
+        parse_ui_design_section,
+        read_rules_yaml,
         reconcile_enabled,
         reconcile_field,
         reconcile_summary,
@@ -91,23 +107,67 @@ except ImportError:
     def count_p2_declared_fields(text):
         return 0
 
+    # M2-0038 共享读取器（TAG0022 RM-AG0038，BDD-3）：agate_common 缺失 = 安装破损，
+    # 读取器按数据缺失降级（计数 → 0 / 布尔 → False / 块解析 → 空），方向与
+    # parse_gate_commands_block 降级先例一致；不在此内联迁移前实现（防双实现漂移）。
+    # 注意：降级实现不得含已迁移解析点字面（test_md_parse_scan.py BDD-3 静态扫描）。
+    def count_markers(text, kind):
+        return 0
+
+    def has_marker(line, kind):
+        return False
+
+    def extract_marker_desc(line, kind):
+        return line
+
+    def extract_bdd_titles(text):
+        return ""
+
+    def parse_ui_design_section(text):
+        return (None, "", "")
+
+    def candidate_count_value(line):
+        return None
+
+    def design_trivial_declared(line):
+        return False
+
+    def has_keyword(text, kind):
+        return False
+
+    def count_p6_pass_fail(text):
+        return 0, 0
+
+    def count_p7_markers(text):
+        return 0, 0
+
+    def count_design_gap(text, allow_blockquote=True):
+        return 0, 0
+
+    def count_code_map_lines(text):
+        return 0
+
+    def parse_fail_list_block(text):
+        return []
+
+    def read_rules_yaml(rules_root, name):
+        return None
+
+    def count_kf_entries(text):
+        return 0
+
+    def extract_embedded_yaml_blocks(text):
+        return []
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MD_FIELD_GET = os.path.join(SCRIPT_DIR, "agate-md-field-get.py")
 GATE_MISSING_CMDS = os.path.join(SCRIPT_DIR, "agate-gate-missing-cmds.py")
 P5_COUNT = os.path.join(SCRIPT_DIR, "agate-gate-p5-count.py")
 
-# RM-AG0001（v0.30.2）：行首正则加可选反引号前缀（`[NEED_CONFIRM] 反引号包裹标记不再漏计；
-# 含 - `[..]` 反引号在 dash 之后的形态）。与 sh `grep -cE` 逐行语义一致。
-_NC_RE = re.compile(r"^\s*`*-?\s*`*\[NEED_CONFIRM\]")
-_SUGGEST_RE = re.compile(r"^\s*`*-?\s*`*\[SUGGEST:")
-_NO_NEED_RE = re.compile(r"^\s*`*-?\s*`*\[NO_NEED_CONFIRM\]")
-
-# P1 流 C 描述提取（sed -E s/^...// 等价）：NEED_CONFIRM 单段剥离（含后续空白）。
-_NC_DESC_RE = re.compile(r"^\s*`*-?\s*`*\[NEED_CONFIRM\]\s*")
-# SUGGEST 三连 s/// 等价：剥离前缀 → 剥尾部反引号+空白 → 剥尾部 ]。
-_SUGGEST_DESC_RE = re.compile(r"^\s*`*-?\s*`*\[SUGGEST:\s*")
-_SUGGEST_TAIL_BT_RE = re.compile(r"`\s*$")
-_SUGGEST_TAIL_BRACKET_RE = re.compile(r"\]\s*$")
+# RM-AG0001（v0.30.2）：P1 行首标记正则加可选反引号前缀（`[NEED_CONFIRM] 反引号包裹标记
+# 不再漏计；含 - `[..]` 反引号在 dash 之后的形态）。与 sh `grep -cE` 逐行语义一致。
+# M2-0038（TAG0022，BDD-3）：B 组行首标记正则与计数/描述提取已迁 agate_common
+# （count_markers / has_marker / extract_marker_desc）——本文件不再字面出现这些正则。
 
 # P4 暂存区排除模式（与 sh grep -qvE 同一模式）：
 # 阶段产出 md（P[0-8]-*.md，路径首或 / 后）+ .state.yaml。
@@ -145,7 +205,13 @@ def _lines(text):
 
 
 def _frontmatter_lines(path):
-    """sed -n 's/\r$//; /^---$/,/^---$/p' 等价：返回首个 --- 块内的行（不含 --- 定界）。"""
+    """sed -n 's/\r$//; /^---$/,/^---$/p' 等价：返回首个 --- 块内的行（不含 --- 定界）。
+
+    TAG0022（RM-AG0038）A 组迁移后仅剩 gate_p1 的 need_confirm_resolved /
+    suggest_resolved 存在性检查使用（frontmatter 行首键扫描）；frontmatter 字段值读取
+    已全部改走 _md_field_get（agate-md-field-get 新 op status/agent/project_phase/
+    code_map_*，NO_FALLBACK 语义对 well-formed frontmatter 等价）。
+    """
     lines = _lines(_read_text(path))
     in_fm = False
     out = []
@@ -159,15 +225,6 @@ def _frontmatter_lines(path):
         if in_fm:
             out.append(line)
     return out
-
-
-def _frontmatter_field(path, field):
-    """sed 提取 frontmatter 字段值（grep '^field:' | sed 's/^field:\\\\s*//' | head -1 等价）。"""
-    prefix = field + ":"
-    for line in _frontmatter_lines(path):
-        if line.startswith(prefix):
-            return re.sub(r"^" + re.escape(field) + r":\s*", "", line)
-    return ""
 
 
 def _md_field_get(op, file_path):
@@ -242,6 +299,19 @@ def _load_state_yaml(task_dir):
     except Exception:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+# RM-AG0039（TAG0022，P2-review 锁定决策 2）：P1 `created` ISO 日期/时间判据。
+# 合法形态 = ISO 8601 日期（YYYY-MM-DD）或带时间后缀（T/空格分隔，含可选秒/小数/时区）；
+# created 缺失或非 ISO → 返回 False（调用方 fail-open 不拦，R5）。字典序比较对
+# judge_required_since（日期型 "YYYY-MM-DD"）前缀等价成立（datetime 字符串按字典序 ≥ 同日日期）。
+_ISO_DATE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})?)?$"
+)
+
+
+def _is_iso_date(value):
+    return isinstance(value, str) and bool(_ISO_DATE_RE.match(value))
 
 
 def _run_gate_script(script_name, task_dir):
@@ -331,11 +401,13 @@ def _gate_p1_vision_capability(p1_file):
     if read_vision_tri_state is not None:
         status = read_vision_tri_state(p1_file)
     if status is None and yaml is not None:
-        # 兜底（agate_common 不可用）：本地解析 capability_requirements 围栏块
+        # 兜底：read_vision_tri_state 无视觉条目时本地再解析 capability_requirements 围栏块
+        # M2-0038 D 组：内嵌 yaml/yml 块提取迁 agate_common extract_embedded_yaml_blocks
+        # （同正则单点，read_vision_tri_state 与兜底共用）
         text = _read_text(p1_file)
-        for m in re.finditer(r"```(?:yaml|yml)\s*\n(.*?)```", text, re.DOTALL):
+        for block in extract_embedded_yaml_blocks(text):
             try:
-                data = yaml.safe_load(m.group(1))
+                data = yaml.safe_load(block)
             except Exception:
                 continue
             if not isinstance(data, dict):
@@ -387,7 +459,7 @@ def _gate_p1_ui_shape(p1_file):
             "GATE P1: 已声明 ui_render_shape 但 ui_ux_dimensions 为空——形态声明必须选择适用维度（分类框架或扩展维度）\n"
         )
         return False
-    bdd_titles = "\n".join(re.findall(r"^#{2,5}\s+BDD-[0-9]+.*$", text, re.MULTILINE))
+    bdd_titles = extract_bdd_titles(text)
     for dim in dims:
         if dim in _FRAMEWORK_DIMS:
             continue
@@ -414,23 +486,12 @@ def _gate_p2_ui_design_section(p2_file):
         return True
     p2_text = _read_text(p2_file)
 
-    if not re.search(r"^#{2,3}\s+UI 设计", p2_text, re.MULTILINE):
+    # M2-0038 C 组：UI 设计节定位 + 渲染形态/适用维度声明提取迁 agate_common
+    # parse_ui_design_section（BDD-3：节标题/声明行正则不在本文件字面出现）
+    ui_block, shape_line, dim_line = parse_ui_design_section(p2_text)
+    if ui_block is None:
         sys.stderr.write("GATE P2: ui_affected: true 但缺 UI 设计 节标题（## UI 设计）\n")
         return False
-
-    # 节区块 = UI 设计 标题之后的文本（形态声明与 checklist 均在节内）
-    ui_sec_match = re.search(r"^#{2,3}\s+UI 设计", p2_text, re.MULTILINE)
-    ui_block = p2_text[ui_sec_match.start():]
-
-    shape_line = ""
-    dim_line = ""
-    for line in _lines(ui_block):
-        m = re.match(r"^\s*[-*]?\s*渲染形态\s*[:：]\s*(.+)$", line)
-        if m and not shape_line:
-            shape_line = m.group(1).strip()
-        m = re.match(r"^\s*[-*]?\s*适用维度\s*[:：]\s*(.+)$", line)
-        if m and not dim_line:
-            dim_line = m.group(1).strip()
 
     # ② 形态声明（渲染形态 或 适用维度）至少出现一次
     if not shape_line and "适用维度" not in ui_block:
@@ -497,13 +558,13 @@ def gate_p1(task_dir):
         sys.stderr.write("GATE P1: P1-review.md 不存在——P1 评审不可裁，所有任务都需独立 requirements-review\n")
         return 1
 
-    status = _frontmatter_field(p1_review, "status")
+    status = _md_field_get("status", p1_review)
     if status != "approved":
         sys.stderr.write("GATE P1: P1-review.md frontmatter status 非 approved（当前: {}）\n".format(
             status if status else "缺失"))
         return 1
 
-    agent = _frontmatter_field(p1_review, "agent")
+    agent = _md_field_get("agent", p1_review)
     if not agent:
         sys.stderr.write("GATE P1: P1-review.md status:approved 但缺 agent 字段\n")
         return 1
@@ -517,11 +578,13 @@ def gate_p1(task_dir):
         return 1
 
     # P1 NEED_CONFIRM 检查（v0.30.2 三值分级：[NEED_CONFIRM] 阻塞 / [SUGGEST:] 不阻塞 / [NO_NEED_CONFIRM] 负向）
+    # M2-0038 B 组：行首标记计数/描述提取迁 agate_common count_markers/has_marker/
+    # extract_marker_desc（BDD-3：正则不在本文件字面出现）
     p1_file = os.path.join(task_dir, "P1-requirements.md")
     p1_text = _read_text(p1_file)
     p1_lines = _lines(p1_text)
-    nc_blocking = sum(1 for line in p1_lines if _NC_RE.search(line))
-    nc_suggest = sum(1 for line in p1_lines if _SUGGEST_RE.search(line))
+    nc_blocking = count_markers(p1_text, "NC")
+    nc_suggest = count_markers(p1_text, "SUGGEST")
 
     # v2.0 T001 流 C（BDD-21）：need_confirm_resolved 结构化匹配——
     # frontmatter 该字段存在时逐条匹配，未匹配才计入阻塞数；字段缺失（旧格式）沿用整段计数。
@@ -534,9 +597,9 @@ def gate_p1(task_dir):
             resolved = set(resolved_fm.split("\n"))
             nc_unresolved = 0
             for line in p1_lines:
-                if not _NC_RE.search(line):
+                if not has_marker(line, "NC"):
                     continue
-                desc = _NC_DESC_RE.sub("", line)
+                desc = extract_marker_desc(line, "NC")
                 if not desc:
                     continue
                 if desc not in resolved:
@@ -555,11 +618,9 @@ def gate_p1(task_dir):
             resolved = set(sg_resolved_fm.split("\n"))
             nc_suggest_unacked = 0
             for line in p1_lines:
-                if not _SUGGEST_RE.search(line):
+                if not has_marker(line, "SUGGEST"):
                     continue
-                desc = _SUGGEST_DESC_RE.sub("", line)
-                desc = _SUGGEST_TAIL_BT_RE.sub("", desc)
-                desc = _SUGGEST_TAIL_BRACKET_RE.sub("", desc)
+                desc = extract_marker_desc(line, "SUGGEST")
                 if not desc:
                     continue
                 if desc not in resolved:
@@ -580,8 +641,27 @@ def gate_p1(task_dir):
     if "[NEED_CONFIRM]" in p1_text and nc_blocking == 0:
         sys.stderr.write("GATE P1: 不合规的 NEED_CONFIRM 标记格式（须用行首 [NEED_CONFIRM]、[SUGGEST: ...] 或 [NO_NEED_CONFIRM] 声明）\n")
         return 1
-    if nc_blocking == 0 and nc_suggest == 0 and not any(_NO_NEED_RE.search(line) for line in p1_lines):
+    if nc_blocking == 0 and nc_suggest == 0 and not any(has_marker(line, "NO_NEED") for line in p1_lines):
         sys.stderr.write("GATE P1 WARNING: 未检测到 NEED_CONFIRM 声明（[NEED_CONFIRM] / [SUGGEST: ...] / [NO_NEED_CONFIRM]）\n")
+
+    # RM-AG0039（TAG0022，BDD-6/7）：judge 启用强制化（P1 gate 新增校验，纯叠加于 C 批重构后）
+    # 判据（P2-review 锁定决策 2 + NB-4）：judge 块 presence + P1 created（agate-md-field-get
+    # created op，ISO 字典序）≥ judge_required_since（rules/dispatch.yaml "2026-08-22"）：
+    #   - judge dict + enabled truthy → 放行（继续原 P1 判定，exit 2 语义不变）
+    #   - judge dict + enabled falsy / judge 缺失 / judge 非 dict → 同走 created 判据（NB-4）：
+    #     created 为 ISO 且 ≥ cutoff → exit 1（机制后新任务缺/未启用 judge）；否则（pre-cutoff /
+    #     created 缺失或非 ISO）→ 跳过（fail-open，R5）。
+    judge = _load_state_yaml(task_dir).get("judge")
+    if not (isinstance(judge, dict) and judge.get("enabled")):
+        created = _md_field_get("created", p1_file)
+        dispatch_rules = read_rules_yaml(resolve_rules_root(__file__), "dispatch")
+        cutoff = dispatch_rules.get("judge_required_since") if isinstance(dispatch_rules, dict) else None
+        if isinstance(cutoff, str) and _is_iso_date(created) and created >= cutoff:
+            sys.stderr.write(
+                f"GATE P1: 机制后新任务（P1 created {created} ≥ judge_required_since {cutoff}）须在 .state.yaml "
+                "声明 judge.enabled: true（RM-AG0039 强制）\n"
+            )
+            return 1
 
     # TAG0006（BDD-3/16）：frontend 任务 vision 三态声明 + 形态/维度声明合法性（P1 gate 新增检查）
     if not _gate_p1_vision_capability(p1_file):
@@ -688,19 +768,19 @@ def gate_p2(task_dir):
     _reconcile_p2_fields(p2_file, p2_text)
 
     # v0.31.0：候选方案数显式 candidate_count 字段（纯强制，不再用正则数标题）
+    # M2-0038 C 组：行首字段扫描迁 agate_common candidate_count_value
     candidate_count = 0
     for line in p2_lines:
-        if re.match(r"^candidate_count:", line):
-            m = re.search(r"[0-9]+", line)
-            if m:
-                candidate_count = int(m.group(0))
+        val = candidate_count_value(line)
+        if val is not None:
+            candidate_count = val
             break
 
     p1_file = os.path.join(task_dir, "P1-requirements.md")
     min_candidates = 2
     if os.path.isfile(p1_file):
         p1_lines = _lines(_read_text(p1_file))
-        if any(re.search(r"^(design_trivial|follows_existing_pattern):\s*\S", line) for line in p1_lines):
+        if any(design_trivial_declared(line) for line in p1_lines):
             min_candidates = 1
     if candidate_count < min_candidates:
         sys.stderr.write(
@@ -713,13 +793,13 @@ def gate_p2(task_dir):
         sys.stderr.write("GATE P2: P2-review.md 不存在（P2 评审不可裁剪，必须派发独立 subagent 产出）\n")
         return 1
 
-    status = _frontmatter_field(p2_review, "status")
+    status = _md_field_get("status", p2_review)
     if status != "approved":
         sys.stderr.write("GATE P2: P2-review.md frontmatter status 非 approved（当前: {}）\n".format(
             status if status else "缺失"))
         return 1
 
-    agent = _frontmatter_field(p2_review, "agent")
+    agent = _md_field_get("agent", p2_review)
     if not agent:
         sys.stderr.write("GATE P2: P2-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）\n")
         return 2
@@ -732,8 +812,8 @@ def gate_p2(task_dir):
         sys.stderr.write(f"GATE P2: P2-design.md 缺字段（需 packages/domains/ui_affected/gate_commands 四字段，实际 {field_count}）\n")
         return 1
 
-    # 多方案探索"权衡/选择理由"nudge（v0.6）
-    if re.search(r"权衡|选择理由|取舍|考量|trade-?off|理由与权衡", p2_text) or (re.search(r"选择", p2_text) and re.search(r"理由|原因|因为", p2_text)):
+    # 多方案探索"权衡/选择理由"nudge（v0.6）；M2-0038 C 组：关键词判定迁 agate_common has_keyword
+    if has_keyword(p2_text, "tradeoff") or has_keyword(p2_text, "choice_and_reason"):
         pass
     else:
         sys.stderr.write("GATE P2: P2-design.md 有 ≥2 候选方案但缺'权衡'或'选择理由'描述\n")
@@ -765,7 +845,7 @@ def gate_p2(task_dir):
 
     # TAG0007（BDD-1/3）：project_phase: bootstrap → P2-skeleton.md「## 骨架声明」存在性校验。
     # 字段缺失或为 established（含显式声明）时完全不检查——行为须与改动前逐字节一致（BDD-3 回归）。
-    project_phase = _frontmatter_field(p1_file, "project_phase")
+    project_phase = _md_field_get("project_phase", p1_file)
     if project_phase == "bootstrap":
         skeleton_file = os.path.join(task_dir, "P2-skeleton.md")
         if not os.path.isfile(skeleton_file) or "## 骨架声明" not in _read_text(skeleton_file):
@@ -796,13 +876,13 @@ def gate_p4(task_dir):
         )
         return 1
 
-    status = _frontmatter_field(p4_review, "status")
+    status = _md_field_get("status", p4_review)
     if status != "approved":
         sys.stderr.write("GATE P4: P4-review.md frontmatter status 非 approved（当前: {}）\n".format(
             status if status else "缺失"))
         return 1
 
-    agent = _frontmatter_field(p4_review, "agent")
+    agent = _md_field_get("agent", p4_review)
     if not agent:
         sys.stderr.write("GATE P4: P4-review.md status:approved 但缺 agent 字段（向后兼容 WARNING）\n")
         return 2
@@ -872,19 +952,9 @@ def gate_p5(task_dir):
             sys.stderr.write("  降级为 WARNING-only（exit 2），不做机械 diff——请检查基线文件完整性\n")
             return 2
 
-        # sed -n '/```fail-list/,/```/p' | sed '1d;$d' | grep -v '^$' 等价
-        pre_list = []
-        lines = _lines(baseline_text)
-        start = next((i for i, line in enumerate(lines) if "```fail-list" in line), None)
-        if start is not None:
-            end = next((i for i in range(start + 1, len(lines)) if "```" in lines[i]), None)
-            end = len(lines) if end is None else end + 1
-            pre = lines[start:end]
-            if len(pre) > 0:
-                pre = pre[1:]
-            if len(pre) > 0:
-                pre = pre[:-1]
-            pre_list = [line for line in pre if line]
+        # sed -n '/```fail-list/,/```/p' | sed '1d;$d' | grep -v '^$' 等价；
+        # M2-0038 C 组：块解析迁 agate_common parse_fail_list_block
+        pre_list = parse_fail_list_block(baseline_text)
 
         pre_set = sorted(set(pre_list))
         post_set = sorted({line for line in _lines(_read_text(post_fails)) if line})
@@ -904,10 +974,8 @@ def gate_p5(task_dir):
                 sys.stderr.write(f"GATE P5: 检测到 {still_count} 个预存失败仍未修复，\n")
                 sys.stderr.write("  基线快照证实这些失败早于本任务存在，但 known-failures.md 不存在——按协议必须登记\n")
                 return 1
-            known_entries = sum(
-                1 for line in _lines(_read_text(known_failures))
-                if re.search(r"^\|\s*[0-9]+\s*\|", line)
-            )
+            # M2-0038 C 组：登记表条目计数迁 agate_common count_kf_entries
+            known_entries = count_kf_entries(_read_text(known_failures))
             if known_entries < still_count:
                 sys.stderr.write(
                     f"GATE P5: known-failures.md 登记条目数({known_entries}) < 预存失败数({still_count})，\n"
@@ -943,16 +1011,9 @@ def gate_p6(task_dir):
         total = _to_int(pass_fm) + _to_int(fail_fm)
         fail = _to_int(fail_fm)
     else:
-        # 旧格式回退：正文 grep 计数（BDD-18，行首须含 BDD 编号才计入，大小写不敏感）
-        p6_lines = _lines(_read_text(p6_file))
-        total = sum(
-            1 for line in p6_lines
-            if re.search(r"^\s*- (PASS|FAIL)\b.*BDD-[0-9]", line, re.IGNORECASE)
-        )
-        fail = sum(
-            1 for line in p6_lines
-            if re.search(r"^\s*- FAIL\b.*BDD-[0-9]", line, re.IGNORECASE)
-        )
+        # 旧格式回退：正文行首 PASS/FAIL 计数（BDD-18，行首须含 BDD 编号才计入，大小写不敏感）
+        # M2-0038 C 组：计数迁 agate_common count_p6_pass_fail
+        total, fail = count_p6_pass_fail(_read_text(p6_file))
     if fail != 0 or total == 0:
         sys.stderr.write(f"GATE P6: FAIL={fail}, TOTAL={total}\n")
         return 1
@@ -1010,18 +1071,9 @@ def gate_p7(task_dir):
         devcrit = _to_int(devcrit_fm)
     else:
         # 旧格式回退：正文 grep + 非计数行排除正则（既有逻辑）
-        # M4：[:：] bracket 在 POSIX locale 不匹配全角冒号 → alternation (:|：)
-        p7_lines = _lines(_read_text(p7_file))
-        blocker_lines = [line for line in p7_lines if re.search(r"^\s*-?\s*\[BLOCKER\]", line)]
-        devcrit_lines = [line for line in p7_lines if re.search(r"^\s*-?\s*\[DEVIATION-CRITICAL\]", line)]
-        blockers = sum(
-            1 for line in blocker_lines
-            if not re.search(r"\[BLOCKER\](:|：)?\s*[0-9]+\s*条?\s*$", line)
-        )
-        devcrit = sum(
-            1 for line in devcrit_lines
-            if not re.search(r"\[DEVIATION-CRITICAL\](:|：)?\s*[0-9]+\s*条?\s*$", line)
-        )
+        # M4：[:：] bracket 在 POSIX locale 不匹配全角冒号 → alternation (:|：)。
+        # M2-0038 C 组：计数迁 agate_common count_p7_markers
+        blockers, devcrit = count_p7_markers(_read_text(p7_file))
     if blockers > 0 or devcrit > 0:
         sys.stderr.write(f"GATE P7: BLOCKER={blockers}, DEVIATION-CRITICAL={devcrit}\n")
         return 1
@@ -1043,10 +1095,9 @@ def gate_p7(task_dir):
         if dg_reviewed is None:
             dg_reviewed = 0
     else:
-        # 旧格式回退：正文 grep 数量相减判定（既有逻辑）
-        p7_lines = _lines(_read_text(p7_file))
-        dg_count = sum(1 for line in p7_lines if re.search(r"^\s*>?\s*-?\s*\[DESIGN_GAP:", line))
-        dg_reviewed = sum(1 for line in p7_lines if re.search(r"^\s*>?\s*-?\s*\[DESIGN_GAP_REVIEWED", line))
+        # 旧格式回退：正文 grep 数量相减判定（既有逻辑）；M2-0038 C 组：计数迁
+        # agate_common count_design_gap（allow_blockquote=True = P7 口径含 blockquote 前缀）
+        dg_count, dg_reviewed = count_design_gap(_read_text(p7_file))
         unreviewed = dg_count - dg_reviewed
         if unreviewed > 0:
             sys.stderr.write(
@@ -1057,7 +1108,7 @@ def gate_p7(task_dir):
     # 问题4 (T090)：P4 含"设计偏差/gap"关键词但 DESIGN_GAP 计数为 0 → WARNING 提醒人工确认
     if dg_count == 0:
         p4_impl = os.path.join(task_dir, "P4-implementation.md")
-        if os.path.isfile(p4_impl) and re.search(r"设计偏差|design gap|未列入|gap:", _read_text(p4_impl), re.IGNORECASE):
+        if os.path.isfile(p4_impl) and has_keyword(_read_text(p4_impl), "design_gap"):
             sys.stderr.write(
                     "GATE P7 WARNING: P4 检测到设计偏差相关关键词但 [DESIGN_GAP:] 计数为 0——请确认是否真的无偏差，或 P4 未按标准格式声明\n"
                 )
@@ -1072,11 +1123,11 @@ def gate_p7(task_dir):
         for root, _dirs, names in os.walk(p4_impl_dir):
             for name in names:
                 p4_gap_lines.extend(_lines(_read_text(os.path.join(root, name))))
-    # grep -rh '\[DESIGN_GAP:' 过滤后 grep -cE '^\s*-?\s*\[DESIGN_GAP:' 等价
+    # grep -rh '\[DESIGN_GAP:' 过滤后 grep -cE '^\s*-?\s*\[DESIGN_GAP:' 等价；
+    # M2-0038 C 组：计数迁 agate_common count_design_gap（allow_blockquote=False = P4 口径）
     p4_gap_lines = [line for line in p4_gap_lines if "[DESIGN_GAP:" in line]
-    p4_design_gap_count = sum(
-        1 for line in p4_gap_lines
-        if re.search(r"^\s*-?\s*\[DESIGN_GAP:", line)
+    p4_design_gap_count, _unused_reviewed = count_design_gap(
+        "\n".join(p4_gap_lines), allow_blockquote=False
     )
     if p4_design_gap_count > dg_count:
         sys.stderr.write(
@@ -1095,18 +1146,12 @@ def gate_p7(task_dir):
     # 转抄核对层比较 P4 实际标记数与 code_map_new_files_count，不是 code_map_reviewed_count）。
     # 两字段均缺失 → 机制未采用，两层校验全部跳过（回归对照）。change_type 字段不读取、不分支
     # （BDD-10：refactor 任务同样生效）。与上方 DESIGN_GAP 逻辑并行独立，不共享变量。
-    # [DESIGN_GAP: dispatch-context 建议用 _md_field_get 读取 code_map_new_files_count/
-    # code_map_reviewed_count（与既有 design_gap_count 读取方式一致），但
-    # agate-md-field-get.py 的 KNOWN_OPS 允许列表尚未注册这两个新字段名（该文件不在本批次
-    # 允许改动范围内，只能改 check-gate.py）——若照字面用 _md_field_get 调用，子进程会因
-    # unknown op exit(2)，_md_field_get 恒回退为空字符串，导致两层校验永远被判定为"机制未
-    # 采用"而跳过，12 个新增测试中 3 个 gate_p7 用例会失败。改用本文件已有的纯本地实现
-    # _frontmatter_field(path, field)（同一文件内定义，无子进程/无 allowlist 限制）直接从
-    # P7-consistency.md frontmatter 块取值，行为等价（frontmatter-only，无正文回退，因为
-    # _frontmatter_field 本身只扫描 --- 块内的行）。若后续有批次把这两个字段注册进
-    # agate-md-field-get.py 的 NO_FALLBACK_INT_FIELDS，可切回 _md_field_get 保持风格统一。]
-    cm_count_fm = _frontmatter_field(p7_file, "code_map_new_files_count")
-    cm_reviewed_fm = _frontmatter_field(p7_file, "code_map_reviewed_count")
+    # TAG0022（RM-AG0038，A 组）：code_map_new_files_count/code_map_reviewed_count 已注册
+    # agate-md-field-get NO_FALLBACK_INT_FIELDS（frontmatter-only，无正文回退），改走
+    # _md_field_get——解 DESIGN_GAP 遗留（此前 KNOWN_OPS 未注册，_md_field_get unknown op
+    # exit 2 恒回退空串致两层校验整段跳过）。
+    cm_count_fm = _md_field_get("code_map_new_files_count", p7_file)
+    cm_reviewed_fm = _md_field_get("code_map_reviewed_count", p7_file)
     if cm_count_fm != "" and cm_reviewed_fm != "":
         cm_count = _to_int_or_none(cm_count_fm)
         cm_reviewed = _to_int_or_none(cm_reviewed_fm)
@@ -1120,13 +1165,9 @@ def gate_p7(task_dir):
             cm_count = 0
         # 转抄核对层：P4 正文实际 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT] 标记数
         # > code_map_new_files_count（注意不是 code_map_reviewed_count）→ return 1
+        # M2-0038 C 组：计数迁 agate_common count_code_map_lines
         p4_impl_file_for_cm = os.path.join(task_dir, "P4-implementation.md")
-        p4_cm_lines = _lines(_read_text(p4_impl_file_for_cm))
-        p4_code_map_actual_count = sum(
-            1 for line in p4_cm_lines
-            if re.search(r"^\s*-?\s*\[CODE_MAP_UPDATED\]", line)
-            or re.search(r"^\s*-?\s*\[CODE_MAP_EXEMPT", line)
-        )
+        p4_code_map_actual_count = count_code_map_lines(_read_text(p4_impl_file_for_cm))
         if p4_code_map_actual_count > cm_count:
             sys.stderr.write(
                 f"GATE P7: P4 实际标记 {p4_code_map_actual_count} 条 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT]，"

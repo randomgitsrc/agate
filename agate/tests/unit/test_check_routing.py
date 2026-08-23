@@ -17,12 +17,15 @@ import sys
 import pytest
 
 
-def _run_routing(agate_scripts, python_exe, run_cli, task_arg, cwd=None):
+def _run_routing(agate_scripts, python_exe, run_cli, task_arg, cwd=None, env=None):
+    """env 透传（TAG0022 NB-5）：_run_routing 增 env 参数，供 test_bdd_7 注入
+    GIT_CEILING_DIRECTORIES 确定性隔离 git 上下文（conftest _run_cli_impl 已支持 env）。"""
     return run_cli(
         python_exe,
         str(agate_scripts / "check-routing.py"),
         task_arg,
         cwd=cwd,
+        env=env,
     )
 
 
@@ -148,11 +151,21 @@ def test_bdd_7_thin_missing_p5_p6_exit_1(
 def test_bdd_7_thin_score_anomaly_git_ok_false_exit_1(
     tmp_path, agate_scripts, python_exe, run_cli
 ):
-    """BDD-7 分支清单（算分异常 fail-closed）：非 git 上下文→run_git 失败→git_ok:false + thin → exit 1。"""
+    """BDD-7 分支清单（算分异常 fail-closed）：非 git 上下文→run_git 失败→git_ok:false + thin → exit 1。
+    TAG0022 RM-AG0041：注入 GIT_CEILING_DIRECTORIES=<tmp_path>，git 从 task_dir 向上发现
+    仓库时在 tmp_path 处截止 → 确定性 git_ok:false——语义不依赖 pytest basetemp 位置
+    （任意 basetemp 位置下本分支均真实覆盖，P2 §4.5.1 + minimal_validation 实测 rc=128）。
+    TDD：git 核心机制即时生效 → 预期转绿（非「实现先于测试」，见 dispatch-context 约束 3）。"""
     d = tmp_path / "task"
     d.mkdir()
     _write_p1(d, ceremony="thin")
-    result = _run_routing(agate_scripts, python_exe, run_cli, str(d))
+    result = _run_routing(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        str(d),
+        env={"GIT_CEILING_DIRECTORIES": str(tmp_path)},
+    )
     _assert_exit(result, 1)
 
 
