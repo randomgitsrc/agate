@@ -1,7 +1,8 @@
 task_id: TAG0022
-phase: P4
+phase: P5
 status: active
 retries: {}
 judge:
   enabled: true
   rounds: 0
+p5_pass_commit: f724e487a1e5a427f65e7deefaf2088397109498
