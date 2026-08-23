@@ -1,4 +1,7 @@
 task_id: TAG0022
-phase: P0
+phase: P1
 status: active
 retries: {}
+judge:
+  enabled: true
+  rounds: 0
