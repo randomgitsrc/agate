@@ -270,3 +270,37 @@ def test_c1_ceremony_prose_in_body_not_misread_exit_0(
     (d / "P1-requirements.md").write_text(text, encoding="utf-8")
     result = _run_routing(agate_scripts, python_exe, run_cli, str(d))
     _assert_exit(result, 0)
+
+
+# ===== TAG0023 RM-AG0045（BDD-13 回归用例③）：源码数 6>5 写时锚点 =====
+# 被测：check-routing.py 声明 ceremony: thin 但暂存源码文件数 > 5（change-size 信号
+# high）→ 算分 tier 非 thin → exit 1（声明薄于算分）。该判据已由现状代码（BDD-9 同族
+# 判据）实现，非本任务新增能力；本用例是 TAG0019 实证"源码数 6>5"历史用例的写时回归
+# 防呆锚点（P2-design.md §2.4，dispatch-prompt.md 写时自检挂载对象之一），当前可能
+# 已是绿灯（见 P3-test-cases.md 说明）。
+
+
+def _high_source_count_repo(git_repo, task_dir, count=6):
+    """暂存 count(>5) 个通用源码文件（非任务产出/非 .state.yaml/非 P[0-8]-*.md）→
+    _staged_source_count 计入全部文件 → change-size=high → 算分 tier 非 thin。"""
+    repo = _git_repo_init(git_repo)
+    td = task_dir()
+    _write_p1(td, ceremony="thin")
+    for i in range(count):
+        p = repo / "src" / f"m{i}.py"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(f"x{i} = 1\n", encoding="utf-8")
+        git_repo.stage(f"src/m{i}.py")
+    shutil.copytree(td, repo / "task")
+    return repo
+
+
+def test_bdd_13_historical_source_count_6_over_5_write_time_caught(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-13 回归用例③（TAG0019 实证"源码数 6>5"）：声明 ceremony: thin 但暂存 6 个
+    源码文件（>5 阈值）→ check-routing.py 在 git add 后即可拦截（写路径自检，不必等
+    commit 时才由 pre-commit gate 发现），exit 1。"""
+    repo = _high_source_count_repo(git_repo, task_dir, count=6)
+    result = _run_routing(agate_scripts, python_exe, run_cli, "task", cwd=str(repo))
+    _assert_exit(result, 1)

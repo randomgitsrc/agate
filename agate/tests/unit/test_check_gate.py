@@ -1505,6 +1505,80 @@ def test_g8_10_debt_check_any_content_exit_2(
     assert "debt_check" not in result.output
 
 
+# ========== TAG0023 RM-AG0043（BDD-5~7）：P8 roadmap 回写 done 校验 ==========
+# 被测：check-gate.py gate_p8() 新增分支 _check_roadmap_done()（P2-design.md §2.2 候选 A，
+#   尚未实现——gate_p8() 全函数目前无任何 roadmap.md 读取，这是本批红灯的来源）。
+# 匹配算法（P2-design.md §2.2 D2）：按 task_id 精确匹配 roadmap.md「关联任务」列，全部
+# 匹配行状态须为 done；无匹配行不误拦，继续走既有流程（最终 return 2，非新增的 exit 0）。
+
+
+def _write_roadmap(repo, rows):
+    """写 repo/agate-workspace/roadmap/roadmap.md（列顺序对齐真实文件：
+    id|标题|状态|来源|关联任务|创建|更新）。rows 为 (id, status, task_id) 元组列表。"""
+    roadmap_dir = repo / "agate-workspace" / "roadmap"
+    roadmap_dir.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "| id | 标题 | 状态 | 来源 | 关联任务 | 创建 | 更新 |",
+        "|----|------|------|------|----------|------|------|",
+    ]
+    for rm_id, status, task_id in rows:
+        lines.append(
+            f"| {rm_id} | 测试条目 | {status} | 测试 | {task_id} | 2026-08-24 | 2026-08-24 |"
+        )
+    (roadmap_dir / "roadmap.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_bdd_5_p8_roadmap_rm_not_done_blocked_exit_1(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-5：task_id（默认 T001，create_task_dir 缺省值）在 roadmap.md 有关联 RM 记录且
+    状态非 done → gate_p8() 阻断 exit 1，stderr 含该 RM 编号。"""
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+    _write_roadmap(repo, [("RM-TEST01", "backlog", "T001")])
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 1
+    assert "RM-TEST01" in result.output
+
+
+def test_bdd_6_p8_roadmap_no_matching_rm_not_blocked_exit_2(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-6 回归防呆：roadmap.md 存在记录但「关联任务」不等于当前 task_id（无匹配行）→
+    不误拦，gate_p8() 继续既有流程最终 return 2（P2-design.md §4 完成标准表判据，非 exit 0）。"""
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+    _write_roadmap(repo, [("RM-TEST02", "backlog", "TAG0999")])
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+
+
+def test_bdd_7_roadmap_rm_ag0032_backfilled_done(agate_root):
+    """BDD-7（历史修正，独立 BDD）：roadmap.md 中 RM-AG0032 当前两行状态为
+    backlog/scheduled，均非 done（v0.59.0 已发布、PR #184 已合并，属记录缺口）。
+    P8 阶段主 Agent 人工补记一行 done 状态后本用例才转绿；当前红灯反映补记尚未发生。"""
+    roadmap_path = agate_root.parent / "agate-workspace" / "roadmap" / "roadmap.md"
+    text = roadmap_path.read_text(encoding="utf-8")
+    done_lines = [
+        line
+        for line in text.splitlines()
+        if "RM-AG0032" in line and re.search(r"\|\s*done\s*\|", line)
+    ]
+    assert done_lines, "RM-AG0032 尚无 done 行记录（P8 阶段待人工补记，P2-design.md §2.2 末）"
+
+
 # ========== 8g: G_RETREAT / G_NC_BINARY / G_SUGGEST（15 用例） ==========
 # 子批 8g 覆盖 check-gate.bats 的 G_RETREAT.1-6（回退抵达检测，main() 可选第 3 参数
 # OLD_PHASE）、G_NC_BINARY.1/2/3/5/6（P1 NEED_CONFIRM 三值分级）与 G_SUGGEST.1-4

@@ -479,3 +479,234 @@ def test_st_ws_4_old_layout_docs_tasks_exit_1(git_repo, agate_scripts, python_ex
     result = _run_state(agate_scripts, python_exe, run_cli, repo, "docs/tasks/T001/.state.yaml")
     assert result.returncode == 1
     assert "PAUSED" in result.output
+
+
+# ============================================================
+# TAG0023 RM-AG0042（BDD-1~4）：门槛失败事件强制记录 retries 对应性校验
+# 被测：check-state-transition.py 新增函数（P2-design.md §2.1 候选 A，尚未实现——
+#   main() 目前无任何调用点，这正是本批红灯的来源）。
+# 校验强度分层（P2-design.md §2.1 D1，P2 重试 #2 定案）：
+#   BDD-1/BDD-3 = 高优 WARNING（不阻断）：exit 0 + stderr 含 "WARNING"；
+#   BDD-2       = 阻断（结构化数值比较，误报率低）：exit 1；
+#   BDD-4       = 回归防呆：三类事件均未命中 + retries 为空/缺失 → exit 0 且无 WARNING。
+# ============================================================
+
+
+def _write_task_state(task_dir, phase, retries_block=None):
+    """task 级 .state.yaml（_write_state 的 task_dir 版本，供嵌套目录场景复用）。"""
+    _write_state(task_dir / ".state.yaml", phase, retries_block)
+
+
+def test_bdd_1_review_rejected_retry_file_empty_retries_warning(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-1 分支①：评审角色重试 dispatch-context 文件存在（C8 角色 token 枚举命中，
+    P2-design.md D6 最终正则）+ retries[P2] 为空/缺失 → 高优 WARNING，exit 0（不阻断）。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P2")
+    git_repo.commit("init")
+
+    (task / "P2-dispatch-context-plan-eng-review-retry1.md").write_text(
+        "stub\n", encoding="utf-8"
+    )
+    _write_task_state(task, "P3", "retries: {}")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" in result.output
+
+
+def test_bdd_1_review_rejected_retry_file_with_retries_no_warning(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-1 分支②：同一评审重试文件存在，但 retries[P2] 已有记录 → 不再输出 WARNING。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P2")
+    git_repo.commit("init")
+
+    (task / "P2-dispatch-context-plan-eng-review-retry1.md").write_text(
+        "stub\n", encoding="utf-8"
+    )
+    _write_task_state(task, "P3", "retries:\n  P2:\n    - attempt: 1")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" not in result.output
+
+
+def test_bdd_1_no_retry_dispatch_context_file_no_warning(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-1 分支③：task_dir 下无评审重试 dispatch-context 文件 → 不触发 WARNING。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P2")
+    git_repo.commit("init")
+
+    _write_task_state(task, "P3", "retries: {}")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" not in result.output
+
+
+def test_bdd_1_negative_anchor_implementer_review_fix_not_matched(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-1 负面回归锚点①（P2-review.md 独立复核确认的真实历史假阳性样本，文件名模式取自
+    agate-workspace/archived/tasks/T001-v2.0-structured/
+    P4-dispatch-context-implementer-review-fix-retry1.md ——frontmatter role: implementer，
+    正文是配额中断重启，与评审驳回无关；token "implementer-review-fix" 不精确等于枚举中任一
+    评审角色 token，不得误命中 WARNING（P2-design.md D6 正则收紧后的回归防呆）。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P3")
+    git_repo.commit("init")
+
+    (task / "P4-dispatch-context-implementer-review-fix-retry1.md").write_text(
+        "stub\n", encoding="utf-8"
+    )
+    _write_task_state(task, "P4", "retries: {}")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" not in result.output
+
+
+def test_bdd_1_negative_anchor_consistency_reviewer_not_matched(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-1 负面回归锚点②（P2-review.md 独立复核确认的真实历史假阳性样本，文件名模式取自
+    agate-workspace/tasks/TAG0016-protocol-hygiene/
+    P7-dispatch-context-consistency-reviewer-retry1.md ——frontmatter role: architect，是
+    P7 阶段"architect 兼任一致性检查"的历史命名别名，非 C8 表内评审角色，不得误命中 WARNING。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P6")
+    git_repo.commit("init")
+
+    (task / "P7-dispatch-context-consistency-reviewer-retry1.md").write_text(
+        "stub\n", encoding="utf-8"
+    )
+    _write_task_state(task, "P7", "retries: {}")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" not in result.output
+
+
+def test_bdd_2_retreat_p5_to_p4_no_retries_growth_exit_1(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-2：P5→P4 单步回退（diff==1，现有检查 1 只判 diff>=2，不覆盖单步）+ retries[P4]
+    暂存版本长度未大于 HEAD 版本长度（本次 commit 未新增记录）→ 阻断 exit 1（P2 D1 阻断级）。"""
+    repo = git_repo.path
+    _write_state(repo / ".state.yaml", "P5", "retries:\n  P4:\n    - attempt: 1")
+    git_repo.commit("init")
+
+    _write_state(repo / ".state.yaml", "P4", "retries:\n  P4:\n    - attempt: 1")
+    git_repo.stage(".state.yaml")
+
+    result = _run_state(agate_scripts, python_exe, run_cli, repo, ".state.yaml")
+    assert result.returncode == 1
+
+
+def test_bdd_2_retreat_p5_to_p4_retries_growth_exit_0(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-2 回归防呆：同一回退但本次 commit 确有新增 retries[P4] 条目（长度增长）→ 不拦截。"""
+    repo = git_repo.path
+    _write_state(repo / ".state.yaml", "P5", "retries:\n  P4:\n    - attempt: 1")
+    git_repo.commit("init")
+
+    _write_state(
+        repo / ".state.yaml",
+        "P4",
+        "retries:\n  P4:\n    - attempt: 1\n    - attempt: 2",
+    )
+    git_repo.stage(".state.yaml")
+
+    result = _run_state(agate_scripts, python_exe, run_cli, repo, ".state.yaml")
+    assert result.returncode == 0
+
+
+def test_bdd_3_empty_return_redispatch_keyword_empty_retries_warning(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-3：P{n}-progress.md 含"空返回"/"重派"关键词信号 + retries[Pn] 为空/缺失 →
+    高优 WARNING（不阻断，自由文本关键词信号主观性高，P2 D1）。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P2")
+    git_repo.commit("init")
+
+    (task / "P2-progress.md").write_text("子代理空返回，已重派\n", encoding="utf-8")
+    _write_task_state(task, "P3", "retries: {}")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" in result.output
+
+
+def test_bdd_3_empty_return_redispatch_keyword_with_retries_no_warning(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-3 回归防呆：同上关键词命中，但 retries[P2] 已有记录 → 不再输出 WARNING。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P2")
+    git_repo.commit("init")
+
+    (task / "P2-progress.md").write_text("子代理空返回，已重派\n", encoding="utf-8")
+    _write_task_state(task, "P3", "retries:\n  P2:\n    - attempt: 1")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" not in result.output
+
+
+def test_bdd_4_no_event_empty_retries_exit_0_no_warning(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-4 回归防呆：无评审 rejected / 无回退 / 无关键词命中，retries 为空或缺失 →
+    exit 0 且无 WARNING（空 retries 本身不是错误，只有"事件存在而 retries 为空"才是缺口）。"""
+    repo = git_repo.path
+    _write_state(repo / ".state.yaml", "P1")
+    git_repo.commit("init")
+
+    _write_state(repo / ".state.yaml", "P2", "retries: {}")
+    git_repo.stage(".state.yaml")
+
+    result = _run_state(agate_scripts, python_exe, run_cli, repo, ".state.yaml")
+    assert result.returncode == 0
+    assert "WARNING" not in result.output

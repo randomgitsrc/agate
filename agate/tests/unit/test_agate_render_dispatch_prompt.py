@@ -249,3 +249,16 @@ def test_bdd_20_agate_root_with_ampersand_literal(
     assert result.returncode == 0
     assert "{agate_root}" not in result.output
     assert str(root) in result.output
+
+
+# ===== TAG0023 RM-AG0045（BDD-11）：dispatch-prompt.md 新增"声明写时自检"小节 =====
+# 被测：agate/assets/templates/dispatch-prompt.md「返回前自检」节新增子项（P2-design.md
+# §2.4 候选 A：subagent 返回前若产出含 P1/P2 声明，须跑 check-frontmatter.py /
+# check-routing.py 自检，非 0 退出须本回合内修正后再返回）。当前模板尚无此小节文本，
+# 本用例红灯。
+
+
+def test_bdd_11_dispatch_prompt_declares_write_time_selfcheck_section(agate_root):
+    tmpl_path = agate_root / "assets" / "templates" / "dispatch-prompt.md"
+    tmpl = tmpl_path.read_text(encoding="utf-8")
+    assert "P1/P2 声明写时自检" in tmpl
