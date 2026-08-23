@@ -151,3 +151,44 @@
 - **任务 1（批界偏差标注）**：P4-implementation.md batch B-judge 节末尾追加「批界偏差标注」节（L374-376）——test_env_adapt_docs.py:172 注释（R4 平台假设扫描自伤修复「无 /tmp 字面」→「无临时目录字面量」）经收尾 implementer 修改，属跨批必要修复（D 批文件集）；根因 = 扫描器对注释文本中 `/tmp` 字面量误报，修复不改变测试语义；P7 一致性核对按此标注处理。grep 确认落盘。
 - **任务 2（DEBT 登记）**：tech-debt.md 追加 DEBT0018（编号 = 既有最大 DEBT0017 + 1）——agate_common import 降级 stub 返回 0/空，安装破损边缘消费脚本（check-gate.py gate_p7/gate_p6/gate_p4 CODE_MAP）false-PASS（漏报方向）；severity low；evidence 实核：P4-review.md INFORMATIONAL #2（L93-96）+ check-gate.py L73-160 降级 stub 块（count_p7_markers L141-142 / count_p6_pass_fail L138-139 / count_code_map_lines L147-148 / count_markers L114-115）+ agate_common.py count_p7_markers L951。schema 校验：worktree 与 ~/.agate 稳定版 check-debt.py 均 exit 0。
 - 状态标记：`[PROD_NOT_TOUCHED]`（仅改 worktree agate-workspace 内 3 个文档文件；协议本体/脚本/稳定版 ~/.agate 未动）。
+
+---
+
+# P4-progress（P5→P4 回退修复轮：BDD-9 缺口，RM-AG0041）
+
+> 本段为 P5 验证 → P4 定向修复轮（只修根因）。状态标记：`[PROD_TOUCHED]`（改动仅限测试文件
+> agate/tests/unit/test_check_gate.py；协议文档/生产脚本/稳定版 ~/.agate 未动）。
+
+## 2026-08-23 根因（P5 verifier 实测，unit.md 记录）
+
+`test_tag0005_bdd_9_review_role_instruction_single_file`（L1804-1811）对 `agate_root` 做
+`rglob("*.md")` 全树扫描并断言「Review 角色特别指令」命中恰 1 处。当 pytest basetemp 位于仓库根内
+（如 `agate/.bt-p5-inrepo/`）时，同会话其他测试（test_agate_render_dispatch_prompt.py 的 rp_*、
+test_bdd_20；test_pre_commit_hook.py 的 test_b3 等）向 basetemp 下写入渲染的 dispatch-prompt .md
+（含该标记）→ rglob 扫到 → `len(hits)==5 != 1` → AssertionError。仓库外 basetemp 无此问题。
+与 M15（test_bdd_25 一致性扫描排除钩子）同类 basetemp 位置依赖，直接命中 BDD-9 验收锚。
+
+## 2026-08-23 修复（P4 implementer）
+
+- 文件：`agate/tests/unit/test_check_gate.py`（仅此一文件；改该测试函数 + 补 `from pathlib import Path`）
+- 方式：测试加 `tmp_path_factory` fixture，`basetemp = Path(tmp_path_factory.getbasetemp())`；
+  遍历 `rglob("*.md")` 时 `p.relative_to(basetemp)`（ValueError 即不在 basetemp 下）跳过 basetemp
+  子树产物；其余扫描/断言语义不变（协议目录内「Review 角色特别指令」恰 1 处 =
+  assets/templates/dispatch-prompt.md）。
+- 平台无关：无裸 PATH=/裸 python3/POSIX symlink//tmp 字面量（R1-R5 无新增命中）。
+
+## 2026-08-23 验证进度
+
+- [x] 单测（外部 basetemp /home/kity/oclab/dsh-workspace/ptmp）：1 passed（exit 0）
+- [x] 全量位置 1（外部 basetemp /home/kity/oclab/dsh-workspace/ptmp，timeout 900）：**1213 passed, 2 skipped, exit 0**
+- [x] 全量位置 2（仓库内 basetemp agate/.bt-fix，timeout 900）：**1213 passed, 2 skipped, exit 0**；测后 `rm -rf agate/.bt-fix` 已执行（BTFIX GONE）
+- [x] 平台扫描 `check-platform-assumptions.py`：exit 0（R1-R5 0 命中）
+- [x] R4 自伤守卫 `test_check_platform_assumptions.py`（外部 basetemp）：16 passed（exit 0）
+
+## 结论
+
+- **两位置均 0 failed** → BDD-9 验收锚（任意 basetemp 位置下全量 pytest 0 失败）达成，无需登记 known-failure。
+- 改动文件：`agate/tests/unit/test_check_gate.py`（import + 1 测试函数，git diff 确认仅此）。
+- 仓库内 basetemp 下无其他同类位置依赖失败（位置 2 全量 1213 passed 覆盖，test_bdd_25 走 M15 注入分支正常）。
+- 注：git status 中 `gate-events.jsonl` 的 +2 与未跟踪的 P5-* 文件为 P5 verifier/主 Agent 既有产物，非本修复轮改动。
+- 状态标记：`[PROD_TOUCHED]`（改动仅限测试文件；协议文档/生产脚本/稳定版 ~/.agate 未动）。

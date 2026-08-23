@@ -21,6 +21,7 @@
 
 import re
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -1801,12 +1802,19 @@ def test_tag0005_bdd_2_p2_review_unconditional_gate(agate_root):
     assert "P2-review.md frontmatter status 非 approved" in content
 
 
-def test_tag0005_bdd_9_review_role_instruction_single_file(agate_root):
-    hits = [
-        p
-        for p in agate_root.rglob("*.md")
-        if "Review 角色特别指令" in _read_text(p)
-    ]
+def test_tag0005_bdd_9_review_role_instruction_single_file(agate_root, tmp_path_factory):
+    # TAG0022 RM-AG0041（P5→P4 回退修复轮）：basetemp 位置无关——pytest basetemp 位于
+    # 协议目录内时（如 agate/.bt-fix），同会话其他测试渲染的 dispatch-prompt .md 产物
+    # 会被 rglob 全树扫描误收；排除 basetemp 子树后断言协议目录内「Review 角色特别指令」
+    # 恰 1 处（dispatch-prompt.md 模板），断言语义不变（P5 verifier 实测，unit.md 记录）。
+    basetemp = Path(tmp_path_factory.getbasetemp())
+    hits = []
+    for p in agate_root.rglob("*.md"):
+        try:
+            p.relative_to(basetemp)
+        except ValueError:
+            if "Review 角色特别指令" in _read_text(p):
+                hits.append(p)
     assert len(hits) == 1
     assert "assets/templates/dispatch-prompt.md" in str(hits[0])
 
