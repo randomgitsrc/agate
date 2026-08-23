@@ -4,6 +4,7 @@ issues:
   - "RM-AG0042 门槛失败事件强制记录 retries：四任务 .state.yaml retries 全为 {}（评审拒-修-批 3+1 轮、P5→P4 回退 3 次、子代理空返回均未记录）；check-state-transition.py 有重试上限机制（retries_over → PAUSED，L146-154）但无任何检查强制'门槛失败事件必须记录进 retries'——记录自选，不记录则 MAX_RETRY→PAUSED 被静默绕过。修复=①gate 校验 retries 与门槛失败事件对应性（失败事件存在而 retries 为空 → 阻断/高优 WARNING）②P1/P2 卡明确评审被拒须写 retries；验收锚=新任务评审 rejected 后 retries 必有对应条目"
   - "RM-AG0043 P8 roadmap 回写 done 校验：RM-AG0032（独立 Judge）v0.59.0 已发布、PR #184 已合并，但 roadmap 至今无 done 行（记录缺口实证）；check-gate.py P8 无任何 roadmap 回写 done 校验。修复=①P8 gate 增加 roadmap 校验（按 task_id 反查关联 RM 条目状态必须 done）②补记 RM-AG0032 → done（历史数据修正）；验收锚=新任务 P8 后 roadmap RM 自动 done"
   - "RM-AG0044 环境敏感测试集中治理：第三例 test_bdd_14（check-debt retreat-coverage）CI flaky 实证——同 commit 双 run 一过一挂、重跑即过、本地 3/3 过；与 RM-0041（test_bdd_7/25 basetemp）同类不同根因（git short-SHA/runner 环境）。修复=①排查 check-debt.py --retreat-coverage 的 git 环境敏感点（short SHA 比较确定性）②建立环境敏感测试判定标准+集中清单+CI flaky 自动重跑机制；验收锚=test_bdd_14 连续 5 次 CI 稳定 + 环境敏感测试集中清单"
+  - "RM-AG0045 声明写时校验（RM-0031 配套 + RM-0022 联动，2026-08-23 并入本 task）：P1/P2 声明（ceremony/coupling_checklist/跳过风险/phases 等）写文件时即由 schema 校验，消灭 commit 时格式折返——TAG0019 实证：coupling_checklist 流式/半角冒号/源码数 6>5 均在 commit 才暴露，每轮折返一次 subagent 往返。修复=①声明 schema 校验接入写路径（生成器/编辑器/formatter 层）②错误信息给具体行+修复提示；验收锚=声明格式错误写入时即报、commit 折返归零；关联 RM-0022（schema 基建）/RM-0038（check-gate YAML）"
 
 known_risks:
   - "改动面：check-gate.py / check-state-transition.py / P1/P2 卡 / P8 卡 / check-debt.py / CI 配置 / 测试 → 触发 SELF-GATE"

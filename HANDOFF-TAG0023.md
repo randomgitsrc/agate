@@ -8,9 +8,9 @@
 
 ## 1. 你要做什么
 
-**TAG0023**：机制校验补强批（RM-AG0042 + RM-AG0043 + RM-AG0044）。
+**TAG0023**：机制校验补强批（RM-AG0042 + RM-AG0043 + RM-AG0044 + RM-AG0045）。
 
-**一句话**：修复 TAG0019-21 复盘独立评审（2026-08-23 approved）确认的 3 个 agate 机制缺口——①门槛失败事件强制记录 retries（重试上限防绕过）②P8 roadmap 回写 done 校验（记录闭环）③环境敏感测试集中治理（第三例 test_bdd_14）。
+**一句话**：修复 TAG0019-21 复盘独立评审（2026-08-23 approved）确认的 4 个 agate 机制缺口——①门槛失败事件强制记录 retries（重试上限防绕过）②P8 roadmap 回写 done 校验（记录闭环）③环境敏感测试集中治理（第三例 test_bdd_14）④声明写时校验（消灭 commit 时格式折返）。
 
 **复盘（必读）**：`/home/kity/oclab/dsw-workspace/agate-research/retrospective-tag0019-21.md`
 
@@ -29,6 +29,7 @@
 1. **RM-AG0042 retries 强制记录**：gate 校验 retries 与门槛失败事件（评审 rejected/P5→P4 回退/子代理空返回）对应性——失败事件存在而 retries 为空 → 阻断/高优 WARNING；P1/P2 卡明确评审被拒须写 retries；验收=新任务评审 rejected 后 retries 必有对应条目
 2. **RM-AG0043 roadmap 回写校验**：P8 gate 按 task_id 反查关联 RM 条目状态必须 done；**补记 RM-AG0032 → done**（v0.59.0 已发布）；验收=新任务 P8 后 roadmap RM 自动 done
 3. **RM-AG0044 环境敏感测试治理**：排查 check-debt.py --retreat-coverage 的 git 环境敏感点（short SHA/runner）；建立环境敏感测试判定+集中清单+CI flaky 重跑机制；验收=test_bdd_14 连续 5 次 CI 稳定 + 集中清单
+4. **RM-AG0045 声明写时校验**：ceremony/coupling_checklist/跳过风险/phases 等声明写文件时即 schema 校验（生成器/formatter 层）；验收=格式错误写入即报、commit 折返归零
 
 **核心约束（不可违反）**：
 1. Linux 现状是基线——全量 pytest 全绿 + consistency 0 ERROR + ruff All checks passed（0.16.4 对齐 CI）
@@ -54,7 +55,7 @@ bash agate/tests/scripts/count-tests.sh   # 只增不减
 
 ## 6. 任务编号与状态
 
-- task_id: `TAG0023`（RM-AG0042~0044 三条，roadmap 已回写 scheduled + 关联）
+- task_id: `TAG0023`（RM-AG0042~0045 四条，roadmap 已回写 scheduled + 关联）
 - 分支：`feat/TAG0023-mechanism-checks`（worktree `.worktrees/agate-TAG0023`）
 - 当前阶段：P0（.state.yaml phase=P0）
 
