@@ -1154,6 +1154,10 @@ rejected 时，主 Agent 的重试派发 prompt 里加一行：
 
 这样评审→执行的反馈闭环真正打通，重试不再是空转。
 
+**评审 rejected 后必须写 retries（RM-AG0042）**：任何评审 rejected 触发的重试，主 Agent 必须同步在 `.state.yaml` 的 `retries[Pn]` 追加一条记录（不能只改派发内容而不落盘）——`check-state-transition.py` 会据此做机械对应性校验（见 `rules/state-transitions.md`「单步回退必须同步写 retries」）。
+
+**重新派发评审角色时的命名强制（RM-AG0042 D6）**：重新派发某评审角色时必须写**新编号**的 `P{n}-dispatch-context-{role}-retryN.md`/`-revN.md` 文件，**不得覆盖旧文件**——这是 BDD-1 对应性校验依赖的事件源判定依据（`check-state-transition.py` 按文件名精确匹配 C8 已知评审角色 token 判定"该阶段是否发生过评审重试"）。**同时禁止**：非评审角色的 dispatch-context 文件命名不得使用与 C8 评审角色 token 相同、或包含其作为独立词段的名字（历史曾出现 `consistency-reviewer`/`implementer-review-fix` 两个非评审角色文件名恰好撞上评审 token 的真实案例，均已被判定为假阳性并从枚举中排除，新命名不应再制造这类碰撞）。
+
 ---
 
 ## 任务完成小结

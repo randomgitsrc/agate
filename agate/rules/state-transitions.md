@@ -66,6 +66,8 @@ P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8 → READY → DONE
 | Pn → Pn-1（单步回退）| ✅ 允许 | retry+1，定向回补不清零目标阶段已有的 retry |
 | |n-m| ≥ 2（跨多阶段）| ❌ 强制 PAUSED |
 
+**单步回退必须同步写 retries（RM-AG0042）**：单步回退（Pn→Pn-1）必须同步在 `retries[目标阶段]` 追加一条记录，不能只改 `phase` 字段；`check-state-transition.py` 对"该阶段此前已有 retries 记录、但本次回退未同步追加"的情形做机械校验并拦截（阻断，exit 1）——只手动改 `phase` 而绕过 `agate-retreat-state.py`/`agate-retreat-to.py` 的标准写入路径会被 gate 挡下。
+
 **回退时的自撰产出归档（self-authored gate 专属）**：P1/P2/P6/P7 的产出文件（判定对象是主 Agent/verifier 自己写的 markdown）在被跨过时必须先归档，不能留在原位——否则重新走到该阶段时，旧文件的内容可能被误当作仍然有效，`check-gate.py` 不会区分"修复前写的"还是"修复后写的"。P4/P5 属于外部产出 gate（判定对象是测试运行器 exit code），没有跨重试持久化的自撰文件，不需要归档。
 
 ```bash

@@ -1,5 +1,5 @@
 task_id: TAG0023
-phase: P3
+phase: P4
 status: active
 retries:
   P1:
@@ -13,6 +13,11 @@ retries:
       prompt_changed: true
       adjustment: add_navigation
     - round: 2
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+  P4:
+    - round: 1
       failure_mode: quality
       prompt_changed: true
       adjustment: add_navigation

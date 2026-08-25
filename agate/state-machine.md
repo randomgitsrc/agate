@@ -610,6 +610,8 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 
 **T016 教训**：旧格式只有 `retry_count: { P3: 0 }` 一个整数，主 Agent 3 次空返回后 retry_count 仍为 0——既无法区分"原样重试"和"调整策略后重试"，也无法事后验证"空返回后是否改变了策略"。新格式的 `prompt_changed` 和 `adjustment` 字段解决这个盲区。
 
+**该步骤现由 `check-state-transition.py` 机械校验（RM-AG0042）**：单步回退（Pn→Pn-1）若该阶段此前已有 `retries` 记录、但本次回退未同步追加新条目 → 阻断（exit 1）；评审 rejected 后的重派、子代理空返回重派两类事件若 `retries[Pn]` 无对应记录 → 高优 WARNING（不阻断）。不再单靠 prose 规程与人工自觉。
+
 ### 阶段回退规则
 
 明确允许哪些回退，避免无限打转：
@@ -695,6 +697,8 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
        ↓
   回到"主 Agent 跑 gate 命令"步骤
 ```
+
+**该步骤现由 `check-state-transition.py` 机械校验（RM-AG0042 BDD-1）**：评审 rejected 后重新派发评审角色时，若产生了新编号的 `P{n}-dispatch-context-{role}-retryN.md`/`-revN.md` 文件（见 dispatch-protocol.md「评审打回后的意见回流」），但 `retries[Pn]` 未同步追加记录 → 高优 WARNING（不阻断，信号源置信度分层见 `rules/state-transitions.md`）。
 
 ### L2：单规则跨阶段上溯
 

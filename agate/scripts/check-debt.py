@@ -45,6 +45,18 @@ def _covered_hashes(debt_file):
     return set((proc.stdout or "").splitlines())
 
 
+def _short_hash(full, cwd):
+    """调 `git rev-parse --short {full}` 得到运行环境下的真实 short hash 长度
+    （TAG0023 RM-AG0044，BDD-8/9）。固定 7 位前缀切片在 CI runner（git 2.55.0）与
+    本地（git 2.43.0）下的 auto-abbrev 算法计算长度可能不一致，导致 mismatch
+    （PR #188 实证：CI 双 run 一过一挂）。git 调用失败时回退固定 7 位前缀，
+    不让辅助计算的异常掩盖原有比对能力。"""
+    rc, out = run_git(["rev-parse", "--short", full], cwd=cwd)
+    if rc == 0 and out.strip():
+        return out.strip()
+    return full[:7]
+
+
 def _retreat_coverage(repo_root):
     """回退覆盖比对：git log 提取 retreat 提交，与 tech-debt.md 中 source: retreat
     条目的 evidence 引用比对，缺失打 WARNING。依赖加载失败 → exit 2（需主 Agent 自判）。"""
@@ -72,7 +84,7 @@ def _retreat_coverage(repo_root):
         parts = line.split("\t", 1)
         full = parts[0]
         subject = parts[1] if len(parts) > 1 else ""
-        short = full[:7]
+        short = _short_hash(full, repo_root)
         if short not in covered and full not in covered:
             sys.stderr.write(
                 f"GATE DEBT WARNING: retreat 提交 {short}（{subject}）未登记为 source: retreat DEBT 条目"

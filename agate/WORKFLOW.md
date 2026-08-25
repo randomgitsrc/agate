@@ -311,6 +311,8 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 详细派发方式见 `dispatch-protocol.md`，角色定义见 `assets/`。
 
+**评审被拒必须写 retries（RM-AG0042）**：任一阶段评审 `status: rejected` 触发重试时，主 Agent 必须同步在 `.state.yaml` 的 `retries[Pn]` 追加一条记录——`check-state-transition.py` 按重新派发评审角色产生的新编号 dispatch-context 文件名（`P{n}-dispatch-context-{role}-retryN.md`/`-revN.md`，见 `dispatch-protocol.md`「评审打回后的意见回流」）机械检测该阶段是否发生过评审重试，缺失对应 retries 记录时高优 WARNING（不阻断）。
+
 ---
 
 ## Pre-commit 检查总览（hardening-roadmap Phase 1-2 已落地）
@@ -325,7 +327,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 | 1.6 | `check-changelog.py` | P8 phase 且 gate 通过后 | 文件级 | `[Unreleased]` 含本次 task_id（P1.6；P2.54：仅 P8 检查，P1-P7 不触发）|
 | 1.7 | `check-p6-evidence.py` | 阶段 ∈ {P6, P7} | 阶段级 | P6-evidence/ 非空 + BDD 行数 ≥ 1 + md5 逐字节去重（阻断）+ 像素方差/average hash 检测（WARNING）|
 | 2.1 | `check-p6-provenance.py` | gate 通过后 | 阶段级 | 六道客观审计（证据-结论对应 + dispatch-context 内容约束 + BDD 总数对照 + UI vision YAML 审计 [R1b] + EXIT_CODE 一致性 [审计5] + evidence JSON 与 PASS/FAIL 声明一致性 [审计6/P2.57]）+ agent 字段协作规范；exit 1 硬拦截，exit 2 WARNING（P2.1/P2.10 v2 降级方案）|
-| 2.3 | `check-state-transition.py` | gate 通过后 | 阶段级 | 状态转移合法性 + 重试上限（P2.3-P2.5）|
+| 2.3 | `check-state-transition.py` | gate 通过后 | 阶段级 | 状态转移合法性 + 重试上限（P2.3-P2.5）+ 门槛失败事件 ↔ retries 对应性校验（RM-AG0042：单步回退未同步写 retries 阻断；评审被拒重派/子代理空返回重派未写 retries 高优 WARNING）|
 | 2.7 | `check-pruning.py` | gate 通过后 | 阶段级 | 裁剪条件与实际执行一致性 + override 校验（P2.7-P2.9）|
 | 2.7.1 | `check-routing.py` | gate 通过后 | 阶段级 | ceremony 路由校验（TAG0019）：声明 ceremony 与算分 tier 一致性（单向 fail-closed）+ thin 四要素 checklist（coupling_checklist 流式 / 跳过风险 / P5/P6 保留）缺一拦截；不声明 = standard 不拦截（BDD-7/8/9）|
 | 2.11 | `check-scope-resolved.py` | gate 通过后 | 阶段级 | `[SCOPE+]` 必须有 `[SCOPE_RESOLVED:...]` 标记（P2.11）|

@@ -8,7 +8,9 @@
 #   本文件断言一律用合并流 result.output（与 bats $output 等价，BLOCKER-1）。
 # create_python_shim_bin 退役（P2 §3.1）：pytest 直跑解释器，无需 harness shim。
 
+import importlib.util
 import shutil
+import sys
 
 import pytest
 
@@ -340,7 +342,9 @@ def test_st_archive_1_p6_to_p5_unarchived_exit_1(git_repo, agate_scripts, python
     (task / "P6-acceptance.md").write_text("old p6\n", encoding="utf-8")
     git_repo.commit("init")
 
-    _write_state(task / ".state.yaml", "P5")
+    # retries[P5] 暂存版本长度(1) > HEAD 版本长度(0)，避免 BDD-2（RM-AG0042 检查3）意外
+    # 短路本用例真正要验证的 check4 stale-outputs 逻辑（P4-review.md CRITICAL 1 连带修复）。
+    _write_state(task / ".state.yaml", "P5", "retries:\n  P5:\n    - attempt: 1")
     git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
 
     result = _run_state(agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml")
@@ -356,7 +360,8 @@ def test_st_archive_2_p6_to_p5_archived_exit_0(git_repo, agate_scripts, python_e
     _write_state(task / ".state.yaml", "P6")
     git_repo.commit("init")
 
-    _write_state(task / ".state.yaml", "P5")
+    # 同上：补非空 retries[P5]，避免 BDD-2 短路 check4 逻辑（CRITICAL 1 连带修复）。
+    _write_state(task / ".state.yaml", "P5", "retries:\n  P5:\n    - attempt: 1")
     git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
 
     result = _run_state(agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml")
@@ -370,7 +375,8 @@ def test_st_archive_3_p5_to_p4_not_self_authored_exit_0(git_repo, agate_scripts,
     _write_state(task / ".state.yaml", "P5")
     git_repo.commit("init")
 
-    _write_state(task / ".state.yaml", "P4")
+    # 同上：补非空 retries[P4]，避免 BDD-2 短路 check4 逻辑（CRITICAL 1 连带修复）。
+    _write_state(task / ".state.yaml", "P4", "retries:\n  P4:\n    - attempt: 1")
     git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
 
     result = _run_state(agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml")
@@ -415,7 +421,9 @@ def test_st_archive_6_p2_to_p1_review_still_in_place_exit_1(git_repo, agate_scri
     (task / "P2-review.md").write_text("review\n", encoding="utf-8")
     git_repo.commit("init")
 
-    _write_state(task / ".state.yaml", "P1")
+    # 补非空 retries[P1]，避免 BDD-2 短路 check4 逻辑（CRITICAL 1 连带修复，让本用例仍走到
+    # check4 断言"P2-review.md"仍在原位的逻辑，而不是被 BDD-2 提前拦截）。
+    _write_state(task / ".state.yaml", "P1", "retries:\n  P1:\n    - attempt: 1")
     git_repo.stage("agate-workspace/tasks/T001/.state.yaml")
 
     result = _run_state(agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml")
@@ -652,6 +660,25 @@ def test_bdd_2_retreat_p5_to_p4_retries_growth_exit_0(
     assert result.returncode == 0
 
 
+def test_bdd_2_first_time_retreat_both_sides_empty_retries_exit_1(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """CRITICAL 1 回归（P4-review.md）：首次单步回退——HEAD 与暂存版本 retries[P4] 均为空
+    /缺失（此前从未记录过），仍必须被拦截。这正是 RM-AG0042 立项证据本身的场景（复盘中
+    四任务 retries 全为 {}）——去掉 old_retries_len>0 守卫前，这种"从未记录过"的首次违规
+    完全不会被拦截，本回归用例锁定修复后的行为。"""
+    repo = git_repo.path
+    _write_state(repo / ".state.yaml", "P5", "retries: {}")
+    git_repo.commit("init")
+
+    _write_state(repo / ".state.yaml", "P4", "retries: {}")
+    git_repo.stage(".state.yaml")
+
+    result = _run_state(agate_scripts, python_exe, run_cli, repo, ".state.yaml")
+    assert result.returncode == 1
+    assert "retries[P4]" in result.output
+
+
 def test_bdd_3_empty_return_redispatch_keyword_empty_retries_warning(
     git_repo, agate_scripts, python_exe, run_cli
 ):
@@ -710,3 +737,90 @@ def test_bdd_4_no_event_empty_retries_exit_0_no_warning(
     result = _run_state(agate_scripts, python_exe, run_cli, repo, ".state.yaml")
     assert result.returncode == 0
     assert "WARNING" not in result.output
+
+
+def test_bdd_1_multiple_phase_hits_all_warned(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """CRITICAL 3 回归（P4-review.md）：task_dir 下同时存在 P1 与 P2 的评审重试
+    dispatch-context 文件，且 retries[P1]/retries[P2] 均为空 → 两个阶段的 WARNING 都应
+    各自触发，不能只触发 sorted() 后的首个匹配阶段（此前 _scan_bdd1_review_retry_phase
+    命中即 return，后面阶段的命中被永久忽略；已用本任务自身 task_dir 结构——同时存在
+    P1/P2 评审重试文件——实证复现）。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P2")
+    git_repo.commit("init")
+
+    (task / "P1-dispatch-context-requirements-review-retry1.md").write_text(
+        "stub\n", encoding="utf-8"
+    )
+    (task / "P2-dispatch-context-plan-eng-review-retry1.md").write_text(
+        "stub\n", encoding="utf-8"
+    )
+    _write_task_state(task, "P3", "retries: {}")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "retries[P1]" in result.output
+    assert "retries[P2]" in result.output
+
+
+def test_bdd_3_progress_batch_named_file_detected(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """CRITICAL 4 回归（P4-review.md）：`P4-progress-batchA.md`（按包拆分并行的分批进度
+    文件命名模式，dispatch-protocol.md/WORKFLOW.md「按包拆分并行」章节的标准约定，本任务
+    自己的 P4 阶段就产出这种文件）含"空返回"/"重派"关键词信号时，也应被 BDD-3 扫描命中
+    （此前只精确匹配 `progress.md`，这类分批命名会被漏扫，是任何多批并行实现阶段的天然
+    盲区）。"""
+    repo = git_repo.path
+    task = repo / "agate-workspace" / "tasks" / "T001"
+    task.mkdir(parents=True)
+    _write_task_state(task, "P4")
+    git_repo.commit("init")
+
+    (task / "P4-progress-batchA.md").write_text("子代理空返回，已重派\n", encoding="utf-8")
+    _write_task_state(task, "P5", "retries: {}")
+    git_repo.stage("agate-workspace/tasks/T001/")
+
+    result = _run_state(
+        agate_scripts, python_exe, run_cli, repo, "agate-workspace/tasks/T001/.state.yaml"
+    )
+    assert result.returncode == 0
+    assert "WARNING" in result.output
+    assert "retries[P4]" in result.output
+
+
+def test_load_current_state_yaml_invalid_utf8_no_crash(agate_scripts, tmp_path):
+    """CRITICAL 2 回归（P4-review.md）：`.state.yaml` 含非法 UTF-8 字节时，
+    `_load_current_state_yaml` 不应抛出未捕获的 UnicodeDecodeError（此前只
+    `except OSError`，`UnicodeDecodeError` 不是 `OSError` 子类，不会被捕获，会让整个
+    check-state-transition.py 崩溃退出）。直接单元测试内部函数：端到端 CLI 路径下
+    `agate-state-get.py` 子进程会先于本函数在同一非法字节上崩溃、被 `_run_state_get` 的
+    `returncode != 0` 分支吞掉后返回空 phase，导致 `main()` 提前 `sys.exit(0)`，掩盖了
+    `_load_current_state_yaml` 自身仍然会崩溃这一事实（该函数由检查3直接调用，不经子进程
+    隔离）。"""
+    sys.path.insert(0, str(agate_scripts))
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "agate_test_check_state_transition",
+            str(agate_scripts / "check-state-transition.py"),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    finally:
+        sys.path.pop(0)
+
+    bad_file = tmp_path / ".state.yaml"
+    bad_file.write_bytes(
+        b"task_id: T001\nphase: P2\nnote: \xff\xfe invalid\nretries: {}\n"
+    )
+
+    result = mod._load_current_state_yaml(str(bad_file))
+    assert isinstance(result, dict)
+    assert result.get("task_id") == "T001"
