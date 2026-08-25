@@ -23,7 +23,7 @@
 #   BDD-11          test_bdd_11_rerun_audit_table_exists
 #   BDD-12 / BDD-13 见 test_check_p6_provenance.py（审计 7 单测）
 #   BDD-14          test_bdd_14_p8_release_reuse_wording（轻量 grep 断言，非强制但已判断可写）
-#   BDD-15          test_bdd_15_ci_xdist_observability_step
+#   BDD-15          test_bdd_15_ci_xdist_parallel_enforced（M23 观测步骤演进为 xdist 并行门禁）
 #   BDD-16          test_bdd_16_parallel_rule_xdist_judgement_unchanged（回归防护，预期已绿）
 #   BDD-17          不在本文件单独覆盖——由 gate_commands.P5 整体校验（pytest 全绿 +
 #                   check-protocol-consistency.py --strict 0 ERROR + count-tests.sh 计数一致），
@@ -249,28 +249,25 @@ def test_bdd_14_p8_release_reuse_wording(agate_root):
     )
 
 
-# ── BDD-15：xdist CI 观测步骤（M23）──────────────────────────────────────
+# ── BDD-15：xdist 并行作为门禁（M23 观测步骤演进）────────────────────────
 
 
-def test_bdd_15_ci_xdist_observability_step(agate_root):
-    """.github/workflows/protocol-tests.yml 的 pytest job 应新增一个观测性 xdist 步骤
-    （记录耗时，不影响 job 整体 pass/fail）。"""
+def test_bdd_15_ci_xdist_parallel_enforced(agate_root):
+    """protocol-tests.yml 的 pytest job 主测试步骤应用 `-n auto`（xdist 并行）作为门禁。
+    演进自 M23 的观测步骤：实测 47.8s/16核 vs 165.7s 串行（3.5x 提速，1238 passed 无 flaky），
+    并行稳定性验证后升级为门禁；观测步骤（continue-on-error）已随之删除。"""
     import yaml
 
     wf_path = _repo_root(agate_root) / ".github" / "workflows" / "protocol-tests.yml"
     doc = yaml.safe_load(wf_path.read_text(encoding="utf-8"))
     steps = doc["jobs"]["pytest"]["steps"]
-    xdist_steps = [
-        s for s in steps if "-n auto" in (s.get("run") or "")
-    ]
-    assert len(xdist_steps) >= 1, (
-        "protocol-tests.yml 的 pytest job 未找到含 'pytest -n auto' 的观测性步骤（BDD-15/M23）"
+    run_steps = [s for s in steps if "-n auto" in (s.get("run") or "")]
+    assert len(run_steps) >= 1, (
+        "protocol-tests.yml 的 pytest job 未找到含 '-n auto' 的主测试步骤（xdist 并行门禁）"
     )
-    step = xdist_steps[0]
-    non_blocking = bool(step.get("continue-on-error")) or "|| true" in (step.get("run") or "")
-    assert non_blocking, (
-        "新增的 xdist 观测步骤未标记为不影响 job 整体 exit code"
-        "（期望 continue-on-error: true 或命令自身吞掉非 0 退出码）"
+    # 主测试步骤是门禁（非 continue-on-error）；观测步骤已随并行升级删除
+    assert not (run_steps[0].get("continue-on-error")), (
+        "xdist 并行主测试步骤不应为 continue-on-error（已从观测升级为门禁）"
     )
 
 
