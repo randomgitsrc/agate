@@ -1,15 +1,24 @@
 name: Protocol Tests
 
-# 2026-08-25 修复（PR #194 实证）：原 push/pull_request 用 paths-ignore 让 docs-only PR 跳过
-# 整个 workflow → 6 个 required checks（pytest×2/shellcheck×2/consistency/gate-backstop）无任何
-# check-run → 分支保护按"pending"处理 → docs-only PR 永久 BLOCK（PR #193 实证 "6 of 6 required
-# status checks are expected"）。
-# GitHub 官方行为（troubleshooting-required-status-checks）：
-#   - workflow 被 path filtering 跳过 → checks 保持 Pending 并阻塞合并 ← 原配置的缺陷
-#   - job 被条件跳过 → job 报告 Success（skipped 视为成功，不阻塞）   ← 本修复采用
-# 因此：去掉 paths-ignore（避免 workflow 级跳过），改为 detect-docs-only job 判定纯 docs 改动，
-# 全量 job 用 if 条件在 docs-only 时跳过（报告 skipped=success）。协议定义：docs-only = 仅改动
-# docs 清单内路径（与历史 paths-ignore 清单一致）；workflow 自身改动不算 docs-only（跑全量）。
+# docs-only PR 与 required checks 的修复史（两次实证，勿再想当然）：
+#
+# ① 2026-08-25 PR #194：原 paths-ignore 让 docs-only PR 跳过整个 workflow → 6 个 required
+#    checks（pytest×2/shellcheck×2/consistency/gate-backstop）无 check-run → 分支保护按
+#    "pending" 处理 → 永久 BLOCK（PR #193 实证 "6 of 6 required status checks are expected"）。
+#    修法：去 paths-ignore，改 detect-docs-only job + 全量 job 用 job 级 if 条件跳过。
+#
+# ② 2026-08-25 PR #203 实证①的修法也没解决：job 级 if 跳过 → check conclusion="skipped"，
+#    而 GitHub 分支保护对 skipped 的 required check 同样 BLOCK（mergeable_state="blocked"）。
+#    此前注释声称"skipped 视为成功"系错误假设，从未被真实 docs-only PR 验证过。
+#
+# ③ 本次修法（当前实现）：4 个 required job（pytest/shellcheck/consistency/gate-backstop）
+#    不再有 job 级 if——job 始终运行，把 docs-only 判断内嵌进各检查 run step 开头
+#    （docs_only=true 时 echo + exit 0 → job conclusion="success"），分支保护即满足。
+#    platform-scan/ruff 非 required，保留 job 级 if 跳过（不阻塞合并）。
+#    代价：docs-only 时各 job 仍会走 checkout/setup（约 20-40s），换取 required check success。
+#
+# 协议定义：docs-only = 仅改动 docs 清单内路径（见 detect-docs-only 的 NON_DOCS 过滤）；
+# workflow 自身改动不算 docs-only（跑全量）。
 #
 # 2026-08-25 pytest 优化（实测 47.8s/16核 vs 165.7s 串行，3.5x 提速，1238 passed 无 flaky）：
 #   - 删除 xdist Timing Observation 步骤（BDD-15/M23 观测目的已达，continue-on-error 纯浪费 1m13s）
@@ -70,7 +79,6 @@ jobs:
 
   pytest:
     needs: detect-docs-only
-    if: needs.detect-docs-only.outputs.docs_only == 'false'
     name: pytest
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -96,12 +104,21 @@ jobs:
         run: pip install pytest-rerunfailures pytest-xdist
       - name: Run Full Test Suite (Linux, 全量, xdist 并行)
         if: runner.os == 'Linux'
-        run: python3 -m pytest agate/tests/ --reruns 1 -n auto
+        run: |
+          if [ "${{ needs.detect-docs-only.outputs.docs_only }}" = "true" ]; then
+            echo "docs-only PR: pytest skipped (fast-pass)"
+            exit 0
+          fi
+          python3 -m pytest agate/tests/ --reruns 1 -n auto
         env:
           PYTHONIOENCODING: utf-8
       - name: Run Windows Smoke (marker 代表子集)
         if: runner.os == 'Windows'
         run: |
+          if [ "${{ needs.detect-docs-only.outputs.docs_only }}" = "true" ]; then
+            echo "docs-only PR: pytest skipped (fast-pass)"
+            exit 0
+          fi
           # TAG0011 决策：check-windows-smoke.sh 退役（v0.47.0，P1 §6.2），Windows 冒烟改由
           # @pytest.mark.windows_smoke marker 承接——平台敏感用例（cp1252/CRLF/symlink/py_path/
           # 复制模式/编码/无bc/ln 退化等）逐用例打标，代表集即清单。
@@ -136,7 +153,6 @@ jobs:
 
   shellcheck:
     needs: detect-docs-only
-    if: needs.detect-docs-only.outputs.docs_only == 'false'
     name: shellcheck
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -160,10 +176,20 @@ jobs:
           echo "$GITHUB_WORKSPACE/shellcheck" >> $GITHUB_PATH
       - name: Run shellcheck (Linux, 3 hook 薄壳)
         if: runner.os == 'Linux'
-        run: shellcheck -S warning agate/scripts/pre-commit-gate.sh agate/scripts/commit-msg-self-gate.sh agate/scripts/pre-push-gate.sh
+        run: |
+          if [ "${{ needs.detect-docs-only.outputs.docs_only }}" = "true" ]; then
+            echo "docs-only PR: shellcheck skipped (fast-pass)"
+            exit 0
+          fi
+          shellcheck -S warning agate/scripts/pre-commit-gate.sh agate/scripts/commit-msg-self-gate.sh agate/scripts/pre-push-gate.sh
       - name: Run shellcheck (Windows, 3 hook 薄壳)
         if: runner.os == 'Windows'
-        run: shellcheck.exe -S warning agate/scripts/pre-commit-gate.sh agate/scripts/commit-msg-self-gate.sh agate/scripts/pre-push-gate.sh
+        run: |
+          if [ "${{ needs.detect-docs-only.outputs.docs_only }}" = "true" ]; then
+            echo "docs-only PR: shellcheck skipped (fast-pass)"
+            exit 0
+          fi
+          shellcheck.exe -S warning agate/scripts/pre-commit-gate.sh agate/scripts/commit-msg-self-gate.sh agate/scripts/pre-push-gate.sh
 
   ruff:
     needs: detect-docs-only
@@ -182,25 +208,36 @@ jobs:
 
   consistency:
     needs: detect-docs-only
-    if: needs.detect-docs-only.outputs.docs_only == 'false'
     name: consistency
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       - name: Install PyYAML
         run: pip install pyyaml
       - name: Run consistency check (Linux)
-        run: python3 agate/scripts/check-protocol-consistency.py
+        run: |
+          if [ "${{ needs.detect-docs-only.outputs.docs_only }}" = "true" ]; then
+            echo "docs-only PR: consistency skipped (fast-pass, docs-check.yml 已跑 --strict-errors-only)"
+            exit 0
+          fi
+          python3 agate/scripts/check-protocol-consistency.py
       - name: Run structure consistency check (TAG0021 M2, Linux)
-        run: python3 agate/scripts/check-structure-consistency.py
+        run: |
+          if [ "${{ needs.detect-docs-only.outputs.docs_only }}" = "true" ]; then
+            echo "docs-only PR: structure consistency skipped (fast-pass)"
+            exit 0
+          fi
+          python3 agate/scripts/check-structure-consistency.py
 
   gate-backstop:
     needs: detect-docs-only
-    if: needs.detect-docs-only.outputs.docs_only == 'false'
     name: gate-backstop
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -212,4 +249,9 @@ jobs:
       - name: Install PyYAML
         run: pip install pyyaml
       - name: Run gate backstop check (Linux)
-        run: python3 agate/scripts/ci-gate-backstop.py
+        run: |
+          if [ "${{ needs.detect-docs-only.outputs.docs_only }}" = "true" ]; then
+            echo "docs-only PR: gate-backstop skipped (fast-pass)"
+            exit 0
+          fi
+          python3 agate/scripts/ci-gate-backstop.py
