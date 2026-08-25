@@ -603,3 +603,39 @@ def test_bdd_20_registration_does_not_exempt_current_task(agate_assets):
     assert "豁免" in tmpl.read_text(encoding="utf-8")
     review = (agate_assets / "review-roles" / "plan-eng-review.md").read_text(encoding="utf-8")
     assert "DEBT 条目格式" in review
+
+
+# ---------- TAG0023 RM-AG0044（BDD-8）：复现定位计划 + 已知证据基线四要素 ----------
+# 判据来源：P2-design.md 本身（dispatch-context 约束 4：BDD-8 是"文档四要素齐全"判据，
+# 不是代码逻辑）。①已知证据基线 ②环境敏感测试判定标准 ④CI flaky 自动重跑机制触发条件
+# 三项已由 P2-design.md §2.3 落盘（approved，本轮断言预期已通过）；③集中清单文件
+# （agate/tests/ENV-SENSITIVE-TESTS.md）尚未创建（P4 待新建）——该文件缺失是本用例的
+# 红灯来源（四要素任一缺失即 FAIL，见 P2-design.md §4 完成标准表 BDD-8 行）。
+
+
+def test_bdd_8_recon_plan_and_known_baseline_four_elements(agate_root):
+    p2_design = (
+        agate_root.parent
+        / "agate-workspace"
+        / "tasks"
+        / "TAG0023-mechanism-checks"
+        / "P2-design.md"
+    )
+    assert p2_design.is_file()
+    text = p2_design.read_text(encoding="utf-8")
+    assert "PR #188" in text  # ①已知证据基线（CI 双 run 一过一挂实证）
+    assert "环境敏感测试判定标准" in text  # ②判定标准
+    assert "pytest-rerunfailures" in text  # ④CI flaky 自动重跑机制触发条件
+
+    env_sensitive_doc = agate_root / "tests" / "ENV-SENSITIVE-TESTS.md"
+    assert env_sensitive_doc.is_file(), (
+        "③集中清单文件位置与格式：agate/tests/ENV-SENSITIVE-TESTS.md 尚未创建"
+        "（P2-design.md §2.3，P4 待新建）"
+    )
+
+
+# ---------- TAG0023 RM-AG0044（BDD-9）：占位声明，本阶段不提供单元测试 ----------
+# BDD-9（test_bdd_14 连续 5 次 CI 稳定）是环境级验收锚，需连续触发 5 次
+# protocol-tests.yml 真实 CI run 才能判定，P3 单元测试无法本地模拟/断言这类跨多次
+# CI 触发的稳定性结果。此 BDD 由 P6 阶段的 CI 触发验证覆盖，P3 不提供单元测试
+# （见 P3-test-cases.md 与 dispatch-context 约束 5，避免为了凑数造一个假测试）。

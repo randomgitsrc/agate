@@ -145,12 +145,14 @@ def _check(basename, schema, data):
 
     for field in schema["required"]:
         if field not in data or data[field] is None:
-            errors.append(f"{basename}:{field}: 缺必填字段 {field}")
+            errors.append(
+                f"{basename}:{field}: 缺必填字段 {field} → 请在 frontmatter 补 {field}: <值>"
+            )
 
     for field, allowed in schema["enums"].items():
         if field in data and data[field] is not None and data[field] not in allowed:
             errors.append(
-                "{}:{}: 非法值 {!r}（合法值: {}）".format(
+                "{}:{}: 非法值 {!r}（合法值: {}），请改用其一".format(
                     basename, field, data[field], ", ".join(allowed)
                 )
             )

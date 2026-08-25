@@ -1178,6 +1178,30 @@ def gate_p7(task_dir):
     return 0
 
 
+def _check_roadmap_done(task_id, roadmap_path):
+    """RM-AG0043（BDD-5/6，P2-design.md §2.2 候选 A / D2 匹配算法）：按 task_id 精确匹配
+    roadmap.md「关联任务」列（表格第 5 数据列），收集全部匹配行；任一「状态」列非 done →
+    返回 (rm_id, status) 供 gate_p8() 阻断。无匹配行（含关联任务列值是其他 task_id 的情况）
+    → 返回 None，不误拦（BDD-6）。roadmap.md 不存在时同样返回 None（不阻断，向后兼容无
+    roadmap 场景的既有 G8 系列测试）。
+
+    表格解析：按 `|` 分列，跳过表头/分隔行（首个非空列不以 `RM-` 开头即视为非数据行）。
+    """
+    text = _read_text(roadmap_path)
+    if not text or not task_id:
+        return None
+    for line in text.splitlines():
+        cols = [c.strip() for c in line.split("|")]
+        if len(cols) < 8:
+            continue
+        rm_id, status, related_task = cols[1], cols[3], cols[5]
+        if not rm_id.startswith("RM-"):
+            continue
+        if related_task == task_id and status != "done":
+            return rm_id, status
+    return None
+
+
 def gate_p8(task_dir):
     # P8 部分检查可脚本化，其余需主 Agent 自判。
     # version 文件路径和 CHANGELOG 文件名因项目而异，主 Agent 从 P2-design.md packages 读取。
@@ -1193,6 +1217,17 @@ def gate_p8(task_dir):
     # 债务清单确认留痕检查（TAG0001 Phase 3）：只查留痕存在，不查内容达标、不阻断发布
     if "debt_check:" not in p8_text:
         sys.stderr.write("GATE P8: P8-release.md 缺 debt_check 字段（须确认债务清单并留痕，可为 none）\n")
+        return 1
+
+    # RM-AG0043（BDD-5/6）：P8 完成时反查 roadmap.md 关联 RM 条目是否已回写 done
+    task_id = _load_state_yaml(task_dir).get("task_id", "")
+    roadmap_path = os.path.join("agate-workspace", "roadmap", "roadmap.md")
+    blocked = _check_roadmap_done(task_id, roadmap_path)
+    if blocked:
+        rm_id, status = blocked
+        sys.stderr.write(
+            f"GATE P8: roadmap.md 关联记录 {rm_id} 状态为 {status}（非 done），须先回写 done 再推进发布\n"
+        )
         return 1
 
     # 检查 version 文件变更（路径 A: 暂存区 + 路径 B: 最近 commit）

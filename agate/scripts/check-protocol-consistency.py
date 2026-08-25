@@ -547,6 +547,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "keywords": ["diff", "phase_num"],
     },
     {
+        "desc": "门槛失败事件↔retries 对应性校验（RM-AG0042 BDD-1~4）",
+        "script": "agate/scripts/check-state-transition.py",
+        "keywords": ["RM-AG0042"],
+    },
+    {
         "desc": "PROD_TOUCHED 检测",
         "script": "agate/scripts/pre-commit-gate.sh",
         "keywords": ["PROD_TOUCHED", "PROD_NOT_TOUCHED"],
@@ -565,6 +570,11 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "desc": "DESIGN_GAP 配对",
         "script": "agate/scripts/check-gate.py",
         "keywords": ["DESIGN_GAP"],
+    },
+    {
+        "desc": "P8 roadmap done 反查（RM-AG0043）",
+        "script": "agate/scripts/check-gate.py",
+        "keywords": ["_check_roadmap_done"],
     },
     {
         "desc": "P6 evidence UI 检查",

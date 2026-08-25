@@ -1,0 +1,26 @@
+task_id: TAG0023
+phase: READY
+status: active
+p5_pass_commit: 551e2017b2f0612cb9bbc347fd921b426f3c97ab
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+  P2:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+    - round: 2
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+  P4:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+judge:
+  enabled: true

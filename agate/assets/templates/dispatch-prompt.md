@@ -95,6 +95,12 @@ agent: {角色名}
 - 测试确实跑了（验证阶段）——unit.md 含 test runner 输出签名
 - review 确实审查了（review 阶段）——结论引用了具体锚点（BDD 编号 / DESIGN_GAP 配对）
 
+## P1/P2 声明写时自检
+若本次产出含 P1-requirements.md/P2-design.md，返回前先跑
+`python3 agate/scripts/check-frontmatter.py {写的文件路径}`；若 P1 声明 `ceremony: thin`，
+额外 `git add` 本阶段产出后跑 `python3 agate/scripts/check-routing.py {任务目录}`。
+非 0 退出先修正后再返回，不允许把格式错误留给 commit 时的 pre-commit hook 才发现。
+
 ## 返回给我（重要）
 只返回两行：
   1. 产出文件路径
