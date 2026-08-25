@@ -10,6 +10,6 @@ retries:
       adjustment: add_navigation
 judge:
   enabled: true
-  rounds: 1
-  last_verdict: null
+  rounds: 2
+  last_verdict: needs-revision
   partial: false

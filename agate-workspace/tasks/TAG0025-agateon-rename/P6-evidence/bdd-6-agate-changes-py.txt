@@ -1,8 +1,8 @@
-=== command: grep -n randomgitsrc agate/scripts/agate-changes.py ===
-116:            "https://github.com/randomgitsrc/agateon.git"
-
-=== command: sed -n '116p' agate/scripts/agate-changes.py ===
+$ sed -n '116p' agate/scripts/agate-changes.py
             "https://github.com/randomgitsrc/agateon.git"
 
-HAS_NEW_URL: yes
-HAS_OLD_URL_RESIDUE: no
+$ grep -nE 'randomgitsrc/agate\b' agate/scripts/agate-changes.py
+OLD_URL_GREP_EXIT: 1
+$ grep -n 'randomgitsrc/agateon' agate/scripts/agate-changes.py
+116:            "https://github.com/randomgitsrc/agateon.git"
+NEW_URL_GREP_EXIT: 0

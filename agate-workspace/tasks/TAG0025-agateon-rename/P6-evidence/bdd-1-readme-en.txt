@@ -1,4 +1,4 @@
-=== command: head -15 README.md ===
+$ head -15 README.md
 # agate
 > **Agateon (formerly agate)** — this project has a new name; the badge and install command below already point to the new repository.
 > An orchestration protocol that verifies AI agents the way a build system verifies a compiler.
@@ -15,6 +15,6 @@ agate is a documentation-and-script orchestration protocol for software engineer
 ## Why agate?
 
 
-=== command: head -15 README.md | grep -F 'Agateon (formerly agate)' ===
+$ head -15 README.md | grep -F 'Agateon (formerly agate)'
 > **Agateon (formerly agate)** — this project has a new name; the badge and install command below already point to the new repository.
 EXIT_CODE: 0

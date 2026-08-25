@@ -1,4 +1,4 @@
-=== command: head -15 README.zh-CN.md ===
+$ head -15 README.zh-CN.md
 # agate
 > **Agateon**（原名 agate）——本项目已改名，下方徽标与安装命令已指向新仓库。
 > 一种编排协议，用构建系统验证编译器的方式验证 AI Agent。
@@ -15,6 +15,6 @@ agate 是一套面向软件工程任务的文档 + 脚本编排协议。没有�
 ## Why agate?
 
 
-=== command: head -15 README.zh-CN.md | grep -E 'Agateon.*agate|agate.*Agateon' ===
+$ head -15 README.zh-CN.md | grep -E 'Agateon.*agate|agate.*Agateon'
 > **Agateon**（原名 agate）——本项目已改名，下方徽标与安装命令已指向新仓库。
 EXIT_CODE: 0

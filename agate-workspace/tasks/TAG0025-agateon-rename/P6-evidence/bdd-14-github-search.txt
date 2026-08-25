@@ -1,8 +1,4 @@
-=== command: gh api -X GET search/repositories -f q='agateon in:name' --jq '.items[].full_name' (timeout 30s) ===
+$ gh api -X GET search/repositories -f q='agateon in:name' --jq '.items[].full_name'
 randomgitsrc/agateon
 jayasreekamineni1/AgateOne
 EXIT_CODE: 0
-
-=== raw top items for context (first 5, name + full_name) ===
-{"full_name":"randomgitsrc/agateon","name":"agateon"}
-{"full_name":"jayasreekamineni1/AgateOne","name":"AgateOne"}

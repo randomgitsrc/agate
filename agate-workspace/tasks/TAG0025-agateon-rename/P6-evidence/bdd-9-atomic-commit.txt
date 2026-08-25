@@ -1,97 +1,14 @@
-=== command: per-file last commit SHA for the 6 files touched (README.zh-CN.md + README.md + install.sh + agate-install.py + agate-changes.py) ===
-install.sh -> 751f421a4c36becd657ab12fed0e80cd7423bef3
-agate/scripts/agate-install.py -> 751f421a4c36becd657ab12fed0e80cd7423bef3
-agate/scripts/agate-changes.py -> 751f421a4c36becd657ab12fed0e80cd7423bef3
-README.md -> 751f421a4c36becd657ab12fed0e80cd7423bef3
-README.zh-CN.md -> 751f421a4c36becd657ab12fed0e80cd7423bef3
+$ for f in install.sh agate/scripts/agate-install.py agate/scripts/agate-changes.py README.md README.zh-CN.md CHANGELOG.md; do echo "$f: $(git log -1 --format=%H -- "$f")"; done
+install.sh: 751f421a4c36becd657ab12fed0e80cd7423bef3
+agate/scripts/agate-install.py: 751f421a4c36becd657ab12fed0e80cd7423bef3
+agate/scripts/agate-changes.py: 751f421a4c36becd657ab12fed0e80cd7423bef3
+README.md: 751f421a4c36becd657ab12fed0e80cd7423bef3
+README.zh-CN.md: 751f421a4c36becd657ab12fed0e80cd7423bef3
+CHANGELOG.md: 751f421a4c36becd657ab12fed0e80cd7423bef3
 
-=== full commit list touching these files (dedupe) ===
-01aaf233d1faf2870faf059bd4927abcc82e1c78
-04fb304deecb198a166c5d0396f01d42e27ec605
-08c03fdc5553d68554a004f31c8ab1f4e725567b
-09a4eaca88ec943101dfad75680b9fe60b660e86
-14aa44f6ed721bb1e3c1a9f2db7ad8e600c10f44
-1519db63c4236f448afcdd82ad70df7e00f72f1a
-1594f0c770ecc0872c52376f3fe59a7d77df8429
-197464c36906bd5f5554aba82a5f4ab2e2278c0d
-1e5948023af7accbfb44d56f0feb1c10dafa2380
-1f35b127f09eedd02a16656eb646534ac002aa08
-26bf4d5c6f30ea3072f4256fbc5e33c0695b3afa
-27022d5745e1a330c5a1c0056ceb3969f9ca8593
-2842295a29fa5755bba8ad5efed4a5b57d022e3d
-2cf54f96d1b393f6dac3bb9d4c581e5a7f943072
-34878f543bd75ce583527ef3dd9618d9dd73838c
-3e8c8187187c4493a35ca9ac1e4565bfe338e711
-3ff60bbec3c2d1e70e03817445dbc84f8fa4d2d1
-439d8a6c2519072ac52794bdf5e579c7a4259da0
-43c5c2efeab361d17c2d992acee95c2a3cfe12ed
-44ed20092fb28d32d62ba6b7fad71ed7a00e3797
-476224d1e21b1edbb276ff1f291b00f8c95722da
-47f577cb3d230d998ec5c28c91d43dc689d1ce36
-4c6a4d37cbac37a325da1918982923ca7e31c2de
-4f6ae76129d9f9d4058a5367e92c8a14c08ff920
-4f6b086bbf8ee7ec9b5a8b02934fb68c105448b6
-500e1ea13b59f3c5ebc8b9d83df263d35b6197b0
-531f597fbc0f8ae3906b090a34e7db4b835c3c57
-5815e7cf39abf4a19e39bc8727edd5f0acec101a
-600961b1fa159156379717c7a8e94f2557f52439
-6060acff9b79d27355fae917ba40578aac0ebd3d
-618ef8ce9ca7374f1fc2923d5e294e975d588bdf
-63286d59ed20b2dae2ec485999c222c05be07476
-67979e649ddd09a1527cbe76e8b84d0ba383e602
-6acf97039bcc3a9154b0f93a376ffac6db339b8d
-71a9f8f6e0bedae4d2e0656030a5d9b61491c03f
-751f421a4c36becd657ab12fed0e80cd7423bef3
-7588cd09bfe58aa20e973be700a09a96f5f57288
-75d30a6f691556d2f434cb05a51ba43b54c92ea9
-765916169d8e6363c02f908661d2a13f5512bc00
-76aef2f246a95baf464203f56f754dd612517103
-76af32bf13a0f5224eaa7579edbf7a85a9c28b79
-7dc74172a99ef9788c502d5115e424a07c5c4144
-7dfd22a90d47a48a8e81d3b84e1e2193c90cc856
-8016328e1d681d9a80d757d50b5a187a9064fd06
-83c37096f2ada8dc3061d2fb7e4b7cd7b64d6cc1
-957794ee3aaed059b81dea829cb146ff7d5b575b
-97670d34602afdc148fed8bcf307a661fdf29a0a
-982625d014b835b537442302337b3cce1d549b6b
-9a46a02f81551ce681dd4f3a8c428d8f309729fb
-9af14be8e7b53ef916177c35236196c46139874d
-a0a2d14ce90950d2a5fccb53ae4d1488d92dc66e
-a4f6e70403cc2e84ace7e8b1327bd658cbfd8039
-a6e7e5075bfc2d44aaee7cb5f3a15abc5809b6dc
-ab9998a8e4c848a05364bdbcffe628a1268dab84
-ac7b6239e8361cc080c027aa66aa17af7242702a
-ad422a6865efed515c7ade6225e11383c3e52065
-afeeb119ecb221e92bc45959a6a9403b86a5cdec
-b9f7653e8745a52a3cd93598d256a9d90b9841cb
-bacc305ee958ecc3f0089c73a2668cc86feb1781
-bea799018efe27f190219af6b96139512b191cbd
-c03f8f252307cf6f2124e259ac9dc5a397d57bef
-c1b29f1cc7ccc9d72dc8776ef9c9876c7dbcb5bb
-c4522df3fb106ae2d25590ed5b1ac23166271fc5
-cf0c55f0c40e96206afd16e4bff2062047b44b59
-cf2ddce99eae05a05c0a71f0bc83b7363ce51313
-cf8a39acf9c05ddb0b6ad143e45cbc22b97579eb
-d1e3ba54601ea6bd907c3a2c38acf65060f9c2fb
-d26442c9cb2ceaa337bd5c3ba9eee241cec46378
-d310b61f90fc40f7e189d246fa2af043c7953a08
-d51d8d44a77612061d10013817179c80f6d2fc63
-d7fd14f23893b9f96d90d9b02bbbff1e5ab45501
-dc5090bd625c201c45f02cf0428dea6d08c490bb
-ea077036d2497ba2da1ad97aef90eee53d5ebb06
-ef2dfa3ad21a400c2013817526554c0c20d8d772
-f6f04dbd60ffecafb1a63c18a70ad6fa7e37dcef
-f6f1e670efd3ea4b3a492dfc5072ffe4a1695960
-f731ebf354cfea51fcf9b52280ae674ee73fb0f0
-f752c73d2033a81c40a5c658e1823b76e3b146f3
-f8b51947f4439b556686c18e70aae07a14a05cb2
-f8f529daac41094772c9e9d6b72465b1af7e539f
-fbf865b3bb46d889a857a75eb34ea7352f2e760d
-fe151612447830301f4ec3480e17468ab491533a
-fee7c732b2b1acefac5891cfbafd66801eb9688d
+RESULT: OK, all 6 files last-touched at same commit 751f421a4c36becd657ab12fed0e80cd7423bef3
 
-=== show commit that changed these files (diff --stat) ===
-Latest touching commit: 751f421a4c36becd657ab12fed0e80cd7423bef3
+$ git show --stat 751f421a4c36becd657ab12fed0e80cd7423bef3 (full, no truncation)
 commit 751f421a4c36becd657ab12fed0e80cd7423bef3
 Author: Test <test@test.local>
 Date:   Wed Aug 26 04:28:37 2026 +0800
@@ -122,3 +39,10 @@ Date:   Wed Aug 26 04:28:37 2026 +0800
  .../P4-dispatch-context-review.md                  | 253 ++++++++++++++++++++
  .../TAG0025-agateon-rename/P4-implementation.md    |  86 +++++++
  .../tasks/TAG0025-agateon-rename/P4-progress.md    |  43 ++++
+ .../tasks/TAG0025-agateon-rename/P4-review.md      | 141 +++++++++++
+ .../tasks/TAG0025-agateon-rename/gate-events.jsonl |   2 +
+ agate-workspace/tasks/active-tasks.md              |   2 +-
+ agate/scripts/agate-changes.py                     |   2 +-
+ agate/scripts/agate-install.py                     |   2 +-
+ install.sh                                         |   2 +-
+ 14 files changed, 809 insertions(+), 11 deletions(-)
