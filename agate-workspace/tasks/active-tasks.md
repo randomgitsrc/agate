@@ -14,7 +14,7 @@
 | TAG0022 | 三连任务确认问题修复批（RM-AG0037 ruff 合并强制 + RM-AG0038 M2 迁移闭环 + RM-AG0039 judge 强制化 + RM-AG0040 M3 实证 + RM-AG0041 环境测试根治）：TAG0019-21 全面分析确认的 5 个问题合并处理 | ✅✅ | READY | 高 | — | 2026-08-22 | 2026-08-23 |
 | TAG0021 | 协议结构化层（RM-AG0022）：rules/{phases,dispatch,roles}.yaml + JSON Schema + S-1~S-6 双向一致性 gate + gate 脚本从 grep markdown 迁移读 YAML（M0-M3 渐进）；RM-0031 写时校验与 RM-0036 双语锚点的地基 | ✅✅ | READY | 高 | — | 2026-08-21 | 2026-08-22 |
 | TAG0020 | 独立 Judge 机制（RM-AG0032）：P6.5 验收独立裁判（judge 角色 fresh context 信息隔离 + 三层防造假 + append-only 事件账本 + 三档预算）；TAG0018 实证 LLM 评审≈0 净收益为立项锚 | ✅✅ | READY | 高 | TAG0019 | 2026-08-21 | 2026-08-22 |
-| TAG0024 | 工具链批（RM-AG0048 一期 agate-md-field-set + DEBT0019/20 check-gate roadmap-done 健壮性 + RM-AG0049/50 协议文档自洽 + BDD-30 check-pruning 隔离修复）：结构化字段写入工具（写即校验 + 自描述 + 权限引导 + 同源铁律，消灭手写 frontmatter 摩擦）+ 5 项前置修复合并 | 🔄 | P6 | 中 | — | 2026-08-25 | 2026-08-25 |
+| TAG0024 | 工具链批（RM-AG0048 一期 agate-md-field-set + DEBT0019/20 check-gate roadmap-done 健壮性 + RM-AG0049/50 协议文档自洽 + BDD-30 check-pruning 隔离修复）：结构化字段写入工具（写即校验 + 自描述 + 权限引导 + 同源铁律，消灭手写 frontmatter 摩擦）+ 5 项前置修复合并 | 🔄 | P7 | 中 | — | 2026-08-25 | 2026-08-25 |
 
 ### 待开始
 
