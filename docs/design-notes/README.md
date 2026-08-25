@@ -17,6 +17,7 @@
 | `platform-extension-research.md` | 第四平台扩展调研（Codex/Cursor/Gemini CLI 能力对照 + 优先级建议） | 调研完成（RM-AG0034 素材）|
 | `agateon-trademark-research.md` | Agateon 商标四辖区调研 + 注册建议 | 调研完成（RM-AG0035 前置）|
 | `rename-recommendation.md` | 品牌改名决策记录（gatewise/agaton/turngate 淘汰原因 → 拍板 Agateon） | 已决策（RM-AG0035 转执行型）|
+| `design-rename-execution.md` | Agateon 改名执行设计（三层解耦：品牌名/仓库名/目录名 + 分层迁移 + 基础设施层兼容策略） | 设计草案（RM-AG0035 执行地基）|
 | `design-agateon-portal.md` | Agateon 门户设计（git 之于 GitHub：数据面/控制面分离 + 可验证性三层同构） | 待立项（v1.0 后，RM-AG0047）|
 | `design-maintainability-gate.md` | 维护性反模式 gate 设计（模式层/检测器层分离，协议定义反模式语义） | 待立项（RM-AG0046）|
 | `design-md-field-set.md` | 结构化字段写入工具设计（agate-md-field-set：写入即校验 + 自描述 + 权限引导，消灭手写 frontmatter 摩擦） | 设计提案（RM-AG0048）|
