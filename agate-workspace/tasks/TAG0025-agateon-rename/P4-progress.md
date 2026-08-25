@@ -41,3 +41,27 @@
   "已知盲区，非真实残留"，不能静默忽略也不能不解释地判 PASS。
 - 决定权留给 P5 阶段（届时视情况可考虑：a) 只信 pytest 判定，shell key 结果作为参考不作为
   阻断依据 b) 若确有必要修正，走类似 P1 BDD-10 的 BASELINE_CHANGE 式重新评审流程，不擅自静默改）。
+
+## P4 批次 2（implementer subagent，remote 迁移）— 2026-08-26
+
+- 读取 dispatch-context（P4-dispatch-context-implementer-batch2.md）、implementer 角色定义、
+  env-rename-handoff.md（§二/§四）、P4-implementation.md（批次 1）、P2-design.md（候选 B「P4 批次 2」
+  段落，行 141-153）：确认本批次仅需 3 条 `git -C` 命令 + 2 条只读 `remote -v` 自查，改名本体
+  与 4 条验收锚已由主 Agent 完成，不需重做。
+- 执行 `git -C /home/kity/oclab/agate remote set-url origin https://github.com/randomgitsrc/agateon.git`
+  → EXIT:0
+- 执行 `git -C /home/kity/oclab/agate fetch` → EXIT:0，无网络/权限报错
+- 执行 `git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 fetch` → EXIT:0，无网络/权限报错
+- 自查 `git -C /home/kity/oclab/agate remote -v` → 两行均为
+  `https://github.com/randomgitsrc/agateon.git`（fetch/push）
+- 自查 `git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 remote -v` → 两行均为
+  `https://github.com/randomgitsrc/agateon.git`（fetch/push），**未对 worktree 单独执行
+  set-url**，确认 worktree 与主仓共享同一 `.git/config` 的假设成立
+- [PROD_NOT_TOUCHED] 全程未执行 `gh api`/`git push`/`git commit`；未 `cd` 进入
+  `/home/kity/oclab/agate`；未用 Read/Edit/Write/`cat`/`ls` 等读写主 checkout 目录下任何文件
+  内容；对主 checkout 的唯一交互是上述 1 条 `set-url` + 1 条 `fetch` + 1 条只读 `remote -v`
+  （均为 `-C` 参数形式的一次性 git 子命令，不涉及切换工作目录或读写文件）
+- 下一步：追加 P4-implementation.md「批次 2」节 + env-rename-handoff.md §六版本记录一行
+- 已用 Edit 工具追加 P4-implementation.md「## 批次 2：remote 迁移」节（不覆盖批次 1 内容）
+- 已用 Edit 工具追加 env-rename-handoff.md「六、版本记录」表格一行（不修改已有行）
+- 批次 2 完成

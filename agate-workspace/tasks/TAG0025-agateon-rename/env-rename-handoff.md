@@ -73,4 +73,5 @@
 | 日期 | 事件 | 会话 |
 |------|------|------|
 | 2026-08-26 | 交接单建立（P0，改名未执行）| TAG0025 主会话 |
-| （待填）| P4 改名执行完成 + §四 验收锚 4 条实测通过 | |
+| 2026-08-26 | P4 改名执行完成（用户当次会话内明确放行确认后，主 Agent 亲自执行 `gh api -X PATCH repos/randomgitsrc/agate -f name=agateon`，响应 `full_name: randomgitsrc/agateon`）+ §四验收锚 4 条实测全部通过：①`curl -sI https://github.com/randomgitsrc/agate` → HTTP/2 301 ②`git ls-remote https://github.com/randomgitsrc/agateon.git HEAD` → 正常返回 SHA ③全仓残留扫描（pytest BDD-10 权威判定）PASSED，0 残留 ④`gh api search/repositories -f q='agateon in:name'` 首位命中 `randomgitsrc/agateon` | TAG0025 主会话 |
+| 2026-08-26 | P4 批次 2：remote 迁移完成（implementer subagent 执行，严格限于 3 条授权命令）：`git -C /home/kity/oclab/agate remote set-url origin https://github.com/randomgitsrc/agateon.git` EXIT 0；`git -C /home/kity/oclab/agate fetch` EXIT 0；`git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 fetch` EXIT 0。自查 `remote -v`：主仓与 worktree 均显示 `origin https://github.com/randomgitsrc/agateon.git (fetch/push)`——未对 worktree 单独 set-url，验证了「共享同一 `.git/config`」的假设成立，§二对照表 remote 行动作完成归档 | TAG0025 implementer subagent（P4 批次 2）|

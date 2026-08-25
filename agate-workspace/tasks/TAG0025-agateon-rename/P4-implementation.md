@@ -84,3 +84,53 @@ BDD-9 预期红灯），既有 17 个回归测试未被破坏。
 本批次全程**未执行**以下任何操作：`git add`、`git commit`、`git push`、
 `git remote set-url`、`gh api`（任何形式）。改动目前仍处于 worktree 的未暂存状态，等待主
 Agent 统一 `git add` + 一次 `git commit`（满足 BDD-9 批次原子性要求）。
+
+## 批次 2：remote 迁移
+
+> [PROD_NOT_TOUCHED] 本批次只执行 dispatch-context 明确授权的 3 条 `git -C ...` 命令
+> （1 条 `remote set-url` + 2 条 `fetch`）与 2 条只读 `remote -v` 自查，均为 `-C` 参数形式
+> 的一次性 git 子命令，不涉及 `cd` 进入 `/home/kity/oclab/agate`、不涉及用任何工具读写主
+> checkout 目录下的文件内容。全程未执行 `gh api`、`git push`、`git commit`。
+
+### 背景
+
+GitHub 仓库改名（`randomgitsrc/agate` → `randomgitsrc/agateon`）已由主 Agent 在获得用户放行
+确认后亲自执行完成（`gh api -X PATCH repos/randomgitsrc/agate -f name=agateon`，
+`full_name: randomgitsrc/agateon`），4 条验收锚均已实测通过，记录在
+`env-rename-handoff.md`「六、版本记录」表格 2026-08-26 的第二行。本批次（P2-design.md 候选 B
+「P4 批次 2」，行 141-153）只负责本地 remote 迁移（BDD-15）+ fetch 验证性抽查（BDD-16），
+不重新验证改名本体。
+
+### 执行的命令与结果
+
+| # | 命令 | 结果 |
+|---|------|------|
+| 1 | `git -C /home/kity/oclab/agate remote set-url origin https://github.com/randomgitsrc/agateon.git` | EXIT 0 |
+| 2 | `git -C /home/kity/oclab/agate fetch` | EXIT 0，无网络/权限报错 |
+| 3 | `git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 fetch` | EXIT 0，无网络/权限报错 |
+
+### 自查（验证判据）
+
+- `git -C /home/kity/oclab/agate remote -v`：
+  ```
+  origin	https://github.com/randomgitsrc/agateon.git (fetch)
+  origin	https://github.com/randomgitsrc/agateon.git (push)
+  ```
+- `git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 remote -v`：
+  ```
+  origin	https://github.com/randomgitsrc/agateon.git (fetch)
+  origin	https://github.com/randomgitsrc/agateon.git (push)
+  ```
+  未对 worktree 单独执行 `set-url`，二者结果一致，验证了 env-rename-handoff.md 记录的
+  「主仓与 worktree 共享同一 `.git/config`」假设成立——迁移一次、全部 worktree 自动跟随。
+
+### SCOPE / DESIGN_GAP / CLARIFY 声明
+
+无。本批次严格按 dispatch-context 授权的命令集合执行，未发现偏差或缺口。
+
+### 未执行的操作（明确确认）
+
+本批次全程**未执行**：`gh api`（任何形式）、`git push`、`git commit`、任何对 GitHub 仓库设置
+的改动、任何 `git remote set-url` 之外的 config 写操作。未 `cd` 进入
+`/home/kity/oclab/agate`；未用 Read/Edit/Write/`cat`/`ls` 等工具读写主 checkout 目录下任何
+文件内容——对主 checkout 的唯一交互是上表 3 条命令 + 1 条只读 `remote -v` 自查。
