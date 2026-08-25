@@ -1,0 +1,9 @@
+=== command: grep -n randomgitsrc install.sh ===
+24:    git clone https://github.com/randomgitsrc/agateon.git "$INSTALL_DIR"
+
+=== command: sed -n '24p' install.sh ===
+    git clone https://github.com/randomgitsrc/agateon.git "$INSTALL_DIR"
+
+=== check: line contains randomgitsrc/agateon, not bare randomgitsrc/agate ===
+HAS_NEW_URL: yes
+HAS_OLD_URL_RESIDUE: no

@@ -1,0 +1,3 @@
+=== command: git ls-remote https://github.com/randomgitsrc/agateon.git HEAD (timeout 30s) ===
+c1e889f9d2c77c730922ae440c5f56a2c4744ba0	HEAD
+EXIT_CODE: 0
