@@ -134,3 +134,42 @@ GitHub 仓库改名（`randomgitsrc/agate` → `randomgitsrc/agateon`）已由�
 的改动、任何 `git remote set-url` 之外的 config 写操作。未 `cd` 进入
 `/home/kity/oclab/agate`；未用 Read/Edit/Write/`cat`/`ls` 等工具读写主 checkout 目录下任何
 文件内容——对主 checkout 的唯一交互是上表 3 条命令 + 1 条只读 `remote -v` 自查。
+
+## 重试 1：ruff RUF005 修复
+
+> [PROD_NOT_TOUCHED] 本次重试同样只在本 worktree 内做单文件单行改动，未接触主 checkout
+> （`/home/kity/oclab/agate`）与 `~/.agate`，未执行任何 `git add`/`git commit`/`git push` 等写
+> 操作。
+
+### 背景
+
+P5 verifier 在 `P5_unit` 中发现真实失败：
+`agate/tests/unit/test_env_adapt_docs.py::test_bdd_34_shellcheck_three_hook_shells_and_ruff`。
+根因是本任务 P3/P4 新增的 `agate/tests/regression/test_repo_url_no_stale_rename.py` 第 260 行
+触发 ruff `RUF005`（list 拼接应改用解包写法）：ruff 报告为
+`RUF005 Consider [*CORE_FILES, "CHANGELOG.md"] instead of concatenation`。
+
+### 改动内容
+
+`agate/tests/regression/test_repo_url_no_stale_rename.py` 第 260 行，纯语法等价替换，未改变
+任何运行时行为/结果、未改测试逻辑/断言：
+
+```diff
+- files = CORE_FILES + ["CHANGELOG.md"]
++ files = [*CORE_FILES, "CHANGELOG.md"]
+```
+
+### 验证结果（3 条命令均按 dispatch-context 要求执行）
+
+1. `ruff check agate/tests/regression/test_repo_url_no_stale_rename.py`
+   → `All checks passed!`（无 RUF005，无其他新增告警）
+2. `python3 -m pytest agate/tests/unit/test_env_adapt_docs.py::test_bdd_34_shellcheck_three_hook_shells_and_ruff -v`
+   → `1 passed in 0.07s`（PASSED）
+3. `python3 -m pytest agate/tests/regression/test_repo_url_no_stale_rename.py -v`
+   → `11 passed in 0.17s`（全部 11 个测试仍全部 PASSED，含 `test_bdd_9_seven_urls_same_commit_batch_atomicity`，确认修复未意外改变测试逻辑/行为）
+
+### SCOPE / DESIGN_GAP / CLARIFY 声明
+
+无。本次严格按 dispatch-context 授权的唯一改动（第 260 行一处语法等价替换）执行，未触碰
+批次 1/2 已完成的实现文件（README/CHANGELOG/install.sh/agate-install.py/agate-changes.py），
+未改测试文件的其他部分。

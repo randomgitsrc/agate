@@ -1,7 +1,12 @@
 task_id: TAG0025
 phase: P4
 status: active
-retries: {}
+retries:
+  P4:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
 judge:
   enabled: true
   rounds: 1

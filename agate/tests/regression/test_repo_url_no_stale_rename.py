@@ -257,7 +257,7 @@ def test_bdd_9_seven_urls_same_commit_batch_atomicity(repo_root):
     """Phase 1 核心 7 处更新点（6 个文件：install.sh / agate-install.py / agate-changes.py /
     README.md / README.zh-CN.md / CHANGELOG.md）须落在同一个 commit 的 diff 中。
     """
-    files = CORE_FILES + ["CHANGELOG.md"]
+    files = [*CORE_FILES, "CHANGELOG.md"]
     shas = {}
     for f in files:
         proc = subprocess.run(
