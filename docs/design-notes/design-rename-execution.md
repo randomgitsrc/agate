@@ -34,7 +34,7 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 
 - **主仓**：`randomgitsrc/agate` → `randomgitsrc/agateon`。原 URL 301 自动跳转；但本地 remote 与 `install.sh`/`agate-install.py` 的硬编码 URL 需**主动 `git remote set-url` + 同批更新**（301 兜底能"用"但新仓自带安装器会继续向新用户展示旧名）。
 - **门户**：将来另开独立仓 `agateon-portal`（暂定），依赖单向（portal → 协议仓），物理隔离。
-- **org**：暂不建（用户决策）。**风险提示**：`rename-recommendation.md` §6 与 `agateon-trademark-research.md` 摘要均建议"注册后立即占 npm/PyPI/GitHub org 防抢注"；`agateon` org 名可能被第三方抢注（这正是"将来再改来不及"场景）。建议至少注册**空 org `agateon` 仅占名**（成本≈0，不迁仓），是否执行待用户拍板。
+- **org**：**已占名（2026-08-25）**——用户注册空 org `agateon`（github.com/agateon，created_at 2026-08-25T15:59Z，0 仓库），仅占名防抢注、不迁仓。主仓暂留 `randomgitsrc/agateon`；门户立项时再议迁 org（届时命名须遵守 §2 结论：仓库名含品牌词，不能叫 `agate`）。
 - **否决方案**：
   - monorepo（`agateon/` 里塞 `core/` + `sitesrc/` + `dist/` + `docs/`）——否决理由：协议与门户**发布节奏不同**（协议 v0.62 补强中，门户 v1.0 后才立项）、依赖单向、单仓名只能承载一个品牌面。
   - `agateon/agate`（org 方案）——否决理由：见 §2，仓库名降回 `agate`，品牌词查无此仓。
@@ -109,7 +109,7 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 
 ### 5.5 门户（门户立项时，Phase 3）
 
-- 新建 `agateon-portal` 仓，依赖协议仓；届时再议是否建 org
+- 新建门户仓（`agateon-portal`），依赖协议仓；org `agateon` 已占名，届时议是否迁 org（迁移命名须遵守 §2 结论）
 
 ## 6. 一致性 gate 联动（事实版）
 
@@ -137,6 +137,8 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 3. **`agate-workspace` 目录名**：保留。与 `AGATE_WORKSPACE` 变量（225 处）强绑定，与 `agate/` 成对。
 4. **PyPI/npm/crates.io 包名**：占位 `agateon`（防抢注）；当前无打包发布计划，内部 import 面是 `agate_common`（无 `agate` 包），保持不变。
 
-## 9. 开放问题（仅剩）
+## 9. 开放问题
 
-1. **GitHub org 占名**：是否立即注册空 org `agateon` 仅占名防抢注（不迁仓）？还是接受抢注风险、门户立项时再议？——待用户拍板。
+无——原唯一开放问题已关闭：
+
+1. ~~**GitHub org 占名**~~：**已解决（2026-08-25）**——用户注册空 org `agateon` 仅占名防抢注（见 §3.1）；是否迁 org 随门户立项再议（§5.5）。
