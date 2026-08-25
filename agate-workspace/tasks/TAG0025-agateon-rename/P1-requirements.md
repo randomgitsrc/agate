@@ -124,9 +124,17 @@ BDD 都不得写成"全局 find-replace agate→agateon"式的措辞，必须点
 | `docs/design-notes/agateon-trademark-research.md:3` | **本次不处理** | 商标调研决策记录，行内引用是撰写该报告当下（2026-08-23）项目仓库的真实状态，用于交代"拟更名"的决策背景；性质上是历史决策快照，与 CHANGELOG 历史条目"保持历史真实"同理——改写会扭曲决策记录的时间语境（让读者误以为调研当时仓库已叫 agateon）。旧 URL 经 301 仍可正常访问，不产生断链。 |
 | `docs/superpowers/specs/2026-08-15-docs-suite-review.md:89` | **本次不处理** | 2026-08-15 的历史评审快照表格，记录当时 `git remote -v` 实测结果为 `randomgitsrc/agate`；这是"审计事实"记录，改写会使历史审计记录失真（造成"当时验证的其实是新仓名"的错误印象）。 |
 | `HANDOFF-TAG0025.md`（多处） | **本次不处理** | 本任务自身的交接单/验证脚本载体，其中的旧 URL 引用是验证命令本体（`curl`/`git ls-remote`/`grep` 的搜索目标字符串）与执行说明性描述，服务于"改名前后对比验证"；若把 grep 搜索模式本身替换成新仓名，命令会失去"检测旧仓名残留"的功能，语义自相矛盾。该文件是任务专属产物，生命周期与任务绑定，不是面向最终用户的产品文档，与 `agate-workspace/tasks/**` 归档豁免层同理但物理位置不同（仓库根而非 `agate-workspace/`），本次显式扩展豁免范围覆盖它。 |
+| `docs/design-notes/design-rename-execution.md:35` | **本次不处理**（P2 阶段补充发现，见下方 `[BASELINE_CHANGE]`） | 执行地基设计文档自身 §3.1 描述改名决策的"前→后"记号，与上述 3 处同源——记录决策/事实发生时刻的历史性引用，不是活跃品牌层引用；已三轮评审通过入 main，属冻结的决策记录，改写会造成"当时设计时到底叫不叫 agateon"的时间语境混乱。 |
 
-上述 3 处"不处理"的判定已固化为 BDD-10 的显式排除清单（见第 4 节），使"全仓无旧 URL 残留"
-验收锚可判定，不会因为这 3 处历史/任务性质文档而永远 FAIL。
+[BASELINE_CHANGE: 本节原只判定 3 处边界案例（P1 首次产出时基于 dispatch-context 给出的扫描结果）。
+P2 阶段 architect 用同一条全仓扫描命令重新实测（未采信 P1-review"已验证残留数=0"的自述结论），
+发现 `design-rename-execution.md:35` 未被覆盖，会致 BDD-10 验收目标永久不可达成；P2-review.md
+（plan-eng-review）独立复核确认发现属实（逐类核对 90 处命中全部有归属），并依据 P1 基线保护协议
+要求主 Agent 补齐本标注。主 Agent 已核实并批准，追加第 4 处边界案例，不改变本节"逐条判定+理由"
+的既有格式与判定方法论，只是让判定范围完整。]
+
+上述 4 处"不处理"的判定已固化为 BDD-10 的显式排除清单（见第 4 节），使"全仓无旧 URL 残留"
+验收锚可判定，不会因为这 4 处历史/任务性质文档而永远 FAIL。
 
 ### 3.3 已有归属，无需重判（设计 §5.3 归档豁免层）
 
@@ -208,7 +216,16 @@ issue 复制粘贴安装说明时把旧 URL 带回来；范围窄、不与设计
   `agate-workspace/archived/**`（设计 §5.3 归档豁免层，保持历史真实）② 
   `docs/design-notes/agateon-trademark-research.md`（商标调研决策记录，历史决策快照）③ 
   `docs/superpowers/specs/2026-08-15-docs-suite-review.md`（历史评审快照表格）④ 
-  `HANDOFF-TAG0025.md`（本任务专属交接单，旧 URL 是验证命令本体与执行说明，非产品文档）
+  `HANDOFF-TAG0025.md`（本任务专属交接单，旧 URL 是验证命令本体与执行说明，非产品文档）⑤ 
+  `docs/design-notes/design-rename-execution.md`（本任务执行地基设计文档自身 §3.1 的"前→后"
+  决策记号，性质与②③④同源——记录决策/事实发生时刻的历史性引用，非活跃品牌层引用）
+  [BASELINE_CHANGE: P2 阶段 architect 用与本 BDD 相同的全仓扫描命令重新实测（未采信 P1-review
+  的"已验证残留数=0"自述结论），发现 4 类豁免应用后仍残留 1 处（design-rename-execution.md:35），
+  会导致本 BDD"排除后剩余命中数为 0"的验收目标永久不可达成——P2-review.md（plan-eng-review）
+  独立复核确认发现属实（逐类核对 90 处命中全部有归属，无遗漏无多算），并依据 P1 基线保护协议
+  "必须标注 [BASELINE_CHANGE]"条款要求主 Agent 在 P4 派发前补齐本条标注，非软性建议。主 Agent
+  已核实并批准，补第 5 类豁免，不改变本 BDD 的判定逻辑（仍是"全仓扫描 − 豁免 = 0"），只是让
+  既有豁免清单变得完整、使验收锚真正可达成]
 - Then 排除后剩余命中数为 0
 
 ### 不可逆操作前置条件
