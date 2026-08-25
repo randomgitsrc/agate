@@ -12,3 +12,4 @@
 | `docs/archived/reviews/agate-postmortem-T019-meta-review-2026-06-24.md` | T016+T019 两个案例的跨任务模式：主 Agent 系统性绕过现成安全网 | 已落地 |
 
 新增决策记录时，按这个格式写：问题是什么 → 讨论过哪些方案及为何否决 → 最终采纳的方案及理由 → 状态（已决策待落地 / 已落地，落地位置写清楚）。
+test-doc-marker: verify docs-only skip behavior (TEMP)
