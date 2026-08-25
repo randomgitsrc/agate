@@ -89,6 +89,28 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.63.0 — 工具链批（TAG0024：agate-md-field-set / roadmap-done 健壮性）
+
+> **本版本无破坏性变更，零迁移动作**。新增 CLI 工具随 `git pull` 自动可用，无需任何重装步骤
+> （本版本未改 3 个 hook 薄壳与任何字段格式）。
+
+**① 新增工具（无安装步骤）**：`agate-md-field-set.py` / `agate-md-field-set-gate-commands.py`
+（"写入即校验"的结构化字段写入，RM-AG0048 一期）——脚本即产品，软链布局 `git pull` 后自动可用；
+复制模式（Windows）需重跑 SETUP.md 步骤 2 的 `cp`。
+
+**② gate 行为收紧（合法数据无影响）**：
+- `check-gate.py` `_check_roadmap_done()` 列数判据改为精确匹配 9 列（原 ≥8，DEBT0019）：
+  合法 roadmap.md（9 列）判定结果不变；单元格含字面 `|` 等非法列数行从"错位取值"改为"整行跳过 + WARNING"。
+- `gate_p8()` 的 roadmap 路径改以 `git rev-parse --show-toplevel` 仓库根锚定（DEBT0020）：
+  非仓库根 CWD 调用不再静默失配（原静默跳过 → 现正常执行校验）。**升级动作**：无；但历史习惯
+  在非仓库根 CWD 跑 gate 且 roadmap 未回写 done 的项目，此后会被真实校验拦到（本就是应拦行为）。
+
+**③ 其余（无升级动作）**：RM-AG0049/50 协议文档自洽（纯文档口径统一）、check-pruning.py 测试隔离
+修复（测试侧）、ADR-011 引导型 CLI 权限原则（决策记录）。
+
+**通用升级动作**：`git pull` 即完成（软链布局）；通用步骤的 `install-hook.py` 重跑对本版本无必要
+（无 hook 变更），跑了也无害。
+
 ### v0.62.0 — 机制校验补强批（TAG0023：RM-AG0042 retries 对应性 / RM-AG0043 roadmap 回写反查）
 
 > **本版本含 gate 行为收紧**（无字段/格式变更，仅新增校验点）。升级前逐条对照，
