@@ -11,5 +11,5 @@ retries:
 judge:
   enabled: true
   rounds: 2
-  last_verdict: needs-revision
+  last_verdict: passed
   partial: false
