@@ -680,3 +680,83 @@ source: review
 created_at: 2026-08-22
 task_id: null
 ```
+
+## DEBT0019
+
+```yaml
+id: DEBT0019
+category: technical
+title: check-gate.py._check_roadmap_done() 用固定索引 split("|") 解析 roadmap.md 表格，无列数完整性校验
+status: open
+priority: low
+evidence:
+  - ref: agate/scripts/check-gate.py
+    note: "_check_roadmap_done()（约 L1181-1206）：逐行 split(\"|\") 按固定索引取「关联任务」/
+      「状态」列，未校验实际分列数是否等于表格应有列数（9，含首尾空列）"
+  - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P4-review.md
+    note: "原文：\"已用 awk -F'|' 核实当前 roadmap.md 全文无嵌入 | 的标题行...但标题是自由技术
+      文本，一旦未来某条描述里写进字面 |...列会整体错位\""
+impact: 未来若 roadmap.md 某行描述文本包含字面 `|` 字符，该行状态判定可能错位（漏判或误判）
+recommendation: 加一条"实际列数应为 9（含首尾空列）否则跳过/WARNING"的防护，不必用完整 markdown
+  表格解析器
+closure_criteria:
+  - 新增防护逻辑（列数校验，非法列数跳过/WARNING）
+  - 对应回归用例（构造含 | 字符的行验证不误判）
+  - 全量测试通过
+source: review
+created_at: 2026-08-25
+task_id: TAG0023
+```
+
+## DEBT0020
+
+```yaml
+id: DEBT0020
+category: technical
+title: check-gate.py._check_roadmap_done() 调用点用相对 CWD 的硬编码路径拼接 roadmap.md，与同批次其他新增函数的 repo-root 定位风格不一致
+status: open
+priority: low
+evidence:
+  - ref: agate/scripts/check-gate.py
+    note: "约 L1224 调用点：roadmap_path 用相对 CWD 硬编码拼接，未走同批次其他新增函数的
+      repo-root 定位方式"
+  - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P4-review.md
+    note: "原文：\"若脚本被非仓库根 CWD 调用，_read_text(roadmap_path) 静默返回''...'路径解析
+      失败'和'确实无关联RM'被静默合并成同一结果\""
+impact: 环境差异下（非仓库根 CWD 调用）新增的 P8 roadmap-done 检查可能被静默绕过而无任何提示
+recommendation: 对齐同批次其他函数用 `git rev-parse --show-toplevel` 拼 repo-root 路径，或至少
+  在 roadmap.md 确实不存在时输出区分性 stderr 提示
+closure_criteria:
+  - 路径定位方式对齐（改用 repo-root 拼接）或加区分性提示
+  - 回归用例覆盖非仓库根 CWD 调用场景
+  - 全量测试通过
+source: review
+created_at: 2026-08-25
+task_id: TAG0023
+```
+
+## DEBT0021
+
+```yaml
+id: DEBT0021
+category: management
+title: RM-AG0032 在 roadmap.md 现存 3 行（backlog/scheduled/done），P2 设计"新增一行"策略与 P4 判定算法"任一非done即阻断"存在潜在交互副作用
+status: open
+priority: low
+evidence:
+  - ref: agate-workspace/roadmap/roadmap.md
+    note: "RM-AG0032 三行记录（backlog/scheduled/done），「关联任务」列分别为空/TAG0020/TAG0020"
+  - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P4-review.md
+    note: "原文：\"若未来任何人对 task_id=TAG0020 重跑 check-gate.py P8，会被这条已过时的
+      scheduled 行永久阻断，即便 done 事实已经记录在后面那行\""
+impact: 实际触发概率低（TAG0020 是已发布历史任务，通常不会重跑 P8 gate），但属未被察觉的设计-实现
+  交互副作用
+recommendation: 改为原地更新已有行状态列（而非追加新行），或调整算法为"同 RM_id+task_id 分组，组内
+  任一行为done即视为已完成"
+closure_criteria:
+  - 主 Agent/后续任务决策采纳其中一种方案并落地
+  - 回归用例覆盖
+source: review
+created_at: 2026-08-25
+task_id: TAG0023
+```

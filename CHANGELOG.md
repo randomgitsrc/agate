@@ -8,6 +8,32 @@
 
 ---
 
+## [0.62.0] - 2026-08-25
+
+### 新增（TAG0023：机制校验补强批，RM-AG0042~RM-AG0045）
+
+- **门槛失败事件↔retries 对应性校验（RM-AG0042）**：`check-state-transition.py` 新增
+  `check_retries_correspondence()`，覆盖三类事件源——评审 rejected（扫描评审角色
+  retry/rev dispatch-context 文件，C8 角色 token 精确枚举）、P5→P4 等单步回退（复用
+  `get_old_phase()` 的 git-show-HEAD 范式，`old_num>new_num` 且暂存 `retries` 长度未增长
+  → exit 1 阻断）、子代理空返回重派（关键词扫描）；BDD-2 阻断，BDD-1/BDD-3 高优 WARNING
+  不阻断——四任务复盘"retries 全为 `{}`"的机制缺口首次被机械校验兜底。
+- **P8 roadmap done 反查（RM-AG0043）**：`check-gate.py` `gate_p8()` 新增
+  `_check_roadmap_done()`，按 `task_id` 精确匹配 roadmap.md「关联任务」列，任一关联 RM
+  条目状态非 `done` → exit 1 阻断，避免任务收尾时遗漏 roadmap 回写。
+- **环境敏感测试根因修复 + 集中清单 + CI 重跑（RM-AG0044）**：`check-debt.py.
+  _retreat_coverage()` 的 short hash 比对由固定 `full[:7]` 切片改为动态
+  `git rev-parse --short`，消除 CI（git 2.55.0）与本地（git 2.43.0）auto-abbrev 长度差异
+  导致的 flaky（已用 PR #188 真实 CI 失败日志 forensic 确认根因）；新增
+  `agate/tests/ENV-SENSITIVE-TESTS.md` 集中登记环境敏感测试（含根因分类字段）；
+  `protocol-tests.yml` pytest job 新增 `pytest-rerunfailures --reruns 1` 兜底。
+- **声明写时自检 + 错误提示增强（RM-AG0045）**：`dispatch-prompt.md`「返回前自检」节新增
+  子项——产出含 P1/P2 时先跑 `check-frontmatter.py`（+ `ceremony: thin` 时加跑
+  `check-routing.py`），非 0 退出需自行修正后再返回，把 TAG0019 三类历史格式错误的发现
+  时点从 commit-time 提前到写时；`agate-frontmatter-check.py` 的错误消息逐条追加具体
+  修复提示文本。
+- RM-AG0032 历史数据补记：roadmap.md 追加一行 `done` 状态记录。
+
 ## [0.61.0] - 2026-08-22
 
 ### 新增（TAG0022：质量门禁与迁移收尾批，RM-AG0037~RM-AG0041）
