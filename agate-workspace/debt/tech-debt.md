@@ -775,3 +775,29 @@ source: review
 created_at: 2026-08-25
 task_id: TAG0023
 ```
+
+## DEBT0022
+
+```yaml
+id: DEBT0022
+category: management
+title: 复盘归档断链——roadmap 4 条目引用 retrospective-tag0019-21.md 为证据源，该文件从未入库
+status: open
+priority: low
+evidence:
+  - ref: agate-workspace/roadmap/roadmap.md
+    note: "RM-AG0042/43/44/45 的证据列均引用 'retrospective-tag0019-21.md（问题 10/措施 9 等）'，但
+      git log --all --diff-filter=A -- '*retrospective-tag0019*' 为空——文件从未提交入库"
+  - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P1-requirements.md
+    note: "TAG0023 的 P1/P2 卡同样引用该文件为事实基线"
+impact: 证据断链——4 条 roadmap 条目（含已 done 的 RM-AG0042/43/44/45）的事实依据不可追溯；
+  复盘引用外部文件而无入库校验时，同类断链会再次发生
+recommendation: ①若原文仍在某 session/归档中则补提交；若已丢失，在 4 条 roadmap 证据列标注
+  "原文未入库，以 roadmap 记载结论为准" ②是否要机制化（P8/复盘流程校验引用文件入库存在性）
+  由用户评估——倾向不加新 gate（用户偏好），优先纪律：复盘引用的文件必须随复盘同批入库
+closure_criteria:
+  - retrospective-tag0019-21.md 补提交入库，或 roadmap 4 条证据列完成"原文未入库"标注
+source: review
+created_at: 2026-08-25
+```
+
