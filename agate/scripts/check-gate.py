@@ -1178,6 +1178,12 @@ def gate_p7(task_dir):
     return 0
 
 
+_ROADMAP_EXPECTED_COLS = 9  # 7 数据列（id/标题/状态/来源/关联任务/创建/更新）
+                            # + split("|") 产生的首尾两个空字符串 = 9
+                            # （已用真实 agate-workspace/roadmap/roadmap.md 表头行核实，
+                            # 见 P2-design.md §3.6/§6）
+
+
 def _check_roadmap_done(task_id, roadmap_path):
     """RM-AG0043（BDD-5/6，P2-design.md §2.2 候选 A / D2 匹配算法）：按 task_id 精确匹配
     roadmap.md「关联任务」列（表格第 5 数据列），收集全部匹配行；任一「状态」列非 done →
@@ -1186,13 +1192,16 @@ def _check_roadmap_done(task_id, roadmap_path):
     roadmap 场景的既有 G8 系列测试）。
 
     表格解析：按 `|` 分列，跳过表头/分隔行（首个非空列不以 `RM-` 开头即视为非数据行）。
+    列数须精确匹配 _ROADMAP_EXPECTED_COLS（DEBT0019）：单元格内含字面 `|` 会改变
+    split 后的列数，此时整行跳过而非错位取值（BDD-20）；既有合法表格列数恰为 9，
+    行为不变（BDD-21）。
     """
     text = _read_text(roadmap_path)
     if not text or not task_id:
         return None
     for line in text.splitlines():
         cols = [c.strip() for c in line.split("|")]
-        if len(cols) < 8:
+        if len(cols) != _ROADMAP_EXPECTED_COLS:
             continue
         rm_id, status, related_task = cols[1], cols[3], cols[5]
         if not rm_id.startswith("RM-"):
@@ -1220,9 +1229,21 @@ def gate_p8(task_dir):
         return 1
 
     # RM-AG0043（BDD-5/6）：P8 完成时反查 roadmap.md 关联 RM 条目是否已回写 done
+    # DEBT0020：roadmap_path 按仓库根锚定（而非 CWD 相对拼接），非仓库根 CWD 下仍能
+    # 正确定位（BDD-22）；仓库根不可得（非 git 仓库环境）时给出区分性提示，不静默跳过
+    # （BDD-23）；CWD=仓库根的既有场景行为不变（BDD-24）。
     task_id = _load_state_yaml(task_dir).get("task_id", "")
-    roadmap_path = os.path.join("agate-workspace", "roadmap", "roadmap.md")
-    blocked = _check_roadmap_done(task_id, roadmap_path)
+    rc, repo_root_out = _git(["rev-parse", "--show-toplevel"])
+    if rc != 0:
+        sys.stderr.write(
+            "GATE P8 WARNING: 仓库根不可得（非 git 仓库环境），跳过 roadmap-done 检查\n"
+        )
+        roadmap_path = None
+    else:
+        roadmap_path = os.path.join(
+            repo_root_out.strip(), "agate-workspace", "roadmap", "roadmap.md"
+        )
+    blocked = _check_roadmap_done(task_id, roadmap_path) if roadmap_path else None
     if blocked:
         rm_id, status = blocked
         sys.stderr.write(

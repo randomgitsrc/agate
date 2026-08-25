@@ -59,19 +59,12 @@
 - 写到其他位置 = 未产出，主 Agent 只检查上述路径
 - /tmp 可用于中间临时文件（如 gate-runner 落盘 traceback），但产出文件必须写入约定路径
 
-文件必须以这段 Header 开头（直接复制，主 Agent 已填好所有值）：
----
-phase: {Pn}
-task_id: {完整 task_id，如 T002-fix-db-migration}
-type: {problems|design|review|test-cases|implementation|test-results|acceptance|consistency|release}
-parent: {上一阶段文件名}
-trace_id: {Txxx}-{Pn}-{YYYYMMDD}
-status: draft
-created: {YYYY-MM-DD}
-agent: {角色名}
----
-
-> Header 字段完整列表见 `task-files.md`「通用 Header」。本模板列出主 Agent 派发时必须直接填好的核心字段；其余字段（如 type 的具体取值）由 subagent 按角色定义补全，但主 Agent 必须确保 `phase/task_id/parent/trace_id` 四个字段已直接填好（避免 subagent 自己拼出错）。
+## 产出文件字段填写
+用 `agate-md-field-set` 填写产出文件的 frontmatter 字段（先 `--list` 看本阶段应填字段清单；
+set 报错就照提示改；不要手写 frontmatter，不要复制任何示例代码块）。
+set 报错但改不明白 → 报告主 Agent，不要绕过 set 直接手改文件。
+`phase`/`task_id`/`parent`/`trace_id`/`agent` 由主 Agent 派发时已在 dispatch-context 中给出
+具体值，用 `agate-md-field-set` 逐个写入即可；完整字段列表见 `task-files.md`「通用 Header」。
 
 ## 能力补充说明（若 P1 有 supplementable 条目，此节必填）
 本任务需要以下补充能力：

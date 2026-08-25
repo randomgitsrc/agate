@@ -83,7 +83,7 @@ def _load_agate_common(agate_scripts):
     scripts_str = str(agate_scripts)
     if scripts_str not in sys.path:
         sys.path.insert(0, scripts_str)
-    import agate_common  # noqa: PLC0415 — 延迟 import，路径需先注入 sys.path
+    import agate_common
 
     return agate_common
 
@@ -125,7 +125,7 @@ def test_bdd_1_valid_key_value_roundtrip_and_gate_pass(
         '  P5: "true"\n',
         encoding="utf-8",
     )
-    from conftest import add_p2_review  # noqa: PLC0415
+    from conftest import add_p2_review
 
     add_p2_review(td, status="approved", agent="reviewer-subagent")
 
@@ -443,7 +443,12 @@ def test_bdd_16_zero_protocol_knowledge_walkthrough_converges(
     + check-gate.py 不再因这些字段被拦。"""
     td = task_dir(phases=["P1", "P2"])
     p2_file = td / "P2-design.md"
-    from conftest import add_p2_review  # noqa: PLC0415
+    # fixture 数据前提：task_dir 生成的 P2-design.md 正文为空，不含 check-gate.py gate_p2()
+    # 独立要求的"权衡/选择理由"正文散文关键词（与本条 BDD 验证的 set 工具字段写入逻辑无关，
+    # 直接追加满足即可，不通过 set 工具写入——set 按设计不处理正文散文）。
+    with p2_file.open("a", encoding="utf-8") as f:
+        f.write("方案设计正文，选择理由如下：候选 A 更简单，权衡后选 A。\n")
+    from conftest import add_p2_review
 
     add_p2_review(td, status="approved", agent="reviewer-subagent")
 

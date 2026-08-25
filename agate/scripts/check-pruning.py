@@ -85,7 +85,7 @@ def _staged_source_count(task_dir):
     """裁剪 P7 的源码文件数（git diff --cached 排除任务产出后，同 sh 排除模式）。"""
     if run_git is None:
         return 0
-    rc, out = run_git(["rev-parse", "--show-toplevel"])
+    rc, out = run_git(["rev-parse", "--show-toplevel"], cwd=task_dir)
     repo_root = out.rstrip("\n").strip() if rc == 0 else ""
     if not repo_root:
         return 0
@@ -95,7 +95,7 @@ def _staged_source_count(task_dir):
         tasks_base_rel = os.path.relpath(parent, repo_root).replace("\\", "/")
     except ValueError:
         return 0
-    rc, out = run_git(["diff", "--cached", "--name-only"])
+    rc, out = run_git(["diff", "--cached", "--name-only"], cwd=task_dir)
     if rc != 0:
         return 0
     pattern = (

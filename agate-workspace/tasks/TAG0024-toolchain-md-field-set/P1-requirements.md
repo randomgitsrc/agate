@@ -259,6 +259,16 @@ grep -rln 'roadmap' agate/scripts/*.py      → 3 个文件命中：check-gate.p
 - When 审查 `check-gate.py`/`check-events.py` 的 diff
 - Then 除 `_check_roadmap_done()` 及其调用点 `gate_p8()` 中 `roadmap_path` 定位相关行外，两文件不含其他判定逻辑变更
 
+[SCOPE+ from P4]：P4 阶段的 SELF-GATE 语义对齐审查（`docs/reviews/agate-alignment-review-2026-08-25-TAG0024.md` A4 项）独立实跑全量 pytest 发现 3 处失败（`test_check_pruning.py` 三个用例），根因定位为 `check-pruning.py._staged_source_count()` 读取的是**真实外层仓库**的 git 暂存区文件数，而非测试 fixture 隔离出的仓库——本任务因 SELF-GATE 需要一次性暂存 7-8 个协议文件，导致该函数计数超过阈值 5，在无关的 P7-pruning 测试中产生假失败。该缺陷与本任务已锁定的 5 项 issue 均无关，`check-pruning.py` 未被 TAG0024 任何一批改动触及。经用户明确确认（人工决策，非主 Agent 自行拍板）：要求在本任务内一并修复该隔离缺陷后再继续，不外抛为独立 DEBT。
+影响：新增第 6 项 issue（批次 `check-pruning-isolation-fix`），涉及 packages: [agate-scripts, agate-tests]；不影响已批准的 P2 候选方案 A（不改变 RM-AG0048/DEBT0019/DEBT0020/RM-AG0049/RM-AG0050 的既有设计），按"定向局部回补"直接在 P4 追加一个批次实现（新增 BDD-30 覆盖），不重新走 P1 分析或整份 P2 候选比较。
+
+#### BDD-30: check-pruning.py 的 staged 文件计数在测试环境下应隔离，不受真实外层仓库暂存区状态影响
+- Given `_staged_source_count(task_dir)` 被调用时，测试进程的真实外层仓库（pytest 实际运行所在的仓库）当前暂存区含 >5 个不匹配排除模式的文件，但被测的 `task_dir` 本身位于一个独立的、暂存文件数 ≤5（或非 git 环境）的仓库中
+- When 执行 `check-pruning.py <task_dir>`（P7 未声明时的裁剪条件检查）
+- Then 判定结果以 `task_dir` 自身所属仓库的暂存区状态为准，不因真实外层仓库的无关暂存文件数量而误判"裁剪 P7 需源码文件数 ≤ 5"
+
+[SCOPE_RESOLVED: from docs/reviews/agate-alignment-review-2026-08-25-TAG0024.md]
+
 ## 5. 能力需求声明
 
 ```yaml
