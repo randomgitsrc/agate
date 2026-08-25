@@ -1,0 +1,9 @@
+task_id: TAG0024
+phase: P0
+status: active
+retries: {}
+judge:
+  enabled: true
+  rounds: 1
+  last_verdict: null
+  partial: false

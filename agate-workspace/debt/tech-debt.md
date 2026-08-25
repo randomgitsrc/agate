@@ -706,6 +706,8 @@ closure_criteria:
 source: review
 created_at: 2026-08-25
 task_id: TAG0023
+scheduled_task: TAG0024
+status: open
 ```
 
 ## DEBT0020
@@ -733,6 +735,8 @@ closure_criteria:
 source: review
 created_at: 2026-08-25
 task_id: TAG0023
+scheduled_task: TAG0024
+status: open
 ```
 
 ## DEBT0021
