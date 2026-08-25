@@ -106,7 +106,8 @@ grep -rn "randomgitsrc/agate\b" --include="*.md" --include="*.py" --include="*.s
 
 - **仓库改名不可逆且对外可见**：→ 双确认（权限实测 + 用户放行）后执行；失败即停，不重试
 - **改名后本地 remote 未迁移**：所有 clone 的 fetch/push 依赖 301（能工作但退化）→ 改名后
-  立即枚举 `git worktree list` + 主 checkout 逐个 `git remote set-url`，验收 `git fetch` 实测
+  在主 checkout `git remote set-url` **一次即可**（已实测：worktree 与主仓共享 `.git/config`），
+  各 worktree `git fetch` 实测验证；详见 `agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md`
 - **CI 徽章/链接断链**：badge img src 硬编码旧仓名 → 与改名同批更新；改名后开一个测试 PR
   验证 CI 全绿（含 actions 徽章渲染）
 - **硬编码 URL 盘点遗漏**：设计 §4 以安装入口为中心 → P1 全仓扫描 `randomgitsrc/agate`
@@ -131,3 +132,5 @@ grep -rn "randomgitsrc/agate\b" --include="*.md" --include="*.py" --include="*.s
 - hooks 就位（指向 `~/.agate` 稳定版）、orchestrator 已注册、依赖齐全
 - 任务数据就绪：TAG0025 P0-brief + .state.yaml phase=P0
 - 交接单位置：`HANDOFF-TAG0025.md`（worktree 根，已 commit）
+- **会话间环境交接单**：`agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md`
+  （改名前后环境对照表 + DSH 会话零更新论证 + 未来本地目录改名的完整清单——改名窗口前后必读）
