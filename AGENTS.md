@@ -19,7 +19,7 @@
 4. 新 bug 先写 `regression/` 测试再修
 5. 暂存区含 self-gate 触发文件时，commit message 须含 `self-gate-review:` 路径或 `self-gate-skip:` 理由（commit-msg hook 检查，WARNING 不拦截）；触发文件面见 `SELF-GATE.md`
 
-## 脚本关键约定（历史坑）
+## Gate 脚本分层
 
 - 所有 `git diff` 用 `--cached`，不用 `HEAD~1`——pre-commit hook 运行时 commit 还没创建
 - `grep -c || echo 0` 后必须 `| tail -1`——grep 无匹配 exit 1，`|| echo 0` 产生双行
@@ -28,6 +28,10 @@
 - 所有脚本 `set -euo pipefail`
 - `agate_common.py` 是公共函数库（被 import，不直接执行）：`write_gate_result` / `read_state_phase` / `read_state_task_id` / `resolve_workspace` 等
 - 3 个 hook 是 sh 薄壳（`pre-commit-gate.sh` / `commit-msg-self-gate.sh` / `pre-push-gate.sh`），只做 AGATE_ROOT 自定位 + python 探测 + exec py 主程序；python 探测支持 `AGATE_PYTHON` 显式覆盖（Windows Store python3 占位符规避，DEBT0014）
+
+## 依赖
+
+运行 agate 只需系统 `python3` + `pyyaml`；开发 agate 本体另需 `ruff`（CI 锁 `ruff==0.16.4`）。完整清单与版本锁定见 `pyproject.toml` + `.github/workflows/protocol-tests.yml`，不在此重复。
 
 ## 测试约定（平台无关是硬约束）
 
