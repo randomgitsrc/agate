@@ -10,6 +10,11 @@ name: Protocol Tests
 # 因此：去掉 paths-ignore（避免 workflow 级跳过），改为 detect-docs-only job 判定纯 docs 改动，
 # 全量 job 用 if 条件在 docs-only 时跳过（报告 skipped=success）。协议定义：docs-only = 仅改动
 # docs 清单内路径（与历史 paths-ignore 清单一致）；workflow 自身改动不算 docs-only（跑全量）。
+#
+# 2026-08-25 pytest 优化（实测 47.8s/16核 vs 165.7s 串行，3.5x 提速，1238 passed 无 flaky）：
+#   - 删除 xdist Timing Observation 步骤（BDD-15/M23 观测目的已达，continue-on-error 纯浪费 1m13s）
+#   - 全量测试改 `-n auto`（xdist 并行）作为门禁；保留 --reruns 1（TAG0023 RM-AG0044 flaky 兜底）
+#   - 风险：RM-AG0041(basetemp)/RM-AG0044(git 短 hash) 环境敏感测试在并发下的稳定性已实测验证
 
 on: [push, pull_request]
 
@@ -86,20 +91,12 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: pip install pyyaml pytest
-      - name: Install pytest-rerunfailures (Linux, TAG0023 RM-AG0044 BDD-9 CI flaky 自动重跑，保守 1 次)
+      - name: Install pytest-rerunfailures + pytest-xdist (Linux, flaky 自动重跑 1 次 + 并行)
         if: runner.os == 'Linux'
-        run: pip install pytest-rerunfailures
-      - name: Run Full Test Suite (Linux, 全量)
+        run: pip install pytest-rerunfailures pytest-xdist
+      - name: Run Full Test Suite (Linux, 全量, xdist 并行)
         if: runner.os == 'Linux'
-        run: python3 -m pytest agate/tests/ --reruns 1
-        env:
-          PYTHONIOENCODING: utf-8
-      - name: xdist Timing Observation (Linux, 仅观测耗时，不影响门禁，BDD-15/M23)
-        if: runner.os == 'Linux'
-        continue-on-error: true
-        run: |
-          pip install pytest-xdist
-          time python3 -m pytest -n auto agate/tests/
+        run: python3 -m pytest agate/tests/ --reruns 1 -n auto
         env:
           PYTHONIOENCODING: utf-8
       - name: Run Windows Smoke (marker 代表子集)
