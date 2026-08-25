@@ -33,6 +33,7 @@
 | 架构决策记录 | `adr.md`（A7 审查锚点） |
 | 存量项目升级（破坏性变更）| `UPGRADING.md` |
 | 改 agate 协议本体并跑测试（maintainer）| `tests/README.md` |
+| 用 agate 改造 agate（dogfooding）需要隔离 worktree | 仓库根 `docs/guides/worktree-dogfooding-guide.md`（10 步标准流程）——注意：此指南在**克隆仓库的 docs/ 下**（非本协议目录），worktree 检出时自动带入 |
 
 ## 给 Agent 的快速指令
 
