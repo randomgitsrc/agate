@@ -10,7 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0025 | Agateon 品牌改名执行 Phase 0-1（RM-AG0035 剩余工作②）：品牌声明（Agateon formerly agate）+ GitHub 主仓改名 agate→agateon + 硬编码 URL 同批更新（design §4 实测 7 处）+ 本机 remote 迁移；按评审通过的 design-rename-execution.md 三层解耦（外部品牌改/内部命名空间不动），Phase 2（v1.0 别名+prose+brand-check）/3（门户）不在范围 | 🚧 | P6 | 高 | — | 2026-08-26 | 2026-08-26 |
+| TAG0025 | Agateon 品牌改名执行 Phase 0-1（RM-AG0035 剩余工作②）：品牌声明（Agateon formerly agate）+ GitHub 主仓改名 agate→agateon + 硬编码 URL 同批更新（design §4 实测 7 处）+ 本机 remote 迁移；按评审通过的 design-rename-execution.md 三层解耦（外部品牌改/内部命名空间不动），Phase 2（v1.0 别名+prose+brand-check）/3（门户）不在范围 | 🚧 | P7 | 高 | — | 2026-08-26 | 2026-08-26 |
 | TAG0023 | 机制校验补强批（RM-AG0042 retries 强制记录 + RM-AG0043 roadmap 回写校验 + RM-AG0044 环境敏感测试治理 + RM-AG0045 声明写时校验）：TAG0019-21 复盘独立评审确认的 4 个 agate 机制缺口合并处理 | ✅✅ | READY | 高 | — | 2026-08-23 | 2026-08-25 |
 | TAG0022 | 三连任务确认问题修复批（RM-AG0037 ruff 合并强制 + RM-AG0038 M2 迁移闭环 + RM-AG0039 judge 强制化 + RM-AG0040 M3 实证 + RM-AG0041 环境测试根治）：TAG0019-21 全面分析确认的 5 个问题合并处理 | ✅✅ | READY | 高 | — | 2026-08-22 | 2026-08-23 |
 | TAG0021 | 协议结构化层（RM-AG0022）：rules/{phases,dispatch,roles}.yaml + JSON Schema + S-1~S-6 双向一致性 gate + gate 脚本从 grep markdown 迁移读 YAML（M0-M3 渐进）；RM-0031 写时校验与 RM-0036 双语锚点的地基 | ✅✅ | READY | 高 | — | 2026-08-21 | 2026-08-22 |
