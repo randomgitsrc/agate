@@ -741,7 +741,7 @@ task_id: TAG0023
 id: DEBT0021
 category: management
 title: RM-AG0032 在 roadmap.md 现存 3 行（backlog/scheduled/done），P2 设计"新增一行"策略与 P4 判定算法"任一非done即阻断"存在潜在交互副作用
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate-workspace/roadmap/roadmap.md
@@ -756,6 +756,8 @@ recommendation: 改为原地更新已有行状态列（而非追加新行），�
 closure_criteria:
   - 主 Agent/后续任务决策采纳其中一种方案并落地
   - 回归用例覆盖
+closed_at: 2026-08-25
+closure_note: "按 recommendation 选项①落地——roadmap.md 原地合并为单行 done（删除 backlog/scheduled 两行，保留并清理 done 行文案），采纳方案后无需算法调整；与 DEBT0021 判定算法无交互副作用"
 source: review
 created_at: 2026-08-25
 task_id: TAG0023
