@@ -162,7 +162,7 @@ P7 --[grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][
     （⑨ P7 subagent 化：consistency-reviewer subagent 执行交叉检查，N3⑨ 实质锚点校验）
 P7 --[retry>=MAX]--> PAUSED（正确路由：上游问题需人工介入，非 agent 失败）
 
-P8 --[每个声明的 package 的发布检查命令 exit 0 + 主 Agent 亲自执行 bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ 主 Agent 亲自执行 git commit + git tag + P8-release.md 含 bump_type: 字段 + version 文件双路径检查（暂存区或最近 5 commit，WARNING）+ CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING）+ git tag -l "${VERSION_TAG_PREFIX}{version}" 存在（推荐，不阻断）]--> READY
+P8 --[每个声明的 package 的发布检查命令 exit 0 + 主 Agent 亲自执行 bump-version 后重跑 P5 gate（gate_commands.P5 exit 0 AND failed==0）+ 主 Agent 亲自执行 git commit + git tag + P8-release.md 含 bump_type: 字段 + version 文件双路径检查（暂存区或最近 5 commit，WARNING）+ CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING）+ git tag -l "${VERSION_TAG_PREFIX}{version}" 存在（推荐，不阻断）+ 若 roadmap.md 有关联 RM 条目须已回写 done（RM-AG0043，check-gate.py P8 反查）]--> READY
       （gate 命令集由 P2-design.md 的 packages + gate_commands 字段动态生成，不同项目不同命令，agate 不硬编码。规则见 dispatch-protocol.md「packages 动态注入（B4/B6）」节）
      （⑨ P8 subagent 化：releaser subagent 执行发布准备（产出文件 + 验证命令），主 Agent 亲自执行 bump-version + commit + tag + READY 收尾）
 
@@ -610,7 +610,7 @@ P3 发现 P2 设计有问题，回退到 P2 → retry 又从 0 开始 → P2 可
 
 **T016 教训**：旧格式只有 `retry_count: { P3: 0 }` 一个整数，主 Agent 3 次空返回后 retry_count 仍为 0——既无法区分"原样重试"和"调整策略后重试"，也无法事后验证"空返回后是否改变了策略"。新格式的 `prompt_changed` 和 `adjustment` 字段解决这个盲区。
 
-**该步骤现由 `check-state-transition.py` 机械校验（RM-AG0042）**：单步回退（Pn→Pn-1）若该阶段此前已有 `retries` 记录、但本次回退未同步追加新条目 → 阻断（exit 1）；评审 rejected 后的重派、子代理空返回重派两类事件若 `retries[Pn]` 无对应记录 → 高优 WARNING（不阻断）。不再单靠 prose 规程与人工自觉。
+**该步骤现由 `check-state-transition.py` 机械校验（RM-AG0042）**：单步回退（Pn→Pn-1）若暂存版本 `retries[目标阶段]` 长度未超过 HEAD 版本长度（不要求此前必须已有过记录，含首次单步回退）→ 阻断（exit 1）；评审 rejected 后的重派、子代理空返回重派两类事件若 `retries[Pn]` 无对应记录 → 高优 WARNING（不阻断）。不再单靠 prose 规程与人工自觉。
 
 ### 阶段回退规则
 

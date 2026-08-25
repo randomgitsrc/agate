@@ -76,6 +76,7 @@ check-gate.py P8 $TASK_DIR
 - `debt_check` 字段存在（缺失 → exit 1；内容任意，含 `none` / 未关闭债务 → 不阻断，BDD-17）
 - 暂存区有 version 文件变更
 - 暂存区 CHANGELOG 有变更
+- 若任务在 `agate-workspace/roadmap/roadmap.md` 有关联 RM 条目（按 `task_id` 反查「关联任务」列），须先回写「状态」列为 `done`，否则阻断（RM-AG0043）
 
 主 Agent **必须亲自执行**以下验证（不可跳过、不可委托 subagent）：
 - 从 P2 packages 逐包读取发布检查命令并执行 → 全部 exit 0
