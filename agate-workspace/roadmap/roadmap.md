@@ -46,6 +46,8 @@
 | RM-AG0048 | agate-md-field-set 结构化字段写入工具（补 get 工具缺失的 set 面）：设计文档已就绪（docs/design-notes/design-md-field-set.md，2026-08-25，自审 2 轮通过，独立评审待环境恢复；**仅为参考输入，不作为 task 交付物**，执行中发现设计弊端按实际情况调整）——给 subagent 提供"写入即校验"的 CLI（key 从 schema 白名单限定、value 写入时校验、格式由工具生成），消灭手写 frontmatter 摩擦（P1-gate-diagnosis 实证）；核心设计=同源铁律（与 gate 共用 phases.yaml task_fields + 校验值域 + resolve-entry 版本链）+ 自描述（--list/--help/错误给合法值，判据"零协议知识 subagent 照提示填对"）+ 权限引导（角色/阶段/文件三维，明确非安全边界，防造假靠 gate 链）；两阶段落地（**一期**=完整写字段工具：标量+简单 list+gate_commands 正文块+证据字段拒绝端+跨文件提示，2026-08-25 拍板 Q1/Q2/D1；**二期**=证据字段自动写入/账本留痕/跨文件预检，需单独设计）；验收锚=design note §10 十一条 | scheduled | 用户架构建议（2026-08-25 set/get 结构化填写讨论）| TAG0024 | 2026-08-25 | 2026-08-25 |
 | RM-AG0049 | P4-review.md 产出声明对齐（协议文档自洽 NIT）：phases.yaml 的 P4 阶段 outputs 未列出 P4-review.md，但 check-gate.py gate_p4 实际要求其存在（P1/P2 的 review 文件在 outputs 有声明，P4 缺失造成"产出声明与 gate 要求"不对称）；修复=phases.yaml P4 outputs 补 `{file: P4-review.md, required: true, status_field: status}`，并核对 check-structure-consistency 是否需同步 | scheduled | 2026-08-25 文件名约定审查（独立评审发现）| TAG0024 | 2026-08-25 | 2026-08-25 |
 | RM-AG0050 | P6.5 定位表述统一（协议文档自洽 NIT）：phases.yaml 将 P6.5 列为独立阶段条目，state-machine.md 明确其为"挂载于 P6→P7 转移的强门槛子阶段，不是独立 phase 值"——两处对 P6.5 定位叙述不一致，易误导读者；修复=统一为"强门槛子阶段"口径（state-machine 为准），核对 check-gate/check-judge-verdict 消费端不受影响 | scheduled | 2026-08-25 文件名约定审查（独立评审发现）| TAG0024 | 2026-08-25 | 2026-08-25 |
+| RM-AG0051 | CHECK 7 版本漂移防线失效：protocol-tests.yml consistency job 浅克隆无 tag，`git describe --tags` 恒失败走 WARNING——版本漂移在 CI 零机械防线（v0.51.0 教训场景不再 FAIL，防线静默退化）+ 本地"未推送 tag 算最新 tag"假绿 | backlog | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
+| RM-AG0052 | CHANGELOG 破坏性变更 ↔ UPGRADING 章节对应性无自动检查：CHANGELOG 标"破坏性变更见 UPGRADING vN ②"但无 gate 校验章节存在性——v0.62.0 漏写 UPGRADING 章节实测溜过（发布清单第 3 步纯人工兜底）| backlog | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
 
 ## 状态标识
 
@@ -573,3 +575,27 @@
 - **验证口径**：TQC0001 类 UI 任务在 P4 后自动产出 dist（不靠用户提醒）；env_constraints 语义边界文档化；UI 任务 P8 有 dist 产物检查
 - **归属**：并入 TAG0017（协议工具链修复批，与 DEBT0010/11/12/14 同域——都是"协议有声明/设计但 gate 无强制"的系统性缺口）。P1 时与 DEBT0010（gate_commands 解析）一并做"env_constraints vs gate_commands 执行绑定"的整体设计。
 - **落地（TAG0017，2026-08-20，v0.55.0）**：`phase-cards/P2-design.md`「gate_commands 声明」节 + `architect.md` 新增 `env_constraints` 声明性 vs `gate_commands` 执行性边界说明；`phase-cards/P4-implementation.md`「自查≠gate」节新增"UI/需构建任务 P4 后应构建并确认 dist 类产物存在"提醒。**验证口径第 3 条（TQC0001 类 UI 任务在 P4 后自动产出 dist，不靠用户提醒）本次未验证**——TAG0017 自身不涉及 UI/dist 场景，该指标需下一个实际 UI 任务走完 P4 后才能实证，DEBT0015 保持 open，不提前标记 closed。
+
+---
+
+## RM-AG0051 详情
+
+**CHECK 7 版本漂移防线失效（CI consistency job 浅克隆无 tag；2026-08-25 一致性机制盘点）**
+
+- **问题**：`protocol-tests.yml` 的 consistency job 用 `actions/checkout@v4` 默认配置（浅克隆，不取 tags），`check-protocol-consistency.py` CHECK 7（README version badge vs `git describe --tags --abbrev=0`）在 CI 恒走 WARNING 分支（"无法获取最新 git tag"）——**版本漂移在 CI 零机械防线**，v0.51.0 教训场景（本地 tag 未推送 → CI CHECK 7 FAIL）现在不会 FAIL，防线静默退化。pytest job 已带 `fetch-depth: 0 + fetch-tags: true`（protocol-tests.yml L85-88），consistency job 遗漏。本地侧 CHECK 7 有"未推送 tag 算最新 tag"假绿（本地绿 CI 红风险）。
+- **修复方向**：
+  1. consistency job checkout 对齐 pytest job：`fetch-depth: 0` + `fetch-tags: true`（一行配置，CI 恢复真实判定；1250 commits 小仓库无性能负担）
+  2. 可选：`check_version_badge` 检测最新 tag 未推送——`git branch -r --contains <tag>` 为空且存在远端引用 → WARNING"tag vX 未推送，CI 判定会不一致"（无远端引用时跳过判定，避免本地未 fetch 误报），消除本地假绿体验
+- **验证口径**：CI consistency job 中 CHECK 7 真实判定（badge 与 tag 不符 → exit 1 阻断，而非 WARNING 跳过）；本地存在未推送 tag 时 consistency 输出 WARNING（若做修复方向 2）
+- **归属**：独立任务（CI workflow 配置 + `check-protocol-consistency.py` + 回归测试）；`check-protocol-consistency.py` 改动触发 SELF-GATE
+
+---
+
+## RM-AG0052 详情
+
+**CHANGELOG 破坏性变更 ↔ UPGRADING 章节对应性无自动检查（2026-08-25 一致性机制盘点）**
+
+- **问题**：CHANGELOG 每版本标注"破坏性变更见 UPGRADING vN ②"或"本版本无破坏性变更"，但**没有任何 gate 校验 CHANGELOG 版本条目与 `agate/UPGRADING.md` 章节的对应性**——v0.62.0 发布时漏写 UPGRADING 章节实测溜过（AGENTS.md 发布清单第 3 步纯人工 + P8 卡兜底，无自动检查）。UPGRADING.md 虽在 consistency 的 PROTOCOL_FILES 里，但只受 CHECK 2/3（路径引用、行号）类检查，章节存在性无校验。
+- **修复方向**：CHECK 12 锚点表模式扩展或新增 CHECK——CHANGELOG 每个版本条目（含"无破坏性变更"声明）↔ UPGRADING.md 对应 `### vN.N.N` 章节存在性对照；缺章节 → ERROR/WARNING。
+- **验证口径**：模拟缺 UPGRADING 章节的版本 → consistency 报 ERROR/WARNING；全量 0 ERROR。
+- **归属**：独立任务（`check-protocol-consistency.py` + 测试，触发 SELF-GATE）。

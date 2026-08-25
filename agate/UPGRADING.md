@@ -89,6 +89,33 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.62.0 — 机制校验补强批（TAG0023：RM-AG0042 retries 对应性 / RM-AG0043 roadmap 回写反查）
+
+> **本版本含 gate 行为收紧**（无字段/格式变更，仅新增校验点）。升级前逐条对照，
+> 未触及项零动作（"不动则无感"原则不变）。
+
+**① 门槛失败事件 ↔ retries 对应性校验（RM-AG0042，影响：进行中任务）**
+
+- `check-state-transition.py` 新增 `check_retries_correspondence()`，覆盖三类事件源：
+  - **评审 rejected**（扫描评审角色 retry/rev dispatch-context 文件，C8 已知评审角色 token 精确枚举）
+    → 检测到事件而 `.state.yaml` `retries[Pn]` 为空/缺失 → 高优 WARNING（不阻断，信号源置信度较低）；
+  - **P5→P4 等单步回退**（`get_old_phase()` 的 git-show-HEAD 范式，`old_num > new_num` 且暂存版本
+    `retries` 长度未增长）→ **exit 1 阻断**（结构化数值比较，误报率低）；
+  - **子代理空返回重派**（"空返回"/"重派"关键词扫描）→ 高优 WARNING（不阻断）。
+- 升级动作：进行中任务若曾发生门槛失败事件但 `retries` 为空，需补写对应条目再推进（P1/P2 卡已要求
+  评审被拒即写 retries）；新任务无动作。
+
+**② P8 roadmap 回写 done 反查（RM-AG0043，影响：P8 发布流程）**
+
+- `check-gate.py` `gate_p8()` 新增 `_check_roadmap_done()`：按 `task_id` 精确匹配
+  `{AGATE_WORKSPACE}/roadmap/roadmap.md`「关联任务」列，任一关联 RM 条目状态非 `done` → **exit 1 阻断**。
+- 升级动作：P8 前确认关联 roadmap 条目已回写 `done`（任务无 roadmap 关联则不触发）；无迁移动作。
+
+**③ 其余（无升级动作）**：RM-AG0044 环境敏感测试治理（测试侧，CI pytest 加 `--reruns 1` 兜底）、
+RM-AG0045 声明写时自检（dispatch-prompt 返回前自检 + frontmatter 错误消息增强，非 gate 拦截变化）。
+
+**通用升级动作**：`git pull` + 重跑 `python3 ~/.agate/scripts/install-hook.py`。
+
 ### v0.61.0 — 质量门禁收尾（TAG0022：RM-AG0037 ruff 合并强制 / RM-AG0038 权威源切换 / RM-AG0039 judge 强制化）
 
 > **本版本含破坏性变更**（RM-AG0038 权威源切换 / RM-AG0039 judge 强制化，详细条目见下方
