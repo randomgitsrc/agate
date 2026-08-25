@@ -1579,6 +1579,162 @@ def test_bdd_7_roadmap_rm_ag0032_backfilled_done(agate_root):
     assert done_lines, "RM-AG0032 尚无 done 行记录（P8 阶段待人工补记，P2-design.md §2.2 末）"
 
 
+# ========== TAG0024 DEBT0019/DEBT0020（BDD-20~24）：roadmap.md 列数完整性 + 仓库根锚定 ==========
+# 被测：check-gate.py _check_roadmap_done()（现 len(cols) < 8 宽松判据 → 精确匹配
+#   len(cols) != _ROADMAP_EXPECTED_COLS(=9)，P2-design.md §3.6）+ gate_p8() 的
+#   roadmap_path 构造（现 CWD 相对 os.path.join("agate-workspace", ...) → git
+#   rev-parse --show-toplevel 仓库根锚定，P2-design.md §3.7）。
+# BDD-20/22/23 断言"修复后行为"，在当前未修复实现下应真实失败（TDD 红灯）；
+# BDD-21/24 是既有合法场景的回归防呆（列数恰为 9 / CWD=仓库根本就是既有唯一调用路径），
+# 修复前后判定结果应保持一致，不要求本身处于红灯（复用/参照 test_bdd_5/6/7 风格）。
+
+
+def _write_roadmap_raw(repo, lines):
+    """写 repo/agate-workspace/roadmap/roadmap.md 为给定原始行（不做列格式化）；
+    供 BDD-20 构造含字面 `|` 的畸形行场景使用（_write_roadmap 只能生成规整 9 列行）。"""
+    roadmap_dir = repo / "agate-workspace" / "roadmap"
+    roadmap_dir.mkdir(parents=True, exist_ok=True)
+    (roadmap_dir / "roadmap.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_bdd_20_p8_roadmap_literal_pipe_in_title_not_misjudged(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-20：标题列含字面 `|`（"测试|条目"）导致 split("|") 产生 10 列（>= 8 但 != 9）。
+    现有 `len(cols) < 8` 宽松判据不会跳过该行，错位取值后 cols[1]="RM-TEST20"（凑巧未变）、
+    cols[3]="条目"（本应是 status="done"，被错位）、cols[5]="T001"（本应是"来源"列内容，
+    这里刻意把来源列写成默认 task_id "T001" 以命中错位取值误判场景）——现有实现据此误判
+    "关联记录状态非 done" 并阻断（exit 1）。修复后按精确列数 9 匹配，该行应被整行跳过，
+    不产生任何取值，gate_p8() 不因此行阻断（exit 2，输出不含 RM-TEST20）。"""
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+    _write_roadmap_raw(
+        repo,
+        [
+            "| id | 标题 | 状态 | 来源 | 关联任务 | 创建 | 更新 |",
+            "|----|------|------|------|----------|------|------|",
+            "| RM-TEST20 | 测试|条目 | done | T001 | TAG0999 | 2026-08-24 | 2026-08-24 |",
+        ],
+    )
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 2
+    assert "RM-TEST20" not in result.output
+
+
+@pytest.mark.parametrize(
+    "status,related_task,expected_exit,rm_in_output",
+    [
+        pytest.param("backlog", "T001", 1, True, id="not_done_matched_blocked"),
+        pytest.param("backlog", "TAG0999", 2, False, id="no_matching_row_not_blocked"),
+        pytest.param("done", "T001", 2, False, id="done_matched_not_blocked"),
+    ],
+)
+def test_bdd_21_regression_existing_valid_roadmap_unchanged(
+    git_repo,
+    task_dir,
+    agate_scripts,
+    python_exe,
+    run_cli,
+    status,
+    related_task,
+    expected_exit,
+    rm_in_output,
+):
+    """BDD-21（回归，对应 test_bdd_5/6/7 三场景）：列数恰为精确 9 列的既有合法
+    roadmap.md，DEBT0019 列数精确匹配修复（`!= 9` 替换 `< 8`）不改变其判定结果——
+    三个规整场景（非 done 且匹配阻断 / 无匹配行不阻断 / done 且匹配不阻断）在修复前后
+    完全一致。"""
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+    _write_roadmap(repo, [("RM-TESTR1", status, related_task)])
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == expected_exit
+    assert ("RM-TESTR1" in result.output) == rm_in_output
+
+
+def test_bdd_22_p8_non_root_cwd_locates_roadmap(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-22：CWD 不是仓库根（本用例取 repo/task 子目录）。现有实现用
+    os.path.join("agate-workspace", "roadmap", "roadmap.md") 相对 CWD 拼接，非根 CWD 下
+    永远拼不到真实文件（_check_roadmap_done 静默返回 None，不阻断）。修复后改用 git
+    rev-parse --show-toplevel 解析仓库根再拼接，应能在非根 CWD 下仍正确定位到
+    roadmap.md 并执行状态检查——roadmap.md 含匹配当前 task_id 且非 done 的记录时应阻断
+    （exit 1，输出含 RM 编号）。"""
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+    _write_roadmap(repo, [("RM-TEST22", "backlog", "T001")])
+
+    result = _run_gate(
+        agate_scripts, python_exe, run_cli, "P8", ".", cwd=str(repo / "task")
+    )
+    assert result.returncode == 1
+    assert "RM-TEST22" in result.output
+
+
+def test_bdd_23_p8_repo_root_unavailable_distinct_warning(
+    task_dir, agate_scripts, python_exe, run_cli, tmp_path
+):
+    """BDD-23：仓库根路径无法确定（非 git 仓库环境）时，gate_p8() 应输出区分性 stderr
+    提示（说明"仓库根不可得"），而非现有实现的静默跳过（CWD 相对路径拼接找不到文件，
+    _check_roadmap_done 静默返回 None，无任何提示）。用 GIT_CEILING_DIRECTORIES 把
+    cwd 的父目录设为搜索边界，阻止 git 向上穿越找到外层（本 worktree）仓库，从而在
+    cwd 本身无 .git 的前提下真实模拟"仓库根不可得"。"""
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    non_git_cwd = tmp_path / "non_git_cwd"
+    non_git_cwd.mkdir()
+
+    result = _run_gate(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        "P8",
+        str(td),
+        cwd=str(non_git_cwd),
+        env={"GIT_CEILING_DIRECTORIES": str(tmp_path)},
+    )
+    assert "仓库根不可得" in result.output
+
+
+def test_bdd_24_regression_existing_repo_root_cwd_unchanged(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-24（回归，与 BDD-21 对称）：CWD=仓库根是既有唯一调用路径（既有
+    test_bdd_5/6/7 均在 cwd=str(repo) 下运行）。DEBT0020 仓库根锚定修复（改用 git
+    rev-parse --show-toplevel）在 CWD 恰为仓库根时，解析结果与既有 CWD 相对拼接完全
+    等价——判定结果（阻断行为/rm_id/status）保持不变。"""
+    td = task_dir()
+    _write_p8_release(td, _P8_COMPLIANT)
+    repo = _init_p8_repo(
+        git_repo,
+        td,
+        files={"package.json": "v0.1.0\n", "CHANGELOG.md": _P8_UNRELEASED},
+    )
+    _write_roadmap(repo, [("RM-TESTR4", "backlog", "T001")])
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P8", "task", cwd=str(repo))
+    assert result.returncode == 1
+    assert "RM-TESTR4" in result.output
+
+
 # ========== 8g: G_RETREAT / G_NC_BINARY / G_SUGGEST（15 用例） ==========
 # 子批 8g 覆盖 check-gate.bats 的 G_RETREAT.1-6（回退抵达检测，main() 可选第 3 参数
 # OLD_PHASE）、G_NC_BINARY.1/2/3/5/6（P1 NEED_CONFIRM 三值分级）与 G_SUGGEST.1-4
