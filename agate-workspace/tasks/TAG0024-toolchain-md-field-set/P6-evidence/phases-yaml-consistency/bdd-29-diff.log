@@ -1,0 +1,152 @@
+=== git show e2357fc -- agate/scripts/check-gate.py ===
+commit e2357fcd16ded004cfe1e67d06a521c94b13c6e3
+Author: Test <test@test.local>
+Date:   Tue Aug 25 20:18:42 2026 +0800
+
+    wf(TAG0024-P4): 实现（3 批次 + SELF-GATE 发现 2 项修复 + BDD-30 SCOPE+）
+    
+    - 批次 md-field-set-tool: 新建 agate-md-field-set.py/-gate-commands.py（importlib 动态
+      复用同源铁律）+ dispatch-prompt.md/dispatch-context.md 改引导 set；35/35 转绿
+      （含修复 BDD-16 fixture 缺陷 + ruff lint 9 处清理）
+    - 批次 check-gate-debt-fixes: 修复 _check_roadmap_done()（DEBT0019 列数精确匹配）+
+      gate_p8() roadmap_path（DEBT0020 仓库根锚定）；182/182 转绿
+    - 批次 phases-yaml-consistency: phases.yaml 补 P4 outputs + P6.5 注释对齐
+      state-machine.md（RM-AG0049/50）；17/17 转绿
+    - P4-review（review 角色）approved：6 项核验维度独立复核通过
+    - SELF-GATE protocol-alignment-review 发现 2 处真实问题并已修复（用户人工确认放行）：
+      dispatch-context.md FILE 调用语法错误（A1/A2）；check-pruning.py 测试隔离缺陷
+      导致全量 pytest 假失败（A4，增补 BDD-30 [SCOPE+ from P4] 两轮修复：cwd=task_dir
+      根因修复 + GIT_CEILING_DIRECTORIES 兼容本仓库 --basetemp 场景）
+    - 用户拍板新增 ADR-011（引导型 CLI 工具权限是早纠错非安全边界，A7 建议项）
+    - 全仓终态：1285 passed/0 failed，ruff 0 errors，shellcheck 0，consistency 0 ERROR
+    
+    self-gate-review: docs/reviews/agate-alignment-review-2026-08-25-TAG0024.md
+
+diff --git a/agate/scripts/check-gate.py b/agate/scripts/check-gate.py
+index 8cc41a2..f1ea7c4 100644
+--- a/agate/scripts/check-gate.py
++++ b/agate/scripts/check-gate.py
+@@ -1178,6 +1178,12 @@ def gate_p7(task_dir):
+     return 0
+ 
+ 
++_ROADMAP_EXPECTED_COLS = 9  # 7 数据列（id/标题/状态/来源/关联任务/创建/更新）
++                            # + split("|") 产生的首尾两个空字符串 = 9
++                            # （已用真实 agate-workspace/roadmap/roadmap.md 表头行核实，
++                            # 见 P2-design.md §3.6/§6）
++
++
+ def _check_roadmap_done(task_id, roadmap_path):
+     """RM-AG0043（BDD-5/6，P2-design.md §2.2 候选 A / D2 匹配算法）：按 task_id 精确匹配
+     roadmap.md「关联任务」列（表格第 5 数据列），收集全部匹配行；任一「状态」列非 done →
+@@ -1186,13 +1192,16 @@ def _check_roadmap_done(task_id, roadmap_path):
+     roadmap 场景的既有 G8 系列测试）。
+ 
+     表格解析：按 `|` 分列，跳过表头/分隔行（首个非空列不以 `RM-` 开头即视为非数据行）。
++    列数须精确匹配 _ROADMAP_EXPECTED_COLS（DEBT0019）：单元格内含字面 `|` 会改变
++    split 后的列数，此时整行跳过而非错位取值（BDD-20）；既有合法表格列数恰为 9，
++    行为不变（BDD-21）。
+     """
+     text = _read_text(roadmap_path)
+     if not text or not task_id:
+         return None
+     for line in text.splitlines():
+         cols = [c.strip() for c in line.split("|")]
+-        if len(cols) < 8:
++        if len(cols) != _ROADMAP_EXPECTED_COLS:
+             continue
+         rm_id, status, related_task = cols[1], cols[3], cols[5]
+         if not rm_id.startswith("RM-"):
+@@ -1220,9 +1229,21 @@ def gate_p8(task_dir):
+         return 1
+ 
+     # RM-AG0043（BDD-5/6）：P8 完成时反查 roadmap.md 关联 RM 条目是否已回写 done
++    # DEBT0020：roadmap_path 按仓库根锚定（而非 CWD 相对拼接），非仓库根 CWD 下仍能
++    # 正确定位（BDD-22）；仓库根不可得（非 git 仓库环境）时给出区分性提示，不静默跳过
++    # （BDD-23）；CWD=仓库根的既有场景行为不变（BDD-24）。
+     task_id = _load_state_yaml(task_dir).get("task_id", "")
+-    roadmap_path = os.path.join("agate-workspace", "roadmap", "roadmap.md")
+-    blocked = _check_roadmap_done(task_id, roadmap_path)
++    rc, repo_root_out = _git(["rev-parse", "--show-toplevel"])
++    if rc != 0:
++        sys.stderr.write(
++            "GATE P8 WARNING: 仓库根不可得（非 git 仓库环境），跳过 roadmap-done 检查\n"
++        )
++        roadmap_path = None
++    else:
++        roadmap_path = os.path.join(
++            repo_root_out.strip(), "agate-workspace", "roadmap", "roadmap.md"
++        )
++    blocked = _check_roadmap_done(task_id, roadmap_path) if roadmap_path else None
+     if blocked:
+         rm_id, status = blocked
+         sys.stderr.write(
+
+=== git show e2357fc -- agate/scripts/check-events.py (should be empty if no changes in that commit) ===
+
+=== full task diff (all commits from task start) on check-gate.py vs check-events.py: git log involving these files across whole task branch ===
+e2357fc wf(TAG0024-P4): 实现（3 批次 + SELF-GATE 发现 2 项修复 + BDD-30 SCOPE+）
+
+=== full diff of check-gate.py across entire task branch (main..HEAD) ===
+diff --git a/agate/scripts/check-gate.py b/agate/scripts/check-gate.py
+index 8cc41a2..f1ea7c4 100644
+--- a/agate/scripts/check-gate.py
++++ b/agate/scripts/check-gate.py
+@@ -1178,6 +1178,12 @@ def gate_p7(task_dir):
+     return 0
+ 
+ 
++_ROADMAP_EXPECTED_COLS = 9  # 7 数据列（id/标题/状态/来源/关联任务/创建/更新）
++                            # + split("|") 产生的首尾两个空字符串 = 9
++                            # （已用真实 agate-workspace/roadmap/roadmap.md 表头行核实，
++                            # 见 P2-design.md §3.6/§6）
++
++
+ def _check_roadmap_done(task_id, roadmap_path):
+     """RM-AG0043（BDD-5/6，P2-design.md §2.2 候选 A / D2 匹配算法）：按 task_id 精确匹配
+     roadmap.md「关联任务」列（表格第 5 数据列），收集全部匹配行；任一「状态」列非 done →
+@@ -1186,13 +1192,16 @@ def _check_roadmap_done(task_id, roadmap_path):
+     roadmap 场景的既有 G8 系列测试）。
+ 
+     表格解析：按 `|` 分列，跳过表头/分隔行（首个非空列不以 `RM-` 开头即视为非数据行）。
++    列数须精确匹配 _ROADMAP_EXPECTED_COLS（DEBT0019）：单元格内含字面 `|` 会改变
++    split 后的列数，此时整行跳过而非错位取值（BDD-20）；既有合法表格列数恰为 9，
++    行为不变（BDD-21）。
+     """
+     text = _read_text(roadmap_path)
+     if not text or not task_id:
+         return None
+     for line in text.splitlines():
+         cols = [c.strip() for c in line.split("|")]
+-        if len(cols) < 8:
++        if len(cols) != _ROADMAP_EXPECTED_COLS:
+             continue
+         rm_id, status, related_task = cols[1], cols[3], cols[5]
+         if not rm_id.startswith("RM-"):
+@@ -1220,9 +1229,21 @@ def gate_p8(task_dir):
+         return 1
+ 
+     # RM-AG0043（BDD-5/6）：P8 完成时反查 roadmap.md 关联 RM 条目是否已回写 done
++    # DEBT0020：roadmap_path 按仓库根锚定（而非 CWD 相对拼接），非仓库根 CWD 下仍能
++    # 正确定位（BDD-22）；仓库根不可得（非 git 仓库环境）时给出区分性提示，不静默跳过
++    # （BDD-23）；CWD=仓库根的既有场景行为不变（BDD-24）。
+     task_id = _load_state_yaml(task_dir).get("task_id", "")
+-    roadmap_path = os.path.join("agate-workspace", "roadmap", "roadmap.md")
+-    blocked = _check_roadmap_done(task_id, roadmap_path)
++    rc, repo_root_out = _git(["rev-parse", "--show-toplevel"])
++    if rc != 0:
++        sys.stderr.write(
++            "GATE P8 WARNING: 仓库根不可得（非 git 仓库环境），跳过 roadmap-done 检查\n"
++        )
++        roadmap_path = None
++    else:
++        roadmap_path = os.path.join(
++            repo_root_out.strip(), "agate-workspace", "roadmap", "roadmap.md"
++        )
++    blocked = _check_roadmap_done(task_id, roadmap_path) if roadmap_path else None
+     if blocked:
+         rm_id, status = blocked
+         sys.stderr.write(
+
+=== full diff of check-events.py across entire task branch (main..HEAD) - should be EMPTY ===
+(diff --stat above; empty output = zero changes)
