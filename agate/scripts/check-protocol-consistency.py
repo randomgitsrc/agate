@@ -19,6 +19,7 @@ agate 协议结构一致性检查 (P3-1)
   CHECK 10  协议文档脚本名引用漂移（白名单形状对照 agate/scripts/ 实际文件）
   CHECK 11  UI/UX 机制条文跨文档一致（分类框架 / 形态适配 / 三态分档 / 证据按形态选择）
   CHECK 12  权威数值/规则跨文件一致性（防复发，锚点表：重试上限表 vs 指针文件/内联值）  (对应 BDD-9, BDD-10)
+  CHECK 13  CHANGELOG 最新版本 ↔ UPGRADING.md §3 章节对应（防发布漏写章节，RM-AG0052）
 
  退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
@@ -1114,6 +1115,35 @@ def check_authoritative_values(root: Path, rep: Report) -> None:
         rep.ok("CHECK12-authval")
 
 
+# ── CHECK 13: CHANGELOG 最新版本 ↔ UPGRADING 章节对应性（RM-AG0052） ─────────
+# 背景：v0.62.0/v0.63.0 连续两次发布漏写 UPGRADING.md 版本章节（发布清单第 3 步
+# 纯人工兜底失效）。只查"最新已发布版本"：历史版本在 §3 本就不全（0.53-0.56 等无章节），
+# 全量核对会在存量数据上误报；发布时点的拦截只需盯最新版本。
+
+def check_upgrading_section(root: Path, rep: Report) -> None:
+    changelog = root / "CHANGELOG.md"
+    upgrading = root / "agate" / "UPGRADING.md"
+    if not changelog.exists() or not upgrading.exists():
+        return
+    ctext = changelog.read_text(encoding="utf-8")
+    # 第一个匹配到的已发布版本条目（[Unreleased] 不含三段版本号，自然跳过）
+    m = re.search(r"^## \[(\d+\.\d+\.\d+)\]", ctext, re.MULTILINE)
+    if not m:
+        rep.warn("CHECK13-upgrading",
+                 "CHANGELOG.md 未找到已发布版本条目（## [X.Y.Z]），跳过对应性检查",
+                 "CHANGELOG.md")
+        return
+    latest = m.group(1)
+    utext = upgrading.read_text(encoding="utf-8")
+    if re.search(rf"^### v{re.escape(latest)}\b", utext, re.MULTILINE):
+        rep.ok("CHECK13-upgrading")
+    else:
+        rep.error("CHECK13-upgrading",
+                  f"CHANGELOG 最新版本 [{latest}] 在 agate/UPGRADING.md §3 无对应章节"
+                  f"（发布清单第 3 步：无破坏性变更也须写'（无破坏性变更）'章节）",
+                  "agate/UPGRADING.md")
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
 
 def run_all_checks(root: Path, rep: Report) -> None:
@@ -1136,6 +1166,7 @@ CHECKS = [
     ("CHECK 10 协议文档脚本名引用漂移", check_script_name_refs),
     ("CHECK 11 UI/UX 机制条文跨文档一致", check_uiux_doc_anchors),
     ("CHECK 12 权威数值/规则跨文件一致性", check_authoritative_values),
+    ("CHECK 13 CHANGELOG↔UPGRADING 章节对应", check_upgrading_section),
 ]
 
 

@@ -618,3 +618,91 @@ def test_strict_errors_only_n_error_exit_1(
 
     assert code == 1
     assert "示例 ERROR" in out
+
+
+# ── CHECK 13（CHANGELOG 最新版本 ↔ UPGRADING 章节对应性）用例，RM-AG0052 ──────
+# 背景：v0.62.0/v0.63.0 连续两次发布漏写 UPGRADING.md 版本章节（发布清单第 3 步纯人工兜底失效）。
+# 夹具：_make_fake_protocol_tree 已含空 CHANGELOG.md 与 agate/UPGRADING.md。
+# 平台无关：不用 /tmp、不创建软链、文本 I/O 显式 utf-8。
+
+def _check13_errors(rep):
+    return [e for e in rep.errors if e["check"] == "CHECK13-upgrading"]
+
+
+def test_check13_checks_list_registers(agate_scripts):
+    cpc = _load_cpc(agate_scripts)
+    assert any(name.startswith("CHECK 13") for name, _ in cpc.CHECKS), (
+        "CHECKS 未注册 CHECK 13（check_upgrading_section）"
+    )
+
+
+def test_check13_section_exists_zero_error(agate_scripts, tmp_path):
+    """不误报：CHANGELOG 最新版本在 UPGRADING §3 有对应章节 → 0 ERROR。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    (root / "CHANGELOG.md").write_text(
+        "# 变更日志\n\n## [0.63.0] - 2026-08-25\n\n### 新增\n\n- x\n\n## [0.62.0] - 2026-08-24\n",
+        encoding="utf-8",
+    )
+    (root / "agate" / "UPGRADING.md").write_text(
+        "## 3. 已知破坏性变更（按版本）\n\n### v0.63.0 — 工具链批（无破坏性变更）\n\ntext\n\n### v0.62.0 — 批\n",
+        encoding="utf-8",
+    )
+    rep = cpc.Report()
+    cpc.check_upgrading_section(root, rep)
+    assert _check13_errors(rep) == []
+    assert "CHECK13-upgrading" in rep.passed
+
+
+def test_check13_section_missing_reports_error(agate_scripts, tmp_path):
+    """正报：CHANGELOG 最新版本在 UPGRADING §3 无对应章节 → ERROR（v0.62.0/v0.63.0 事故场景）。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    (root / "CHANGELOG.md").write_text(
+        "## [0.63.0] - 2026-08-25\n\n### 新增\n\n- x\n", encoding="utf-8",
+    )
+    (root / "agate" / "UPGRADING.md").write_text(
+        "## 3. 已知破坏性变更（按版本）\n\n### v0.62.0 — 旧批（无 v0.63.0 章节）\n", encoding="utf-8",
+    )
+    rep = cpc.Report()
+    cpc.check_upgrading_section(root, rep)
+    errors = _check13_errors(rep)
+    assert len(errors) == 1, f"Expected 1 CHECK13 error, got {len(errors)}"
+    assert "0.63.0" in errors[0]["msg"]
+
+
+def test_check13_unreleased_not_required(agate_scripts, tmp_path):
+    """边界：[Unreleased] 区域不要求章节，只检查第一个已发布版本。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    (root / "CHANGELOG.md").write_text(
+        "## [Unreleased]\n\n### 新增\n\n- y\n\n## [0.63.0] - 2026-08-25\n", encoding="utf-8",
+    )
+    (root / "agate" / "UPGRADING.md").write_text(
+        "### v0.63.0 — 工具链批（无破坏性变更）\n", encoding="utf-8",
+    )
+    rep = cpc.Report()
+    cpc.check_upgrading_section(root, rep)
+    assert _check13_errors(rep) == []
+    assert "CHECK13-upgrading" in rep.passed
+
+
+def test_check13_no_changelog_silent_skip(agate_scripts, tmp_path):
+    """边界：无 CHANGELOG.md → 静默跳过，0 ERROR 不崩溃。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    (root / "CHANGELOG.md").unlink()
+    rep = cpc.Report()
+    cpc.check_upgrading_section(root, rep)
+    assert _check13_errors(rep) == []
+
+
+def test_check13_no_released_version_warns(agate_scripts, tmp_path):
+    """边界：CHANGELOG 只有 [Unreleased] 无已发布版本 → WARNING，不 ERROR。"""
+    cpc = _load_cpc(agate_scripts)
+    root = _make_fake_protocol_tree(tmp_path)
+    (root / "CHANGELOG.md").write_text("## [Unreleased]\n\n- x\n", encoding="utf-8")
+    rep = cpc.Report()
+    cpc.check_upgrading_section(root, rep)
+    assert _check13_errors(rep) == []
+    assert any(w["check"] == "CHECK13-upgrading" for w in rep.warnings)
