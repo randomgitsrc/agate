@@ -1,0 +1,13 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0023
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 36 items / 33 deselected / 3 selected
+
+agate/tests/unit/test_check_frontmatter.py::test_bdd_13_historical_coupling_checklist_non_list_write_time_caught PASSED [ 33%]
+agate/tests/unit/test_check_frontmatter.py::test_bdd_13_historical_fullwidth_colon_write_time_caught PASSED [ 66%]
+agate/tests/unit/test_check_routing.py::test_bdd_13_historical_source_count_6_over_5_write_time_caught PASSED [100%]
+
+======================= 3 passed, 33 deselected in 0.27s =======================

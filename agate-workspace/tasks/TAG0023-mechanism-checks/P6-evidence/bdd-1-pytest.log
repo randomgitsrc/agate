@@ -1,0 +1,16 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0023
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 44 items / 38 deselected / 6 selected
+
+agate/tests/unit/test_check_state_transition.py::test_bdd_1_review_rejected_retry_file_empty_retries_warning PASSED [ 16%]
+agate/tests/unit/test_check_state_transition.py::test_bdd_1_review_rejected_retry_file_with_retries_no_warning PASSED [ 33%]
+agate/tests/unit/test_check_state_transition.py::test_bdd_1_no_retry_dispatch_context_file_no_warning PASSED [ 50%]
+agate/tests/unit/test_check_state_transition.py::test_bdd_1_negative_anchor_implementer_review_fix_not_matched PASSED [ 66%]
+agate/tests/unit/test_check_state_transition.py::test_bdd_1_negative_anchor_consistency_reviewer_not_matched PASSED [ 83%]
+agate/tests/unit/test_check_state_transition.py::test_bdd_1_multiple_phase_hits_all_warned PASSED [100%]
+
+======================= 6 passed, 38 deselected in 1.32s =======================

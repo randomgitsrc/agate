@@ -1,0 +1,21 @@
+BDD-9 证据：test_bdd_14 连续 5 次真实 GitHub Actions CI 稳定性验证
+（主 Agent 在 P6 阶段实际推送 5 次触发 protocol-tests.yml，逐一等待完成并核实）
+
+| # | Run ID | Conclusion | Commit | Triggered At (UTC) | URL |
+|---|--------|-----------|--------|---------------------|-----|
+| 1 | 32800038697 | success | 348b3bc | 2026-08-25T02:05:13Z | https://github.com/randomgitsrc/agate/actions/runs/32800038697 |
+| 2 | 32800344966 | success | 4bb4055 | 2026-08-25T02:09:47Z | https://github.com/randomgitsrc/agate/actions/runs/32800344966 |
+| 3 | 32800650000 | success | c3f7488 | 2026-08-25T02:14:28Z | https://github.com/randomgitsrc/agate/actions/runs/32800650000 |
+| 4 | 32800954146 | success | cc1f591 | 2026-08-25T02:19:17Z | https://github.com/randomgitsrc/agate/actions/runs/32800954146 |
+| 5 | 32801251214 | success | fabe836 | 2026-08-25T02:24:04Z | https://github.com/randomgitsrc/agate/actions/runs/32801251214 |
+
+核实方式：`gh run list --branch feat/TAG0023-mechanism-checks --json databaseId,conclusion,status`
+确认全部 5 条 conclusion=success, status=completed；`gh run view <id> --log | grep -c FAILED`
+对全部 5 次运行均返回 0（无任何 FAILED 测试用例）；pytest (ubuntu-latest) job 的
+"Run Full Test Suite (Linux, 全量)" 步骤输出（run 32801251214 示例）：
+"1234 passed, 6 skipped in 180.71s" ——不含 test_bdd_14 或任何其他用例的 FAILED 记录。
+
+结论：test_bdd_14（check-debt.py --retreat-coverage 相关，RM-AG0044 原始 flaky 场景）
+在本次修复（check-debt.py 改用动态 git rev-parse --short 计算，替代固定 full[:7] 切片）
+后，连续 5 次真实 CI 触发（跨 push 事件，覆盖 ubuntu-latest 与 windows-latest 双平台）
+零失败，RM-AG0044 根因修复已实证生效，非本地假设。

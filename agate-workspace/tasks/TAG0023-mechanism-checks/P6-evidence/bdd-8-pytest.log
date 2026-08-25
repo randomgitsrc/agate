@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0023
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 22 items / 20 deselected / 2 selected
+
+agate/tests/unit/test_agate_debt_check.py::test_bdd_8_closed_missing_task_id_or_p5p6_intercepted PASSED [ 50%]
+agate/tests/unit/test_agate_debt_check.py::test_bdd_8_recon_plan_and_known_baseline_four_elements PASSED [100%]
+
+======================= 2 passed, 20 deselected in 0.16s =======================
