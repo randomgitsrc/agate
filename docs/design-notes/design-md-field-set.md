@@ -1,6 +1,6 @@
 # agate-md-field-set 结构化写入工具设计（RM-AG0048：字段写入通道）
 
-> 状态：设计提案（对应 roadmap RM-AG0048，backlog）
+> 状态：设计提案（对应 roadmap RM-AG0048，backlog；2026-08-25 用户拍板 Q1/Q2/D1，一期/二期边界已修正）
 > 目标：给 subagent 提供"写入即校验"的结构化 set 工具，把协议字段填写从"手写 frontmatter"升级为"CLI 写入"——key 从 schema 白名单限定、value 写入时即校验、格式由工具保证，从机制上消灭"协议摩擦"类失败（P1-gate-diagnosis 实证），并作为防造假纵深的一环。
 > 一句话：get 已有全套（agate-md-field-get.py / agate-state-get.py），set 完全缺失——本设计补齐"写"这一面，且用与 gate 同源（同一 schema + 同一校验值域）的方式实现，确保"官方 CLI 写出的东西天然过 gate"。
 
@@ -35,7 +35,7 @@
 ### 1.4 非目标（明确不做，防范围蔓延）
 
 - **不做内容评审**：set 只保证"字段合法"，不保证"正文设计得好"。内容质量由 review/judge 角色负责。
-- **不替代正文产出**：subagent 仍用 Write 写正文，set 只负责 frontmatter。
+- **不替代正文产出**：subagent 仍用 Write 写正文，set 只负责 frontmatter——**唯一例外**是 gate_commands 正文 YAML 块（§5.1.1，经专用子命令整块替换，防半应用态）。
 - **不做 .state.yaml 写入**（一期）：状态机语义更敏感，由 check-state-yaml + 状态转移脚本管理，set 化收益低、风险高。见 §8 二期边界。
 - **不建立新安全边界**：set 的权限是"引导 + 早纠错"，不是 anti-tamper（见 §7）。
 
@@ -125,8 +125,10 @@ agate-md-field-set <op> --help             # 该字段合法值 + 示例 + 当�
 不是所有字段都是标量。一期明确边界：
 
 - **简单 list**（packages/domains/phases）：set 覆盖整个 list（`agate-md-field-set packages "foo bar"`，空格分隔，与 get 的 LIST_FIELDS 空格连接对称）。**不做 add/rm 增量**（一期增量无必要，覆盖即够）。
-- **嵌套结构**（gate_commands 的 dict 块）：**一期不支持 set**，仍走正文 Write。理由：结构复杂（每阶段一个命令块 + `_formatter/_timeout_seconds` 元数据）、agent 手写它本就有 gate 强校验兜底、且收益集中在前段标量字段。见 §11 开放问题 2。
-- **int/bool 字段**（candidate_count / ui_affected / pass / fail）：set 做类型强校验（int 必须数字、bool 必须 true/false 小写），与 get 的 INT_FIELDS / BOOL_FIELDS 格式化约定对称。
+- **嵌套结构（gate_commands）**：**一期支持**（用户拍板 2026-08-25）。需区分两类形态：
+  - **正文 YAML 块**（P2-design.md 的 gate_commands 块——`{P3: "cmd", P5: "cmd", P5_timeout_seconds: 300}`，在**正文**中，非 frontmatter，task-files.md §254 明确留正文）：用专用子命令 `agate-md-field-set-gate-commands FILE <yaml块>` 写整块（解析校验后替换正文块，经 `parse_gate_commands_block` 同源校验）；**不做逐 key 增量**（块级整体替换，防半应用态）。
+  - **frontmatter dict**（P6/P7 等阶段的计数/汇总字段，如 `pass`/`fail`/`blocker_count`）：这些是证据字段（§5.10），一期 set **拒绝写入**（由验证脚本产生，见 §8 一期范围）。
+- **int/bool 字段**（candidate_count / ui_affected）：set 做类型强校验（int 必须数字、bool 必须 true/false 小写），与 get 的 INT_FIELDS / BOOL_FIELDS 格式化约定对称。
 
 ### 5.2 自描述（成败关键，不是注释而是产品）
 
@@ -196,6 +198,16 @@ set 只改工作区文件，**不自动 stage**（`git add` 是主 Agent / subag
 - **set 不做任何 git 操作**（不 stage / 不 commit / 不 push）——保持单一职责，避免 set 意外提交半成品。
 - 若 subagent 在 commit 前 stage 文件，gate 会先跑 `check-frontmatter.py`（§6.2）再跑 `check-gate.py`——set 生成的 frontmatter 必须过这两道（验收锚 1/7 覆盖）。
 
+### 5.10 证据字段：一期拒绝写入（并入的"强制通道"半边）
+
+**证据字段** = 由机械验证结果产生、不应被 agent 手写的字段：P6 `pass`/`fail`、P7 `blocker_count`/`deviation_count`/`design_gap_count` 等计数字段、P6.5 `criteria_total`/`criteria_passed`。
+
+**一期行为**：set 对这些 key **直接拒绝**（`ERROR: pass 是证据字段，由验证脚本产出，不可手动填写`）——这是二期"证据字段强制通道"的**半边**（拒绝端），纯 set 侧约束、零风险，且比现状更安全（现状 agent 可以手写这些字段，gate 只校验格式不校验来源）。
+
+**二期行为**（§8）：另一半——验证脚本运行后**自动落盘**这些字段（agent 不需要、也不允许手动写），这才是完整强制通道。
+
+**为什么一期先做拒绝端**：零风险（不改任何 gate/账本判定）、立即消灭"agent 手写 pass/fail 造假或填错"的一类摩擦、且不阻塞二期。拒绝清单与 get 的 NO_FALLBACK_INT_FIELDS / NO_FALLBACK_BOOL_FIELDS 同源（§6.1）。
+
 ---
 
 ## 6. 与现有机制的关系
@@ -241,13 +253,10 @@ set 端权限做的是**防"无心"，不防"恶意"**：
 2. **阶段维度**：P1 阶段不能 set P2 字段（防越界污染）。
 3. **文件维度**：P1-review.md 的 status 只能 set 进 review 文件，不能 set 进 requirements 文件。
 
-**角色维度的实现方式（须诚实声明）**：纯 CLI 无法可靠知道"调用者是谁"（bash 无身份概念）。可行的近似实现选项：
+**角色维度的实现方式（已决策：选项 A）**：纯 CLI 无法可靠知道"调用者是谁"（bash 无身份概念）。已决策采用：
 
-- **选项 A（推荐）**：从**文件现有 frontmatter 的 `agent` 字段**推断当前写入者——subagent 写文件 Header 时已带 `agent: {角色}`，set 读它做角色判定。局限：agent 可手写任意 agent 值（但那是它在文件里自己声明的身份，gate 同样以此判定——与 gate 同源，见 §7.3）。
-- **选项 B**：调用者显式传 `--as <role>` 声明身份。局限：任何人都能传任意值，等同无校验。
-- **选项 C**：不做角色判定，只做阶段/文件维度（纯 schema 可判定）。
-
-**建议一期选 A**：与 gate 同源（gate 也是读文件 agent 字段判定），且对"遵守协议填了 agent 的 subagent"有效——这正是 set 的引导目标群体。不诚实声明这一点就是自欺（见 §7.1 空洞）。
+- **选项 A（已决策 2026-08-25）**：从**文件现有 frontmatter 的 `agent` 字段**推断当前写入者——subagent 写文件 Header 时已带 `agent: {角色}`，set 读它做角色判定。局限：agent 可手写任意 agent 值（但那是它在文件里自己声明的身份，gate 同样以此判定——与 gate 同源，见 §7.3）。
+- 选项 B（显式 `--as <role>`，任何人可传任意值，等同无校验）、选项 C（不做角色判定）——**否决**。
 
 ### 7.3 与 gate 端 agent 判定同源
 
@@ -259,26 +268,29 @@ set 端权限做的是**防"无心"，不防"恶意"**：
 
 ---
 
-## 8. 落地节奏（两阶段）
+## 8. 落地节奏（两阶段，2026-08-25 按用户拍板修正边界）
 
-### 阶段一（本次）：安全且即时收益
+### 阶段一（本次）：完整写字段工具（自洽、安全、不动 gate/账本判定）
 
-- set 服务**声明类标量字段**：risk_level / ui_affected / candidate_count / status（status 绑定角色）/ 简单 list（packages/domains）
+- set 服务**声明字段**：risk_level / ui_affected / candidate_count / status（status 绑定角色，Q1 已决策）/ 简单 list（packages/domains）/ **gate_commands 正文 YAML 块**（Q2 已决策，经 `agate-md-field-set-gate-commands` 块级替换，同源校验）
+- **证据字段拒绝端**（§5.10）：pass/fail/blocker_count 等 set 直接拒绝——二期"强制通道"的安全半边，零风险
 - `--list` / `--help` / 错误给合法值（自描述）
 - 写入即局部校验 + 剩余缺失报告
-- 角色/阶段/文件三维权限（作为引导，非安全）
-- 原子写 + 版本一致 + 同源校验
+- 角色/阶段/文件三维权限（角色维度用选项 A，§7.2 已决策）
+- 原子写 + 版本一致 + 同源校验 + 跨文件约束"提示"（§5.4，不预检）
 - dispatch-context 模板加一行式指令 + dispatch-prompt 改"用 set 填"
 - BDD：含"零知识 subagent 照提示填对"的验收场景
 
-### 阶段二（后续，需单独 design note）：架构价值
+**一期验收**：`check-gate.py` 与 `check-events.py` **判定零改动**（set 只写"gate 本就要校验的字段"，不改 gate 语义）；新增 `agate-md-field-set.py` + `agate-md-field-set-gate-commands.py` 两个工具 + 模板措辞 + BDD。
 
-- 证据字段强制通道（pass/fail/blocker_count 等只能由验证脚本写，不可手 set）
-- 写入留痕进账本（gate-events 新记录类型）
-- 跨文件一致性预检
-- `.state.yaml` set 化（评估后决定）
+### 阶段二（后续，需单独 design note）：防造假机制演进
 
-**阶段二触碰防造假模型，复杂度不在一个量级，须单独充分设计。** 阶段一是前置，阶段二不阻塞在一期范围内做。
+- **证据字段自动写入端**：验证脚本运行后自动落盘 pass/fail/blocker_count（agent 不允许手写）——与一期拒绝端合为完整强制通道
+- **写入留痕进账本**（gate-events 新记录类型：谁/何时/哪个文件/哪个字段/旧值→新值）——**触碰 check-events.py 账本格式 + 哈希链兼容 + 审计语义，必须单独充分设计**
+- 跨文件一致性预检（一期只做"提示"，二期评估是否升级为"预检"）
+- `.state.yaml` set 化（评估后决定，倾向不做）
+
+**边界理由**：一期是"写字段工具"，写的还是 gate 本就要校验的字段，gate/账本判定不变——所以安全。二期改变字段的**产生方式**（证据字段只能由脚本写）+ **记录谁改的**（账本），直接触碰防造假模型——这正是二期存在的真正理由，须单独设计 note。一期不碰 gate/账本，二期不阻塞在一期范围内。
 
 ---
 
@@ -309,12 +321,22 @@ set 端权限做的是**防"无心"，不防"恶意"**：
 7. set 写入后 `git diff` 只含 frontmatter 变更，无正文破坏；原子性（模拟失败不落盘）。
 8. 文件不存在时 set → 拒绝 + 提示"先 Write 产出文件再 set"；文件无 frontmatter 时 set → 插入 `---` 块且不破坏正文（§5.6 两分支各一锚）。
 9. 正文含同名旧字段时 set → 输出残留提示（不自动删）；`--list` 在文件不存在时输出引导而非报错（§5.6/§5.4）。
+10. `agate-md-field-set-gate-commands` 写入合法块 → `parse_gate_commands_block` 能解析、`check-gate.py P2` 通过；非法块（未声明 key / 非法 `_timeout_seconds`）→ 拒绝 + 可操作报错（§5.1.1）。
+11. set `pass`/`fail`/`blocker_count`（证据字段）→ 拒绝 + 提示"证据字段由验证脚本产出"（§5.10）。
 
 ---
 
-## 11. 开放问题（待评审/待决策）
+## 11. 决策记录与开放问题（2026-08-25 更新）
 
-1. **status 的"角色绑定"是否现在做**（阶段一 vs 推后）？我建议现在做——它是"防造假前提"的最直接体现，且 gate 端 agent 判定已存在，复用成本低。
-2. **嵌套结构字段（gate_commands）**：一期明确"set 只管标量 + 简单 list，gate_commands 仍走正文 Write"，还是扩展 set 支持结构化 value？建议一期不扩（收益集中在前段字段，gate_commands 结构复杂、agent 手写它本就有强校验兜底）。
-3. **dispatch-context 模板的措辞**：需与现有"分阶段落盘/命令超时兜底"节协调，不冲突。
-4. **与 DEBT0019/0020（check-gate.py 健壮性）的排期**：同属工具链 batch，是否同批推进。
+**已决策**（用户拍板）：
+
+1. **status 角色绑定：一期做**。它是"防造假前提"的最直接体现，gate 端 `agent=main 不可批准` 判定已存在，复用成本低。
+2. **gate_commands：一期支持**（经 `agate-md-field-set-gate-commands` 块级替换，正文 YAML 块，同源校验）。
+3. **dispatch-context 模板措辞**：具体设计实施阶段再定（需与"分阶段落盘/命令超时兜底"节协调）。
+4. **与 DEBT0019/0020 同批推进**（工具链 batch）。
+5. **角色权限实现：选项 A**（读文件 frontmatter agent 字段推断，§7.2）。
+6. **文件不存在→拒绝 / 无 frontmatter→插入 / 正文残留→提示不删**（§5.6，D2-D4 按建议定）。
+
+**遗留待决策**：
+
+- **一期/二期边界**已按本轮分析定为：一期=完整写字段工具（含 gate_commands + 证据字段拒绝端 + 跨文件提示）；二期=证据字段自动写入 + 账本留痕 + 跨文件预检（须单独 design note）。**"能一起做么"结论：大部分能并入一期，但账本留痕（触碰 check-events 哈希链）不能——那是二期存在的真正理由。**
