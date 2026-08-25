@@ -1,9 +1,20 @@
 task_id: TAG0024
-phase: P0
+phase: READY
 status: active
-retries: {}
+p5_pass_commit: e2357fcd16ded004cfe1e67d06a521c94b13c6e3
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
+  P2:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: add_navigation
 judge:
   enabled: true
   rounds: 1
-  last_verdict: null
+  last_verdict: passed
   partial: false

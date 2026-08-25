@@ -8,6 +8,39 @@
 
 ---
 
+## [0.63.0] - 2026-08-25
+
+### 新增（TAG0024：工具链批立项，RM-AG0048 一期 + DEBT0019/20 + RM-AG0049/50）
+
+- **`agate-md-field-set` 结构化字段写入工具（RM-AG0048 一期）**：新增
+  `agate/scripts/agate-md-field-set.py`（标量字段/简单 list 字段/`gate_commands` 正文块写入
+  + 证据字段拒绝端 + 跨文件提示）与配套 `agate-md-field-set-gate-commands.py`
+  子命令，key 从 `phases.yaml` task_fields 白名单限定、value 写入时按值域校验、格式由工具
+  统一生成——消灭 subagent 手写 frontmatter 的格式摩擦（P1-gate-diagnosis 实证）；核心设计
+  遵循"同源铁律"（与 gate 共用 `phases.yaml` 权威源 + resolve-entry 版本链）与"自描述"
+  （`--list`/`--help`/错误提示给合法值），"零协议知识 subagent 照提示填对"为验收判据。
+  二期（证据字段自动写入/账本留痕/跨文件预检）另行设计。
+- **`check-gate.py` roadmap-done 校验健壮性修复（DEBT0019/DEBT0020）**：
+  `_check_roadmap_done()` 表格解析由"实际列数 ≥8"改为**精确匹配 9 列**（含首尾空列），
+  单元格内含字面 `|` 字符时整行跳过而非错位取值（DEBT0019，消灭潜在漏判/误判）；
+  `gate_p8()` 调用点的 roadmap.md 路径定位由"相对 CWD 硬编码拼接"改为
+  `git rev-parse --show-toplevel` 仓库根锚定，非仓库根 CWD 调用不再静默失配，
+  非 git 仓库环境下输出区分性 stderr 提示（DEBT0020）；均配套回归用例
+  （`test_check_gate.py` BDD-20~24）。
+- **`phases.yaml` 文档自洽修复（RM-AG0049/RM-AG0050）**：P4 阶段 `outputs` 补齐
+  `P4-review.md` 声明（`required: true`），消除"产出声明与 gate 实际要求不对称"
+  （RM-AG0049）；统一 P6.5 定位表述为"挂载于 P6→P7 转移的强门槛子阶段，不是独立 phase
+  值"（以 `state-machine.md` 口径为准），消除 phases.yaml 与 state-machine.md 两处叙述
+  不一致（RM-AG0050）。
+- **`check-pruning.py` 测试隔离修复（BDD-30，SCOPE+ 发现）**：`_staged_source_count`
+  改为以 `task_dir` 自身所属仓库定位，消除跨仓库/多 worktree 场景下的测试隔离缺口。
+- **ADR-011**：新增架构决策记录，落定本批次工具链设计的关键决策依据——引导型 CLI 工具的
+  权限是早纠错，不是安全边界。
+- 新增回归用例覆盖 BDD-1~30（含 RM-AG0048 一期 BDD-1~19、DEBT0019 BDD-20~21、
+  DEBT0020 BDD-22~24、RM-AG0049 BDD-25~26、RM-AG0050 BDD-27~28、跨 issue 约束 BDD-29、
+  BDD-30 SCOPE+）；全量 pytest 1285 passed / 2 skipped / 0 failed；ruff 0 违规；
+  consistency 0 ERROR；P6.5 judge 独立评审 `status: passed`；P7 一致性核对 BLOCKER=0。
+
 ## [0.62.0] - 2026-08-25
 
 ### 新增（TAG0023：机制校验补强批，RM-AG0042~RM-AG0045）

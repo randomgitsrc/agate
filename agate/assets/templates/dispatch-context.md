@@ -26,6 +26,10 @@ role: {角色名，如 analyst / requirements-review / implementer}
 - {AGATE_WORKSPACE}/tasks/{Txxx}/{上一阶段产出文件}
 - {project_conventions_file}（项目约定）
 {按角色定义补充其他需要读的文件}
+
+### 产出文件字段
+用 `FILE={产出文件路径} agate-md-field-set --list` 查看本阶段应填字段；`FILE={产出文件路径} agate-md-field-set <key> <value>`
+逐个写入；写入失败照错误提示修正，不要手写 frontmatter；仍失败则报告主 Agent，不要绕开 set。
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->

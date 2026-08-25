@@ -59,6 +59,7 @@ phases:
     exec_role: implementer
     outputs:
       - {file: P4-implementation.md, required: true}
+      - {file: P4-review.md, required: true, status_field: status}
     gates:
       - {check: "暂存区含非 md/yaml 代码文件（git diff --cached --name-only）"}
       - {check: "check-gate.py P4 $TASK_DIR"}
@@ -85,6 +86,9 @@ phases:
       - {check: "check-gate.py P6.5 $TASK_DIR（= check-judge-verdict.py + check-events.py 双 exit 0；历史任务自动跳过）"}
     retry_cap: 2
     task_fields: [pass, fail, ui_affected]
+  # 注：P6.5 是挂载于 P6→P7 转移的强门槛子阶段，不是与 P0-P8 平级的独立 phase 值
+  # （.state.yaml 的 phase 字段保持 P6 直至 P7）；本条目结构化声明其产出/门槛/重试上限，
+  # 供 check-gate.py P6.5 分发与 CLI 调用，口径详见 state-machine.md「状态机定义」节。
   - id: P6.5
     name: 独立 Judge 复核
     exec_role: judge

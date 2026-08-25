@@ -13,7 +13,7 @@ import shutil
 
 import pytest
 
-from conftest import add_p1_field, add_pruning_excuse
+from conftest import GitRepo, add_p1_field, add_pruning_excuse
 
 _YAML_LIST_P1 = (
     "---\n"
@@ -41,12 +41,13 @@ _YAML_LIST_P1 = (
 )
 
 
-def _run_pruning(agate_scripts, python_exe, run_cli, task_arg, cwd=None):
+def _run_pruning(agate_scripts, python_exe, run_cli, task_arg, cwd=None, env=None):
     return run_cli(
         python_exe,
         str(agate_scripts / "check-pruning.py"),
         task_arg,
         cwd=cwd,
+        env=env,
     )
 
 
@@ -210,12 +211,20 @@ def test_p2_6d_prune_p7_no_coupling_checklist_exit_1(task_dir, agate_scripts, py
     assert "coupling_checklist" in result.output
 
 
-def test_p2_6e_prune_p7_coupling_checklist_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+def test_p2_6e_prune_p7_coupling_checklist_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli, tmp_path
+):
     td = task_dir(phases=["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P8"])
     add_p1_field(td, "coupling_checklist", "[api-schema: checked, data-model: checked]")
     add_pruning_excuse(td, "P7", "小改动", "低")
 
-    result = _run_pruning(agate_scripts, python_exe, run_cli, str(td))
+    result = _run_pruning(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        str(td),
+        env={"GIT_CEILING_DIRECTORIES": str(tmp_path)},
+    )
     assert result.returncode == 0
 
 
@@ -326,17 +335,67 @@ def test_p2_11_happy_path_exit_0(task_dir, agate_scripts, python_exe, run_cli):
     assert result.returncode == 0
 
 
-def test_p2_52_yaml_list_phases_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+def test_p2_52_yaml_list_phases_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli, tmp_path
+):
     td = task_dir(phases=["P0", "P1", "P2", "P4", "P5", "P6", "P8"], risk_level="low")
     (td / "P1-requirements.md").write_text(_YAML_LIST_P1, encoding="utf-8")
 
-    result = _run_pruning(agate_scripts, python_exe, run_cli, str(td))
+    result = _run_pruning(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        str(td),
+        env={"GIT_CEILING_DIRECTORIES": str(tmp_path)},
+    )
     assert result.returncode == 0
 
 
-def test_p2_52b_yaml_list_phases_p3_pruned_low_exit_0(task_dir, agate_scripts, python_exe, run_cli):
+def test_p2_52b_yaml_list_phases_p3_pruned_low_exit_0(
+    task_dir, agate_scripts, python_exe, run_cli, tmp_path
+):
     td = task_dir(phases=["P0", "P1", "P2", "P4", "P5", "P6", "P8"], risk_level="low")
     (td / "P1-requirements.md").write_text(_YAML_LIST_P1, encoding="utf-8")
 
-    result = _run_pruning(agate_scripts, python_exe, run_cli, str(td))
+    result = _run_pruning(
+        agate_scripts,
+        python_exe,
+        run_cli,
+        str(td),
+        env={"GIT_CEILING_DIRECTORIES": str(tmp_path)},
+    )
+    assert result.returncode == 0
+
+
+def test_p2_6f_staged_source_count_uses_task_repo_not_outer_cwd_repo_exit_0(
+    tmp_path_factory, git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-30 回归（测试隔离修复）：_staged_source_count 必须以 task_dir 自身所属仓库
+    的暂存区为准，不能被调用进程 cwd 所在的外层仓库暂存区污染。
+
+    修复前 `run_git(...)` 未传 `cwd`，subprocess 会继承调用进程的 cwd（此处显式传入的
+    outer_repo），误读外层仓库的暂存区（6 个无关源码文件，超过阈值 5）导致误判 exit 1；
+    修复后两处 `run_git` 均传 `cwd=task_dir`，判定改为读取 task 自身所属仓库（task_repo，
+    暂存区干净）的状态，与外层仓库暂存了多少无关文件无关，应正确返回 exit 0。
+    """
+    # 外层仓库（模拟调用进程实际所在的、可能暂存了大量无关文件的真实仓库）
+    outer_repo = git_repo
+    (outer_repo.path / "README.md").write_text("outer\n", encoding="utf-8")
+    outer_repo.commit("init")
+    for i in range(1, 7):
+        (outer_repo.path / f"outer_src_{i}.py").write_text(f"file {i}\n", encoding="utf-8")
+    outer_repo.stage("outer_src_*.py")
+
+    # 任务自身所属的独立仓库：暂存区干净（已提交，0 个暂存源码文件）
+    task_repo = GitRepo(tmp_path_factory.mktemp("task_repo"))
+    td = task_dir(phases=["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P8"])
+    add_p1_field(td, "coupling_checklist", "[api-schema: checked, data-model: checked]")
+    add_pruning_excuse(td, "P7", "小改动", "低")
+    task_in_repo = task_repo.path / "task"
+    shutil.copytree(td, task_in_repo)
+    task_repo.commit("init")
+
+    result = _run_pruning(
+        agate_scripts, python_exe, run_cli, str(task_in_repo), cwd=str(outer_repo.path)
+    )
     assert result.returncode == 0
