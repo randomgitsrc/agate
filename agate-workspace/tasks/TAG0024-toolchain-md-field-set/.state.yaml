@@ -1,6 +1,7 @@
 task_id: TAG0024
-phase: P4
+phase: P5
 status: active
+p5_pass_commit: e2357fcd16ded004cfe1e67d06a521c94b13c6e3
 retries:
   P1:
     - round: 1
