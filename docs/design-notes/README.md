@@ -19,5 +19,6 @@
 | `rename-recommendation.md` | 品牌改名决策记录（gatewise/agaton/turngate 淘汰原因 → 拍板 Agateon） | 已决策（RM-AG0035 转执行型）|
 | `design-agateon-portal.md` | Agateon 门户设计（git 之于 GitHub：数据面/控制面分离 + 可验证性三层同构） | 待立项（v1.0 后，RM-AG0047）|
 | `design-maintainability-gate.md` | 维护性反模式 gate 设计（模式层/检测器层分离，协议定义反模式语义） | 待立项（RM-AG0046）|
+| `design-md-field-set.md` | 结构化字段写入工具设计（agate-md-field-set：写入即校验 + 自描述 + 权限引导，消灭手写 frontmatter 摩擦） | 设计提案（RM-AG0048）|
 
 新增决策记录时，按这个格式写：问题是什么 → 讨论过哪些方案及为何否决 → 最终采纳的方案及理由 → 状态（已决策待落地 / 已落地，落地位置写清楚）。
