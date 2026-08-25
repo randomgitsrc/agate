@@ -1,0 +1,46 @@
+name: Docs Check
+
+on:
+  push:
+    paths:
+      - 'agate-workspace/roadmap/**'
+      - 'agate-workspace/debt/**'
+      - 'archived/**'
+      - 'docs/**'
+      - 'HANDOFF-*.md'
+      - 'FIX-*.md'
+      - 'README.md'
+      - 'README.zh-CN.md'
+      - 'CHANGELOG.md'
+      - 'NOTICES.md'
+      - 'LICENSE'
+  pull_request:
+    paths:
+      - 'agate-workspace/roadmap/**'
+      - 'agate-workspace/debt/**'
+      - 'archived/**'
+      - 'docs/**'
+      - 'HANDOFF-*.md'
+      - 'FIX-*.md'
+      - 'README.md'
+      - 'README.zh-CN.md'
+      - 'CHANGELOG.md'
+      - 'NOTICES.md'
+      - 'LICENSE'
+
+concurrency:
+  group: docs-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-consistency:
+    name: docs-consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install pyyaml
+      - name: Run consistency (docs-only fast gate)
+        run: python3 agate/scripts/check-protocol-consistency.py --strict-errors-only
