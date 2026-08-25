@@ -687,7 +687,7 @@ task_id: null
 id: DEBT0019
 category: technical
 title: check-gate.py._check_roadmap_done() 用固定索引 split("|") 解析 roadmap.md 表格，无列数完整性校验
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate/scripts/check-gate.py
@@ -696,6 +696,9 @@ evidence:
   - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P4-review.md
     note: "原文：\"已用 awk -F'|' 核实当前 roadmap.md 全文无嵌入 | 的标题行...但标题是自由技术
       文本，一旦未来某条描述里写进字面 |...列会整体错位\""
+  - ref: agate-workspace/tasks/TAG0024-toolchain-md-field-set/P6-evidence/check-gate-debt-fixes/bdd-20.log
+    note: "closure：TAG0024 落地 _ROADMAP_EXPECTED_COLS=9 精确列数校验，BDD-20（含字面 | 的行不
+      误判）+ BDD-21（既有合法表格判定结果不变，回归）均 P6/P6.5 独立复核 PASS"
 impact: 未来若 roadmap.md 某行描述文本包含字面 `|` 字符，该行状态判定可能错位（漏判或误判）
 recommendation: 加一条"实际列数应为 9（含首尾空列）否则跳过/WARNING"的防护，不必用完整 markdown
   表格解析器
@@ -707,7 +710,8 @@ source: review
 created_at: 2026-08-25
 task_id: TAG0023
 scheduled_task: TAG0024
-status: open
+status: closed
+closed_at: 2026-08-25
 ```
 
 ## DEBT0020
@@ -716,7 +720,7 @@ status: open
 id: DEBT0020
 category: technical
 title: check-gate.py._check_roadmap_done() 调用点用相对 CWD 的硬编码路径拼接 roadmap.md，与同批次其他新增函数的 repo-root 定位风格不一致
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate/scripts/check-gate.py
@@ -725,6 +729,10 @@ evidence:
   - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P4-review.md
     note: "原文：\"若脚本被非仓库根 CWD 调用，_read_text(roadmap_path) 静默返回''...'路径解析
       失败'和'确实无关联RM'被静默合并成同一结果\""
+  - ref: agate-workspace/tasks/TAG0024-toolchain-md-field-set/P6-evidence/check-gate-debt-fixes/bdd-22.log
+    note: "closure：TAG0024 落地 git rev-parse --show-toplevel 仓库根锚定，BDD-22（非仓库根 CWD
+      正确定位）+ BDD-23（非 git 环境区分性提示）+ BDD-24（仓库根既有场景判定不变，回归）均
+      P6/P6.5 独立复核 PASS"
 impact: 环境差异下（非仓库根 CWD 调用）新增的 P8 roadmap-done 检查可能被静默绕过而无任何提示
 recommendation: 对齐同批次其他函数用 `git rev-parse --show-toplevel` 拼 repo-root 路径，或至少
   在 roadmap.md 确实不存在时输出区分性 stderr 提示
@@ -736,7 +744,8 @@ source: review
 created_at: 2026-08-25
 task_id: TAG0023
 scheduled_task: TAG0024
-status: open
+status: closed
+closed_at: 2026-08-25
 ```
 
 ## DEBT0021
