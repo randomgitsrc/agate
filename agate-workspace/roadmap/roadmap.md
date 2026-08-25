@@ -47,7 +47,7 @@
 | RM-AG0049 | P4-review.md 产出声明对齐（协议文档自洽 NIT）：phases.yaml 的 P4 阶段 outputs 未列出 P4-review.md，但 check-gate.py gate_p4 实际要求其存在（P1/P2 的 review 文件在 outputs 有声明，P4 缺失造成"产出声明与 gate 要求"不对称）；修复=phases.yaml P4 outputs 补 `{file: P4-review.md, required: true, status_field: status}`，并核对 check-structure-consistency 是否需同步 | done | 2026-08-25 文件名约定审查（独立评审发现）| TAG0024 | 2026-08-25 | 2026-08-25 |
 | RM-AG0050 | P6.5 定位表述统一（协议文档自洽 NIT）：phases.yaml 将 P6.5 列为独立阶段条目，state-machine.md 明确其为"挂载于 P6→P7 转移的强门槛子阶段，不是独立 phase 值"——两处对 P6.5 定位叙述不一致，易误导读者；修复=统一为"强门槛子阶段"口径（state-machine 为准），核对 check-gate/check-judge-verdict 消费端不受影响 | done | 2026-08-25 文件名约定审查（独立评审发现）| TAG0024 | 2026-08-25 | 2026-08-25 |
 | RM-AG0051 | CHECK 7 版本漂移防线失效：protocol-tests.yml consistency job 浅克隆无 tag，`git describe --tags` 恒失败走 WARNING——版本漂移在 CI 零机械防线（v0.51.0 教训场景不再 FAIL，防线静默退化）+ 本地"未推送 tag 算最新 tag"假绿 | done | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
-| RM-AG0052 | CHANGELOG 破坏性变更 ↔ UPGRADING 章节对应性无自动检查：CHANGELOG 标"破坏性变更见 UPGRADING vN ②"但无 gate 校验章节存在性——v0.62.0 漏写 UPGRADING 章节实测溜过（发布清单第 3 步纯人工兜底）| backlog | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
+| RM-AG0052 | CHANGELOG 破坏性变更 ↔ UPGRADING 章节对应性无自动检查：CHANGELOG 标"破坏性变更见 UPGRADING vN ②"但无 gate 校验章节存在性——v0.62.0 漏写 UPGRADING 章节实测溜过（发布清单第 3 步纯人工兜底）| done | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
 
 ## 状态标识
 
@@ -600,3 +600,9 @@
 - **修复方向**：CHECK 12 锚点表模式扩展或新增 CHECK——CHANGELOG 每个版本条目（含"无破坏性变更"声明）↔ UPGRADING.md 对应 `### vN.N.N` 章节存在性对照；缺章节 → ERROR/WARNING。
 - **验证口径**：模拟缺 UPGRADING 章节的版本 → consistency 报 ERROR/WARNING；全量 0 ERROR。
 - **归属**：独立任务（`check-protocol-consistency.py` + 测试，触发 SELF-GATE）。
+- **落地（2026-08-25，hotfix 修复，非任务立项）**：新增 **CHECK 13**（`check_upgrading_section`）——
+  CHANGELOG 最新已发布版本（第一个 `## [X.Y.Z]` 条目，[Unreleased] 自然跳过）↔ `agate/UPGRADING.md`
+  `### vX.Y.Z` 章节存在性对照，缺章节 → **ERROR 阻断**（v0.62.0/v0.63.0 连续两次漏写后立案，
+  v0.63.0 章节已在 PR #208 补上）。范围限定"只查最新版本"：历史版本在 §3 本就不全（0.53-0.56 无章节），
+  全量核对会在存量数据误报；发布时点拦截只需盯最新版本。6 用例 TDD（含 [Unreleased] 跳过 / 缺文件静默 /
+  无已发布版本 WARNING 边界）；真实仓库 CHECK 13 PASS + 全量 0 ERROR + pytest 1293 collected 全绿。
