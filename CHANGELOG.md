@@ -8,6 +8,18 @@
 
 ---
 
+## [Unreleased]
+
+### 变更（TAG0025：Agateon 品牌改名执行 Phase 0-1，RM-AG0035 剩余工作②）
+
+- **品牌声明上线**：README.md / README.zh-CN.md 首屏新增 "Agateon (formerly agate)" 品牌声明，
+  标志本项目正在从 `agate` 更名为 `Agateon`。
+- **硬编码仓库 URL 同批更新**：`install.sh`、`agate/scripts/agate-install.py`、
+  `agate/scripts/agate-changes.py`、README.md/README.zh-CN.md 的 badge 与安装入口，共 7 处
+  硬编码仓库路径已同批更新为 `randomgitsrc/agateon`。
+- 三层解耦原则：仅改外部品牌层（仓库名/品牌声明），内部命名空间（`agate/` 目录、
+  `agate-workspace/`、`~/.agate`、`AGATE_*`、`agate-*.py` 文件名、`agate_common`）不变。
+
 ## [0.63.0] - 2026-08-25
 
 ### 新增（TAG0024：工具链批立项，RM-AG0048 一期 + DEBT0019/20 + RM-AG0049/50）
