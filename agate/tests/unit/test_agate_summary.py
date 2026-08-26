@@ -88,3 +88,102 @@ def test_bdd_21_summary_global_current_reason(run_cli, python_exe, agate_scripts
     assert expected_root in result.output
     assert "v0.44.0" in result.output
     assert "current" in result.output  # 原因说明：全局 current 回退
+
+
+# --- DSH 安装产物链接校验（防软链指向非权威副本的静默漂移复发）---
+# 背景（2026-08-26）：~/.dsh/skills/agate-protocol/SKILL.md 曾被安装成指向
+# dsh-workspace/agate-copy（测试用临时副本）而非 ~/.agate 权威链，静默存活 5 天
+# 穿过 v0.64.0 发布。机制缺口：安装后无任何校验。本组测试覆盖修复。
+
+_DSH_ARTIFACTS = (
+    (".agent-presets/agate/preset.yml", "preset.yml"),
+    (".agent-presets/agate/agent.cordis.yml", "agent.cordis.yml"),
+    ("skills/agate-protocol/SKILL.md", "SKILL.md"),
+)
+
+
+def _symlink_or_skip(target, link_path):
+    try:
+        os.symlink(str(target), str(link_path))
+    except (OSError, NotImplementedError):
+        pytest.skip("当前平台无法创建软链，无法构建 DSH 链接布局")
+
+
+def test_dsh_links_no_dsh_dir_no_warning(run_cli, python_exe, agate_scripts, tmp_path):
+    """无 ~/.dsh（未装 DSH）→ 校验整体跳过，无 DSH 相关警告。"""
+    home = _make_home(tmp_path)
+    project = tmp_path / "project"
+    project.mkdir()
+    result = run_cli(
+        python_exe, str(agate_scripts / "agate-summary.py"),
+        cwd=str(project), env=_resolve_env(home),
+    )
+    assert result.returncode == 0
+    assert "DSH 安装产物" not in result.output
+
+
+@pytest.mark.windows_smoke
+def test_dsh_links_canonical_chain_no_warning(run_cli, python_exe, agate_scripts, agate_assets, tmp_path):
+    """三个产物软链均指向权威模板（{agate_root}/assets/templates/dsh/）→ 无警告。"""
+    if os.name == "nt":
+        pytest.skip("DSH 链接校验在 Windows 跳过（复制模式，无 DSH 部署）")
+    home = _make_home(tmp_path)
+    tpl_dir = agate_assets / "templates" / "dsh"
+    for rel, name in _DSH_ARTIFACTS:
+        link = home / ".dsh" / rel
+        link.parent.mkdir(parents=True, exist_ok=True)
+        _symlink_or_skip(tpl_dir / name, link)
+    project = tmp_path / "project"
+    project.mkdir()
+    result = run_cli(
+        python_exe, str(agate_scripts / "agate-summary.py"),
+        cwd=str(project), env=_resolve_env(home),
+    )
+    assert result.returncode == 0
+    assert "DSH 安装产物" not in result.output
+
+
+def test_dsh_links_stale_target_warns_with_fix(run_cli, python_exe, agate_scripts, tmp_path):
+    """软链指向非权威副本（真实 bug 复现）→ WARNING 指明产物 + 给出 ln -sf 修复命令。"""
+    if os.name == "nt":
+        pytest.skip("DSH 链接校验在 Windows 跳过（复制模式，无 DSH 部署）")
+    home = _make_home(tmp_path)
+    stale_dir = tmp_path / "stale-copy"
+    stale_dir.mkdir()
+    for rel, name in _DSH_ARTIFACTS:
+        stale_file = stale_dir / name
+        stale_file.write_text("stale\n", encoding="utf-8")
+        link = home / ".dsh" / rel
+        link.parent.mkdir(parents=True, exist_ok=True)
+        _symlink_or_skip(stale_file, link)
+    project = tmp_path / "project"
+    project.mkdir()
+    result = run_cli(
+        python_exe, str(agate_scripts / "agate-summary.py"),
+        cwd=str(project), env=_resolve_env(home),
+    )
+    assert result.returncode == 0
+    assert "DSH 安装产物" in result.output
+    assert "SKILL.md" in result.output
+    assert "ln -sf" in result.output  # 附带一条命令即可修复
+
+
+def test_dsh_links_missing_artifact_warns_not_installed(run_cli, python_exe, agate_scripts, agate_assets, tmp_path):
+    """~/.dsh 存在但部分产物缺失 → 提示未安装（含 SETUP.md 指引），不误报为漂移。"""
+    if os.name == "nt":
+        pytest.skip("DSH 链接校验在 Windows 跳过（复制模式，无 DSH 部署）")
+    home = _make_home(tmp_path)
+    tpl_dir = agate_assets / "templates" / "dsh"
+    rel, name = _DSH_ARTIFACTS[0]
+    link = home / ".dsh" / rel
+    link.parent.mkdir(parents=True, exist_ok=True)
+    _symlink_or_skip(tpl_dir / name, link)  # 只装 1 个，其余 2 个缺失
+    project = tmp_path / "project"
+    project.mkdir()
+    result = run_cli(
+        python_exe, str(agate_scripts / "agate-summary.py"),
+        cwd=str(project), env=_resolve_env(home),
+    )
+    assert result.returncode == 0
+    assert "未安装" in result.output
+    assert "SETUP.md" in result.output
