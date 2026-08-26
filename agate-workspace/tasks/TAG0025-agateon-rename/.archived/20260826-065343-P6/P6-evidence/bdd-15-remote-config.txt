@@ -1,0 +1,12 @@
+=== command: git -C /home/kity/oclab/agate remote -v ===
+origin	https://github.com/randomgitsrc/agateon.git (fetch)
+origin	https://github.com/randomgitsrc/agateon.git (push)
+EXIT_CODE: 0
+
+=== command: git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 remote -v ===
+origin	https://github.com/randomgitsrc/agateon.git (fetch)
+origin	https://github.com/randomgitsrc/agateon.git (push)
+EXIT_CODE: 0
+
+=== supplementary: confirm shared .git/config (worktree config --show-origin) ===
+file:/home/kity/oclab/agate/.git/config	https://github.com/randomgitsrc/agateon.git

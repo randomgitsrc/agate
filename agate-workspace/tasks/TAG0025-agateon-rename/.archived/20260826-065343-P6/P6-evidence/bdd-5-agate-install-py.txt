@@ -1,0 +1,8 @@
+=== command: grep -n randomgitsrc agate/scripts/agate-install.py ===
+55:DEFAULT_REPO_URL = "https://github.com/randomgitsrc/agateon"
+
+=== command: sed -n '55p' agate/scripts/agate-install.py ===
+DEFAULT_REPO_URL = "https://github.com/randomgitsrc/agateon"
+
+HAS_NEW_URL: yes
+HAS_OLD_URL_RESIDUE: no

@@ -52,7 +52,7 @@ except (ImportError, SystemExit):
             return 1, ""
 
 
-DEFAULT_REPO_URL = "https://github.com/randomgitsrc/agate"
+DEFAULT_REPO_URL = "https://github.com/randomgitsrc/agateon"
 AGATE_DIRNAME = ".agate"
 _VERSION_RE = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
 _DECL_RE = re.compile(r"^\s*agate\s*:\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$")

@@ -1,0 +1,48 @@
+$ for f in install.sh agate/scripts/agate-install.py agate/scripts/agate-changes.py README.md README.zh-CN.md CHANGELOG.md; do echo "$f: $(git log -1 --format=%H -- "$f")"; done
+install.sh: 751f421a4c36becd657ab12fed0e80cd7423bef3
+agate/scripts/agate-install.py: 751f421a4c36becd657ab12fed0e80cd7423bef3
+agate/scripts/agate-changes.py: 751f421a4c36becd657ab12fed0e80cd7423bef3
+README.md: 751f421a4c36becd657ab12fed0e80cd7423bef3
+README.zh-CN.md: 751f421a4c36becd657ab12fed0e80cd7423bef3
+CHANGELOG.md: 751f421a4c36becd657ab12fed0e80cd7423bef3
+
+RESULT: OK, all 6 files last-touched at same commit 751f421a4c36becd657ab12fed0e80cd7423bef3
+
+$ git show --stat 751f421a4c36becd657ab12fed0e80cd7423bef3 (full, no truncation)
+commit 751f421a4c36becd657ab12fed0e80cd7423bef3
+Author: Test <test@test.local>
+Date:   Wed Aug 26 04:28:37 2026 +0800
+
+    wf(TAG0025-P4): 实现批次1（品牌声明+7处URL同批更新，6文件纯文本改动）+ review approved
+    
+    - README.md/README.zh-CN.md：首屏品牌声明句（写入既有空行，不破坏P3测试硬编码的第5/29行断言）
+      + badge/安装入口 URL 替换；CHANGELOG.md：新增 [Unreleased] 段 + TAG0025 条目；install.sh/
+      agate-install.py/agate-changes.py：硬编码 URL 精确替换（一次性脚本，用完即弃）
+    - 自查：pytest test_repo_url_no_stale_rename.py 10 passed + 1 failed（BDD-9 批次原子性，预期
+      红——尚未 commit，本 commit 落地后应转绿）
+    - P4-review.md：独立复核 URL 替换精确性/空行填充技术选择/CHANGELOG反引号自指修复/无范围外改动
+      4 项，approved；FYI 记录 1 项已知问题（gate_commands.P5_bdd10_residual_scan 对 P3 新增测试
+      文件自身有盲区，留给 P5 处理，不改动已冻结的 gate_commands）
+    - 候选B执行分工：本批次 implementer 全程未执行 git commit/push/gh api/git remote set-url
+      （已在 P4-implementation.md 与 review 中双重确认）；不可逆改名操作待主 Agent 获得用户放行
+      确认后单独执行，不在本次 commit 范围
+    
+    self-gate-skip: agate/scripts/agate-install.py、agate-changes.py 改动仅为 URL 字面量替换
+    （品牌改名任务本体的硬编码仓库地址），无协议语义/gate 逻辑/规则文本变更，check-protocol-
+    consistency.py --strict-errors-only 复跑 0 ERROR
+
+ CHANGELOG.md                                       |  12 +
+ README.md                                          |   6 +-
+ README.zh-CN.md                                    |   6 +-
+ .../tasks/TAG0025-agateon-rename/.state.yaml       |   2 +-
+ .../P4-dispatch-context-implementer-batch1.md      | 261 +++++++++++++++++++++
+ .../P4-dispatch-context-review.md                  | 253 ++++++++++++++++++++
+ .../TAG0025-agateon-rename/P4-implementation.md    |  86 +++++++
+ .../tasks/TAG0025-agateon-rename/P4-progress.md    |  43 ++++
+ .../tasks/TAG0025-agateon-rename/P4-review.md      | 141 +++++++++++
+ .../tasks/TAG0025-agateon-rename/gate-events.jsonl |   2 +
+ agate-workspace/tasks/active-tasks.md              |   2 +-
+ agate/scripts/agate-changes.py                     |   2 +-
+ agate/scripts/agate-install.py                     |   2 +-
+ install.sh                                         |   2 +-
+ 14 files changed, 809 insertions(+), 11 deletions(-)

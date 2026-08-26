@@ -1,0 +1,9 @@
+$ sed -n '24p' install.sh
+    git clone https://github.com/randomgitsrc/agateon.git "$INSTALL_DIR"
+
+$ grep -nE 'randomgitsrc/agate\b' install.sh
+OLD_URL_GREP_EXIT: 1 (1=no match=old URL cleared, good)
+
+$ grep -n 'randomgitsrc/agateon' install.sh
+24:    git clone https://github.com/randomgitsrc/agateon.git "$INSTALL_DIR"
+NEW_URL_GREP_EXIT: 0

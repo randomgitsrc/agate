@@ -21,7 +21,7 @@ if [ -d "$INSTALL_DIR/.git" ]; then
 else
     echo "克隆仓库到: $INSTALL_DIR"
     mkdir -p "$(dirname "$INSTALL_DIR")"
-    git clone https://github.com/randomgitsrc/agate.git "$INSTALL_DIR"
+    git clone https://github.com/randomgitsrc/agateon.git "$INSTALL_DIR"
 fi
 
 if [ -L "$LINK_NAME" ]; then

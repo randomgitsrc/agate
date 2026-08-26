@@ -1,8 +1,8 @@
 # agate
-
+> **Agateon (formerly agate)** — this project has a new name; the badge and install command below already point to the new repository.
 > An orchestration protocol that verifies AI agents the way a build system verifies a compiler.
 
-[![version](https://img.shields.io/badge/version-v0.63.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.64.0-blue)](https://github.com/randomgitsrc/agateon)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)
@@ -26,7 +26,7 @@ LLM agents are powerful but unreliable on long tasks: context gets polluted, sub
 
 1. **Install agate.** Clone the repository and point `~/.agate` at the protocol body (`agate/`), or use the one-shot installer:
    ```bash
-   curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
+   curl -sSL https://raw.githubusercontent.com/randomgitsrc/agateon/main/install.sh | bash
    ```
    For **per-project version pinning**, use the version manager instead (installs versioned directories under `~/.agate/vX.Y.Z/`, keeps the legacy `~/.agate` symlink for backward compatibility):
    ```bash

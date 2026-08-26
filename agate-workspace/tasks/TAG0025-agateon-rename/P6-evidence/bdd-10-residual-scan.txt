@@ -1,0 +1,171 @@
+$ python3 -m pytest agate/tests/regression/test_repo_url_no_stale_rename.py::test_bdd_10_repo_wide_residual_scan_zero_after_exemptions -v
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agate/.worktrees/agate-TAG0025
+configfile: pyproject.toml
+plugins: xdist-3.8.0, asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1 item
+
+agate/tests/regression/test_repo_url_no_stale_rename.py::test_bdd_10_repo_wide_residual_scan_zero_after_exemptions PASSED [100%]
+
+============================== 1 passed in 0.14s ===============================
+PYTEST_EXIT_CODE: 0
+== BDD-10 补充交叉核对：手工按 P1-requirements.md BDD-10 原文 6 类豁免清单重新执行独立 grep 扫描 ==
+（不复用 gate_commands.P5_bdd10_residual_scan 额外追加的 5 个核心文件排除，只应用 P1 正文 6 类）
+
+-- 全仓原始命中（未排除任何豁免，含7处核心文件改名前旧命中已清除后剩余） --
+133 /tmp/bdd10_raw_hits.txt
+agate-workspace/archived/plans/repo-restructure-migration-2026-06-30.md:299:git clone https://github.com/randomgitsrc/agate.git /tmp/agate-repo
+agate-workspace/archived/plans/repo-restructure-migration-2026-06-30.md:306:curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
+agate-workspace/archived/plans/repo-restructure-migration-2026-06-30.md:385:    git clone https://github.com/randomgitsrc/agate.git "$INSTALL_DIR"
+HANDOFF-TAG0025.md:50:- **Phase 1（仓库改名）**：`randomgitsrc/agate` → `randomgitsrc/agateon`；同批更新硬编码 URL
+HANDOFF-TAG0025.md:52:  README.zh-CN.md:5,29——设计 §4 实测，P1 须补全仓扫描 `randomgitsrc/agate`）；
+HANDOFF-TAG0025.md:79:curl -sI https://github.com/randomgitsrc/agate | head -3        # 期望 301 → agateon
+HANDOFF-TAG0025.md:81:grep -rn "randomgitsrc/agate\b" --include="*.md" --include="*.py" --include="*.sh" --include="*.yml" . --exclude-dir=.git --exclude-dir=.worktrees   # 期望无旧仓名残留（注意排除 archived/ 豁免层，见设计 §5.3）
+HANDOFF-TAG0025.md:113:- **硬编码 URL 盘点遗漏**：设计 §4 以安装入口为中心 → P1 全仓扫描 `randomgitsrc/agate`
+agate-workspace/archived/tasks/T001-v2.0-structured/P8-release.md:43:  [![version](https://img.shields.io/badge/version-v0.35.0-blue)](https://github.com/randomgitsrc/agate)
+agate-workspace/archived/tasks/T001-v2.0-structured/P8-release.md:47:  [![version](https://img.shields.io/badge/version-v0.40.0-blue)](https://github.com/randomgitsrc/agate)
+agate-workspace/tasks/TAG0025-agateon-rename/P3-dispatch-context-test-designer.md:43:   README.zh-CN.md）各自不含字面 `randomgitsrc/agate\b`（旧 URL 已清除，word-boundary 排除
+agate-workspace/tasks/TAG0025-agateon-rename/P5-dispatch-context-verifier.md:24:   自身（该文件文档字符串里出于说明目的引用了字面 `randomgitsrc/agate`）。跑这条 key 时如果
+agate-workspace/tasks/TAG0025-agateon-rename/P5-dispatch-context-verifier.md:224:- 改名 + remote 迁移均已在 P4 完成并实测（见 env-rename-handoff.md §六）：`randomgitsrc/agate`
+agate-workspace/tasks/TAG0025-agateon-rename/P1-review.md:41:- BDD-4: **通过** + 覆盖维度：数据✗ 前端✗ 多端✗ 边界✓(明确"非 agateon 子串意义上的旧仓名残留"排除误判) 兼容✓(301 兜底)。**实测复核**：`install.sh:24` 确为 `git clone https://github.com/randomgitsrc/agate.git`，文件+行引用准确。
+agate-workspace/tasks/TAG0025-agateon-rename/P1-review.md:42:- BDD-5: **通过** + 覆盖维度同上。**实测复核**：`agate/scripts/agate-install.py:55` 确为 `DEFAULT_REPO_URL = "https://github.com/randomgitsrc/agate"`，引用准确。
+agate-workspace/tasks/TAG0025-agateon-rename/P1-review.md:43:- BDD-6: **通过** + 覆盖维度同上。**实测复核**：`agate/scripts/agate-changes.py:116` 确为 `"https://github.com/randomgitsrc/agate.git"`，引用准确。
+agate-workspace/tasks/TAG0025-agateon-rename/P1-review.md:91:④ **内部命名空间禁动是否被误触**：**未误触**。BDD-4~10 全部点名具体文件+行（install.sh:24 等），无一条使用"全局替换 agate→agateon"式笼统措辞；BDD-10 的扫描目标是 `randomgitsrc/agate\b`（仓库路径 URL 片段）而非裸词 `agate`，天然排除内部命名空间 token（`agate/`、`~/.agate`、`AGATE_*`、`agate-*.py`、`agate_common`）被误伤的可能；BDD-1/2 甚至要求品牌声明句中显式保留小写 `agate` 一词（"formerly agate"），进一步印证未误触三层解耦原则。
+agate-workspace/archived/plans/agate-test-plan-2026-07-01.md:623:![Protocol Tests](https://github.com/randomgitsrc/agate/workflows/Protocol%20Tests/badge.svg)
+agate-workspace/tasks/TAG0025-agateon-rename/P4-review.md:58:  任何残留的 `randomgitsrc/agate`（旧 URL），也没有出现超出预期次数的额外替换。
+agate-workspace/tasks/TAG0025-agateon-rename/P4-review.md:85:`randomgitsrc/agate`（旧 URL）字面片段，无论是否被反引号包裹。该行只拼出新 URL
+agate-workspace/tasks/TAG0025-agateon-rename/P3-test-cases.md:38:① 不含字面 `randomgitsrc/agate\b`（旧 URL 已清除，word-boundary 排除 `agateon` 误判）
+agate-workspace/tasks/TAG0025-agateon-rename/P3-test-cases.md:57:| BDD-4 | `test_bdd_4_install_sh_new_url_and_old_url_cleared` | install.sh 不含旧 URL 且含新 URL | 第 24 行当前仍是 `randomgitsrc/agate.git` |
+agate-workspace/tasks/TAG0025-agateon-rename/P3-test-cases.md:86:（GitHub 仓库改名）。改名发生之前，旧仓库 `randomgitsrc/agate` 正常返回 200——不是"应该失败
+agate-workspace/tasks/TAG0025-agateon-rename/P2-review.md:111:   `file:/home/kity/oclab/agate/.git/config https://github.com/randomgitsrc/agate.git`，
+agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md:11:**GitHub 仓库改名（`randomgitsrc/agate` → `randomgitsrc/agateon`）与本地目录完全解耦：
+agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md:25:| git remote `origin` URL | `https://github.com/randomgitsrc/agate.git` | 需改 `.../agateon.git` | **是（任务内执行）**：`git remote set-url origin <新URL>` 在**主 checkout 设一次即可**——已实测验证（2026-08-26）worktree 与主仓共享同一 `.git/config`（worktree 的 `git config --show-origin` 指向主仓文件），全部 worktree 自动跟随；设完后各 worktree 跑一次 `git fetch` 实测 |
+agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md:44:改名动作本身（`gh api -X PATCH repos/randomgitsrc/agate -f name=agateon`）前后 1 分钟内：
+agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md:47:  1. `curl -sI https://github.com/randomgitsrc/agate` → 301
+agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md:49:  3. 全仓 grep 无 `randomgitsrc/agate\b` 残留（排除 archived/ 豁免层）
+agate-workspace/tasks/TAG0025-agateon-rename/env-rename-handoff.md:76:| 2026-08-26 | P4 改名执行完成（用户当次会话内明确放行确认后，主 Agent 亲自执行 `gh api -X PATCH repos/randomgitsrc/agate -f name=agateon`，响应 `full_name: randomgitsrc/agateon`）+ §四验收锚 4 条实测全部通过：①`curl -sI https://github.com/randomgitsrc/agate` → HTTP/2 301 ②`git ls-remote https://github.com/randomgitsrc/agateon.git HEAD` → 正常返回 SHA ③全仓残留扫描（pytest BDD-10 权威判定）PASSED，0 残留 ④`gh api search/repositories -f q='agateon in:name'` 首位命中 `randomgitsrc/agateon` | TAG0025 主会话 |
+agate-workspace/tasks/TAG0025-agateon-rename/P6-dispatch-context-verifier.md:35:   - BDD-12：`curl -sI https://github.com/randomgitsrc/agate`（301 + Location）
+agate-workspace/tasks/TAG0025-agateon-rename/P6-dispatch-context-verifier.md:315:- 改名 + remote 迁移均已完成（randomgitsrc/agate → randomgitsrc/agateon），HEAD 当前是
+agate-workspace/tasks/TAG0025-agateon-rename/P1-progress.md:49:- [核查] 实跑 dispatch-context 给出的全仓 grep 命令 `randomgitsrc/agate\b`：逐条比对 BDD-10 豁免清单
+agate-workspace/tasks/TAG0025-agateon-rename/P5-test-results/unit.md:179:命令：`grep -rn 'randomgitsrc/agate\b' --include=*.md --include=*.py --include=*.sh --include=*.yml --include=*.yaml . --exclude-dir=.git --exclude-dir=.worktrees | grep -vE '<5类豁免正则>'`
+agate-workspace/tasks/TAG0025-agateon-rename/P5-test-results/unit.md:187:./agate/tests/regression/test_repo_url_no_stale_rename.py:38:OLD_URL_PATTERN = re.compile(r"randomgitsrc/agate\b")
+agate-workspace/tasks/TAG0025-agateon-rename/P5-test-results/unit.md:198:字符串（出于说明目的引用了字面 `randomgitsrc/agate`）。这不算 gate 失败。
+agate-workspace/tasks/TAG0025-agateon-rename/P5-test-results/unit.md:214:命令：`curl -sI https://github.com/randomgitsrc/agate | grep -Eq '^HTTP/[0-9.]+ 301'`
+agate-workspace/tasks/TAG0025-agateon-rename/P5-test-results/unit.md:220:命令：`curl -sI https://github.com/randomgitsrc/agate | grep -qi '^location:.*randomgitsrc/agateon'`
+agate-workspace/archived/plans/pending-repo-restructure.md:40:原：`git clone https://github.com/randomgitsrc/agate.git ~/.agate`
+agate-workspace/archived/plans/pending-repo-restructure.md:42:改：`git clone https://github.com/randomgitsrc/agate.git /tmp/agate-repo && ln -s /tmp/agate-repo/agate ~/.agate`
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:36:| `README.md` | 第 1 行标题下方新增一行品牌声明（含 "Agateon (formerly agate)"字样，首屏可见，不需滚动）；第 5 行 badge img src 的 `randomgitsrc/agate` → `randomgitsrc/agateon`；第 29 行 curl 安装入口同上 | BDD-1, BDD-7 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:39:| `install.sh` | 第 24 行 `git clone https://github.com/randomgitsrc/agate.git` → `.../agateon.git` | BDD-4 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:40:| `agate/scripts/agate-install.py` | 第 55 行 `DEFAULT_REPO_URL = "https://github.com/randomgitsrc/agate"` → `.../agateon` | BDD-5 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:41:| `agate/scripts/agate-changes.py` | 第 116 行 `"https://github.com/randomgitsrc/agate.git"` → `.../agateon.git` | BDD-6 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:42:| GitHub 仓库本体（`randomgitsrc/agate` → `randomgitsrc/agateon`，`gh api -X PATCH`） | 仓库改名，不可逆外部操作 | BDD-11, BDD-12, BDD-13, BDD-14 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:44:| `agate/tests/regression/`（新增 1 个测试文件，采纳 P1 §3.4 SUGGEST，见 §2.3） | 断言 5 个 Phase1 核心文件不含字面 `randomgitsrc/agate`（word-boundary，排除 `agateon`） | 呼应 BDD-4~8，防未来回归 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:61:| `.github/workflows/*.yml`（CI workflow） | 本次全仓 grep（`--include=*.yml --include=*.yaml`）命中数为 0——CI workflow 未硬编码 `randomgitsrc/agate` 仓库路径，无需改动（与设计 §4"CI workflow 2 个｜job 名/注释换，路径不动"一致，且本次实测连 job 名/注释都未命中，无需动） |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:64:| `docs/design-notes/design-rename-execution.md`、`docs/design-notes/agateon-trademark-research.md`、`docs/superpowers/specs/2026-08-15-docs-suite-review.md`、`HANDOFF-TAG0025.md` 中的历史性 `randomgitsrc/agate` 引用 | 均为决策记录/审计快照/任务专属交接单的历史真实性载体，改写会扭曲记录的时间语境；处理方式是**扩大 BDD-10 残留扫描的豁免清单**而非编辑这些文件——详见 §1「[SCOPE+] 发现」 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:65:| `archived/**`、`agate-workspace/tasks/**`、`agate-workspace/archived/**` 下全部 `randomgitsrc/agate` 引用 | 设计 §5.3 归档豁免层，P1 已固化为 BDD-10 排除清单，本阶段不重判 |
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:84:含一处字面 `randomgitsrc/agate` 引用：
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:87:- **主仓**：`randomgitsrc/agate` → `randomgitsrc/agateon`。原 URL 301 自动跳转；...
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:111:**关键决策点**（dispatch-context 约束 1）：GitHub 仓库改名（`gh api -X PATCH repos/randomgitsrc/agate
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:119:   `[NEED_USER_CONFIRM: 即将执行不可逆改名 randomgitsrc/agate → randomgitsrc/agateon，请确认放行]`，
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:149:   `gh api -X PATCH repos/randomgitsrc/agate -f name=agateon`，随即立刻自查 BDD-12/13
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:178:  替换目标字符串完全一致（`randomgitsrc/agate` → `randomgitsrc/agateon`），脚本化能保证"一次
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:185:  / README.zh-CN.md）不含字面 `randomgitsrc/agate\b`（word-boundary，天然排除 `agateon`）。
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:332:  P5_bdd10_residual_scan: "out=$(grep -rn 'randomgitsrc/agate\\b' --include=*.md --include=*.py --include=*.sh --include=*.yml --include=*.yaml . --exclude-dir=.git --exclude-dir=.worktrees | grep -vE '^(\\./)?(archived/|agate-workspace/(tasks|archived)/|install\\.sh:|README\\.md:|README\\.zh-CN\\.md:|agate/scripts/agate-install\\.py:|agate/scripts/agate-changes\\.py:|docs/design-notes/agateon-trademark-research\\.md:|docs/superpowers/specs/2026-08-15-docs-suite-review\\.md:|HANDOFF-TAG0025\\.md:|docs/design-notes/design-rename-execution\\.md:)'); [ -z \"$out\" ] && echo 'OK:0残留' || { echo \"$out\"; exit 1; }"
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:333:  P5_bdd12_301_status: "curl -sI https://github.com/randomgitsrc/agate | grep -Eq '^HTTP/[0-9.]+ 301'"
+agate-workspace/tasks/TAG0025-agateon-rename/P2-design.md:334:  P5_bdd12_301_location: "curl -sI https://github.com/randomgitsrc/agate | grep -qi '^location:.*randomgitsrc/agateon'"
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:51:   - 把 GitHub 主仓 `randomgitsrc/agate` 改名为 `randomgitsrc/agateon`（不可逆的一次性外部操作，
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:80:   但对 `randomgitsrc/agate\b` 做字面 grep 会命中 3 处边界案例文档（商标调研记录 / 历史评审快照 /
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:104:`grep -rn "randomgitsrc/agate\b" --include=*.md --include=*.py --include=*.sh --include=*.yml
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:125:| `docs/superpowers/specs/2026-08-15-docs-suite-review.md:89` | **本次不处理** | 2026-08-15 的历史评审快照表格，记录当时 `git remote -v` 实测结果为 `randomgitsrc/agate`；这是"审计事实"记录，改写会使历史审计记录失真（造成"当时验证的其实是新仓名"的错误印象）。 |
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:128:| `agate/tests/regression/test_repo_url_no_stale_rename.py`（多处，第 6/9/38/92/195/286 行） | **本次不处理**（P6.5 judge 复核发现，见下方第二条 `[BASELINE_CHANGE]`） | P3 新增的本任务权威判定测试文件自身——文件顶部注释/docstring/正则源码出于说明与断言目的引用了字面 `randomgitsrc/agate` 字符串，是该测试"要检测什么"这一逻辑本身结构性必需的自指引用（测试代码必须包含它要搜索的目标字符串），不是需要被替换的活跃品牌层引用，性质与上述 4 处同源。 |
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:160:文件不含字面 randomgitsrc/agate 字符串，不做全仓品牌词扫描），防止未来贡献者从旧文档/旧
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:189:- Given install.sh 第 24 行当前硬编码 `randomgitsrc/agate`
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:191:- Then 该行硬编码的仓库 URL 指向 `randomgitsrc/agateon`，不再出现 `randomgitsrc/agate`（非
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:195:- Given agate/scripts/agate-install.py 第 55 行当前硬编码 `randomgitsrc/agate`
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:200:- Given agate/scripts/agate-changes.py 第 116 行当前硬编码 `randomgitsrc/agate`
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:205:- Given README.md 第 5 行（badge img src）与第 29 行（安装入口）当前均硬编码 `randomgitsrc/agate`
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:211:- Given README.zh-CN.md 第 5 行（badge）与第 29 行（安装入口）当前均硬编码 `randomgitsrc/agate`
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:223:- Given 对全仓（排除 `.git/` 与 `.worktrees/`）执行 `randomgitsrc/agate\b` 字面扫描
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:239:  引用了字面 `randomgitsrc/agate` 字符串，是该测试"要检测什么"这一逻辑本身结构性必需的自指
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:260:- Given `gh` 已实测对 `randomgitsrc/agate` 具备 admin 权限（dispatch-context 客观查证信息 A，
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:263:  `gh api -X PATCH repos/randomgitsrc/agate` 更名操作）之前
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:271:- Given 仓库已完成改名 `randomgitsrc/agate` → `randomgitsrc/agateon`
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:272:- When 对旧 URL `https://github.com/randomgitsrc/agate` 发起 HTTP 请求（如 `curl -sI`）
+agate-workspace/tasks/TAG0025-agateon-rename/P1-requirements.md:371:      - "gh CLI（本机已认证 randomgitsrc 账号，对 randomgitsrc/agate 具备 admin 权限，见
+agate-workspace/tasks/TAG0025-agateon-rename/P1-dispatch-context-analyst.md:316:$ gh api repos/randomgitsrc/agate --jq '.permissions'
+agate-workspace/tasks/TAG0025-agateon-rename/P1-dispatch-context-analyst.md:319:结论：`gh` 对 `randomgitsrc/agate` 具备 admin 权限，改名操作技术上可执行。**用户在场放行仍需在
+agate-workspace/tasks/TAG0025-agateon-rename/P1-dispatch-context-analyst.md:328:origin  https://github.com/randomgitsrc/agate.git (fetch)
+agate-workspace/tasks/TAG0025-agateon-rename/P1-dispatch-context-analyst.md:329:origin  https://github.com/randomgitsrc/agate.git (push)
+agate-workspace/tasks/TAG0025-agateon-rename/P1-dispatch-context-analyst.md:346:命令：`grep -rn "randomgitsrc/agate\b" --include=*.md --include=*.py --include=*.sh
+agate-workspace/tasks/TAG0025-agateon-rename/P4-progress.md:14:- [自查结果] test_repo_url_no_stale_rename.py -v：首次跑发现 test_bdd_10 意外红灯——原因是我写入 CHANGELOG.md 的条目文案里字面出现了 "`randomgitsrc/agate` → `randomgitsrc/agateon`"，反引号后紧跟非单词字符构成 word-boundary，被残留扫描判定为旧 URL 残留命中（CHANGELOG.md 不在 BDD-10 豁免清单内）。已改写该条目措辞，避免在正文中拼出旧 URL 的字面片段（改为"硬编码仓库路径已同批更新为 randomgitsrc/agateon"，不复述旧路径），只在正文，不改变改动范围外的文件。
+agate-workspace/tasks/TAG0025-agateon-rename/P4-progress.md:25:- [核查项3-CHANGELOG自指修复] `grep -n randomgitsrc CHANGELOG.md`：仅第19行1处命中，内容为 `` `randomgitsrc/agateon` ``（新URL），全文无任何 `randomgitsrc/agate`（含反引号内）字面片段，修复彻底。
+agate-workspace/tasks/TAG0025-agateon-rename/P4-progress.md:35:  注释里出于说明目的字面引用了 `randomgitsrc/agate`，会被该 shell 命令误判为残留（已实测复现，
+agate-workspace/tasks/TAG0025-agateon-rename/P4-dispatch-context-implementer-batch2.md:13:后亲自执行完成（`gh api -X PATCH repos/randomgitsrc/agate -f name=agateon` 已成功，
+agate-workspace/tasks/TAG0025-agateon-rename/P4-dispatch-context-implementer-batch2.md:249:- 改名已完成实测（2026-08-26）：`gh api -X PATCH repos/randomgitsrc/agate -f name=agateon` →
+agate-workspace/tasks/TAG0025-agateon-rename/P4-dispatch-context-implementer-batch2.md:253:  `https://github.com/randomgitsrc/agate.git`
+agate-workspace/tasks/TAG0025-agateon-rename/.archived/20260826-065343-P6/P6-acceptance.md:54:- PASS BDD-12: curl -sI https://github.com/randomgitsrc/agate 实测响应 HTTP/2 301，location 头指向 https://github.com/randomgitsrc/agateon (bdd-12-301-redirect.txt)
+agate-workspace/tasks/TAG0008-version-management/P4-progress.md:25:- 确认: python3=/usr/bin/python3 (pyyaml 6.0.1), git 2.43, bash 5.2；canonical repo = https://github.com/randomgitsrc/agate
+agate-workspace/tasks/TAG0025-agateon-rename/P2-dispatch-context-architect.md:362:  curl -sI https://github.com/randomgitsrc/agate | head -3   # 改名后验收锚
+agate-workspace/tasks/TAG0025-agateon-rename/P2-dispatch-context-architect.md:364:  grep -rn "randomgitsrc/agate\b" --include="*.md" --include="*.py" --include="*.sh" \
+agate-workspace/tasks/TAG0025-agateon-rename/P3-progress.md:6:- 已实测核对 5 个核心文件（install.sh:24 / agate-install.py:55 / agate-changes.py:116 / README.md:5,29 / README.zh-CN.md:5,29）当前内容，确认均含字面 randomgitsrc/agate，尚未改名——断言设计基于实测行号。
+agate-workspace/tasks/TAG0012-protocol-mechanism-fixes/P8-release.md:61:| `README.md` **L5** version badge | `[![version](https://img.shields.io/badge/version-v0.51.0-blue)](https://github.com/randomgitsrc/agate)` | 待主 Agent 在 P8 gate 后 bump 至 `v0.52.0`，与 tag 同 commit |
+agate-workspace/tasks/TAG0023-mechanism-checks/P2-progress.md:79:- [x] `gh api repos/randomgitsrc/agate/actions/runs/32645685798/attempts/1/jobs` 实拉取：确认 job id 97209482443 = "pytest (ubuntu-latest)"，conclusion=failure —— 与设计引用精确一致
+agate-workspace/tasks/TAG0025-agateon-rename/P4-implementation.md:21:| `README.md` | 第 2 行（原为空行）写入品牌声明句 `> **Agateon (formerly agate)** — this project has a new name; the badge and install command below already point to the new repository.`；第 5 行 badge img src、第 29 行 curl 安装入口的 `randomgitsrc/agate` → `randomgitsrc/agateon` | BDD-1, BDD-7 |
+agate-workspace/tasks/TAG0025-agateon-rename/P4-implementation.md:24:| `install.sh` | 第 24 行 `git clone https://github.com/randomgitsrc/agate.git` → `.../agateon.git` | BDD-4 |
+agate-workspace/tasks/TAG0025-agateon-rename/P4-implementation.md:25:| `agate/scripts/agate-install.py` | 第 55 行 `DEFAULT_REPO_URL = "https://github.com/randomgitsrc/agate"` → `.../agateon` | BDD-5 |
+agate-workspace/tasks/TAG0025-agateon-rename/P4-implementation.md:26:| `agate/scripts/agate-changes.py` | 第 116 行 `"https://github.com/randomgitsrc/agate.git"` → `.../agateon.git` | BDD-6 |
+agate-workspace/tasks/TAG0025-agateon-rename/P4-implementation.md:64:意外红灯——排查发现是我在 CHANGELOG.md 条目文案中写了 `` `randomgitsrc/agate` → `randomgitsrc/agateon` ``，
+agate-workspace/tasks/TAG0025-agateon-rename/P4-implementation.md:97:GitHub 仓库改名（`randomgitsrc/agate` → `randomgitsrc/agateon`）已由主 Agent 在获得用户放行
+agate-workspace/tasks/TAG0025-agateon-rename/P4-implementation.md:98:确认后亲自执行完成（`gh api -X PATCH repos/randomgitsrc/agate -f name=agateon`，
+agate-workspace/tasks/TAG0025-agateon-rename/P4-dispatch-context-implementer-batch1.md:26:   （`randomgitsrc/agate` → `randomgitsrc/agateon`，逐文件逐行精确匹配，不用宽泛正则），不要
+agate-workspace/tasks/TAG0025-agateon-rename/P4-dispatch-context-implementer-batch1.md:30:     不需滚动）；第 5 行 badge img src 与第 29 行安装入口的 `randomgitsrc/agate` →
+agate-workspace/tasks/TAG0025-agateon-rename/P4-dispatch-context-implementer-batch1.md:37:     `agate/scripts/agate-changes.py` 第 116 行：`randomgitsrc/agate` → `randomgitsrc/agateon`
+agate-workspace/tasks/TAG0025-agateon-rename/P0-brief.md:30:  该盘点以安装入口为中心，P1 须补全仓扫描 `randomgitsrc/agate` 字符串（CI workflows /
+agate-workspace/tasks/TAG0025-agateon-rename/P4-dispatch-context-review.md:33:   措辞确实不再包含任何 `randomgitsrc/agate` 字面片段（哪怕在反引号内、哪怕是解释性文字）。
+agate-workspace/tasks/TAG0025-agateon-rename/P6.5-judge-verdict.md:66:  字面含 `randomgitsrc/agate`，且该文件路径不属于 P1 BDD-10 声明的 5 类豁免中的任何一类。
+agate-workspace/tasks/TAG0025-agateon-rename/P6.5-judge-verdict.md:83:  重写测试文件使其不再以字面字符串形式包含 `randomgitsrc/agate`），不构成任务方向性错误。
+agate-workspace/tasks/TAG0025-agateon-rename/P6.5-judge-verdict.md:89:  repos/randomgitsrc/agate -f name=agateon`"，时序表述为"确认→执行"而非"执行→事后补记"，与
+agate-workspace/tasks/TAG0025-agateon-rename/P6.5-judge-verdict.md:95:  `curl -sI https://github.com/randomgitsrc/agate` 响应 `HTTP/2 301` +
+agate-workspace/tasks/TAG0025-agateon-rename/.archived/20260826-065343-P6/P6-evidence/bdd-11-confirmation-record.md:13:> PATCH repos/randomgitsrc/agate -f name=agateon`，响应 `full_name: randomgitsrc/agateon`）+
+agate-workspace/tasks/TAG0025-agateon-rename/.archived/20260826-065343-P6/P6-evidence/bdd-11-confirmation-record.md:14:> §四验收锚 4 条实测全部通过：①`curl -sI https://github.com/randomgitsrc/agate` → HTTP/2 301
+agate-workspace/tasks/TAG0023-mechanism-checks/P2-design.md:349:      2. 用 `gh api repos/randomgitsrc/agate/actions/runs/32645685798/attempts/1/jobs` 定位到
+agate-workspace/tasks/TAG0008-version-management/P4-implementation-install.md:60:[DESIGN_GAP: P2 §4.5 未指明 repo URL 来源（P3 §5 备注确认），AGATE_REPO_URL 未设置时默认采用仓库 canonical URL https://github.com/randomgitsrc/agate]
+agate-workspace/tasks/TAG0008-version-management/P7-consistency.md:49:- [DESIGN_GAP: P2 §4.5 未指明 repo URL 来源（P3 §5 备注确认），AGATE_REPO_URL 未设置时默认采用仓库 canonical URL https://github.com/randomgitsrc/agate]
+agate/tests/regression/test_repo_url_no_stale_rename.py:6:#   randomgitsrc/agateon 在文件内至少出现一次"，不验证"旧 URL randomgitsrc/agate 已被完全清除"
+agate/tests/regression/test_repo_url_no_stale_rename.py:9:#     ① 该文件不含字面 randomgitsrc/agate\b（旧 URL 已清除，word-boundary 排除 agateon 误判）
+agate/tests/regression/test_repo_url_no_stale_rename.py:38:OLD_URL_PATTERN = re.compile(r"randomgitsrc/agate\b")
+agate/tests/regression/test_repo_url_no_stale_rename.py:92:        # 本测试文件自身：文件顶部注释/docstring 出于说明目的引用了字面 "randomgitsrc/agate"
+agate/tests/regression/test_repo_url_no_stale_rename.py:195:    """install.sh 第 24 行（克隆入口）：randomgitsrc/agate → randomgitsrc/agateon。"""
+agate/tests/regression/test_repo_url_no_stale_rename.py:286:    """对全仓（排除 .git/ 与 .worktrees/）执行 randomgitsrc/agate\\b 字面扫描，应用
+archived/docs-2026-08/research/research-agate-conpetitive-product-analysis-20260701.md:3:> 分析对象：`agate`(https://github.com/randomgitsrc/agate)——面向软件工程的 AI Agent 工作流协议
+archived/docs-2026-08/research/research-agate-professional-analysis-20260702.md:3:> 分析对象：`agate` v0.8.0（https://github.com/randomgitsrc/agate）
+archived/docs-2026-08/plans/agate-multi-platform-ci-support-20260721.md:11:仓库快照: randomgitsrc/agate v0.15.0（commit 4225d03）
+archived/docs-2026-08/plans/agate-t060-retro-bugfixes-20260721.md:8:仓库快照: randomgitsrc/agate v0.15.0 (commit 4225d03)
+archived/docs-2026-08/plans/ci-preventive-enforcement-20260708.md:19:- `gh api repos/randomgitsrc/agate/branches/main/protection` → 404（无分支保护）
+archived/docs-2026-08/plans/ci-preventive-enforcement-20260708.md:53:gh api -X PUT repos/randomgitsrc/agate/branches/main/protection \
+archived/docs-2026-08/reviews/review-20260708-1530.md:183:gh api -X PUT repos/randomgitsrc/agate/branches/main/protection \
+docs/superpowers/specs/2026-08-15-docs-suite-review.md:89:| README badge 仓库 | `git remote -v` | ✅ randomgitsrc/agate |
+docs/design-notes/agateon-trademark-research.md:3:> 调研日期：2026-08-23 ｜ 调研对象：`agateon` 商标在全球主要司法辖区的注册状态 ｜ 决策场景：开源 AI-agent 编排协议项目（github.com/randomgitsrc/agate）拟更名 Agateon
+docs/design-notes/design-rename-execution.md:35:- **主仓**：`randomgitsrc/agate` → `randomgitsrc/agateon`。原 URL 301 自动跳转；但本地 remote 与 `install.sh`/`agate-install.py` 的硬编码 URL 需**主动 `git remote set-url` + 同批更新**（301 兜底能"用"但新仓自带安装器会继续向新用户展示旧名）。
+
+-- 应用 P1 BDD-10 正文 6 类豁免后剩余（应为 0） --
+剩余命中数: 0
+
+RESULT: OK:0残留
+
+== 结论 ==
+1) pytest 权威判定：test_bdd_10_repo_wide_residual_scan_zero_after_exemptions PASSED（exit 0），
+   该测试的 _is_exempt() 函数应用的豁免逻辑（含'本测试文件自身'第6类自我豁免）与
+   P1-requirements.md 第4节 BDD-10 正文当前列出的 6 类豁免（①archived/等归档层 ②商标调研文档
+   ③历史评审快照 ④HANDOFF-TAG0025.md ⑤design-rename-execution.md ⑥test_repo_url_no_stale_rename.py
+   自身）逐一对应，且第3.2节边界案例表也已同步列出全部5处'不处理'边界案例（对应②③④⑤，
+   ⑥单独在BDD-10正文用第二处[BASELINE_CHANGE]标注）。
+2) 独立交叉核对（本次verifier手工重新执行、不依赖pytest代码路径）：用同一条全仓grep命令，
+   手工应用与P1原文6类豁免完全对应的排除正则（见上方'-- 应用 P1 BDD-10 正文 6 类豁免后剩余 --'
+   小节），剩余命中数 = 0，与pytest结果一致。
+3) 现在这6类豁免均已在P1-requirements.md正式授权（第4节BDD-10正文2处[BASELINE_CHANGE]标注
+   + 第3.2节边界案例表5处判定行），不是'已知盲区'或变通处理——这是第2轮验收，根因已在P1文本
+   层面正式修复。

@@ -1,0 +1,4 @@
+$ gh api -X GET search/repositories -f q='agateon in:name' --jq '.items[].full_name'
+randomgitsrc/agateon
+jayasreekamineni1/AgateOne
+EXIT_CODE: 0

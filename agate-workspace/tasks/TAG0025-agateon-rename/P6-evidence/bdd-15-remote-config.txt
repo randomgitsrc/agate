@@ -1,0 +1,10 @@
+$ git -C /home/kity/oclab/agate remote -v
+origin	https://github.com/randomgitsrc/agateon.git (fetch)
+origin	https://github.com/randomgitsrc/agateon.git (push)
+
+$ git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 remote -v
+origin	https://github.com/randomgitsrc/agateon.git (fetch)
+origin	https://github.com/randomgitsrc/agateon.git (push)
+
+$ git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 config --show-origin --get remote.origin.url
+file:/home/kity/oclab/agate/.git/config	https://github.com/randomgitsrc/agateon.git

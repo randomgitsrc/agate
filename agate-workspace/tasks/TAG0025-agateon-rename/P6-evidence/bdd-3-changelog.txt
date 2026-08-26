@@ -1,0 +1,33 @@
+$ sed -n '1,20p' CHANGELOG.md
+# 变更日志
+
+所有对 agate 协议的重要变更都会记录在此文件中。
+
+格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
+
+> **已有 agate 项目升级前，先读 `agate/UPGRADING.md`**——旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，以及各版本的破坏性变更。
+
+---
+
+## [Unreleased]
+
+### 变更（TAG0025：Agateon 品牌改名执行 Phase 0-1，RM-AG0035 剩余工作②）
+
+- **品牌声明上线**：README.md / README.zh-CN.md 首屏新增 "Agateon (formerly agate)" 品牌声明，
+  标志本项目正在从 `agate` 更名为 `Agateon`。
+- **硬编码仓库 URL 同批更新**：`install.sh`、`agate/scripts/agate-install.py`、
+  `agate/scripts/agate-changes.py`、README.md/README.zh-CN.md 的 badge 与安装入口，共 7 处
+  硬编码仓库路径已同批更新为 `randomgitsrc/agateon`。
+- 三层解耦原则：仅改外部品牌层（仓库名/品牌声明），内部命名空间（`agate/` 目录、
+
+$ grep -n '^## \[Unreleased\]' CHANGELOG.md
+11:## [Unreleased]
+EXIT_CODE: 0
+
+$ grep -n '^## \[0.63.0\]' CHANGELOG.md
+23:## [0.63.0] - 2026-08-25
+EXIT_CODE: 0
+
+$ grep -n TAG0025 CHANGELOG.md
+13:### 变更（TAG0025：Agateon 品牌改名执行 Phase 0-1，RM-AG0035 剩余工作②）
+EXIT_CODE: 0

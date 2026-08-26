@@ -1,8 +1,8 @@
 # agate
-
+> **Agateon**（原名 agate）——本项目已改名，下方徽标与安装命令已指向新仓库。
 > 一种编排协议，用构建系统验证编译器的方式验证 AI Agent。
 
-[![version](https://img.shields.io/badge/version-v0.62.0-blue)](https://github.com/randomgitsrc/agate)
+[![version](https://img.shields.io/badge/version-v0.64.0-blue)](https://github.com/randomgitsrc/agateon)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)
@@ -26,7 +26,7 @@ LLM Agent 在长任务上强大但不可靠：上下文被污染、subagent 漂�
 
 1. **安装 agate。** 克隆仓库并把 `~/.agate` 指向协议本体（`agate/`），或使用一键安装脚本：
    ```bash
-   curl -sSL https://raw.githubusercontent.com/randomgitsrc/agate/main/install.sh | bash
+   curl -sSL https://raw.githubusercontent.com/randomgitsrc/agateon/main/install.sh | bash
    ```
    需要**按项目锁定版本**时，改用版本管理器（在 `~/.agate/vX.Y.Z/` 下安装版本目录，保留 `~/.agate` 软链向后兼容）：
    ```bash

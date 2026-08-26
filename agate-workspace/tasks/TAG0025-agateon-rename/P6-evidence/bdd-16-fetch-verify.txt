@@ -1,0 +1,5 @@
+$ git -C /home/kity/oclab/agate fetch
+MAIN_CHECKOUT_FETCH_EXIT_CODE: 0
+
+$ git -C /home/kity/oclab/agate/.worktrees/agate-TAG0025 fetch
+WORKTREE_FETCH_EXIT_CODE: 0

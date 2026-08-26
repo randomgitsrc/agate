@@ -113,7 +113,7 @@ def _check_upstream(repo):
         lines.append("更新方式：cd <agate 仓库> && git pull")
         lines.append(
             "如果持续落后，检查 git remote 是否指向 "
-            "https://github.com/randomgitsrc/agate.git"
+            "https://github.com/randomgitsrc/agateon.git"
         )
         upstream_range = f"{local_tag}..origin/main"
         proc = _run_git(repo, ["log", "--oneline", upstream_range])
