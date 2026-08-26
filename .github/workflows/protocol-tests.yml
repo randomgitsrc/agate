@@ -17,8 +17,8 @@ name: Protocol Tests
 #    platform-scan/ruff 非 required，保留 job 级 if 跳过（不阻塞合并）。
 #    代价：docs-only 时各 job 仍会走 checkout/setup（约 20-40s），换取 required check success。
 #
-# 协议定义：docs-only = 仅改动 docs 清单内路径（见 detect-docs-only 的 NON_DOCS 过滤）；
-# workflow 自身改动不算 docs-only（跑全量）。
+# 协议定义：docs-only = 仅改动 docs 清单内路径（含 site/ 产品 Web 层，见 detect-docs-only 的
+# NON_DOCS 过滤）；workflow 自身改动不算 docs-only（跑全量）。
 #
 # 2026-08-25 pytest 优化（实测 47.8s/16核 vs 165.7s 串行，3.5x 提速，1238 passed 无 flaky）：
 #   - 删除 xdist Timing Observation 步骤（BDD-15/M23 观测目的已达，continue-on-error 纯浪费 1m13s）
@@ -67,9 +67,10 @@ jobs:
             MERGE_BASE=$(git merge-base "$BASE" "$HEAD" 2>/dev/null || true)
             if [ -n "$MERGE_BASE" ]; then
               CHANGED=$(git diff --name-only "$MERGE_BASE" "$HEAD" || true)
-              # 纯 docs 判定：与历史 paths-ignore 清单一致（docs/roadmap/debt/archived/README 等）。
+              # 纯 docs 判定：与历史 paths-ignore 清单一致（docs/roadmap/debt/archived/README/site 等）。
+              # site/ 是产品 Web 层（VitePress 站点），在协议 gate 治理之外，改动等同 docs-only。
               # workflow 自身改动（.github/workflows/protocol-tests.yml 等）不在清单 → 视为非 docs-only。
-              NON_DOCS=$(printf '%s\n' "$CHANGED" | grep -vE '^(agate-workspace/roadmap/|agate-workspace/debt/|archived/|docs/|HANDOFF-[^/]*\.md$|FIX-[^/]*\.md$|README\.md$|README\.zh-CN\.md$|CHANGELOG\.md$|NOTICES\.md$|LICENSE$|\.github/workflows/docs-check\.yml$)' || true)
+              NON_DOCS=$(printf '%s\n' "$CHANGED" | grep -vE '^(agate-workspace/roadmap/|agate-workspace/debt/|archived/|docs/|site/|HANDOFF-[^/]*\.md$|FIX-[^/]*\.md$|README\.md$|README\.zh-CN\.md$|CHANGELOG\.md$|NOTICES\.md$|LICENSE$|\.github/workflows/docs-check\.yml$)' || true)
               if [ -z "$NON_DOCS" ] && [ -n "$CHANGED" ]; then
                 docs_only=true
               fi

@@ -1,0 +1,21 @@
+/* Agateon 品牌色映射（权威源：docs/brand/README.md 的 Color 表）。
+   Gate teal #1D9E75 是主品牌色（pass/fix/verified）；coral/purple 仅作点缀，勿滥用。 */
+:root {
+  --vp-c-brand-1: #1d9e75;
+  --vp-c-brand-2: #24b282;
+  --vp-c-brand-3: #157a59;
+  --vp-c-brand-soft: rgba(29, 158, 117, 0.14);
+}
+
+.dark {
+  --vp-c-brand-1: #35c493;
+  --vp-c-brand-2: #1d9e75;
+  --vp-c-brand-3: #35c493;
+  --vp-c-brand-soft: rgba(53, 196, 147, 0.16);
+}
+
+/* 点缀色（blocked coral / agent purple），只在语义需要时用 */
+:root {
+  --agateon-coral: #d85a30;
+  --agateon-purple: #7f77dd;
+}

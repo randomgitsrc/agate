@@ -1,0 +1,38 @@
+name: Site Check
+
+# site/（产品 Web 层）的唯一内容校验：VitePress 构建必须通过。
+# 这是「informational」检查（非 required）——site PR 的合并闸门是 required 的
+# docs-only fast-path（见 protocol-tests.yml 的 detect-docs-only），构建失败由
+# deploy-pages.yml 兜底（构建不过就不部署，线上保持上一版）。
+on:
+  push:
+    paths:
+      - 'site/**'
+      - 'docs/brand/**'
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'docs/brand/**'
+
+concurrency:
+  group: site-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site-build:
+    name: site-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install dependencies
+        working-directory: site
+        run: npm ci
+      - name: Build site
+        working-directory: site
+        run: npm run build
