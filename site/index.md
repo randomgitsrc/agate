@@ -38,3 +38,5 @@ No runtime, no daemon. The protocol is a set of Markdown cards plus gate scripts
 ## Read the postmortem
 
 - [Our AI Safety Net Depended on the Agent Being Honest. It Wasn't.](/blog/20260826/post-01-retry-self-authorization)
+
+> Published via the GitHub Pages site at [randomgitsrc.github.io/agateon](https://randomgitsrc.github.io/agateon/).
