@@ -223,31 +223,53 @@ def test_bdd_6_agate_changes_py_new_url_and_old_url_cleared(repo_root):
     )
 
 
+def _locate_line(lines, needle, fallback):
+    """按内容定位行，找不到返回 fallback。
+
+    不依赖行号——README 顶部是品牌展示区，2026-08-26 加入 logo-lockup <picture> 块后
+    badge/安装入口行号整体下移，硬编码行号会让"badge 与安装入口须同批指向新仓名"这一
+    断言意图被无关的头部内容变更误伤（PR #217 CI 实证）。
+    """
+    for line in lines:
+        if needle in line:
+            return line
+    return fallback
+
+
 def test_bdd_7_readme_en_badge_and_install_entry_new_url_and_old_cleared(repo_root):
-    """README.md 第 5 行（badge img src）与第 29 行（curl 安装入口）须同批指向新仓名，
-    不允许只改其中一行（badge 是 URL 硬编码点的一种，不是独立于安装入口的另一类工作）。
+    """README.md 的 badge 行与 curl 安装入口行须同批指向新仓名，不允许只改其中一行
+    （badge 是 URL 硬编码点的一种，不是独立于安装入口的另一类工作）。
+
+    [TEST_FIX: 原实现硬编码"第 5 行=badge、第 29 行=安装入口"。README 顶部是品牌展示区，
+    加入 logo-lockup <picture> 块后行号下移，硬编码行号误判（PR #217 CI FAIL）。改为按内容
+    定位：badge=含 img.shields.io 的版本徽标行，安装入口=含 raw.githubusercontent.com 且
+    install.sh 的 curl 行；断言意图不变——两条 URL 硬编码点必须同时指向 randomgitsrc/agateon，
+    任一单独回退仍会被拦。]
     """
     text = _read(repo_root, "README.md")
     _assert_old_cleared_new_present(text, "README.md")
     lines = text.splitlines()
-    badge_line = lines[4] if len(lines) > 4 else ""
-    install_line = lines[28] if len(lines) > 28 else ""
-    assert NEW_URL in badge_line, f"README.md 第 5 行（badge）未指向 {NEW_URL}：{badge_line!r}"
+    badge_line = _locate_line(lines, "img.shields.io", "")
+    install_line = _locate_line(lines, "raw.githubusercontent.com", "")
+    assert NEW_URL in badge_line, f"README.md badge 行未指向 {NEW_URL}：{badge_line!r}"
     assert NEW_URL in install_line, (
-        f"README.md 第 29 行（安装入口）未指向 {NEW_URL}：{install_line!r}"
+        f"README.md 安装入口行未指向 {NEW_URL}：{install_line!r}"
     )
 
 
 def test_bdd_8_readme_zh_badge_and_install_entry_new_url_and_old_cleared(repo_root):
-    """README.zh-CN.md 第 5 行（badge）与第 29 行（安装入口）须同批指向新仓名。"""
+    """README.zh-CN.md 的 badge 行与 curl 安装入口行须同批指向新仓名。
+
+    [TEST_FIX: 同 test_bdd_7，行号改为按内容定位，断言意图不变。]
+    """
     text = _read(repo_root, "README.zh-CN.md")
     _assert_old_cleared_new_present(text, "README.zh-CN.md")
     lines = text.splitlines()
-    badge_line = lines[4] if len(lines) > 4 else ""
-    install_line = lines[28] if len(lines) > 28 else ""
-    assert NEW_URL in badge_line, f"README.zh-CN.md 第 5 行（badge）未指向 {NEW_URL}：{badge_line!r}"
+    badge_line = _locate_line(lines, "img.shields.io", "")
+    install_line = _locate_line(lines, "raw.githubusercontent.com", "")
+    assert NEW_URL in badge_line, f"README.zh-CN.md badge 行未指向 {NEW_URL}：{badge_line!r}"
     assert NEW_URL in install_line, (
-        f"README.zh-CN.md 第 29 行（安装入口）未指向 {NEW_URL}：{install_line!r}"
+        f"README.zh-CN.md 安装入口行未指向 {NEW_URL}：{install_line!r}"
     )
 
 
