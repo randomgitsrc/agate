@@ -269,25 +269,33 @@ def test_bdd_8_readme_zh_badge_and_install_entry_new_url_and_old_cleared(repo_ro
 def test_bdd_9_seven_urls_same_commit_batch_atomicity(repo_root):
     """Phase 1 核心 7 处更新点（6 个文件：install.sh / agate-install.py / agate-changes.py /
     README.md / README.zh-CN.md / CHANGELOG.md）须落在同一个 commit 的 diff 中。
-    """
-    files = [*CORE_FILES, "CHANGELOG.md"]
-    shas = {}
-    for f in files:
-        proc = subprocess.run(
-            ["git", "log", "-1", "--format=%H", "--", f],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        shas[f] = proc.stdout.strip()
 
-    distinct = set(shas.values())
-    assert len(distinct) == 1, (
-        "Phase 1 核心 7 处更新点未落在同一 commit（批次原子性尚未满足，改名前/批次提交前的预期"
-        f"红灯）；各文件最近一次改动的 commit SHA：{shas}"
+    [P8_TEST_FIX: 原实现用 `git log -1 -- <file>`（"这个文件最近一次改动是哪个 commit"）逐文件
+    比对 SHA 是否相同——这在 P4-P7 阶段成立，但该断言会被这些文件之后任何一次合法后续改动打破
+    （如 P8 阶段 bump README 版本号 badge，最近一次改动就变成了 P8 commit），不是真正意义上的
+    永久回归检查，只是"截至目前这些文件没再被碰过"的偶然巧合。批次原子性这个历史事实本身（commit
+    751f421a... 是否确实同批改了这 6 个文件）是不随时间变化的 git 历史事实，改为直接核实该具体
+    commit 的 diff 覆盖这 6 个文件，不再依赖"最近一次改动"这个会被后续任意合法改动打破的相对
+    判据。]
+    """
+    atomic_commit = "751f421a4c36becd657ab12fed0e80cd7423bef3"
+    proc = subprocess.run(
+        ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", atomic_commit],
+        cwd=str(repo_root),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
     )
-    assert next(iter(distinct)) != "", "commit SHA 为空，文件可能从未被 git 追踪"
+    assert proc.returncode == 0, (
+        f"commit {atomic_commit} 不存在或无法读取 diff（stderr: {proc.stderr!r}）"
+    )
+    changed_files = set(proc.stdout.strip().splitlines())
+    files = [*CORE_FILES, "CHANGELOG.md"]
+    missing = [f for f in files if f not in changed_files]
+    assert not missing, (
+        f"批次原子性 commit {atomic_commit} 的 diff 未覆盖以下文件：{missing}"
+        f"（该 commit 实际改动文件：{sorted(changed_files)}）"
+    )
 
 
 # ---------------------------------------------------------------------------
