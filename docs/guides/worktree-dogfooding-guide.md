@@ -58,7 +58,7 @@ python3 agate/scripts/check-protocol-consistency.py --strict-errors-only
 
 全绿 + 0 ERROR 才算干净基线。失败则停下来（可能主 checkout 有未合并改动）。
 
-> ⚠️ **用 `--strict-errors-only` 而非 `--strict`（DEBT0012 教训）**：仓库存量有 300+ 条历史叙事文件死链 WARNING，`--strict` 会让"仅有 WARNING、无 ERROR"也 exit 2，把干净基线误判为"主 checkout 有未合并改动"。`--strict-errors-only` 仅在 ERROR 时非 0（TAG0017 起官方默认语义，见 `agate/scripts/README.md`）。pytest 全量大可分 unit/regression/integration 三片跑（`tests/README.md`），每片外层加 `timeout 90`，gate/consistency 单跑并加 timeout。
+> ⚠️ **用 `--strict-errors-only` 而非 `--strict`（DEBT0012 教训）**：仓库存量有 300+ 条历史叙事文件死链 WARNING，`--strict` 会让"仅有 WARNING、无 ERROR"也 exit 2，把干净基线误判为"主 checkout 有未合并改动"。`--strict-errors-only` 仅在 ERROR 时非 0（TAG0017 起官方默认语义，见 `agate/scripts/README.md`）。pytest 全量大可分 unit/regression/integration 三片跑（`tests/README.md`），每片外层加 `timeout 90`、片内加 `-n auto` 并行（约 3.5x 提速；套件按隔离设计，可安全并行），gate/consistency 单跑并加 timeout。
 
 ### Step 4：确认 hook 就位（共享 git 目录）
 

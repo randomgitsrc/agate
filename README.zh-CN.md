@@ -104,7 +104,7 @@ Agateon 走文档协议路线，带着结构性局限：其 gate 的质量上限
 
 ## Contributing
 
-Agateon 本身就是用 Agateon 开发的。从维护者入口 [`agate/AGENTS.md`](agate/AGENTS.md) 开始，用以下命令运行测试套件：
+Agateon 本身就是用 Agateon 开发的。从维护者入口 [`agate/AGENTS.md`](agate/AGENTS.md) 开始，用以下命令运行测试套件（加 `-n auto` 并行约 3.5x 提速）：
 
 ```bash
 python3 -m pytest agate/tests/

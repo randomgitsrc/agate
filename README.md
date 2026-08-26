@@ -105,7 +105,7 @@ Agateon takes the document-protocol route, which carries structural limits: the 
 
 ## Contributing
 
-Agateon itself is developed with Agateon. Start at the maintainer entry point [`agate/AGENTS.md`](agate/AGENTS.md) and run the test suite with:
+Agateon itself is developed with Agateon. Start at the maintainer entry point [`agate/AGENTS.md`](agate/AGENTS.md) and run the test suite with (add `-n auto` for a ~3.5x parallel speedup):
 
 ```bash
 python3 -m pytest agate/tests/
