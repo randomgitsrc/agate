@@ -1,0 +1,33 @@
+<svg width="900" height="360" viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="900" height="360" fill="#FFFFFF"/>
+
+  <!-- Ink -->
+  <rect x="40" y="40" width="150" height="150" rx="12" fill="#1A1A18"/>
+  <text x="40" y="215" font-family="Poppins" font-weight="500" font-size="16" fill="#1A1A18">Ink</text>
+  <text x="40" y="238" font-family="Poppins" font-weight="300" font-size="14" fill="#5F5E5A">#1A1A18</text>
+
+  <!-- Paper -->
+  <rect x="220" y="40" width="150" height="150" rx="12" fill="#FAF9F4" stroke="#D3D1C7" stroke-width="1"/>
+  <text x="220" y="215" font-family="Poppins" font-weight="500" font-size="16" fill="#1A1A18">Paper</text>
+  <text x="220" y="238" font-family="Poppins" font-weight="300" font-size="14" fill="#5F5E5A">#FAF9F4</text>
+
+  <!-- Gate teal -->
+  <rect x="400" y="40" width="150" height="150" rx="12" fill="#1D9E75"/>
+  <text x="400" y="215" font-family="Poppins" font-weight="500" font-size="16" fill="#1A1A18">Gate teal</text>
+  <text x="400" y="238" font-family="Poppins" font-weight="300" font-size="14" fill="#5F5E5A">#1D9E75</text>
+
+  <!-- Blocked coral -->
+  <rect x="580" y="40" width="150" height="150" rx="12" fill="#D85A30"/>
+  <text x="580" y="215" font-family="Poppins" font-weight="500" font-size="16" fill="#1A1A18">Blocked coral</text>
+  <text x="580" y="238" font-family="Poppins" font-weight="300" font-size="14" fill="#5F5E5A">#D85A30</text>
+
+  <!-- Agent purple -->
+  <rect x="760" y="40" width="100" height="150" rx="12" fill="#7F77DD"/>
+  <text x="760" y="215" font-family="Poppins" font-weight="500" font-size="16" fill="#1A1A18">Agent</text>
+  <text x="760" y="238" font-family="Poppins" font-weight="300" font-size="14" fill="#5F5E5A">#7F77DD</text>
+
+  <!-- usage notes -->
+  <text x="40" y="285" font-family="Poppins" font-weight="500" font-size="16" fill="#1A1A18">Usage</text>
+  <text x="40" y="312" font-family="Poppins" font-weight="300" font-size="14" fill="#5F5E5A">Ink and paper carry text and structure. Gate teal marks a pass or a fix.</text>
+  <text x="40" y="334" font-family="Poppins" font-weight="300" font-size="14" fill="#5F5E5A">Blocked coral marks a caught failure. Agent purple marks the actor being verified.</text>
+</svg>

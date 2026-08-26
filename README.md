@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-lockup-dark-bg.svg">
+    <img alt="Agateon" width="320" src="docs/assets/logo-lockup.svg">
+  </picture>
+</p>
+
 # Agateon
 > **Agateon (formerly agate)** — this project has a new name; the badge and install command below already point to the new repository.
 > An orchestration protocol that verifies AI agents the way a build system verifies a compiler.

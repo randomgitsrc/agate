@@ -1,0 +1,38 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1280" height="640" fill="#14140F"/>
+
+  <!-- subtle repeated small gate marks in the background, low opacity, for texture -->
+  <g opacity="0.06">
+    <g transform="translate(60,60) scale(0.18)">
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(-13 200 70)"/>
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(13 200 70)"/>
+    </g>
+    <g transform="translate(1120,60) scale(0.18)">
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(-13 200 70)"/>
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(13 200 70)"/>
+    </g>
+    <g transform="translate(60,480) scale(0.18)">
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(-13 200 70)"/>
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(13 200 70)"/>
+    </g>
+    <g transform="translate(1120,480) scale(0.18)">
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(-13 200 70)"/>
+      <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(13 200 70)"/>
+    </g>
+  </g>
+
+  <!-- centered icon, larger -->
+  <g transform="translate(560,140) scale(0.62)">
+    <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(-13 200 70)"/>
+    <rect x="178" y="70" width="44" height="260" rx="10" fill="#FAF9F4" transform="rotate(13 200 70)"/>
+    <rect x="140" y="185" width="120" height="34" rx="8" fill="#1D9E75"/>
+    <path d="M158 202 L182 218 L242 178" fill="none" stroke="#0A1F1A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="640" y="450" font-family="Poppins" font-weight="500" font-size="80" fill="#FAF9F4" letter-spacing="1" text-anchor="middle">Agateon</text>
+
+  <!-- tagline -->
+  <text x="640" y="500" font-family="Poppins" font-weight="300" font-size="26" fill="#B4B2A9" letter-spacing="3" text-anchor="middle">ALWAYS A GATE ON</text>
+
+</svg>
