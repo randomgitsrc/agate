@@ -40,6 +40,53 @@ npm run build    # 产物在 site/.vitepress/dist/，CI 与部署都以此为准
 4. 合并后 `deploy-pages.yml` 自动构建部署到 GitHub Pages。
 5. 博客文章合并后再手动 cross-post：dev.to（上传 PNG 换链接）+ HN（普通链接，不加 Show HN）+ 微信群。
 
+## 博客工作流（agent 照此执行）
+
+> 用户不自己动手，博客的加/改/发布由 agent 代做。以下每一步都要做全。
+
+### A. 新增博客文章
+
+1. **写稿**：创建 `site/blog/YYYYMMDD/post-XX-slug.md`（`YYYYMMDD` = 发布日期，`XX` = 当日序号）。
+   图片放同目录 `images/`：SVG 源 + PNG 版（PNG 供 dev.to 用，尺寸≥1200px 宽更稳）。
+   正文图片用相对路径 `./images/xxx.svg`；mermaid 图直接用 ` ```mermaid ` 代码块。
+2. **frontmatter**（文件顶部，必须齐全，否则博客列表和 sidebar 缺标题/日期）：
+
+   ```yaml
+   ---
+   title: "文章标题"
+   date: YYYY-MM-DD
+   description: 一句话摘要（供搜索/og）
+   tags:
+     - 标签1
+   ---
+   ```
+
+3. **登记两处**（漏了就不显示在站点上）：
+   - `site/blog/index.md`：列表里加一条 `- [标题](/blog/YYYYMMDD/post-XX-slug) — YYYY-MM-DD`
+   - `site/.vitepress/config.mts`：`sidebar` 的 Blog 段 `items` 加一条 `{ text: 标题, link: '/blog/YYYYMMDD/post-XX-slug' }`
+4. **本地验证（必做）**：`cd site && npm run build`。重点检查：
+   - 新页面出现在 `site/.vitepress/dist/blog/YYYYMMDD/post-XX-slug.html`
+   - mermaid 块没报语法错（build 有 warning 也要看）
+   - 图片路径解析（dist 里能找到图片：>4KB 的是独立文件，<4KB 内联成 data URI，都正常）
+5. **提交**：commit（`docs:` 前缀）→ `/home/kity/bin/git-to-pr` → `/home/kity/bin/git-to-main` → 合并后自动部署。
+6. **cross-post（合并后）**：
+   - dev.to：用 API。先 `POST /api/image_uploads` 传 PNG 拿 URL，再 `POST /api/articles` 建文章，正文里 `./images/*.svg` 换成 PNG URL，tag 用 `ai, llm, opensource, discuss`。需要 dev.to API key（Settings → Extensions → API Keys；本机没存的话向用户要）。
+   - HN：普通链接提交（不加 Show HN），title 用文章标题，url 用 dev.to 链接。
+   - 微信群：短文案（见 2026-08 的版本 A/B/C 模板思路，痛点开场 + 求讨论）。
+
+### B. 修改博客文章
+
+1. 改 `site/blog/YYYYMMDD/post-XX-slug.md`（改图则更新 `images/`，改标题则同步 frontmatter `title`）。
+2. `cd site && npm run build` 验证。
+3. commit（`docs:` 前缀）→ git-to-pr → git-to-main → 自动部署。
+4. 若该篇已发 dev.to：同步更新 dev.to 文章（`PATCH /api/articles/{id}`，图片用新 PNG URL）。
+
+### C. 注意事项
+
+- **改标题/日期**必须同步 frontmatter + `site/blog/index.md` + `config.mts` sidebar 三处，三处不一致会出怪问题。
+- **删文章** = 删 md + 从 index 和 sidebar 移除 + 删 images 里无引用的图（dev.to 上如已发布需手动删/撤）。
+- **发布节奏**：一天别 cross-post 两条自己的内容（dev.to/HN 对自我推广有量感），间隔开。
+
 ## base 路径与自定义域名
 
 - 当前 `base: '/agateon/'`（项目站 `https://randomgitsrc.github.io/agateon/`）。
