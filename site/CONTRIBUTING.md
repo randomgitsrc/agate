@@ -43,6 +43,7 @@ npm run build    # 产物在 site/.vitepress/dist/，CI 与部署都以此为准
 ## 博客工作流（agent 照此执行）
 
 > 用户不自己动手，博客的加/改/发布由 agent 代做。以下每一步都要做全。
+> **质量标准与配图规范见 `site/BLOG-STANDARDS.md`；发布前必须过独立评审（第 7 节 gate），pass 才上线。**
 
 ### A. 新增博客文章
 
