@@ -154,4 +154,4 @@ git branch -D feat/{Txxx}-{slug}
 
 ## 与 AGENTS.md 的关系
 
-AGENTS.md「v2.0 改造期间执行约定」已有双工作区纪律的零散条目（117-129 行）。本指南是把"构建"流程固化。纪律部分两者一致；若冲突以 AGENTS.md 为准。
+AGENTS.md「dogfooding 工作流（Agateon 自身改造任务必读）」已有双工作区纪律的零散条目。本指南是把"构建"流程固化。纪律部分两者一致；若冲突以 AGENTS.md 为准。
