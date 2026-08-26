@@ -152,37 +152,50 @@ def test_bdd_2_readme_zh_brand_statement_first_screen(repo_root):
 
 
 def test_bdd_3_changelog_unreleased_section_above_0_63_0(repo_root):
-    """CHANGELOG.md 顶部（[0.63.0] 段之上）须新增 `## [Unreleased]` 段。"""
+    """CHANGELOG.md 须含 TAG0025 品牌改名的发布段，位于 [0.63.0] 段之上。
+
+    [P8_TEST_FIX: 本测试最初（P3/P4 阶段）断言"改名前 CHANGELOG 顶部应新增 [Unreleased] 段"，
+    这是一次性 TDD 验收事实——该事实已在 v0.64.0 发布时永久兑现（[Unreleased] 转正为
+    [0.64.0]）。作为永久回归测试，继续断言"存在 [Unreleased] 段"在发布后必然恒假（每次发布都会
+    清空 Unreleased），会让本测试永久变红。P8 阶段改为断言"TAG0025 的发布记录永久存在于
+    [0.63.0] 段之上"这一不随时间变化的历史事实，函数名保留不改（避免 P3-test-cases.md 的函数名
+    引用失效），仅修正断言语义使其对"发布"这一动作幂等。]
+    """
     text = _read(repo_root, "CHANGELOG.md")
-    unreleased_match = re.search(r"^## \[Unreleased\]", text, re.MULTILINE)
-    assert unreleased_match is not None, (
-        "CHANGELOG.md 未找到 '## [Unreleased]' 段（改名前的预期红灯，当前最新已发布段是 [0.63.0]）"
+    tag0025_release_match = re.search(r"^## \[0\.64\.0\]", text, re.MULTILINE)
+    assert tag0025_release_match is not None, (
+        "CHANGELOG.md 未找到 TAG0025 对应的 '## [0.64.0]' 发布段（v0.64.0 发布时由 "
+        "[Unreleased] 转正，此后应永久存在于 CHANGELOG 历史中）"
     )
     released_match = re.search(r"^## \[0\.63\.0\]", text, re.MULTILINE)
     assert released_match is not None, "CHANGELOG.md 找不到 [0.63.0] 段，无法比较相对位置"
-    assert unreleased_match.start() < released_match.start(), (
-        "'## [Unreleased]' 段必须出现在 '## [0.63.0]' 段之上"
+    assert tag0025_release_match.start() < released_match.start(), (
+        "'## [0.64.0]'（TAG0025 发布段）必须出现在 '## [0.63.0]' 段之上"
+        "（CHANGELOG 版本段应保持新→旧的时间倒序排列）"
     )
 
 
 def test_bdd_3_changelog_tag0025_entry_under_unreleased(repo_root):
-    """`[Unreleased]` 段下须含至少一条描述 TAG0025（品牌改名 Phase 0-1）的条目。"""
+    """`[0.64.0]` 发布段下须永久含至少一条描述 TAG0025（品牌改名 Phase 0-1）的条目。
+
+    [P8_TEST_FIX: 同上一条，语义不变（"改名记录确实被写进了这次发布"），只是不再依赖发布后
+    必然消失的 [Unreleased] 包装，改断言已转正的 [0.64.0] 段内容，函数名保留不改。]
+    """
     text = _read(repo_root, "CHANGELOG.md")
-    unreleased_match = re.search(r"^## \[Unreleased\]", text, re.MULTILINE)
-    if unreleased_match is None:
+    tag0025_release_match = re.search(r"^## \[0\.64\.0\]", text, re.MULTILINE)
+    if tag0025_release_match is None:
         pytest.fail(
-            "CHANGELOG.md 未找到 '## [Unreleased]' 段，无法判定 TAG0025 条目是否落在段内"
-            "（改名前的预期红灯，见 test_bdd_3_changelog_unreleased_section_above_0_63_0）"
+            "CHANGELOG.md 未找到 '## [0.64.0]' 发布段，无法判定 TAG0025 条目是否落在段内"
         )
-    next_section_match = re.search(r"^## \[", text[unreleased_match.end():], re.MULTILINE)
+    next_section_match = re.search(r"^## \[", text[tag0025_release_match.end():], re.MULTILINE)
     section_end = (
-        unreleased_match.end() + next_section_match.start()
+        tag0025_release_match.end() + next_section_match.start()
         if next_section_match is not None
         else len(text)
     )
-    unreleased_body = text[unreleased_match.end():section_end]
-    assert "TAG0025" in unreleased_body, (
-        "'## [Unreleased]' 段下未找到 TAG0025 条目（改名前的预期红灯）"
+    section_body = text[tag0025_release_match.end():section_end]
+    assert "TAG0025" in section_body, (
+        "'## [0.64.0]' 发布段下未找到 TAG0025 条目"
     )
 
 

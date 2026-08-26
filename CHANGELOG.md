@@ -8,17 +8,36 @@
 
 ---
 
-## [Unreleased]
+## [0.64.0] - 2026-08-26
 
 ### 变更（TAG0025：Agateon 品牌改名执行 Phase 0-1，RM-AG0035 剩余工作②）
 
 - **品牌声明上线**：README.md / README.zh-CN.md 首屏新增 "Agateon (formerly agate)" 品牌声明，
   标志本项目正在从 `agate` 更名为 `Agateon`。
-- **硬编码仓库 URL 同批更新**：`install.sh`、`agate/scripts/agate-install.py`、
+- **GitHub 主仓改名 + 硬编码仓库 URL 同批更新**：主仓已改名为 `randomgitsrc/agateon`
+  （用户当次会话放行确认后由主 Agent 亲自执行，4 条验收锚——301 跳转/`git ls-remote`/全仓残留
+  扫描/GitHub 搜索首位命中——实测通过）；`install.sh`、`agate/scripts/agate-install.py`、
   `agate/scripts/agate-changes.py`、README.md/README.zh-CN.md 的 badge 与安装入口，共 7 处
-  硬编码仓库路径已同批更新为 `randomgitsrc/agateon`。
+  硬编码仓库路径已同批更新为 `randomgitsrc/agateon`；本机 remote 迁移（主 checkout 一次
+  `git remote set-url`，worktree 通过共享 `.git/config` 自动跟随，实测验证）。
 - 三层解耦原则：仅改外部品牌层（仓库名/品牌声明），内部命名空间（`agate/` 目录、
   `agate-workspace/`、`~/.agate`、`AGATE_*`、`agate-*.py` 文件名、`agate_common`）不变。
+
+### 其他（v0.63.0 之后、TAG0025 之外的维护性变更——同一发布区间内，一并记录）
+
+- **CHECK 13：CHANGELOG↔UPGRADING 章节对应性检查（RM-AG0052）**：`check-protocol-consistency.py`
+  新增校验，确保 CHANGELOG 最新已发布版本在 `agate/UPGRADING.md` §3 有对应章节，防止发布清单
+  第 3 步遗漏（v0.62.0/v0.63.0 曾连续两次漏写）。
+- **CI：consistency job 全量 fetch tags，恢复 CHECK 7 版本漂移判定**：修复 CI 环境下浅克隆导致
+  CHECK 7（README badge 与最新 git tag 一致性）长期失效的问题。
+- **CI：docs-only PR 无法合并的根治修复**：required job 内嵌 fast-pass 替代 job 级 `if` 跳过，
+  修复纯文档 PR 因 required check 未触发而无法合并的问题。
+- **文档维护**：补写 `agate/UPGRADING.md` v0.62.0/v0.63.0 章节（发布清单遗漏补救）；重构
+  `AGENTS.md`（精简为"不读就不知道"原则，修复 5 处过时点）；恢复 AGENTS.md Gate 脚本分层节
+  标题与依赖节；roadmap 登记 RM-AG0051/RM-AG0052 并回写 RM-AG0051 done（CHECK 7 hotfix）。
+- **归档与收尾**：TAG0024 合并后复盘归档 + DEBT0022 登记（复盘归档断链）；归档 TAG0023 交接单
+  并清理其 worktree/分支；关闭 Agateon 改名调研的最后开放问题（GitHub org `agateon` 已占名，
+  2026-08-25）；`design-rename-execution.md` 状态行更新为三轮独立评审通过。
 
 ## [0.63.0] - 2026-08-25
 

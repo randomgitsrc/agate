@@ -89,6 +89,27 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.64.0 — Agateon 品牌改名 Phase 0-1（TAG0025：RM-AG0035 剩余工作②）+ 维护性变更批
+
+> **本版本无破坏性变更，零迁移动作**。GitHub 主仓改名不影响已有 clone/CI（301 跳转兜底，
+> 且本机 remote 已主动迁移不依赖跳转）；本地目录名/`~/.agate`/`AGATE_*`/`agate-*.py`/
+> `agate_common` 等内部命名空间均未改动。
+
+**① GitHub 主仓改名**：主仓已改名为 `randomgitsrc/agateon`。已 clone 的项目**无需任何
+动作**——旧 URL 301 自动跳转（`git fetch`/`git pull`/`git clone` 均可继续用旧 URL，性能上会多
+一次重定向）；若想直接指向新仓，可选执行 `git remote set-url origin
+https://github.com/randomgitsrc/agateon.git`。新用户的一键安装脚本（`install.sh`）与
+`agate-install.py` 默认仓库地址已同步指向新仓，无需额外配置。
+
+**② CHECK 13：CHANGELOG↔UPGRADING 章节对应性检查（RM-AG0052）**：`check-protocol-consistency.py`
+新增校验项，仅影响 dogfooding 本仓库协议自身开发流程（消费方项目一般不运行此脚本），不影响
+下游项目。
+
+**③ CI 修复（consistency job fetch tags / docs-only PR 合并）**：仅影响本仓库自身 CI 流水线，
+不影响下游消费方项目。
+
+**通用升级动作**：`git pull` 即完成（软链布局）；无需重跑 `install-hook.py`（无 hook 变更）。
+
 ### v0.63.0 — 工具链批（TAG0024：agate-md-field-set / roadmap-done 健壮性）
 
 > **本版本无破坏性变更，零迁移动作**。新增 CLI 工具随 `git pull` 自动可用，无需任何重装步骤
