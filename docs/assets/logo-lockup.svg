@@ -1,0 +1,11 @@
+<svg width="900" height="220" viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg">
+  <!-- icon, scaled down and repositioned -->
+  <g transform="translate(30,20) scale(0.42)">
+    <rect x="178" y="70" width="44" height="260" rx="10" fill="#1A1A18" transform="rotate(-13 200 70)"/>
+    <rect x="178" y="70" width="44" height="260" rx="10" fill="#1A1A18" transform="rotate(13 200 70)"/>
+    <rect x="140" y="185" width="120" height="34" rx="8" fill="#1D9E75"/>
+    <path d="M158 202 L182 218 L242 178" fill="none" stroke="#FAF9F4" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- wordmark -->
+  <text x="220" y="135" font-family="Poppins" font-weight="500" font-size="76" fill="#1A1A18" letter-spacing="1">Agateon</text>
+</svg>

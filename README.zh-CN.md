@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-lockup-dark-bg.svg">
+    <img alt="Agateon" width="320" src="docs/assets/logo-lockup.svg">
+  </picture>
+</p>
+
 # Agateon
 > **Agateon**（原名 agate）——本项目已改名，下方徽标与安装命令已指向新仓库。
 > 一种编排协议，用构建系统验证编译器的方式验证 AI Agent。
