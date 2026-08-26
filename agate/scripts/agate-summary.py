@@ -91,6 +91,44 @@ def _check_copy_drift(script_dir):
             )
 
 
+_DSH_LINK_ARTIFACTS = (
+    (".agent-presets/agate/preset.yml", "preset.yml"),
+    (".agent-presets/agate/agent.cordis.yml", "agent.cordis.yml"),
+    ("skills/agate-protocol/SKILL.md", "SKILL.md"),
+)
+
+
+def _check_dsh_links(script_dir):
+    """校验 DSH 安装产物软链指向权威链（防指向非权威副本的静默漂移）。
+
+    背景（2026-08-26）：~/.dsh/skills/agate-protocol/SKILL.md 曾被安装成指向测试用
+    临时副本而非 ~/.agate 权威链，静默存活穿过一次发布——安装后无校验所致。
+    权威目标 = {agate_root}/assets/templates/dsh/ 下同名文件（script_dir 上溯一层）。
+    无 ~/.dsh（未装 DSH）或 Windows（无 DSH 部署）→ 整体跳过。
+    """
+    if os.name == "nt":
+        return
+    dsh_home = os.path.join(os.path.expanduser("~"), ".dsh")
+    if not os.path.isdir(dsh_home):
+        return
+    tpl_dir = os.path.join(os.path.dirname(script_dir), "assets", "templates", "dsh")
+    for rel, name in _DSH_LINK_ARTIFACTS:
+        link = os.path.join(dsh_home, *rel.split("/"))
+        expected = os.path.join(tpl_dir, name)
+        if not os.path.isfile(expected):
+            continue  # 本版本无该权威模板 → 无从校验
+        if not os.path.lexists(link):
+            sys.stderr.write(
+                f"⚠️  DSH 安装产物未安装: {link}（如需 DSH 接入见 agate/SETUP.md 步骤 2-DSH）\n"
+            )
+            continue
+        if os.path.realpath(link) != os.path.realpath(expected):
+            sys.stderr.write(
+                f"⚠️  DSH 安装产物漂移: {link} 指向非权威副本（{os.path.realpath(link)}）\n"
+                f"    修复: ln -sf {expected} {link}\n"
+            )
+
+
 def main():
     script_real = os.path.realpath(__file__)
     script_dir = os.path.dirname(script_real)
@@ -104,6 +142,7 @@ def main():
 
     guards = _build_guards(script_dir)
     _check_copy_drift(script_dir)
+    _check_dsh_links(script_dir)
 
     version = info["version"] or "（未解析到版本）"
     reason = info["reason"] or "（无原因）"

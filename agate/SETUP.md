@@ -158,6 +158,8 @@ ln -sf ~/.agate/assets/templates/dsh/SKILL.md ~/.dsh/skills/agate-protocol/SKILL
 python3 ~/.agate/scripts/install-hook.py
 ```
 
+**链接完整性校验**：`agate-summary.py` 每次运行会校验上面三个软链是否指向权威链（`{agate_root}/assets/templates/dsh/`）；漂移（如误指向非权威副本）会给出 WARNING + 一条命令的修复指引。升级后跑一次即可确认。
+
 **身份薄、协议厚**：preset 的 persona 只写"你是谁 + 会话开始步骤 + DSH 工具映射"，行为规范仍指向
 `{agate_root}/orchestrator-template.md`——模板随 `~/.agate`（→ 仓库软链）升级自动更新；
 符号链接方式升级后什么都不用做；**Windows 无符号链接权限时退复制模式，升级后需重跑上述 `ln` 命令对应的 `cp`**（复制模式代价：模板升级后不会自动同步，与既有平台小节一致）。
