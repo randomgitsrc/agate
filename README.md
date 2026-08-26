@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-lockup-dark-bg.svg">
-    <img alt="Agateon" width="320" src="docs/assets/logo-lockup.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-lockup-dark-bg.svg">
+    <img alt="Agateon" width="320" src="docs/brand/logo-lockup.svg">
   </picture>
 </p>
 

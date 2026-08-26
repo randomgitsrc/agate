@@ -23,8 +23,8 @@ GitHub respects `prefers-color-scheme` inside a `<picture>` element in README ma
 
 ```html
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="brand/logo-lockup-dark-bg.svg">
-  <img alt="Agateon" src="brand/logo-lockup.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-lockup-dark-bg.svg">
+  <img alt="Agateon" src="docs/brand/logo-lockup.svg">
 </picture>
 ```
 
