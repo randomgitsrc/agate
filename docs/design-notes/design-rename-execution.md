@@ -11,9 +11,9 @@
 | 层 | 命名 | 决策 | 状态 |
 |----|------|------|------|
 | **外部品牌层** | `agateon` | 仓库名、域名、包名占位、README 标题、CLI 别名 | 已定（2026-08-23）|
-| **内部命名空间** | `agate` | 目录 `agate/`、`~/.agate`、`AGATE_*`、`agate-*.py`、`agate_common` | 当前保留（v1.0 窗口重评估用户面，见 §8）|
+| **内部命名空间** | `agate` | 目录 `agate/`、`~/.agate`、`AGATE_*`、`agate-*.py`、`agate_common` | 当前保留（后续窗口重评估用户面，见 §8）|
 
-一句话：**仓库名跟随品牌（agateon），目录名跟随功能（agate），两者解耦。** 外部层必须现在定死（产生搜索粘性），内部层多数永不改名（不参与搜索），少数用户面项在 v1.0 窗口显式重评估。
+一句话：**仓库名跟随品牌（agateon），目录名跟随功能（agate），两者解耦。** 外部层必须现在定死（产生搜索粘性），内部层多数永不改名（不参与搜索），少数用户面项在后续窗口显式重评估。
 
 ## 2. 关键教训：撞名有两个维度，org 只解决一个
 
@@ -36,7 +36,7 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 - **门户**：将来另开独立仓 `agateon-portal`（暂定），依赖单向（portal → 协议仓），物理隔离。
 - **org**：**已占名（2026-08-25）**——用户注册空 org `agateon`（github.com/agateon，created_at 2026-08-25T15:59Z，0 仓库），仅占名防抢注、不迁仓。主仓暂留 `randomgitsrc/agateon`；门户立项时再议迁 org（届时命名须遵守 §2 结论：仓库名含品牌词，不能叫 `agate`）。
 - **否决方案**：
-  - monorepo（`agateon/` 里塞 `core/` + `sitesrc/` + `dist/` + `docs/`）——否决理由：协议与门户**发布节奏不同**（协议 v0.62 补强中，门户 v1.0 后才立项）、依赖单向、单仓名只能承载一个品牌面。
+  - monorepo（`agateon/` 里塞 `core/` + `sitesrc/` + `dist/` + `docs/`）——否决理由：协议与门户**发布节奏不同**（协议 v0.62 补强中，门户后续才立项）、依赖单向、单仓名只能承载一个品牌面。
   - `agateon/agate`（org 方案）——否决理由：见 §2，仓库名降回 `agate`，品牌词查无此仓。
   - `agateon.com` 作门户仓库名——否决理由：与主仓 `agateon` 只差 `.com`，搜索/分享易混。暂定 `-portal` 后缀。
 
@@ -50,17 +50,17 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 ### 3.3 基础设施层：区分"纯内部"与"用户面"
 
 - **纯内部（永久保留）**：`agate_common`（被 51 个文件引用的公共库）、`check-*.py` 20 个 gate 脚本（已不带 agate 前缀，用 `check-` 前缀）、`resolve-entry.py`。
-- **用户面（当前保留，v1.0 窗口重评估，见 §8）**：`~/.agate` 安装路径、`AGATE_*` 环境变量、`agate-*.py` CLI 命令名——这些对将来真实用户是可感知的（写进 shell rc、任务卡、教程），"永不改名"的成本收益要在首个真实用户出现前再评估一次。
+- **用户面（当前保留，后续窗口重评估，见 §8）**：`~/.agate` 安装路径、`AGATE_*` 环境变量、`agate-*.py` CLI 命令名——这些对将来真实用户是可感知的（写进 shell rc、任务卡、教程），"永不改名"的成本收益要在首个真实用户出现前再评估一次。
 
 ## 4. 影响面盘点（测量口径见尾注）
 
 | 面 | 数量（实测）| 层次 | 处理策略 |
 |----|------|------|----------|
-| `agate-*.py` CLI 工具 | 31 个 | 用户面 | 当前保留；v1.0 加 `agateon-*` 别名 |
+| `agate-*.py` CLI 工具 | 31 个 | 用户面 | 当前保留；后续加 `agateon-*` 别名 |
 | `check-*.py` gate 脚本 | 20 个 | 纯内部 | 不涉及（已无 agate 前缀）|
 | `agate_common` 公共库 | 51 个文件引用 | 纯内部 | 保留 |
-| `AGATE_*` 环境变量 | 30+ 个变量（`AGATE_WORKSPACE` 225 处、`AGATE_ROOT` 178 处）| 用户面 | 当前保留，v1.0 重评估 |
-| `~/.agate` 安装路径 | 440 个文件引用 | 用户面 | 当前保留，v1.0 重评估 |
+| `AGATE_*` 环境变量 | 30+ 个变量（`AGATE_WORKSPACE` 225 处、`AGATE_ROOT` 178 处）| 用户面 | 当前保留，后续重评估 |
+| `~/.agate` 安装路径 | 440 个文件引用 | 用户面 | 当前保留，后续重评估 |
 | **硬编码仓库 URL** | `install.sh:24`、`agate-install.py:55`、`agate-changes.py:116`、`README.md:5` badge、`README.md:29` 安装入口、`README.zh-CN.md:5` badge、`README.zh-CN.md:29` 安装入口 | 品牌层 | **Phase 1 与改名同批更新** |
 | `agate` 字符串总量 | 36,196 次（md+py+sh+yml+yaml）| 混合 | 按 §5.3 判定规则分类：独立词换、token 留 |
 | CI workflow | 2 个 | 品牌/配置 | job 名、注释换，路径不动 |
@@ -77,7 +77,7 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 - `git remote set-url` 主动更新本地 remote
 - 域名 `agateon.com` 已注册（2026-08-25）；PyPI/npm/crates.io 包名占位（商标线独立，见 `agateon-trademark-research.md`）
 
-### 5.2 基础设施层（v1.0 窗口，Phase 2）
+### 5.2 基础设施层（后续窗口，Phase 2）
 
 - 协议正文、文档内品牌 prose 引用统一（按 §5.3 判定规则）
 - CLI 别名策略（见 §5.4）
@@ -101,7 +101,7 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 
 规则判定方式：backtick 内外 + 词边界可由脚本判定（半机械）；最终以 Phase 2 的 brand-check 扫描 in-scope 文件为准，辅以人工抽查。
 
-### 5.4 别名落地机制（v1.0）
+### 5.4 别名落地机制（后续）
 
 - **形态**：symlink（Linux/macOS）+ 同内容 wrapper/copy（Windows，`ln -sf` 退化为复制后的 `agateon-*` 副本需同目录 `import agate_common`，按平台分支断言，遵循项目"不硬编码单平台假设"硬约束）
 - **安装/卸载**：`agate-install.py` 生成/清理别名；`agate-summary` 等入口同时支持 `agate-*` 与 `agateon-*`
@@ -127,13 +127,13 @@ GitHub 的 `in:name` 搜索看的是**仓库名**，不区分 org。所以 `agat
 |-------|------|--------|
 | 0（立即）| 品牌声明：README/CHANGELOG 标 Agateon | 首页可见 "Agateon (formerly agate)" |
 | 1（决策后）| 仓库改名 `agateon` + 硬编码 URL 同批更新 | 旧 URL 301；`git ls-remote` 新名正常；`install.sh`/README.md/README.zh-CN.md/`agate-install.py`/`agate-changes.py` 无旧 URL 残留；`in:name` 首屏命中 `agateon` |
-| 2（v1.0）| 基础设施统一：脚本别名 + 文档品牌引用 + brand-check | CLI `agateon-summary` 与 `agate-summary` 输出/退出码一致；brand-check 扫描权威文档（README/CHANGELOG/协议正文）品牌 prose 已统一 |
+| 2（后续）| 基础设施统一：脚本别名 + 文档品牌引用 + brand-check | CLI `agateon-summary` 与 `agate-summary` 输出/退出码一致；brand-check 扫描权威文档（README/CHANGELOG/协议正文）品牌 prose 已统一 |
 | 3（门户立项）| 新建 `agateon-portal` | portal 独立仓可跑 |
 
 ## 8. 已收敛决策
 
 1. **`agate/` 目录名**：永久保留，不改成 `core/`。内部实现不跟品牌。
-2. **`~/.agate` 安装路径**：当前保留（改名成本巨大）；**v1.0/首个真实用户出现前重评估**——届时新装路径可考虑 `~/.agateon`（软链兼容 `~/.agate`），新用户教程用 `agateon-*` 命令，避免每个新用户 home/rc 里永远印着旧品牌。
+2. **`~/.agate` 安装路径**：当前保留（改名成本巨大）；**后续/首个真实用户出现前重评估**——届时新装路径可考虑 `~/.agateon`（软链兼容 `~/.agate`），新用户教程用 `agateon-*` 命令，避免每个新用户 home/rc 里永远印着旧品牌。
 3. **`agate-workspace` 目录名**：保留。与 `AGATE_WORKSPACE` 变量（225 处）强绑定，与 `agate/` 成对。
 4. **PyPI/npm/crates.io 包名**：占位 `agateon`（防抢注）；当前无打包发布计划，内部 import 面是 `agate_common`（无 `agate` 包），保持不变。
 

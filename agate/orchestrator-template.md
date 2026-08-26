@@ -70,7 +70,7 @@ permission:
 2. 解析工作区：跑 `python3 {agate_root}/scripts/agate_common.py` 得到 `{AGATE_WORKSPACE}`（会话开始时已做过，直接复用结果）
 3. **旧布局检测**（BDD-10）：若 `{project_root}/docs/tasks/active-tasks.md` 存在而 `{AGATE_WORKSPACE}/tasks/active-tasks.md` 不存在 → 项目仍在使用旧版 `docs/tasks/` 布局。此时**输出迁移指引**并停止自动推进：
    ```
-   检测到旧版任务目录 docs/tasks/（agate v2.0 工作区架构之前布局）。
+   检测到旧版任务目录 docs/tasks/（当前工作区架构之前的布局）。
    请先在项目根运行迁移工具：python3 {agate_root}/scripts/agate-migrate-workspace.py
    迁移完成后重新开始本会话。不要继续在 docs/tasks/ 旧路径上编排任务。
    ```

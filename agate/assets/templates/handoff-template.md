@@ -89,7 +89,7 @@ python3 -m pytest agate/tests/unit/test_{具体测试文件}.py
 - `.state.yaml`：phase=P0（P1 开始后推进）
 - active-tasks.md「待开始」已有 {Txxx} 行
 - roadmap：{关联条目} 关联本任务（scheduled）
-- **编号体系**：任务用 `{Txxx}`（项目代号 + 动态数字，v2.0 起的 Jira 式编号）。校验器 `^T[A-Z]{2}\d+$`
+- **编号体系**：任务用 `{Txxx}`（项目代号 + 动态数字的 Jira 式编号）。校验器 `^T[A-Z]{2}\d+$`
 
 ## 7. 已知风险与止损
 

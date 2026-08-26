@@ -58,7 +58,7 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 ```bash
 # 修改进行中任务的 .state.yaml 的 task_id
 # T001 → TAG0001（选你项目的 2 字母代号 + 数字）
-# 路径按你项目的实际任务目录（v2.0 起在工作区 {AGATE_WORKSPACE}/tasks/ 下）
+# 路径按你项目的实际任务目录（位于工作区 {AGATE_WORKSPACE}/tasks/ 下）
 # Linux：sed -i 's/^task_id: T001$/task_id: TAG0001/' {AGATE_WORKSPACE}/tasks/T001-*/.state.yaml
 # macOS（BSD sed 的 -i 需空后缀）：sed -i '' 's/^task_id: T001$/task_id: TAG0001/' {AGATE_WORKSPACE}/tasks/T001-*/.state.yaml
 ```
@@ -74,13 +74,13 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 ### 2.3 旧任务目录
 
-- v2.0 起任务目录位于工作区 `{AGATE_WORKSPACE}/tasks/` 下
+- 任务目录位于工作区 `{AGATE_WORKSPACE}/tasks/` 下
 - 旧目录 `docs/tasks/T001-xxx/` 保留不动 = 无检测触发（迁移工具会将其迁入工作区 `tasks/`，见 v0.41.0 变更节）
 - 新任务用新目录 `{AGATE_WORKSPACE}/tasks/TAG0001-xxx/`
 
 ### 2.4 项目侧文件（project.md 等）
 
-- `{AGATE_WORKSPACE}/agents/project.md`（项目特定信息，v2.0 起位于工作区）**不在 Agateon 协议内，不会自动升级**——若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
+- `{AGATE_WORKSPACE}/agents/project.md`（项目特定信息，位于工作区）**不在 Agateon 协议内，不会自动升级**——若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
 - 其他项目自有文件同理：升级后检查一次即可，Agateon 不负责这些
 
 ---
@@ -233,7 +233,7 @@ RM-AG0045 声明写时自检（dispatch-prompt 返回前自检 + frontmatter 错
 - **对账兜底**：M1 双跑对账（`RECONCILE WARNING`/`RECONCILE SUMMARY`，stderr，`AGATE_RECONCILE`
   可关）保留——旧格式 md 正文字段（frontmatter 之外）仍被读取用于对账比对，旧任务继续可跑。
 - 升级动作：**进行中任务**的 P2-design.md / P1-requirements.md 若用旧正文格式声明四字段 /
-  risk_level / phases / gate_commands，建议迁移到 frontmatter（v2.0 机器字段）；不迁移也可跑
+  risk_level / phases / gate_commands，建议迁移到 frontmatter（机器字段）；不迁移也可跑
   （对账兜底不阻断），但会持续输出 RECONCILE 差异告警。
 
 **② 一致性 gate 提升阻断（影响：commit 流程 + CI）**
@@ -593,7 +593,7 @@ git reset   # 取消暂存
 ## 5. 常见问题
 
 **Q: 旧任务目录会导致升级后报错吗？**
-A: 不会——只要不暂存它的 `.state.yaml`。consistency 不查 .state.yaml 格式，pre-commit 只在暂存时校验。v2.0 起旧任务目录会由迁移工具迁入工作区，未迁移时 orchestrator 会输出迁移指引。
+A: 不会——只要不暂存它的 `.state.yaml`。consistency 不查 .state.yaml 格式，pre-commit 只在暂存时校验。旧任务目录会由迁移工具迁入工作区，未迁移时 orchestrator 会输出迁移指引。
 
 **Q: 必须把旧任务编号都改成 TAG0001 吗？**
 A: 只有"继续进行中的"必须改。已完成/归档的保留旧编号即可。

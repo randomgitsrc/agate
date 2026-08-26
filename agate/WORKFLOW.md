@@ -71,13 +71,13 @@ agate 建立在两条主线上：
         ├── active-tasks-template.md # active-tasks.md 看板模板
         ├── custom-role.md       # 自定义角色模板
         ├── dispatch-prompt.md   # 派发 prompt 模板
-        ├── roadmap-template.md  # roadmap 条目模板（新增，v2.0）
+        ├── roadmap-template.md  # roadmap 条目模板（新增）
         └── task-files.md        # 各阶段产出文件模板
 ```
 
 ---
 
-## 工作区目录规范（v2.0 起）
+## 工作区目录规范
 
 agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPACE}` = 项目根下 `agate-workspace/`，可用 `.agate.env` 配置指向其他位置，解析见 `agate_common.py`），不再散布在项目 `docs/` 下。工作区根下固定 9 个子目录：
 
@@ -94,7 +94,7 @@ agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPA
 └── logs/                         # 运行日志（orchestrator-log 等）
 ```
 
-### 内容边界判据（正式规则，v2.0）
+### 内容边界判据（正式规则）
 
 **问题**：什么文件应该进工作区，什么文件应该留在项目 `docs/`？
 
@@ -107,7 +107,7 @@ agate 的所有**编排状态**统一落盘到工作区（默认 `{AGATE_WORKSPA
 
 **对偶自洽性**：同一判据对两类文件必须给出相反结论——任务验收记录（编排流程生成）→ 工作区；项目 README（描述产品本身）→ 项目 docs/。若发现某文件既像编排状态又像产品文档，优先问"这是谁生成、谁消费的"——由编排流程生成/消费 → 工作区。
 
-### roadmap 循环（v2.0 新增机制）
+### roadmap 循环
 
 roadmap 是项目级任务规划层（单文件 `{AGATE_WORKSPACE}/roadmap/roadmap.md`，模板 `assets/templates/roadmap-template.md`），管理"新需求 → 任务 → 实施 → 回写"的闭环：
 
