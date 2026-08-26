@@ -1,10 +1,20 @@
 # 变更日志
 
-所有对 agate 协议的重要变更都会记录在此文件中。
+所有对 Agateon 协议的重要变更都会记录在此文件中。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
-> **已有 agate 项目升级前，先读 `agate/UPGRADING.md`**——旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，以及各版本的破坏性变更。
+> **已有 Agateon 项目升级前，先读 `agate/UPGRADING.md`**——旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，以及各版本的破坏性变更。
+
+---
+
+## [Unreleased]
+
+### 变更
+
+- **入口文档品牌文案统一**：README×2 / AGENTS×2 / SETUP / UPGRADING（当前节）品牌词 agate → Agateon（TAG0025 Phase 0 收尾；backtick token 与历史版本节按设计保留）
+- **DSH preset 显示名**：「agate 编排者」→「Agateon 编排者」（preset.yml / agent.cordis.yml / SKILL.md / SETUP 同步；新会话生效）
+- **HANDOFF-TAG0024/0025** 归档至 archived/
 
 ---
 

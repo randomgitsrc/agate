@@ -1,6 +1,6 @@
 # 首次接入指南：把 orchestrator 注册成可调用的 Agent
 
-> 面向**第一次把 agate 接入某个项目**的人。`README.md`「快速上手」讲的是"装 agate 本体"，这份文档讲的是下一步——怎么让 OpenCode / Claude Code 真的能调起 orchestrator，这一步是平台相关的，容易卡住，所以单独写。
+> 面向**第一次把 Agateon 接入某个项目**的人。`README.md`「快速上手」讲的是"装 Agateon 本体"，这份文档讲的是下一步——怎么让 OpenCode / Claude Code 真的能调起 orchestrator，这一步是平台相关的，容易卡住，所以单独写。
 >
 > 前置：已完成 `README.md`「快速上手」第 1 步——`~/.agate` 指向协议本体。两种形态均可：**单软链**（`~/.agate` → 仓库 `agate/` 子目录，`install.sh` 装法）或**版本管理目录**（`~/.agate/vX.Y.Z/` 版本目录 + `latest`/`current` 指针，`agate-install.py` 装法，见下方「环境准备」）。没做完先去做那一步。
 >
@@ -11,7 +11,7 @@
 ## 核心结论先说
 
 - **只需要注册 orchestrator 这一个 agent**。P1-P8 的执行角色/评审角色不需要在平台层预注册——派发时是"派一个通用 subagent，把角色文件路径写进 prompt 让它自己读"，见 `role-system.md`「方法 B」。
-- `orchestrator-template.md` 对所有项目内容完全一致，**标准接入方式是符号链接直接指向它，不要拷贝**。这样 agate 升级模板，你项目里的 orchestrator 提示词自动跟着升级，不需要手动同步。
+- `orchestrator-template.md` 对所有项目内容完全一致，**标准接入方式是符号链接直接指向它，不要拷贝**。这样 Agateon 升级模板，你项目里的 orchestrator 提示词自动跟着升级，不需要手动同步。
 - 项目特定信息（工作区规则、gate 命令、测试基线……）**只写进** `{AGATE_WORKSPACE}/agents/project.md`（可选文件，模板见 `assets/templates/project.md`），不要碰 orchestrator.md 本身。工作区默认在项目根 `agate-workspace/`，可用 `.agate.env` 的 `AGATE_WORKSPACE=` 指向其他位置（含项目外绝对路径），解析见 `scripts/agate_common.py`。
 
 ---
@@ -80,7 +80,7 @@ mkdir -p .claude/agents
 ln -sf ~/.agate/orchestrator-template.md .claude/agents/orchestrator.md
 ```
 
-**注意用文件级链接，不要把整个 `.claude/agents` 目录链到别处**——那样会让这个目录里以后任何非 agate 的自定义 agent 都被迫绑定到同一个源头，也可能把无关文件暴露给 agent 发现机制。只链这一个文件。
+**注意用文件级链接，不要把整个 `.claude/agents` 目录链到别处**——那样会让这个目录里以后任何非 Agateon 的自定义 agent 都被迫绑定到同一个源头，也可能把无关文件暴露给 agent 发现机制。只链这一个文件。
 
 **Claude Code 的 frontmatter 必须含 `name: orchestrator` 字段**——缺了这个字段，Claude Code 会静默跳过整个文件，不报错不警告，agent 就是"不存在"，`orchestrator-template.md` 已经带了这个字段，不需要你额外加，这里提醒是因为如果你自己改过模板、不小心删掉了这个字段，是最容易踩、也最难发现的坑（没有任何报错信息）。
 
@@ -99,7 +99,7 @@ ln -sf ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 
 同样是文件级链接，理由同上。
 
-> ⚠️ **副作用**：创建 `.opencode/` 目录后，OpenCode 会把它当作插件目录，自动初始化 `@opencode-ai/plugin` 依赖（生成 `package.json`/`package-lock.json`/`node_modules`）。这是 OpenCode 平台行为，无害，但 `.opencode/node_modules` 里的 `.md` 文件可能被 agate 的一致性检查（`check-protocol-consistency.py`）误扫——已从扫描范围排除 `.opencode`/`.claude`/`node_modules`，无需处理。
+> ⚠️ **副作用**：创建 `.opencode/` 目录后，OpenCode 会把它当作插件目录，自动初始化 `@opencode-ai/plugin` 依赖（生成 `package.json`/`package-lock.json`/`node_modules`）。这是 OpenCode 平台行为，无害，但 `.opencode/node_modules` 里的 `.md` 文件可能被 Agateon 的一致性检查（`check-protocol-consistency.py`）误扫——已从扫描范围排除 `.opencode`/`.claude`/`node_modules`，无需处理。
 
 验证：
 ```bash
@@ -123,21 +123,21 @@ ln -sf ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 cp ~/.agate/orchestrator-template.md .claude/agents/orchestrator.md
 cp ~/.agate/orchestrator-template.md .opencode/agents/orchestrator.md
 ```
-⚠️ **复制模式的代价**：agate 升级模板后不会自动同步，你需要在每次升级完 agate 后手动重跑上面这两条 `cp` 命令。目前没有自动漂移检测（`agate-summary.py` 现有的漂移检测只覆盖 `scripts/` 目录下的脚本副本，不覆盖这个文件），这是已知的手动步骤，忘了也不会报错提醒——建议每次升级 agate 后养成习惯重跑一遍。
+⚠️ **复制模式的代价**：Agateon 升级模板后不会自动同步，你需要在每次升级完 Agateon 后手动重跑上面这两条 `cp` 命令。目前没有自动漂移检测（`agate-summary.py` 现有的漂移检测只覆盖 `scripts/` 目录下的脚本副本，不覆盖这个文件），这是已知的手动步骤，忘了也不会报错提醒——建议每次升级 Agateon 后养成习惯重跑一遍。
 
-`cmd`/PowerShell 的 `mklink` 底层调用的是和 `ln -sf` 同一个系统 API，一样需要管理员权限，不是绕开限制的办法；`mklink /H`（硬链接）在同一 NTFS 分区内不需要管理员权限，可以作为免权限的进阶选项，但硬链接绑定的是当前这份文件的磁盘位置，**agate 自身升级模板文件时如果不是原地改写而是新建后替换（多数 git 实现是这样），硬链接会指向旧内容变成过期链接**——这一点没有在这套环境实测过，如果要用请自己验证一次"升级 agate 后硬链接是否还生效"，不确定就用复制模式更保险。
+`cmd`/PowerShell 的 `mklink` 底层调用的是和 `ln -sf` 同一个系统 API，一样需要管理员权限，不是绕开限制的办法；`mklink /H`（硬链接）在同一 NTFS 分区内不需要管理员权限，可以作为免权限的进阶选项，但硬链接绑定的是当前这份文件的磁盘位置，**Agateon 自身升级模板文件时如果不是原地改写而是新建后替换（多数 git 实现是这样），硬链接会指向旧内容变成过期链接**——这一点没有在这套环境实测过，如果要用请自己验证一次"升级 Agateon 后硬链接是否还生效"，不确定就用复制模式更保险。
 
 ### Windows 环境适配要点（无 WSL，Git for Windows）
 
-> agate 的 gate 脚本已全部 Python 化（`.py`），不再依赖 bash + GNU coreutils（TAG0010 起**无 bash 环境也成为可行选项**）；仅 3 个 git hook 入口保留 `.sh` 薄壳，需要 **Git for Windows** 自带的 sh 执行。以下是 Windows 上跑通 agate 的环境要点（详见 `platform-notes.md`「Windows 原生」章节），**hook 相关命令在 Git Bash 里执行**，不要在 `cmd`/PowerShell 里跑 `.sh` 薄壳。
+> Agateon 的 gate 脚本已全部 Python 化（`.py`），不再依赖 bash + GNU coreutils（TAG0010 起**无 bash 环境也成为可行选项**）；仅 3 个 git hook 入口保留 `.sh` 薄壳，需要 **Git for Windows** 自带的 sh 执行。以下是 Windows 上跑通 Agateon 的环境要点（详见 `platform-notes.md`「Windows 原生」章节），**hook 相关命令在 Git Bash 里执行**，不要在 `cmd`/PowerShell 里跑 `.sh` 薄壳。
 
 **1. AGATE_ROOT 用 Unix 风格路径**：协议本体路径在 Git Bash 里写成 `/c/Users/<你>/agate/agate`（或 `C:/Users/<你>/agate/agate`），**不要写反斜杠 `C:\...`**——反斜杠在 bash 里是转义符，且 `agate-next-card.py` 的前缀剥离在盘符/反斜杠下失效（Q1 修复覆盖了归一化，但环境变量里直接写反斜杠仍会被 bash 吃掉）。设 `~/.agate` 软链接用 `ln -s`（Git Bash 里 `~` 是 `C:\Users\<你>`）；无符号链接权限时改用系统环境变量 `AGATE_ROOT=/c/Users/<你>/agate/agate`。
 
 **2. PATH 注入风险**：`C:\Program Files\Git\bin`（git.exe）和 `C:\Program Files\Git\usr\bin`（bash + coreutils）须在 PATH 里且**顺序靠前**，否则 `bash`/`grep`/`sed` 会解析到系统其他位置（或找不到）。`git --version` 与 `bash --version` 跑通即代表 PATH 正常。python 的 `Scripts/` 目录若与 Git 的 usr/bin 冲突，以实际 `which python`/`which bash` 为准调整顺序。
 
-**3. Git Bash 执行 hook**：`python3 ~/.agate/scripts/install-hook.py` 在 Git Bash 里跑。Windows 无符号链接权限时 hook 以**复制模式**安装（输出含「复制模式」提示），升级 agate 后需重跑此命令（复制不自动跟随源文件，见 `platform-notes.md`「已知限制」）。
+**3. Git Bash 执行 hook**：`python3 ~/.agate/scripts/install-hook.py` 在 Git Bash 里跑。Windows 无符号链接权限时 hook 以**复制模式**安装（输出含「复制模式」提示），升级 Agateon 后需重跑此命令（复制不自动跟随源文件，见 `platform-notes.md`「已知限制」）。
 
-**4. `PYTHONUTF8=1`**：Windows 的 python 默认用系统 ANSI 代码页（GBK）解释源码/读写文件，agate 的 `.py` 工具按 UTF-8 读写协议文件会乱码/报错。在系统环境变量加 `PYTHONUTF8=1`，或 Git Bash 会话里 `export PYTHONUTF8=1`，让 python 3.7+ 以 UTF-8 模式运行。
+**4. `PYTHONUTF8=1`**：Windows 的 python 默认用系统 ANSI 代码页（GBK）解释源码/读写文件，Agateon 的 `.py` 工具按 UTF-8 读写协议文件会乱码/报错。在系统环境变量加 `PYTHONUTF8=1`，或 Git Bash 会话里 `export PYTHONUTF8=1`，让 python 3.7+ 以 UTF-8 模式运行。
 
 **5. CRLF / `core.autocrlf` 处理**：仓库已含 `.gitattributes` 强制 LF（`*.md` 等文本规则除外，历史 review 文件保持 CRLF，见仓库根 `.gitattributes` 文件头注释）；若 clone 的是旧版本仓库（无该文件），手动 `git config core.autocrlf false` 再重新 checkout。已物化 CRLF 的工作区执行 `git add --renormalize .` 重规范化，否则 3 个 hook 薄壳 `.sh` 报 `\r` 语法错、卡片 sha256 校验 mismatch（py 文件已显式 `encoding="utf-8"` 读写，免疫）。
 
@@ -162,12 +162,12 @@ python3 ~/.agate/scripts/install-hook.py
 `{agate_root}/orchestrator-template.md`——模板随 `~/.agate`（→ 仓库软链）升级自动更新；
 符号链接方式升级后什么都不用做；**Windows 无符号链接权限时退复制模式，升级后需重跑上述 `ln` 命令对应的 `cp`**（复制模式代价：模板升级后不会自动同步，与既有平台小节一致）。
 
-**使用**：打开 DSH 会话，在会话选择器选「agate 编排者」（对应 `claude --agent orchestrator`），
+**使用**：打开 DSH 会话，在会话选择器选「Agateon 编排者」（对应 `claude --agent orchestrator`），
 然后执行 orchestrator-template.md 的「开始」几步验证。
 
 > 版本敏感提示：本接入已实机验证（2026-08-21，DSH v0.1.0-rc.8：preset 软链安装 → 热发现 →
-> 会话选择器出现「agate 编排者 · 自定义」→ 新会话以 agate 编排者人格启动）。DSH 是新兴平台，
-> preset/skill 发现机制可能随版本变化——升级 DSH 后若会话选择器找不到「agate 编排者」，
+> 会话选择器出现「Agateon 编排者 · 自定义」→ 新会话以 Agateon 编排者人格启动）。DSH 是新兴平台，
+> preset/skill 发现机制可能随版本变化——升级 DSH 后若会话选择器找不到「Agateon 编排者」，
 > 重跑上方命令块即可。
 
 ## 步骤 3（可选）：设成默认 agent
@@ -231,9 +231,9 @@ AGATE_WORKSPACE=/srv/agate-ws/My Project   # 绝对路径（可含空格）→ �
 
 ---
 
-## 升级 agate 之后
+## 升级 Agateon 之后
 
-**已有 agate 项目（跑过旧版任务）升级，先读 `UPGRADING.md`**——它讲清楚旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，避免升级后踩到破坏性变更。
+**已有 Agateon 项目（跑过旧版任务）升级，先读 `UPGRADING.md`**——它讲清楚旧任务数据（active-tasks.md/.state.yaml/任务编号）如何处理，避免升级后踩到破坏性变更。
 
 - 符号链接方式：什么都不用做，orchestrator 提示词自动跟着新版本。
 - 复制模式（Windows 无权限场景）：重跑步骤 2 的 `cp` 命令。

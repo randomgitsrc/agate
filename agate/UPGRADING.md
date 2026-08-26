@@ -1,6 +1,6 @@
-# agate 升级指引
+# Agateon 升级指引
 
-> 面向**已有 agate 项目**（已用旧版 agate 跑过任务）升级到新版本。
+> 面向**已有 Agateon 项目**（已用旧版 Agateon 跑过任务）升级到新版本。
 > 新接入项目不用看这里，直接读 `SETUP.md`。
 > 升级前先读：`CHANGELOG.md`（本版本的变更）+ 本文件（旧数据怎么处理）。
 
@@ -8,20 +8,20 @@
 
 ## 核心原则：不动则无感
 
-agate 的校验器（`agate-state-yaml-check.py` 等）**只在 .state.yaml 被 git add 暂存时才触发**（pre-commit 机制），不是扫描所有任务目录。所以：
+Agateon 的校验器（`agate-state-yaml-check.py` 等）**只在 .state.yaml 被 git add 暂存时才触发**（pre-commit 机制），不是扫描所有任务目录。所以：
 
 - **旧任务数据（已完成/归档）如果不动它，升级后零检测触发、零问题**
 - 只有"**要继续推进的进行中任务**"和"**新任务**"需要符合新版本规范
 
-**升级最小动作**：`git pull` 拉新版 agate + 重跑 `install-hook.py`（见下文），其余按需。
+**升级最小动作**：`git pull` 拉新版 Agateon + 重跑 `install-hook.py`（见下文），其余按需。
 
 ---
 
 ## 1. 通用升级步骤
 
 ```bash
-# 1. 升级 agate 本体（~/.agate 软链指向的仓库）
-cd <你克隆 agate 的目录> && git pull
+# 1. 升级 Agateon 本体（~/.agate 软链指向的仓库）
+cd <你克隆 Agateon 的目录> && git pull
 
 # 2. 重装 hook（推荐，pre-commit/commit-msg 软链自动跟随；pre-push 也是软链 v0.32+ 自动跟随）
 python3 ~/.agate/scripts/install-hook.py
@@ -67,9 +67,9 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 ### 2.2.1 项目代号（`AG`/`PV`）语义
 
-- **来源**：项目接入 agate 时**自行约定** 2 个大写字母代号（对齐 Jira `[A-Z][A-Z]+` 风格），agate **不自动生成**。例如 `AG`=agate 改造、`PV`=peekview。
+- **来源**：项目接入 Agateon 时**自行约定** 2 个大写字母代号（对齐 Jira `[A-Z][A-Z]+` 风格），Agateon **不自动生成**。例如 `AG`=agate 改造、`PV`=peekview。
 - **一致性**：**同一项目应用同一代号**（`active-tasks-template.md` 第 4 条规则："项目局部命名空间内按项目代号 + 动态编号递增"）。不同项目可用不同代号（`TAG0001`/`TPV0001` 各不同，正常）；**同一项目混用代号会破坏编号的"项目标识"意义**，看板/追溯会混乱。
-- **校验边界**：`agate-state-yaml-check.py` **只校验格式**（`^T[A-Z]{2}\d+$`），**不校验代号一致性**——`TAG0001`/`TPV0001`/`TXX0001` 格式都合法。代号一致性靠**项目约定 + 看板规则**维持，无强制拦截。若你的项目需要强制，可自行加检查（当前 agate 未内置）。
+- **校验边界**：`agate-state-yaml-check.py` **只校验格式**（`^T[A-Z]{2}\d+$`），**不校验代号一致性**——`TAG0001`/`TPV0001`/`TXX0001` 格式都合法。代号一致性靠**项目约定 + 看板规则**维持，无强制拦截。若你的项目需要强制，可自行加检查（当前 Agateon 未内置）。
 - **升级时**：为进行中的旧任务选代号时，**用你项目的既有代号**（若有约定），或新定一个并在 active-tasks-template 里记录，保持全项目一致。
 
 ### 2.3 旧任务目录
@@ -80,8 +80,8 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 ### 2.4 项目侧文件（project.md 等）
 
-- `{AGATE_WORKSPACE}/agents/project.md`（项目特定信息，v2.0 起位于工作区）**不在 agate 协议内，不会自动升级**——若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
-- 其他项目自有文件同理：升级后检查一次即可，agate 不负责这些
+- `{AGATE_WORKSPACE}/agents/project.md`（项目特定信息，v2.0 起位于工作区）**不在 Agateon 协议内，不会自动升级**——若其内容引用了旧编号格式（`T001`）或旧看板结构，需手动同步
+- 其他项目自有文件同理：升级后检查一次即可，Agateon 不负责这些
 
 ---
 

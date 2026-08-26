@@ -1,4 +1,4 @@
-# agate
+# Agateon
 > **Agateon (formerly agate)** — this project has a new name; the badge and install command below already point to the new repository.
 > An orchestration protocol that verifies AI agents the way a build system verifies a compiler.
 
@@ -7,24 +7,24 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-## What is agate?
+## What is Agateon?
 
-agate is a documentation-and-script orchestration protocol for software engineering tasks. There is no runtime, no daemon, and no build step — just a set of Markdown protocol files plus gate-check scripts that any coding agent can read and run. A single orchestrator agent never writes code itself. Instead it dispatches dedicated subagents through eight phases (P1 requirements → P2 design → P3 test-first → P4 implementation → P5 verification → P6 acceptance → P7 consistency → P8 release), and after every phase it runs an objective gate check before the state machine may advance. State is persisted to version-controlled Markdown, so progress survives crashes and remains auditable by humans.
+Agateon is a documentation-and-script orchestration protocol for software engineering tasks. There is no runtime, no daemon, and no build step — just a set of Markdown protocol files plus gate-check scripts that any coding agent can read and run. A single orchestrator agent never writes code itself. Instead it dispatches dedicated subagents through eight phases (P1 requirements → P2 design → P3 test-first → P4 implementation → P5 verification → P6 acceptance → P7 consistency → P8 release), and after every phase it runs an objective gate check before the state machine may advance. State is persisted to version-controlled Markdown, so progress survives crashes and remains auditable by humans.
 
-## Why agate?
+## Why Agateon?
 
-LLM agents are powerful but unreliable on long tasks: context gets polluted, subagents drift, and "it looks done" becomes the only quality signal. agate treats an AI agent the way a build system treats a compiler — you don't trust the output, you verify it through gates.
+LLM agents are powerful but unreliable on long tasks: context gets polluted, subagents drift, and "it looks done" becomes the only quality signal. Agateon treats an AI agent the way a build system treats a compiler — you don't trust the output, you verify it through gates.
 
 - **Gates are hard boundaries.** Progress is blocked on objective signals — a test runner's exit code, a typechecker, a git log — not on "looks about right."
 - **State is persisted.** Every phase's result lands in version-controlled Markdown, so work survives interruptions and is auditable by humans.
 - **Roles are isolated.** Each phase runs in a dedicated subagent, keeping the orchestrator's context clean and the review genuinely independent.
 - **Zero infrastructure.** Your agent only needs to read files and run commands — nothing to deploy, no service to operate.
 
-> agent + gate → agate
+> agent gates on → Agateon
 
 ## Quick start
 
-1. **Install agate.** Clone the repository and point `~/.agate` at the protocol body (`agate/`), or use the one-shot installer:
+1. **Install Agateon.** Clone the repository and point `~/.agate` at the protocol body (`agate/`), or use the one-shot installer:
    ```bash
    curl -sSL https://raw.githubusercontent.com/randomgitsrc/agateon/main/install.sh | bash
    ```
@@ -70,11 +70,11 @@ See [`agate/platform-notes.md`](agate/platform-notes.md) for platform-specific a
 
 | If you want to… | Read |
 |-----------------|------|
-| Integrate agate into a project for the first time | [`agate/SETUP.md`](agate/SETUP.md) |
+| Integrate Agateon into a project for the first time | [`agate/SETUP.md`](agate/SETUP.md) |
 | Understand the P0-P8 phase workflow and pruning rules | [`agate/WORKFLOW.md`](agate/WORKFLOW.md) |
 | Look up cross-phase rules (retry caps / state transitions / C8 review mapping) | `agate/rules/`（phases.yaml / dispatch.yaml / roles.yaml + schema/，与既有规则 md 并列） |
 | Read the protocol body entry point (for agents and deep users) | [`agate/AGENTS.md`](agate/AGENTS.md) |
-| Adapt agate to your platform (OpenCode / Claude Code / Windows) | [`agate/platform-notes.md`](agate/platform-notes.md) |
+| Adapt Agateon to your platform (OpenCode / Claude Code / Windows) | [`agate/platform-notes.md`](agate/platform-notes.md) |
 | Understand known structural limitations | [`agate/LIMITATIONS.md`](agate/LIMITATIONS.md) |
 | Check breaking changes before upgrading | [`agate/UPGRADING.md`](agate/UPGRADING.md) |
 | Look up the glossary / ubiquitous language | [`agate/CONTEXT.md`](agate/CONTEXT.md) |
@@ -83,7 +83,7 @@ See [`agate/platform-notes.md`](agate/platform-notes.md) for platform-specific a
 
 ## Design principles
 
-- **Document protocol, not a code framework.** Zero infrastructure — any agent that can read files can use agate.
+- **Document protocol, not a code framework.** Zero infrastructure — any agent that can read files can use Agateon.
 - **Gates are hard boundaries.** An objective, externally produced result decides whether a phase passes, not a subjective "looks right."
 - **State is persisted.** Any interruption resumes from the last completed phase.
 - **Roles are isolated.** Dedicated subagents execute each phase; the orchestrator never pollutes its own context with implementation work.
@@ -101,11 +101,11 @@ Adoption is progressive. Pruning is decided in P1, not automatic: the analyst cl
 
 ## Known limitations
 
-agate takes the document-protocol route, which carries structural limits: the quality ceiling of its gates, the cognitive (not truly independent) nature of role isolation, and the orchestrator's judgment as a single point of failure. **Read [`agate/LIMITATIONS.md`](agate/LIMITATIONS.md) before adopting — it is honest about what this protocol does not solve.**
+Agateon takes the document-protocol route, which carries structural limits: the quality ceiling of its gates, the cognitive (not truly independent) nature of role isolation, and the orchestrator's judgment as a single point of failure. **Read [`agate/LIMITATIONS.md`](agate/LIMITATIONS.md) before adopting — it is honest about what this protocol does not solve.**
 
 ## Contributing
 
-agate itself is developed with agate. Start at the maintainer entry point [`agate/AGENTS.md`](agate/AGENTS.md) and run the test suite with:
+Agateon itself is developed with Agateon. Start at the maintainer entry point [`agate/AGENTS.md`](agate/AGENTS.md) and run the test suite with:
 
 ```bash
 python3 -m pytest agate/tests/

@@ -1,6 +1,6 @@
-# The `agate-orchestrator` agent preset: agate 编排者的 DSH 身份注册。
+# The `agate-orchestrator` agent preset: Agateon 编排者的 DSH 身份注册。
 #
-# 对应 agate 在 Claude Code / OpenCode 的接入方式（ln -sf orchestrator-template.md
+# 对应 Agateon 在 Claude Code / OpenCode 的接入方式（ln -sf orchestrator-template.md
 # 到平台 agent 目录，mode: primary）。本文件是同一份身份的 DSH 封装：
 #   persona.text   = 薄身份（你是谁 + 会话开始步骤 + DSH 工具映射）
 #   agent-instructions = 读项目 AGENTS.md/CLAUDE.md（同官方模板的「项目必读」）
@@ -11,7 +11,7 @@
 # 结构与 standard preset（apps/cli/config/agent-presets/standard/agent.cordis.yml）对齐：
 # group/isolate 语法（delegation 组）、!!js process.platform 平台分支、工具行 id/name 契约。
 # 已实机验证（2026-08-21，DSH v0.1.0-rc.8）：preset 软链安装 → 热发现 → 会话选择器
-# 出现「agate 编排者 · 自定义」→ 新会话以 agate 编排者人格启动；tool-fs-search 缺
+# 出现「Agateon 编排者 · 自定义」→ 新会话以 Agateon 编排者人格启动；tool-fs-search 缺
 # sampleOverCapGlobResults 的挂载失败缺陷已复现并修复（该字段为 schemastery 必填，
 # 无默认值，缺失 → preset 挂载失败 → DSH fail-closed 拒绝创建会话，勿删）。
 
@@ -21,7 +21,7 @@
   name: '@deepseek-ai/dsh-persona'
   config:
     text: >-
-      你是当前项目的 agate 编排 Agent（orchestrator），负责 P0-P8 全流程管理、派发 subagent 执行。
+      你是当前项目的 Agateon 编排 Agent（orchestrator），负责 P0-P8 全流程管理、派发 subagent 执行。
       你的职责严格限定为四件事：读状态、派发 subagent、跑 gate 脚本（exit code 判定）、更新状态。
       你永远不亲自写阶段产出物（需求/设计/测试/代码/验收）。
 

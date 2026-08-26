@@ -1,21 +1,21 @@
 ---
 name: agate-protocol
-description: agate 协议的 DSH 适配层——工具映射、平台注意、并行派发与独立 judge 的 DSH 原生食谱。由 agate 编排者（agent-preset）加载使用；也可供任何想在 DSH 上跑 agate 任务的 agent 加载。
+description: Agateon 协议的 DSH 适配层——工具映射、平台注意、并行派发与独立 judge 的 DSH 原生食谱。由 Agateon 编排者（agent-preset）加载使用；也可供任何想在 DSH 上跑 Agateon 任务的 agent 加载。
 ---
 
-# agate × DSH 适配层
+# Agateon × DSH 适配层
 
 > 协议本体在 `~/.agate`（跨平台共享，本 skill 不改协议任何文件）。本 skill 只回答一件事：
-> **在 deepseek-harness 上，怎么把 agate 的编排纪律映射到 DSH 的工具面。**
+> **在 deepseek-harness 上，怎么把 Agateon 的编排纪律映射到 DSH 的工具面。**
 
 ## 何时加载
 
-- 你是 agate 编排者（preset persona 已要求你执行 orchestrator-template.md）→ 已自动获得工具映射，本 skill 补充进阶食谱
-- 你想在 DSH 上手动跑 agate 任务（未用 preset）→ 加载本 skill，按「编排者四项职责」执行
+- 你是 Agateon 编排者（preset persona 已要求你执行 orchestrator-template.md）→ 已自动获得工具映射，本 skill 补充进阶食谱
+- 你想在 DSH 上手动跑 Agateon 任务（未用 preset）→ 加载本 skill，按「编排者四项职责」执行
 
 ## 编排者四项职责 × DSH 工具（与 persona 一致，速查）
 
-| agate 职责 | DSH 工具 | 注意 |
+| Agateon 职责 | DSH 工具 | 注意 |
 |------------|----------|------|
 | 读状态 | `read` / `grep` / `glob` | 不占 bash 通道，优先用 |
 | 派发 subagent | `subagent`（spawn）/ `subagent_fork`（fork）| 后台默认；prompt 只传路径不传内容（铁律 2）|
@@ -54,7 +54,7 @@ judge 需要 fresh context（只看标准、不看实现者自述）——DSH �
 ### 食谱 3：跨轮续跑（崩溃恢复增强）
 
 - `goal` 工具：把"完成 Txxx 的 P0-P8"固化为持久目标，DSH 自动续轮；中断后从 `.state.yaml` 记录的 phase 恢复
-- 与 agate 自身的"状态落盘"正交：goal 是运行时能力，状态文件仍是权威
+- 与 Agateon 自身的"状态落盘"正交：goal 是运行时能力，状态文件仍是权威
 
 ### 食谱 4：实时 gate（session hooks）
 
