@@ -10,12 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0025 | Agateon 品牌改名执行 Phase 0-1（RM-AG0035 剩余工作②）：品牌声明（Agateon formerly agate）+ GitHub 主仓改名 agate→agateon + 硬编码 URL 同批更新（design §4 实测 7 处）+ 本机 remote 迁移；按评审通过的 design-rename-execution.md 三层解耦（外部品牌改/内部命名空间不动），Phase 2（v1.0 别名+prose+brand-check）/3（门户）不在范围 | ✅ | READY | 高 | — | 2026-08-26 | 2026-08-26 |
-| TAG0023 | 机制校验补强批（RM-AG0042 retries 强制记录 + RM-AG0043 roadmap 回写校验 + RM-AG0044 环境敏感测试治理 + RM-AG0045 声明写时校验）：TAG0019-21 复盘独立评审确认的 4 个 agate 机制缺口合并处理 | ✅✅ | READY | 高 | — | 2026-08-23 | 2026-08-25 |
-| TAG0022 | 三连任务确认问题修复批（RM-AG0037 ruff 合并强制 + RM-AG0038 M2 迁移闭环 + RM-AG0039 judge 强制化 + RM-AG0040 M3 实证 + RM-AG0041 环境测试根治）：TAG0019-21 全面分析确认的 5 个问题合并处理 | ✅✅ | READY | 高 | — | 2026-08-22 | 2026-08-23 |
-| TAG0021 | 协议结构化层（RM-AG0022）：rules/{phases,dispatch,roles}.yaml + JSON Schema + S-1~S-6 双向一致性 gate + gate 脚本从 grep markdown 迁移读 YAML（M0-M3 渐进）；RM-0031 写时校验与 RM-0036 双语锚点的地基 | ✅✅ | READY | 高 | — | 2026-08-21 | 2026-08-22 |
-| TAG0020 | 独立 Judge 机制（RM-AG0032）：P6.5 验收独立裁判（judge 角色 fresh context 信息隔离 + 三层防造假 + append-only 事件账本 + 三档预算）；TAG0018 实证 LLM 评审≈0 净收益为立项锚 | ✅✅ | READY | 高 | TAG0019 | 2026-08-21 | 2026-08-22 |
-| TAG0024 | 工具链批（RM-AG0048 一期 agate-md-field-set + DEBT0019/20 check-gate roadmap-done 健壮性 + RM-AG0049/50 协议文档自洽 + BDD-30 check-pruning 隔离修复）：结构化字段写入工具（写即校验 + 自描述 + 权限引导 + 同源铁律，消灭手写 frontmatter 摩擦）+ 5 项前置修复合并：30 条 BDD 全 PASS，P6.5 judge 独立复核 passed，P7 一致性 BLOCKER=0 → v0.63.0 | ✅✅ | READY | 中 | — | 2026-08-25 | 2026-08-25 |
+| （无） | — | — | — | — | — | — | — |
 
 ### 待开始
 
@@ -30,6 +25,12 @@
 
 | 编号 | 任务名称 | 状态 | 最终阶段 | 优先级 | 完成日期 |
 |------|----------|------|----------|--------|----------|
+| TAG0025 | Agateon 品牌改名执行 Phase 0-1（RM-AG0035 剩余工作②）：品牌声明（Agateon formerly agate）+ GitHub 主仓改名 agate→agateon + 硬编码 URL 同批更新（design §4 实测 7 处）+ 本机 remote 迁移；按评审通过的 design-rename-execution.md 三层解耦（外部品牌改/内部命名空间不动），Phase 2（v1.0 别名+prose+brand-check）/3（门户）不在范围 | ✅✅ | READY | 高 | 2026-08-26 |
+| TAG0024 | 工具链批（RM-AG0048 一期 agate-md-field-set + DEBT0019/20 check-gate roadmap-done 健壮性 + RM-AG0049/50 协议文档自洽 + BDD-30 check-pruning 隔离修复）：结构化字段写入工具（写即校验 + 自描述 + 权限引导 + 同源铁律，消灭手写 frontmatter 摩擦）+ 5 项前置修复合并：30 条 BDD 全 PASS，P6.5 judge 独立复核 passed，P7 一致性 BLOCKER=0 → v0.63.0 | ✅✅ | READY | 中 | 2026-08-25 |
+| TAG0023 | 机制校验补强批（RM-AG0042 retries 强制记录 + RM-AG0043 roadmap 回写校验 + RM-AG0044 环境敏感测试治理 + RM-AG0045 声明写时校验）：TAG0019-21 复盘独立评审确认的 4 个 agate 机制缺口合并处理 | ✅✅ | READY | 高 | 2026-08-25 |
+| TAG0022 | 三连任务确认问题修复批（RM-AG0037 ruff 合并强制 + RM-AG0038 M2 迁移闭环 + RM-AG0039 judge 强制化 + RM-AG0040 M3 实证 + RM-AG0041 环境测试根治）：TAG0019-21 全面分析确认的 5 个问题合并处理 | ✅✅ | READY | 高 | 2026-08-23 |
+| TAG0021 | 协议结构化层（RM-AG0022）：rules/{phases,dispatch,roles}.yaml + JSON Schema + S-1~S-6 双向一致性 gate + gate 脚本从 grep markdown 迁移读 YAML（M0-M3 渐进）；RM-0031 写时校验与 RM-0036 双语锚点的地基 | ✅✅ | READY | 高 | 2026-08-23 |
+| TAG0020 | 独立 Judge 机制（RM-AG0032）：P6.5 验收独立裁判（judge 角色 fresh context 信息隔离 + 三层防造假 + append-only 事件账本 + 三档预算）；TAG0018 实证 LLM 评审≈0 净收益为立项锚 | ✅✅ | READY | 高 | 2026-08-22 |
 | TAG0019 | 风险分路由（RM-AG0031，ceremony routing）：agate-risk-score.py 客观信号算分 + ceremony 档位（thin/standard/full：客观信号脚本算分，analyst 只解释不决定）+ fail-closed 声明 checklist + requirements-review 审声明 + thin 档跳过 LLM 评审（M3 实证数据验收，TAG0018 成本账 LLM 评审≈0 净收益）；配套 subagent 返回前自检 gate + 写时 schema 校验（联动 RM-AG0022）：15 条 BDD 全 PASS，P4 review approved，P8 发布检查全绿 → v0.58.0 | ✅✅ | READY | 高 | 2026-08-22 |
 | TAG0018 | agate 原生支持 DSH 平台（RM-AG0030）：assets/templates/dsh/ 三件套 + SETUP.md 步骤 2-DSH + platform-notes DSH 条目 + test_dsh_preset.py 8 用例（实机验证 preset 挂载/人格，修复 tool-fs-search 缺必填配置）：19 条 BDD 全 PASS，P4 review approved + self-gate review aligned → v0.57.0 | ✅✅ | READY | 高 | 2026-08-21 |
 | TAG0007 | agate 项目结构管理机制（RM-AG0008 0→1 骨架脚手架 + RM-AG0009 CODE-MAP 架构演进纪律）：P1 需求 needs-revision 1 轮修复、P2 方案 rejected 1 轮修复（gate_p7 pairing 字段对应关系）、P4 实现 4 批并行（skeleton-docs/code-map-docs/gate-script-both/dogfood-bootstrap）review 一次通过、P7 一致性发现 gate_p4 自指假阴性登记 DEBT0017：11 条 BDD 全 PASS → v0.56.0 | ✅✅ | READY | 高 | 2026-08-20 |
