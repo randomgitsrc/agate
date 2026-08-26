@@ -60,6 +60,7 @@
 - commit 前检查 hook 会跑什么：pre-commit 按 .state.yaml phase 跑 check-gate，commit 时 phase 应与本次产出一致（P1 产出 → phase=P1 再 commit），否则 hook 拦截
 - hook 在共享 git 目录：worktree 的 `.git/hooks` 为空，hook 实际在 `<主 checkout>/.git/hooks/`（pre-commit / commit-msg / pre-push 软链已装），改 hook 装那里
 - CI 等待用 `gh pr checks <PR> --watch [--fail-fast]`，不手写 jq 轮询（2026-08-18 教训）
+- **docs/site 改动走快路径、不被全量 CI 卡死的机理与准则**：见 `docs/guides/ci-docs-only-playbook.md`（2026-08-26：`on:[push,pull_request]` 双跑 + 建分支 push 的 `before` 全零致 fast-pass 失效，已修为 push 限 main）
 - git 脚本不在 bash PATH 时用绝对路径：`/home/kity/bin/git-to-pr` / `/home/kity/bin/git-to-main`（非交互 shell 不读 bashrc，2026-08-18 确认）
 
 ## 版本发布清单（教训浓缩）

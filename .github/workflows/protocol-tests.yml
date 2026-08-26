@@ -17,6 +17,19 @@ name: Protocol Tests
 #    platform-scan/ruff 非 required，保留 job 级 if 跳过（不阻塞合并）。
 #    代价：docs-only 时各 job 仍会走 checkout/setup（约 20-40s），换取 required check success。
 #
+# ④ 2026-08-26 修"docs/site 改动仍跑全量"的隐性 bug（完整机理见
+#    docs/guides/ci-docs-only-playbook.md）：
+#    - 病根：git-to-pr 建新分支的 push，`github.event.before` 是全零（0000...0，GitHub 对
+#      新建分支的约定）→ detect-docs-only 里 `git merge-base 0000... <head>` 失败 →
+#      MERGE_BASE 空 → 按 fail-closed 保守回退 docs_only=false → 连纯 docs/site 的 push run
+#      也跑全量 pytest（PR #218 实证：push run pytest=1m vs pull_request run=0m）。
+#    - 修法：detect-docs-only 对 push 事件检测到全零 before 时，回退 diff 对 origin/main
+#      （= "分支相对 main 改了哪些"，即建分支 push 的完整范围），而非 fail-closed 全量。
+#      两个事件（push + pull_request）对纯内容 PR 都正确 fast-pass。
+#    - 不改为"push 只限 main"：实测改了 `on:` 触发器的 PR，GitHub 不再运行该 workflow
+#      自身（自引用，PR #222 实证零 run），落该改动的操作成本/风险远高于收益；
+#      all-zeros 回退已达成同样的快路径目标（见攻略 2.3）。
+
 # 协议定义：docs-only = 仅改动 docs 清单内路径（含 site/ 产品 Web 层，见 detect-docs-only 的
 # NON_DOCS 过滤）；workflow 自身改动不算 docs-only（跑全量）。
 #
@@ -25,6 +38,9 @@ name: Protocol Tests
 #   - 全量测试改 `-n auto`（xdist 并行）作为门禁；保留 --reruns 1（TAG0023 RM-AG0044 flaky 兜底）
 #   - 风险：RM-AG0041(basetemp)/RM-AG0044(git 短 hash) 环境敏感测试在并发下的稳定性已实测验证
 
+# 触发器：保持 [push, pull_request]。不改为"push 只限 main"——改了 on: 的 PR 不再运行该
+# workflow 自身（自引用，见头部④）；建分支 push 的全零 before 已由 detect-docs-only 的
+# all-zeros 回退兜底（见下方 detect 步骤与 docs/guides/ci-docs-only-playbook.md）。
 on: [push, pull_request]
 
 concurrency:
@@ -60,6 +76,14 @@ jobs:
             BASE="$PR_BASE"; HEAD="$PR_HEAD"
           elif [ "$EVENT_NAME" = "push" ]; then
             BASE="$PUSH_BEFORE"; HEAD="$PUSH_AFTER"
+            # 建分支的首次 push：github.event.before 为全零（GitHub 对新建分支的约定）→
+            # merge-base 必失败 → 此前 fail-closed 回退 docs_only=false，连纯 docs/site 的
+            # push run 也跑全量 pytest。回退修法：diff 对 origin/main（fetch-depth:0 全量
+            # 克隆，origin/main 可用）——即"分支相对 main 改了哪些"，是建分支 push 的完整范围。
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              git fetch origin main 2>/dev/null || true
+              BASE="origin/main"
+            fi
           else
             BASE=""; HEAD=""
           fi
