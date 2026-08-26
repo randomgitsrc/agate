@@ -757,6 +757,8 @@ title: RM-AG0032 在 roadmap.md 现存 3 行（backlog/scheduled/done），P2 �
 status: closed
 priority: low
 evidence:
+  - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P6-acceptance.md
+    note: "关闭验收锚：修复（roadmap RM-AG0032 原地合并为单行 done）在 TAG0023 任务范围内落地并验收"
   - ref: agate-workspace/roadmap/roadmap.md
     note: "RM-AG0032 三行记录（backlog/scheduled/done），「关联任务」列分别为空/TAG0020/TAG0020"
   - ref: agate-workspace/tasks/TAG0023-mechanism-checks/P4-review.md
@@ -782,9 +784,13 @@ task_id: TAG0023
 id: DEBT0022
 category: management
 title: 复盘归档断链——roadmap 4 条目引用 retrospective-tag0019-21.md 为证据源，该文件从未入库
-status: open
+status: closed
 priority: low
+task_id: TAG0024
 evidence:
+  - ref: agate-workspace/tasks/TAG0024-toolchain-md-field-set/P6-acceptance.md
+    note: "发现点：TAG0024 合并审计经 check-debt 检出断链；2026-08-26 hotfix 关闭（原文补提交入库 +
+      roadmap 引用补实际路径），详见 closure_note"
   - ref: agate-workspace/roadmap/roadmap.md
     note: "RM-AG0042/43/44/45 的证据列均引用 'retrospective-tag0019-21.md（问题 10/措施 9 等）'，但
       git log --all --diff-filter=A -- '*retrospective-tag0019*' 为空——文件从未提交入库"
@@ -797,6 +803,10 @@ recommendation: ①若原文仍在某 session/归档中则补提交；若已丢�
   由用户评估——倾向不加新 gate（用户偏好），优先纪律：复盘引用的文件必须随复盘同批入库
 closure_criteria:
   - retrospective-tag0019-21.md 补提交入库，或 roadmap 4 条证据列完成"原文未入库"标注
+closed_at: 2026-08-26
+closure_note: "按选项①落地——原文在 dsh-workspace/agate-research/archived/ 找到（写了但从未入库），
+  补提交至 agate-workspace/reviews/retrospective-tag0019-21.md；roadmap.md 2 处裸文件名引用
+  同步补实际路径。机制化校验（②）按 recommendation 不加新 gate，纪律落点：复盘引用文件随复盘同批入库"
 source: review
 created_at: 2026-08-25
 ```

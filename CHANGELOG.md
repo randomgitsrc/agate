@@ -16,6 +16,8 @@
 - **DSH preset 显示名**：「agate 编排者」→「Agateon 编排者」（preset.yml / agent.cordis.yml / SKILL.md / SETUP 同步；新会话生效）
 - **本地测试并行化文档补齐**：CI 自 2026-08-25 已用 `-n auto`（3.5x 提速），本机口径补齐至 tests/README + worktree 指南 + AGENTS.md（`pip install pytest-xdist` 后 `-n auto`）
 - **agate-summary.py 新增 DSH 安装产物链接校验**：检测 ~/.dsh 三个软链（preset/cordis/SKILL）漂移并给出修复命令（防"软链指向过时副本"静默漂移；上线首日即检出 2 处存量漂移）
+- **TAG0025 复盘改进措施落地**：test-designer 角色补「永久回归测试判据」（长期不变量 vs 一次性交付事实）、P1 卡基线保护节补「隐含扩展同样要授权」触发点（落点 1/2）
+- **DEBT0022 关闭**：retrospective-tag0019-21.md 补提交入库（agate-workspace/reviews/）+ roadmap 2 处引用补实际路径；DEBT0021/0022 关闭证据补齐（check-debt 0 错误）
 - **HANDOFF-TAG0024/0025** 归档至 archived/
 
 ---

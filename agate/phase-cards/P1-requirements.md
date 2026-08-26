@@ -236,3 +236,4 @@ P1-requirements.md 是需求基线，后续阶段（P2-P8）不应直接修改�
 1. 主 Agent 显式批准
 2. 在变更处标注 `[BASELINE_CHANGE: 理由]`
 3. 不改 BDD 的 Given/When/Then 语义（只补充注释/优先级说明）
+4. **隐含扩展同样要授权**（TAG0025 教训）：P3/P4 的实现细节若事实上扩展了 P1 验收标准的范围（新增豁免条件、放宽/收紧某条 BDD 的判定边界等），即使当下未产生"矛盾"，也视为需要`[BASELINE_CHANGE]` 授权的情形——授权内容必须回写 P1-requirements.md 正文，不得只存在于下游阶段的 dispatch-context 口头引用中
