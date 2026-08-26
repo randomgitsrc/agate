@@ -29,3 +29,6 @@ __pycache__/
 # 发布产物（dist/ 忽略；version.txt 是发布版本文件，必须入库，不被任何规则误忽略）
 dist/
 !version.txt
+
+# pytest 测试残留（个别用例在仓库根建的临时目录）
+.pytest-tmp/

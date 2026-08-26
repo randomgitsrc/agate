@@ -14,6 +14,7 @@
 
 - **入口文档品牌文案统一**：README×2 / AGENTS×2 / SETUP / UPGRADING（当前节）品牌词 agate → Agateon（TAG0025 Phase 0 收尾；backtick token 与历史版本节按设计保留）
 - **DSH preset 显示名**：「agate 编排者」→「Agateon 编排者」（preset.yml / agent.cordis.yml / SKILL.md / SETUP 同步；新会话生效）
+- **本地测试并行化文档补齐**：CI 自 2026-08-25 已用 `-n auto`（3.5x 提速），本机口径补齐至 tests/README + worktree 指南 + AGENTS.md（`pip install pytest-xdist` 后 `-n auto`）
 - **agate-summary.py 新增 DSH 安装产物链接校验**：检测 ~/.dsh 三个软链（preset/cordis/SKILL）漂移并给出修复命令（防"软链指向过时副本"静默漂移；上线首日即检出 2 处存量漂移）
 - **HANDOFF-TAG0024/0025** 归档至 archived/
 

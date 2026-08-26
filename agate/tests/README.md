@@ -17,7 +17,15 @@ python3 -m pytest agate/tests/test_sanity.py  # 框架自检
 
 # 一次性全跑
 python3 -m pytest agate/tests/
+
+# 并行跑（推荐，16 核实测约 3.5x 提速；需 pip install pytest-xdist）
+python3 -m pytest agate/tests/ -n auto
 ```
+
+**并行安全性**：套件按隔离设计——用例一律 `tmp_path` + HOME/USERPROFILE 重定向 +
+`AGATE_REPO_URL` 指本地临时 repo，session 级 fixture 只读，无共享可变状态，
+`-n auto` 可放心用。CI 自 2026-08-25 起即 `-n auto` + `--reruns 1`（Linux 全量），
+本机复现 CI 口径：`python3 -m pytest agate/tests/ --reruns 1 -n auto`。
 
 ## 覆盖度
 
