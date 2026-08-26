@@ -1,6 +1,6 @@
-# agate 开发指引
+# Agateon 开发指引
 
-> 面向**修改 agate 协议/脚本的开发者**。协议使用者看 `agate/AGENTS.md`。
+> 面向**修改 Agateon 协议/脚本的开发者**。协议使用者看 `agate/AGENTS.md`。
 > 本文件只收录"不读就不知道"的内容——项目特定规则、本机环境事实、历史教训。能从仓库自己读到的
 > （目录结构、依赖、命令、CI 配置、协议正文）不重复，见各权威源（`agate/AGENTS.md`、
 > `pyproject.toml`、`.github/workflows/`、`agate/tests/README.md`）。
@@ -31,7 +31,7 @@
 
 ## 依赖
 
-运行 agate 只需系统 `python3` + `pyyaml`；开发 agate 本体另需 `ruff`（CI 锁 `ruff==0.16.4`）。完整清单与版本锁定见 `pyproject.toml` + `.github/workflows/protocol-tests.yml`，不在此重复。
+运行 Agateon 只需系统 `python3` + `pyyaml`；开发 Agateon 本体另需 `ruff`（CI 锁 `ruff==0.16.4`）。完整清单与版本锁定见 `pyproject.toml` + `.github/workflows/protocol-tests.yml`，不在此重复。
 
 ## 测试约定（平台无关是硬约束）
 
@@ -40,9 +40,9 @@
 - Linux 全量覆盖；Windows CI 只跑 `-m windows_smoke` 冒烟（每文件第 1 个用例 + 平台敏感关键词用例）
 - fixture 细节读 `agate/tests/conftest.py`；CI 无 `~/.agate`，conftest 用 `AGATE_ROOT` env 覆盖（本地可设）或从 tests/ 上溯反推
 
-## dogfooding 工作流（agate 自身改造任务必读）
+## dogfooding 工作流（Agateon 自身改造任务必读）
 
-> **触发块**：任何 agate 自身改造任务（TAG0004+）需要隔离 worktree 时，**必须先读**：
+> **触发块**：任何 Agateon 自身改造任务（TAG0004+）需要隔离 worktree 时，**必须先读**：
 > - 构建流程：`docs/guides/worktree-dogfooding-guide.md`（10 步标准流程）
 > - 交接单模板：`agate/assets/templates/handoff-template.md`（复制到 worktree 根 `HANDOFF-{Txxx}.md` 填写）
 
@@ -70,7 +70,7 @@
 5. CHECK 7（version badge vs git tag）自动通过；CI ruff job 绿（`ruff==0.16.4`，与本地 `~/.venvs/agate-dev/bin/ruff` 对齐，RM-AG0037 required check）
 6. **release PR 合并后最终验证（G-5）**：`git fetch origin && git describe --tags origin/main` == vN.N.0；`git merge-base --is-ancestor vN.N.0 origin/main` 返回 0；合并后 push 的 CI 全绿
 
-**版本引用文件清单（agate 仓库特有，通用 P8 卡不覆盖）**：README badge / CHANGELOG / UPGRADING 章节 / 稳定版引用（文档优先写"稳定版"不写死版本号）。
+**版本引用文件清单（Agateon 仓库特有，通用 P8 卡不覆盖）**：README badge / CHANGELOG / UPGRADING 章节 / 稳定版引用（文档优先写"稳定版"不写死版本号）。
 
 **CI 一致性失败诊断（E-3，v0.51.0 教训）**：本地绿 CI 红 → 先拉 CI job 完整日志（`gh api repos/{owner}/{repo}/actions/jobs/{id}/logs`）看真实 FAIL 的 `CHECK N` 归属，**禁止臆测根因**；CHECK 7 FAIL 第一排查项 `git ls-remote --tags origin vN.N.N`。
 
