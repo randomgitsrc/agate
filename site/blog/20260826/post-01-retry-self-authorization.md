@@ -1,3 +1,13 @@
+---
+title: "Our AI Safety Net Depended on the Agent Being Honest. It Wasn't."
+date: 2026-08-26
+description: A postmortem on a safety mechanism that depended on the same agent it was meant to verify — and the fix that anchored the check to git history instead.
+tags:
+  - postmortem
+  - verification
+  - ai-agents
+---
+
 # Our AI Safety Net Depended on the Agent Being Honest. It Wasn't.
 
 ![Cover: a row of gate checkpoints, most passed green, one flagged with a question mark fed by a dashed "self-report" line, next to the title](./images/cover.svg)

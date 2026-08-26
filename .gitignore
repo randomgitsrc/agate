@@ -32,3 +32,9 @@ dist/
 
 # pytest 测试残留（个别用例在仓库根建的临时目录）
 .pytest-tmp/
+
+# VitePress 站点（site/）：依赖 / 构建产物 / public 品牌快照（由 sync-brand.mjs 生成）
+site/node_modules/
+site/.vitepress/dist/
+site/.vitepress/cache/
+site/public/

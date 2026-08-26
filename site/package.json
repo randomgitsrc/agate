@@ -1,0 +1,21 @@
+{
+  "name": "agateon-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agateon 产品 Web 层（VitePress 站点：首页 + 博客）",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "node scripts/sync-brand.mjs && vitepress dev",
+    "build": "node scripts/sync-brand.mjs && vitepress build",
+    "preview": "vitepress preview",
+    "sync:brand": "node scripts/sync-brand.mjs"
+  },
+  "devDependencies": {
+    "mermaid": "^11.4.1",
+    "vitepress": "^1.6.3",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  }
+}
