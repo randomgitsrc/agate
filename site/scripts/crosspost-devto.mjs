@@ -4,8 +4,10 @@
 //   DEV_TO_API_KEY=xxx node crosspost-devto.mjs 20260827/post-02-agateon-intro          # 发布
 //   node crosspost-devto.mjs post-02-agateon-intro --dry-run                            # 只生成 body 不发布
 //   node crosspost-devto.mjs 20260827/post-02-agateon-intro --update 4498883            # 更新已有文章
-// 自动处理：frontmatter 替换、SVG→raw PNG URL、站内链接→dev.to 链接、浏览器 UA（防 403）、
-// 发布后验证。详细机理见 site/guides/devto-crosspost-playbook.md。
+//   node crosspost-devto.mjs post-02 --no-push                                          # 渲染 PNG 但不同步提交
+// 自动处理：frontmatter 替换、SVG→raw PNG URL、缺失 PNG 自动从 SVG 渲染（Chrome）+ 提交推送、
+// 站内链接→dev.to 链接、浏览器 UA（防 403）、发布后验证。
+// 详细机理见 site/guides/devto-crosspost-playbook.md。
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import path from 'node:path'
@@ -14,6 +16,7 @@ import { http } from './http.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SITE_ROOT = path.resolve(HERE, '..')
+const REPO_ROOT = path.resolve(SITE_ROOT, '..') // git 仓库根（site/ 上一级）
 const TAGS = ['ai', 'llm', 'opensource', 'discuss']
 const UA =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
@@ -65,6 +68,8 @@ function findPost(arg) {
 
 const postFile = findPost(postArg)
 const rel = path.relative(path.join(SITE_ROOT, 'blog'), postFile).replace(/\.md$/, '').replace(/\\/g, '/')
+const dateDir = rel.split('/').slice(0, -1).join('/') // 如 20260827（图片在日期级目录共享）
+const imagesDir = path.join(SITE_ROOT, 'blog', dateDir, 'images')
 const postUrl = `${siteBase}/blog/${rel}`
 log('文章:', postFile)
 log('站点 URL:', postUrl)
@@ -78,10 +83,52 @@ const fm = Object.fromEntries(
 )
 let body = parts[2].replace(/^\n/, '')
 
-// ---- 转换：SVG 图 → raw PNG URL；站内链接 → dev.to 链接 ----
-body = body.replace(/\.\/images\/([\w.-]+)\.svg/g, (_, n) =>
-  `https://raw.githubusercontent.com/${owner}/${repo}/main/site/blog/${rel.split('/').slice(0, -1).join('/')}/images/${n}.png`,
-)
+// ---- 转换：SVG 图 → raw PNG URL（dev.to 用 PNG，SVG 只在站点内联）；站内链接 → dev.to 链接 ----
+const svgNames = []
+body = body.replace(/\.\/images\/([\w.-]+)\.svg/g, (_, n) => {
+  svgNames.push(n)
+  return `https://raw.githubusercontent.com/${owner}/${repo}/main/site/blog/${dateDir}/images/${n}.png`
+})
+
+// 缺失的英文 PNG 用 Chrome 从 SVG 渲染（站点用 SVG 内联，PNG 仅为 dev.to raw URL 准备）
+function renderMissingPngs(names) {
+  const rendered = []
+  for (const n of names) {
+    const svg = path.join(imagesDir, `${n}.svg`)
+    const png = path.join(imagesDir, `${n}.png`)
+    if (existsSync(png)) continue
+    if (!existsSync(svg)) { log(`警告: 找不到 ${n}.svg，无法渲染 PNG`); continue }
+    const dim = readFileSync(svg, 'utf8').match(/width="(\d+)" height="(\d+)"/)
+    const w = dim ? dim[1] : 900
+    const h = dim ? dim[2] : 520
+    try {
+      execSync(
+        `google-chrome --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --screenshot="${png}" --window-size=${w},${h} "file://${svg}"`,
+        { stdio: 'ignore' },
+      )
+      log(`已渲染缺失 PNG: ${dateDir}/images/${n}.png`)
+      rendered.push(png)
+    } catch (e) {
+      log(`渲染 PNG 失败（${n}.svg）: ${e.message.slice(0, 120)}`)
+    }
+  }
+  return rendered
+}
+
+// 把新渲染的 PNG 提交并推送（否则 raw.githubusercontent 的 main 分支 URL 会 404）
+function commitPngs(pngs) {
+  if (!pngs.length) return
+  if (args.includes('--no-push')) { log('--no-push：已渲染但未提交（raw URL 可能 404）'); return }
+  const relPngs = pngs.map((p) => path.relative(REPO_ROOT, p).replace(/\\/g, '/'))
+  try {
+    execSync(`git -C ${REPO_ROOT} add ${relPngs.map((p) => `"${p}"`).join(' ')}`, { stdio: 'inherit' })
+    execSync(`git -C ${REPO_ROOT} commit -m "docs(site): 自动渲染 ${dateDir} 英文配图 PNG（dev.to 用）"`, { stdio: 'inherit' })
+    execSync(`git -C ${REPO_ROOT} push origin HEAD`, { stdio: 'inherit' })
+    log(`已提交并推送 ${pngs.length} 个 PNG → raw URL 现已可达`)
+  } catch (e) {
+    log('提交/推送 PNG 失败（dev.to 可能抓不到图）:', e.message.slice(0, 300))
+  }
+}
 
 // 拿本账号已发布的 dev.to 文章，建 canonical_url -> dev.to url 映射
 let devtoMap = {}
@@ -114,10 +161,14 @@ const devtoFm = [
 // ---- 发布/更新 ----
 async function main() {
   if (dryRun) {
+    const missing = svgNames.filter((n) => !existsSync(path.join(imagesDir, `${n}.png`)))
+    if (missing.length) log('注意: 以下 PNG 缺失，发布时会自动从 SVG 渲染并提交推送:', missing.join(', '))
     log('---- DRY RUN，body_markdown 如下 ----')
     console.log(devtoFm + body)
     return
   }
+  // 发布前确保 PNG 存在且已入库（dev.to 引 raw URL）
+  commitPngs(renderMissingPngs(svgNames))
   const key = process.env.DEV_TO_API_KEY
   if (!key) { log('缺少 DEV_TO_API_KEY（取用须 bash -lc）'); process.exit(1) }
   const payload = JSON.stringify({ article: {
