@@ -3,6 +3,9 @@
 `site/` 是 Agateon 的产品 Web 层（VitePress 站点：首页 + 博客），**在协议 gate 治理之外**。
 本文档只讲 site 的维护；协议开发见根 `AGENTS.md` 与 `agate/AGENTS.md`。
 
+> **文档结构**：本文件（机械流程）+ `BLOG-STANDARDS.md`（质量标准）是**接任务先读的根级章程**；
+> 按需操作手册（dev.to 发布等）在 `guides/`，**索引见 [`guides/README.md`](guides/README.md)**。
+
 ## 核心原则
 
 - **改它不触发 SELF-GATE**，也**不走 Agateon 的 P0-P8 编排**（除了站点工程的机制交叉大改）。
