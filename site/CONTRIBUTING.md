@@ -71,7 +71,7 @@ npm run build    # 产物在 site/.vitepress/dist/，CI 与部署都以此为准
    - 图片路径解析（dist 里能找到图片：>4KB 的是独立文件，<4KB 内联成 data URI，都正常）
 5. **提交**：commit（`docs:` 前缀）→ `/home/kity/bin/git-to-pr` → `/home/kity/bin/git-to-main` → 合并后自动部署。
 6. **cross-post（合并后）**：
-   - dev.to：用 API。先 `POST /api/image_uploads` 传 PNG 拿 URL，再 `POST /api/articles` 建文章，正文里 `./images/*.svg` 换成 PNG URL，tag 用 `ai, llm, opensource, discuss`。需要 dev.to API key（Settings → Extensions → API Keys；本机没存的话向用户要）。
+   - dev.to：用 API 发布（`POST /api/articles`）。**详细实测步骤、已失效的端点、UA 坑、验证清单见 [`guides/devto-crosspost-playbook.md`](guides/devto-crosspost-playbook.md)**——一句话版：图用 GitHub raw PNG URL（新版 dev.to 已移除 `POST /api/image_uploads`）、POST 必须带浏览器 User-Agent（否则 403）、tag 用 `ai, llm, opensource, discuss`。需要 dev.to API key（Settings → Extensions → API Keys；本机存在 `~/.bashrc` 的 `DEV_TO_API_KEY`，取用须 `bash -lc`）。
    - HN：普通链接提交（不加 Show HN），title 用文章标题，url 用 dev.to 链接。
    - 微信群：短文案（见 2026-08 的版本 A/B/C 模板思路，痛点开场 + 求讨论）。
 

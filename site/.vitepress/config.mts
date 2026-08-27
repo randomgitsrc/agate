@@ -13,8 +13,8 @@ export default withMermaid(
     title: 'Agateon',
     description: 'Verify AI agents the way a build system verifies a compiler.',
     cleanUrls: true,
-    // 内部维护文档（CONTRIBUTING / BLOG-STANDARDS），不发布为公开页面
-    srcExclude: ['CONTRIBUTING.md', 'BLOG-STANDARDS.md'],
+    // 内部维护文档（CONTRIBUTING / BLOG-STANDARDS / guides），不发布为公开页面
+    srcExclude: ['CONTRIBUTING.md', 'BLOG-STANDARDS.md', 'guides/**'],
     head: [
       ['meta', { property: 'og:title', content: 'Agateon' }],
       [
