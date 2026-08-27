@@ -38,8 +38,11 @@ No runtime, no daemon. The protocol is a set of Markdown cards plus gate scripts
 ## Latest from the blog
 
 <script setup>
-import { data as latestPosts } from './.vitepress/blog.data.ts'
+import { data as posts } from './.vitepress/blog.data.ts'
 import { withBase } from 'vitepress'
+
+// 最新 3 篇（文章清单自动生成，见 .vitepress/posts.ts）
+const latestPosts = posts.slice(0, 3)
 </script>
 
 <ul class="latest-posts">

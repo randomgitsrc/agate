@@ -7,7 +7,14 @@ description: Engineering notes and postmortems from building Agateon.
 
 Engineering notes and postmortems from building Agateon.
 
-## 2026
+<script setup>
+import { data as posts } from '../.vitepress/blog.data.ts'
+import { withBase } from 'vitepress'
+</script>
 
-- [Agateon: verify AI agents the way a build system verifies a compiler](/blog/20260827/post-02-agateon-intro) — 2026-08-27
-- [Our AI Safety Net Depended on the Agent Being Honest. It Wasn't.](/blog/20260826/post-01-retry-self-authorization) — 2026-08-26
+<ul class="post-list">
+  <li v-for="post in posts" :key="post.url">
+    <a :href="withBase(post.url)">{{ post.title }}</a>
+    <span class="post-date">— {{ post.date }}</span>
+  </li>
+</ul>
