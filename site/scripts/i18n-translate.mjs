@@ -99,11 +99,35 @@ function restore(text, map) {
   return text.replace(/@@CODE(\d+)@@/g, (_, i) => map[+i])
 }
 
+// ---- 截断检测 + 重试：译文必须完整保留源块的占位符，且不得以截断的表格行结尾 ----
+function chunkIndices(text) {
+  return new Set([...text.matchAll(/@@CODE(\d+)@@/g)].map((m) => +m[1]))
+}
+function looksTruncated(r) {
+  const t = r.trimEnd()
+  // 表格行被截断：最后一行以单个 | 结尾且后面没内容（正常表格行以 | 收尾后还有换行内容）
+  return /[|]\s*$/.test(t) && !/^[|].*[|]$/.test(t.split('\n').pop() ?? '')
+}
+async function translateChunk(c, srcMap) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const r = await gemini(`${TRANS_PROMPT}\n\n${c}`)
+    if (dryRun) return null
+    const have = chunkIndices(r)
+    const need = chunkIndices(c)
+    const missing = [...need].filter((i) => !have.has(i))
+    if (missing.length === 0 && !looksTruncated(r)) return restore(r.trim(), srcMap)
+    log(`  警告: 第 ${attempt} 次输出疑似截断（丢失占位符 ${missing.join(',') || '无'} / 表尾异常），重试... tail=${JSON.stringify(r.slice(-100))}`)
+  }
+  throw new Error('该块连续 3 次输出被截断，未落盘')
+}
+
 // ---- frontmatter 解析/重组 ----
+// 注意：按"独立 --- 行"切，不用 split('---',3)——markdown 表格分隔行 `|---|` 也含 --- 子串，
+// 字面 split 会把正文从表格处截断（2026-08-28 post-03 踩坑：两张表触发）。
 function splitFrontmatter(src) {
-  const parts = src.split('---', 3)
-  if (parts.length !== 3) throw new Error('frontmatter 缺失')
-  return { fm: parts[1], body: parts[2].replace(/^\n/, '') }
+  const m = src.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
+  if (!m) throw new Error('frontmatter 缺失')
+  return { fm: m[1], body: src.slice(m[0].length).replace(/^\n/, '') }
 }
 function fmGet(fm, key) {
   const m = fm.match(new RegExp(`^${key}:\\s*(.*)$`, 'm'))
@@ -133,12 +157,13 @@ async function translateMarkdown(src, wantFrontmatter = false) {
   }
   const out = []
   for (const c of chunks) {
-    const r = await gemini(`${TRANS_PROMPT}\n\n${c}`)
-    if (dryRun) return null
-    out.push(restore(r.trim(), p.map))
+    out.push(await translateChunk(c, p.map))
   }
   // 中文版站内链接统一指到 /zh/blog/（跨文章引用的中文版）
   const bodyZh = out.join('\n\n').replace(/\]\(\/blog\//g, '](/zh/blog/')
+  // 兜底：任何残留占位符 = 翻译过程把代码/链接弄丢了，报错不落盘
+  const leftover = bodyZh.match(/@@CODE\d+@@/g)
+  if (leftover) throw new Error(`译文中残留未还原占位符: ${[...new Set(leftover)].join(', ')}`)
   if (!wantFrontmatter) return bodyZh
   // 翻译 title / description
   const title = fmGet(fm, 'title')
@@ -154,7 +179,7 @@ async function translateMarkdown(src, wantFrontmatter = false) {
     if (dryRun) return null
     tfm = fmSet(tfm, 'description', r.replace(/["\\]/g, '').trim())
   }
-  return `---${tfm}---\n\n${bodyZh}\n`
+  return `---\n${tfm}\n---\n\n${bodyZh}\n`
 }
 
 // ---- 判断是否需要更新 ----
@@ -266,7 +291,7 @@ async function translateHome() {
   const headZh = restore((await gemini(`${TRANS_PROMPT}\n\n${p.text}`)).trim(), p.map)
   const bodyZh = `${headZh}\n\n${scriptZh}\n\n${ulBlock}\n\n[阅读全部文章 →](/zh/blog/)\n`
   mkdirSync(ZH_ROOT, { recursive: true })
-  writeFileSync(zh, `---${fmZh}---\n\n${bodyZh}\n`)
+  writeFileSync(zh, `---\n${fmZh}\n---\n\n${bodyZh}\n`)
   log('  已写 zh/index.md')
 }
 
