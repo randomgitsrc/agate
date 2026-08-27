@@ -35,8 +35,18 @@ curl -sSL https://raw.githubusercontent.com/randomgitsrc/agateon/main/install.sh
 
 No runtime, no daemon. The protocol is a set of Markdown cards plus gate scripts, stored in version control alongside your work.
 
-## Read the postmortem
+## Latest from the blog
 
-- [Our AI Safety Net Depended on the Agent Being Honest. It Wasn't.](/blog/20260826/post-01-retry-self-authorization)
+<script setup>
+import { data as latestPosts } from './.vitepress/blog.data.ts'
+import { withBase } from 'vitepress'
+</script>
 
-> Published via the GitHub Pages site at [randomgitsrc.github.io/agateon](https://randomgitsrc.github.io/agateon/).
+<ul class="latest-posts">
+  <li v-for="post in latestPosts" :key="post.url">
+    <a :href="withBase(post.url)">{{ post.title }}</a>
+    <span class="post-date">{{ post.date }}</span>
+  </li>
+</ul>
+
+[Read all posts →](/blog/)
