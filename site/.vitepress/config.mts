@@ -40,6 +40,10 @@ export default withMermaid(
             text: 'Blog',
             items: [
               {
+                text: 'Agateon: verify AI agents the way a build system verifies a compiler',
+                link: '/blog/20260827/post-02-agateon-intro',
+              },
+              {
                 text: 'Our AI Safety Net Depended on the Agent Being Honest. It Wasn\'t.',
                 link: '/blog/20260826/post-01-retry-self-authorization',
               },
