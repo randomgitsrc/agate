@@ -1,7 +1,7 @@
 # dev.to Cross-post 攻略
 
 > 把 `site/blog/` 的文章同步发布到 dev.to 的操作手册。
-> 前置：先读 `site/BLOG-STANDARDS.md`（质量）与 `site/CONTRIBUTING.md`（流程）；
+> 前置：先读 `BLOG-STANDARDS.md`（质量）与 `CONTRIBUTING.md`（流程），索引见 `README.md`；
 > 本文只讲 dev.to API 的**实测细节**，所有坑都是 2026-08-27 发 post-02 时踩过并验证的。
 
 ## 1. 前置条件
