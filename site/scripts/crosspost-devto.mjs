@@ -75,13 +75,15 @@ log('文章:', postFile)
 log('站点 URL:', postUrl)
 
 // ---- 读文章 + 拆 frontmatter ----
+// 注意：按"独立 --- 行"切，不用 split('---',3)——markdown 表格分隔行 `|---|` 也含 --- 子串，
+// 字面 split 会把正文从表格处截断（2026-08-28 post-03 踩坑，与 i18n-translate.mjs 同源）。
 const src = readFileSync(postFile, 'utf8')
-const parts = src.split('---', 3)
-if (parts.length !== 3) { log('frontmatter 格式不对'); process.exit(1) }
+const fmMatch = src.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
+if (!fmMatch) { log('frontmatter 格式不对'); process.exit(1) }
 const fm = Object.fromEntries(
-  parts[1].split('\n').map((l) => l.match(/^([A-Za-z_][\w-]*):\s*(.*)$/)).filter(Boolean).map((kv) => [kv[1], kv[2].trim().replace(/^["']|["']$/g, '')]),
+  fmMatch[1].split('\n').map((l) => l.match(/^([A-Za-z_][\w-]*):\s*(.*)$/)).filter(Boolean).map((kv) => [kv[1], kv[2].trim().replace(/^["']|["']$/g, '')]),
 )
-let body = parts[2].replace(/^\n/, '')
+let body = src.slice(fmMatch[0].length).replace(/^\n/, '')
 
 // ---- 转换：SVG 图 → raw PNG URL（dev.to 用 PNG，SVG 只在站点内联）；站内链接 → dev.to 链接 ----
 const svgNames = []
