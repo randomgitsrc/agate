@@ -14,7 +14,7 @@ export default withMermaid(
   defineConfig({
     base: '/agateon/',
     cleanUrls: true,
-    srcExclude: ['CONTRIBUTING.md', 'BLOG-STANDARDS.md', 'guides/**'],
+    srcExclude: ['guides/**'],
     head: [
       // 浏览器语言自动跳转：首次访问且系统语言为中文 → 自动进 /zh/（只跳一次，
       // 之后用户用导航里的语言切换器自主选择，互不干扰）。
