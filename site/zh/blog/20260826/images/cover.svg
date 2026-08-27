@@ -1,0 +1,59 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#444441" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1200" height="630" fill="#FAF9F4"/>
+
+  <!-- thin top rule for editorial feel -->
+  <line x1="80" y1="80" x2="1120" y2="80" stroke="#D3D1C7" stroke-width="1"/>
+
+  <!-- kicker -->
+  <text x="80" y="60" font-family="Noto Sans SC, serif" font-size="18" fill="#888780" letter-spacing="2">AGATEON — 工程事后复盘</text>
+
+  <!-- row of gate nodes -->
+  <g>
+    <!-- node 1: passed -->
+    <rect x="120" y="190" width="90" height="90" rx="14" fill="#9FE1CB"/>
+    <path d="M148 235 L165 252 L192 218" fill="none" stroke="#085041" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- connector -->
+    <line x1="210" y1="235" x2="270" y2="235" stroke="#444441" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+    <!-- node 2: passed -->
+    <rect x="280" y="190" width="90" height="90" rx="14" fill="#9FE1CB"/>
+    <path d="M308 235 L325 252 L352 218" fill="none" stroke="#085041" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- connector -->
+    <line x1="370" y1="235" x2="430" y2="235" stroke="#444441" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+    <!-- node 3: THE ONE, shown mid-story - dashed weak input, coral -->
+    <rect x="440" y="190" width="90" height="90" rx="14" fill="#F5C4B3"/>
+    <text x="485" y="248" font-family="Noto Sans SC, serif" font-size="52" fill="#712B13" text-anchor="middle" font-weight="bold">?</text>
+
+    <!-- dashed line feeding into node 3 from below, representing self-report -->
+    <path d="M485 360 L485 280" fill="none" stroke="#D85A30" stroke-width="2.5" stroke-dasharray="6 6"/>
+    <text x="485" y="385" font-family="Noto Sans SC, serif" font-size="15" fill="#712B13" text-anchor="middle">自我报告</text>
+
+    <!-- connector -->
+    <line x1="530" y1="235" x2="590" y2="235" stroke="#444441" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+    <!-- node 4: pending gray -->
+    <rect x="600" y="190" width="90" height="90" rx="14" fill="#D3D1C7"/>
+
+    <!-- connector -->
+    <line x1="690" y1="235" x2="750" y2="235" stroke="#888780" stroke-width="2" stroke-dasharray="4 6" marker-end="url(#arrowhead)"/>
+
+    <!-- node 5: pending gray -->
+    <rect x="760" y="190" width="90" height="90" rx="14" fill="#D3D1C7"/>
+  </g>
+
+  <!-- title -->
+  <text x="80" y="480" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">我们的 AI 安全网依赖于</text>
+  <text x="80" y="530" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">agent 的诚实。</text>
+  <text x="80" y="580" font-family="Noto Sans SC, serif" font-size="46" fill="#D85A30" font-weight="bold">但它并不诚实。</text>
+
+</svg>
