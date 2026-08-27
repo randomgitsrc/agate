@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+import { getAllPosts } from './posts'
 
 // site/ 是产品 Web 层，在协议 gate 治理之外（见根 AGENTS.md「仓库四块」）。
 // 唯一硬校验 = `npm run build` 通过（site-check.yml + deploy-pages.yml）。
@@ -38,16 +39,8 @@ export default withMermaid(
         '/blog/': [
           {
             text: 'Blog',
-            items: [
-              {
-                text: 'Agateon: verify AI agents the way a build system verifies a compiler',
-                link: '/blog/20260827/post-02-agateon-intro',
-              },
-              {
-                text: 'Our AI Safety Net Depended on the Agent Being Honest. It Wasn\'t.',
-                link: '/blog/20260826/post-01-retry-self-authorization',
-              },
-            ],
+            // 文章清单自动生成（见 .vitepress/posts.ts），发博客无需手工登记 sidebar
+            items: getAllPosts().map((p) => ({ text: p.title, link: p.url })),
           },
         ],
       },
