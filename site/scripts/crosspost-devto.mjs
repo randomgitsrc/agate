@@ -10,6 +10,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { http } from './http.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SITE_ROOT = path.resolve(HERE, '..')
@@ -86,9 +87,9 @@ body = body.replace(/\.\/images\/([\w.-]+)\.svg/g, (_, n) =>
 let devtoMap = {}
 if (!dryRun || updateId) {
   try {
-    const r = await fetch(`https://dev.to/api/articles?username=${owner}&per_page=50`, { headers: { 'api-key': process.env.DEV_TO_API_KEY || '' } })
-    if (r.ok) {
-      const arts = await r.json()
+    const r = http('GET', `https://dev.to/api/articles?username=${owner}&per_page=50`, { headers: { 'api-key': process.env.DEV_TO_API_KEY || '' } })
+    if (r.status === 200) {
+      const arts = JSON.parse(r.text)
       for (const a of arts) if (a.canonical_url) devtoMap[a.canonical_url] = a.url
     }
   } catch (e) { log('获取已发布文章失败（忽略，站内链接回退站点 URL）:', e.message) }
@@ -124,23 +125,21 @@ async function main() {
     tags: TAGS, description: fm.description || '', canonical_url: postUrl,
   } })
   const url = updateId ? `https://dev.to/api/articles/${updateId}` : 'https://dev.to/api/articles'
-  const res = await fetch(url, {
-    method: updateId ? 'PATCH' : 'POST',
-    headers: { 'api-key': key, 'Content-Type': 'application/json', 'User-Agent': UA },
+  const res = http(updateId ? 'PATCH' : 'POST', url, {
+    headers: { 'api-key': key, 'User-Agent': UA },
     body: payload,
   })
-  const text = await res.text()
-  if (!res.ok) { log(`HTTP ${res.status}:`, text.slice(0, 500)); process.exit(1) }
-  const d = JSON.parse(text)
+  if (res.status < 200 || res.status >= 300) { log(`HTTP ${res.status}:`, res.text.slice(0, 500)); process.exit(1) }
+  const d = JSON.parse(res.text)
   log(updateId ? `已更新文章 ${d.id}` : `已发布文章 ${d.id}`)
   log('URL:', d.url)
   // 验证
-  const u = await fetch(d.url, { method: 'HEAD' })
+  const u = http('HEAD', d.url)
   log('文章公开可达:', u.status === 200 ? '✓' : `✗ HTTP ${u.status}`)
   const imgUrls = [...body.matchAll(/https:\/\/raw\.githubusercontent\.com\/[^)]+\.png/g)].map((x) => x[0])
   for (const img of imgUrls) {
     const proxied = `https://media2.dev.to/dynamic/image/width=800,fit=scale-down/${encodeURIComponent(img)}`
-    const ir = await fetch(proxied, { method: 'HEAD' })
+    const ir = http('HEAD', proxied)
     log(`图片代理 ${path.basename(new URL(img).pathname)}:`, ir.status === 200 ? '✓' : `✗ HTTP ${ir.status}`)
   }
   // 记住 id，方便后续 --update

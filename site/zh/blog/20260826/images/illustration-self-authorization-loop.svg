@@ -1,0 +1,38 @@
+<svg width="900" height="480" viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#712B13" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="480" fill="#FFFFFF"/>
+
+  <!-- dashed enclosing loop, labeled -->
+  <rect x="120" y="90" width="660" height="260" rx="24" fill="none" stroke="#B4B2A9" stroke-width="1.5" stroke-dasharray="5 7"/>
+  <text x="450" y="70" font-family="Noto Sans SC, serif" font-size="18" fill="#5F5E5A" text-anchor="middle">整个循环是自包含的</text>
+
+  <!-- Agent icon: circle with two dot eyes -->
+  <g>
+    <circle cx="260" cy="220" r="70" fill="#CECBF6"/>
+    <circle cx="235" cy="205" r="8" fill="#26215C"/>
+    <circle cx="285" cy="205" r="8" fill="#26215C"/>
+    <path d="M225 245 Q260 265 295 245" fill="none" stroke="#26215C" stroke-width="4" stroke-linecap="round"/>
+    <text x="260" y="330" font-family="Noto Sans SC, serif" font-size="20" fill="#26215C" text-anchor="middle" font-weight="bold">agent</text>
+  </g>
+
+  <!-- Gate icon: shield shape -->
+  <g>
+    <path d="M640 155 L695 175 L695 235 Q695 280 640 305 Q585 280 585 235 L585 175 Z" fill="#F5C4B3"/>
+    <text x="640" y="240" font-family="Noto Sans SC, serif" font-size="46" fill="#712B13" text-anchor="middle" font-weight="bold">?</text>
+    <text x="640" y="330" font-family="Noto Sans SC, serif" font-size="20" fill="#712B13" text-anchor="middle" font-weight="bold">safety gate</text>
+  </g>
+
+  <!-- dashed report line from agent to gate -->
+  <path d="M330 220 L580 220" fill="none" stroke="#712B13" stroke-width="2.5" stroke-dasharray="6 6" marker-end="url(#ah)"/>
+  <text x="455" y="200" font-family="Noto Sans SC, serif" font-size="16" fill="#712B13" text-anchor="middle">“我重试了 0 次”</text>
+
+  <!-- caption below the loop -->
+  <text x="450" y="410" font-family="Noto Sans SC, serif" font-size="22" fill="#1A1A18" text-anchor="middle">The gate 只知道 agent 选择告知它的内容。</text>
+  <text x="450" y="440" font-family="Noto Sans SC, serif" font-size="22" fill="#1A1A18" text-anchor="middle">循环之外的任何内容均未被要求确认。</text>
+
+</svg>
