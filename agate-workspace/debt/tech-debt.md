@@ -811,3 +811,33 @@ source: review
 created_at: 2026-08-25
 ```
 
+## DEBT0023
+
+```yaml
+id: DEBT0023
+category: protocol
+title: gate_commands 的 P3* 前缀键被静默收集为 TDD 测试命令执行（无任何 gate 拦截）
+status: open
+priority: low
+evidence:
+  - ref: agate/scripts/agate-read-gate-commands.py:60
+    note: "key.startswith('P3') and not is_gate_meta_key(key) 收集所有 P3* 非元键为测试命令"
+  - ref: agate/scripts/agate_common.py:79-87
+    note: "is_gate_meta_key 只精确匹配 _formatter/_timeout_seconds 后缀，P3_xxx 不被豁免"
+  - ref: agate/scripts/agate_common.py:679-693
+    note: "is_legal_gate_key 对 P3_xxx 形态返回 True（P3 为合法阶段 + 合法后缀），仅对账 WARNING 不拦截"
+  - ref: agate-workspace/tasks/TAG0026-maintainability-gate/P2-review.md
+    note: "TAG0026 P2 评审实测：P2-design 靠'禁用 P3_xxx 键'约定规避，协议层无机械防护"
+impact: 未来任务在 gate_commands 声明 P3_xxx 辅助检测键时，该命令会被 check-tdd-red 在 P3 阶段当作
+  测试命令执行（可能误报红灯或产生副作用），且无任何 gate/对账机制拦截（对账 WARNING 亦不触发）
+recommendation: 后续协议任务评估：agate-read-gate-commands.py 收集侧收紧（如 P3 仅精确键 + 白名单
+  后缀）或 is_gate_meta_key 扩展协议级辅助键约定；并补 read-gate-commands 单测锁定收集行为
+closure_criteria:
+  - read-gate-commands 对 P3* 键的收集行为有单测锁定，协议文档（P2 卡 gate_commands 节）写明
+    P3_xxx 键禁止声明及其原因
+source: review
+created_at: 2026-08-30
+task_id: TAG0026
+```
+
+

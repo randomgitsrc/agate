@@ -10,7 +10,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0026 | 维护性反模式 gate（RM-AG0046）：G0 两条（god-file 跨越 + fuzzy-boundary）→ 新增 check-maintainability.py + check-gate.py **P4 三重门槛挂载**（登记+数量对齐+P4 评审 approve）+ known-violations 模板 + P4/P6 phase card 自查 + pytest 覆盖 13 BDD；只挂 P4 不挂 P6（v3 计划，独立评审定稿 2026-08-30）| 进行中 | P1 | 高 | RM-AG0046 | 2026-08-30 | 2026-08-30 |
+| TAG0026 | 维护性反模式 gate（RM-AG0046）：G0 两条（god-file 跨越 + fuzzy-boundary）→ 新增 check-maintainability.py + check-gate.py **P4 三重门槛挂载**（登记+数量对齐+P4 评审 approve）+ known-violations 模板 + P4/P6 phase card 自查 + pytest 覆盖 13 BDD；只挂 P4 不挂 P6（v3 计划，独立评审定稿 2026-08-30）| 进行中 | P2 | 高 | RM-AG0046 | 2026-08-30 | 2026-08-30 |
 
 ### 待开始
 
