@@ -21,5 +21,6 @@
 | `design-agateon-portal.md` | Agateon 门户设计（git 之于 GitHub：数据面/控制面分离 + 可验证性三层同构） | 待立项（后续，RM-AG0047）|
 | `design-maintainability-gate.md` | 维护性反模式 gate 设计（模式层/检测器层分离，协议定义反模式语义） | 待立项（RM-AG0046）|
 | `design-md-field-set.md` | 结构化字段写入工具设计（agate-md-field-set：写入即校验 + 自描述 + 权限引导，消灭手写 frontmatter 摩擦） | 设计提案（RM-AG0048）|
+| `return-to-zero-proposal.md` | 双归零方法论引入失败处理闭环（PeekView 提案收编：known-failures 补复现证据/举一反三 + 归零检查单，方案 B 参考工具非强制 gate） | backlog（RM-AG0053 参考输入）|
 
 新增决策记录时，按这个格式写：问题是什么 → 讨论过哪些方案及为何否决 → 最终采纳的方案及理由 → 状态（已决策待落地 / 已落地，落地位置写清楚）。

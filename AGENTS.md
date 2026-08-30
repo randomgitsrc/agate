@@ -1,9 +1,11 @@
 # Agateon 开发指引
 
 > 面向**修改 Agateon 协议/脚本的开发者**。协议使用者看 `agate/AGENTS.md`。
+> 新会话/新开发者先读 `docs/guides/project-map.md`（整仓导航地图）。
 > 本文件只收录"不读就不知道"的内容——项目特定规则、本机环境事实、历史教训。能从仓库自己读到的
 > （目录结构、依赖、命令、CI 配置、协议正文）不重复，见各权威源（`agate/AGENTS.md`、
 > `pyproject.toml`、`.github/workflows/`、`agate/tests/README.md`）。
+> 不写死可从仓库自主发现的时变数字统计（用例数 / commit 数 / 条目数 / HEAD 日期）——需要时用命令或权威源指针替代。文档选材与保鲜完整原则见 `docs/guides/doc-freshness-guide.md`。
 
 ## 仓库四块
 
