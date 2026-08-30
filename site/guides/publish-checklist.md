@@ -45,3 +45,7 @@
 
 **2026-08-28 记录（post-03 evidence-ladder）**：A1-9 ✓ 10-11 ✓ 12 ✓（评审 FAIL→迭代→PASS）13-14 ✓
 15 今日 post-02 已发 dev.to → **cross-post 顺延** 16 待 08-28 执行（dry-run 已验 body）17-18 待同日。
+
+**2026-08-30 记录（post-04 right-to-look-away）**：A1-9 ✓ 10-11 ✓（zh 图 OCR 过；zh title 混入 "#" 已修+管道加防）12 ✓
+（评审 FAIL 2 项：thin 路径方向写反+ceremony 未解释 → 复核 PASS）13-14 ✓（双语 200）
+15 当日未 cross-post 过 → 可发 16 ✓（dev.to id 见仓库）17-18 待手动。

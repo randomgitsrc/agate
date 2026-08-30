@@ -172,12 +172,13 @@ async function translateMarkdown(src, wantFrontmatter = false) {
   if (title) {
     const r = await gemini(`${TRANS_PROMPT}\n\n只翻译这一个标题：${title}`)
     if (dryRun) return null
-    tfm = fmSet(tfm, 'title', r.replace(/["\\]/g, '').trim())
+    // 防模型输出污染：剥离译文行首 markdown 标记（#/-/*）与引号反斜杠（2026-08-30 教训：title 混入 "#" 前缀）
+    tfm = fmSet(tfm, 'title', r.replace(/^#+\s*/, '').replace(/["\\]/g, '').trim())
   }
   if (desc) {
     const r = await gemini(`${TRANS_PROMPT}\n\n只翻译这一句描述：${desc}`)
     if (dryRun) return null
-    tfm = fmSet(tfm, 'description', r.replace(/["\\]/g, '').trim())
+    tfm = fmSet(tfm, 'description', r.replace(/^#+\s*/, '').replace(/["\\]/g, '').trim())
   }
   return `---\n${tfm}\n---\n\n${bodyZh}\n`
 }

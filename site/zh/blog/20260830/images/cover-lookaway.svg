@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <marker id="arrTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1D9E75"/>
+    </marker>
+    <marker id="arrCoral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#712B13"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="630" fill="#FAF9F4"/>
+
+  <text x="70" y="86" font-family="Noto Sans SC, serif" font-size="19" letter-spacing="3.5" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
+
+  <text x="70" y="205" font-size="72" font-weight="700" fill="#1A1A18">权限</text>
+  <text x="70" y="288" font-size="72" font-weight="700" fill="#1D9E75">忽略</text>
+  <text x="70" y="340" font-size="27" font-style="italic" fill="#444441">gate 如何获取自主权</text>
+
+  <!-- ===== the unattended loop ===== -->
+  <g font-family="'Menlo', 'Consolas', monospace" font-size="17" font-weight="700" text-anchor="middle">
+    <!-- circular arrows -->
+    <path d="M 952 218 A 148 148 0 0 1 1042 322" fill="none" stroke="#1D9E75" stroke-width="4" marker-end="url(#arrTeal)"/>
+    <path d="M 1030 402 A 148 148 0 0 1 930 470" fill="none" stroke="#1D9E75" stroke-width="4" marker-end="url(#arrTeal)"/>
+    <path d="M 808 462 A 148 148 0 0 1 718 366" fill="none" stroke="#1D9E75" stroke-width="4" marker-end="url(#arrTeal)"/>
+    <path d="M 730 290 A 148 148 0 0 1 820 214" fill="none" stroke="#1D9E75" stroke-width="4" marker-end="url(#arrTeal)"/>
+
+    <rect x="822" y="176" width="148" height="46" rx="12" fill="#E3E0F7"/>
+    <text x="896" y="206" fill="#4C45A8">调度</text>
+
+    <rect x="966" y="300" width="110" height="46" rx="12" fill="#D3D1C7"/>
+    <text x="1021" y="330" fill="#444441">工作</text>
+
+    <rect x="826" y="446" width="140" height="46" rx="12" fill="#9FE1CB"/>
+    <text x="896" y="476" fill="#085041">GATE ✓</text>
+
+    <rect x="694" y="300" width="132" height="46" rx="12" fill="#E3E0F7"/>
+    <text x="760" y="330" fill="#4C45A8">前进</text>
+
+    <!-- PAUSED side exit -->
+    <path d="M 906 494 Q 940 548 986 556" fill="none" stroke="#712B13" stroke-width="3.5" stroke-dasharray="7 6" marker-end="url(#arrCoral)"/>
+    <rect x="990" y="532" width="140" height="46" rx="12" fill="#F5C4B3"/>
+    <text x="1060" y="562" fill="#712B13">已暂停</text>
+  </g>
+
+  <!-- ===== the human, on call ===== -->
+  <g>
+    <path d="M 1004 556 Q 1078 500 1148 542" fill="none" stroke="#444441" stroke-width="3" stroke-dasharray="3 7"/>
+    <circle cx="1168" cy="470" r="24" fill="#1A1A18"/>
+    <path d="M 1136 546 Q 1138 502 1168 500 Q 1198 502 1200 546 L 1200 552 L 1136 552 Z" fill="#1A1A18"/>
+  </g>
+
+  <text x="70" y="560" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">循环在无人值守状态下运行。</text>
+  <text x="70" y="588" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">仅设计好的事件会向人工发送寻呼。</text>
+</svg>

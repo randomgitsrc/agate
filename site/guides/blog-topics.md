@@ -8,15 +8,19 @@
 > `agate-workspace/roadmap/`（RM 卡片、P8 gate 硬校验其回写）是两套东西，互不相通——
 > 博客选题不走协议卡片、不进 RM 状态机。
 
-## 已发布弧线（截至 2026-08-28）
+## 已发布弧线（截至 2026-08-30）
 
 | 篇 | 标题 | 管的层次 |
 |---|---|---|
 | post-01 (08-26) | Our AI Safety Net Depended on the Agent Being Honest. It Wasn't. | 一次真实失败（事故复盘） |
 | post-02 (08-27) | Agateon: verify AI agents the way a build system verifies a compiler | 项目介绍（是什么/为什么） |
 | post-03 (08-28) | Is it done, or does it just look done? A ladder of evidence | 方法框架（证据阶梯 + 审计清单） |
+| post-04 (08-30) | The right to look away: how gates buy autonomy | 收益面（注意力经济学：验证买到"可以不看"） |
 
-## post-04 提案：解放注意力——工程化循环（用户提出方向，待确认开写）
+## post-04（已发布 2026-08-30，本节留档）
+
+选题方向：用户提出"插播一个工程化 loop / 解放注意力"的角度，确认后走完 publish-checklist 全流程。
+评审 gate 拦下一处方向性事实错误（thin 路径的验证阶段 P5/P6 是**保留**而非裁剪——"薄化仪式不薄化验证"），复核 PASS 后发布。
 
 - **角度**：前三篇全是"别信、去验"（防 вниз），这篇插播讲验证买到了什么——**你为什么可以不看**。
 - **核心反直觉论点**：门禁不是增加监督负担，而是把监督自动化。没有客观证据的自主 = 无界风险，

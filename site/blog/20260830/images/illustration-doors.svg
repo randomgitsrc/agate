@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <marker id="arrTeal2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1D9E75"/>
+    </marker>
+    <marker id="arrGray2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444441"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="520" fill="#FAF9F4"/>
+
+  <text x="46" y="58" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15" letter-spacing="3" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
+
+  <!-- ===== left: the unattended loop ===== -->
+  <g font-family="'Menlo', 'Consolas', monospace" font-size="14" font-weight="700" text-anchor="middle">
+    <circle cx="225" cy="272" r="104" fill="none" stroke="#1D9E75" stroke-width="3.5" stroke-dasharray="1 0"/>
+    <path d="M 262 178 A 104 104 0 0 1 322 252" fill="none" stroke="#1D9E75" stroke-width="3.5" marker-end="url(#arrTeal2)"/>
+    <path d="M 318 306 A 104 104 0 0 1 258 366" fill="none" stroke="#1D9E75" stroke-width="3.5" marker-end="url(#arrTeal2)"/>
+    <path d="M 186 362 A 104 104 0 0 1 128 292" fill="none" stroke="#1D9E75" stroke-width="3.5" marker-end="url(#arrTeal2)"/>
+    <path d="M 136 232 A 104 104 0 0 1 196 180" fill="none" stroke="#1D9E75" stroke-width="3.5" marker-end="url(#arrTeal2)"/>
+
+    <rect x="177" y="118" width="96" height="36" rx="10" fill="#E3E0F7"/>
+    <text x="225" y="142" fill="#4C45A8">DISPATCH</text>
+
+    <rect x="272" y="254" width="76" height="36" rx="10" fill="#D3D1C7"/>
+    <text x="310" y="278" fill="#444441">WORK</text>
+
+    <rect x="180" y="390" width="90" height="36" rx="10" fill="#9FE1CB"/>
+    <text x="225" y="414" fill="#085041">GATE ✓</text>
+
+    <rect x="102" y="254" width="94" height="36" rx="10" fill="#E3E0F7"/>
+    <text x="149" y="278" fill="#4C45A8">ADVANCE</text>
+
+    <text x="225" y="472" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#444441">advances unattended</text>
+  </g>
+
+  <!-- ===== right: the four doors that page you ===== -->
+  <g font-family="'Menlo', 'Consolas', monospace" font-size="15" font-weight="700">
+    <path d="M 322 300 Q 380 330 430 350" fill="none" stroke="#444441" stroke-width="2.5" stroke-dasharray="4 6" marker-end="url(#arrGray2)"/>
+    <path d="M 330 268 Q 390 240 430 214" fill="none" stroke="#444441" stroke-width="2.5" stroke-dasharray="4 6" marker-end="url(#arrGray2)"/>
+
+    <rect x="436" y="112" width="240" height="52" rx="12" fill="#F5C4B3"/>
+    <text x="456" y="145" fill="#712B13">PAUSED</text>
+
+    <rect x="436" y="190" width="240" height="52" rx="12" fill="#E3E0F7"/>
+    <text x="456" y="223" fill="#4C45A8">NEED_CONFIRM</text>
+
+    <rect x="436" y="268" width="240" height="52" rx="12" fill="#E3E0F7"/>
+    <text x="456" y="301" fill="#4C45A8">SCOPE?</text>
+
+    <rect x="436" y="346" width="240" height="52" rx="12" fill="#9FE1CB"/>
+    <text x="456" y="379" fill="#085041">P8 RELEASE</text>
+
+    <text x="436" y="440" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="400" fill="#444441">four designed doors — nothing else</text>
+  </g>
+
+  <!-- ===== far right: the human ===== -->
+  <g>
+    <path d="M 680 372 Q 726 400 748 428" fill="none" stroke="#444441" stroke-width="2.5" stroke-dasharray="4 6" marker-end="url(#arrGray2)"/>
+    <circle cx="790" cy="150" r="22" fill="#1A1A18"/>
+    <path d="M 760 218 Q 762 178 790 176 Q 818 178 820 218 L 820 224 L 760 224 Z" fill="#1A1A18"/>
+    <text x="790" y="256" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#444441" text-anchor="middle" font-weight="400">you — on call,</text>
+    <text x="790" y="278" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#444441" text-anchor="middle" font-weight="400">not watching</text>
+  </g>
+
+  <text x="46" y="496" font-size="17" font-style="italic" fill="#444441">The gate decides when the work needs a human — attention is spent at decision points, not everywhere.</text>
+</svg>
