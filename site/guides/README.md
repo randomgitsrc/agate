@@ -15,6 +15,7 @@
 | 文档 | 什么时候读 |
 |------|-----------|
 | [`publish-checklist.md`](publish-checklist.md) | **发布任何博客文章时照单打勾**（写稿 → 评审 gate → 上线 → cross-post；硬 gate=独立评审 PASS） |
+| [`blog-topics.md`](blog-topics.md) | 规划/选题下一篇博客时——候选题先入库这里（backlog，非协议 roadmap） |
 | [`devto-crosspost-playbook.md`](devto-crosspost-playbook.md) | 要把某篇文章发布/更新到 dev.to 时 |
 | `i18n-translate-playbook.md`（暂未单列） | 生成中文版文章/配图时——当前流程已并入 `CONTRIBUTING.md` 第 4 步，细节在 `../scripts/i18n-translate.mjs` 头部注释 |
 
