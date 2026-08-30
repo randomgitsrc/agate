@@ -1,3 +1,5 @@
 task_id: TAG0026
-phase: P0
+phase: P1
 status: active
+judge:
+  enabled: true
