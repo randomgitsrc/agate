@@ -55,6 +55,7 @@
 | RM-AG0050 | P6.5 定位表述统一（协议文档自洽 NIT）：phases.yaml 将 P6.5 列为独立阶段条目，state-machine.md 明确其为"挂载于 P6→P7 转移的强门槛子阶段，不是独立 phase 值"——两处对 P6.5 定位叙述不一致，易误导读者；修复=统一为"强门槛子阶段"口径（state-machine 为准），核对 check-gate/check-judge-verdict 消费端不受影响 | done | 2026-08-25 文件名约定审查（独立评审发现）| TAG0024 | 2026-08-25 | 2026-08-25 |
 | RM-AG0051 | CHECK 7 版本漂移防线失效：protocol-tests.yml consistency job 浅克隆无 tag，`git describe --tags` 恒失败走 WARNING——版本漂移在 CI 零机械防线（v0.51.0 教训场景不再 FAIL，防线静默退化）+ 本地"未推送 tag 算最新 tag"假绿 | done | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
 | RM-AG0052 | CHANGELOG 破坏性变更 ↔ UPGRADING 章节对应性无自动检查：CHANGELOG 标"破坏性变更见 UPGRADING vN ②"但无 gate 校验章节存在性——v0.62.0 漏写 UPGRADING 章节实测溜过（发布清单第 3 步纯人工兜底）| done | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
+| RM-AG0053 | 双归零方法论引入失败处理闭环（PeekView 提案）：known-failures 补「复现证据 / 举一反三」列 + 归零检查单（方案 B：参考工具非强制 gate），统一 known-failures / DEBT / 复盘关闭标准；初评核验——复现证据=真缺口（直击 self-authored 防伪，LIMITATIONS 局限 3）、举一反三=缺追溯侧（预防侧 P0 已有同类/影响面预判）、管理归零=复盘归因分层已有（非空白）、「责任明确」改写为「归属明确」（反追责哲学）；方案 C（强制 gate）待 B 实践数据；提案全文见 `docs/design-notes/return-to-zero-proposal.md` | backlog | PeekView 双归零提案（2026-08-28，https://peek.gsis.top/agate-return-to-zero-proposal/raw；本地副本 docs/design-notes/return-to-zero-proposal.md）| — | 2026-08-28 | 2026-08-28 |
 
 ## 状态标识
 
