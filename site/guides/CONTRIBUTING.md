@@ -31,7 +31,7 @@
 ```bash
 cd site
 npm ci           # 首次；之后改依赖后也用这个（基于 package-lock.json）
-npm run dev      # 本地预览 http://localhost:5173/agateon/
+npm run dev      # 本地预览 http://localhost:5173/
 npm run build    # 产物在 site/.vitepress/dist/，CI 与部署都以此为准
 ```
 
@@ -93,5 +93,5 @@ npm run build    # 产物在 site/.vitepress/dist/，CI 与部署都以此为准
 
 ## base 路径与自定义域名
 
-- 当前 `base: '/agateon/'`（项目站 `https://randomgitsrc.github.io/agateon/`）。
-- 上自定义域名（agateon.com）时：把 `site/.vitepress/config.mts` 的 `base` 改成 `'/'`，并同步改 `head` 里的 `og:image` 路径；DNS 配 4 条 A 记录 + CNAME；Repo → Settings → Pages → Custom domain。
+- 当前 `base: '/'`（已绑自定义域名 `https://agateon.com`，Cloudflare CNAME 指到 `randomgitsrc.github.io` 并代理）。
+- 换域名时改 `site/.vitepress/config.mts` 三处：`base`、两处 `og:image`、语言跳转脚本里的 `base`；DNS 与 Repo → Settings → Pages → Custom domain 另配。
