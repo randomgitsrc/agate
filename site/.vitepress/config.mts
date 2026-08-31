@@ -5,14 +5,14 @@ import { getAllPosts } from './posts'
 // site/ 是产品 Web 层，在协议 gate 治理之外（见根 AGENTS.md「仓库四块」）。
 // 唯一硬校验 = `npm run build` 通过（site-check.yml + deploy-pages.yml）。
 //
-// base：项目站 = '/agateon/'；上自定义域名（agateon.com）时改成 '/'，并同步改
-// head 里 og:image 与语言跳转脚本里的 base。
+// base：已绑自定义域名 agateon.com（2026-08-31），站点在域名根路径提供 → '/'。
+// 改域名时同步改三处：base、head 里 og:image、语言跳转脚本里的 base。
 //
 // i18n：root = 英文（/），zh = 中文（/zh/）。中文内容由 site/scripts/i18n-translate.mjs
 // 自动生成（Gemini free 翻译引擎，限额保护），发博客无需手工维护中文版。
 export default withMermaid(
   defineConfig({
-    base: '/agateon/',
+    base: '/',
     cleanUrls: true,
     srcExclude: ['guides/**'],
     head: [
@@ -28,7 +28,7 @@ export default withMermaid(
             var langs=navigator.languages||[navigator.language]||[];
             var prefersZh=langs.some(function(l){return (l||'').toLowerCase().indexOf('zh')===0});
             localStorage.setItem('agateon_locale_seen','1');
-            if(prefersZh){var base='/agateon';location.replace(p.replace(new RegExp('^'+base+'(?=/|$)'),base+'/zh'));}
+            if(prefersZh){var base='';location.replace(p.replace(new RegExp('^'+base+'(?=/|$)'),base+'/zh'));}
           }catch(e){}})();`,
         },
       ],
@@ -49,7 +49,7 @@ export default withMermaid(
                 'An open-source orchestration protocol that gates every phase of an agent\'s work with objective, machine-checkable signals.',
             },
           ],
-          ['meta', { property: 'og:image', content: '/agateon/social-preview.png' }],
+          ['meta', { property: 'og:image', content: '/social-preview.png' }],
         ],
         themeConfig: {
           nav: [
@@ -87,7 +87,7 @@ export default withMermaid(
                 '一个开源编排协议：像构建系统验证编译器一样，用客观、可机器校验的信号给 AI Agent 的每个阶段把关。',
             },
           ],
-          ['meta', { property: 'og:image', content: '/agateon/social-preview.png' }],
+          ['meta', { property: 'og:image', content: '/social-preview.png' }],
         ],
         themeConfig: {
           nav: [
