@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <marker id="aCoral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#712B13"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="630" fill="#FAF9F4"/>
+
+  <text x="70" y="86" font-family="Noto Sans SC, serif" font-size="19" letter-spacing="3.5" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
+
+  <text x="70" y="205" font-size="66" font-weight="700" fill="#1A1A18">我们不断尝试</text>
+  <text x="70" y="286" font-size="66" font-weight="700" fill="#1D9E75">攻破</text>
+  <text x="70" y="367" font-size="66" font-weight="700" fill="#1A1A18">自己的 gates</text>
+  <text x="70" y="412" font-size="24" font-style="italic" fill="#444441">面向 verifier 的对抗性测试</text>
+
+  <!-- ===== a gate, under attack ===== -->
+  <g font-family="'Menlo', 'Consolas', monospace" font-size="17" font-weight="700" text-anchor="middle">
+    <!-- gate shield -->
+    <path d="M 900 160 L 1050 160 L 1050 250 Q 1050 330 975 356 Q 900 330 900 250 Z" fill="#9FE1CB" stroke="#085041" stroke-width="3"/>
+    <text x="975" y="245" fill="#085041" font-size="19">GATE</text>
+    <text x="975" y="274" fill="#085041" font-size="22">✓</text>
+
+    <!-- three probing hands/arrows -->
+    <path d="M 760 210 L 872 232" fill="none" stroke="#712B13" stroke-width="4" marker-end="url(#aCoral)"/>
+    <path d="M 760 310 L 872 310" fill="none" stroke="#712B13" stroke-width="4" marker-end="url(#aCoral)"/>
+    <path d="M 760 410 L 872 388" fill="none" stroke="#712B13" stroke-width="4" marker-end="url(#aCoral)"/>
+
+    <text x="720" y="216" fill="#712B13" font-size="15" text-anchor="end">已损坏的测试</text>
+    <text x="720" y="316" fill="#712B13" font-size="15" text-anchor="end">伪造的红色警报</text>
+    <text x="720" y="414" fill="#712B13" font-size="15" text-anchor="end">自我审查</text>
+  </g>
+
+  <text x="70" y="552" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">只有不断有人尝试攻破，gate 才值得信赖。</text>
+  <text x="70" y="580" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">每一次成功的攻击都是一个功能需求。</text>
+</svg>

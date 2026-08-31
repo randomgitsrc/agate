@@ -8,7 +8,7 @@
 > `agate-workspace/roadmap/`（RM 卡片、P8 gate 硬校验其回写）是两套东西，互不相通——
 > 博客选题不走协议卡片、不进 RM 状态机。
 
-## 已发布弧线（截至 2026-08-30）
+## 已发布弧线（截至 2026-08-31）
 
 | 篇 | 标题 | 管的层次 |
 |---|---|---|
@@ -16,6 +16,7 @@
 | post-02 (08-27) | Agateon: verify AI agents the way a build system verifies a compiler | 项目介绍（是什么/为什么） |
 | post-03 (08-28) | Is it done, or does it just look done? A ladder of evidence | 方法框架（证据阶梯 + 审计清单） |
 | post-04 (08-30) | The right to look away: how gates buy autonomy | 收益面（注意力经济学：验证买到"可以不看"） |
+| post-05 (08-31) | We keep trying to break our own gates | 自我指涉（验证验证者：对抗性测试 + 独立 judge） |
 
 ## post-04（已发布 2026-08-30，本节留档）
 
@@ -47,8 +48,9 @@
 
 ## Backlog（按优先级）
 
-1. **对抗性测试：我们故意弄坏自己的 gate**——故事性最强；素材现成（check-tdd-red.py 的 A/B
-   类红灯、 TAG0020-independent-judge、对抗性测试防空转声明）。适合 post-05 姊妹篇。
+1. ~~**对抗性测试：我们故意弄坏自己的 gate**~~ → **已发布（post-05，2026-08-31）**。素材落点：
+   check-tdd-red.py 的 A/B 类红灯、TAG0020-independent-judge（三层防造假 / exit code 才是门槛）、
+   评审 gate 自指演示。
 2. **数字复盘**——25 个任务的数据帖（gate 拦截数 / PAUSED 分布 / 重试 / 返工）。
    依赖：先跑 workspace 数据统计。可给 post-04 供弹药。
 3. **不需要运行时的协议：状态为什么放版本化 Markdown**——读者信号最强（post-02 dev.to
@@ -61,4 +63,5 @@
 
 ## 已用掉的题（勿重复）
 
-事故复盘（post-01）/ 项目介绍（post-02）/ 证据阶梯（post-03）。
+事故复盘（post-01）/ 项目介绍（post-02）/ 证据阶梯（post-03）/ 注意力经济学（post-04）/
+对抗性测试·验证验证者（post-05）。
