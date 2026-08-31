@@ -47,6 +47,7 @@ _DRIFT_SCRIPTS = [
     "check-routing.py",
     "check-judge-verdict.py",
     "check-events.py",
+    "check-maintainability.py",
 ]
 
 

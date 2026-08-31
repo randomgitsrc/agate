@@ -159,6 +159,31 @@ except ImportError:
     def extract_embedded_yaml_blocks(text):
         return []
 
+# RM-AG0046（TAG0026）：维护性反模式检测器 check-maintainability.py——gate_p4 三重门槛
+# 数据源。ImportError 降级 = WARNING 不阻断（检测未部署 ≠ 判定缺失，R2；
+# 与上方 agate_common 兜底区同型先例 :32-41）。
+# 注意：文件名 check-maintainability.py 含连字符，裸 import 语句无法按模块名解析
+# （模块名标识符不含连字符，子进程 sys.path[0]=scripts 目录时同样失败）——
+# ImportError 时按文件路径 importlib 显式加载兜底（agate-risk-score.py _load_script
+# 同源机制），仍失败才降级 None。
+try:
+    from check_maintainability import check_maintainability
+except ImportError:
+    try:
+        import importlib.util
+
+        _cm_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "check-maintainability.py"
+        )
+        _cm_spec = importlib.util.spec_from_file_location(
+            "check_maintainability", _cm_path
+        )
+        _cm_mod = importlib.util.module_from_spec(_cm_spec)
+        _cm_spec.loader.exec_module(_cm_mod)
+        check_maintainability = _cm_mod.check_maintainability
+    except Exception:
+        check_maintainability = None
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MD_FIELD_GET = os.path.join(SCRIPT_DIR, "agate-md-field-get.py")
 GATE_MISSING_CMDS = os.path.join(SCRIPT_DIR, "agate-gate-missing-cmds.py")
@@ -903,6 +928,44 @@ def gate_p4(task_dir):
             break
     if not has_code_file:
         return 1
+
+    # ── RM-AG0046（TAG0026）：维护性反模式三重门槛（检测器 agate/scripts/check-maintainability.py）──
+    # 返回约定兼容：本步骤只产生 return 1（门槛 a/b 失败）或继续向下，不新增 return 2；
+    # violations 为空 / 检测未部署（ImportError 降级）/ git_ok False 三种跳过场景下，
+    # gate_p4 行为与本步骤加入前完全一致（R1 等价性保证）。
+    if check_maintainability is not None:
+        result = check_maintainability(task_dir)
+        if result.get("git_ok"):
+            violations = result.get("violations", [])
+            if violations:
+                # 门槛 a：known-violations.md 存在（BDD-7）。登记本身不构成放行依据——
+                # 数量对齐由门槛 b 承担，P4 评审 approve 由既有 ①②③ 承担（顺序在后）。
+                known_violations = os.path.join(task_dir, "known-violations.md")
+                if not os.path.isfile(known_violations):
+                    sys.stderr.write(
+                        f"GATE P4: 检测到 {len(violations)} 个维护性反模式 violation，"
+                        "需登记 known-violations.md"
+                        "（模板 agate/assets/templates/known-violations-template.md）\n"
+                    )
+                    return 1
+                # 门槛 b：count_kf_entries 登记条目数 ≥ violation 数
+                # （BDD-8；算法同构 gate_p5 的 known-failures 数量对齐）
+                known_entries = count_kf_entries(_read_text(known_violations))
+                if known_entries < len(violations):
+                    sys.stderr.write(
+                        f"GATE P4: known-violations.md 登记条目数({known_entries}) < violation 数({len(violations)})，登记不完整\n"
+                    )
+                    return 1
+                # 门槛 c：P4 评审 approve 且 agent≠main——复用本函数既有 ①②③ 检查，
+                # 能执行到这里即 ①②③ 已通过，不重复实现（BDD-9/10 由步骤顺序天然保证）。
+        else:
+            sys.stderr.write(
+                "GATE P4 WARNING: check-maintainability git 通道不可用，本轮跳过维护性检测\n"
+            )
+    else:
+        sys.stderr.write(
+            "GATE P4 WARNING: check-maintainability 未部署（ImportError），跳过维护性检测\n"
+        )
 
     # TAG0007（BDD-4/7/10）：骨架/CODE-MAP 机制已采用（P2-skeleton.md 或
     # {AGATE_WORKSPACE}/agents/CODE-MAP.md 存在，OR 条件）且 P4-implementation.md 缺少

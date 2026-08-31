@@ -43,28 +43,26 @@ _KNOWN_VIOLATIONS_HEAD = (
     "|---|------|-----------|---------|------|------------|\n"
 )
 
-# ── P3 红灯探测（模块级，一次）─────────────────────────────────────────
-# 实现判定锚（P2-design.md §3.2 伪代码）：check-gate.py 模块头按既有 ImportError 兜底模式
-# import check_maintainability，且 gate_p4 函数体内消费该符号（violations 门槛步骤）。
-# 仅文件存在不算实现（P3 阶段 check-maintainability.py 不存在；P4 会先有 import 再有门槛体）。
-_GATE_P4_SRC = None
+# ── P3 红灯探测（模块级，收集期执行一次）───────────────────────────────
 
 
 def _gate_p4_source():
-    """读 check-gate.py 全文 + 截取 gate_p4 函数体（懒加载，失败返回空串）。"""
-    global _GATE_P4_SRC
-    if _GATE_P4_SRC is None:
-        from pathlib import Path
+    """读 check-gate.py 全文 + 截取 gate_p4 函数体（失败返回空串）。
 
-        gate = Path(__file__).resolve().parent.parent / "scripts" / "check-gate.py"
-        try:
-            src = gate.read_text(encoding="utf-8")
-        except OSError:
-            _GATE_P4_SRC = ""
-            return _GATE_P4_SRC
-        m = re.search(r"^def gate_p4\(.*?(?=^def |\Z)", src, re.M | re.S)
-        _GATE_P4_SRC = src if m is None else src[: m.start()] + m.group(0)
-    return _GATE_P4_SRC
+    路径解析三级 parent：unit → tests → agate，再进 scripts/（探测被测对象的机械
+    路径修复，主 Agent 定夺 1；断言语义不变）。
+    """
+    from pathlib import Path
+
+    gate = (
+        Path(__file__).resolve().parent.parent.parent / "scripts" / "check-gate.py"
+    )
+    try:
+        src = gate.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    m = re.search(r"^def gate_p4\(.*?(?=^def |\Z)", src, re.M | re.S)
+    return src if m is None else src[: m.start()] + m.group(0)
 
 
 def _maintainability_gate_implemented():
@@ -139,10 +137,17 @@ def _write_review(repo_path, status="approved", agent="implementer-review"):
     )
 
 
-def _staged_code(repo, name="src/feat.py", extra=None):
-    """构造一个 staged 代码 diff（含 1 个新增裸 except → violations 非空）。"""
+def _staged_code(repo, name="src/feat.py", extra=None, dirty=False):
+    """构造一个 staged 代码 diff。
+
+    dirty=True 时含新增裸 except（violations 非空场景——G1/G2b/G7 的门槛 a/b 失败
+    前提就是检测出 violation，dirty 是 extra= 机制的标准形态）；默认干净体
+    （G5a 合规基线）。
+    """
     body = "def f():\n    pass\n"
-    if extra is not None:
+    if dirty:
+        body += "try:\n    pass\nexcept:\n    pass\n"
+    elif extra is not None:
         body += extra
     p = repo.path / name
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -159,8 +164,8 @@ def test_g1_missing_known_violations_exit_1(
 ):
     """BDD-7：violations 非空 + known-violations.md 不存在 → gate_p4 返回 1（与评审输出无关）。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
-    _staged_code(repo)
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
+    _staged_code(repo, dirty=True)
     result = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result.returncode == 1
     assert "known-violations" in result.output
@@ -174,12 +179,12 @@ def test_g2_registration_insufficient_exit_1(
 ):
     """BDD-8：violations=3（构造 staged diff）+ 登记 2 条 → exit 1（不是"有文件就过"）。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     # 构造 3 个 violation：3 个文件各 1 个新增裸 except
     for i in range(3):
         _staged_code(repo, name=f"src/feat_{i}.py", extra="try:\n    pass\nexcept:\n    pass\n")
     _write_known_violations(
-        td,
+        _td,
         _violation_rows(
             ("src/feat_0.py", "fuzzy-boundary", "line 3"),
             ("src/feat_1.py", "fuzzy-boundary", "line 3"),
@@ -195,10 +200,10 @@ def test_g2_zero_entries_with_file_exit_1(
 ):
     """BDD-8 反向分支（P2-review 测试缺口 1）：登记文件存在但正文无 `| N |` 行（0 条）→ exit 1。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
-    _staged_code(repo)
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
+    _staged_code(repo, dirty=True)
     # 只写模板头 + 样例行 | # |（不命中 count_kf_entries 正则）→ 登记数 0 < violations 数 1
-    _write_known_violations(td, "| # | | god-file 跨越 / fuzzy-boundary | | | 是/否 |\n")
+    _write_known_violations(_td, "| # | | god-file 跨越 / fuzzy-boundary | | | 是/否 |\n")
     result = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result.returncode == 1
     assert "known-violations" in result.output or "登记" in result.output
@@ -208,13 +213,13 @@ def test_g2_zero_entries_with_file_exit_1(
 
 
 def _bdd9_case(git_repo, task_dir, status, agent):
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     _staged_code(repo, name=f"src/{agent or 'na'}.py", extra="try:\n    pass\nexcept:\n    pass\n")
     _write_review(repo.path, status=status, agent=agent)
     _write_known_violations(
-        td, _violation_rows((f"src/{agent or 'na'}.py", "fuzzy-boundary", "line 3"))
+        _td, _violation_rows((f"src/{agent or 'na'}.py", "fuzzy-boundary", "line 3"))
     )
-    return repo, td
+    return repo, _td
 
 
 def test_bdd_9_review_missing_exit_1(
@@ -222,7 +227,7 @@ def test_bdd_9_review_missing_exit_1(
 ):
     """BDD-9 态1：登记对齐（此处 1=1）但 P4-review.md 不存在 → exit 1（数量对齐不能单独放行）。"""
     _require_implemented()
-    repo, td = _bdd9_case(git_repo, task_dir, None, "implementer-review")
+    repo, _td = _bdd9_case(git_repo, task_dir, None, "implementer-review")
     (repo.path / "task" / "P4-review.md").unlink()
     result = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result.returncode == 1
@@ -233,7 +238,7 @@ def test_bdd_9_review_not_approved_exit_1(
 ):
     """BDD-9 态2：登记对齐但 status != approved → exit 1。"""
     _require_implemented()
-    repo, td = _bdd9_case(git_repo, task_dir, "pending", "implementer-review")
+    repo, _td = _bdd9_case(git_repo, task_dir, "pending", "implementer-review")
     result = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result.returncode == 1
 
@@ -243,7 +248,7 @@ def test_bdd_9_review_agent_main_exit_1(
 ):
     """BDD-9 态3：登记对齐但 agent == main → exit 1。"""
     _require_implemented()
-    repo, td = _bdd9_case(git_repo, task_dir, "approved", "main")
+    repo, _td = _bdd9_case(git_repo, task_dir, "approved", "main")
     result = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result.returncode == 1
 
@@ -256,11 +261,11 @@ def test_bdd_10_all_three_satisfied_exit_0(
 ):
     """BDD-10：violations=3 + 登记 3 条（真写文件，count_kf_entries 可计数）+ review approved（agent≠main）→ exit 0。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     for i in range(3):
         _staged_code(repo, name=f"src/feat_{i}.py", extra="try:\n    pass\nexcept:\n    pass\n")
     _write_known_violations(
-        td,
+        _td,
         _violation_rows(
             ("src/feat_0.py", "fuzzy-boundary", "line 3"),
             ("src/feat_1.py", "fuzzy-boundary", "line 3"),
@@ -279,7 +284,7 @@ def test_g5_no_violations_baseline_equivalence(
 ):
     """G5a：合规任务（无 violations）→ gate_p4 返回值与改动前等价（exit 0，输出无维护性门槛消息）。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     _staged_code(repo)  # 干净代码，无新增裸 except
     result = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result.returncode == 0
@@ -293,33 +298,33 @@ def test_g5_legacy_failure_paths_unchanged(
     """G5b（review 建议 1）：既有 ①②③④ 失败路径逐项等价——新步骤不得改变其返回值。"""
     _require_implemented()
     # ① review 缺失 → 1
-    repo1, td1 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_a"), task_dir, {})
+    repo1, _td1 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_a"), task_dir, {})
     _staged_code(repo1)
     (repo1.path / "task" / "P4-review.md").unlink()
     r1 = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo1.path))
     assert r1.returncode == 1
 
     # ② status 非 approved → 1
-    repo2, td2 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_b"), task_dir, {})
+    repo2, _td2 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_b"), task_dir, {})
     _staged_code(repo2)
     _write_review(repo2.path, status="pending", agent="implementer-review")
     r2 = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo2.path))
     assert r2.returncode == 1
 
     # ③ agent=main → 1（③ 在既有代码里对 main 返回 1）
-    repo3, td3 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_c"), task_dir, {})
+    repo3, _td3 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_c"), task_dir, {})
     _staged_code(repo3)
     _write_review(repo3.path, status="approved", agent="main")
     r3 = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo3.path))
     assert r3.returncode == 1
 
     # ④ 无 staged 代码 → 1
-    repo4, td4 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_d"), task_dir, {})
+    repo4, _td4 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_d"), task_dir, {})
     r4 = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo4.path))
     assert r4.returncode == 1
 
     # ③ agent 缺失 → 2（既有 WARNING 语义面不变）
-    repo5, td5 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_e"), task_dir, {})
+    repo5, _td5 = _repo_with_staged(GitRepo(git_repo.path.parent / "repo_e"), task_dir, {})
     _staged_code(repo5)
     (repo5.path / "task" / "P4-review.md").write_text(
         "---\nstatus: approved\n---\nP4 review.\n", encoding="utf-8"
@@ -333,10 +338,10 @@ def test_g5_violations_registered_passes_to_return_0_with_skeleton_warning(
 ):
     """G5c（review 缺口 2）：violations 非空 + 三重满足 → 穿过新步骤落到 return 0（新步骤不得提前 return）。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     _staged_code(repo, extra="try:\n    pass\nexcept:\n    pass\n")
     _write_known_violations(
-        td, _violation_rows(("src/feat.py", "fuzzy-boundary", "line 3"))
+        _td, _violation_rows(("src/feat.py", "fuzzy-boundary", "line 3"))
     )
     result = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result.returncode == 0, f"应穿过新步骤落 return 0: {result.output!r}"
@@ -353,7 +358,6 @@ def _load_gate_module(agate_scripts):
     """in-process 导入 check-gate 模块（scripts 目录进 sys.path；模块名带连字符走 importlib）。"""
     import importlib
     import sys
-    from pathlib import Path
 
     scripts = str(agate_scripts)
     if scripts not in sys.path:
@@ -368,13 +372,16 @@ def test_g6_import_error_degrades_to_warning(
 ):
     """G6：check_maintainability 不可用（monkeypatch 成 None）→ WARNING 不阻断（gate_p4 返回 0）。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     _staged_code(repo)
     # gate_p4 是独立进程时 monkeypatch 不生效——in-process 导入 gate 模块后 patch 属性再调用
-    # （review 建议 2：比模拟 import 失败更稳定）。
+    # （review 建议 2：比模拟 import 失败更稳定）。in-process 调用没有子进程的 cwd=repo
+    # 环境，④ 步 _git 读的是 ambient cwd——monkeypatch.chdir 锚定到用例仓库（等效
+    # _run_gate 的 cwd=repo.path，只读 diff，无 git 写操作）。
     gate_mod = _load_gate_module(agate_scripts)
+    monkeypatch.chdir(repo.path)
     monkeypatch.setattr(gate_mod, "check_maintainability", None)
-    result = gate_mod.gate_p4(str(td))
+    result = gate_mod.gate_p4(str(_td))
     assert result == 0, f"ImportError 降级应 WARNING 不阻断: {result}"
 
 
@@ -383,15 +390,16 @@ def test_g6_git_unavailable_degrades_to_warning(
 ):
     """G6 变体：git 通道不可用（git_ok=False）→ WARNING 不阻断（gate_p4 返回 0，检测层降级）。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     _staged_code(repo)
     gate_mod = _load_gate_module(agate_scripts)
+    monkeypatch.chdir(repo.path)  # ④ 步 _git 的 ambient cwd 锚定（同 G6 上一例）
 
     def _fake_check(task_dir_arg):
         return {"git_ok": False, "violations": [], "god_file_count": 0, "fuzzy_boundary_count": 0}
 
     monkeypatch.setattr(gate_mod, "check_maintainability", _fake_check)
-    result = gate_mod.gate_p4(str(td))
+    result = gate_mod.gate_p4(str(_td))
     assert result == 0, f"git_ok=False 应 WARNING 不阻断: {result}"
 
 
@@ -403,20 +411,20 @@ def test_g7_no_new_return_2_from_new_step(
 ):
     """G7：新步骤不产生 return 2——门槛 a/b 失败仅 return 1（return 2 只属既有 ③ agent 缺失态）。"""
     _require_implemented()
-    repo, td = _repo_with_staged(git_repo, task_dir, {})
-    _staged_code(repo)
+    repo, _td = _repo_with_staged(git_repo, task_dir, {})
     # 门槛 a 失败（无登记文件）→ 1 而非 2
+    _staged_code(repo, dirty=True)
     result_a = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result_a.returncode == 1
     # 门槛 b 失败（登记 0 条）→ 1 而非 2
-    _write_known_violations(td, "| # | | god-file 跨越 / fuzzy-boundary | | | 是/否 |\n")
+    _write_known_violations(_td, "| # | | god-file 跨越 / fuzzy-boundary | | | 是/否 |\n")
     result_b = _run_gate(agate_scripts, python_exe, run_cli, "task", phase="P4", cwd=str(repo.path))
     assert result_b.returncode == 1
     # 既有 return 2 语义不被动（agent 缺失态）
     repo2 = GitRepo(repo.path.parent / "repo_g7")
     repo2.path.joinpath("README.md").write_text("init\n", encoding="utf-8")
     repo2.commit("init")
-    shutil.copytree(td, repo2.path / "task")
+    shutil.copytree(_td, repo2.path / "task")
     (repo2.path / "task" / "P4-review.md").write_text(
         "---\nstatus: approved\n---\nP4 review.\n", encoding="utf-8"
     )

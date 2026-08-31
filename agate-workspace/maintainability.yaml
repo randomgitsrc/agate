@@ -1,0 +1,9 @@
+# RM-AG0046 维护性反模式检测配置——默认值仅供参考可配置（N=1000 来自 Cursor skill 经验值，无实证依据）
+god_file_threshold: 1000
+fuzzy_patterns:
+  python:
+    - '^\s*except\s*:'
+    - '#\s*type:\s*ignore'
+  typescript:
+    - ':\s*any\b'
+    - '\bas\s+any\b'

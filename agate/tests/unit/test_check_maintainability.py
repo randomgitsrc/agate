@@ -19,7 +19,7 @@
 # 平台无关：全部 tmp_path；git 经 conftest git_repo fixture；解释器经 python_exe 探测；
 #   AGATE_ROOT 经 agate_root fixture；不硬编码 /home/... 绝对路径。
 
-import importlib
+import importlib.util
 import shutil
 import sys
 from pathlib import Path
@@ -29,12 +29,30 @@ import pytest
 # G10：模块契约组在此做单源 import（其余场景复用）
 _MOD = "check_maintainability"
 
-# 收集期探测：模块未实现（P4 才写）→ 本文件全部用例 skip
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+def _load_module_file(module_file):
+    """按文件路径 importlib 加载检测器模块（连字符文件名 check-maintainability.py
+    无法按模块名 import——import 语句的模块名标识符不含连字符；参照 check-gate.py
+    侧兜底形态，主 Agent 定夺 1：探测被测对象的机械路径修复，断言语义不变）。"""
+    spec = importlib.util.spec_from_file_location(_MOD, module_file)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# 收集期探测：模块未实现（P4 才写）→ 本文件全部用例 skip。
+# 路径三级 parent：unit → tests → agate，再进 scripts/（原实现少算一级 parent，
+# 解析到不存在的 agate/tests/scripts/，且 sys.path + import_module 机制命中不了
+# 连字符文件名——均为主 Agent 定夺 1 授权修复的测试自身 bug）。
+_MODULE_FILE = (
+    Path(__file__).resolve().parent.parent.parent / "scripts" / "check-maintainability.py"
+)
 try:
-    importlib.import_module(_MOD)
+    if not _MODULE_FILE.is_file():
+        raise ImportError(f"check_maintainability 未实现：{_MODULE_FILE}")
+    _load_module_file(_MODULE_FILE)
     _MOD_MISSING = False
-except ImportError:
+except (ImportError, OSError):
     _MOD_MISSING = True
 
 pytestmark = pytest.mark.skipif(
@@ -43,13 +61,17 @@ pytestmark = pytest.mark.skipif(
 
 
 def _load_mod(agate_scripts):
-    """把 agate/scripts 目录加入 sys.path 后 import check_maintainability 模块。"""
-    scripts_dir = str(agate_scripts)
-    if scripts_dir not in sys.path:
-        sys.path.insert(0, scripts_dir)
+    """按文件路径 importlib 加载 check_maintainability 模块（每次全新模块对象，
+    保持原 del sys.modules + import 的新鲜语义；agate_scripts fixture 保证
+    AGATE_ROOT 可经 env 覆盖——CI 无 ~/.agate 时同样成立）。"""
+    module_file = Path(agate_scripts) / "check-maintainability.py"
     for name in [m for m in list(sys.modules) if m == _MOD]:
         del sys.modules[name]
-    return importlib.import_module(_MOD)
+    spec = importlib.util.spec_from_file_location(_MOD, module_file)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[_MOD] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _commit(repo, message, files=None):
@@ -105,7 +127,7 @@ def test_g10_dict_shape(
     git_repo, task_dir, agate_scripts
 ):
     """G10：返回 dict 形状——git_ok/violations/god_file_count/fuzzy_boundary_count 四键。"""
-    repo, td = _god_scenario(git_repo, task_dir, 5, 10, name="src/small.py")
+    _repo, td = _god_scenario(git_repo, task_dir, 5, 10, name="src/small.py")
     mod = _load_mod(agate_scripts)
     result = mod.check_maintainability(td)
     assert isinstance(result, dict)
@@ -125,13 +147,11 @@ def test_g10_violation_entry_shapes(
     git_repo, task_dir, agate_scripts
 ):
     """G10：violation 条目形状——god-file {type,file,detail}；fuzzy-boundary {type,file,line,detail}。"""
-    repo, td = _god_scenario(git_repo, task_dir, 900, 1150)
-    # 同一 staged diff 追加一个 fuzzy 行（既有大文件再改一行裸 except）
+    repo, _td = _god_scenario(git_repo, task_dir, 900, 1150)
+    # 同一 staged diff 追加一个 fuzzy 新增文件（A 态即命中新增行判定；不设基线 commit——
+    # 中间 commit 会把已暂存的 big.py@1150 一并收进 HEAD，god-file 场景随之消失）
     p = repo.path / "src" / "fz.py"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text("try:\n    pass\n", encoding="utf-8")
-    _stage(repo, "src/fz.py")
-    repo.commit("fz base")
     p.write_text("try:\n    pass\nexcept:\n    pass\n", encoding="utf-8")
     _stage(repo, "src/fz.py")
 
@@ -153,20 +173,17 @@ def test_g10_git_channel_fail_closed(
     git_repo, task_dir, agate_scripts, tmp_path, monkeypatch
 ):
     """G10：git 通道失败 fail-closed——git_ok=False（对齐 score_task 语义，不静默降级）。"""
-    repo, td = _god_scenario(git_repo, task_dir, 5, 10, name="src/small.py")
+    repo, _td = _god_scenario(git_repo, task_dir, 5, 10, name="src/small.py")
     mod = _load_mod(agate_scripts)
     orig = mod.run_git
 
     def _broken_run_git(args, cwd=None):
-        class _R:
-            returncode = 128
-            stdout = ""
-            stderr = "fatal: not a git repository"
-
-        return _R()
+        # run_git 真实契约 = (returncode, stdout) 元组（agate_common.run_git）——
+        # fake 按契约返回失败元组（原 fake 返回对象，测试从未执行过才暴露的形状错位）
+        return 128, ""
 
     monkeypatch.setattr(mod, "run_git", _broken_run_git)
-    result = mod.check_maintainability(repo / "task")
+    result = mod.check_maintainability(repo.path / "task")
     assert result["git_ok"] is False
     assert result["violations"] == []
     assert orig is not None
@@ -176,19 +193,20 @@ def test_g10_cli_exit_codes(
     git_repo, task_dir, agate_scripts, python_exe, run_cli
 ):
     """G10：CLI exit code——有 violation → 1；无 violation → 0（exit code 唯一判定）。"""
-    repo, td_hit = _god_scenario(git_repo, task_dir, 900, 1150)
+    repo, _td_hit = _god_scenario(git_repo, task_dir, 900, 1150)
     result_hit = run_cli(
-        python_exe, str(agate_scripts / "check-maintainability.py"), "task", cwd=str(repo)
+        python_exe, str(agate_scripts / "check-maintainability.py"), "task", cwd=str(repo.path)
     )
     assert result_hit.returncode == 1
     assert "big.py" in result_hit.output
 
-    repo2 = git_repo.path
+    # 无 violation → 0：清空暂存区（P6 形态对照，BDD-13 同机制）后复跑 CLI
+    repo.git("reset", "-q")
     result_clean = run_cli(
         python_exe,
         str(agate_scripts / "check-maintainability.py"),
-        str(repo2 / "task"),
-        cwd=str(repo2),
+        str(repo.path / "task"),
+        cwd=str(repo.path),
     )
     assert result_clean.returncode == 0
 
@@ -198,7 +216,7 @@ def test_bdd_1_god_file_crossing(
     git_repo, task_dir, agate_scripts
 ):
     """BDD-1：900 行文件 staged 后扩到 1150 行（before<1000 and after>=1000）→ violations 含该文件。"""
-    repo, td = _god_scenario(git_repo, task_dir, 900, 1150)
+    _repo, td = _god_scenario(git_repo, task_dir, 900, 1150)
     mod = _load_mod(agate_scripts)
     result = mod.check_maintainability(td)
     assert result["git_ok"] is True
@@ -360,7 +378,7 @@ def test_bdd_11_path_separator_normalized(
     git_repo, task_dir, agate_scripts
 ):
     """BDD-11：同一 diff 场景以 `/` 与 `\\` 路径形态输入 → violations 文件表示一致（反斜杠归一）。"""
-    repo, td = _god_scenario(git_repo, task_dir, 900, 1150)
+    _repo, td = _god_scenario(git_repo, task_dir, 900, 1150)
     mod = _load_mod(agate_scripts)
     result = mod.check_maintainability(td)
     files = {v.get("file") for v in result["violations"]}

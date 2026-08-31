@@ -1,3 +1,112 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0026
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+按 P2-design.md 选定方案（候选 A）实现 TAG0026 维护性反模式 gate，使 P3 的 27 条红灯
+测试转绿。改动清单以 P2-design.md §1.1（M1-M10）为准：
+
+- M1 新增 `agate/scripts/check-maintainability.py`（检测器，§3.1 契约）
+- M2 修改 `agate/scripts/check-gate.py`（gate_p4 三重门槛挂载，§3.2；import 兜底区 :25-58 同型）
+- M3 修改 `agate/scripts/check-protocol-consistency.py`（SCRIPT_ALIGNMENT_ANCHORS 登记锚点，
+  §3.6 / R6：gate_p4 挂载处注释必须含字面 `check-maintainability.py`）
+- M4 修改 `agate/scripts/agate-summary.py`（_DRIFT_SCRIPTS 追加一行）
+- M5 新增 `agate/assets/templates/known-violations-template.md`（§3.3 完整内容）
+- M6 修改 `agate/phase-cards/P4-implementation.md`（评审 checklist + gate 规则 exit 1 条目，§3.4）
+- M7 修改 `agate/phase-cards/P6-acceptance.md`（自查≠gate 节复跑提醒，§3.4）
+- M8 新增 `agate-workspace/maintainability.yaml`（§3.5 示例配置）
+- 测试文件（P3 已交付，勿动）：`agate/tests/unit/test_check_maintainability.py` +
+  `agate/tests/unit/test_check_gate_p4_maintainability.py`
+
+产出还包括 `P4-implementation.md`（声明 implementation_dir + 实现说明）。
+
+### 约束
+
+1. **TDD 驱动**：实现以 P3 测试为准——实现完成后两个测试文件全绿。不得修改 P3 测试文件的
+   断言语义；若发现测试与 P2 契约矛盾，停下报告主 Agent（不得自行改测试凑绿）。
+2. **实现范围严格 = P2-design §1.1 M1-M8**：不做任何"顺手改进"（§1.2 不改什么清单逐条遵守：
+   不动 gate_p4 既有四步语义与顺序、不动 check-p6-provenance.py、不动 gate_p5 判定、
+   不动调用方、不动 ruff 配置、不动 known-failures-template、不动 WORKFLOW.md/rules/*.yaml）。
+   发现范围外需求 → P4-implementation.md 标 `[SCOPE+]`（行首声明格式），不直接做。
+3. **返回约定兼容（最高风险，P2-review 锁定决策）**：gate_p4 新步骤只产生 return 1（门槛
+   a/b 失败）或继续向下；不新增 return 2；violations 为空 / 检测未部署 / git_ok False 三种
+   跳过场景下 gate_p4 行为与改动前完全一致。挂载点在④步（:905）之后、骨架 WARNING（:907）
+   之前；门槛 c 不重复实现（能走到新步骤即评审检查已过）。
+4. **R6 对策必须落实**：gate_p4 挂载处代码注释必须含字面 `check-maintainability.py`
+   （callers 字面 basename 校验）；M3 锚点登记的 keywords 至少含 `god_file_count` /
+   `fuzzy_boundary_count`（检测器返回 dict 真实键）。
+5. **R8**：模板样例行首用 `| # |`（不命中 count_kf_entries 正则）；「P4 评审确认」列不参与
+   机械计数。
+6. **R2 import 降级**：check-gate.py 侧 `try: from check_maintainability import ...` /
+   `except ImportError: None`（:32-41 先例同型）；检测器侧复用链
+   `from agate_common import run_git, count_kf_entries` 同样带降级兜底；
+   `_load_script("agate-risk-score")` 取 `_norm_rel`（importlib 模式，:46-54 同源）。
+7. **平台无关**：路径归一化全部经 `_norm_rel` 单源；不硬编码绝对路径；CLI shebang 与
+   解释器探测遵守项目先例（读 agate-risk-score.py 的 main/CLI 形态照做）。
+8. **配置读取健壮（BDD-6）**：配置文件缺失 / yaml 不可导入 / 单键缺失 / 单键类型坏 →
+   该键用默认值，不抛错不静默跳过（stderr 提示可）。
+9. **god-file 行数计算（P2-review 实测锚点）**：before = `git show HEAD:{path}` 行数
+   （新增文件 / HEAD 不存在 → 0）；after = `git show :{path}` 行数（staged 版本）；
+   `git diff --cached --name-status` 只处理 A/M，跳过 D。
+10. **fuzzy-boundary（P2 §3.1）**：`git diff --cached -U0 -- {path}`，只取 `+` 前缀且非
+    `+++` 行；行号取 `@@ -a,b +c,d @@` 的 c 列；按扩展名路由正则组（.py → python 组；
+    .ts/.tsx/.js/.jsx → typescript 组；其它扩展名不做 fuzzy 只做 god-file）。
+11. **卡片 wording（M6/M7）**：措辞含字面 `check-maintainability.py` 脚本名（防 CHECK 10
+    引用漂移）；M6 两处落点（评审派发节 checklist + gate 规则节 exit 1 条目）与 M7 一处
+    落点见 P2 §3.4。
+12. **commit 纪律**：你不做 git commit——主 Agent 统一暂存与提交。你不要跑
+    `git add` / `git commit`（worktree 仓库写操作由主 Agent 执行）。
+13. **自查**：实现完成后自跑（自查 ≠ gate）：
+    `python3 -m pytest agate/tests/unit/test_check_maintainability.py agate/tests/unit/test_check_gate_p4_maintainability.py -x -q`
+    全绿；再跑完整两个文件不带 -x 确认 27 条全过。P3 的 skipif/sentinel 机制在实现落地后
+    自动解除（M9 整组参与、M10 sentinel 探测到 gate_p4 已含三重门槛）——不要改测试里的
+    机制，若 sentinel 探测逻辑与你的实现形态不匹配（例如探测字符串），报告主 Agent。
+14. **self-gate 预告**：本次改动含 `agate/scripts/*.py` 与 `agate/phase-cards/*.md`——
+    主 Agent commit 时会带 self-gate-review 流程（你不处理，但你须保证实现与协议文档
+    一致性：卡片新增 wording 与实际 gate 行为严格对应）。
+
+### 上游关联
+
+- P1-requirements.md：13 条 BDD（实现验收对照）
+- P2-design.md：§1 影响面 / §2 候选A / §3 设计细节（含模板全文、gate_commands）/ §6 files_to_read
+- P2-review.md：实测锚点（:254-271 评审依据汇总）+ 4 非阻塞 + 2 测试建议
+- P3 测试文件：27 条用例（红灯语义即实现规格）
+
+### 输入文件（按 P2 files_to_read 清单为准，重点）
+
+1. `agate-workspace/tasks/TAG0026-maintainability-gate/P2-design.md`（全文，尤其 §3/§6）
+2. `agate-workspace/tasks/TAG0026-maintainability-gate/P3-test-cases.md`（测试规格）
+3. `agate/scripts/check-gate.py`（:25-58 / :174 / :870-927 / :930-985）
+4. `agate/scripts/agate-risk-score.py`（:41-59 / :86-88 / :202-229）
+5. `agate/scripts/agate_common.py`（:1015-1017 count_kf_entries；run_git 定义处自行 grep）
+6. `agate/scripts/check-protocol-consistency.py`（:697-830 锚点登记位 + callers 校验）
+7. `agate/scripts/agate-summary.py`（:42-50 _DRIFT_SCRIPTS）
+8. `agate/assets/templates/known-failures-template.md`（格式参照）
+9. `agate/tests/unit/test_check_maintainability.py` + `test_check_gate_p4_maintainability.py`
+   （实现规格的机器可执行形态）
+10. `agate/phase-cards/P4-implementation.md` / `P6-acceptance.md`（改动落点上下文）
+
+### 产出文件字段
+
+P4-implementation.md 的 frontmatter 用 agate-md-field-set 填写（先 `--list`；报错照提示改；
+不要手写 frontmatter；仍失败报告主 Agent）。关键字段：`phase: P4` / `task_id: TAG0026` /
+`parent: P2-design.md` / `trace_id: TAG0026-P4-20260830` / `status: draft` /
+`created: 2026-08-30` / `agent: implementer`；正文声明 `implementation_dir: agate/scripts/`
+（实现落点）。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -109,8 +218,6 @@ implementer 为本阶段**每个新增文件**填一行：
 
 **单评审角色时**：直接派发，无需组长汇总，产出直接写 P4-review.md。
 
-**评审 checklist（RM-AG0046）**：`agate/scripts/check-maintainability.py` 检出 violations 非空时，评审角色 approve 前必须读过任务目录 `known-violations.md` 的登记理由——"是否接受该反模式"的判断权在评审角色，登记与数量对齐不单独构成放行依据。
-
 review 不通过 → implementer 修改代码 → 再 review → … → approved（⑩迭代循环，review 和 gate 重试共享 retry 预算）
 
 ## 按包拆分并行（条件触发，需额外约束）
@@ -147,7 +254,6 @@ check-gate.py P4 $TASK_DIR
 
 - **exit 0**：暂存区含非 md/yaml 代码文件（git diff --cached --name-only）
 - **exit 1**：暂存区仅 .md/.yaml 文件（无实际代码变更）→ 不能推进
-- **exit 1**（RM-AG0046 三重门槛）：检测 violations 非空时，`known-violations.md` 必须存在且登记条目数 ≥ violation 数（评审检查复用上方既有 exit 1 条件；violations 为空 / 检测未部署 / git 通道不可用时不阻断）
 - WARNING（不改变 exit code）：骨架/CODE-MAP 机制已采用（P2-skeleton.md 或 agents/CODE-MAP.md 存在）但缺「新增文件核对表」标题
 
 ## 推进条件（全部满足才写 phase: P5）
@@ -174,3 +280,40 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+### A. 代码锚点（P2-review 实测汇总，:254-271 抄录）
+- check-gate.py：import 兜底区 :32-41；`_STAGED_EXCLUDE_RE` :174；`_md_field_get` :230；
+  gate_p4 :870-927（①:872-877 ②:879-883 ③:885-891 ④:893-905 ⑤:907-925 ⑥:927）
+- agate-risk-score.py：`_load_script` :46-54、`_norm_rel` :86-88、`score_task` :202-229
+- agate_common.py：`count_kf_entries` :1015-1017；`run_git` 自行 grep 定位
+- check-protocol-consistency.py：SCRIPT_ALIGNMENT_ANCHORS 表尾 :745-751 之后；
+  check_script_alignment（callers 字面 basename 校验）:771-785；GATE_SCRIPT_EXEMPT :791-794；
+  check_anchor_coverage glob :807-811；CHECK 10 :841-846
+- agate-summary.py：_DRIFT_SCRIPTS :42-50（现 7 项）
+- agate-read-gate-commands.py :60：P3* 非元键全部被收集为测试命令（禁止声明 P3_xxx 键——
+  已在 P2 gate_commands 落实，与你无关但勿破坏）
+
+### B. P2-review 4 条非阻塞项（实现时知晓，不强制处理）
+- R3 风险行笔误（文档措辞，非代码）
+- 其余 3 条与 2 条测试建议已在 P3 测试中体现
+- 详细内容见 P2-review.md 对应小节
+
+### C. 测试与契约关键形态（P3 交付，实现必须匹配）
+- M9 检测器测试用 `pytestmark` skipif 探测 `_MOD` 可 import——实现落地后自动解除
+- M10 gate 测试用模块级 sentinel `_IMPLEMENTED = _maintainability_gate_implemented()`
+  （收集期探测 gate_p4 是否已含三重门槛特征）——若你的实现措辞与其探测规则不匹配，
+  报告主 Agent，不得改测试
+- violation 条目键名严格：`type` / `file` / `detail`（god-file）；`type` / `file` / `line` /
+  `detail`（fuzzy-boundary）——测试按此断言
+
+### D. 环境事实
+- worktree dogfooding：改代码在 worktree；git 写操作主 Agent 做；测试命令
+  `python3 -m pytest`（worktree 根执行）
+- ruff（自查建议）：`~/.venvs/agate-dev/bin/ruff check agate/scripts/`（CI 锁 0.16.4）
+- 基线：全量 pytest 全绿 + count-tests 1308（2026-08-30）——新增 27 用例后 count-tests 应 +27
+  （以脚本实测为准）
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。
