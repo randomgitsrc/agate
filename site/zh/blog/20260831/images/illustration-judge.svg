@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <marker id="aTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1D9E75"/>
+    </marker>
+    <marker id="aGray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444441"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="520" fill="#FAF9F4"/>
+
+  <text x="46" y="58" font-family="Noto Sans SC, serif" font-size="15" letter-spacing="3" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
+
+  <!-- ===== left: work + author ===== -->
+  <g font-family="'Menlo', 'Consolas', monospace" font-size="15" font-weight="700" text-anchor="middle">
+    <rect x="60" y="120" width="180" height="54" rx="12" fill="#D3D1C7"/>
+    <text x="150" y="152" fill="#444441">作者 (AGENT)</text>
+    <rect x="60" y="210" width="180" height="54" rx="12" fill="#E3E0F7"/>
+    <text x="150" y="242" fill="#4C45A8">工作 + 自我报告</text>
+    <path d="M 240 147 L 268 147" stroke="#444441" stroke-width="3"/>
+    <path d="M 240 237 L 268 237" stroke="#444441" stroke-width="3"/>
+  </g>
+
+  <!-- ===== middle: three-layer anti-forgery ===== -->
+  <g font-family="'Menlo', 'Consolas', monospace" font-size="14" font-weight="700">
+    <rect x="280" y="96" width="260" height="54" rx="12" fill="#E3E0F7"/>
+    <text x="300" y="129" fill="#4C45A8">1 · 信息隔离</text>
+    <rect x="280" y="178" width="260" height="54" rx="12" fill="#E3E0F7"/>
+    <text x="300" y="211" fill="#4C45A8">2 · 证据交叉核对</text>
+    <rect x="280" y="260" width="260" height="54" rx="12" fill="#F5C4B3"/>
+    <text x="300" y="293" fill="#712B13">3 · 只读账本</text>
+
+    <path d="M 540 178 L 566 178" stroke="#444441" stroke-width="3"/>
+    <path d="M 540 287 L 566 287" stroke="#444441" stroke-width="3"/>
+  </g>
+
+  <!-- ===== right: judge + verdict ===== -->
+  <g font-family="'Menlo', 'Consolas', monospace" font-size="15" font-weight="700" text-anchor="middle">
+    <rect x="578" y="150" width="140" height="54" rx="12" fill="#9FE1CB"/>
+    <text x="648" y="182" fill="#085041">裁判 (JUDGE)</text>
+    <text x="648" y="202" fill="#085041" font-size="11" font-weight="400">新上下文</text>
+    <path d="M 648 204 L 648 230" stroke="#1D9E75" stroke-width="3" marker-end="url(#aTeal)"/>
+    <rect x="578" y="236" width="140" height="54" rx="12" fill="#F5C4B3"/>
+    <text x="648" y="268" fill="#712B13">裁决 (VERDICT)</text>
+    <text x="648" y="290" fill="#712B13" font-size="11" font-weight="400">仅供参考</text>
+    <rect x="578" y="322" width="140" height="54" rx="12" fill="#9FE1CB"/>
+    <text x="648" y="354" fill="#085041">EXIT CODE</text>
+    <text x="648" y="376" fill="#085041" font-size="11" font-weight="400">阈值</text>
+    <path d="M 648 290 L 648 316" stroke="#085041" stroke-width="3" marker-end="url(#aCoral)"/>
+  </g>
+
+  <text x="46" y="492" font-size="16" font-style="italic" fill="#444441">作者不能担任裁判 — 流程强制执行分离，且由 EXIT CODE（而非模型）把守 gate。</text>
+</svg>
