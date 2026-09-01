@@ -10,6 +10,28 @@
 
 ## [Unreleased]
 
+---
+
+## [0.65.0] - 2026-08-30
+
+### 新增（TAG0026：维护性反模式 gate，RM-AG0046）
+
+- **`check-maintainability.py` 维护性反模式检测器（RM-AG0046）**：新增 diff 驱动的两类反模式
+  检测——god-file 跨越（before < 阈值 ≤ after，默认 1000 行）与 fuzzy-boundary（裸 `except:` /
+  `# type: ignore` / `: any` 等，按扩展名路由正则）；阈值与正则集经 `agate-workspace/maintainability.yaml`
+  可配置（默认值仅供参考），配置缺失/损坏全部兜底为默认值，不报错。
+- **`check-gate.py` gate_p4 新增三重门槛（RM-AG0046）**：检测 violations 非空时，要求
+  known-violations.md 登记（新模板 `agate/assets/templates/known-violations-template.md`）+
+  登记条目数 ≥ violation 数 + P4 评审 approve 三者齐全才放行——登记本身不构成放行依据，
+  "是否接受该反模式"的判断权在评审角色；violations 为空 / 检测未部署 / git 通道不可用三场景
+  行为与旧版完全一致（零回归面）。
+- **P4/P6 卡片机制条目**：P4 卡新增评审 checklist（approve 前必须读过登记理由）与 gate 规则
+  exit 1 条目；P6 卡「自查≠gate」节新增非阻断复跑提醒（挂载在 P4，P6 暂存区通常无代码 diff）。
+- **一致性配套**：check-protocol-consistency.py 锚点登记 + agate-summary.py `_DRIFT_SCRIPTS`
+  同步；新增 27 个单测（count-tests 1308 → 1335，只增不减）。
+- **DEBT0023 登记**：gate_commands 的 P3* 前缀键被静默收集为 TDD 测试命令执行（协议缺口，
+  low，本任务以"禁用 P3_xxx 键"约定规避，收口留待后续任务）。
+
 ### 变更
 
 - **入口文档品牌文案统一**：README×2 / AGENTS×2 / SETUP / UPGRADING（当前节）品牌词 agate → Agateon（TAG0025 Phase 0 收尾；backtick token 与历史版本节按设计保留）
