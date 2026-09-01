@@ -1,3 +1,6 @@
 task_id: TAG0026
-phase: P0
+phase: READY
 status: active
+p5_pass_commit: f7e7b9f1fac3e4bff834c47c150a05f6a27a67e0
+judge:
+  enabled: true

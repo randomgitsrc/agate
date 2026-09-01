@@ -748,6 +748,12 @@ SCRIPT_ALIGNMENT_ANCHORS = [
         "script": "agate/scripts/check-structure-consistency.py",
         "keywords": ["S-1", "check-yaml-schema.py"],
     },
+    {
+        "desc": "维护性反模式检测（RM-AG0046，TAG0026：god-file 跨越 + fuzzy-boundary，P4 三重门槛数据源）",
+        "script": "agate/scripts/check-maintainability.py",
+        "keywords": ["god_file_count", "fuzzy_boundary_count"],
+        "callers": ["agate/scripts/check-gate.py"],
+    },
 ]
 
 

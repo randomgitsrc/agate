@@ -1,0 +1,13 @@
+# BDD-1 god-file 跨越检测（真实 CLI 重放，P6 独立产出）
+# 场景: tmp git 仓库（/tmp/p6-bdd1.kj3j77，已销毁），bdd1.py 900 行 commit 后 +250 行 staged（1150 行，before<1000<=after）
+# 命令: timeout 60 python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd1.kj3j77/agate-workspace/tasks/bdd1
+# 预期（P1 BDD-1 判定锚）: violations 含该文件 god-file 违规（god_file_count >= 1），CLI exit 1
+god_file_count: 1
+fuzzy_boundary_count: 0
+god-file: bdd1.py (before=900 after=1150 threshold=1000)
+EXIT_CODE:1
+
+# 场景构造记录: git init → 生成 bdd1.py 900 行(x_1..x_900) → git add + commit → 追加 250 行(y_1..y_250) → git add(staged)
+# staged 行数实测: 1150 bdd1.py (wc -l)
+# 结论解读: god_file_count=1，violations 含 bdd1.py（detail before=900 after=1150 threshold=1000），
+#   满足 P1 BDD-1 判定锚「violations 含该文件违规」→ PASS 依据；CLI exit 1 与契约一致。

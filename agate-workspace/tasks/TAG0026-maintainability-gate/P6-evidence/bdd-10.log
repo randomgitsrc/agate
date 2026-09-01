@@ -1,0 +1,17 @@
+# BDD-10 三重门槛全满足才放行（真实 CLI 重放，P6 独立产出）
+# 前置: 与 BDD-7..9 同一 tmp 仓库（violations=3 staged）；known-violations.md 3 条（数量对齐）+ P4-review approved/agent=review
+
+══════ BDD-10: 登记 3 条 + approved + agent≠main（三重满足）══════
+预期: 三重齐全 → 放行 exit 0（无阻断 stderr）
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py P4 /tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task  # 子进程 cwd=/tmp/p6-bdd710-jdlb9uuu，git 写操作全部在 tmp 仓库
+[stdout]
+[stderr]
+EXIT_CODE:0
+
+# 结论解读: gate_p4 既有四步（①P4-review 存在 ②status=approved ③agent=review≠main
+#   ④staged 含代码文件）全部通过后进入三重门槛——门槛 a（known-violations.md 存在）与
+#   门槛 b（登记 3 条 ≥ violations 3 条）均通过 → 无阻断消息，return 0 放行。
+#   violation 数=3 前置核验见 bdd-7.log（同一 tmp 仓库同一 staged 状态）。
+#   known-violations 登记内容不进入 provenance 审计范围（P1 BDD-10：不新增第八道审计，
+#   check-p6-provenance.py 七道审计均不读取该文件）。满足判定锚「三重门槛全满足时 exit 0」
+#   → PASS 依据。

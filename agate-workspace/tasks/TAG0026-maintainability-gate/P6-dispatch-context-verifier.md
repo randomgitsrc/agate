@@ -1,3 +1,74 @@
+---
+phase: P6
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0026
+role: verifier
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+对 TAG0026 的 13 条 BDD 逐条验收，产出 `P6-acceptance.md`（每条 `- PASS`/`- FAIL` 行 +
+证据引用）与 `P6-evidence/`（真实执行证据）。ui_affected: false，无 UI/vision 证据要求。
+
+### 约束
+
+1. **每条 BDD 独立判定，只允许 PASS 或 FAIL**（不允许调整/跳过/覆盖）；PASS 行格式严格：
+   `- PASS BDD-NN: {描述} ({证据路径相对 P6-evidence/})`。
+2. **证据是真实执行的产物**：13 条 BDD 中——
+   - BDD-1..6/11/12（检测器行为）：**在临时 git 仓库实际运行
+     `python3 agate/scripts/check-maintainability.py {tmp_task_dir}`（CLI）或 import 调用，
+     把真实输出存入 P6-evidence/**（bdd-N.log 含命令与输出）。禁止复制 P3/P5 测试输出充数
+     ——P6 证据要独立重放（可用 pytest 指定用例跑单条并保留输出，如
+     `timeout 280 python3 -m pytest agate/tests/unit/test_check_maintainability.py -k bdd_1 -q`
+     也可作为证据，log 含命令行与结果）。构造场景时 git 操作全部在 tmp_path（禁止 worktree
+     仓库 git 写操作）。
+   - BDD-7..10（P4 三重门槛）：实际运行 `check-gate.py P4 {tmp_task_dir}`（或 in-process 调
+     gate_p4）构造四态场景（登记缺失/数量不足/评审未 approve/三重满足），输出存证据。
+     注意：用 **worktree 自己的** `python3 agate/scripts/check-gate.py`（检查对象是 worktree
+     实现），不用 ~/.agate 稳定版（那是改造前工具）。
+   - BDD-13（挂载阶段对齐）：验证"P4 语境（代码 staged）下检测器能读到 diff"+"P6 语境
+     （暂存区无代码）下检测结果为空/不产生 violation"两侧对照，证据存两侧输出。
+3. **引用 P5 证据可复用的部分**：全量回归证据可引用
+   `(../P5-test-results/unit.md)`（p5_pass_commit=f7e7b9f，P5→P6 间无非产出文件改动，
+   审计 7 允许复用）——但**功能性行为证据必须本阶段独立产出**。
+4. **frontmatter 机器汇总**：`pass: 13` / `fail: 0`（或实际数）/ `ui_affected: false`，
+   用 agate-md-field-set 写入（先 --list）。
+5. **总结行**不用行首 `- PASS/- FAIL` 格式（用 `**Summary**: 13/13 PASS, 0 FAIL`）。
+6. **P6-evidence/ 每个文件 >1KB 或含实质输出**（命令行 + 实际输出），不接受 1 行文件。
+7. **不修代码**：发现问题记录 FAIL 并报告，不修复（P6 无代码变更空间）。
+8. **验收报告记录验收时的事实**：FAIL 就写 FAIL，不写"修复后 PASS"。
+9. **PROD 隔离**：全程 tmp_path，禁触产；返回报 [PROD_NOT_TOUCHED]。
+10. **所有 bash**：`timeout 280` 上限；分阶段落盘到 P6-progress.md。
+
+### 产出（路径硬约束）
+
+- /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate-workspace/tasks/TAG0026-maintainability-gate/P6-acceptance.md
+- /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate-workspace/tasks/TAG0026-maintainability-gate/P6-evidence/
+  （bdd-1.log .. bdd-13.log + 补充证据文件）
+
+### 输入文件（按顺序）
+
+1. `agate-workspace/tasks/TAG0026-maintainability-gate/P1-requirements.md`（§7 BDD 原文）
+2. `agate-workspace/tasks/TAG0026-maintainability-gate/P2-design.md`（§3 契约细节）
+3. `agate-workspace/tasks/TAG0026-maintainability-gate/P5-test-results/unit.md`
+4. `agate/scripts/check-maintainability.py` / `check-gate.py`（:870-1000 一带，验收对象）
+5. `AGENTS.md`
+
+### frontmatter 字段
+
+agate-md-field-set：`phase: P6` / `task_id: TAG0026` / `type: acceptance` /
+`parent: P5-verification.md` / `trace_id: TAG0026-P6-20260830` / `status: draft` /
+`created: 2026-08-30` / `agent: verifier` / `pass: N` / `fail: 0` / `ui_affected: false`。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P6
+
+路径：phase-cards/P6-acceptance.md
+---
 # P6 — 验收
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -227,6 +298,23 @@ gate 不过 ≠ 你失败了。红灯指向工作/设计的问题，不指向你
 写完验证脚本后应自跑确认脚本可执行（自查），但自查通过 ≠ P6 gate 通过。
 P6 gate 由主 Agent 亲自跑 gate 脚本（check-gate.py P6 + check-p6-evidence.py + check-p6-provenance.py），验证的是 verifier subagent 的产出。结果以主 Agent 跑的 gate 脚本为准。
 不要在返回中声称"验收已通过"或"全部 BDD PASS"——只返回路径 + 摘要。
-自查可（非阻断）复跑 `python3 agate/scripts/check-maintainability.py {TASK_DIR}` 确认 P4 后无新增反模式——P6 阶段暂存区通常已不含代码 diff，此为自查提醒而非 gate 判定点（检测器挂载在 P4，BDD-13）。
 
 > 完成 → 读 phase-cards/P7-consistency.md
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+### A. 环境（主 Agent 已核）
+- worktree 根 /home/kity/oclab/agateon/.worktrees/agate-TAG0026；HEAD=acf0cb2（P5 commit）；
+  p5_pass_commit=f7e7b9f（P4 实现 commit）
+- P5 实测：全量 1333 passed + 2 skipped / consistency 0 ERROR / count-tests 1335 / ruff、
+  shellcheck 零发现
+- 验收对象：M1-M8（commit f7e7b9f）：检测器 CLI 契约 dict 四键 + CLI exit 0/1；
+  gate_p4 三重门槛（门槛 a stderr 含 "known-violations"、门槛 b 含 "登记"）；
+  known-violations-template.md（样例行首 `| # |`）；maintainability.yaml 键
+  god_file_threshold / fuzzy_patterns.python / fuzzy_patterns.typescript
+- BDD 原文 13 条在 P1-requirements.md §7（判定锚已逐条写明）
+- ui_affected: false → 无截图/vision 要求；证据=命令输出日志
+- 证据目录名必须是 P6-evidence/（check-p6-evidence.py 检查该名）
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

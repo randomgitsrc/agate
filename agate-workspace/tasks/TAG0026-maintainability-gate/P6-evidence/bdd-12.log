@@ -1,0 +1,35 @@
+# BDD-12 移动代码假阳性诚实处理（真实 CLI 重放，P6 独立产出；场景构造复刻 P3 test_bdd_12_moved_code_new_lines_judged）
+# 场景: tmp git 仓库（/tmp/p6-bdd12-82l4mf90，脚本结束时销毁），mover.py commit 版 = 10 行普通块 + try/pass/except/pass 块 + 5 行普通块；staged 版 = 10 行块 + 5 行块 + 同一 4 行块（块从中间移动到末尾）
+# 注: 第一次构造（except 块上下文对称，git 锚定为未变上下文、except 行不在新增行中）场景无效已作废；本文件为修正后重放
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd12-82l4mf90/agate-workspace/tasks/bdd12
+# 预期（P1 BDD-12 判定锚）: 移动后的新增裸 except 行照判 violation（不被自动识别为移动而忽略），exit 1；且该 violation 能经 known-violations 三重门槛正常处理
+
+[staged diff -U0（except 行构成删除行+新增行的移动形态）]
+diff --git a/mover.py b/mover.py
+index 35944a4..577b23c 100644
+--- a/mover.py
++++ b/mover.py
+@@ -11,4 +10,0 @@ x_10 = 10
+-try:
+-    pass
+-except:
+-    pass
+@@ -19,0 +16,4 @@ x_5 = 5
++try:
++    pass
++except:
++    pass
+
+[检测器输出]
+god_file_count: 0
+fuzzy_boundary_count: 1
+fuzzy-boundary: mover.py:18 (matched pattern: ^\s*except\s*:)
+EXIT_CODE:1
+
+[三重门槛消化验证: 登记 1 条（=violations 1 条）+ P4-review approved/agent=review]
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py P4 /tmp/p6-bdd12-82l4mf90/agate-workspace/tasks/bdd12  # 子进程 cwd=/tmp/p6-bdd12-82l4mf90
+[stdout]
+[stderr]
+GATE_EXIT_CODE:0
+
+# 判定细节: 移动后新增的裸 except 行被判 violation（fuzzy-boundary: mover.py:18 (matched pattern: ^\s*except\s*:)），新增位置行号 > 原位置（原位于第 11-14 行，移动后位于文件末尾）——未被自动识别为移动而忽略，已知假阳性照判（判定锚第一半）；同场景登记 1 条 + 数量对齐 + 评审 approve 后 gate_p4 return 0，该 violation 经 known-violations 三重门槛正常处理（判定锚第二半）。→ PASS 依据。

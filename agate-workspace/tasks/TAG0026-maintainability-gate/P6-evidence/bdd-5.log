@@ -1,0 +1,24 @@
+# BDD-5 阈值可配置（真实 CLI 重放，P6 独立产出，同一 staged diff 两次运行对照）
+# 场景: tmp git 仓库（/tmp/p6-bdd5.6JCoQ0，已销毁），cfg.py 480 行 commit 后 +40 行 staged（520 行，before=480 after=520）
+# 命令: timeout 60 python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd5.6JCoQ0/agate-workspace/tasks/bdd5
+
+[staged 行数核验]
+520 cfg.py
+## 运行 1：配置 god_file_threshold: 500（/tmp/p6-bdd5.6JCoQ0/agate-workspace/maintainability.yaml 存在）
+预期：480 < 500 <= 520 → 触发违规（violations 含该文件），exit 1
+实际输出：
+god_file_count: 1
+fuzzy_boundary_count: 0
+god-file: cfg.py (before=480 after=520 threshold=500)
+EXIT_CODE_RUN1:1
+
+## 运行 2：配置删除（无 maintainability.yaml → 默认阈值 1000）
+预期：480 < 1000 且 520 < 1000 → 未跨越默认阈值线，不触发（violations 空），exit 0
+实际输出：
+god_file_count: 0
+fuzzy_boundary_count: 0
+EXIT_CODE_RUN2:0
+
+# 结论解读: 运行 1（阈值 500）god_file_count=1 且 violation detail 含 threshold=500；运行 2（配置删除）
+#   同一 480→520 变化不触发（god_file_count=0, exit 0）。两个方向同时满足 P1 BDD-5 判定锚
+#   「配置 500 时触发 + 默认 1000 不触发（配置生效性）」→ PASS 依据。

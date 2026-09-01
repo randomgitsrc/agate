@@ -1,0 +1,26 @@
+# BDD-9 登记数量对齐但评审未 approve 仍阻断（真实 CLI 重放，P6 独立产出；三个变体各跑一次）
+# known-violations.md 固定 3 条数字行（实测 3 条），与 violations=3 对齐；仅评审文件状态不同
+
+══════ BDD-9 变体 a: P4-review.md 不存在 ══════
+P4-review.md 存在: False；预期: ①评审缺失 → 1
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py P4 /tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task  # 子进程 cwd=/tmp/p6-bdd710-jdlb9uuu，git 写操作全部在 tmp 仓库
+[stdout]
+[stderr]
+GATE P4: P4-review.md 不存在（P4 评审不可裁剪，必须派发独立 subagent 产出，见 phase-cards/P4-implementation.md C8 机械映射）
+EXIT_CODE:1
+
+══════ BDD-9 变体 b: status 非 approved（draft）══════
+P4-review frontmatter: status=draft, agent=review；预期: ②status 非 approved → 1
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py P4 /tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task  # 子进程 cwd=/tmp/p6-bdd710-jdlb9uuu，git 写操作全部在 tmp 仓库
+[stdout]
+[stderr]
+GATE P4: P4-review.md frontmatter status 非 approved（当前: draft）
+EXIT_CODE:1
+
+══════ BDD-9 变体 c: agent == main ══════
+P4-review frontmatter: status=approved, agent=main；预期: ③agent=main → 1（主 Agent 不可自行批准评审）
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py P4 /tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task  # 子进程 cwd=/tmp/p6-bdd710-jdlb9uuu，git 写操作全部在 tmp 仓库
+[stdout]
+[stderr]
+GATE P4: P4-review.md status:approved 但 agent=main（主 Agent 不可自行批准评审）
+EXIT_CODE:1

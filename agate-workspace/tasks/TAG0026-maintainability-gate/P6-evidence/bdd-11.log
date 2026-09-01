@@ -1,0 +1,18 @@
+# BDD-11 平台无关性（路径分隔符）（真实 CLI 重放 + import 归一核验，P6 独立产出；口径对齐 P3 test_bdd_11_path_separator_normalized 的 Linux 侧）
+# 场景: tmp git 仓库（/tmp/p6-bdd11-xc173gye，脚本结束时销毁），src/big.py 900 行 commit 后 +250 行 staged（1150 行，god-file 跨越）
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd11-xc173gye/agate-workspace/tasks/bdd11
+# 预期（P1 BDD-11 判定锚）: 检测结果不受路径分隔符影响——violations 文件字段为 / 归一形态，两种分隔符形态归一到同一相对路径
+
+[检测器输出]
+god_file_count: 1
+fuzzy_boundary_count: 0
+god-file: src/big.py (before=900 after=1150 threshold=1000)
+EXIT_CODE:1
+
+[归一等价核验（import 调用 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py 的 _norm_rel，worktree 单源）]
+_norm_rel("src/big.py")   = 'src/big.py'
+_norm_rel("src\\big.py") = 'src/big.py'
+两种分隔符形态归一相等: True
+violations 输出含反斜杠: False（应为 False，即全部 / 归一形态）
+
+# 结论解读: god-file violation 的 file 字段输出为 src/big.py（/ 归一形态，无反斜杠），_norm_rel 将 src\\big.py 与 src/big.py 归一到同一相对路径（复用 agate-risk-score _norm_rel 单源，反斜杠归一）——同一 diff 场景用两种分隔符表示相同文件时检测结果一致（violations 数量与文件列表一致）。真实 Windows 分隔符行为由 Windows CI windows_smoke 用例覆盖（按平台分支，P3/P5 口径），本阶段 Linux 实测满足 P1 BDD-11 判定锚 → PASS 依据。

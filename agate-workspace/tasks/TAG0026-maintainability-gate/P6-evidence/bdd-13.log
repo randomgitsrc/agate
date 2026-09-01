@@ -1,0 +1,23 @@
+# BDD-13 数据源与挂载阶段对齐（真实 CLI 重放，P6 独立产出，同一 tmp 仓库两侧对照）
+# 场景: tmp git 仓库（/tmp/p6-bdd13-k6hw0f8g，脚本结束时销毁），p4feat.py 2 行 commit 后 staged 新增 5 行（含裸 except:，新增第 6 行）
+# 检测命令（两侧相同）: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd13-k6hw0f8g/agate-workspace/tasks/bdd13
+
+══════ 侧 A: P4 语境（代码 staged，git diff --cached 含代码 diff）══════
+[git diff --cached --name-only]
+p4feat.py
+预期: 检测器能读到代码 diff 并产生客观判定（fuzzy violation + exit 1）
+[检测器输出]
+god_file_count: 0
+fuzzy_boundary_count: 1
+fuzzy-boundary: p4feat.py:6 (matched pattern: ^\s*except\s*:)
+EXIT_CODE_SIDE_A:1
+
+══════ 侧 B: P6 语境（代码已 commit，暂存区无代码 diff）══════
+[git diff --cached --name-only]
+(空)预期: 数据源为空 → 不产生 violation（god_file_count=0 / fuzzy_boundary_count=0，exit 0）
+[检测器输出]
+god_file_count: 0
+fuzzy_boundary_count: 0
+EXIT_CODE_SIDE_B:0
+
+# 结论解读: 同一检测器同一仓库，代码 staged 时读到 diff 并判定（侧 A violation + exit 1），暂存区清空后数据源为空不产生判定（侧 B 0/0 + exit 0）——检测器数据源是 git diff --cached，只在 P4（代码 staged）时有内容，P6（只提交验收文档、暂存区无代码）时为空 → 挂载在 P4 而非 P6 的对齐成立（挂 P6 即永远零命中的死代码）。满足 P1 BDD-13 判定锚 → PASS 依据。

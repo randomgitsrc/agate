@@ -1,0 +1,26 @@
+# BDD-7..10 gate_p4 三重门槛四态（真实 CLI 重放，P6 独立产出）
+# 工具（检查对象）: /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py（worktree 自己的，非 ~/.agate 稳定版）
+# 场景: tmp git 仓库（/tmp/p6-bdd710-jdlb9uuu，脚本结束时销毁），gateapp/base.py commit 后 staged 新增 12 行含 3 处裸 except:
+#   task_dir=/tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task
+# 注: 前两次 bash 场景构造失败（目录未就位致场景为空）日志作废，本文件为 python 场景构造后的有效重放
+
+[前置核验: staged numstat]
+15	0	agate-workspace/gateapp/base.py
+
+[前置核验: 检测器 violations 数量]
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task
+god_file_count: 0
+fuzzy_boundary_count: 3
+fuzzy-boundary: agate-workspace/gateapp/base.py:12 (matched pattern: ^\s*except\s*:)
+fuzzy-boundary: agate-workspace/gateapp/base.py:17 (matched pattern: ^\s*except\s*:)
+fuzzy-boundary: agate-workspace/gateapp/base.py:22 (matched pattern: ^\s*except\s*:)
+DETECTOR_EXIT_CODE:1
+
+══════ BDD-7: violations 非空 + known-violations.md 不存在 ══════
+known-violations.md 存在: False（P4-review: status=approved, agent=review，使既有①②③通过，单独考察门槛 a）
+预期: 门槛 a 命中——stderr 提示需登记 known-violations.md，返回 1
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py P4 /tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task  # 子进程 cwd=/tmp/p6-bdd710-jdlb9uuu，git 写操作全部在 tmp 仓库
+[stdout]
+[stderr]
+GATE P4: 检测到 3 个维护性反模式 violation，需登记 known-violations.md（模板 agate/assets/templates/known-violations-template.md）
+EXIT_CODE:1

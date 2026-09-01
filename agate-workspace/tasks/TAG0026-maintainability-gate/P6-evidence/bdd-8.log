@@ -1,0 +1,17 @@
+# BDD-8 登记数量硬校验（真实 CLI 重放，P6 独立产出；同一 tmp 仓库，P4-review approved/review 不变）
+# known-violations.md 仅 2 条行首数字行（| 1 | / | 2 |），violation 数=3
+登记条目实测（count_kf_entries 口径）: 2
+预期: 门槛 b 命中——stderr 提示登记条目数(2) < violation 数(3)，返回 1，不是"有文件就过"
+
+══════ BDD-8: violations=3 + 登记 2 条 ══════
+# 命令: python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-gate.py P4 /tmp/p6-bdd710-jdlb9uuu/agate-workspace/tasks/g4task  # 子进程 cwd=/tmp/p6-bdd710-jdlb9uuu，git 写操作全部在 tmp 仓库
+[stdout]
+[stderr]
+GATE P4: known-violations.md 登记条目数(2) < violation 数(3)，登记不完整
+EXIT_CODE:1
+
+# 结论解读: 门槛 b 按 count_kf_entries（行首 | N | 格式）计数，2 < 3 登记不完整 → return 1，
+#   不是"有文件就过"。violation 数=3 的前置核验（同一 tmp 仓库同一 staged 状态）见 bdd-7.log
+#   [前置核验: staged numstat]（15 0 agate-workspace/gateapp/base.py）与检测器 3 条
+#   fuzzy-boundary 输出（base.py:12/:17/:22）。满足 P1 BDD-8 判定锚「登记条目数 < violations 数时
+#   exit 1」→ PASS 依据。

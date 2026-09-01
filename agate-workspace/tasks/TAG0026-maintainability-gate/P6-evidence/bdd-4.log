@@ -1,0 +1,21 @@
+# BDD-4 fuzzy-boundary 不误伤存量（真实 CLI 重放，P6 独立产出）
+# 场景: tmp git 仓库（/tmp/p6-bdd4.eCBLYz，已销毁），base.py 第 4 行已有裸 except:（已 commit），本次 staged diff 仅修改第 8/9 行（x_8/x_9），存量 except 行不在新增行中
+# 命令: timeout 60 python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd4.eCBLYz/agate-workspace/tasks/bdd4
+# 预期（P1 BDD-4 判定锚）: violations 不包含该存量行（fuzzy_boundary_count 不增加，=0）
+
+[staged diff -U0 全文]
+diff --git a/base.py b/base.py
+index 1b555b2..8903ee0 100644
+--- a/base.py
++++ b/base.py
+@@ -8,2 +8,2 @@ x_7 = 7
+-x_8 = 8
+-x_9 = 9
++x_8 = 8_modified
++x_9 = 9_modified
+god_file_count: 0
+fuzzy_boundary_count: 0
+EXIT_CODE:0
+
+# 结论解读: diff 新增行仅 x_8/x_9 修改（无 except 类行），存量第 4 行裸 except 未被计入
+#   （fuzzy_boundary_count=0），满足 P1 BDD-4 判定锚「violations 不含该存量行」→ PASS 依据；exit 0。

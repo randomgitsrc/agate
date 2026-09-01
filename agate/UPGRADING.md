@@ -89,6 +89,27 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.65.0 — 维护性反模式 gate（TAG0026：RM-AG0046）
+
+> **本版本无破坏性变更，零迁移动作**。
+
+**① 新增检测器与 P4 三重门槛——对已有任务的兼容性说明（TAG0026 要点）**：新增
+`agate/scripts/check-maintainability.py`（god-file 跨越 + fuzzy-boundary 检测，diff 驱动）与
+`check-gate.py` gate_p4 三重门槛（violations 非空时要求 known-violations.md 登记 + 数量对齐 +
+P4 评审 approve 三者齐全才放行）。对已有任务**零影响**：既有任务无 `known-violations.md`
+时，三重门槛仅在 violations 非空时触发；violations 为空 / 检测未部署 / git 通道不可用三场景
+gate_p4 行为与旧版完全一致。新模板 `agate/assets/templates/known-violations-template.md`
+仅 violations 非空的任务需要使用。
+
+**② 可选配置**：`agate-workspace/maintainability.yaml` 为可选配置（god-file 阈值 + 正则集，
+文件内注释注明"默认值仅供参考可配置"）——不创建则使用内置默认值，无强制、无升级动作。
+
+**③ 升级动作**：`git pull` 即完成（软链布局自动生效）；复制模式（Windows）需重跑
+SETUP.md 步骤 2 的 `cp`。本版本未改 3 个 hook 薄壳，无需重跑 `install-hook.py`。
+
+**④ gate 行为收紧说明（合法数据无影响）**：gate_p4 新增的阻断仅针对"本次 diff 引入反模式
+且未登记"场景——历史合规任务（无 staged 代码 violation）不受影响。
+
 ### v0.64.0 — Agateon 品牌改名 Phase 0-1（TAG0025：RM-AG0035 剩余工作②）+ 维护性变更批
 
 > **本版本无破坏性变更，零迁移动作**。GitHub 主仓改名不影响已有 clone/CI（301 跳转兜底，

@@ -1,0 +1,15 @@
+# BDD-2 god-file 不误伤存量（真实 CLI 重放，P6 独立产出）
+# 场景: tmp git 仓库（/tmp/p6-bdd2.6gJc4A，已销毁），legacy.py 1200 行已 commit（before>=1000 且 after>=1000，未跨越阈值线），本次 diff 真实修改前 5 行后 staged
+# 场景核验: staged 前后行数 1200→1200，git diff --cached --numstat 见下方输出（5 改动行）
+# 注: 第一次构造（heredoc 转义错误致未修改即跑）日志作废，本文件为修正场景后的重放
+# 命令: timeout 60 python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd2.6gJc4A/agate-workspace/tasks/bdd2
+# 预期（P1 BDD-2 判定锚）: violations 不含该文件（god_file_count=0），不阻断 exit 0
+
+[staged diff --numstat]
+5	5	legacy.py
+god_file_count: 0
+fuzzy_boundary_count: 0
+EXIT_CODE:0
+
+# 结论解读: god_file_count=0、violations 无 bdd2 文件条目，1200→1200 未跨越阈值线不触发（存量不误伤），
+#   满足 P1 BDD-2 判定锚「violations 不含该文件」→ PASS 依据；CLI exit 0（不阻断）一致。
