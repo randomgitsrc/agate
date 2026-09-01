@@ -1,0 +1,23 @@
+# BDD-3 fuzzy-boundary Python 检测（真实 CLI 重放，P6 独立产出）
+# 场景: tmp git 仓库（/tmp/p6-bdd3.i6y1rl，已销毁），base.py 10 行 commit 后 staged 新增 5 行（def f/try/pass/except:/raise），其中第 14 行为裸 except:
+# 命令: timeout 60 python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd3.i6y1rl/agate-workspace/tasks/bdd3
+# 预期（P1 BDD-3 判定锚）: violations 含该文件及其新增行位置（fuzzy_boundary_count >= 1）
+
+[staged diff --numstat]
+5	0	base.py
+[staged diff -U0 中 except 所在 hunk]
+--- a/base.py
++++ b/base.py
+@@ -10,0 +11,5 @@ x_10 = 10
++def f():
++    try:
++        pass
++    except:
++        raise SystemExit(1)
+god_file_count: 0
+fuzzy_boundary_count: 1
+fuzzy-boundary: base.py:14 (matched pattern: ^\s*except\s*:)
+EXIT_CODE:1
+
+# 结论解读: fuzzy_boundary_count=1，violations 含 base.py + 新增行号 14（detail 为命中的正则），
+#   满足 P1 BDD-3 判定锚「violations 含该文件及其新增行位置」→ PASS 依据；CLI exit 1 一致。

@@ -1,0 +1,33 @@
+# P6 progress — TAG0026 verifier
+- [verifier] 启动：已读 verifier.md(P6 模式) / P6-dispatch-context-verifier.md / P1 §7 BDD-1..13 / P2 §3 契约 / P5-test-results/unit.md / .state.yaml(p5_pass_commit=f7e7b9f) / check-maintainability.py / check-gate.py gate_p4(:895-990)
+- [verifier] 执行口径：检测器与 gate 全部用 worktree 自己的脚本；所有 git 写操作只在 pytest tmp_path 下新建仓库；worktree 仓库零 git 写
+- [verifier] BDD-1 跑命令前：tmp 仓库构造 900 行 commit→+250 行 staged(1150)，worktree CLI 实跑
+- [verifier] BDD-1 实测完成: god_file_count=1, exit 1 → 依据判定锚记 PASS；bdd-1.log 已补场景记录
+- [verifier] BDD-2 跑命令前：tmp 仓库 1200 行存量 commit，diff 仅改 5 行 staged
+- [verifier] BDD-2 第一次场景构造失败（heredoc 转义错误，legacy.py 未修改即跑检测，日志作废重跑）
+- [verifier] BDD-2 第二次跑命令前：修正场景——1200 行存量 commit 后真实修改 5 行并 staged
+- [verifier] BDD-2 实测完成(重放): numstat 5/5 真实改动, god_file_count=0, exit 0 → 依据判定锚记 PASS
+- [verifier] BDD-3 跑命令前：tmp 仓库 base.py 10 行 commit，staged 新增 4 行含裸 except:（第 14 行）
+- [verifier] BDD-3 实测完成: fuzzy-boundary base.py:14 命中, exit 1 → 依据判定锚记 PASS
+- [verifier] BDD-4 跑命令前：tmp 仓库存量裸 except 已 commit，staged diff 仅改 x_8/x_9 两行（不含 except 行）
+- [verifier] BDD-4 实测完成: 存量行未命中, exit 0 → 依据判定锚记 PASS
+- [verifier] BDD-5 跑命令前：tmp 仓库 480 行 commit→+40 行 staged(520)，先配置 threshold=500 跑一次，再删配置用默认 1000 跑一次
+- [verifier] BDD-5 实测完成: 阈值 500 触发/默认 1000 不触发, 双向对照 → 依据判定锚记 PASS
+- [verifier] BDD-6 跑命令前：tmp 仓库无 maintainability.yaml，同时构造 god-file 跨越(900→1100)与 fuzzy 新增裸 except，验证默认配置下正常判定
+- [verifier] BDD-6 实测完成: 无配置默认判定 1/1 客观值, 无报错 → 依据判定锚记 PASS
+- [verifier] BDD-7..10 跑命令前：tmp 仓库 staged 3 处裸 except 新增（violations=3），worktree check-gate.py P4 依序构造四态（登记缺失/数量不足/评审未approve×3变体/三重满足）
+- [verifier] BDD-7..10 第一次场景构造失败（printf %s 不解释 \n，AGENTS.md 已载明陷阱；staged diff 为空，四日志作废）
+- [verifier] BDD-7..10 第二次跑命令前：改用 heredoc 构造 base.py（commit 后 staged 新增 12 行含 3 处裸 except），worktree check-gate.py P4 四态重跑
+- [verifier] BDD-7..10 第三次跑命令前：python 场景构造脚本（/tmp/p6-verify-bdd710.py，tmp 仓库 git 全在脚本内）跑四态
+- [verifier] BDD-7..10 有效重放完成（python 场景构造）：前置 violations=3；BDD-7 门槛a exit 1 / BDD-8 门槛b exit 1 / BDD-9 三变体 exit 1 / BDD-10 待核 exit code；四日志已清理无效残留块
+- [verifier] BDD-10 实测核验: 三重满足 exit 0 放行 → 依据判定锚记 PASS；bdd-8/bdd-10 补结论解读注记
+- [verifier] BDD-12 跑命令前：tmp 仓库 moved.py 裸 except 块从文件头部移动到尾部（删除行+新增行），检测器实跑 + 登记吸收三重门槛验证
+- [verifier] BDD-13 跑命令前：同一 tmp 仓库两侧对照——P4 语境（代码 staged）vs P6 语境（commit 后暂存区空）
+- [verifier] BDD-12 第一次场景无效（except 块上下文对称被 git 锚定，不在新增行中）日志作废
+- [verifier] BDD-12/13 第二次跑命令前：复刻 P3 场景构造（except 块夹在 10 行块与 5 行块之间移动到末尾）+ BDD-13 两侧对照重跑
+- [verifier] BDD-11 跑命令前：tmp 仓库 src/big.py 900→1150 staged，CLI 实跑 + _norm_rel 归一核验（口径对齐 P3 G7 Linux 侧）
+- [verifier] BDD-11 重跑（修复 lines() tag 参数笔误后）
+- [verifier] BDD-11 实测完成: file 字段 / 归一 + _norm_rel 等价 → 依据判定锚记 PASS；13 条 BDD 证据全部产出，逐条结论 13 PASS / 0 FAIL
+- [verifier] P6-acceptance.md 已写入（13 PASS 行 + Summary + frontmatter），开始 frontmatter --list 核对与 gate 预检
+- [verifier] gate 格式预检通过: check-p6-format --fix exit 0 / check-p6-evidence exit 0（13 条 BDD 证据目录非空）/ check-p6-provenance exit 0（EXIT_CODE 尾行提示为脚本设计的不阻塞项——审计 5 仅对 EXIT_CODE: N 且 N≠0 且被 PASS 引用的日志判矛盾，检测器命中类日志 raw exit=1 属预期正确行为，如实保留不补尾行）
+- [verifier] 收尾: P6-acceptance.md（frontmatter pass=13 fail=0 ui_affected=false，13 条 PASS 行+Summary）+ P6-evidence/ 13 份日志；tmp 场景脚本留存 /tmp（p6-verify-bdd710.py / p6-verify-bdd1213.py / p6-verify-bdd11.py，未删除）；全程未修代码、worktree 零 git 写 → [PROD_NOT_TOUCHED]

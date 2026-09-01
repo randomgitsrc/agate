@@ -1,0 +1,23 @@
+# BDD-6 配置缺失兜底（真实 CLI 重放，P6 独立产出）
+# 场景: tmp git 仓库（/tmp/p6-bdd6.BY0INl，已销毁），无 agate-workspace/maintainability.yaml；
+#   god.py 900 行 commit 后 +200 行 staged（1100 行，跨越默认阈值 1000）；
+#   fuzzy.py commit 后 staged 新增 4 行，其中含裸 except:（新增第 6 行）——两类检测同时考察
+# 命令: timeout 60 python3 /home/kity/oclab/agateon/.worktrees/agate-TAG0026/agate/scripts/check-maintainability.py /tmp/p6-bdd6.BY0INl/agate-workspace/tasks/bdd6
+# 预期（P1 BDD-6 判定锚）: 使用默认阈值 N=1000 正常判定，不报错、不静默跳过——
+#   god_file_count=1 且 fuzzy_boundary_count=1（客观值），无 traceback/stderr 报错
+
+[配置文件核验] agate-workspace/maintainability.yaml 不存在（运行 2 of BDD-5 同理已验证默认路径生效）
+[staged 状态]
+5	0	fuzzy.py
+200	0	god.py
+[stdout]
+god_file_count: 1
+fuzzy_boundary_count: 1
+god-file: god.py (before=900 after=1100 threshold=1000)
+fuzzy-boundary: fuzzy.py:6 (matched pattern: ^\s*except\s*:)
+[stderr]
+EXIT_CODE:1
+
+# 结论解读: 配置缺失时默认阈值 1000 与默认正则集全部生效——god.py 跨越 1000 被判（detail threshold=1000）、
+#   fuzzy.py 裸 except 被判（fuzzy.py:6），god_file_count=1 / fuzzy_boundary_count=1 为客观值，
+#   stderr 为空（无报错、无 WARNING、无 traceback），未静默跳过。满足 P1 BDD-6 判定锚 → PASS 依据。
