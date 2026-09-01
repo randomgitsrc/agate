@@ -5,6 +5,8 @@
   --vp-c-brand-2: #24b282;
   --vp-c-brand-3: #157a59;
   --vp-c-brand-soft: rgba(29, 158, 117, 0.14);
+  --agateon-paper: #faf9f4;
+  --agateon-ink: #1a1a18;
 }
 
 .dark {
@@ -18,4 +20,150 @@
 :root {
   --agateon-coral: #d85a30;
   --agateon-purple: #7f77dd;
+}
+
+/* =====================================================================
+   首页（layout: home）
+   叙事主轴：任务进 → 验证过的成果出。slogan 是门，gate 图形是主视觉。
+   ===================================================================== */
+
+/* 整页 Paper 底，hero 顶部 teal 晕染淡出到同色——无水平接缝 */
+.VPHome {
+  background: var(--agateon-paper);
+}
+
+.dark .VPHome {
+  background: #121212;
+}
+
+.VPHome .VPHero {
+  position: relative;
+  background: linear-gradient(180deg, rgba(29, 158, 117, 0.10) 0%, rgba(29, 158, 117, 0) 62%);
+}
+
+.dark .VPHome .VPHero {
+  background: linear-gradient(180deg, rgba(53, 196, 147, 0.12) 0%, rgba(53, 196, 147, 0) 62%);
+}
+
+/* hero 右上角：gate 线稿装饰（平衡标题左重的留白，呼应 slogan） */
+.VPHome .VPHero::after {
+  content: "";
+  position: absolute;
+  top: 60px;
+  right: 7%;
+  width: 190px;
+  height: 116px;
+  opacity: 0.16;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120'%3E%3Crect x='20' y='20' width='14' height='84' rx='4' fill='none' stroke='%231D9E75' stroke-width='6'/%3E%3Crect x='166' y='20' width='14' height='84' rx='4' fill='none' stroke='%231D9E75' stroke-width='6'/%3E%3Crect x='20' y='20' width='160' height='14' rx='4' fill='none' stroke='%231D9E75' stroke-width='6'/%3E%3Cpath d='M60 68 L90 96 L146 44' stroke='%231D9E75' stroke-width='12' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
+  pointer-events: none;
+}
+
+.dark .VPHome .VPHero::after {
+  opacity: 0.22;
+}
+
+@media (max-width: 700px) {
+  .VPHome .VPHero::after { display: none; }
+}
+
+/* Slogan 大字：teal→深teal→青蓝渐变，末端加深保对比度 */
+.VPHome .VPHero .text {
+  background: linear-gradient(120deg, #1d9e75 0%, #0e8a72 50%, #0f7a5f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .VPHome .VPHero .text {
+  background: linear-gradient(120deg, #35c493 0%, #1d9e75 50%, #157a59 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* tagline：宽度受限、字色柔和，别抢 slogan */
+.VPHome .VPHero .tagline {
+  max-width: 640px;
+  color: var(--vp-c-text-2);
+}
+
+/* ---- 自绘 feature 卡（2×2）：任务进→成果出 置顶，机制随后 ---- */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin: 32px auto 8px;
+  max-width: 1000px;
+}
+
+@media (max-width: 700px) {
+  .feature-grid { grid-template-columns: 1fr; }
+}
+
+.feature-card {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 14px;
+  padding: 24px 26px;
+  background: var(--vp-c-bg);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--vp-c-brand-2);
+  box-shadow: 0 12px 30px -12px rgba(29, 158, 117, 0.35);
+}
+
+.feature-card svg {
+  width: 32px;
+  height: 32px;
+  color: var(--vp-c-brand-1);
+  margin-bottom: 14px;
+  display: block;
+}
+
+.feature-card h3 {
+  font-size: 17px;
+  font-weight: 650;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.feature-card p {
+  color: var(--vp-c-text-2);
+  font-size: 14.5px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ---- 首页副区块标题 ---- */
+.VPHome h2 {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+/* ---- 博客最新动态列表 ---- */
+.latest-posts {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 20px;
+}
+
+.latest-posts li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--vp-c-divider);
+}
+
+.latest-posts a {
+  font-weight: 550;
+  text-decoration: none;
+}
+
+.latest-posts .post-date {
+  color: var(--vp-c-text-3);
+  font-size: 0.85em;
+  white-space: nowrap;
 }

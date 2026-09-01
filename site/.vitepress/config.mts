@@ -92,7 +92,7 @@ export default withMermaid(
         themeConfig: {
           nav: [
             { text: '首页', link: '/' },
-            { text: '博客', link: '/blog/' },
+            { text: '博客', link: '/zh/blog/' },
             { text: 'GitHub', link: 'https://github.com/randomgitsrc/agateon' },
           ],
           sidebar: {
