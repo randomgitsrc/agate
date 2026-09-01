@@ -41,7 +41,7 @@ const remote = execSync('git -C ' + SITE_ROOT + ' remote get-url origin', { enco
 const m = remote.match(/github\.com[:/]([^/]+)\/([^/]+?)(\.git)?$/)
 if (!m) { log('无法从 git remote 推断 owner/repo:', remote); process.exit(1) }
 const [owner, repo] = [m[1], m[2]]
-const siteBase = process.env.SITE_BASE_URL || `https://${owner}.github.io/${repo}`
+const siteBase = process.env.SITE_BASE_URL || `https://agateon.com`
 
 // ---- 定位文章文件 ----
 function findPost(arg) {
