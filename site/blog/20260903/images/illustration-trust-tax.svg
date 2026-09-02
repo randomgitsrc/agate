@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Georgia, 'Times New Roman', serif">
+  <rect width="900" height="520" fill="#FAF9F4"/>
+
+  <text x="450" y="64" font-size="30" font-weight="700" fill="#1A1A18" text-anchor="middle">The trust tax: three ways to use an agent</text>
+  <text x="450" y="96" font-size="17" font-style="italic" fill="#444441" text-anchor="middle">all three spend the attention delegation was supposed to save</text>
+
+  <!-- ===== column 1: supervise ===== -->
+  <g>
+    <rect x="40" y="140" width="250" height="330" rx="12" fill="#FAF9F4" stroke="#712B13" stroke-width="3"/>
+    <text x="165" y="180" font-family="'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="700" fill="#712B13" text-anchor="middle">1 · SUPERVISE</text>
+    <!-- eye over work -->
+    <circle cx="165" cy="270" r="42" fill="#F5C4B3" stroke="#712B13" stroke-width="3"/>
+    <circle cx="165" cy="270" r="14" fill="#712B13"/>
+    <text x="165" y="360" font-size="16" fill="#444441" text-anchor="middle">watch every step,</text>
+    <text x="165" y="384" font-size="16" fill="#444441" text-anchor="middle">read every diff</text>
+    <text x="165" y="440" font-size="16" font-style="italic" fill="#712B13" text-anchor="middle">attention: gone</text>
+  </g>
+
+  <!-- ===== column 2: trust and hope ===== -->
+  <g>
+    <rect x="325" y="140" width="250" height="330" rx="12" fill="#FAF9F4" stroke="#1A1A18" stroke-width="3"/>
+    <text x="450" y="180" font-family="'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="700" fill="#1A1A18" text-anchor="middle">2 · TRUST &amp; HOPE</text>
+    <!-- sleeping / turned-away figure with drifting task -->
+    <circle cx="415" cy="255" r="22" fill="#D3D1C7" stroke="#444441" stroke-width="3"/>
+    <path d="M 397 320 Q 415 285 433 320 L 433 350 L 397 350 Z" fill="#D3D1C7" stroke="#444441" stroke-width="3"/>
+    <path d="M 460 240 L 530 232" fill="none" stroke="#712B13" stroke-width="5" marker-end="url(#aCoral)"/>
+    <path d="M 530 268 L 530 300 Q 530 330 500 336" fill="none" stroke="#712B13" stroke-width="5"/>
+    <text x="450" y="400" font-size="16" fill="#444441" text-anchor="middle">check back later,</text>
+    <text x="450" y="424" font-size="16" fill="#444441" text-anchor="middle">hope it drifted nowhere</text>
+    <text x="450" y="440" font-size="16" font-style="italic" fill="#712B13" text-anchor="middle">—</text>
+  </g>
+
+  <!-- ===== column 3: only small things ===== -->
+  <g>
+    <rect x="610" y="140" width="250" height="330" rx="12" fill="#FAF9F4" stroke="#1D9E75" stroke-width="3"/>
+    <text x="735" y="180" font-family="'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="700" fill="#1D9E75" text-anchor="middle">3 · SMALL ONLY</text>
+    <!-- small file vs big locked work -->
+    <rect x="675" y="230" width="60" height="44" rx="5" fill="#9FE1CB" stroke="#085041" stroke-width="3"/>
+    <line x1="685" y1="246" x2="725" y2="246" stroke="#085041" stroke-width="3"/>
+    <text x="705" y="300" font-size="16" fill="#085041" text-anchor="middle">tiny edits</text>
+    <rect x="710" y="330" width="90" height="70" rx="6" fill="#D3D1C7" stroke="#444441" stroke-width="3"/>
+    <rect x="742" y="318" width="28" height="28" rx="4" fill="#444441"/>
+    <text x="755" y="366" font-size="15" fill="#444441" text-anchor="middle">locked</text>
+    <text x="735" y="420" font-size="16" fill="#444441" text-anchor="middle">interesting work</text>
+    <text x="735" y="444" font-size="16" font-style="italic" fill="#444441" text-anchor="middle">stays with you</text>
+  </g>
+
+  <defs>
+    <marker id="aCoral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#712B13"/>
+    </marker>
+  </defs>
+</svg>

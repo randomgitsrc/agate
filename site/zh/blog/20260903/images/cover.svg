@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <marker id="aCoral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#712B13"/>
+    </marker>
+    <marker id="aTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#157A59"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="630" fill="#FAF9F4"/>
+
+  <text x="70" y="86" font-family="Noto Sans SC, serif" font-size="19" letter-spacing="3.5" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
+
+  <text x="70" y="200" font-size="64" font-weight="700" fill="#1A1A18">无法验证，</text>
+  <text x="70" y="278" font-size="64" font-weight="700" fill="#1D9E75">便无法授权</text>
+  <text x="70" y="330" font-size="23" font-style="italic" fill="#444441">监督是信任的代价 · 验证才是解决之道</text>
+
+  <!-- ===== scene (vertical band 360–545): human → task → gate → agent → verified card ===== -->
+
+  <!-- human (left): ink geometric figure -->
+  <g>
+    <circle cx="135" cy="400" r="30" fill="#1A1A18"/>
+    <path d="M 102 542 L 168 542 L 156 496 Q 135 476 114 496 Z" fill="#1A1A18"/>
+    <path d="M 158 500 L 220 452" fill="none" stroke="#1A1A18" stroke-width="12" stroke-linecap="round"/>
+    <!-- task card -->
+    <rect x="218" y="412" width="84" height="60" rx="6" fill="#FAF9F4" stroke="#1A1A18" stroke-width="3"/>
+    <line x1="232" y1="432" x2="286" y2="432" stroke="#1A1A18" stroke-width="3"/>
+    <line x1="232" y1="448" x2="278" y2="448" stroke="#1A1A18" stroke-width="3"/>
+  </g>
+
+  <!-- task → gate (coral) -->
+  <path d="M 306 442 L 388 442" fill="none" stroke="#712B13" stroke-width="5" marker-end="url(#aCoral)"/>
+
+  <!-- gate (middle): teal posts + crossbar + check -->
+  <g>
+    <rect x="392" y="372" width="18" height="168" rx="4" fill="#1D9E75"/>
+    <rect x="560" y="372" width="18" height="168" rx="4" fill="#1D9E75"/>
+    <rect x="392" y="372" width="186" height="16" rx="4" fill="#1D9E75"/>
+    <text x="485" y="470" fill="#0E8A72" font-family="Noto Sans SC, serif" font-size="54" font-weight="700" text-anchor="middle">✓</text>
+    <text x="485" y="520" fill="#157A59" font-family="Noto Sans SC, serif" font-size="16" font-weight="700" text-anchor="middle">GATE</text>
+  </g>
+
+  <!-- agent (right): purple node (agent color, used sparingly) -->
+  <g>
+    <circle cx="812" cy="428" r="48" fill="#E3E0F7" stroke="#4C45A8" stroke-width="3"/>
+    <circle cx="812" cy="412" r="14" fill="#4C45A8"/>
+    <path d="M 784 452 Q 812 474 840 452" fill="none" stroke="#4C45A8" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <!-- agent → verified card (teal) -->
+  <path d="M 862 470 L 896 470" fill="none" stroke="#157A59" stroke-width="6" marker-end="url(#aTeal)"/>
+
+  <!-- verified result card -->
+  <g>
+    <rect x="900" y="430" width="140" height="90" rx="8" fill="#9FE1CB" stroke="#085041" stroke-width="3"/>
+    <text x="970" y="478" fill="#085041" font-family="Noto Sans SC, serif" font-size="36" font-weight="700" text-anchor="middle">✓</text>
+    <text x="970" y="500" fill="#085041" font-family="Noto Sans SC, serif" font-size="12" font-weight="700" text-anchor="middle">已验证</text>
+  </g>
+
+  <text x="70" y="585" font-family="Noto Sans SC, serif" font-size="18" fill="#444441">下达目标，而非步骤。审查核对后的结果，而非过程。</text>
+</svg>
