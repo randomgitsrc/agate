@@ -164,15 +164,25 @@ def test_bdd_6_p6_judge_disabled_direct_p7_anchor(
 def test_bdd_7_next_exit1_delegates_retreat_to_retreat_target(
     git_repo, task_dir, agate_scripts, python_exe, run_cli
 ):
-    """BDD-7：phase=P5 + gate exit 1（mock）→ 按 retreat:P4 委托 agate-retreat-to（P5→P4 单步）
-    + retries[P4] 记录。P3 agate-next.py 缺失 → 红灯。"""
+    """BDD-7：phase=P5 + gate exit 1（真实前置：pre-task-baseline.md + P5 fail-list 新增失败 →
+    gate_p5 机械 diff 判 exit 1）→ 按 retreat:P4 委托 agate-retreat-to（P5→P4 单步）
+    + retries[P4] 记录。"""
     td = task_dir()
     repo = git_repo.path
     (repo / "README.md").write_text("init\n", encoding="utf-8")
     git_repo.commit("init")
     shutil_copytree_into(td, repo)
-    _write_state(None, repo / "task", "P5")
-    result = _run_next(agate_scripts, python_exe, run_cli, repo / "task", env={"AGATE_ROOT": ""})
+    task = repo / "task"
+    _write_state(None, task, "P5")
+    # 真实 gate exit 1 前置：baseline 含 captured_at_commit: + 空 fail-list；
+    # P5-test-results/fail-list.txt 放一条基线外的新增失败 → gate_p5 判新增失败 exit 1
+    (task / "pre-task-baseline.md").write_text(
+        "captured_at_commit: <test-fixture>\n\n```fail-list\n```\n", encoding="utf-8"
+    )
+    results_dir = task / "P5-test-results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    (results_dir / "fail-list.txt").write_text("test_bdd_7_new_failure\n", encoding="utf-8")
+    result = _run_next(agate_scripts, python_exe, run_cli, task, env={"AGATE_ROOT": ""})
     assert result.returncode == 0, f"exit 1 委托 retreat-to 应成功；rc={result.returncode}"
     state = (repo / "task" / ".state.yaml").read_text(encoding="utf-8")
     assert "phase: P4" in state, "回退后 phase 应为 P4（retreat 表值）"
@@ -222,9 +232,13 @@ def test_bdd_8_exit2_resolution_frontmatter_machine_readable(
     task_dir, agate_scripts, python_exe, run_cli
 ):
     """BDD-8：exit2-resolution.md frontmatter 机器可读（phase/task_id/type=exit2-resolution/
-    parent=.state.yaml/agent），正文含 触发/客观证据/解决 三节（§3.3 格式）。P3 红灯。"""
+    parent=.state.yaml/agent），正文含 触发/客观证据/解决 三节（§3.3 格式）。"""
     td = task_dir()
     _write_state(None, td, "P3")
+    # 真实 gate exit 2 前置：补 P3-test-cases.md → gate_p3 exit 2（存在即自判）
+    (td / "P3-test-cases.md").write_text(
+        "---\nagent: test\n---\n# P3 test cases\n", encoding="utf-8"
+    )
     result = _run_next(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 0, f"exit 2 暂停动作完成应 exit 0；rc={result.returncode}"
     res_file = td / "P3-exit2-resolution.md"
@@ -288,10 +302,11 @@ def test_bdd_9_p6_judge_gate_p65_fail_stays_p6(
 def test_bdd_11_state_transition_event_observable(
     task_dir, agate_scripts, python_exe, run_cli
 ):
-    """BDD-11：两次推进后 gate-events.jsonl 含 state_transition 记录（from/to/ts）——
-    档位 C「推进均经 agate next」的可观测证据面（§3.7）。P3 红灯（无 CLI 无事件）。"""
+    """BDD-11：推进后 gate-events.jsonl 含 state_transition 记录（from/to/ts）——
+    档位 C「推进均经 agate next」的可观测证据面（§3.7）。用真实 exit 0 的 P7 场景
+    （干净 P7-consistency.md → gate_p7 exit 0 → 消费 P7.next=P8 推进出事件）。"""
     td = task_dir()
-    _write_state(None, td, "P5")
+    _write_state(None, td, "P7")
     result = _run_next(agate_scripts, python_exe, run_cli, td)
     assert result.returncode == 0, f"推进应成功；rc={result.returncode}"
     events = _ledger_events(td)

@@ -58,6 +58,33 @@
           "task_fields": {
             "type": "array",
             "items": {"type": "string"}
+          },
+          "next": {
+            "type": ["string", "null"],
+            "enum": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", null]
+          },
+          "retreat": {
+            "type": ["string", "null"],
+            "enum": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", null]
+          },
+          "gate_subphase": {
+            "type": "object",
+            "required": ["hosted_on", "forward_to", "needs_revision_to"],
+            "properties": {
+              "hosted_on": {
+                "type": "string",
+                "enum": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+              },
+              "forward_to": {
+                "type": "string",
+                "enum": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+              },
+              "needs_revision_to": {
+                "type": "string",
+                "enum": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
+              }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false

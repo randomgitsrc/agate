@@ -1,0 +1,387 @@
+#!/usr/bin/env python3
+"""agate-next.py — 阶段推进 CLI（TAG0027 §3.4 D4-A 定案，BDD-6/7/8/9/11）
+
+用法：
+  agate-next.py [TASK_DIR]        # TASK_DIR 缺省 = 当前目录
+
+语义（消费 check-gate.py exit 三态，不改其返回约定；BDD-13）：
+  * .state.yaml phase ∈ {PAUSED, READY, DONE} → 提示不推进，exit 0
+  * 子进程跑 check-gate.py {phase} {TASK_DIR}：
+    - exit 0（通过）→ 查 phases.yaml `next`：
+        next: Pn+1   → 更新 .state.yaml phase 为 Pn+1（保留 judge/retries 块，
+                       append_event state_transition）+ git add .state.yaml
+                       （只 add 不 commit——commit 语义/hook 链由主 Agent 统一管；
+                        跳变合法性由 pre-commit 对暂存 diff 跑 check-state-transition 校验）
+        next: null   → 提示转 READY/发布流程，不推进
+    - exit 1（未通过）→ 查 phases.yaml `retreat`：
+        retreat: Pt  → 调用 agate-retreat-to.py {TASK_DIR} {Pt} "gate exit 1 按转移表回退"
+                       （retreat-to 内部逐阶归档 + retry 记录 + 独立 commit；
+                        CLI 不预判 diff——P6→P4 diff=2 亦委托，表值存在即委托）
+        retreat: null/缺失 → 提示重试本阶段（retry+1 由主 Agent 走既有流程），不推进
+    - exit 2（需自判）→
+        phase == P6 且 P6 验收通过（gate_p6 exit 2 语义 = FAIL=0/证据非空，
+        由 check-p6-provenance.py exit 0 确认）→ P6 前进特例（A1 裁决，§3.1）：
+          ① .state.yaml judge.enabled 未启用（历史任务）→ gate_p65 早退 0 →
+             消费 next: P7，推进（state_transition + add）
+          ② 启用 → 子进程跑 check-gate.py P6.5 {TASK_DIR}（= verdict 存在 +
+             check-judge-verdict + check-events 双 exit 0）：exit 0 → 推进裁决成立
+             → 消费 next: P7（state_transition + add）；exit 1 → 停留 P6，输出
+             「judge 复核未过」指引，不推进、不落盘 exit2-resolution（P6 特例豁免）
+        P6 特例条件不满足（provenance exit 1/证据空）→ 按通用 exit 2 语义处理
+        非 P6 → 通用 exit 2 语义：不推进，落盘 {phase}-exit2-resolution.md
+        （§3.3 模板；已存在则提示更新），输出暂停转主 Agent 提示，exit 0
+
+可观测证据（BDD-11）：每次推进 append_event state_transition（from/to/ts），
+账本 + git log 双面可查；exit 2 通用分支不产生 retry 记录（硬中断不自动 retry）。
+
+平台无关：显式 utf-8；无 /tmp 字面量；解释器一律 sys.executable 子进程。
+Python 3.8+（禁 match / str.removeprefix）。
+"""
+
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 公共库（同目录；agate_common 缺失时降级为本地最小实现）
+try:
+    sys.path.insert(0, SCRIPT_DIR)
+    from agate_common import (
+        append_event,
+        read_rules_yaml,
+        read_state_phase,
+        resolve_rules_root,
+    )
+except Exception:  # pragma: no cover - 独立副本降级
+    append_event = None
+    read_state_phase = None
+    read_rules_yaml = None
+    resolve_rules_root = None
+
+CHECK_GATE = os.path.join(SCRIPT_DIR, "check-gate.py")
+RETREAT_TO = os.path.join(SCRIPT_DIR, "agate-retreat-to.py")
+CHECK_PROVENANCE = os.path.join(SCRIPT_DIR, "check-p6-provenance.py")
+
+# 非推进终态（不消费 next/retreat）
+_TERMINAL_PHASES = {"PAUSED", "READY", "DONE"}
+
+# P6.5 gate 子进程入口（同 check-gate.py main 分发语义）
+# 通过 check-gate.py P6.5 统一消费（内部调 check-judge-verdict + check-events）
+
+
+def _log(msg):
+    sys.stderr.write("AGATE NEXT: " + msg + "\n")
+
+
+def _resolve_rules():
+    """解析 AGATE_ROOT/rules 目录（env → 版本链 → 脚本路径上溯，agate_common 归口）。"""
+    if resolve_rules_root is not None:
+        try:
+            return resolve_rules_root(__file__)
+        except Exception:
+            pass
+    env_root = os.environ.get("AGATE_ROOT", "")
+    if env_root:
+        return os.path.join(env_root, "rules")
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rules")
+
+
+def _load_phase_table(rules_root):
+    """读 phases.yaml → {phase_id: phase_dict}；缺失/解析失败 → {}。"""
+    if read_rules_yaml is None:
+        return {}
+    data = read_rules_yaml(rules_root, "phases")
+    if not isinstance(data, dict):
+        return {}
+    out = {}
+    for ph in data.get("phases", []) or []:
+        if isinstance(ph, dict) and ph.get("id"):
+            out[str(ph["id"])] = ph
+    return out
+
+
+def _read_state_dict(task_dir):
+    """读 task_dir/.state.yaml 为 dict；缺失/解析失败 → None。"""
+    state_file = os.path.join(task_dir, ".state.yaml")
+    if not os.path.isfile(state_file) or yaml is None:
+        return None
+    try:
+        with open(state_file, encoding="utf-8", errors="replace") as fh:
+            data = yaml.safe_load(fh)
+    except Exception:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _write_state(task_dir, data):
+    """原子写 .state.yaml（保留字段顺序：task_id/phase/status/retries/judge…）。"""
+    state_file = os.path.join(task_dir, ".state.yaml")
+    ordered = {}
+    for key in ("task_id", "phase", "status", "retries", "judge"):
+        if key in data:
+            ordered[key] = data[key]
+    for key, value in data.items():
+        if key not in ordered:
+            ordered[key] = value
+    tmp = state_file + ".agate-next.tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        yaml.safe_dump(ordered, fh, allow_unicode=True, sort_keys=False)
+    os.replace(tmp, state_file)
+
+
+def _run_cmd(cmd, task_dir=None):
+    """子进程运行（解释器一致 sys.executable；返回 returncode + 合并流）。"""
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=task_dir,
+        )
+        return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+    except OSError as exc:
+        return 127, f"subprocess 启动失败: {exc}"
+
+
+def _repo_root(task_dir):
+    """定位 task_dir 所在 git 仓库根（`git -C task_dir rev-parse --show-toplevel`）。
+
+    无 git / task_dir 不在仓库内 → None（git 操作降级为 no-op，非阻断）。
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "-C", task_dir, "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    out = (proc.stdout or "").strip()
+    return out or None
+
+
+def _git(args, repo_root):
+    """git 命令封装（-C repo_root；无仓库 → (1, "")）。"""
+    if not repo_root:
+        return 1, ""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", repo_root, *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        return proc.returncode, proc.stdout + proc.stderr
+    except OSError:
+        return 1, ""
+
+
+def _state_transition_event(task_dir, old_phase, new_phase):
+    """append_event state_transition（BDD-11 可观测证据；写失败仅 WARNING 不阻断）。"""
+    if append_event is None:
+        return
+    append_event(task_dir, {
+        "event": "state_transition",
+        "phase": new_phase,
+        "from": old_phase,
+        "to": new_phase,
+    })
+
+
+def _advance(task_dir, state, target, repo_root):
+    """把 .state.yaml phase 改为 target + append state_transition + git add .state.yaml。
+
+    只 add 不 commit（commit 语义/hook 链由主 Agent 统一管理；跳变合法性由
+    pre-commit 对暂存 diff 跑 check-state-transition 校验——与手动推进同一机械路径）。
+    """
+    old = state.get("phase", "")
+    state["phase"] = target
+    _write_state(task_dir, state)
+    _state_transition_event(task_dir, old, target)
+    _git(["add", os.path.abspath(os.path.join(task_dir, ".state.yaml"))], repo_root)
+    _log(f"{old} → {target}：.state.yaml phase 已更新并 git add（未 commit）。"
+         f"请 commit 让 pre-commit hook 校验跳变合法性。")
+
+
+def _write_exit2_resolution(task_dir, phase, state):
+    """落盘 {phase}-exit2-resolution.md（§3.3 D3-A 模板，frontmatter + 正文三节）。
+
+    已存在 → 提示更新（不覆盖用户留痕）。
+    """
+    task_id = state.get("task_id", "")
+    now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    path = os.path.join(task_dir, f"{phase}-exit2-resolution.md")
+    if os.path.isfile(path):
+        _log(f"{phase} gate exit 2：{os.path.basename(path)} 已存在——请人工更新解决留痕后继续")
+        return
+    body = (
+        "---\n"
+        f"phase: {phase}\n"
+        f"task_id: {task_id}\n"
+        "type: exit2-resolution\n"
+        "parent: .state.yaml\n"
+        f"created: {now_ts}\n"
+        "agent: main-agent\n"
+        "---\n"
+        f"# {phase} exit2-resolution\n"
+        "\n"
+        "## 触发\n"
+        f"- 时间: {now_ts}\n"
+        f"- 触发命令: check-gate.py {phase}（exit 2）\n"
+        "- gate 输出摘要: <非空证据 / FAIL 计数等客观证据>\n"
+        "\n"
+        "## 客观证据\n"
+        "- <exit 2 依据：如 check-gate 输出、provenance exit code、证据文件清单>\n"
+        "\n"
+        "## 解决\n"
+        "- 解决人: <主 Agent / 角色名>\n"
+        "- 结论: <继续 / 回退 / 修正后重验>\n"
+        "- 依据: <客观证据交叉引用>\n"
+    )
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(body)
+    _log(f"{phase} gate exit 2：已落盘 {os.path.basename(path)}（机器可读，frontmatter + 触发/客观证据/解决三节）")
+
+
+def _p6_pass(state, task_dir):
+    """P6 前进特例判定：check-p6-provenance exit 0（gate_p6 exit 2 = FAIL=0/证据非空
+    由 provenance 机械确认——审计 1 证据-结论对应 + 审计 2 dispatch-context + 审计 3 BDD 计数）。
+    """
+    rc, _out = _run_cmd([sys.executable, CHECK_PROVENANCE, task_dir])
+    return rc == 0
+
+
+def _p6_judge_advance(task_dir, state, phases, repo_root):
+    """P6 exit 2 特例分支（A1 裁决 §3.1/§3.4）：judge 启用与否的推进裁决。
+
+    返回 True = 已推进（或已提示停留）；调用方无需再走通用 exit 2。
+    """
+    p6_entry = phases.get("P6", {})
+    next_phase = p6_entry.get("next")
+    judge = state.get("judge")
+    judge_enabled = bool(isinstance(judge, dict) and judge.get("enabled"))
+    if not judge_enabled:
+        # 历史任务 / judge 未启用 → gate_p65 早退 0 → 裁决成立，直推 P7
+        if next_phase:
+            _log("P6 验收通过（provenance exit 0）；judge 未启用（历史任务）→ 直推 " + str(next_phase))
+            _advance(task_dir, state, str(next_phase), repo_root)
+        else:
+            _log("P6 验收通过但 phases.yaml P6.next 缺失——请人工处理")
+        return True
+    # judge 启用 → 子进程跑 check-gate.py P6.5（= verdict 存在 + 双脚本 exit 0）
+    rc, out = _run_cmd([sys.executable, CHECK_GATE, "P6.5", task_dir])
+    if rc == 0:
+        _log("P6.5 judge 复核通过（check-gate P6.5 exit 0）→ 消费 next:" + str(next_phase))
+        if next_phase:
+            _advance(task_dir, state, str(next_phase), repo_root)
+        else:
+            _log("P6 推进裁决成立但 phases.yaml P6.next 缺失——请人工处理")
+    else:
+        _log("judge 复核未过：缺 verdict 或 verdict 校验失败/账本审计未过"
+             "（judge.rounds ≤2，超限人工接管）→ 停留 P6，不推进、不落盘 exit2-resolution")
+        if out:
+            for line in out.splitlines()[:6]:
+                _log("  " + line.strip())
+    return True
+
+
+def _delegate_retreat(task_dir, target_phase, repo_root):
+    """委托 agate-retreat-to.py 逐阶回退（CLI 不预判 diff——表值存在即委托）。
+
+    retreat-to 内部 git 操作从 cwd 运行 → 必须在其所在仓库根跑（-C 语义由
+    _repo_root 定位；无仓库时仍按绝对路径调脚本，git 步失败由 retreat-to 自行处理）。
+    """
+    reason = "gate exit 1 按转移表回退"
+    try:
+        proc = subprocess.run(
+            [sys.executable, RETREAT_TO, task_dir, target_phase, reason],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=repo_root or None,
+        )
+        rc = proc.returncode
+        out = (proc.stdout or "") + (proc.stderr or "")
+    except OSError as exc:
+        rc = 127
+        out = f"subprocess 启动失败: {exc}"
+    _log(f"已委托 agate-retreat-to.py → {target_phase}（逐阶归档 + retry 记录 + 独立 commit）")
+    if out:
+        for line in out.splitlines()[:10]:
+            _log("  " + line.strip())
+    return rc
+
+
+def main():
+    args = sys.argv[1:]
+    task_dir = args[0] if args else os.getcwd()
+
+    state = _read_state_dict(task_dir)
+    if state is None:
+        sys.stderr.write(f"AGATE NEXT: {os.path.join(task_dir, '.state.yaml')} 缺失或解析失败\n")
+        sys.exit(1)
+    phase = str(state.get("phase", ""))
+    if not phase:
+        sys.stderr.write("AGATE NEXT: .state.yaml 缺 phase 字段\n")
+        sys.exit(1)
+    if phase in _TERMINAL_PHASES:
+        _log(f"当前 phase={phase}（终态，不推进）")
+        sys.exit(0)
+
+    rules_root = _resolve_rules()
+    phases = _load_phase_table(rules_root)
+    repo_root = _repo_root(task_dir)
+
+    # 子进程跑 check-gate.py {phase} {TASK_DIR}（消费 exit 三态，不改返回约定）
+    rc, out = _run_cmd([sys.executable, CHECK_GATE, phase, task_dir])
+    if out:
+        for line in out.splitlines()[:10]:
+            _log("  gate: " + line.strip())
+
+    if rc == 0:
+        # exit 0（通过）→ 按 next 推进
+        entry = phases.get(phase, {})
+        next_phase = entry.get("next")
+        if next_phase is None or next_phase == "":
+            _log(f"{phase} gate exit 0 但无自动后继（next: null）→ 转 READY/发布流程由人处理，不推进")
+            sys.exit(0)
+        _advance(task_dir, state, str(next_phase), repo_root)
+        sys.exit(0)
+
+    if rc == 1:
+        # exit 1（未通过）→ 按 retreat 表值委托
+        entry = phases.get(phase, {})
+        retreat = entry.get("retreat")
+        if retreat is None or retreat == "":
+            _log(f"{phase} gate exit 1 且无 retreat 表值 → 提示重试本阶段（retry+1 由主 Agent 走既有流程），不推进")
+            sys.exit(0)
+        _delegate_retreat(task_dir, str(retreat), repo_root)
+        sys.exit(0)
+
+    # exit 2（需自判）
+    if phase == "P6" and _p6_pass(state, task_dir):
+        _p6_judge_advance(task_dir, state, phases, repo_root)
+        sys.exit(0)
+    # P6 特例不成立（provenance exit 1/证据空）→ 通用 exit 2；非 P6 → 通用 exit 2
+    _write_exit2_resolution(task_dir, phase, state)
+    _log(f"{phase} gate exit 2：暂停转主 Agent 决策（不推进；硬中断不自动 retry）")
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

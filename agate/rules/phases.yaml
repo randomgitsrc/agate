@@ -20,6 +20,8 @@ phases:
       - {check: "P0-brief.md 完成，含 debug_env + known_risks"}
     retry_cap: 3
     task_fields: []
+    next: P1
+    retreat: null
   - id: P1
     name: 需求基线
     exec_role: analyst
@@ -31,6 +33,8 @@ phases:
       - {check: "check-gate.py P1 $TASK_DIR"}
     retry_cap: 3
     task_fields: [risk_level, phases, packages, domains]
+    next: P2
+    retreat: null
   - id: P2
     name: 方案设计层
     exec_role: architect
@@ -43,6 +47,8 @@ phases:
       - {check: "gate_commands.P3 可选声明（供 check-tdd-red.py 自动读取测试运行器）"}
     retry_cap: 3
     task_fields: [candidate_count, packages, domains, ui_affected, gate_commands]
+    next: P3
+    retreat: null
   - id: P3
     name: 测试设计
     exec_role: test-designer
@@ -54,6 +60,8 @@ phases:
       - {check: "check-tdd-red.py $TASK_DIR exit 0；gate_commands.P3 声明测试运行器（可选）"}
     retry_cap: 2
     task_fields: [test_code_dir]
+    next: P4
+    retreat: null
   - id: P4
     name: 代码实现
     exec_role: implementer
@@ -65,6 +73,8 @@ phases:
       - {check: "check-gate.py P4 $TASK_DIR"}
     retry_cap: 3
     task_fields: [implementation_dir]
+    next: P5
+    retreat: null
   - id: P5
     name: 技术验证
     exec_role: verifier
@@ -75,6 +85,8 @@ phases:
       - {check: "check-gate.py P5 $TASK_DIR"}
     retry_cap: 2
     task_fields: []
+    next: P6
+    retreat: P4
   - id: P6
     name: 验收
     exec_role: verifier
@@ -86,9 +98,14 @@ phases:
       - {check: "check-gate.py P6.5 $TASK_DIR（= check-judge-verdict.py + check-events.py 双 exit 0；历史任务自动跳过）"}
     retry_cap: 2
     task_fields: [pass, fail, ui_affected]
+    next: P7
+    retreat: P4
   # 注：P6.5 是挂载于 P6→P7 转移的强门槛子阶段，不是与 P0-P8 平级的独立 phase 值
   # （.state.yaml 的 phase 字段保持 P6 直至 P7）；本条目结构化声明其产出/门槛/重试上限，
   # 供 check-gate.py P6.5 分发与 CLI 调用，口径详见 state-machine.md「状态机定义」节。
+  # P6.5 非独立转移边 → 不写 next/retreat，用 gate_subphase 表达非独立门槛形态
+  # （hosted_on: .state.yaml phase 保持 P6 直至 P7（state-machine.md:74-78）；
+  #  forward_to: judge 通过 → P7；needs_revision_to: needs-revision → P6 重验（judge 轮次 ≤2））。
   - id: P6.5
     name: 独立 Judge 复核
     exec_role: judge
@@ -99,6 +116,10 @@ phases:
       - {check: "check-gate.py P6.5 $TASK_DIR"}
     retry_cap: 2
     task_fields: [status, criteria_total, criteria_passed, verdict_evidence]
+    gate_subphase:
+      hosted_on: P6
+      forward_to: P7
+      needs_revision_to: P6
   - id: P7
     name: 一致性检查
     exec_role: consistency-reviewer
@@ -109,6 +130,8 @@ phases:
       - {check: "check-gate.py P7 $TASK_DIR"}
     retry_cap: 2
     task_fields: [blocker_count, deviation_count, deviation_critical_count, design_gap_count, design_gap_reviewed_count]
+    next: P8
+    retreat: null
   - id: P8
     name: 发布准备
     exec_role: implementer
@@ -121,3 +144,5 @@ phases:
       - {check: "gate_commands.P5 链路含 check-protocol-consistency.py 时先 tag 后重跑（DEBT0013）"}
     retry_cap: 2
     task_fields: [bump_type]
+    next: null
+    retreat: null

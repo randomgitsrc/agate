@@ -7,11 +7,17 @@ task_id: {Txxx}
 role: {角色名，如 analyst / requirements-review / implementer}
 ---
 
+> **本文件既是手工注入的骨架（`agate-inject-card.py`），也是渲染时注入的模板
+> （`agate-dispatch.py`）**。渲染路径（`agate-dispatch.py {phase} {role} [TASK_DIR]`）读本模板
+> 渲染写 `{phase}-dispatch-context-{role}.md`：frontmatter `generated_by` 改写为
+> `agate-dispatch.py + 主 Agent`（机器来源字段），并在卡片块前（START 标记行之上）注入
+> 单行「CARD-SOURCE 来源注释」（HTML 注释，块外，不进入 START..END 抽取区间）。手工路径保持现状。
+
 <dispatch_guide>
 > ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
 
 ### 目标
-{一句话：本角色在本阶段要产出什么}
+{一句话：本角色在本阶段要产出什么（渲染时注入：agate-dispatch.py [--guide FILE] 时替换为 guide 首行）}
 
 ### 约束
 {从 P0-brief env_constraints/known_risks + 上游产出 + 协议知识提取。写的是"必须满足什么/不能做什么"，不是"应该怎么做"——后者是 subagent 的自主决策空间}
@@ -32,8 +38,13 @@ role: {角色名，如 analyst / requirements-review / implementer}
 逐个写入；写入失败照错误提示修正，不要手写 frontmatter；仍失败则报告主 Agent，不要绕开 set。
 </dispatch_guide>
 
+<!-- 卡片块前（本行与 START 之间）为渲染路径来源标记注入区：agate-dispatch.py 渲染时
+     在此行注入单行来源注释（HTML 注释，内容以 CARD-SOURCE 开头），置于 START 行之上——
+     不进 START..END 抽取区间（pre-commit 2p hash 不受影响）；手工路径无此行 -->
 <!-- AGATE_CARD_START -->
-{由 agate-inject-card.py 注入，禁止手写}
+{卡片占位：手工路径由 agate-inject-card.py 注入 next-card stdout；渲染路径由
+ agate-dispatch.py 在渲染时直接嵌入 next-card stdout——START..END 区间内与
+ agate-next-card.py {P1-P8} 输出逐字一致（pre-commit 2p hash 校验锚点）}
 <!-- AGATE_CARD_END -->
 
 <objective_info>
