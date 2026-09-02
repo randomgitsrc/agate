@@ -155,9 +155,9 @@ BDD 分组对应设计 v3b §6 落地路径 Phase 1-4 + 护栏 1 机械化。行
 - Then 按 state-machine.md:139 前进到 P6.5 judge 复核（phase 仍保持 P6 直至 P7 通过），不按通用 exit 2 暂停语义处理（唯一例外，不泛化到其他 phase）
 
 #### BDD-10: agate advance 与既有回退侧 CLI 对接（exit 1 分支多阶回退走既有路径）
-- Given 任务 T 需从 P7 按转移表回退到 P4（跨 ≥1 阶）
+- Given 任务 T 需从 P6 按转移表回退到 P4（state-machine.md:148，P6 BDD FAIL → P4 retry+1；表内 retreat 值 P4，跨 2 阶的机械落地由 agate-retreat-to.py 逐阶 P6→P5→P4 处理）[BASELINE_CHANGE: P2 plan-eng-review 确认 BDD-10 原 Given "P7→P4" 示例用边不当（P7 gate 失败不回退 P4，非既有转移边），修正为 P6→P4（state-machine.md:148 的真实多阶回退例）；Given/When/Then 语义不变（多阶回退走既有 retreat-to 路径），仅修正示例 phase 用值，2026-09-02 主 Agent 显式批准]
 - When 触发 agate advance 的回退分支（或等效既有 agate-retreat-to.py 调用序列）
-- Then 回退按既有 agate-retreat-to.py 单步路径逐阶执行（每步独立 commit + 归档 + gate 校验，retry 记录同步），且任何 diff≥2 直接回退被 check-state-transition.py 拦截为强制 PAUSED
+- Then 回退按既有 agate-retreat-to.py 单步路径逐阶执行（每步独立 commit + 归档 + gate 校验，retry 记录同步），且任何 diff≥2 的人工直接回退被 check-state-transition.py 拦截为强制 PAUSED（retreat-to 逐阶自动化与人工直退不同轨）
 
 #### BDD-11: 档位 C 全程用 agate next 推进，主 Agent 未自行判断进入下一 phase
 - Given 任务 T 在档位 C（/loop 全自动）下运行
