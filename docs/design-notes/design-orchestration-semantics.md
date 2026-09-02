@@ -1,6 +1,6 @@
 # 编排语义统一设计（自动化在协议内，平台只做执行环境）
 
-> 状态：设计讨论 v3（待立项，候选 RM-AG0049）
+> 状态：设计讨论 v3（待立项，候选 RM-AG0054）
 > 评审链：v1 经独立评审 FAIL（2 BLOCKER + 4 WARNING + 4 NIT，见 `docs/reviews/review-design-orchestration-semantics-2026-09-01.md`）→ v2 逐条修复 → 2026-09-02 经 Claude 独立评审（见 `docs/reviews/review-orchestration-semantics-v2-independent-20260902.md`）指出"PASS 标签无复审证据"（B1'）+ 护栏范围遗漏 WORKFLOW.md（W1'）+ 护栏机械化仍是未来时（W2'）+ 平台语义表排版（N1'）+ README 登记待核验（N2'）→ **本版 v3 修复上述全部发现并采纳其 4 条补充想法**（exit 2 可复核子状态 / CLI 为档位 C 可观测层 / S-1-S-2 纳入转移表 / 结构性判据替代文件名单）→ v3 经落盘复审 PASS（`review-orchestration-semantics-v3-20260902.md`，审查对象 v3a、4 个 NIT 修复闭环为 v3b，见该文件 4.5 节）→ 2026-09-02 第三轮 Claude 元评审（`review-orchestration-semantics-v3-claude-meta-20260902.md`）指出"复审指控失实"，经时间线核验（复审落盘 12:55 先于修复 12:59）该指控不成立，但其可追溯性建议已采纳（版本/时点标注 + 修复闭环确认）。
 > 问题：Agateon 目前以 orchestrator agent 角色驱动运转，流程正确性押在模型的持续正确上；同时三平台（OpenCode / Claude Code / DSH）能力差异正在扩大。本笔记回答两个问题：① 编排能否程序化、程序化到什么程度；② 如何让三平台不走向"三条路线"。
 > 相关文档：`agate/WORKFLOW.md`、`agate/orchestrator-template.md`、`agate/dispatch-protocol.md`、`agate/state-machine.md`、`agate/loop-orchestration.md`、`agate/rules/phases.yaml`、`agate/rules/state-transitions.md`、`docs/design-notes/dsh-integration.md`、`docs/design-notes/design-independent-judge.md`、`agate/platform-notes.md`、`agate/SETUP.md`。
@@ -138,7 +138,7 @@ orchestrator 在**任何平台**上只说同一套心智：
 2. **平台差异收敛为"如何实现"**：`platform-notes.md` / `SETUP.md` / `WORKFLOW.md`「已知适用环境」表 **整文件/整表视为"如何实现"**（v3 修正 W1'：它们是平台适配权威源，平台名集中于此是正确组织，不违反护栏；`WORKFLOW.md:143-148` 的「已知适用环境」表描述的是"这份文档在哪些平台验证过"，是元信息而非编排语义，与 `platform-notes.md` 同类豁免）。协议文档里平台名只出现在"如何实现"小节，不出现在"语义"小节。**可操作判据**：平台名出现的段落必须挂「实现注记」标记或指向数据面（`rules/*.yaml`）或阶段卡片，不得自称语义定义；
 3. **通用食谱先于平台食谱**：编排心智写成平台无关的一份，DSH 的 workflow 只是"这份通用食谱在 DSH 上的快捷实现"——读者先学语义，再学口音。**可操作判据**：新增平台食谱前，先确认通用食谱里已有对应语义；语义文档评审时检查"平台名是否出现在语义小节"。
 
-**可判定化方向（对齐"exit code 才是门槛"；v3 修正 W2'：明确排期与残留点）**：三护栏目前是文档写作纪律（评审时人工检查），机械化是**随 RM-AG0049 一起排期的方向**（不做则遗留"协议一致性靠评审员把关"的残留点，与本笔记 4.2 对 exit 2 分支的诚实态度一致，不假装消除）。落地形态：`check-protocol-consistency.py` 增加"扫描 markdown 中含平台名但无「实现注记」标记的段落"检查（按护栏 1 的结构性判据，非文件名单），把护栏从"评审时检查"升级为"CI 硬校验"。
+**可判定化方向（对齐"exit code 才是门槛"；v3 修正 W2'：明确排期与残留点）**：三护栏目前是文档写作纪律（评审时人工检查），机械化是**随 RM-AG0054 一起排期的方向**（不做则遗留"协议一致性靠评审员把关"的残留点，与本笔记 4.2 对 exit 2 分支的诚实态度一致，不假装消除）。落地形态：`check-protocol-consistency.py` 增加"扫描 markdown 中含平台名但无「实现注记」标记的段落"检查（按护栏 1 的结构性判据，非文件名单），把护栏从"评审时检查"升级为"CI 硬校验"。
 
 ### 4.4 不造轮子的正确姿势（v2 修正 N3：措辞降级；v3 修正 N-New2：补实现注记）
 
@@ -209,5 +209,5 @@ Phase 4（可选）：渲染层——批次清单 → 各平台派发指令（DS
 | exit 2 分支无后继 | 转移表建模 exit 三态（0 直推 / 1 回退 / 2 暂停转主 Agent），为 exit 2 定义"下一动作"字段（如 P5 exit 2 → 主 Agent 跑 gate_commands.P5）；**v3 采纳想法 1**：解决必须落盘机器可读产物（exit2-resolution），纳入 P6.5 judge / provenance 审计复核范围，留下审计痕迹 |
 | judge 层仍是模型，无法完全程序化 | 接受"判定层混合"为设计边界；judge 的输出（verdict exit code）进入程序化状态机 |
 | 平台能力演进（如 OpenCode 加编排引擎）| 语义层不动，只换适配层渲染——这是 4.3 护栏的收益 |
-| 协议概念被平台名污染（文档层）| 执行 4.3 三条护栏（结构性判据：数据面禁平台名 / 叙述面挂实现注记），并推进"含平台名无实现注记标记段落"的 consistency 检查（随 RM-AG0049 排期）|
+| 协议概念被平台名污染（文档层）| 执行 4.3 三条护栏（结构性判据：数据面禁平台名 / 叙述面挂实现注记），并推进"含平台名无实现注记标记段落"的 consistency 检查（随 RM-AG0054 排期）|
 | 状态机 CLI 与 /loop 档位 C 重叠 | 定位为档位 C 的**可观测层**（档位 C 推进强制走 agate next，复用"硬中断点必停"语义），先论证关系再实现，避免双套自动化 |

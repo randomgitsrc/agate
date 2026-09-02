@@ -56,6 +56,7 @@
 | RM-AG0051 | CHECK 7 版本漂移防线失效：protocol-tests.yml consistency job 浅克隆无 tag，`git describe --tags` 恒失败走 WARNING——版本漂移在 CI 零机械防线（v0.51.0 教训场景不再 FAIL，防线静默退化）+ 本地"未推送 tag 算最新 tag"假绿 | done | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
 | RM-AG0052 | CHANGELOG 破坏性变更 ↔ UPGRADING 章节对应性无自动检查：CHANGELOG 标"破坏性变更见 UPGRADING vN ②"但无 gate 校验章节存在性——v0.62.0 漏写 UPGRADING 章节实测溜过（发布清单第 3 步纯人工兜底）| done | 一致性机制盘点（2026-08-25）| — | 2026-08-25 | 2026-08-25 |
 | RM-AG0053 | 双归零方法论引入失败处理闭环（PeekView 提案）：known-failures 补「复现证据 / 举一反三」列 + 归零检查单（方案 B：参考工具非强制 gate），统一 known-failures / DEBT / 复盘关闭标准；初评核验——复现证据=真缺口（直击 self-authored 防伪，LIMITATIONS 局限 3）、举一反三=缺追溯侧（预防侧 P0 已有同类/影响面预判）、管理归零=复盘归因分层已有（非空白）、「责任明确」改写为「归属明确」（反追责哲学）；方案 C（强制 gate）待 B 实践数据；提案全文见 `docs/design-notes/return-to-zero-proposal.md` | backlog | PeekView 双归零提案（2026-08-28，https://peek.gsis.top/agate-return-to-zero-proposal/raw；本地副本 docs/design-notes/return-to-zero-proposal.md）| — | 2026-08-28 | 2026-08-28 |
+| RM-AG0054 | 编排语义统一落地（推进侧状态机 CLI）：推进决策从 orchestrator 临场判断改为查表推进——`agate next`/`agate advance` 推进侧 CLI（复用 check-state-transition.py + check-gate.py exit 三态 + phases.yaml 扩展 next/retreat 字段纳入 S-1/S-2 + agate-retreat-to.py 对接）；CLI 为 /loop 档位 C 可观测层（档位 C 推进强制走 agate next）；编排心智统一文档化（dispatch 五模式锚点 + 实现注记标记）；设计文档 v3b 三轮独立评审闭环（2026-09-02）：`docs/design-notes/design-orchestration-semantics.md` | scheduled | 编排语义讨论 + 设计笔记三轮评审（2026-09-01/09-02）| TAG0027 | 2026-09-02 | 2026-09-02 |
 
 ## 状态标识
 
