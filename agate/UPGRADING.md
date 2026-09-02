@@ -302,6 +302,10 @@ step，复制模式不重跑则旧 hook 不生效）。
 
 ### v0.57.0 — DSH 平台支持（无破坏性变更）
 
+> 实现注记：本段为版本升级记录（平台支持变更史：该版本新增对 DSH/deepseek-harness 平台的原生
+> 支持，RM-AG0030）——记录已发生事实，平台名是记录对象本身，属历史叙事元信息（升级说明元信息
+> 判定；UPGRADING.md 全文均为面向存量项目的版本升级说明，见文件头）；不删改历史事实。
+
 **本版本无破坏性变更，无需迁移动作。**
 
 - agate 新增对 DSH（deepseek-harness）平台的原生支持（RM-AG0030）：`assets/templates/dsh/`
@@ -345,6 +349,10 @@ step，复制模式不重跑则旧 hook 不生效）。
 ---
 
 ### v0.47.0 — 测试框架 bats → pytest 迁移（影响：跑 agate 测试的开发者 / CI 维护者）
+
+> 实现注记：本段为版本升级记录（测试框架/CI matrix 变更史）——workflow、CI 平台 job 名
+> （ubuntu/windows-latest 等）是记录对象本身，属历史叙事元信息（升级说明元信息判定），非协议
+> 语义定义；不删改历史事实。
 
 > 版本号已由 P8 确认（v0.47.0）。agate 测试套件从 Bats 全面迁移到 pytest（TAG0011）：`agate/tests/` 下 60 个 `.bats` 文件 / 749 @test 迁移为 `test_*.py` pytest 用例，`agate/tests/helpers/` 三文件（load.bash / fixtures.bash / git-helper.bash）退役，由 `agate/tests/conftest.py` fixture 体系承接。
 
@@ -477,6 +485,10 @@ python3 ~/.agate/scripts/install-hook.py
 
 ### v0.49.0 — 派发编排机制（无破坏性变更）
 
+> 实现注记：本段为版本升级记录（派发编排机制变更史）——`task-files.md` 为协议文件名（既有
+> 文档引用），出现的 task 词是文件/机制引用而非平台工具指代，属历史叙事元信息（升级说明元信息
+> 判定），非协议语义定义。
+
 **本版本无破坏性变更，无需迁移动作。**
 
 - 新增 `dispatch_plan:` **可选**机器字段（P2-design.md frontmatter 单行 flow YAML，mode/batches/parallel_limit）——缺字段 / 坏 YAML 时 P2 gate 跳过校验，既有任务行为与改造前完全一致（向后兼容）。
@@ -506,6 +518,10 @@ python3 ~/.agate/scripts/install-hook.py
 **④ P5 gate_commands 计数语义**：check-gate.py P5 WARNING 文案改「X 个主命令 + Y 个辅助命令」——不影响判定逻辑，仅文案区分主/辅。
 
 ### v0.44.0 — 脚本健壮性 + Windows 环境适配（影响：所有已部署项目）
+
+> 实现注记：本段为版本升级记录（Windows 环境适配/CI matrix 变更史）——Windows、CI 平台 job 名
+> （windows-latest 等）是记录对象本身，属历史叙事元信息（升级说明元信息判定），非协议语义定义；
+> 不删改历史事实。
 
 **① Windows 用户**：agate 现在支持 Git for Windows/MSYS2 下运行 gate 脚本（Windows 原生兼容）。
 - 依赖：Git for Windows（自带 bash/coreutils），python3 + pyyaml，Git Bash 作为执行 shell。

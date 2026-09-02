@@ -230,9 +230,13 @@ agate 协议里散落在正文的机器读取字段（P1/P2/P6/P7 共约 40+ 个
 
 ### 语境
 
+> 实现注记：本段为平台接入细节的决策记录（orchestrator-template 注册为 OpenCode/Claude Code 可调用 agent 的方式与符号链接细节缺失问题），属实现注记，非协议语义定义。
+
 `orchestrator-template.md` 此前的接入方式是逐项目拷贝到 `docs/agents/orchestrator.md` 后手改 `agate_root`/`project_root` 两个 frontmatter 字段和一段内联的"项目特定约束"正文。这带来两个问题：(1) agate 升级模板（比如给"你不能做的事"清单加一条新规则）后，已部署项目的拷贝不会自动跟上，需要人工发现并手动同步，实际上从未真正发生过；(2) 协议文档从未讲清楚"怎么把这份文件注册成 OpenCode/Claude Code 真正能调用的 agent"这一步——只有一句"设为角色提示词"，平台相关的符号链接/默认 agent 设置细节完全缺失，新用户只能自己摸索。
 
 ### 决策
+
+> 实现注记：本段为平台接入细节的决策记录（文件级符号链接注册到平台 agent 目录 `.claude/agents` / `.opencode/agents`，及 Windows 无符号链接权限的复制模式退化），属实现注记，非协议语义定义。
 
 `orchestrator-template.md` 改为对所有项目内容完全一致，不含任何需要逐项目编辑的字段；`agate_root`/`project_root` 改为会话开始时运行时解析（环境变量兜底默认值），不再是静态 frontmatter 字段。标准接入方式是**文件级符号链接**直接指向 `orchestrator-template.md`（`.claude/agents/orchestrator.md` / `.opencode/agents/orchestrator.md`），不是拷贝。项目特定信息（工作区规则、gate 命令、测试基线等）迁移到一个新的、可选的 `{project_root}/docs/agents/project.md` 文件，由项目侧维护，orchestrator 固定读取。新增 `agate/SETUP.md` 记录完整接入步骤（含 Windows 无符号链接权限的复制模式退化）。
 
@@ -243,6 +247,8 @@ agate 协议里散落在正文的机器读取字段（P1/P2/P6/P7 共约 40+ 个
 文件级链接而非目录级链接（链接单个 `orchestrator.md` 文件到平台 agent 目录，而不是把整个目录链过去），是为了避免把项目自己的其他文档意外暴露给平台的 agent 发现机制，也避免项目以后想在同一目录下注册别的自定义 agent 时被迫和 agate 管理的文件耦合。
 
 ### 权衡
+
+> 实现注记：本段为平台接入细节的决策记录（OpenCode/Claude Code frontmatter 字段兼容实测结论），属实现注记，非协议语义定义。
 
 - Windows 无符号链接权限（无开发者模式/非管理员）时退化为复制，牺牲自动同步能力——`agate/SETUP.md` 已文档化此权衡和退化步骤，目前没有自动漂移检测（`agate-summary.py` 现有的漂移检测只覆盖 `scripts/` 目录副本，不覆盖这个文件），是已知的手动步骤缺口
 - `permission`/`mode`/`color` 等 OpenCode 专属字段和 Claude Code 需要的 `name` 字段共存于同一份 frontmatter——经实测确认 Claude Code 会静默忽略不认识的字段（不报错），OpenCode 会把不认识的字段归入通用 `options` 桶保留（不报错），两边互不冲突；但 Claude Code 缺少必填的 `name` 字段会导致整个文件被静默跳过（无警告日志），是本次改造过程中发现的一个容易复发的坑，`orchestrator-template.md`/`agate/SETUP.md` 均已加提醒

@@ -14,9 +14,11 @@ agate 的派发协议把每次阶段推进翻译成**明确的工具调用 + 精
 
 ## 派发的三条铁律
 
-### 铁律 1：用 task 工具派发，动词是"派发"不是"执行"
+### 铁律 1：派发 subagent，动词是"派发"不是"执行"
 
-主 Agent 到了某个阶段，**不自己产出文件**，而是调用 task 工具启动一个 subagent。
+> 实现注记：主 Agent 调用的"派发工具"在各平台的实现命名不同（如有的平台叫 task 工具、Claude Code 的 Task 等）——具体工具名随平台而异，协议语义一律以"派发 subagent"为准，不绑定任何平台工具名。
+
+主 Agent 到了某个阶段，**不自己产出文件**，而是通过平台的派发工具启动一个 subagent。
 
 ```
 ❌ 错误理解："P2 阶段我要产出 P2-design.md" → 主 Agent 自己写
@@ -161,9 +163,12 @@ subagent 收到 failed/中断信号后，主 Agent 按序检查：
 
 ---
 
-## 执行模式：有 task 工具 vs 单 Agent
+## 执行模式：支持 subagent 派发 vs 单 Agent
 
-agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_task_tool: false`（如 Claude Project 会话），整个派发机制降级为**单 Agent 顺序执行模式**：
+agate 的标准模式假设主 Agent 所在平台支持派发 subagent。若运行环境不支持派发（`executor_env.has_task_tool: false`，如 Claude Project 会话），整个派发机制降级为**单 Agent 顺序执行模式**：
+> 实现注记：`task` 工具 / `has_task_tool` 是平台派发能力的具体实现命名——Claude Project 等
+> 无 task 工具的环境即走单 Agent 模式；本节属平台适配说明，平台无关的执行模式语义 = "能派发
+> subagent 的标准模式" vs "不能派发时的单 Agent 降级模式"，与具体平台工具名无关。
 
 | 标准模式（has_task_tool: true）| 单 Agent 模式（has_task_tool: false）|
 |-------------------------------|--------------------------------------|
@@ -176,7 +181,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
 - P1 裁剪说明里声明 `single_agent_mode: true`
 - P3 写测试时必须在 P4 实现之前完成，模拟 TDD 的「契约先行」
 - P6 不能以「代码审查」替代实际运行 BDD——若无法跑，走 HANDOVER 交接
-- 强烈建议：P0-P2 在单 Agent 完成后，将结果 push 到 main，再切换有 task 工具的平台执行 P3-P8
+- 强烈建议：P0-P2 在单 Agent 完成后，将结果 push 到 main，再切换到支持 subagent 派发的平台执行 P3-P8
 
 ---
 
@@ -258,7 +263,7 @@ agate 的标准模式假设主 Agent 有 `task` 工具。若 `executor_env.has_t
    按阶段从 assets/execution-roles/ 选执行角色
    （P1→analyst, P2→architect, P3→test-designer, P4→implementer, P5→verifier, P7→consistency-reviewer, P8→implementer(P8模式)）
 
-3. 派发 subagent（task 工具）
+3. 派发 subagent（派发工具）
     传入：
       - 角色定义文件路径（assets/execution-roles/xxx.md）
       - dispatch-context 文件路径（{AGATE_WORKSPACE}/tasks/{Txxx}/P{N}-dispatch-context-{role}.md）
@@ -571,13 +576,13 @@ dispatch_plan:
 
 **拆分判据用输出数量，不用行数**——LLM 处理 2000 行同质内容没问题，但单次产出文件过多时遗漏率上升。行数是弱相关变量，产出文件数是强相关变量。
 
-**异构性不再是拆分判据**——T026 实验证实：在 agate dispatch prompt 模板（含分阶段落盘指令）下，subagent 能可靠处理异构产出（文档 + 代码 + 测试在一个 task 里）。T016 失败的根因是当时缺乏分阶段落盘指令导致空返回，不是异构切换本身。
+**异构性不再是拆分判据**——T026 实验证实：在 agate dispatch prompt 模板（含分阶段落盘指令）下，subagent 能可靠处理异构产出（文档 + 代码 + 测试在同一次派发中）。T016 失败的根因是当时缺乏分阶段落盘指令导致空返回，不是异构切换本身。
 
 **拆分原则：**
 - 每个任务产出 1-3 个文件
 - 每个任务的输入文件 ≤ 3 个
 - 任务间有依赖时串行，无依赖时并行
-- 拆分通过多次 task 调用实现，commit message 记录拆分（如 `wf(Txxx-P3a): 测试用例文档`）
+- 拆分通过多次派发调用实现，commit message 记录拆分（如 `wf(Txxx-P3a): 测试用例文档`）
 - 状态机不变——仍只看 P3 阶段，gate 仍是该阶段的门槛命令
 
 **按包拆分并行（与按产出拆分正交）**：
@@ -645,7 +650,11 @@ P5 gate 不通过时（测试失败），主 Agent 派修复 subagent 回 P4 修
 
 ## Playwright/长时操作 subagent 派发策略
 
-Task 工具本身无超时参数。subagent 内部脚本挂起会无限阻塞主 Agent。通过**拆分 + 预期耗时**规避，不依赖超时机制。
+派发工具本身通常无超时参数。subagent 内部脚本挂起会无限阻塞主 Agent。通过**拆分 + 预期耗时**规避，不依赖超时机制。
+
+> 实现注记：上述"派发工具无超时参数"是平台派发机制的既有能力事实（不同平台派发工具均无平台层
+> 超时参数，T019 实战验证），属平台能力适配说明；协议语义不依赖该平台事实——防卡死策略一律
+> 走 subagent 内部脚本硬超时 + 主 Agent 拆分，见下。
 
 ### 拆分原则
 
@@ -698,7 +707,7 @@ setTimeout(() => {
 - 脚本 HARD timeout 设 180s
 - 加载后先 `page.evaluate(() => document.readyState)` 确认加载完成，再 `waitForSelector`
 
-—— T019 教训：3.3MB Three.js HTML 的 P6 验证，subagent 内 `waitForSelector('#root > *')` 无 timeout 等待永不出现的元素（因 WebGL 被禁用导致 Three.js 初始化失败），subagent 挂起 → Task 工具无限等待 → 主 Agent 卡死数小时。根因是缺分层超时 + subagent 粒度过大。
+—— T019 教训：3.3MB Three.js HTML 的 P6 验证，subagent 内 `waitForSelector('#root > *')` 无 timeout 等待永不出现的元素（因 WebGL 被禁用导致 Three.js 初始化失败），subagent 挂起 → 派发工具无限等待 → 主 Agent 卡死数小时。根因是缺分层超时 + subagent 粒度过大。
 
 ### 写脚本与跑脚本分离
 
@@ -932,7 +941,7 @@ diff≥2 回退：PAUSED + 诊断 + 人工批准（见 state-machine.md 回退�
 
 ### 硬超时保护
 
-1. **硬超时**：Task 工具本身无平台层超时参数（T019 实战验证：subagent 内部脚本挂起导致主 Agent 卡死数小时）。防卡死依赖 subagent 内部脚本硬超时（见上方「subagent 超时判定」节）+ 主 Agent 拆分策略，不依赖平台超时
+1. **硬超时**：派发工具本身无平台层超时参数（T019 实战验证：subagent 内部脚本挂起导致主 Agent 卡死数小时）。防卡死依赖 subagent 内部脚本硬超时（见上方「subagent 超时判定」节）+ 主 Agent 拆分策略，不依赖平台超时
 2. **进展标记**：派发 prompt 中要求 subagent 每隔若干关键操作输出进度标记
    `[progress] N/M files processed` 到 stdout，让平台日志可追溯
 3. **存活检查**：真正的存活监控（心跳、文件增长检测）需平台原生支持并发后补，当前为已知限制
@@ -1105,7 +1114,12 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
 
 平台能力矩阵（各 Agent 平台已覆盖情况、Windows 安装指南）权威源见 `platform-notes.md`——权威唯一来源，本节不重复维护平台能力矩阵本身，只保留与派发调用方式相关的独家操作细节。
 
-**OpenCode 调用坑位（issue #29616）**：`opencode.jsonc` 里 `mode: "subagent"` 定义的自定义 agent 可能无法被 task 工具调起来（subagent_type 枚举硬编码只有 explore/general）。**优先用 markdown 文件方式定义自定义角色**，并在实际环境先做最小验证：定义一个测试角色，让主 Agent 派发它，确认能调起来。如果自定义角色确实调不起来，退路：用内置的 general subagent，把角色定义文件路径写进派发 prompt 让它读取遵循（角色行为靠 prompt 注入而非平台机制）。
+> 实现注记：本节记录平台自定义 agent 机制的坑位与规避说明（含 OpenCode issue #29616 实测：
+> `opencode.jsonc` 的 `mode: "subagent"` 定义的自定义 agent 可能无法被派发工具调起来，
+> subagent_type 枚举硬编码只有 explore/general），属平台适配实现注记，非协议语义定义；
+> 平台无关的派发语义见铁律 1 与「标准派发流程」。
+
+**自定义 agent 调用坑位**：以 jsonc/声明方式定义的自定义 agent 可能无法被派发工具调起来。**优先用 markdown 文件方式定义自定义角色**，并在实际环境先做最小验证：定义一个测试角色，让主 Agent 派发它，确认能调起来。如果自定义角色确实调不起来，退路：用内置的 general subagent，把角色定义文件路径写进派发 prompt 让它读取遵循（角色行为靠 prompt 注入而非平台机制）。
 
 ---
 
@@ -1117,7 +1131,7 @@ T004 教训 B8：P6 需要 vision，主力模型没有，但环境里有 playwri
 1. 读 active-tasks.md → TAG0001 在 P2 阶段
 2. 确认 {AGATE_WORKSPACE}/tasks/TAG0001/P1-requirements.md 存在 ✓
 3. 选角色：architect（P2 执行角色）
-4. 调用 task 工具：
+4. 调用派发工具：
    subagent_type: architect（或 general + 注入角色文件）
    prompt:
      你是 P2 阶段的 architect 子 Agent。
