@@ -173,7 +173,7 @@ git config --global user.name  "Your Name"
 
 ## DSH（deepseek-harness）
 
-> 接入步骤见 `SETUP.md`「步骤 2-DSH」（接入命令单一真相源，本条目只做能力差异说明）；preset/skill 模板文件在 `assets/templates/dsh/`。已实机验证（2026-08-21，DSH v0.1.0-rc.8）——新兴平台，机制可能随版本变化。
+> 接入步骤见 `SETUP.md`「步骤 2-DSH」（接入命令单一真相源，本条目只做能力差异说明）；preset/skill 模板文件在 `assets/templates/dsh/`。已实机验证（2026-08-21，DSH v0.1.0-rc.8）——新兴平台，机制可能随版本变化。最近复核（2026-09-01，DSH v0.1.2-alpha.3，实机核验通过）：工具面（subagent/subagent_fork/workflow/ralph/goal）、preset 工具行包名与 delegation 组、skill 发现机制、`sampleOverCapGlobResults` 挂载关键字段均未漂移，与当前 DSH 标准 preset 结构逐行一致。
 
 **平台形态**：pnpm monorepo + cordis 插件框架；身份注册用 **agent-preset**（`agent.cordis.yml` + `preset.yml`），
 skill 是打包/分发单元（SKILL.md + frontmatter，自动进会话技能目录）。
