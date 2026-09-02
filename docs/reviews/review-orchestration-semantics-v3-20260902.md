@@ -1,7 +1,7 @@
 ---
 review_date: 2026-09-02
 reviewer: independent-design-review-v3
-review_target: docs/design-notes/design-orchestration-semantics.md（设计讨论 v3a，208 行，待立项候选 RM-AG0049）
+review_target: docs/design-notes/design-orchestration-semantics.md（设计讨论 v3a，208 行，待立项候选 RM-AG0054）
 change_summary: 对 design-orchestration-semantics.md v3a 的独立复审——逐条验证两轮评审（2026-09-01 v1 评审 + 2026-09-02 Claude v2 独立评审）全部发现是否在 v3 中闭合，逐条对照仓库权威源核验证据，检查采纳的 4 条补充想法是否方式正确，并排查 v3 是否引入新问题
 files_reviewed: [docs/design-notes/design-orchestration-semantics.md (v3a，审查时点 12:5x), docs/reviews/review-design-orchestration-semantics-2026-09-01.md, docs/reviews/review-orchestration-semantics-v2-independent-20260902.md, agate/dispatch-protocol.md, agate/state-machine.md, agate/loop-orchestration.md, agate/rules/phases.yaml, agate/rules/state-transitions.md, agate/scripts/check-gate.py, agate/scripts/check-state-transition.py, agate/scripts/check-structure-consistency.py, agate/scripts/agate-next-card.py, agate/scripts/agate-retreat-to.py, agate/WORKFLOW.md, docs/design-notes/README.md]
 ---
@@ -112,4 +112,4 @@ files_reviewed: [docs/design-notes/design-orchestration-semantics.md (v3a，审�
 2. **4 条补充想法全部采纳且方式正确**（见第 3 节），采纳不是照抄措辞而是落到落地路径（Phase 1-4）、风险表与缺口分析中；
 3. **新观察 4 个 NIT + 1 条并入注记**，全部为示例/措辞/落地细节级（N-New1~N-New4），无新 BLOCKER/WARNING，不影响 v3 的核心论证（协议侧五模式锚点、资产盘点、exit 三态建模、结构性护栏判据、机械化排期）。
 
-建议（不阻塞，可随立项讨论消化）：① 修正裁剪跳变示例 P5→P8 为实际边 P5→P7/P6→P8（N-New1）；② 4.4 补「实现注记」标记或声明设计笔记不适用该判据（N-New2）；③ Phase 1 落地时明确 next/retreat 字段的 S-1/S-2 md 侧对照面（N-New3）；④ exit 三态表补 P6 → P6.5 之例（N-New4）。v3 内容质量足以支撑 RM-AG0049 立项讨论，且本次独立复审以落盘文件形式给出，B1' 所指"标签先于证据"问题终态解决。
+建议（不阻塞，可随立项讨论消化）：① 修正裁剪跳变示例 P5→P8 为实际边 P5→P7/P6→P8（N-New1）；② 4.4 补「实现注记」标记或声明设计笔记不适用该判据（N-New2）；③ Phase 1 落地时明确 next/retreat 字段的 S-1/S-2 md 侧对照面（N-New3）；④ exit 三态表补 P6 → P6.5 之例（N-New4）。v3 内容质量足以支撑 RM-AG0054 立项讨论，且本次独立复审以落盘文件形式给出，B1' 所指"标签先于证据"问题终态解决。
