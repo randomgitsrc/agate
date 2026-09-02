@@ -174,6 +174,14 @@ python3 ~/.agate/scripts/install-hook.py
 
 ## 步骤 3（可选）：设成默认 agent
 
+> ⚠️ **默认保持非默认（三平台通用原则）**：标准步骤 2 完成后，orchestrator 只是「可手动选择」的角色，
+> **不会成为任何平台的默认 agent**——Claude Code 需 `settings.json` 才默认、OpenCode 无默认机制、
+> DSH 出厂 `agent-presets.default` 即 `standard`（web-app bundle 内建，ln preset 不碰 settings 就不会变）。
+> **默认不主动设成默认**：orchestrator 是重人格（每次会话先解析 agate_root / 读 active-tasks / 按 phase
+> 读卡片，且只派发不亲自动手），设默认会让普通开发会话被引导走 P0-P8。只有明确要做「全项目统一进
+> 编排模式」时才执行本步骤；DSH 侧无等价的"一键设默认"入口，改 `~/.dsh/settings.yaml` 的
+> `agent-presets.default` 才会生效（本文件不改它）。
+
 不设的话，每次开会话需要手动选/指定 orchestrator；设了之后新会话默认就是它。
 
 **Claude Code**：
