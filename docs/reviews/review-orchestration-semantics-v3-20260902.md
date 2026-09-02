@@ -1,14 +1,17 @@
 ---
 review_date: 2026-09-02
 reviewer: independent-design-review-v3
-review_target: docs/design-notes/design-orchestration-semantics.md（设计讨论 v3，208 行，待立项候选 RM-AG0049）
-change_summary: 对 design-orchestration-semantics.md v3 的独立复审——逐条验证两轮评审（2026-09-01 v1 评审 + 2026-09-02 Claude v2 独立评审）全部发现是否在 v3 中闭合，逐条对照仓库权威源核验证据，检查采纳的 4 条补充想法是否方式正确，并排查 v3 是否引入新问题
-files_reviewed: [docs/design-notes/design-orchestration-semantics.md (v3), docs/reviews/review-design-orchestration-semantics-2026-09-01.md, docs/reviews/review-orchestration-semantics-v2-independent-20260902.md, agate/dispatch-protocol.md, agate/state-machine.md, agate/loop-orchestration.md, agate/rules/phases.yaml, agate/rules/state-transitions.md, agate/scripts/check-gate.py, agate/scripts/check-state-transition.py, agate/scripts/check-structure-consistency.py, agate/scripts/agate-next-card.py, agate/scripts/agate-retreat-to.py, agate/WORKFLOW.md, docs/design-notes/README.md]
+review_target: docs/design-notes/design-orchestration-semantics.md（设计讨论 v3a，208 行，待立项候选 RM-AG0049）
+change_summary: 对 design-orchestration-semantics.md v3a 的独立复审——逐条验证两轮评审（2026-09-01 v1 评审 + 2026-09-02 Claude v2 独立评审）全部发现是否在 v3 中闭合，逐条对照仓库权威源核验证据，检查采纳的 4 条补充想法是否方式正确，并排查 v3 是否引入新问题
+files_reviewed: [docs/design-notes/design-orchestration-semantics.md (v3a，审查时点 12:5x), docs/reviews/review-design-orchestration-semantics-2026-09-01.md, docs/reviews/review-orchestration-semantics-v2-independent-20260902.md, agate/dispatch-protocol.md, agate/state-machine.md, agate/loop-orchestration.md, agate/rules/phases.yaml, agate/rules/state-transitions.md, agate/scripts/check-gate.py, agate/scripts/check-state-transition.py, agate/scripts/check-structure-consistency.py, agate/scripts/agate-next-card.py, agate/scripts/agate-retreat-to.py, agate/WORKFLOW.md, docs/design-notes/README.md]
 ---
 
 # 编排语义统一设计 v3（design-orchestration-semantics）独立复审
 
-审查对象：`docs/design-notes/design-orchestration-semantics.md` v3（208 行）。
+审查对象：`docs/design-notes/design-orchestration-semantics.md` **v3a**（208 行，N-New1~4 修复前版本）。
+
+> ⚠️ **审查版本与时间线（可追溯性标注，2026-09-02 补充）**：本复审读取的是 **v3a**（此时文档"裁剪跳变"示例确为"P2→P4 / P5→P8 / P7→DONE"、exit 三态表动作列确无 P6 例外——见下文 N-New1/N-New4 引用的原文）。本文件于 **12:55:11 落盘**；N-New1~4 的修复由作者在复审落盘**之后**应用（设计文档 12:59:30 修改，v3a → v3b），修复位置见第 6 节"修复闭环确认"。因此：本文件引用的行号与文本均为 v3a 快照；最终发布的设计文档为 v3b（行号与内容已变）。本标注为回应第三轮 Claude 元评审（`review-orchestration-semantics-v3-claude-meta-20260902.md`）指出的"评审链时间线在快照内不可见"缺陷而补——详见该存档文件第二节时间线核验。
+
 本轮复审与前两轮的关键区别：**结论落盘**——本文件即 v3 的独立复审证据，同时构成第二轮 B1'（"PASS 标签无复审证据"）所要求的"真正针对新版内容的独立复核"。
 
 核验方法：v3 中每一处对权威源的引用（行号），均回到仓库对应文件实际读取核对；README 登记状态用 grep 实际核验；脚本契约（check-gate.py exit 三态、check-state-transition.py 拦截项、check-structure-consistency.py S-1/S-2）以脚本 docstring 与代码为准。
@@ -85,6 +88,19 @@ files_reviewed: [docs/design-notes/design-orchestration-semantics.md (v3), docs/
 | N-New4 | NIT | 113-117 行 exit 三态表"exit 2 → **暂停转主 Agent**"的泛化措辞未覆盖 P6 特例——P6 exit 2（FAIL=0/证据非空 AND check-p6-provenance exit 0）实际**前进**到 P6.5 judge 复核（`state-machine.md:139`），非停等主 Agent；表中 P5/P8 两示例准确，三态建模正确（check-gate.py:6-7 语义核验一致），仅"动作"列的泛化表述不完整，建议补"P6 exit 2 → P6.5 judge 复核"之例 | v3 113-119 行 ↔ `state-machine.md:139`、`check-gate.py:6-7` |
 
 另注（并入 W1' 证据，不单列）：136 行把 `WORKFLOW.md:143-148` 表定性为"这份文档在哪些平台**验证过**"——实际表内容为"agate 在哪些平台具备完整执行前提"（task 工具/本地环境/agate 完整度，143-148 行）；归为"元信息而非编排语义"从而豁免的**结论正确**，仅描述措辞略松。
+
+## 4.5 修复闭环确认（作者于复审落盘后应用，2026-09-02 12:56-12:59）
+
+> 本节为可追溯性补充（回应第三轮 Claude 元评审指出的"快照内无法区分复审时状态与修复后状态"缺陷）：以下为 v3a → v3b 的修复闭环，读者无需仓库访问即可在快照内核对"发现 → 修复"一一对应。
+
+| 复审发现（v3a 文本引用）| 修复后位置（v3b）| 修复内容 |
+|------------------------|-----------------|---------|
+| N-New1：v3a 63-67 行"裁剪跳变"示例"P2→P4 / **P5→P8** / P7→DONE" | v3b 67 行 | 改为"P2→P4 / **P5→P7 / P6→P8** / P7→DONE"（对齐 state-machine.md:218-224 实际跳边，附"跳过无 TDD/无验收/无一致性/无发布阶段"注）|
+| N-New2：v3a 4.2「实现注记」声明"平台差异只在本标记之后的表格出现"与 4.4 平台名段落未挂标记 | v3b 125 行 + 143 行 | 声明改准为"平台名只出现在挂此标记的小节/段落"；4.4 节标题补"v3 修正 N-New2：补实现注记"，正文前置 `> 实现注记：` 标记行 |
+| N-New3：v3a 183 行防漂移对象写"与 state-machine.md"，未指明 S-1/S-2 md 侧锚点 | v3b 188 行 | 明确"S-1 YAML→md 以 WORKFLOW.md 阶段总览表为 md 侧锚点（check-structure-consistency.py:7-11）" |
+| N-New4：v3a 113-117 行 exit 三态表"exit 2 → 暂停转主 Agent"未覆盖 P6 特例 | v3b 117-119 行 | 动作列补"**P6 例外**：P6 exit 2 → 前进 P6.5（judge 复核，state-machine.md:139）"；119 行加注说明 P6 是唯一例外 |
+
+**闭环状态**：4 项 NIT 全部在 v3b 中修复，与复审建议逐条对应；修复发生于复审落盘（12:55:11）之后，非复审时已存在（mtime 证据：设计文档 12:59:30 修改）。
 
 ## 5. 是否通过
 
