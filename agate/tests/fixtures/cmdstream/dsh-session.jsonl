@@ -1,6 +1,6 @@
 {"type":"tool/call","seq":101,"time":1787883650309,"data":{"turn":1,"step":2,"callId":"call_demo_0001","name":"bash","arguments":"{\"command\":\"ls -la && find . -maxdepth 2 -type d | sort\"}"}}
 {"type":"tool/result","seq":102,"time":1787883650312,"data":{"message":{"source":{"kind":"tool","callId":"call_demo_0001"},"content":[{"type":"tool-result","toolCallId":"call_demo_0001","content":[{"type":"text","text":"/example/repo\ndocs\nsrc"}],"isError":false}]}}}
-{"type":"tool/call","seq":103,"time":1787883650400,"data":{"turn":1,"step":3,"callId":"call_demo_0002","name":"bash","arguments":"{\"command\":\"python3 -m pytest -q tests/unit\"}"}}
+{"type":"tool/call","seq":103,"time":1787883650400,"data":{"turn":1,"step":3,"callId":"call_demo_0002","name":"bash","arguments":"{\"command\":\"env python3 -m pytest -q tests/unit\"}"}}
 {"type":"tool/result","seq":104,"time":1787883650900,"data":{"message":{"source":{"kind":"tool","callId":"call_demo_0002"},"content":[{"type":"tool-result","toolCallId":"call_demo_0002","content":[{"type":"text","text":"Error: no tests ran in 0.00s"}],"isError":true}]}}}
-{"type":"tool/call","seq":105,"time":1787883651000,"data":{"turn":2,"step":1,"callId":"call_demo_0003","name":"bash","arguments":"{\"command\":\"python3 -m pytest -q tests/unit\"}"}}
+{"type":"tool/call","seq":105,"time":1787883651000,"data":{"turn":2,"step":1,"callId":"call_demo_0003","name":"bash","arguments":"{\"command\":\"env python3 -m pytest -q tests/unit\"}"}}
 {"type":"tool/result","seq":106,"time":1787883652100,"data":{"message":{"source":{"kind":"tool","callId":"call_demo_0003"},"content":[{"type":"tool-result","toolCallId":"call_demo_0003","content":[{"type":"text","text":"12 passed in 0.31s"}],"isError":false}]}}}

@@ -393,7 +393,7 @@ def test_bdd_11_cli_detect_seconds_unit_no_false_freeze(agate_scripts, tmp_path,
         [
             '{"type":"tool_use","id":"toolu_cli_1","name":"Bash",'
             '"timestamp":"2026-09-03T02:01:00.000Z",'
-            '"input":{"command":"python3 -m pytest -q tests/unit"}}\n',
+            '"input":{"command":"env python3 -m pytest -q tests/unit"}}\n',
             '{"tool_use_id":"toolu_cli_1","type":"tool_result",'
             '"timestamp":"2026-09-03T02:01:00.000Z",'
             '"content":"Exit code 0\\n=== 12 passed ===","is_error":false}\n',
@@ -419,14 +419,14 @@ def test_bdd_9_cli_detect_unfinished_call_frozen(agate_scripts, tmp_path, capsys
         [
             '{"type":"tool_use","id":"toolu_cli_2","name":"Bash",'
             '"timestamp":"2026-09-03T02:01:00.000Z",'
-            '"input":{"command":"python3 -m pytest -q tests/unit"}}\n',
+            '"input":{"command":"env python3 -m pytest -q tests/unit"}}\n',
             '{"tool_use_id":"toolu_cli_2","type":"tool_result",'
             '"timestamp":"2026-09-03T02:01:00.300Z",'
             '"content":"Exit code 0\\n=== 12 passed ===","is_error":false}\n',
             # 未结束 call（无配对 result），距今 400s
             '{"type":"tool_use","id":"toolu_cli_3","name":"Bash",'
             '"timestamp":"2026-09-03T02:05:00.000Z",'
-            '"input":{"command":"python3 -m pytest -q tests/unit"}}\n',
+            '"input":{"command":"env python3 -m pytest -q tests/unit"}}\n',
         ],
     )
     # 未结束 call ts=1788401100000ms（02:05:00.000Z）；now = ts + 400s = 1788401500000ms

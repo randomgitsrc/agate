@@ -77,7 +77,7 @@ def test_bdd_1_ir_exit_none_truncated_true(agate_scripts):
         platform="claude-code",
         session_id="ses_demo",
         tool="Bash",
-        command="python3 -m pytest",
+        command="env python3 -m pytest",
         ts_start=1787883650400,
         ts_end=1787883650900,
         exit=None,

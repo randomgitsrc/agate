@@ -138,7 +138,7 @@ def test_bdd_2_claude_adapter_parses_jsonl(agate_scripts, load_fixture):
     assert len(records) == 3, f"期望 3 条配对记录，实际 {len(records)}"
 
     # toolu_demo_0002：exit=1（"Exit code 1" 文本前缀），command 来自 input.command
-    r2 = next(r for r in records if r.command == "python3 -m pytest -q tests/unit")
+    r2 = next(r for r in records if r.command == "env python3 -m pytest -q tests/unit")
     assert r2.platform == "claude-code"
     assert r2.tool == "Bash"
     assert r2.exit == 1
@@ -147,7 +147,7 @@ def test_bdd_2_claude_adapter_parses_jsonl(agate_scripts, load_fixture):
     assert r2.ts_end == 1788400860387  # 2026-09-03T02:01:00.387Z epoch 毫秒
 
     # toolu_demo_0003：exit=0（成功路径 is_error=False + "Exit code 0"）
-    r3 = [r for r in records if r.command == "python3 -m pytest -q tests/unit" and r.exit == 0]
+    r3 = [r for r in records if r.command == "env python3 -m pytest -q tests/unit" and r.exit == 0]
     assert r3, "缺少 exit=0 的记录"
     assert r3[0].truncated is False
 
@@ -213,8 +213,8 @@ def test_bdd_4_dsh_adapter_parses_zstd(agate_scripts, tmp_path, load_fixture):
 
     by_cmd = {r.command: r for r in records}
     # call_demo_0002：isError=true + "Error:" 前缀 → exit 非 0，exit_signal 留档
-    assert by_cmd["python3 -m pytest -q tests/unit"].exit != 0
-    assert "Error:" in by_cmd["python3 -m pytest -q tests/unit"].exit_signal
+    assert by_cmd["env python3 -m pytest -q tests/unit"].exit != 0
+    assert "Error:" in by_cmd["env python3 -m pytest -q tests/unit"].exit_signal
     # call_demo_0001：isError=false → exit=0
     assert by_cmd["ls -la && find . -maxdepth 2 -type d | sort"].exit == 0
     # callId 配对：ts_start=call 时间、ts_end=result 时间（验证记录 Q3）
@@ -247,7 +247,7 @@ def test_bdd_5_claude_subagent_sidecar_locates(agate_scripts, tmp_path):
     main = cwd / "main-session.jsonl"
     main.write_text(
         '{"type":"tool_use","id":"toolu_demo_main","name":"Bash","timestamp":"2026-09-03T03:00:00.000Z",'
-        '"input":{"command":"python3 main.py"}}\n'
+        '"input":{"command":"env python3 main.py"}}\n'
         '{"tool_use_id":"toolu_demo_main","type":"tool_result","timestamp":"2026-09-03T03:00:00.200Z",'
         '"content":"Exit code 0\\nmain done","is_error":false}\n',
         encoding="utf-8",
@@ -255,7 +255,7 @@ def test_bdd_5_claude_subagent_sidecar_locates(agate_scripts, tmp_path):
     sub = cwd / "subagents" / "agent-demo-child.jsonl"
     sub.write_text(
         '{"type":"tool_use","id":"toolu_demo_child","name":"Bash","timestamp":"2026-09-03T03:01:00.000Z",'
-        '"input":{"command":"python3 child.py"}}\n'
+        '"input":{"command":"env python3 child.py"}}\n'
         '{"tool_use_id":"toolu_demo_child","type":"tool_result","timestamp":"2026-09-03T03:01:00.100Z",'
         '"content":"Exit code 0\\nchild done","is_error":false}\n',
         encoding="utf-8",
@@ -267,7 +267,7 @@ def test_bdd_5_claude_subagent_sidecar_locates(agate_scripts, tmp_path):
 
     child_records = adapter.read_commands(str(sub))
     assert len(child_records) == 1
-    assert child_records[0].command == "python3 child.py"
+    assert child_records[0].command == "env python3 child.py"
 
 
 def test_bdd_5_dsh_delegation_depth_locates(agate_scripts, tmp_path):
@@ -395,7 +395,7 @@ def test_bdd_2_claude_unfinished_call_emits_exit_none(agate_scripts, tmp_path):
         '"input":{"command":"network_call_no_timeout"}}\n'
         '{"type":"tool_use","id":"toolu_done_1","name":"Bash",'
         '"timestamp":"2026-09-03T02:02:00.000Z",'
-        '"input":{"command":"python3 -m pytest -q tests/unit"}}\n'
+        '"input":{"command":"env python3 -m pytest -q tests/unit"}}\n'
         '{"tool_use_id":"toolu_done_1","type":"tool_result",'
         '"timestamp":"2026-09-03T02:02:00.300Z",'
         '"content":"Exit code 0\\n=== 12 passed ===","is_error":false}\n',
@@ -411,7 +411,7 @@ def test_bdd_2_claude_unfinished_call_emits_exit_none(agate_scripts, tmp_path):
     assert rec.exit_signal == "pending"  # 未结束留档信号
     assert rec.ts_start == 1788400860000  # 2026-09-03T02:01:00.000Z epoch 毫秒
     # 已结束配对不受影响（BDD-2 既有语义保持）
-    done = [r for r in records if r.command == "python3 -m pytest -q tests/unit"]
+    done = [r for r in records if r.command == "env python3 -m pytest -q tests/unit"]
     assert done and done[0].exit == 0
 
 
@@ -428,7 +428,7 @@ def test_bdd_4_dsh_unfinished_call_emits_exit_none(agate_scripts, tmp_path):
         '{"type":"tool/call","seq":101,"time":1787883650309,"data":{"callId":"call_demo_unfin",'
         '"name":"bash","arguments":"{\\"command\\":\\"network_call_no_timeout\\"}"}}\n'
         '{"type":"tool/call","seq":102,"time":1787883650400,"data":{"callId":"call_demo_done",'
-        '"name":"bash","arguments":"{\\"command\\":\\"python3 -m pytest -q tests/unit\\"}"}}\n'
+        '"name":"bash","arguments":"{\\"command\\":\\"env python3 -m pytest -q tests/unit\\"}"}}\n'
         '{"type":"tool/result","seq":103,"time":1787883650900,"data":{"message":{"source":'
         '{"kind":"tool","callId":"call_demo_done"},"content":[{"type":"tool-result",'
         '"toolCallId":"call_demo_done","content":[{"type":"text","text":"12 passed"}],'
@@ -444,7 +444,7 @@ def test_bdd_4_dsh_unfinished_call_emits_exit_none(agate_scripts, tmp_path):
     assert rec.ts_end is None
     assert rec.exit_signal == "pending"
     assert rec.ts_start == 1787883650309
-    done = [r for r in records if r.command == "python3 -m pytest -q tests/unit"]
+    done = [r for r in records if r.command == "env python3 -m pytest -q tests/unit"]
     assert done and done[0].exit == 0
 
 
@@ -494,7 +494,7 @@ def test_bdd_2_claude_malformed_lines_no_crash(agate_scripts, tmp_path):
         # 合法配对（应保留）
         '{"type":"tool_use","id":"toolu_ok_1","name":"Bash",'
         '"timestamp":"2026-09-03T02:01:00.000Z",'
-        '"input":{"command":"python3 -m pytest -q tests/unit"}}\n'
+        '"input":{"command":"env python3 -m pytest -q tests/unit"}}\n'
         '{"tool_use_id":"toolu_ok_1","type":"tool_result",'
         '"timestamp":"2026-09-03T02:01:00.300Z",'
         '"content":"Exit code 0\\n=== 12 passed ===","is_error":false}\n',
@@ -503,7 +503,7 @@ def test_bdd_2_claude_malformed_lines_no_crash(agate_scripts, tmp_path):
 
     records = adapter.read_commands(str(session))
     cmds = [r.command for r in records]
-    assert "python3 -m pytest -q tests/unit" in cmds, "合法配对记录应保留"
+    assert "env python3 -m pytest -q tests/unit" in cmds, "合法配对记录应保留"
     assert "no_timestamp_cmd" not in cmds, "timestamp 缺失的 use 应被跳过（不产出坏记录）"
     assert "bad_ts_cmd" not in cmds, "timestamp 非法的配对应被跳过"
     # fix2：timestamp 非法类型（int/null）的 use 配对应被跳过（不崩溃、不产出坏记录）

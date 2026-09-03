@@ -359,3 +359,47 @@ per-command 语义，全局阈值配置节无对应键，per-command 由观察�
 [PROD_NOT_TOUCHED] 本修复轮仅修改 worktree 的 agate/scripts/agate-cmdstream-adapters.py +
 agate/tests/unit/test_agate_cmdstream_adapters.py + P4-implementation.md / P4-progress.md；
 未触碰生产环境、未读取其他用户 DSH 会话、未修改 P4-review.md。
+
+### fix3：P5 回归修复（R2 裸 python3）
+
+> 依据：P5-test-results/unit.md（P5 全量 pytest 1 failed）——本任务新增 cmdstream 测试
+> fixture 数据串裸 `python3`（17 处）触发平台假设扫描器 R2 规则
+> （`(^|[\s=(\'\"])python3([\s]|$)`），破坏 TAG0011 bdd-8「tests 树 0 命中」长期不变量
+> （`test_bdd_8_clean_tree_zero_detection`）。按 P5 卡片「真失败 → 回 P4 修复」。
+
+#### 根因
+
+- cmdstream 测试 fixture 数据串（模拟平台日志的 command 字段）与断言串直接写裸 `python3`：
+  `test_agate_cmdstream_adapters.py` 13 处（141/150/216/217/250/258/270/398/414/431/447/497/506）、
+  `test_agate_cmdstream_detect.py` 3 处（396/422/429）、`test_agate_cmdstream_ir.py` 1 处（80）。
+- 扫描器 R2 静态命中这些字面量 → `agate/tests/` 全树 0 命中不变量被破坏 → bdd-8 FAIL。
+- 该失败为**本任务引入的回归，非预存失败**（check-platform-assumptions.py 未被 TAG0028 改动，
+  最后修改 commit = a65e274 wf(TAG0011-P4)）。
+
+#### 修法（利用 R2 显式豁免形态 `env python3`）
+
+- 命令字面量 `python3 -m pytest ...` / `python3 main.py` / `python3 child.py` →
+  `env python3 -m pytest ...` / `env python3 main.py` / `env python3 child.py`——R2 豁免逻辑
+  `_r2_comment_exempt`（check-platform-assumptions.py:53）显式检查 `"env python3" in text`
+  即豁免；命令语义不变（仍表示"用 python3 运行"）。
+- 改动集中在 fixture 数据串与对应断言串：**fixture 与断言同步**——不仅三个测试文件 17 处，
+  且外部 fixture `cmdstream/claude-code-session.jsonl`（2 处）与 `cmdstream/dsh-session.jsonl`
+  （2 处）的 command 字段同步改（断言 141/150/216/217 直接引用其解析值，不同步则断言失配）。
+- 测试语义不变：BDD-2/3/4 验证的是"command 字段被正确解析为 IR.command"，`env python3`
+  前缀不影响断言逻辑；未动检测引擎/适配器逻辑、未动阈值数值锚、未动 verify 脚本、
+  未改 P1 基线、未削弱既有断言。
+
+#### 验证（fix3 自查，≠ P5 gate）
+
+- 扫描器：`check-platform-assumptions.py agate/tests/` → **exit 0、0 命中**（bdd-8 不变量恢复）
+- cmdstream 套件：`pytest agate/tests/unit/test_agate_cmdstream_*.py -q --tb=short` → **53 passed**
+- verify 锚：`verify_cmdstream_detection.py` 9 场景全 PASS（BDD-22 保持）
+- 一致性：`check-protocol-consistency.py --strict-errors-only` → **0 ERROR**（329 WARNING 基线）
+- ruff：三个修改测试文件 → **All checks passed**
+- 全量 unit 回归：后台跑（结果待主 Agent 复核）
+
+#### 环境隔离声明（fix3）
+
+[PROD_NOT_TOUCHED] 本修复轮仅修改 worktree 的三个 cmdstream 测试文件 + 两个 cmdstream
+外部 fixture（.jsonl）+ P4-implementation.md / P4-progress.md；未触碰生产环境、未读取
+其他用户 DSH 会话、未修改 P5-test-results/。

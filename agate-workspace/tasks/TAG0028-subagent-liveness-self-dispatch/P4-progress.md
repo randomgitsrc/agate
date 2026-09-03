@@ -171,3 +171,13 @@
 - 下一步：独立跑 cmdstream 套件 + 4 类畸形输入崩溃实验复核
 - 独立复核完成：cmdstream 53 passed / verify 9 全 PASS / consistency 0 ERROR / ruff 全过 / maintainability 0 violations / 4 类畸形输入崩溃实验 OK（不崩溃、跳过计数、合法配对保留）
 - P4-review.md 已写入并定稿 status=approved（agate-md-field-set），grep 核验 status + 锚点已落盘
+[fix3] start: 已读 fix3 dispatch-context / fix2+fix1 context / P5 unit.md（FAIL 详情+R2 17 处清单）/ check-platform-assumptions.py R2 规则与 _r2_comment_exempt（env python3 豁免 40-53 行）/ P0-brief / 三个测试文件命中行上下文 / 外部 fixture（claude/dsh jsonl 各 2 处裸 python3，断言 141/150/216/217 引用 → 需同步）
+[fix3] 已改 17 处（adapters 13 / detect 3 / ir 1）为 env python3 形态 + 外部 fixture 同步 4 处（claude-code-session.jsonl 2 / dsh-session.jsonl 2，断言 141/150/216/217 引用其 command 值，fixture-断言一致硬约束）。下一步：跑扫描器确认 0 命中
+[fix3] 跑验证1：check-platform-assumptions.py agate/tests/（期望 0 命中）
+[fix3] 扫描器 0 命中（exit 0 无输出）。跑验证2：cmdstream 套件
+[fix3] cmdstream 套件 53 passed。跑验证3：verify 9 场景 + consistency
+[fix3] verify 9 场景 PASS。跑验证4：consistency --strict-errors-only
+[fix3] consistency 0 ERROR。跑验证5：ruff 三个修改文件
+[fix3] ruff 全过。fix3 小节已追加到 P4-implementation.md。起后台全量 unit 回归
+[fix3] 最终 grep 确认：tests/unit 全树 R2 形态 0 命中 + fix3 小节落盘
+[fix3] 全量 unit 1292 passed/2 skipped 无回归（基线保持）。全部验证通过：扫描器 0 命中 / cmdstream 53 passed / verify 9 PASS / consistency 0 ERROR / ruff 全过。fix3 完成，返回主 Agent
