@@ -1,5 +1,15 @@
 task_id: TAG0029
-phase: P1
+phase: P2
 status: active
 judge:
   enabled: true
+retries:
+  P2:
+    - round: 1
+      failure_mode: empty_return
+      prompt_changed: true
+      adjustment: 补P3辅助键存量用法grep证据进dispatch-context后重派
+    - round: 2
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: P2-review rejected（B1阻塞：judge文案匹配表未经实测项+缺失本机真实串），回派architect修匹配表后复审
