@@ -1,6 +1,6 @@
 # subagent 存活可观测性与自主再派发设计（agate 协议增强提案）
 
-> 状态：设计讨论稿（候选 RM 编号待申领）。评审过程存档见 `docs/reviews/review-subagent-liveness-and-self-dispatch-*-20260902.md`（历轮评审按 v1→v4 递增归档）。
+> 状态：设计讨论稿（候选 RM 编号待申领）。评审过程存档见 `review-subagent-liveness-and-self-dispatch-v1~v4-20260902.md`（同目录，历轮评审按 v1→v4 递增归档）。**2026-09-03：§3.4.2 命令流日志数据源实机验证已完成**（Claude Code + OpenCode 均通过，见 `verification-cmdstream-datasource-20260903.md`），§6 待确认事项 6 已解决；剩余阻塞立项事项仅剩 §6 事项 4（RM 排期，与 RM-AG0054/TAG0027 有 dispatch-protocol.md 改动面交叉）与本次验证未覆盖的"与 RM-AG0023 既有 progress 心跳扩展的关系说明"（尚未补充，见下）。
 > 触发来源：用户实测观察——长尾 subagent（P4 implementer backend 27M tok / 运行超 1 小时）导致主 Agent 无法判断"卡死 vs 仍在正常工作"，曾因等待超时误判并中止仍在运转的 subagent；同时 subagent 内部执行遇到需要多方向排查/多子任务并行推进的场景时，缺乏受控的自主再派发能力，只能自己串行硬扛或提前依赖主 Agent 把批次切得足够小。
 > 相关文档：`agate/dispatch-protocol.md`（派发三铁律 / 五模式编排 / 工作量评估五维评级 / 并行规则）、`agate/state-machine.md`（重试与 PAUSED 语义）、`SELF-GATE.md`（触发范围）、`agate/WORKFLOW.md`。
 
@@ -147,27 +147,126 @@ subagent 自行起的心跳后台进程，能不能真的探测出"卡死"，取
 t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 ```
 
+**三类活动信号（2026-09-03 实机验证补充）**：subagent 的运行由三类活动构成，命令流日志不应只看"命令"，三类事件都是活动信号：
+
+| 活动阶段 | 事件（DSH 实机）| 实测节奏 |
+|---|---|---|
+| model 思考 | reasoning-chunks | 内部间隔 p95=3.8s——**思考时事件持续流动** |
+| model 输出 | assistant / text-chunks | 与思考交织，同样持续流动 |
+| 执行 tool | tool/call + tool/result | 长命令执行期无其他活动（合法静默），执行时长 p99=189s / max=925s |
+
+**推论（关键）**：**"最后一条命令开始距今"不能作为冻结判据**——subagent 合法地"只思考不调工具"最长可达 20 分钟（实测思考间隙 max≈1239s），"长命令执行中"最长 15 分钟（实测 max≈925s），两种场景下旧判据都会误判冻结。冻结检测必须区分"是卡住了"还是"在思考/在跑长命令"。
+
 **两个机械检测信号**：
 
-1. **冻结检测**（覆盖场景 2 系统调用阻塞）：最后一条命令的开始时间距今超过阈值 → 判定"疑似卡在单次调用"。
-2. **无效重复检测**（覆盖场景 3 逻辑空转）：同一 (命令, exit, 输出哈希) 组合在窗口内重复 ≥ 阈值 → 判定"疑似逻辑空转"。
+1. **调用冻结检测**（覆盖场景 2 系统调用阻塞）：存在**未结束的 tool/call**（call 已发出、无配对 result，三平台均可配对）时，看该调用**开始时间距今**是否超过阈值（expected×2 主信号，见 §3.4.3）→ 判定"疑似卡在单次调用"。长命令执行中也存在未结束 call，但声明过 expected 的长命令不会被误杀（阈值 = expected×2，实测 max 925s 级别的长命令需声明 expected）。
+2. **活动冻结检测**（覆盖进程级卡死，§3.4.1 表格第一行）：**无未结束调用**时，任何一类活动事件（思考/输出/工具）的最后时间距今超过阈值 → 判定"疑似进程卡死"。思考中 reasoning 流持续流动（p95=3.8s），正常 subagent 不会触发。
+3. **无效重复检测**（覆盖场景 3 逻辑空转）：同一 (命令, exit, 输出哈希) 组合在窗口内重复 ≥ 阈值 → 判定"疑似逻辑空转"。
 
 **防误杀判据（关键）**：命令名重复但**结果签名在变化**（如"测试失败→修复→再测"的合法迭代）→ 不触发空转判定。只有"同命令 + 同 exit + 同输出哈希"才算无效重复。
 
 **定位：证据 + 触发核查，不自动判死**。与 §3.4 阻塞路径把心跳降级为"中止前二次确认"是同一哲学——信号提供客观证据，中止/重派等动作仍需主 Agent 判断，不自动执行，避免重蹈"误杀仍在工作的 subagent"的覆辙（§1.2 实测案例）。
 
-**验证状态（2026-09-02，已模拟验证）**：检测逻辑已用虚拟时钟确定性试验验证，4 场景全部 PASS（脚本：`docs/design-notes/verify-heartbeat-cmdstream/verify_cmdstream_detection.py`）：
+**验证状态（2026-09-02 起，已模拟验证）**：检测逻辑已用虚拟时钟确定性试验验证，**9 场景全部 PASS**（脚本：`verify-heartbeat-cmdstream/verify_cmdstream_detection.py`；2026-09-03 随实测数据两次升级——两级冻结判据（调用冻结/活动冻结）+ 三类活动信号（思考/输出/执行）+ 截断排除，原场景保持 PASS，新增场景验证新判据不引入误杀/漏检）：
 
 | 场景 | 心跳 mtime | 命令流判定 | 结果 |
 |---|---|---|---|
-| A 系统调用阻塞（最后命令后 1000s 无新命令）| 新鲜 | FROZEN | ✅ |
+| A 调用阻塞（未结束 call 无 expected，1004s）| 新鲜 | FROZEN（调用冻结，兜底 300s）| ✅ |
 | B 逻辑空转（同命令同结果 ×10）| 新鲜 | SPIN | ✅ |
 | C 合法迭代（命令重复但结果在变）| 新鲜 | NORMAL（不误报）| ✅ |
 | D 健康长尾（命令各不相同）| 新鲜 | NORMAL | ✅ |
+| E 合法长命令（expected=200s，执行中 98s，对应实测 max≈925s 级）| 新鲜 | NORMAL（expected×2=400s 不误杀）| ✅ |
+| F 长命令超期（expected=200s，498s 无 result）| 新鲜 | FROZEN（调用冻结，expected×2 触发）| ✅ |
+| G 截断输出（同命令同前缀 ×6，truncated 标记）| 新鲜 | NORMAL（截断不参与哈希比对，§3.4.2 差异点 4）| ✅ |
+| H 长时间思考（思考 20 分钟不调工具，think 流持续，对应实测思考间隙 max≈1239s）| 新鲜 | NORMAL（活动冻结不触发——旧判据"最后命令开始距今"会误判）| ✅ |
+| I 进程级卡死（无未结束 call，无任何活动 97s）| 新鲜 | FROZEN（活动冻结，60s alert）| ✅ |
 
-**诚实边界声明**：模拟验证证明的是**检测逻辑成立**；"数据从哪来"是另一回事——命令流日志需从平台 transcript（Claude Code `~/.claude/projects/*.jsonl` 等）解析出"每条命令的开始时间戳 + 结果签名"，该解析的可行性（格式、命令识别粒度）**待实机验证**，与 §4.3 OpenCode CLI 路线"待实机验证"同级。三平台 transcript 天然记录工具调用（不依赖 subagent 配合），是 §3.1 核心原则（外部客观产生）在命令流维度的延续。
+**实机验证结果（2026-09-03，Claude Code v2.1.246 + OpenCode v1.18.11 + DSH v0.1.2-alpha.3，完整记录见 `verification-cmdstream-datasource-20260903.md`）**：三平台均**通过**——时间戳、完整命令内容、exit 信号、实时写入四项关键字段全部正向，命令流日志机制按当前设计继续推进，**无需降级**。数据源与解析方式三平台完全不同，落地时需各写一套解析逻辑，不能共用：
 
-> **诚实边界声明**：§3.1 的核心原则（心跳外部产生、不依赖 subagent 配合）**只在异步派发平台（DSH）完全成立**。在阻塞派发平台（Claude Code/OpenCode），由于主 Agent 自身处于阻塞状态、无法另起进程包装派发过程，心跳的产生退化为"约定 subagent 自行维护"，其可靠性弱于 DSH 路径（subagent 若不配合，心跳依然缺失，此时主 Agent 只能退回纯粹依赖"拆分+预期耗时"的既有机制，不产生新的风险敞口，但也不产生新的收益）。这是设计上的诚实妥协，不是缺陷——完全消除对 subagent 配合的依赖，在阻塞派发模型下没有可行路径，除非平台本身提供进程外监控能力（目前三平台均未提供）。此外，**仅凭心跳 mtime 的检测范围限于进程级/会话级卡死（§3.4.1 表格第一行）**；表格第二、三行（系统调用阻塞 / 逻辑空转）的检测依赖 §3.4.2 的命令流日志（冻结检测 + 无效重复检测，检测逻辑已模拟验证），且命令流日志同样受本节"数据源解析待实机验证"的边界约束。
+| 判定项 | Claude Code | OpenCode | DSH |
+|---|---|---|---|
+| 存储形式 | `~/.claude/projects/<sanitized-cwd>/<sessionId>.jsonl`，JSONL 逐行 | 单一 SQLite 库 `~/.local/share/opencode/opencode.db`（WAL 模式），`message`/`part`/`event` 等表 | `~/.dsh/sessions/<sanitized-cwd>/<sessionId>.jsonl.zstd`，JSONL + zstd 拼接帧（子 agent 独立文件，`delegationDepth` 区分层级）|
+| 开始时间戳 | `timestamp` 字段，ISO-8601 UTC 毫秒精度 | `part.data.state.time.start`（epoch 毫秒）| `tool/call.time` 与 `tool/result.time`（epoch 毫秒，配对延迟 p50=48ms）|
+| 完整命令内容 | `tool_use` part 的 `input.command` | `part.data.state.input.command` | `tool/call.data.arguments.command` |
+| exit 信号 | **无数字 exit code**——需解析 `tool_result.is_error` 布尔 + 失败输出文本前缀 `"Exit code N\n"` | `state.metadata.exit` 整数字段，干净直接 | **无数字 exit code**——需解析 `isError` 布尔 + 文本前缀 `"Error:"` |
+| 输出内容 | 完整 stdout/stderr（`toolUseResult.stdout/stderr`），实测未截断 | 完整输出 + 显式 `truncated` 布尔标记；超大输出 spill 到外部文件 `tool-output/tool_<id>` | 完整 text + 截断标记（实测最大 69KB）|
+| 实时写入 | 是，写延迟约 87–384ms | 是，WAL + `event` 表实时事件流 | **是，0.96ms（三平台最强，边写边落）**|
+
+**落地时需要处理的平台差异（验证中发现）**：
+
+1. **三平台字段命名与存储格式完全不同，解析器不能共用**——需按**适配器模式**统一设计（见 §3.4.3），新增平台只需写一个适配器，检测逻辑零改动
+2. **Claude Code 与 DSH 均无数字 exit code**——用 `is_error`/`isError` + 文本前缀正则（`"Exit code N"` / `"Error:"`）兜底可行，但比 OpenCode 干净的整数字段脆弱，若平台更改失败输出的文本格式，该解析规则需跟着更新
+3. **Claude Code 子 agent 是独立转录文件**（sidecar `subagents/agent-<uuid>.jsonl`）、**DSH 子 agent 是独立 session 文件**——解析"某个具体 subagent 的命令流"时需定位子会话路径，读主文件会漏掉子 agent 的记录
+4. **OpenCode 超大输出 spill 到外部文件时，文件名与 part/call ID 无法直接 join**——只能从 inline 输出文本里的引用反查；`truncated=true` 的 part 若直接对输出内容取哈希，可能把两个不同的失败截断成同一前缀、误判为"无效重复"，建议对 `truncated=true` 的 part 采用保守策略（视为"输出变化不可判定"，不参与无效重复检测的哈希比对，只用于冻结检测）；DSH 的截断标记同理
+
+### 3.4.3 检测阈值设计（实测数据驱动）
+
+命令流日志的检测阈值**不能设成全局固定值**——实测数据（DSH 实机会话 361 条 bash 命令）显示命令耗时跨度极大：p50=57ms / p95≈7s / max≈196s（bash 单命令），且**思考间隙 max≈1239s、执行阶段 max≈925s**（全量测试、CI 等待等合法长耗时）。固定 30s 会误杀大量合法场景。因此采用**按判据分组的三组阈值 + 复用既有 timeout_seconds 机制**：
+
+| 判据 | 阈值 | 依据（实测） |
+|---|---|---|
+| **调用冻结·主信号**（有未结束 call 且命令声明了 expected）| 冻结 = `expected × 2`（RM-AG0023 已要求 timeout = expected×1.5，冻结检测在 timeout 基础上再加余量）| 命令超 timeout 本就是协议违约（RM-AG0023 dispatch-prompt 超时兜底节），冻结检测顺势触发，无需新造机制 |
+| **调用冻结·兜底**（有未结束 call 但命令无 expected 声明）| alert 阈值 300s（提示核查）/ suspect 阈值 900s（考虑中止），两级递增 | 实测执行阶段 p99=189s、max=925s——300s 对 >300s 的合法长命令（实测 2 次）仅触发核查提示；900s 覆盖实测全部合法执行时长，不误杀 |
+| **活动冻结**（无未结束 call 时，最后活动事件距今）| alert 阈值 60s / suspect 阈值 300s，两级递增 | 实测活动事件（思考/输出/工具任一）间隔 p99=7.4s、p99.9=154s（后段多来自长命令执行期，而执行期有未结束 call 会走调用冻结不触发本判据）——无 call 悬挂时 60s 无任何活动是强信号 |
+| **无效重复检测** | 窗口 10 条内，同 (命令, exit, 输出哈希) 组合重复 ≥ 5 次 → 触发核查 | 命令节奏按秒计，窗口 10 条约覆盖 1 分钟活动；≥5 次重复在窗口内是强信号 |
+| **截断排除** | `truncated=true` 的 part **不参与**无效重复检测的哈希比对（只用于冻结检测）| 两个不同失败截断成同前缀会误判无效重复（§3.4.2 差异点 4）|
+| **轮询误报标注** | 冻结/空转信号定位为"核查提示"而非自动判定，主 Agent 核查时识别轮询循环体消解 | `gh pr checks --watch`、`sleep N; check` 等合法轮询会重复相同签名，是已知误报类 |
+
+**关键设计原则**：所有阈值均为**可配置项**（比照 `maintainability.yaml` 既有模式，缺失/损坏时兜底默认值不报错），且检测结果始终定位为"**证据 + 触发核查，不自动判死**"——阈值保守一点代价只是多一次核查提示，激进一点才会误杀仍在工作的 subagent（实测思考 20 分钟 / 长命令 15 分钟都是合法状态），所以默认值宁可偏保守；**宁可多提示、绝不误杀**。
+
+### 3.4.4 解析架构（适配器模式，扩展性设计）
+
+三平台存储格式完全不同（JSONL / SQLite / JSONL+zstd），检测逻辑（§3.4.2 两信号 + §3.4.3 阈值）必须平台无关。**架构 = 统一中间表示（IR）+ 每平台一个适配器 + 检测引擎只消费 IR**：
+
+```text
+                    检测引擎（冻结/无效重复，平台无关）
+                              ▲
+                              │ 只消费标准化命令记录（IR）
+                    ┌─────────┴─────────┐
+                    │   CommandRecord    │  ← 统一中间表示
+                    └─────────┬─────────┘
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+  claude-code-adapter    opencode-adapter      dsh-adapter
+  （JSONL → IR）        （SQLite → IR）     （JSONL.zstd → IR）
+```
+
+**CommandRecord（统一中间表示）字段**：
+
+```yaml
+platform: str          # 来源平台（claude-code / opencode / dsh）
+session_id: str        # 会话标识
+tool: str              # 工具名（bash / Bash / 其他）
+command: str           # 完整命令文本
+ts_start: int          # 命令开始时间戳（epoch ms）
+ts_end: int            # 命令结束时间戳（epoch ms）
+exit: int | null       # 数字 exit code（平台无数字字段时为 null）
+exit_signal: str       # 原始 exit 信号（is_error / "Exit code N" / "Error:" 前缀），供审计
+output_hash: str       # 输出内容哈希（truncated 时标记为 null）
+truncated: bool        # 输出是否被截断
+```
+
+**适配器契约**（新增平台只需实现以下接口，检测引擎零改动）：
+
+```python
+class CommandStreamAdapter:
+    name: str                       # 平台名
+    def probe(self, path) -> bool   # 探测路径是否为该平台会话存储
+    def list_sessions(self, cwd) -> list[str]           # 列出 cwd 下会话文件
+    def read_commands(self, session_path) -> list[CommandRecord]  # 解析为 IR
+```
+
+**新增平台的扩展路径**（例：未来接入 Codex/Cursor）：
+1. 实现 `CommandStreamAdapter`（探测 + 会话枚举 + 解析为 IR），约一个文件
+2. 注册到适配器注册表（配置声明或目录扫描 `adapters/*.py` 约定）
+3. **检测引擎、阈值、检测逻辑零改动**——新增平台的全部成本收敛在适配器内
+
+**平台差异点沉淀**（避免各适配器重复踩坑，登记在验证记录文档）：
+- exit 信号三平台三种形态（数字字段 / `"Exit code N"` 前缀 / `"Error:"` 前缀）——IR 统一为 `exit`（有数字用数字，无数字解析前缀）+ `exit_signal`（原始形态留档）
+- 子 agent 会话定位：Claude Code sidecar / DSH 独立 session 文件——适配器各自实现 `list_sessions` 时按平台规则处理层级
+- 截断/spill：IR 的 `truncated` 字段承载，检测引擎按 §3.4.3 截断排除规则消费
+
+> **诚实边界声明**：§3.1 的核心原则（心跳外部产生、不依赖 subagent 配合）**只在异步派发平台（DSH）完全成立**。在阻塞派发平台（Claude Code/OpenCode），由于主 Agent 自身处于阻塞状态、无法另起进程包装派发过程，心跳的产生退化为"约定 subagent 自行维护"，其可靠性弱于 DSH 路径（subagent 若不配合，心跳依然缺失，此时主 Agent 只能退回纯粹依赖"拆分+预期耗时"的既有机制，不产生新的风险敞口，但也不产生新的收益）。这是设计上的诚实妥协，不是缺陷——完全消除对 subagent 配合的依赖，在阻塞派发模型下没有可行路径，除非平台本身提供进程外监控能力（目前三平台均未提供）。此外，**仅凭心跳 mtime 的检测范围限于进程级/会话级卡死（§3.4.1 表格第一行）**；表格第二、三行（系统调用阻塞 / 逻辑空转）的检测依赖 §3.4.2 的命令流日志（冻结检测 + 无效重复检测，检测逻辑已模拟验证）——该数据源约束已于 2026-09-03 完成**三平台实机验证**（Claude Code + OpenCode + DSH 均通过，见 `verification-cmdstream-datasource-20260903.md`），命令流日志可按当前设计推进。**DSH 侧特别说明**：其 `tool/call`+`tool/result` 事件流**原生就是命令流日志**（实时性 0.96ms 三平台最强），DSH 上命令流日志可同时服务 §3.3 异步心跳轮询与 §3.4.2 检测，是替代心跳文件方案的更优路径（零 subagent 配合）。
 
 ### 3.5 心跳文件的生命周期定义
 
@@ -180,11 +279,11 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 ### 3.6 影响面
 
 - `dispatch-protocol.md`：新增一节说明异步/阻塞两条心跳路径的判定时机差异，并明确本设计与既有"Playwright/长时操作 subagent 派发策略"（拆分+预期耗时）节的关系——本设计是该既定机制在"预期耗时评估不准"时的补充核查手段，不替代它。
-- 命令流日志（§3.4.2）：检测逻辑已模拟验证；平台 transcript 解析（Claude Code `~/.claude/projects/*.jsonl` 等）的可行性待实机验证（见 §6 待确认事项 6）。
-- DSH 路径：需要确认 `subagent`/`subagent_fork` 的后台任务钩子机制具体如何附加心跳写入动作，需要一次实机验证（比照 `platform-notes.md` 对 DSH 的既有实机验证惯例）。
+- 命令流日志（§3.4.2）：检测逻辑已模拟验证；平台数据源解析（Claude Code JSONL / OpenCode SQLite / DSH JSONL.zstd）已于 2026-09-03 完成**三平台实机验证**，均通过，字段命名不通用——**解析架构按适配器模式设计**（§3.4.4：统一 CommandRecord IR + 每平台一个适配器 + 检测引擎平台无关），新增平台只写适配器、检测逻辑零改动。
+- DSH 路径：`subagent`/`subagent_fork` 的后台任务钩子机制如何附加心跳写入动作仍需一次实机验证（比照 `platform-notes.md` 对 DSH 的既有实机验证惯例）；但 DSH 的命令流数据源（`tool/call`+`tool/result` 事件流）已实机验证通过——DSH 上命令流日志是比心跳文件更优的路径（§3.4.2 诚实边界声明）。
 - 阻塞路径：需要在 dispatch-context 派发模板中，为预期耗时较长的批次新增一条"自行维护心跳文件"的约定指导，并明确这是对 subagent 的行为约定而非外部强制信号（§3.4 诚实边界声明）。
 - 不修改 `check-gate.py`/`check-state-transition.py` 返回约定，心跳判定与 gate 判定是两套独立信号，互不干扰。
-- 心跳阈值、周期作为可配置项（类似 `maintainability.yaml` 的既有模式），缺失/损坏时兜底为默认值，不报错。
+- 心跳阈值、周期作为可配置项（类似 `maintainability.yaml` 的既有模式），缺失/损坏时兜底为默认值，不报错；命令流检测阈值按 §3.4.3 两级设计（expected×2 主信号 + 60s/300s 兜底），同样为可配置项。
 
 ---
 
@@ -259,4 +358,5 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 3. §4.3 中 OpenCode 的 CLI 子进程路线（`opencode run` 具体行为）需要一次实机验证后才能定稿落地方式——是维持"角色说明里给一段方法论指导"的纯 prompt 层面处理，还是需要一个专门的轻量脚本封装（类似心跳包装脚本），取决于实测结果。
 4. RM 编号申领与优先级——本设计与当前进行中的 RM-AG0054（TAG0027，编排语义统一落地）在"exit 三态""平台实现注记"等概念上有交叉，需要确认排期顺序，避免两个设计同时改动 `dispatch-protocol.md` 造成合并冲突。
 5. **§1.5 待确认项已核实**：TPV0095 backend 实测案例的 P2-design.md 已核实声明 `dispatch_plan`（static-batch，backend=high）——归类为**可能性 B**（P2 评级正确执行、但批内部顺序依赖粒度未被静态评级捕捉），立论素材成立，无需更换。
-6. **命令流日志数据源实机验证（§3.4.2 新增）**：检测逻辑已模拟验证（4 场景全 PASS），但平台 transcript 解析——从 Claude Code/OpenCode/DSH 的会话记录中提取"每条命令的开始时间戳 + exit + 输出哈希"——的可行性与解析粒度待实机验证后定稿，验证结果决定命令流日志机制是进入正式设计还是保持"验证通过但数据源受限"状态。
+6. **命令流日志数据源实机验证（§3.4.2 新增）——已解决**：2026-09-03 完成**三平台实机验证**，Claude Code（JSONL）+ OpenCode（SQLite）+ DSH（JSONL.zstd 拼接帧）均通过，四项关键字段（时间戳/命令内容/exit 信号/实时写入）全部正向，命令流日志机制按当前设计推进，无需降级。验证发现需处理的平台差异（三平台字段不通用需各写解析逻辑、Claude Code 与 DSH 均无数字 exit code 需文本前缀兜底、OpenCode 超大输出 spill 与 DSH 截断需排除哈希比对），已并入 §3.4.2 正文。完整验证记录：`verification-cmdstream-datasource-20260903.md`。
+7. **命令流解析架构落地（§3.4.4 新增）**：适配器模式（统一 CommandRecord IR + 每平台一个适配器 + 检测引擎平台无关）已定稿设计；落地时需确认适配器注册方式（配置声明 vs 目录扫描 `adapters/*.py` 约定）与 CommandRecord 序列化格式（落地为 JSONL 中间产物供检测引擎消费，还是内存接口直接传递），并在三平台各写一个适配器实现 + 用各自真实会话片段做解析单测（fixture 样例取自本验证记录）。
