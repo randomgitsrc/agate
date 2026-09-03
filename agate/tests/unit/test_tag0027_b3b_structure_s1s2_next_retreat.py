@@ -19,7 +19,6 @@
 
 import json
 
-import pytest
 from _rules_test_utils import make_fake_root
 
 
@@ -83,17 +82,17 @@ def _extended_phases_schema():
                     "type": "object",
                     "required": ["id", "name", "exec_role"],
                     "properties": {
-                        "id": {"type": "string", "enum": phase_ids + ["P6.5"]},
+                        "id": {"type": "string", "enum": [*phase_ids, "P6.5"]},
                         "name": {"type": "string"},
                         "exec_role": {"type": "string"},
                         "retry_cap": {"type": "integer", "enum": [2, 3]},
                         "next": {
                             "type": ["string", "null"],
-                            "enum": phase_ids + [None],
+                            "enum": [*phase_ids, None],
                         },
                         "retreat": {
                             "type": ["string", "null"],
-                            "enum": phase_ids + [None],
+                            "enum": [*phase_ids, None],
                         },
                     },
                     "additionalProperties": False,

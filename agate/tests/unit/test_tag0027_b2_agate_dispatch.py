@@ -19,9 +19,6 @@
 # （test_agate_next_card 同款约定）。
 
 import hashlib
-import re
-
-import pytest
 
 _START = "<!-- AGATE_CARD_START -->"
 _END = "<!-- AGATE_CARD_END -->"

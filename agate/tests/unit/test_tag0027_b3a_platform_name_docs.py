@@ -77,7 +77,7 @@ def test_bdd_17_assets_dsh_skill_md_is_structure_exempt(agate_root):
     不进清理批。现状目录实存 = 结构事实（绿）。"""
     dsh = agate_root / "assets" / "templates" / "dsh"
     assert dsh.is_dir(), "assets/templates/dsh/ 目录缺失（A3 结构豁免对象）"
-    md_files = [p for p in dsh.rglob("*.md")]
+    md_files = list(dsh.rglob("*.md"))
     assert md_files, "assets/templates/dsh/ 无 md 资产（SKILL.md 等平台食谱文件缺失）"
     # 结构豁免语义：dsh/ 属 assets 模板平台食谱（非协议语义叙述），其平台名命中不被 CHECK 14
     # 当 ERROR（协议层检查对象 = agate/*.md 顶层语义叙述面 + 非豁免 assets md 适配说明段）

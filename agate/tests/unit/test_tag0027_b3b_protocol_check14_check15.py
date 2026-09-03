@@ -21,8 +21,6 @@
 import importlib.util
 import os
 
-import pytest
-
 
 def _load_cpc(agate_scripts):
     path = os.path.join(str(agate_scripts), "check-protocol-consistency.py")

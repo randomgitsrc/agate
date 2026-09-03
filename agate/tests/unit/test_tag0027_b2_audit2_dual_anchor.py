@@ -23,7 +23,6 @@
 #   为回归守卫现状绿（P4 双锚点后仍绿）。BDD-21 手工物理块回归守卫现状绿。
 # 平台无关：tmp_path/task_dir fixture + run_cli(python_exe,...)；显式 utf-8。
 
-import pytest
 
 _START = "<!-- AGATE_CARD_START -->"
 _END = "<!-- AGATE_CARD_END -->"
