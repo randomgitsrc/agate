@@ -1,0 +1,23 @@
+# P2-progress — TAG0030（architect）
+
+- 读 P2-dispatch-context-architect.md：四 phase 范围 + BDD-16 pin 定 + CHECK11/role-system 二选一为本阶段硬要求 `[PROD_NOT_TOUCHED]`
+- 读 P1-requirements.md：BDD-1~21 + §7 同类扫描 10 行 + §9 下游落笔注意（UPGRADING v0.68 / CHANGELOG / self-gate）
+- 读 architect.md：候选≥2 + 影响面三栏前置 + gate 独立 key 禁 && + files_to_read 资源地图口径
+- 读 P0-brief.md + AGENTS.md（worktree 根）：SELF-GATE 触发面 + 双工作区纪律 + 超时纪律
+- 读 plan-design-review.md（38 行）：唯一未接形态体系的评审角色，CHECK11 三锚词俱在（视觉设计/交互设计/渲染正确性与时序）
+- 读 P3-tdd.md：step0 仅测试前基线，无测试后残留检查（BDD-1/3 落笔位确认）
+- 读 P6-acceptance.md：无 post-test 残留检查（BDD-4 落笔位确认）；证据形态机制已完备，不动
+- 读 P1-requirements.md 卡片 + analyst.md：均无人工体验/seed 节（BDD-7/8 落笔位确认）
+- 读 dispatch-context.md 模板（61 行）：无清理/残留/拆小条目位（BDD-5/21 落笔位确认）
+- 读 review-mapping.md：映射机制不变，列 Not Modify
+- 读 tests/README.md：何时更新节无真实 gate 语义表述（BDD-19 落笔位确认）
+- 读 role-system.md 行 47：七维扁平描述与形态驱动改造耦合，判 Modify（同步形态驱动口径）
+- 读 check-protocol-consistency.py CHECK11 行 895-943 + CHECK14 行 1245-1263：锚点白名单 + 平台词护栏口径确认
+- 查 verifier.md DOM 节 + P4-implementation.md step0：BDD-18 落点 verifier.md；BDD-2 落点 P4 卡 step0
+- 最小验证 grep：21 个拟新增锚词与 CHECK14/15 平台词零冲突；CHECK11 三锚词保持可行；P2 不碰 rules/ → CHECK15 无触达
+- 决策 pin 定：BDD-16 定义落 architect.md 视觉 checklist 头部（与 BDD-17 同文件，单源）；BDD-18 落 verifier.md
+- 起草 P2-design.md：影响面三栏前置 + 候选 2 方案提及式胜出 + gate 独立 key + P4 三包 static-batch
+- agate-md-field-set --list：candidate_count=2/packages 三包/domains backend/ui_affected false/gate 15 项俱在
+- check-frontmatter.py exit 0
+- 门槛自查：影响面在候选前 True；候选 2；权衡+选择理由 True；gate 独立 key 12 无 &&；BDD-16 pin 定 True；role-system 二选一 Modify True；dispatch_plan static-batch 三批 True
+- 进度汇报检查点：P2-design.md 全文 241 行已落盘（§0 影响面三栏 + §1 候选 2 + §2 四 phase 详述 + §3 BDD-16 pin 定 + §4 连带同步 Modify + §5 gate 独立 key + §6 files_to_read 13 项 + §7 env + §8 minimal_validation confirmed + §9 完成标志）；输入 12 文件全读、无缺失；最小验证 confirmed；决策 BDD-16/BDD-18/role-system 三项全部 pin 定、无悬置；阻塞：无（无文件读不到、无决策定不下来）；check-frontmatter exit 0 已过
