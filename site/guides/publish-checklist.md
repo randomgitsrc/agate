@@ -52,3 +52,5 @@
 
 **2026-08-31 记录（post-05 we-break-our-own-gates）**：A1-9 ✓ 10-11 ✓ 12 ✓（评审 FAIL 1 项：
 hook 4 句超限 → 修复+可选 ceremony 释义 → 复核 PASS）13-14 ✓（双语 200）15 当日未发 → 16 今日发。
+
+**2026-09-03 记录（post-06 you-cant-delegate-what-you-cant-verify，愿景北极星篇）**：A1-9 ✓ 10-11 ✓（zh 图 OCR 双过）12 ✓（评审 PASS→修正 A1 事实口径/A2 语气越界/A4 断句/A5 与 post-04 归属 → 复核 PASS）13-14 ✓（双语 200，站点日期 20260903）15 当日未 cross-post 过 → 可发 16 ✓（dev.to id 4557758，canonical→agateon.com）17-18 待手动。
