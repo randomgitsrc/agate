@@ -148,6 +148,22 @@ def test_bdd_24_fail_pip_network(tmp_path, agate_scripts, capsys):
     assert not (bundle / "manifest.json").exists()
 
 
+# ─────────────────────────────────────────────
+# TAG0031 簇 A（DEBT0002 hash 共享，BDD-1）：compute_sha256 迁移到 agate_common
+#   迁移后 agate-pack-offline.py 应 `from agate_common import compute_sha256`（同一函数对象，
+#   不再本地重复实现）。当前 pack 侧仍自行 `def compute_sha256`，与 agate_common 不是同一对象
+#   （且 agate_common 当前尚无该属性）→ AttributeError/断言双重红灯确认。
+
+
+def test_bdd_1_pack_offline_imports_compute_sha256_from_agate_common(agate_scripts):
+    """BDD-1：agate-pack-offline.py 迁移后 compute_sha256 应是 agate_common.compute_sha256
+    同一函数对象（全仓共享单实现），不是本地重复定义。"""
+    module = _load_script_module(agate_scripts, "agate_pack_offline_bdd1", "agate-pack-offline.py")
+    import agate_common
+
+    assert module.compute_sha256 is agate_common.compute_sha256
+
+
 def test_bdd_24_fail_wheel_missing(tmp_path, agate_scripts, capsys):
     module = _load_script_module(agate_scripts, "agate_pack_offline", "agate-pack-offline.py")
     out_dir = tmp_path / "out"

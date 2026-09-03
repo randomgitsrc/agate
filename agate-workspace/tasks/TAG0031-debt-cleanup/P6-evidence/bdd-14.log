@@ -1,0 +1,17 @@
+## DEBT0028
+
+```yaml
+id: DEBT0028
+category: technical
+title: "dirname(dirname(...)) 本地 task_dir 路径推导同款模式的另外 2 处非本体实例（DEBT0016 同类扫描，本次范围锁定只处理 check-gate.py 一处）"
+status: open
+--
+## DEBT0029
+
+```yaml
+id: DEBT0029
+category: technical
+title: "check-gate.py:881 gate_p2 bootstrap 骨架声明校验的标题字符串子串判定（DEBT0017 同款模式，风险高于本体——此处触发 return 1 阻断性）"
+status: open
+EXIT: 0
+EXIT_CODE: 0

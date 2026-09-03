@@ -26,9 +26,7 @@
 # 用例 test_bdd_6_phase1_audit_lock 汇总断言 P3/P4/P6 卡 + dispatch-context 模板的 Phase 1
 # 锚词（清理钩子/残留检查/环境还原），与 BDD-1~5 同源同词，当前同样全 0 命中（红）。
 #
-# 平台无关：仅 Path.read_text + `in`，无 shell grep、无 /tmp、无裸 python3（DSH 测试约定硬约束）。
-
-from pathlib import Path
+# 平台无关：仅 read_text + `in`，无 shell grep、无 /tmp、无裸 python3（DSH 测试约定硬约束）。
 
 import pytest
 

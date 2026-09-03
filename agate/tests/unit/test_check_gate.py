@@ -19,6 +19,7 @@
 #   本文件断言一律用合并流 result.output（与 bats $output 等价，BLOCKER-1）。
 # create_python_shim_bin 退役（P2 §3.1）：pytest 直跑解释器，无需 harness shim。
 
+import importlib.util
 import re
 import shutil
 from pathlib import Path
@@ -3097,3 +3098,483 @@ def test_bdd_7_gate_p1_judge_non_dict_malformed_fail_open_exit_2(
 
     result = _run_gate(agate_scripts, python_exe, run_cli, "P1", str(td))
     assert result.returncode == 2, result.output
+
+
+# ========== 8k: TAG0031 P3 gate-robustness 簇（DEBT0016/17/18，BDD-8~13/15） ==========
+# 被测：check-gate.py 健壮性三条 DEBT——
+#   DEBT0016（BDD-8/9）：gate_p4 的 CODE-MAP.md 路径改用 agate_common.resolve_workspace
+#     权威解析函数，取代本地 dirname(dirname(task_dir)) 路径算术。
+#   DEBT0017（BDD-10/11）：gate_p4「## 新增文件核对表」判定从子串 `in` 改为整行/标题级
+#     re.MULTILINE 正则，消除自指/dogfooding 场景假阴性。
+#   DEBT0018（BDD-12/13）：check-gate.py 的 agate_common import 降级 stub 中，
+#     read_rules_yaml/count_p6_pass_fail/count_p7_markers/count_code_map_lines 四个
+#     "关键读取器"改为显式 fail-closed（安装破损时 return 1 + 明确错误信息），不再静默
+#     返回 0/None/空导致消费分支被判定为通过。
+# P2-design.md §1.3 R2/R3 风险已在各用例 docstring 标注对应的构造约束（旧格式回退分支/
+# resolve_workspace 双依赖降级路径）。
+# BDD-15（六条 DEBT 登记闭合聚合检查）归属本簇——三簇中本簇最后完成，是收尾聚合检查的
+# 天然位置（P3-dispatch-context-test-designer-gate-robustness.md 明确指派）。DEBT0007 的
+# 登记闭合（BDD-7）由 test_debt_registry_closure.py 单独覆盖，不在本节范围内。
+# BDD-14（同类未处理实例登记为新 DEBT）是 P8 阶段登记动作，非代码断言，不在本节写自动化
+# 测试——验证方式见 P6/P8（详见 P3-test-cases-gate-robustness.md）。
+#
+# 测试技术选型说明：
+#   - BDD-8/12 用白盒直连手法——importlib.util 直接把 check-gate.py 加载为独立模块对象
+#     （_load_check_gate_direct，每次调用返回全新模块，测试间互不污染），再 monkeypatch
+#     模块级函数名（resolve_workspace / read_rules_yaml / count_p6_pass_fail /
+#     count_p7_markers / count_code_map_lines），直接调用 gate_p1/gate_p4/gate_p6/gate_p7。
+#     选择这条路径是因为：① BDD-8 要验证的是"gate_p4 是否真的调用并使用了 resolve_workspace
+#     的返回值"这一实现机制本身——标准两级嵌套场景下新旧路径算术结果恰好相同，纯黑盒行为无法
+#     区分两者，必须靠依赖注入（redirect resolve_workspace 到一个可观测的不同位置）才能证明；
+#     ② BDD-12 要模拟"agate_common 整体不可导入"，但 check-gate.py 与同目录的
+#     agate-md-field-get.py 等辅助脚本是 subprocess 协作关系，把脚本复制到隔离目录会连带
+#     破坏这些协作点，不是该场景的正确模拟手段——直接把四个消费函数替换为 ImportError 降级
+#     stub 曾经/现在的返回值（0/None/空），等价于"agate_common 不可导入时这些名字在
+#     check-gate.py 命名空间里的实际取值"，是更直接、更不脆弱的模拟。
+#   - BDD-9/10/11/13/15 用黑盒 CLI 子进程手法（_run_gate，同本文件既有风格），因为这些场景
+#     测的是端到端可观察行为（非标准嵌套下真实 .agate.env 解析结果 / 标题判定的最终文案 /
+#     六条 debt 登记条目 status 字段），黑盒验证更贴近用户可观察契约、也更稳健。
+
+
+def _load_check_gate_direct(agate_scripts):
+    """importlib 直接加载 check-gate.py 为独立模块对象（同源手法：check-maintainability.py
+    L174-190 / test_agate_cmdstream_*.py 系列既有先例）。
+
+    每次调用都重新 exec_module，返回全新模块对象——测试之间互不共享/污染模块级 monkeypatch
+    状态（不同于对已 import 模块打补丁需要手动 undo）。__name__ 与真实 CLI 入口不同
+    （"check_gate_direct"），不会触发 `if __name__ == "__main__": main()`。
+    """
+    spec = importlib.util.spec_from_file_location(
+        "check_gate_direct", str(agate_scripts / "check-gate.py")
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_tag0031_bdd_8_gate_p4_code_map_uses_resolve_workspace(
+    git_repo, agate_scripts, monkeypatch, capsys
+):
+    """BDD-8（DEBT0016，正常流）：gate_p4 的 CODE-MAP.md 路径解析改用
+    agate_common.resolve_workspace，标准两级嵌套场景下不再本地执行
+    dirname(dirname(...)) 路径算术。
+
+    Given task_dir 处于标准两级嵌套（{repo}/agate-workspace/tasks/T001——本地
+      dirname(dirname(task_dir)) 算术与 resolve_workspace 默认解析结果本会重合）
+    When gate_p4 解析 CODE-MAP.md 路径
+    Then 解析结果须来自真正调用 resolve_workspace(project_root) 并使用其返回值——
+      用白盒依赖注入手法验证：monkeypatch 模块级 resolve_workspace 让它返回一个"重定向"
+      workspace（与本地算术会推导出的路径不同），只在重定向位置放 CODE-MAP.md、本地算术
+      位置刻意留空。若 gate_p4 真的调用了 resolve_workspace，就应在重定向位置找到文件并
+      触发「新增文件核对表」WARNING；若仍在本地重新推导路径（忽略 monkeypatch），则两处
+      都找不到文件，不触发 WARNING。
+
+    现状（P3 设计时点）：gate_p4 未 import/调用 resolve_workspace，本地算术路径下无
+    CODE-MAP.md 也无 P2-skeleton.md → 断言 FAIL（红灯，B 类 AssertionError）。
+    """
+    repo = git_repo.path
+    (repo / "README.md").write_text("init\n", encoding="utf-8")
+    git_repo.commit("init")
+
+    task_dir_path = repo / "agate-workspace" / "tasks" / "T001"
+    task_dir_path.mkdir(parents=True)
+
+    # 本地 dirname(dirname(task_dir)) 算术会推导到这里（repo/agate-workspace）——刻意
+    # 不放 CODE-MAP.md，用于区分"用了 resolve_workspace"还是"仍在本地算术"。
+    redirected_dir = repo / "redirected-workspace"
+    (redirected_dir / "agents").mkdir(parents=True)
+    (redirected_dir / "agents" / "CODE-MAP.md").write_text("# CODE-MAP\n", encoding="utf-8")
+
+    (task_dir_path / "P4-review.md").write_text(
+        "---\nstatus: approved\nagent: reviewer-subagent\n---\nreviewed.\n",
+        encoding="utf-8",
+    )
+    (task_dir_path / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n无核对表。\n", encoding="utf-8"
+    )
+
+    (repo / "src.py").write_text("def hello(): pass\n", encoding="utf-8")
+    git_repo.stage("src.py")
+
+    mod = _load_check_gate_direct(agate_scripts)
+    mod.resolve_workspace = lambda project_root: (
+        str(redirected_dir),
+        str(redirected_dir / "tasks"),
+    )
+
+    monkeypatch.chdir(repo)
+    result = mod.gate_p4(str(task_dir_path))
+    captured = capsys.readouterr()
+
+    assert result == 0, f"WARNING 不应阻断（期望 exit 0），实际 exit {result}，stderr={captured.err!r}"
+    assert "新增文件核对表" in captured.err, (
+        "期望 gate_p4 调用 resolve_workspace 并在重定向 workspace 找到 CODE-MAP.md 从而触发"
+        f"「新增文件核对表」WARNING；实际未触发，说明仍在用本地 dirname(dirname(...)) 算术"
+        f"（该算术推导到的位置未放文件）。stderr={captured.err!r}"
+    )
+
+
+def test_tag0031_bdd_9_gate_p4_non_standard_nesting_resolves_via_agate_env(
+    git_repo, agate_scripts, python_exe, run_cli
+):
+    """BDD-9（DEBT0016，边界流）：非标准两级嵌套场景下 CODE-MAP.md 路径解析仍正确
+    （DEBT0016 closure_criteria 第 2 条；P2-design.md §1.3 R3：只覆盖
+    "非标准两级嵌套 + agate_common 可用"，不要求覆盖"agate_common 不可用"的组合场景）。
+
+    Given task_dir 与 workspace 的层级关系非标准两级嵌套——经由 .agate.env 的
+      AGATE_WORKSPACE= 覆盖工作区位置：真实 workspace 在 {repo}/custom-ws，而
+      task_dir 只在 {repo}/task 一级（不满足 {workspace}/tasks/{task_id} 两级嵌套约定）。
+      本地 dirname(dirname(task_dir)) 算术会错误地推导到 repo 的父目录（repo 外部，
+      物理上不可能放着这个任务的 CODE-MAP.md）；权威 resolve_workspace(project_root)
+      能正确识别 .agate.env 覆盖并解析到 {repo}/custom-ws。
+    When gate_p4 解析 CODE-MAP.md 路径（经真实 CLI 子进程，agate_common 正常可导入）
+    Then 解析结果仍与 resolve_workspace 权威函数结果一致，在 {repo}/custom-ws/agents/
+      CODE-MAP.md 找到文件并触发「新增文件核对表」WARNING（不产出错误/不存在的路径）。
+
+    现状（P3 设计时点）：本地算术推导到 repo 外部，找不到 CODE-MAP.md，也无
+    P2-skeleton.md → 不触发 WARNING → 断言 FAIL（红灯，B 类）。
+    """
+    repo = git_repo.path
+    (repo / "README.md").write_text("init\n", encoding="utf-8")
+    git_repo.commit("init")
+
+    (repo / ".agate.env").write_text("AGATE_WORKSPACE=custom-ws\n", encoding="utf-8")
+
+    custom_ws = repo / "custom-ws"
+    (custom_ws / "agents").mkdir(parents=True)
+    (custom_ws / "agents" / "CODE-MAP.md").write_text("# CODE-MAP\n", encoding="utf-8")
+
+    task = repo / "task"
+    task.mkdir()
+    (task / "P4-review.md").write_text(
+        "---\nstatus: approved\nagent: reviewer-subagent\n---\nreviewed.\n",
+        encoding="utf-8",
+    )
+    (task / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n无核对表。\n", encoding="utf-8"
+    )
+
+    (repo / "src.py").write_text("def hello(): pass\n", encoding="utf-8")
+    git_repo.stage("src.py")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P4", "task", cwd=str(repo))
+    assert result.returncode == 0, result.output  # WARNING 不阻断
+    assert "新增文件核对表" in result.output, (
+        "期望 gate_p4 经 resolve_workspace 解析 .agate.env 的 AGATE_WORKSPACE 覆盖后在 "
+        "{repo}/custom-ws/agents/CODE-MAP.md 找到文件从而触发 WARNING；实际未触发，说明仍在"
+        f"用本地 dirname(dirname(task_dir)) 算术（该算术会指向 repo 外部目录）。"
+        f"output={result.output!r}"
+    )
+
+
+def test_tag0031_bdd_10_gate_p4_self_referential_prose_not_matched(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-10（DEBT0017，异常流，原假阴性场景）：自指场景下说明性文字不再被误判为
+    已满足「新增文件核对表」要求。
+
+    Given P4-implementation.md 只以说明性散文提及"新增了一个标题叫『## 新增文件核对表』的
+      小节"（该字符串以叙述文本形式出现，非独立成行的标题）——现状子串 `in` 判定会命中这段
+      散文里的字面子串，误判为已满足。
+    When gate_p4 判定该文件是否已补充「新增文件核对表」
+    Then 判定为未满足（触发 WARNING 提示补充），不再被子串 `in` 匹配误判为已满足。
+
+    现状（P3 设计时点）：子串判定命中散文里的字面子串 → 不触发 WARNING → 断言 FAIL
+    （红灯，B 类）。
+    """
+    td = task_dir()
+    (td / "P2-skeleton.md").write_text("## 骨架声明\n\n占位内容。\n", encoding="utf-8")
+    (td / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n"
+        "本次改动给协议卡片模板新增了一个标题叫『## 新增文件核对表』的小节，"
+        "用于登记新增文件的骨架归属与 CODE-MAP 处理方式。\n",
+        encoding="utf-8",
+    )
+    _init_repo_with_task(git_repo, td)
+    repo = git_repo.path
+    _write_p4_review(repo, "approved", "reviewer-subagent")
+    (repo / "src.py").write_text("def hello(): pass\n", encoding="utf-8")
+    git_repo.stage("src.py")
+    git_repo.stage("task/P4-review.md")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P4", "task", cwd=str(repo))
+    assert result.returncode == 0
+    assert "WARNING" in result.output and "新增文件核对表" in result.output, (
+        "期望自指散文不满足整行/标题级判定，应触发 WARNING；实际未触发，说明仍在用子串 `in`"
+        f" 判定（散文中命中了字面子串）。output={result.output!r}"
+    )
+
+
+def test_tag0031_bdd_11_gate_p4_real_heading_trailing_text_satisfied(
+    git_repo, task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-11（DEBT0017，正常流，防止整行判定引入新假阳性）：标题真实存在（标题行尾带
+    附加说明文字）时判定通过。
+
+    Given P4-implementation.md 含独立成行的「## 新增文件核对表」标题，行尾附加了额外说明
+      文字（验证 re.MULTILINE 行首匹配不要求标题后必须无内容，只要求行首匹配 `^##\\s+新增
+      文件核对表`）。
+    When gate_p4 判定
+    Then 判定为已满足，不触发 WARNING。
+
+    回归守卫：现状子串判定本就能命中这行文字，本用例现状即绿；P4 改为整行/标题级正则后须
+    继续保持绿（title-level 正则允许标题行尾有内容，不引入新假阳性）。
+    """
+    td = task_dir()
+    (td / "P2-skeleton.md").write_text("## 骨架声明\n\n占位内容。\n", encoding="utf-8")
+    (td / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n\n"
+        "## 新增文件核对表（本次新增，逐文件标注）\n\n"
+        "| 文件 | 骨架归属 | CODE-MAP 处理 |\n"
+        "|------|----------|----------------|\n"
+        "| src.py | within src | [CODE_MAP_UPDATED] |\n",
+        encoding="utf-8",
+    )
+    _init_repo_with_task(git_repo, td)
+    repo = git_repo.path
+    _write_p4_review(repo, "approved", "reviewer-subagent")
+    (repo / "src.py").write_text("def hello(): pass\n", encoding="utf-8")
+    git_repo.stage("src.py")
+    git_repo.stage("task/P4-review.md")
+
+    result = _run_gate(agate_scripts, python_exe, run_cli, "P4", "task", cwd=str(repo))
+    assert result.returncode == 0
+    assert "WARNING" not in result.output
+
+
+def test_tag0031_bdd_12_gate_p1_read_rules_yaml_missing_fail_closed(
+    task_dir, agate_scripts, capsys
+):
+    """BDD-12（DEBT0018，异常流）：agate_common 不可导入时 gate_p1 消费
+    read_rules_yaml 的分支须显式失败。read_rules_yaml 是无条件调用点（不像 P6/P7 的三个
+    消费点只在旧格式回退分支触达，见 P2-design.md §1.3 R2），测试构造最直接，作为本 BDD
+    的主力用例。
+
+    Given 模拟 agate_common 整体不可导入：直接 import check-gate.py 模块，把
+      read_rules_yaml 替换为 ImportError 降级 stub 的返回值（None——等价于 agate_common
+      缺失时该名字在 check-gate.py 命名空间里的实际取值，见 check-gate.py:158-159）；
+      task 的 .state.yaml 无 judge 块（judge 机制未启用，L684 条件必然为真，
+      L687 read_rules_yaml 调用点无条件执行）。
+    When check-gate.py 执行 gate_p1（judge 强制校验，消费 read_rules_yaml）
+    Then 输出显式「安装破损：agate_common 不可导入」错误信息并 return 1，不再因
+      read_rules_yaml 返回 None 导致 cutoff 判据被静默跳过（fail-open，误判为 PASS）。
+
+    现状（P3 设计时点）：read_rules_yaml 返回 None → isinstance(cutoff, str) 为 False →
+    整段 judge 强制校验被跳过（无 return）→ gate_p1 继续走到其余检查全部通过 → exit 2
+    （PASS）→ 与期望的 exit 1 不符 → 断言 FAIL（红灯，B 类）。
+    """
+    mod = _load_check_gate_direct(agate_scripts)
+    mod.read_rules_yaml = lambda rules_root, name: None  # ImportError 降级 stub 语义
+
+    td = task_dir()
+    _write_p1_review_approved(td)
+    _write_state_yaml_p1(td)  # 无 judge 块
+
+    result = mod.gate_p1(str(td))
+    captured = capsys.readouterr()
+
+    assert result == 1, (
+        f"期望 agate_common 不可导入时 fail-closed（exit 1），实际 exit {result}"
+        f"（stderr={captured.err!r}）"
+    )
+    assert "安装破损" in captured.err and "agate_common" in captured.err, (
+        f"期望 stderr 含「安装破损」+「agate_common」的显式错误信息，实际: {captured.err!r}"
+    )
+
+
+def test_tag0031_bdd_12_gate_p6_count_pass_fail_missing_fail_closed(
+    task_dir, agate_scripts, capsys
+):
+    """BDD-12（DEBT0018，异常流）：agate_common 不可导入时 gate_p6 消费
+    count_p6_pass_fail 的分支须显式失败。
+
+    Given 旧格式 P6-acceptance.md（frontmatter 无 pass/fail 计数字段——命中 P2-design.md
+      §1.3 R2 描述的降级哨兵触达分支；新格式 frontmatter 声明时该函数根本不会被调用，见
+      BDD-13），模拟 agate_common 不可导入：直接 import 后把 count_p6_pass_fail 替换为
+      ImportError 降级 stub 的返回值 (0, 0)。
+    When check-gate.py 执行 gate_p6（PASS/FAIL 计数）
+    Then 输出显式「安装破损：agate_common 不可导入」错误信息并 return 1。
+
+    现状（P3 设计时点）：(0, 0) 代入 `fail != 0 or total == 0` 恰好也会 return 1（total==0
+    这一支凑巧撞对了 exit code），但输出消息是通用的「GATE P6: FAIL=0, TOTAL=0」，不含
+    「安装破损」字样——无法让运维区分"这是真的 0 条 BDD"还是"安装破损导致的降级读数"。
+    第二条消息断言 FAIL（红灯，B 类）。
+    """
+    mod = _load_check_gate_direct(agate_scripts)
+    mod.count_p6_pass_fail = lambda text: (0, 0)  # ImportError 降级 stub 语义
+
+    td = task_dir()
+    _write_p6_acceptance(
+        td, "---\nagent: test\n---\n- PASS BDD-1: ok (evidence.png)\n"
+    )
+    _add_p6_evidence(td, "evidence.png")
+
+    result = mod.gate_p6(str(td))
+    captured = capsys.readouterr()
+
+    assert result == 1, f"期望 exit 1，实际 exit {result}（stderr={captured.err!r}）"
+    assert "安装破损" in captured.err and "agate_common" in captured.err, (
+        f"期望 stderr 含「安装破损」+「agate_common」的显式错误信息，实际: {captured.err!r}"
+    )
+
+
+def test_tag0031_bdd_12_gate_p7_count_markers_missing_fail_closed(
+    task_dir, agate_scripts, capsys
+):
+    """BDD-12（DEBT0018，异常流）：agate_common 不可导入时 gate_p7 消费
+    count_p7_markers（BLOCKER/DEVIATION 计数）的分支须显式失败。
+
+    Given 旧格式 P7-consistency.md（frontmatter 无 blocker_count/deviation_critical_count
+      字段——命中旧格式回退分支），模拟 agate_common 不可导入：count_p7_markers 替换为
+      ImportError 降级 stub 的返回值 (0, 0)。
+    When check-gate.py 执行 gate_p7
+    Then 输出显式「安装破损：agate_common 不可导入」错误信息并 return 1。
+
+    现状（P3 设计时点）：(0, 0) 代入 `blockers > 0 or devcrit > 0` 为 False，不触发该处
+    return，继续往下走（DESIGN_GAP/CODE-MAP 相关字段均未声明，各分支均跳过）最终落到函数
+    末尾 `return 0`（P7 的 exit 0 是"通过"语义）——真正的"静默判定为通过"（false-PASS），
+    与期望的 exit 1 不符 → 断言 FAIL（红灯，B 类）。
+    """
+    mod = _load_check_gate_direct(agate_scripts)
+    mod.count_p7_markers = lambda text: (0, 0)  # ImportError 降级 stub 语义
+
+    td = task_dir()
+    _write_p7(td, "---\nagent: test\n---\n一致性检查完成（旧格式，无 frontmatter 计数字段）。\n")
+
+    result = mod.gate_p7(str(td))
+    captured = capsys.readouterr()
+
+    assert result == 1, f"期望 exit 1，实际 exit {result}（stderr={captured.err!r}）"
+    assert "安装破损" in captured.err and "agate_common" in captured.err, (
+        f"期望 stderr 含「安装破损」+「agate_common」的显式错误信息，实际: {captured.err!r}"
+    )
+
+
+def test_tag0031_bdd_12_gate_p7_count_code_map_lines_missing_fail_closed(
+    task_dir, agate_scripts, capsys
+):
+    """BDD-12（DEBT0018，异常流）：agate_common 不可导入时 gate_p7 消费
+    count_code_map_lines（CODE-MAP 转抄核对）的分支须显式失败。
+
+    Given P7-consistency.md 声明 code_map_new_files_count/code_map_reviewed_count
+      frontmatter 字段（CODE-MAP pairing 机制"已采用"，转抄核对层的
+      count_code_map_lines 调用点在此条件下才会执行，见 check-gate.py:1212-1245），
+      内部一致性层 cm_reviewed(2) >= cm_count(2) 先行通过，不提前 return；模拟
+      agate_common 不可导入：count_code_map_lines 替换为 ImportError 降级 stub 的
+      返回值 0。
+    When check-gate.py 执行 gate_p7 的 CODE-MAP 转抄核对分支
+    Then 输出显式「安装破损：agate_common 不可导入」错误信息并 return 1。
+
+    现状（P3 设计时点）：0 代入 `p4_code_map_actual_count > cm_count` 为
+    `0 > 2` = False，不触发该处 return，继续落到函数末尾 `return 0`（false-PASS）
+    → 与期望的 exit 1 不符 → 断言 FAIL（红灯，B 类）。
+    """
+    mod = _load_check_gate_direct(agate_scripts)
+    mod.count_code_map_lines = lambda text: 0  # ImportError 降级 stub 语义
+
+    td = task_dir()
+    _write_p7(
+        td,
+        "---\nagent: test\ncode_map_new_files_count: 2\ncode_map_reviewed_count: 2\n---\n"
+        "一致性检查完成，CODE-MAP 已同步。\n",
+    )
+    (td / "P4-implementation.md").write_text(
+        "---\nagent: test\n---\n无 CODE_MAP 标记。\n", encoding="utf-8"
+    )
+
+    result = mod.gate_p7(str(td))
+    captured = capsys.readouterr()
+
+    assert result == 1, f"期望 exit 1，实际 exit {result}（stderr={captured.err!r}）"
+    assert "安装破损" in captured.err and "agate_common" in captured.err, (
+        f"期望 stderr 含「安装破损」+「agate_common」的显式错误信息，实际: {captured.err!r}"
+    )
+
+
+def test_tag0031_bdd_13_gate_p6_p7_new_format_unaffected_regression(
+    task_dir, agate_scripts, python_exe, run_cli
+):
+    """BDD-13（DEBT0018，回归，防止 fail-closed 改造引入新假阳性拒绝）：agate_common
+    正常可导入时，P6/P7 新格式（frontmatter 计数字段已声明）行为逐字节不变——
+    count_p6_pass_fail/count_p7_markers/count_code_map_lines 三个函数在新格式下根本
+    不会被调用（P2-design.md §1.3 R2），fail-closed 改造不影响这条快速路径。
+
+    Given agate_common 正常安装可导入（本 worktree 默认开发环境，真实 CLI 子进程，
+      不做任何 monkeypatch）；P6-acceptance.md/P7-consistency.md 均用新格式 frontmatter
+      声明计数字段。
+    When 执行 gate_p6/gate_p7 全量既有判定路径
+    Then 判定结果与改造前逐字节一致（P6 exit 2 PASS，P7 exit 0 PASS）。
+
+    现状（P3 设计时点）：本用例即绿（regression baseline——尚未做任何改造，新格式快速路径
+    本就不经过四个降级消费点）。P4 完成 fail-closed 改造后须继续保持绿，是本 BDD 的核心
+    诉求（防止改造误伤新格式路径）。
+    """
+    td = task_dir()
+    _write_p6_acceptance(
+        td,
+        "---\nagent: test\npass: 1\nfail: 0\n---\n"
+        "逐条结果见 P6-evidence/（新格式，frontmatter 汇总判定）。\n",
+    )
+    _add_p6_evidence(td, "e.png")
+
+    result_p6 = _run_gate(agate_scripts, python_exe, run_cli, "P6", str(td))
+    assert result_p6.returncode == 2, result_p6.output
+
+    td2 = task_dir()
+    _write_p7(
+        td2,
+        "---\nagent: test\nblocker_count: 0\ndeviation_critical_count: 0\n"
+        "design_gap_count: 0\ndesign_gap_reviewed_count: 0\n---\n"
+        "一致性检查完成（新格式）。\n",
+    )
+    result_p7 = _run_gate(agate_scripts, python_exe, run_cli, "P7", str(td2))
+    assert result_p7.returncode == 0, result_p7.output
+
+
+def _tag0031_debt_block(text, debt_id):
+    """从 tech-debt.md 中取出指定 DEBT id 的 yaml fence 内容（```yaml ... ``` 之间）。
+    与 test_debt_registry_closure.py 的 _extract_debt_block 同构（不同测试文件，命名加
+    tag0031 前缀避免与其他簇的同名私有辅助函数混淆，无实际 import 依赖）。
+    """
+    heading_pat = re.compile(r"^## " + re.escape(debt_id) + r"\s*$", re.MULTILINE)
+    m = heading_pat.search(text)
+    assert m is not None, f"{debt_id} 章节标题未在 tech-debt.md 中找到"
+    rest = text[m.end():]
+    fence_m = re.search(r"```yaml\n(.*?)\n```", rest, re.DOTALL)
+    assert fence_m is not None, f"{debt_id} 章节下未找到 yaml fence 块"
+    return fence_m.group(1)
+
+
+def test_tag0031_bdd_15_six_debts_registry_closed(agate_root):
+    """BDD-15：六条 DEBT（0002/0003/0004/0016/0017/0018）登记条目闭合，跨簇聚合收尾检查。
+
+    本用例归属本簇（gate-robustness）产出——三簇（version-mgmt/test-isolation/
+    gate-robustness）中本簇最后完成，是收尾聚合检查的天然位置（P3-dispatch-context-
+    test-designer-gate-robustness.md §约束 明确指派）。DEBT0007 单独由
+    test_debt_registry_closure.py 的 test_bdd_7_debt0007_status_closed_with_closure_fields
+    覆盖，不在本用例范围内（避免重复断言同一条目，BDD-7 与 BDD-15 各自独立验收）。
+
+    Given DEBT0002/0003/0004/0016/0017/0018 对应的代码/文档修复与各自 BDD
+      （BDD-1/2、BDD-3、BDD-4/5、BDD-8/9、BDD-10/11、BDD-12/13）均已验证生效
+    When 在 debt/tech-debt.md 逐条更新这六个条目
+    Then 六条条目的 status 均由 open 改为 closed，各自追加 closed_at 与 closure 说明
+
+    当前状态（P3 设计时点）：六条均为 open → 本用例预期全部 FAIL（真红灯，B 类）。
+    收尾登记完成后，六条均改为 closed，本用例转绿。
+    """
+    path = agate_root.parent / "agate-workspace" / "debt" / "tech-debt.md"
+    assert path.is_file(), f"tech-debt.md 未找到：{path}"
+    text = path.read_text(encoding="utf-8")
+
+    debt_ids = ["DEBT0002", "DEBT0003", "DEBT0004", "DEBT0016", "DEBT0017", "DEBT0018"]
+    not_closed = []
+    for debt_id in debt_ids:
+        block = _tag0031_debt_block(text, debt_id)
+        status_m = re.search(r"^status:\s*(\S+)\s*$", block, re.MULTILINE)
+        assert status_m is not None, f"{debt_id} 条目缺少 status 字段"
+        if status_m.group(1) != "closed":
+            not_closed.append((debt_id, status_m.group(1)))
+
+    assert not not_closed, (
+        f"以下 DEBT 条目 status 仍非 closed（登记闭合动作尚未执行）：{not_closed}"
+    )

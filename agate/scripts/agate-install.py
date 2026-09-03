@@ -228,17 +228,22 @@ def _repair_pointers(agate_home, removed_version, before):
 
 
 def _find_references(home, version):
-    """扫描 $HOME 下 .agate-version 声明指定版本的项目 → 项目目录列表（BDD-6 引用保护）。
+    """扫描 $HOME 下 .agate-version 声明指定版本的项目 → (refs, hit_limit) 二元组
+    （TAG0031 DEBT0004，BDD-4/5）。
 
     限深度 + 跳过隐藏/.agate/.git 等目录 + mtime 窗口限流（P2 §4.5），避免整树无界扫描。
+    `hit_limit` 标记本次扫描是否命中深度剪枝或 mtime 超窗跳过——命中即可能存在漏扫的
+    引用，调用方（`_cmd_uninstall`）据此输出 WARNING，不把"扫不到"误判为"确实无引用"。
     """
     refs = []
+    hit_limit = False
     home_abs = os.path.abspath(home)
     for root, dirs, files in os.walk(home_abs):
         rel = os.path.relpath(root, home_abs)
         depth = 0 if rel == "." else rel.count(os.sep) + 1
         if depth > _SCAN_MAX_DEPTH:
             dirs[:] = []
+            hit_limit = True
             continue
         dirs[:] = [d for d in dirs if d not in _SCAN_SKIP_DIRS and not d.startswith(".")]
         if ".agate-version" not in files:
@@ -246,6 +251,7 @@ def _find_references(home, version):
         vf = os.path.join(root, ".agate-version")
         try:
             if time.time() - os.path.getmtime(vf) > _SCAN_MTIME_WINDOW:
+                hit_limit = True
                 continue
         except OSError:
             continue
@@ -257,7 +263,7 @@ def _find_references(home, version):
         m = _DECL_RE.match(content)
         if m and m.group(1) == version:
             refs.append(root)
-    return refs
+    return refs, hit_limit
 
 
 def _cmd_install(agate_home, version=None):
@@ -286,7 +292,12 @@ def _cmd_uninstall(agate_home, version):
         sys.stderr.write(f"错误: 非法版本号 {version!r}（应为 vX.Y.Z）\n")
         sys.exit(2)
 
-    refs = _find_references(os.path.expanduser("~"), version)
+    refs, hit_limit = _find_references(os.path.expanduser("~"), version)
+    if hit_limit:
+        sys.stderr.write(
+            "WARNING: 引用扫描命中深度/时间窗口限流边界（超出可能未被完整扫描），"
+            "卸载判定可能未覆盖全部引用该版本的项目\n"
+        )
     if refs:
         sys.stderr.write(f"拒绝卸载: {version} 仍被 {len(refs)} 个项目引用（.agate-version）：\n")
         for r in refs:

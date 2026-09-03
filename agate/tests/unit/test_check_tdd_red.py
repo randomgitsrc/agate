@@ -588,6 +588,7 @@ def test_tdd_timeout_exit_0_with_hint(task_dir, python_exe, run_cli, agate_scrip
 def test_pyx_1_read_gate_commands_p3_html_and_project_module(
     python_exe, run_cli, agate_scripts, tmp_path
 ):
+    """[TAG0029: P3_html 已退役] P3_html 不再被收集，仅 P3 + project_module 生效。"""
     p2 = tmp_path / "pyx1" / "P2-design.md"
     p2.parent.mkdir(parents=True)
     p2.write_text(
@@ -606,8 +607,7 @@ def test_pyx_1_read_gate_commands_p3_html_and_project_module(
     )
     assert result.returncode == 0
     assert '"cmd": "pytest -q --tb=short"' in result.output
-    assert '"cmd": "npx vitest run"' in result.output
-    assert '"formatter": "vitest.sh"' in result.output
+    assert "npx vitest run" not in result.output
     assert '"project_module": "myapp"' in result.output
 
 

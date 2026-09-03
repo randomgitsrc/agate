@@ -40,4 +40,4 @@
 
 - worktree：`.worktrees/agate-TAG0030`（分支 `feat/TAG0030-acceptance-blindspot`），构建流程见 `docs/guides/worktree-dogfooding-guide.md`，交接单 `HANDOFF-TAG0030.md` 按模板全 9 节填写
 - 任务目录：`agate-workspace/tasks/TAG0030-acceptance-blindspot/`
-- **merge 模式**：完成 PR 后由主 Agent 综合 merge（三路并行 TAG0029/30/31 之一，文件域与另两路不重叠）
+- **merge 模式**：完成 PR 后 worktree 自行 git-to-main（三路并行 TAG0029/30/31，文件域已隔离互不冲突；PR 提出后主 Agent review 复核）
