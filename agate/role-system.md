@@ -202,6 +202,28 @@ P4 后评审同理（review + cso + design-review 并行）。
 
 ---
 
+## 子派发权限边界
+
+> RM-AG0055（TAG0028）受控自主再派发：执行角色在授权范围内可自主派发子任务
+> （子 subagent）。本节定义权限边界与例外；与五模式编排的关系、产出收敛语义见
+> dispatch-protocol.md「subagent 自主再派发」节。
+
+- **可被授予子派发权限的角色**：执行角色（analyst / architect / implementer / verifier）——
+  在任务进行中需要局部拆解工作时，可被主 Agent 授予子派发能力（派发子任务 subagent）
+- **硬边界 1（不写状态）**：子任务**不写** `.state.yaml` / `active-tasks.md`，不产生独立
+  phase 状态——外部观感永远是"一个 subagent 在跑"，父汇总后仅以"路径+摘要"回报；
+  子任务中间产出不计入 gate 判定对象（产出收敛见 dispatch-protocol.md）
+- **硬边界 2（写权限严格子集）**：子任务写权限是**父权限的严格子集**——子任务只能触碰
+  父在派子任务 prompt 中显式约束的目录内文件；权限**不自动继承**，父在派子任务 prompt
+  中显式重申约束
+- **judge 类角色例外**：judge 类角色（验收独立裁判，fresh context 信息隔离）**不适用
+  子派发**——子派发决策路径本身是 judge 主观认知过程，开放子派发会破坏 fresh context
+  信息隔离防线（信息隔离冲突，设计 §4.4）。judge 角色**不开放** Agent/subagent_fork
+  工具权限；派发 judge 时在 dispatch-context 显式声明「不启用子派发能力」（模板声明位
+  见 assets/templates/dispatch-context.md，M7）
+
+---
+
 ## 与 gstack 的关系
 
 review-roles 的角色原型（Staff Engineer / CEO / Engineering Manager / Senior Designer / QA / CSO / Debug Expert）受 gstack（Garry Tan 开源，MIT）的概念启发。agate 以独立的执行/评审分离模型重写了这些角色，**未捆绑、复制或链接 gstack 代码**——角色定义内容为 agate 独立创作。保留致谢而非捆绑代码的原因：

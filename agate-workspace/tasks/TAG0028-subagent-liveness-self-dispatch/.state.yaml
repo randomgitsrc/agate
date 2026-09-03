@@ -1,3 +1,21 @@
 task_id: TAG0028
-phase: P0
+phase: READY
 status: active
+p5_pass_commit: 34366abd02ae046291a8849cc52121fc1275c13b
+judge:
+  enabled: true
+retries:
+  P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+  P4:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null
+    - round: 2
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: null

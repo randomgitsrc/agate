@@ -1,0 +1,18 @@
+===== BDD-07 fixture 脱敏 grep 断言 =====
+--- fixture 文件清单 ---
+总计 20
+drwxrwxr-x 2 kity kity 4096  9月  3 18:13 .
+drwxrwxr-x 8 kity kity 4096  9月  3 16:03 ..
+-rw------- 1 kity kity 1001  9月  3 18:13 claude-code-session.jsonl
+-rw------- 1 kity kity 1373  9月  3 18:13 dsh-session.jsonl
+-rw------- 1 kity kity 1109  9月  3 16:04 opencode-part-state.json
+--- 敏感模式扫描（真实用户路径/密钥/会话标识；期望 0 命中）---
+grep_exit=1 (1=无命中=脱敏确认)
+--- fixture 样例内容（前 20 行, 已脱敏确认）---
+{"type":"tool_use","id":"toolu_demo_0001","name":"Bash","timestamp":"2026-09-03T02:00:00.000Z","input":{"command":"ls -la /example/repo && git status"}}
+{"tool_use_id":"toolu_demo_0001","type":"tool_result","timestamp":"2026-09-03T02:00:00.150Z","content":"Exit code 0\n总用量 12\ndrwxr-xr-x 3 demo demo 4096 ...","is_error":false}
+{"type":"tool_use","id":"toolu_demo_0002","name":"Bash","timestamp":"2026-09-03T02:01:00.000Z","input":{"command":"env python3 -m pytest -q tests/unit"}}
+{"tool_use_id":"toolu_demo_0002","type":"tool_result","timestamp":"2026-09-03T02:01:00.387Z","content":"Exit code 1\n=== 1 failed ===\nFAILED tests/unit/test_demo.py::test_case","is_error":true}
+{"type":"tool_use","id":"toolu_demo_0003","name":"Bash","timestamp":"2026-09-03T02:02:00.000Z","input":{"command":"env python3 -m pytest -q tests/unit"}}
+{"tool_use_id":"toolu_demo_0003","type":"tool_result","timestamp":"2026-09-03T02:02:00.310Z","content":"Exit code 0\n=== 12 passed in 0.31s ===","is_error":false}
+EXIT_CODE: 0

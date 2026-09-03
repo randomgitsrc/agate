@@ -82,8 +82,21 @@ def _run_script(script, args, env_extra):
     return (proc.stdout or "").rstrip("\n"), proc.returncode
 
 
+# --- 心跳文件审计豁免登记（RM-AG0055 / TAG0028 BDD-26）---
+# `.heartbeat*` 心跳文件（任务级 .heartbeat、子任务级 .heartbeat.child-{n}，命名规范见
+# dispatch-protocol.md「心跳文件生命周期」节）落入 {TASK_DIR}/ 协议命名空间，但下方
+# _find_files 的隐藏文件过滤（if name.startswith("."): continue）**天然跳过**以 `.` 开头
+# 的文件——心跳文件不进入审计 1/6 的枚举面。此豁免为**显式登记确认**（不能仅靠"默认不扫"
+# 假设），而非新增过滤逻辑：_find_files 行为未改动，7 道审计结构未改动。
+HEARTBEAT_AUDIT_EXEMPTION = "confirmed"  # 登记值（供审计追溯引用，不参与判定）
+
+
 def _find_files(base):
-    """find base -type f -not -name '.*'（递归，排除隐藏名文件）等价。"""
+    """find base -type f -not -name '.*'（递归，排除隐藏名文件）等价。
+
+    RM-AG0055 心跳豁免：以 `.` 开头的心跳文件（.heartbeat / .heartbeat.child-{n}）
+    由本隐藏文件过滤天然跳过，登记确认见上方 HEARTBEAT_AUDIT_EXEMPTION。
+    """
     files = []
     for _root, _dirs, names in os.walk(base):
         for name in names:

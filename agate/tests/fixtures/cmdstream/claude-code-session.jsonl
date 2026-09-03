@@ -1,0 +1,6 @@
+{"type":"tool_use","id":"toolu_demo_0001","name":"Bash","timestamp":"2026-09-03T02:00:00.000Z","input":{"command":"ls -la /example/repo && git status"}}
+{"tool_use_id":"toolu_demo_0001","type":"tool_result","timestamp":"2026-09-03T02:00:00.150Z","content":"Exit code 0\n总用量 12\ndrwxr-xr-x 3 demo demo 4096 ...","is_error":false}
+{"type":"tool_use","id":"toolu_demo_0002","name":"Bash","timestamp":"2026-09-03T02:01:00.000Z","input":{"command":"env python3 -m pytest -q tests/unit"}}
+{"tool_use_id":"toolu_demo_0002","type":"tool_result","timestamp":"2026-09-03T02:01:00.387Z","content":"Exit code 1\n=== 1 failed ===\nFAILED tests/unit/test_demo.py::test_case","is_error":true}
+{"type":"tool_use","id":"toolu_demo_0003","name":"Bash","timestamp":"2026-09-03T02:02:00.000Z","input":{"command":"env python3 -m pytest -q tests/unit"}}
+{"tool_use_id":"toolu_demo_0003","type":"tool_result","timestamp":"2026-09-03T02:02:00.310Z","content":"Exit code 0\n=== 12 passed in 0.31s ===","is_error":false}
