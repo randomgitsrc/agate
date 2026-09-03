@@ -817,7 +817,7 @@ created_at: 2026-08-25
 id: DEBT0023
 category: protocol
 title: gate_commands 的 P3* 前缀键被静默收集为 TDD 测试命令执行（无任何 gate 拦截）
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate/scripts/agate-read-gate-commands.py:60
@@ -828,6 +828,12 @@ evidence:
     note: "is_legal_gate_key 对 P3_xxx 形态返回 True（P3 为合法阶段 + 合法后缀），仅对账 WARNING 不拦截"
   - ref: agate-workspace/tasks/TAG0026-maintainability-gate/P2-review.md
     note: "TAG0026 P2 评审实测：P2-design 靠'禁用 P3_xxx 键'约定规避，协议层无机械防护"
+  - ref: agate-workspace/tasks/TAG0029-gate-parser-fix/P6-evidence/p6-bdd-4.log
+    note: "closure（TAG0029，task_id=TAG0029）：P6 BDD-4（P3_xxx 不收集）实跑 PASS"
+  - ref: agate-workspace/tasks/TAG0029-gate-parser-fix/P6-evidence/p6-bdd-5.log
+    note: "closure（TAG0029）：P6 BDD-5（裸 P3 收集 + 元键豁免）实跑 PASS"
+  - ref: agate-workspace/tasks/TAG0029-gate-parser-fix/P6-evidence/p6-bdd-6.log
+    note: "closure（TAG0029）：P6 BDD-6（P2 卡禁令子节）实跑 PASS；judge 9/9 passed 见 P6.5-judge-verdict.md"
 impact: 未来任务在 gate_commands 声明 P3_xxx 辅助检测键时，该命令会被 check-tdd-red 在 P3 阶段当作
   测试命令执行（可能误报红灯或产生副作用），且无任何 gate/对账机制拦截（对账 WARNING 亦不触发）
 recommendation: 后续协议任务评估：agate-read-gate-commands.py 收集侧收紧（如 P3 仅精确键 + 白名单
@@ -838,6 +844,8 @@ closure_criteria:
 source: review
 created_at: 2026-08-30
 task_id: TAG0026
+closed_at: 2026-09-04
+closure_note: "TAG0029 关闭：① BDD-4/BDD-5 单测锁定（test_tag0029_gate_parser_fix_b.py，P6 BDD-4/5 PASS）；② agate/phase-cards/P2-design.md L182-189 禁令子节（含白名单 + 原因），P6 BDD-6 PASS；P5 全量 1444 绿 + judge 9/9 passed"
 ```
 
 
@@ -913,13 +921,19 @@ task_id: TAG0027
 id: DEBT0027
 category: protocol
 title: gate 命令解析器不处理行内注释/引号闭合 + check-tdd-red 假绿灯路径（测试运行器故障被吞成红灯证据）
-status: open
+status: closed
 priority: high
 evidence:
   - ref: agate-workspace/tasks/TAG0028-subagent-liveness-self-dispatch/retrospective.md
     note: "机制缺口 1：agate-read-gate-commands.py 值清洗 `val = raw.strip().strip(chr(34)).strip(chr(39))` 不剥离值内 `# 注释` 与残留引号——值不以 `\"` 结尾时 strip(chr(34)) 只剥开头引号，残留结尾引号 + 注释尾巴；消费方 bash -c 执行 unterminated quote 语法错误（exit 2），check-tdd-red judge 分支可能把该输出误判为红灯可推进（假绿灯）"
   - ref: agate-workspace/tasks/TAG0028-subagent-liveness-self-dispatch/P2-dispatch-context-architect-fix2.md
     note: "P2 fix2 触发记录：主 Agent 跑 P3 env baseline 发现 gate_commands.P3/P5 命令带注释尾巴，经最小 shell 验证确认 bash 语法错误；fix2 只改注释形态（行内→独立行）规避本任务，未修解析器根因"
+  - ref: agate-workspace/tasks/TAG0029-gate-parser-fix/P6-evidence/p6-bdd-1.log
+    note: "closure（TAG0029，task_id=TAG0029）：P6 BDD-1（行内注释→纯命令，bash-c exit 非 2）实跑 PASS"
+  - ref: agate-workspace/tasks/TAG0029-gate-parser-fix/P6-evidence/p6-bdd-2.log
+    note: "closure（TAG0029）：P6 BDD-2（未闭合引号 fail-closed）实跑 PASS"
+  - ref: agate-workspace/tasks/TAG0029-gate-parser-fix/P6-evidence/p6-bdd-3.log
+    note: "closure（TAG0029）：P6 BDD-3（exit2 中英辅证判 exit1）实跑 PASS；judge 9/9 passed 见 P6.5-judge-verdict.md"
 impact: 协议文档写 gate_commands 时若在命令值同行带注释，命令解析串带残渣（残留引号 + 注释），P3 check-tdd-red / P5 执行失败；check-tdd-red 的 judge 分支把"测试运行器语法错误"误读为"测试红灯可推进"——测试根本没跑却被当红灯证据放行，验收真实性受威胁
 recommendation: ① agate-read-gate-commands.py 值清洗剥离行内注释（首个未转义 ` #`）并校验引号闭合，输出纯命令或报解析错误（exit 非 0 + stderr），不再产出带残渣命令串；② check-tdd-red.py run_test_with_formatter 执行失败（exit 127 / 语法错误 exit 2 / 命令不可解析）不得计入红灯证据，judge 分支仅在测试运行器正常退出时才判定红灯可推进（关联 RM-AG0002 A/B 类盲区语义，扩展覆盖语法错误类）
 closure_criteria:
@@ -929,4 +943,6 @@ closure_criteria:
 source: retrospective
 created_at: 2026-09-03
 task_id: TAG0028
+closed_at: 2026-09-04
+closure_note: "TAG0029 关闭：① 纯命令/解析错误exit非0（BDD-1/2，P6 PASS）；② exit2+中英辅证+零统计判exit1（BDD-3，P6 PASS）；③ 行内注释单测+bash-c无unterminated实测（P6 BDD-1证据）；P5全量1444绿+judge 9/9 passed"
 ```
