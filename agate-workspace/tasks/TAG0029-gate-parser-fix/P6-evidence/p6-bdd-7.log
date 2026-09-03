@@ -1,0 +1,19 @@
+=== BDD-7: R2 fixture data exempt, tests tree exit 0 ===
+--- real fixture sample with python3 -m pytest in command field ---
+/home/kity/oclab/agateon/.worktrees/agate-TAG0029/agate/tests/fixtures/cmdstream/claude-code-session.jsonl:3:{"type":"tool_use","id":"toolu_demo_0002","name":"Bash","timestamp":"2026-09-03T02:01:00.000Z","input":{"command":"env python3 -m pytest -q tests/unit"}}
+/home/kity/oclab/agateon/.worktrees/agate-TAG0029/agate/tests/fixtures/cmdstream/claude-code-session.jsonl:5:{"type":"tool_use","id":"toolu_demo_0003","name":"Bash","timestamp":"2026-09-03T02:02:00.000Z","input":{"command":"env python3 -m pytest -q tests/unit"}}
+/home/kity/oclab/agateon/.worktrees/agate-TAG0029/agate/tests/fixtures/cmdstream/dsh-session.jsonl:3:{"type":"tool/call","seq":103,"time":1787883650400,"data":{"turn":1,"step":3,"callId":"call_demo_0002","name":"bash","arguments":"{\"command\":\"env python3 -m pytest -q tests/unit\"}"}}
+/home/kity/oclab/agateon/.worktrees/agate-TAG0029/agate/tests/fixtures/cmdstream/dsh-session.jsonl:5:{"type":"tool/call","seq":105,"time":1787883651000,"data":{"turn":2,"step":1,"callId":"call_demo_0003","name":"bash","arguments":"{\"command\":\"env python3 -m pytest -q tests/unit\"}"}}
+--- scan tests tree ---
+scanner exit=0 (expect 0)
+--- stdout ---
+--- stderr ---
+EXIT_CODE: 0
+=== BDD-7 supplement: dir-exempt contrast (bare python3 inside vs outside fixture dir) ===
+--- fixture files containing bare python3 (not env-form) ---
+--- craft bare-python3 file INSIDE fixture dir (temp, removed after) ---
+inside-fixture exit=0 (expect 0 = exempt)
+--- craft same content OUTSIDE fixture dir ---
+outside-fixture exit=1 (expect 1 = hit)
+R2 /tmp/p6-bdd7-probe-outside.jsonl:1 {"command": "python3 -m pytest -q tests/unit"}
+EXIT_CODE: 0

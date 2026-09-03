@@ -1,3 +1,45 @@
+---
+phase: P2
+generated_by: 主 Agent
+task_id: TAG0029
+role: plan-eng-review
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+独立评审 `/home/kity/oclab/agateon/.worktrees/agate-TAG0029/agate-workspace/tasks/TAG0029-gate-parser-fix/P2-design.md`（选定方案 A：本地化精确修复，3 候选），产出 `P2-review.md`（Header `status: approved` / `rejected` 之一，`agent: plan-eng-review`；单评审角色，无需组长汇总，直接产出终态文件）。只审不写——不直接改 P2-design.md，评审意见由主 Agent 回派 architect 修改。
+
+### 约束
+- 按角色文件评审重点逐项核对：数据流/状态机/接口契约/错误边界/测试策略/技术债 + 多方案探索（≥2 候选 + 权衡 + 选择理由，稻草人自检是否成立）+ 实现就绪度（implementer 能否按 files_to_read 自主实现）+ minimal_validation（bash 实测 confirmed + 纯代码逻辑声明）。
+- 输出结构按角色文件四节：架构问题（阻塞级）/ 架构问题（非阻塞）/ 测试缺口 / 锁定决策。approved 须引用 BDD-1~9 覆盖锚点 + 候选数核对（candidate_count=3 与正文一致）。
+- **主 Agent 核验发现（三条，评审必须逐条给出结论，通过/打回均须写明理由）**：
+  1. **judge 新分支文案匹配表含中文串`找不到匹配`**（设计 §2.2/§3.3：`syntax error`/`unexpected`/`unterminated`/`unmatched`/`找不到匹配`）：bash 的语法错误文案是否真有中文形态？若为中文 locale 下产物，单测在英文 locale CI 下是否挂？要求评审确认匹配表每项的出处（真实 bash 文案 vs 推测），推测项须打回补实测。
+  2. **豁免常量初始目录是否覆盖 cmdstream fixture 真实路径**（设计 §3.4：初始含 `agate/tests/fixtures/`）：P1 称 cmdstream fixture 17 处裸 python3——其真实路径是否确在此前缀下？若不在，BDD-7 单测与实现对不上。要求评审核对 fixture 真实路径与常量的一致性。
+  3. **`P3_scanner` 常驻的执行主体**（设计 §4 + BDD-9）：`gate_p3`（check-gate.py L891-897）只查 P3-test-cases.md 存在性、不读 gate_commands，TDD 红灯由主 Agent 手动跑 check-tdd-red——`P3_scanner` 声称"常驻 P3"实际由谁执行（P3-test-designer 手动跑？主 Agent 跑？）？若无人执行，BDD-9 的 P3 一半是空宣称。要求评审明确 P3_scanner 的执行主体与判定方式。
+- 另须核对：收紧语义变更声明（§2.5：P3_js/P3_html 显式退役）是否与 P1 基线保护冲突（[BASELINE_CHANGE] 授权位——P1-review 非阻塞建议 2 已预警）；R6 bootstrap（TEST_RUNNER 覆盖）是否充分；白名单 `_e2e` 在 P3 永不收集与 BDD-5 的关系。
+- 产出 Header：phase=P2, task_id=TAG0029, parent=P2-design.md, trace_id=TAG0029-P2-20260904（与设计同日）, agent=plan-eng-review, status 按结论填写。返回前跑 `python3 agate/scripts/check-frontmatter.py` 自检（worktree 根）。
+</dispatch_guide>
+
+### 上游关联
+- P2 architect 第 2 轮产出 P2-design.md（第 1 轮中断无产出，已记 retries.P2 round 1 empty_return；本轮 prompt_changed=true）。
+- P1-requirements.md（9 条 BDD）+ P1-review.md（approved，三易错点坐实）为验收锚。
+- `.state.yaml` phase=P1（P2 推进随 P2 产出 commit 一起）。
+
+### 输入文件
+- `agate-workspace/tasks/TAG0029-gate-parser-fix/P2-design.md`（评审对象——精读全文，245 行）
+- `agate-workspace/tasks/TAG0029-gate-parser-fix/P1-requirements.md`（9 条 BDD 验收锚——核对覆盖）
+- `agate-workspace/tasks/TAG0029-gate-parser-fix/P2-dispatch-context-architect.md`（上轮约束 + P3 存量证据节——核对 architect 是否偏离）
+- `agate/scripts/check-tdd-red.py`（judge_result L87-157 既有分支——核对新分支分区，发现 1 的事实依据）
+- `agate/scripts/check-gate.py`（gate_p3 L891-897 不读 gate_commands——发现 3 的事实依据）
+- `agate/scripts/check-platform-assumptions.py`（R2 L39 + 豁免函数——发现 2 的事实依据）
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P2
+
+路径：phase-cards/P2-design.md
+---
 # P2 — 方案设计
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -179,20 +221,6 @@ gate_commands:
 ```
 `--strict-errors-only`（仅 ERROR 判失败）适合日常任务默认使用；`--strict`（WARNING-only 也判失败）保留给专门做 WARNING 债务清理的任务主动选用。
 
-### `P3_xxx` 禁止声明（P2 卡禁令，BDD-6）
-
-`gate_commands` 的测试命令键只允许裸 `P3`（`check-tdd-red.py` 只收集精确键
-`key == "P3"`）。禁止声明 `P3_xxx` 检测键：旧解析器曾用 `startswith("P3")`
-静默收集辅助键，致 TDD 误执行非测试命令。白名单后缀清单（不收集为检测命令）：
-`_formatter` / `_timeout_seconds`（元键，`is_gate_meta_key` 豁免）+ `_e2e`
-（E2E 形态，P5_e2e 消费，P3 永不收集）+ 历史 `_js` / `_html`（已退役，
-不得复用为检测键；未来多栈回归走协议修订登记收集后缀，不走静默收集）。
-
-### CHECK / 扫描面上线流程（DEBT0025：先全量扫描存量）
-
-`check-platform-assumptions.py` 新增 CHECK / 扫描面上线时，先全量扫描存量
-测试树登记命中清单，有命中先登记再启用常驻阻断，避免存量命中阻断正常开发。
-
 ## 评审派发（C8 机械映射）
 
 按 P1 声明的 domains + risk_level 机械映射评审：
@@ -270,3 +298,12 @@ check-gate.py P2 $TASK_DIR
 - gate_commands 在 P2 固化后 P4-P6 不能改——设计阶段是声明验证契约的唯一窗口
 
 > 完成 → 读 phase-cards/P3-tdd.md
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- worktree 根：`/home/kity/oclab/agateon/.worktrees/agate-TAG0029`；分支 `feat/TAG0029-gate-parser-fix`；hook 指向 `~/.agate` 稳定版。
+- 设计关键事实（主 Agent 实测，供交叉核对）：frontmatter 校验通过；candidate_count=3 与正文 A/B/C 一致；gate_commands 含 P3/P3_scanner/P4_scanner/P5/4×P5_* /P5_scanner/6×timeout（逐 key 独立，无 &&）；is_legal_gate_key 对 P3_scanner 返回 True（P3 合法阶段 + 自定义后缀，正则 L692）→ 对账无 WARNING；修后收集侧 `key == "P3"` 不再收集 P3_scanner。
+- C8 映射：domains=[backend] + risk=high → plan-eng-review 单评审（去重后 1 个），直接产出 P2-review.md。
+- SELF-GATE 预告：P2 commit 含 `agate/scripts/*` 改动计划 + `agate/phase-cards/P2-design.md` 改动 → commit message 须含 `self-gate-review:` 或 `self-gate-skip:`。
+- 注：该文件禁止包含 verdict 预判（provenance 审计要求）。
+</objective_info>

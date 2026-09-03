@@ -1,0 +1,9 @@
+=== BDD-8: R2 bare python3 outside fixture still hits, exit 1 ===
+x = 1
+result = subprocess.run("python3 -m pytest tests/", shell=True)
+scanner exit=1 (expect 1)
+--- stdout ---
+--- stderr ---
+R2 /tmp/p6-bdd8-sample.py:2 result = subprocess.run("python3 -m pytest tests/", shell=True)
+OK: R2 hit reported
+EXIT_CODE: 0

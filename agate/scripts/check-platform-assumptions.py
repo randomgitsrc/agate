@@ -43,6 +43,28 @@ _RULES = (
 )
 
 
+_FIXTURE_EXEMPT_DIRS = {"agate/tests/fixtures/"}
+
+
+def _is_fixture_exempt(path):
+    """M4 fixture 目录声明豁免（P2-design §3.4，BDD-7/BDD-8）：连续路径段包含判定。
+
+    规范化路径中出现 `agate/tests/fixtures` 连续三段即豁免（posix 归一化，
+    Windows 反斜杠兼容）；禁用字符串 startswith 相对前缀（tmp_path 绝对路径
+    下同名相对结构同样豁免）。仅 R2 数据面使用。
+    """
+    normalized = str(path).replace("\\", "/")
+    segments = [seg for seg in normalized.split("/") if seg]
+    for exempt in _FIXTURE_EXEMPT_DIRS:
+        want = [seg for seg in exempt.replace("\\", "/").split("/") if seg]
+        if not want:
+            continue
+        for i in range(len(segments) - len(want) + 1):
+            if segments[i:i + len(want)] == want:
+                return True
+    return False
+
+
 def _r2_comment_exempt(text):
     """R2 注释/探测形态豁免（等价 sh r2_exempt 的 case 与 command -v/env 判定）。"""
     trimmed = text.lstrip()
@@ -76,12 +98,15 @@ def _r4_exempt(text):
 def _scan_file(path, hits):
     """扫描单个文件：逐行跑 R1-R5 正则 + 行级豁免判定，命中追加到 hits。"""
     in_docstring = False
+    fixture_exempt = _is_fixture_exempt(path)
     try:
         with open(path, encoding="utf-8") as fh:
             for line_no, line in enumerate(fh, 1):
                 text = line.rstrip("\n")
                 effective_ds, in_docstring = _docstring_state(text, in_docstring)
                 for rule, regex, exempt in _RULES:
+                    if exempt == "r2" and fixture_exempt:
+                        continue
                     if regex.search(text) is None:
                         continue
                     if exempt == "r2" and (_r2_comment_exempt(text) or effective_ds):
