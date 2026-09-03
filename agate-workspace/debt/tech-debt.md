@@ -906,3 +906,27 @@ source: review
 created_at: 2026-09-03
 task_id: TAG0027
 ```
+
+## DEBT0027
+
+```yaml
+id: DEBT0027
+category: protocol
+title: gate 命令解析器不处理行内注释/引号闭合 + check-tdd-red 假绿灯路径（测试运行器故障被吞成红灯证据）
+status: open
+priority: high
+evidence:
+  - ref: agate-workspace/tasks/TAG0028-subagent-liveness-self-dispatch/retrospective.md
+    note: "机制缺口 1：agate-read-gate-commands.py 值清洗 `val = raw.strip().strip(chr(34)).strip(chr(39))` 不剥离值内 `# 注释` 与残留引号——值不以 `\"` 结尾时 strip(chr(34)) 只剥开头引号，残留结尾引号 + 注释尾巴；消费方 bash -c 执行 unterminated quote 语法错误（exit 2），check-tdd-red judge 分支可能把该输出误判为红灯可推进（假绿灯）"
+  - ref: agate-workspace/tasks/TAG0028-subagent-liveness-self-dispatch/P2-dispatch-context-architect-fix2.md
+    note: "P2 fix2 触发记录：主 Agent 跑 P3 env baseline 发现 gate_commands.P3/P5 命令带注释尾巴，经最小 shell 验证确认 bash 语法错误；fix2 只改注释形态（行内→独立行）规避本任务，未修解析器根因"
+impact: 协议文档写 gate_commands 时若在命令值同行带注释，命令解析串带残渣（残留引号 + 注释），P3 check-tdd-red / P5 执行失败；check-tdd-red 的 judge 分支把"测试运行器语法错误"误读为"测试红灯可推进"——测试根本没跑却被当红灯证据放行，验收真实性受威胁
+recommendation: ① agate-read-gate-commands.py 值清洗剥离行内注释（首个未转义 ` #`）并校验引号闭合，输出纯命令或报解析错误（exit 非 0 + stderr），不再产出带残渣命令串；② check-tdd-red.py run_test_with_formatter 执行失败（exit 127 / 语法错误 exit 2 / 命令不可解析）不得计入红灯证据，judge 分支仅在测试运行器正常退出时才判定红灯可推进（关联 RM-AG0002 A/B 类盲区语义，扩展覆盖语法错误类）
+closure_criteria:
+  - agate-read-gate-commands.py 对"命令值同行带注释"输入产出纯命令（注释剥离 + 引号闭合校验），或报解析错误 exit 非 0
+  - check-tdd-red.py 对测试运行器语法错误/不可解析输出判 exit 1（A 类），不再误判红灯可推进
+  - 单测覆盖：带行内注释 gate_commands 解析出纯命令；bash -c 执行不报 unterminated quote
+source: retrospective
+created_at: 2026-09-03
+task_id: TAG0028
+```

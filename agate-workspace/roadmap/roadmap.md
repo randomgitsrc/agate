@@ -59,6 +59,7 @@
 | RM-AG0054 | 编排语义统一落地（推进侧状态机 CLI）：推进决策从 orchestrator 临场判断改为查表推进——`agate next`/`agate advance` 推进侧 CLI（复用 check-state-transition.py + check-gate.py exit 三态 + phases.yaml 扩展 next/retreat 字段纳入 S-1/S-2 + agate-retreat-to.py 对接）；CLI 为 /loop 档位 C 可观测层（档位 C 推进强制走 agate next）；编排心智统一文档化（dispatch 五模式锚点 + 实现注记标记）；设计文档 v3b 三轮独立评审闭环（2026-09-02）：`docs/design-notes/design-orchestration-semantics.md` | done | 编排语义讨论 + 设计笔记三轮评审（2026-09-01/09-02）| TAG0027 | 2026-09-02 | 2026-09-03 |
 
 | RM-AG0055 | subagent 存活可观测性与受控自主再派发：命令流日志机制（从平台会话记录外部获取活动信号——Claude Code JSONL / OpenCode SQLite / DSH JSONL.zstd，model 思考/输出/执行 tool 三类事件）机械检测两类卡死（调用冻结 = 未结束 call 超期 vs expected×2 复用 RM-AG0023 timeout_seconds + 兜底；活动冻结 = 无未结束 call 且无任何活动超期）+ 逻辑空转（同命令同结果签名重复）+ 截断排除；解析架构按适配器模式（统一 CommandRecord IR + 每平台一个适配器 + 检测引擎平台无关，新增平台只写适配器）；心跳文件生命周期定义；受控自主再派发（执行角色子派发权限下放，judge 类例外）；检测定位'证据+触发核查、不自动判死'；设计文档 v5（4 轮独立评审 + 三平台数据源实机验证闭环 2026-09-03）：`docs/design-notes/260903-design-subagent-liveness-and-self-dispatch/` | done | 用户实测观察（长尾 subagent 卡死 vs 正常无法区分，2026-09-01）+ 设计评审与实机验证闭环（2026-09-02/03）| TAG0028 | 2026-09-03 | 2026-09-03 |
+| RM-AG0056 | 平台假设扫描器区分代码面与 fixture 数据面 + 阶段自查常驻（TAG0028 复盘机制缺口）：R2 规则（`(^|[\s=(\'\"])python3([\s]|$)`）静态扫描无法区分"测试代码里的命令调用"（应禁止裸 python3）与"fixture 模拟平台日志的数据面内容"（command 字段模拟真实日志本应含 `python3 -m pytest`）——cmdstream fixture 17 处裸 python3 被命中破坏 TAG0011 bdd-8「tests 树 0 命中」，P5 全量 pytest 红灯回 P4 fix3 才闭环；且扫描器不在 P3/P4 gate_commands 常驻面，回归到 P5 全量才暴露 | backlog | TAG0028 复盘（2026-09-03，retrospective.md §三 机制缺口 2）| — | 2026-09-03 | 2026-09-03 |
 ## 状态标识
 
 | 状态 | 说明 | 何时进入 |
