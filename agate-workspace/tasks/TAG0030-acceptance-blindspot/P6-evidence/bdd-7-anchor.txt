@@ -1,0 +1,7 @@
+# BDD-7 anchor evidence
+# target: agate/phase-cards/P1-requirements.md (worktree agate-TAG0030)
+# command: grep -nE "人工体验|seed" agate/phase-cards/P1-requirements.md
+# ---
+111:**人工体验路径验收（强制节）**：任务产出含**用户可见页面**且**页面内容受 seed 数据影响**时，
+112:P1 必须追加一条**人工体验** BDD，句式强制为「Given seed 数据 → 页面有内容」（验证用户按文档 seed 后
+113:页面在人工体验路径下确实渲染出内容）；不得只用 fixture 或单测断言替代人工体验路径验收。

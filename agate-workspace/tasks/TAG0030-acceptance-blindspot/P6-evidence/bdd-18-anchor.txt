@@ -1,0 +1,10 @@
+# BDD-18 anchor evidence
+# target: agate/assets/execution-roles/verifier.md (worktree agate-TAG0030)
+# command: grep -nE "DOM 度量|getBoundingClientRect" agate/assets/execution-roles/verifier.md
+# ---
+85:**DOM 度量量化证据（截图之外的非截图量化证据）**：涉及可量化几何/协调性判据的 BDD
+87:头部，此处只交叉引用不重复），E2E **DOM 度量**断言可作截图之外的非截图量化证据——
+88:示例（getBoundingClientRect 置于代码围栏）：
+91:// E2E 经 evaluate 取 DOM 度量断言：dropdown 面板左边界 ≥ trigger 左边界
+93:  .locator('#trigger').evaluate((el) => el.getBoundingClientRect());
+95:  .locator('.dropdown-panel').evaluate((el) => el.getBoundingClientRect());

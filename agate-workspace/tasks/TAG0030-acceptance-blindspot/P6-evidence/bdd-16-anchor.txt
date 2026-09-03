@@ -1,0 +1,7 @@
+# BDD-16 anchor evidence
+# target: agate/assets/execution-roles/architect.md (worktree agate-TAG0030)
+# command: grep -nE "视觉契约|可表达子集" agate/assets/execution-roles/architect.md
+# ---
+90:> **视觉契约（单源定义，verifier.md / P6 侧只交叉引用不重复）**：视觉呈现维度的断言以
+91:> **视觉契约**形式表达——**视觉契约断言 = 可表达子集**：宽度 / 高度 / 对齐 / 重叠 / 溢出
+93:> 证据形式指南），**不收主观视觉**（美观/好看/协调等主观判断不构成可断言视觉契约，归入

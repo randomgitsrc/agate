@@ -1,0 +1,8 @@
+# BDD-10 anchor evidence
+# target: agate/assets/review-roles/plan-design-review.md (worktree agate-TAG0030)
+# command: grep -nE "ui_render_shape|维度组" agate/assets/review-roles/plan-design-review.md
+# ---
+15:**形态分派头（先读受评任务形态声明，再加载维度组）**：评审开始先读受评任务 frontmatter 的
+16:`ui_render_shape` 声明（layout / render_component / temporal_effects；缺失或未声明 =
+17:**回落布局型默认**），按形态加载对应维度组评分细则，再按下方维度行逐项评分：
+32:形态分派头只增维度组加载逻辑，不改评分输出格式与门槛判定语义。

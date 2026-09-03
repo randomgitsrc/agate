@@ -1,0 +1,5 @@
+# BDD-2 anchor evidence
+# target: agate/phase-cards/P4-implementation.md (worktree agate-TAG0030)
+# command: grep -nE "清理钩子|创建即注册" agate/phase-cards/P4-implementation.md
+# ---
+12:**创建型测试清理钩子（强制要求，与 P3 卡同源）**：实现含创建资源用例时，须落地清理钩子——创建即注册、测试结束无条件删除（不因响应非 2xx 中止删除）、删除接受 200/204/404 为已清理（afterEach 清理队列模式）；只修 P3 卡不修本卡即复发，两处须同步。

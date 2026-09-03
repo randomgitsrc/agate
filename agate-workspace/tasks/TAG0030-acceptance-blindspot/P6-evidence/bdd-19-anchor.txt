@@ -1,0 +1,5 @@
+# BDD-19 anchor evidence
+# target: agate/tests/README.md (worktree agate-TAG0030)
+# command: grep -nE "真实 gate 语义" agate/tests/README.md
+# ---
+117:- 写 gate 消费方测试夹具 → **必须走真实 gate 语义**（真实执行 gate 脚本并按真实 exit code 断言），不得 stub/mock 假 exit（DEBT0024）

@@ -1,0 +1,5 @@
+# BDD-1 anchor evidence
+# target: agate/phase-cards/P3-tdd.md (worktree agate-TAG0030)
+# command: grep -nE "清理钩子|创建即注册" agate/phase-cards/P3-tdd.md
+# ---
+11:**创建型测试清理钩子（强制要求）**：测试含创建资源用例（建团队/条目等）时，须声明清理钩子要求——创建即注册、测试结束无条件删除（不因响应非 2xx 中止删除）、删除接受 200/204/404 为已清理（afterEach 清理队列模式）；验收环境残留由清理钩子与 post-test 残留检查共同兜底（见 P6 卡）。

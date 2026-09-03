@@ -1,0 +1,6 @@
+# BDD-13 anchor evidence
+# target: agate/assets/review-roles/plan-design-review.md (worktree agate-TAG0030)
+# command: grep -nE "候选|权衡" agate/assets/review-roles/plan-design-review.md
+# ---
+27:**启用维度评审要求（≥2 候选 + 权衡）**：每个启用维度评审时，布局/视觉/交互方案须给出
+28:**≥2 候选 + 权衡说明**（架构级 candidate_count 下沉 UI 布局层），单一候选或无权衡说明 →
