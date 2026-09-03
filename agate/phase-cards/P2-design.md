@@ -179,6 +179,20 @@ gate_commands:
 ```
 `--strict-errors-only`（仅 ERROR 判失败）适合日常任务默认使用；`--strict`（WARNING-only 也判失败）保留给专门做 WARNING 债务清理的任务主动选用。
 
+### `P3_xxx` 禁止声明（P2 卡禁令，BDD-6）
+
+`gate_commands` 的测试命令键只允许裸 `P3`（`check-tdd-red.py` 只收集精确键
+`key == "P3"`）。禁止声明 `P3_xxx` 检测键：旧解析器曾用 `startswith("P3")`
+静默收集辅助键，致 TDD 误执行非测试命令。白名单后缀清单（不收集为检测命令）：
+`_formatter` / `_timeout_seconds`（元键，`is_gate_meta_key` 豁免）+ `_e2e`
+（E2E 形态，P5_e2e 消费，P3 永不收集）+ 历史 `_js` / `_html`（已退役，
+不得复用为检测键；未来多栈回归走协议修订登记收集后缀，不走静默收集）。
+
+### CHECK / 扫描面上线流程（DEBT0025：先全量扫描存量）
+
+`check-platform-assumptions.py` 新增 CHECK / 扫描面上线时，先全量扫描存量
+测试树登记命中清单，有命中先登记再启用常驻阻断，避免存量命中阻断正常开发。
+
 ## 评审派发（C8 机械映射）
 
 按 P1 声明的 domains + risk_level 机械映射评审：

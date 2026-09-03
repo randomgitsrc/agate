@@ -107,6 +107,19 @@ def judge_result(json_str, project_module):
         print("TDD_CHECK: tests pass, no red-light — implementation may be ahead of tests")
         return 2
 
+    if (
+        exit_code == 2
+        and failed == 0
+        and errors == 0
+        and syntax_count == 0
+        and import_count == 0
+        and name_errors_count == 0
+        and raw_output
+        and re.search(r"syntax error|unexpected|matching|寻找匹配|未预期", raw_output, re.IGNORECASE)
+    ):
+        print("TDD_CHECK: A-class error (command string itself has syntax error, runner never started)")
+        return 1
+
     if exit_code == 1 and raw_output and re.search(r"Traceback|SyntaxError|ImportError|ModuleNotFoundError", raw_output):
         print("TDD_CHECK: A-class error (compile or import error in raw output, no formatter to classify)")
         return 1
