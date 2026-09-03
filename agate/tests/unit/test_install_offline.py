@@ -281,6 +281,149 @@ def test_manifest_component_path_traversal_rejected(tmp_path, agate_scripts, cap
     assert not dest.exists()
 
 
+# ─────────────────────────────────────────────
+# TAG0031 簇 A（DEBT0002 hash 共享，BDD-1）+ R1（P2-design.md §1.3 pyyaml 引导缓解设计，
+# 列入 BDD-2 范围）：compute_sha256 迁移到 agate_common + install-offline.py 的
+# _ensure_agate_common(bundle_dir, manifest) 引导函数。
+#
+# 迁移前 install-offline.py 顶部零外部依赖（不 import agate_common/yaml），刻意设计为可在
+# 未装 pyyaml 的机器上跑。迁移后 verify_checksums 需要 agate_common.compute_sha256，但
+# agate_common 顶部硬依赖 pyyaml（缺失即 sys.exit(1)）——若直接 `import agate_common` 会在
+# 真正没装 pyyaml 的机器上于"给它装 pyyaml"（install_wheels）之前就崩溃。缓解设计：
+# _ensure_agate_common 先探测 yaml 可用性；不可用时先内联 hashlib 校验 pyyaml wheel 的
+# manifest checksum（校验通过才 pip install --no-index --find-links，不匹配则报错且不装），
+# 再 import agate_common 返回模块引用。
+#
+# 当前 install-offline.py 尚无 verify_checksums 接入 agate_common、也无 _ensure_agate_common
+# → AttributeError（真实的项目内运行时失败 = B 类红灯语义），非测试代码自身语法错误。
+
+
+def test_bdd_1_verify_checksums_uses_agate_common_compute_sha256(tmp_path, agate_scripts):
+    """BDD-1：install-offline.py 的 checksum 校验改用 agate_common.compute_sha256 后，
+    用 agate_common.compute_sha256 算出的 checksum 应通过 verify_checksums 校验（两侧共享
+    同一 hash 实现的行为证据；不假设 verify_checksums 内部变量命名，兼容 R1 引导设计）。
+
+    当前状态：agate_common 尚无 compute_sha256（迁移前）→ AttributeError（真红灯）。
+    """
+    module = _load_script_module(agate_scripts, "agate_install_offline_bdd1", "install-offline.py")
+    import agate_common
+
+    bundle = tmp_path / "bundle"
+    agate_dir = bundle / "agate"
+    agate_dir.mkdir(parents=True)
+    (agate_dir / "WORKFLOW.md").write_text("# agate\n", encoding="utf-8")
+
+    checksum = agate_common.compute_sha256(agate_dir)
+    manifest = {
+        "version": "v0.48.0",
+        "platform": "linux-x86_64",
+        "components": {"agate": {"path": "agate", "sha256": checksum}},
+    }
+
+    mismatched = module.verify_checksums(manifest, str(bundle))
+    assert mismatched == []
+
+
+def test_r1_ensure_agate_common_bootstraps_when_yaml_unavailable(tmp_path, agate_scripts, monkeypatch):
+    """R1（P2-design.md §1.3「回归覆盖」①，列入 BDD-2 范围）：yaml 不可导入时，
+    install-offline.py 的 _ensure_agate_common(bundle_dir, manifest) 应能引导安装 pyyaml
+    （mock subprocess.run 的 pip install --no-index --find-links <bundle>/wheels pyyaml）后
+    返回可用的 agate_common 模块引用（具备 compute_sha256）。
+
+    先确保 agate_common 已在本进程缓存（避免 yaml 不可用模拟期间，其自身模块级 `import yaml`
+    真的被重新触发从而 sys.exit(1)，导致进程级副作用而非测试目标本身的红灯）。
+
+    当前状态：install-offline.py 尚无 _ensure_agate_common → AttributeError（真红灯）。
+    """
+    module = _load_script_module(
+        agate_scripts, "agate_install_offline_r1a", "install-offline.py"
+    )
+    import agate_common as _agate_common  # noqa: F401  # 确保已缓存，规避测试顺序依赖
+
+    bundle = tmp_path / "bundle"
+    wheels = bundle / "wheels"
+    wheels.mkdir(parents=True)
+    pyyaml_whl = wheels / "pyyaml-6.0.2-py3-none-any.whl"
+    pyyaml_whl.write_bytes(b"fake pyyaml wheel data")
+    manifest = {
+        "version": "v0.48.0",
+        "platform": "linux-x86_64",
+        "components": {
+            "pyyaml": {
+                "path": "wheels/pyyaml-6.0.2-py3-none-any.whl",
+                "sha256": _sha256_bytes(pyyaml_whl.read_bytes()),
+            }
+        },
+    }
+
+    pip_calls = []
+
+    def fake_run(argv, **kwargs):
+        pip_calls.append([str(a) for a in argv])
+        return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setitem(sys.modules, "yaml", None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = module._ensure_agate_common(str(bundle), manifest)
+
+    assert result is not None
+    assert hasattr(result, "compute_sha256")
+    assert pip_calls, "yaml 不可用时应触发 pip install 引导安装 pyyaml"
+    assert any("pyyaml" in a for a in pip_calls[-1])
+    assert "--no-index" in pip_calls[-1]
+
+
+def test_r1_ensure_agate_common_rejects_pyyaml_checksum_mismatch_before_pip_install(
+    tmp_path, agate_scripts, monkeypatch, capsys
+):
+    """R1（P2-design.md §1.3「回归覆盖」②，列入 BDD-2 范围）：pyyaml wheel checksum 与
+    manifest 不匹配时，_ensure_agate_common 必须在执行 pip install 之前就拒绝（stderr 报错 +
+    非成功返回），且全程 mock 的 subprocess.run 未被调用——用"未被调用"断言校验"校验先于安装"
+    这一顺序本身，而不只是校验最终结果（BDD-26 字面不变量"checksum 不匹配则不落地"对 pyyaml
+    组件同样成立）。
+
+    当前状态：install-offline.py 尚无 _ensure_agate_common → AttributeError（真红灯）。
+    """
+    module = _load_script_module(
+        agate_scripts, "agate_install_offline_r1b", "install-offline.py"
+    )
+    import agate_common as _agate_common  # noqa: F401  # 确保已缓存，规避测试顺序依赖
+
+    bundle = tmp_path / "bundle"
+    wheels = bundle / "wheels"
+    wheels.mkdir(parents=True)
+    pyyaml_whl = wheels / "pyyaml-6.0.2-py3-none-any.whl"
+    pyyaml_whl.write_bytes(b"fake pyyaml wheel data")
+    manifest = {
+        "version": "v0.48.0",
+        "platform": "linux-x86_64",
+        "components": {
+            "pyyaml": {
+                "path": "wheels/pyyaml-6.0.2-py3-none-any.whl",
+                # 篡改：与真实 wheel 内容不匹配的 sha256（模拟被篡改/损坏的 pyyaml 组件）
+                "sha256": "0" * 64,
+            }
+        },
+    }
+
+    subprocess_run_calls = []
+
+    def fake_run(argv, **kwargs):
+        subprocess_run_calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setitem(sys.modules, "yaml", None)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = module._ensure_agate_common(str(bundle), manifest)
+
+    err = capsys.readouterr().err
+    assert result is None
+    assert "pyyaml" in err
+    assert not subprocess_run_calls, "checksum 不匹配时 pip install 不应被执行（校验先于安装）"
+
+
 def test_manifest_absolute_path_rejected(tmp_path, agate_scripts, capsys):
     """rev2 CRITICAL-3：恶意 manifest 组件 `path` 为绝对路径 → 拒绝安装。"""
     module = _load_script_module(agate_scripts, "agate_install_offline", "install-offline.py")

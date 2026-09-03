@@ -1,0 +1,7 @@
+## P3 test-designer (test-isolation / DEBT0007) progress log
+
+- [2026-09-03T17:15:36Z] 读取 dispatch-context + test-designer 角色定义 + P1-requirements.md BDD-6/7 + P2-design.md 簇B相关段落 + tech-debt.md DEBT0005/0006/0007 条目 + check-pruning.py L60-100 (_staged_source_count) + test_check_pruning.py 四个既有用例。确认簇 B 范围：不改生产代码，仅验证 + 登记验证点设计。
+- [2026-09-03T17:15:36Z] 复跑 4 个既有用例：pytest -k "test_p2_6e_prune_p7_coupling_checklist_exit_0 or test_p2_52_yaml_list_phases_exit_0 or test_p2_52b_yaml_list_phases_p3_pruned_low_exit_0 or test_p2_6f_staged_source_count_uses_task_repo_not_outer_cwd_repo_exit_0" -v -> 结果：4 passed, 26 deselected in 0.47s（全绿，与 TAG0024 e2357fc 修复现状一致，无异常）。
+- [2026-09-03T17:16:25Z] 设计 BDD-7 验证点：新增 agate/tests/unit/test_debt_registry_closure.py::test_bdd_7_debt0007_status_closed_with_closure_fields，读取 agate-workspace/debt/tech-debt.md 提取 DEBT0007 yaml 块并断言 status==closed（+closed_at 字段 + evidence 引用 e2357fc/TAG0031/BDD-6 任一）。复跑确认当前 FAIL（真红灯，AssertionError: open != closed），非语法错误/import 失败（B 类）。
+- [2026-09-03T17:16:25Z] 回归确认：test_check_pruning.py + test_agate_debt_check.py 全量 52 passed，未破坏 TAG0024 已修复的既有测试。
+- [2026-09-03T17:17:47Z] 写入 P3-test-cases-test-isolation.md（frontmatter 已用 agate-md-field-set.py 填写 phase/task_id/parent/trace_id/created/test_code_dir，agent 字段因工具白名单排除改直接 Edit 写入 frontmatter）。自检：文件非空 121 行，4 例 PASS 结果已记录，test_debt_registry_closure.py 非空，progress 文件非空。任务完成，返回主 Agent。
