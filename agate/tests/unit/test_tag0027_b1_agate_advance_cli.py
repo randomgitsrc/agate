@@ -11,7 +11,7 @@
 #
 # TDD 红灯语义：被测对象 = 新增 agate-advance.py，P3 不存在 → subprocess rc 2（can't open
 #   file）→ 断言全失败 = B 类真红灯（被测模块未实现）。
-# 平台无关：tmp_path/git_repo fixture + run_cli(python_exe,...)；无 /tmp 字面量。
+# 平台无关：tmp_path/git_repo fixture + run_cli(python_exe,...)；无临时目录字面量（用 tmp_path）。
 
 import pytest
 

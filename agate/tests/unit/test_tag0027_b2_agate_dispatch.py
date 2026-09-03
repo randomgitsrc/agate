@@ -15,7 +15,7 @@
 # TDD 红灯语义：被测 = 新增 agate-dispatch.py（P3 缺失 → rc 2 can't open file → 断言失败 =
 #   B 类真红灯）；agate-inject-card.py / agate-next-card.py / pre-commit-gate.py 均为既有脚本
 #   （现状存在，直接调用断言 = 回归/行为）。不 mock 被测对象。
-# 平台无关：tmp_path fixture；无 /tmp 字面量；显式 utf-8。卡片 hash 比较用 CRLF 归一化
+# 平台无关：tmp_path fixture；无临时目录字面量（用 tmp_path）；显式 utf-8。卡片 hash 比较用 CRLF 归一化
 # （test_agate_next_card 同款约定）。
 
 import hashlib

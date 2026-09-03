@@ -1,38 +1,31 @@
 #!/usr/bin/env python3
-"""agate-next.py — 阶段推进 CLI（TAG0027 §3.4 D4-A 定案，BDD-6/7/8/9/11）
+"""agate-next.py — 阶段推进 CLI（TAG0027 §3.4 D4-A 定案，BDD-6/7/8/9/11；exit2fix pass_set 重写）
 
 用法：
   agate-next.py [TASK_DIR]        # TASK_DIR 缺省 = 当前目录
 
-语义（消费 check-gate.py exit 三态，不改其返回约定；BDD-13）：
+语义（消费 check-gate.py exit 三态 + phases.yaml gate_pass_exit，不改 gate 返回约定；BDD-13）：
   * .state.yaml phase ∈ {PAUSED, READY, DONE} → 提示不推进，exit 0
-  * 子进程跑 check-gate.py {phase} {TASK_DIR}：
-    - exit 0（通过）→ 查 phases.yaml `next`：
-        next: Pn+1   → 更新 .state.yaml phase 为 Pn+1（保留 judge/retries 块，
-                       append_event state_transition）+ git add .state.yaml
-                       （只 add 不 commit——commit 语义/hook 链由主 Agent 统一管；
-                        跳变合法性由 pre-commit 对暂存 diff 跑 check-state-transition 校验）
-        next: null   → 提示转 READY/发布流程，不推进
+  * 读 phases.yaml 当前 phase 的 gate_pass_exit（pass_set）+ next/retreat
+  * 子进程跑 check-gate.py {phase} {TASK_DIR}，按 pass_set 三态判定：
+    - exit ∈ gate_pass_exit（通过，直推候选）：普通 phase 查 next（Pn+1 推进 / null 转
+      READY 提示）——更新 .state.yaml phase + git add（只 add 不 commit，跳变合法性由
+      pre-commit check-state-transition 校验）+ append_event state_transition；
+      P6（exit 2 ∈ pass_set）走 A1 条件式裁决（§3.1）：provenance exit 0 +
+      judge 未启用（gate_p65 早退 0）或启用但 check-gate P6.5 exit 0 → 消费 next: P7；
+      gate_p65 exit 1 → 停留 P6 有指引不推进——exit 2 正常通过码不落盘 resolution
+      （CRITICAL-1）
     - exit 1（未通过）→ 查 phases.yaml `retreat`：
         retreat: Pt  → 调用 agate-retreat-to.py {TASK_DIR} {Pt} "gate exit 1 按转移表回退"
                        （retreat-to 内部逐阶归档 + retry 记录 + 独立 commit；
                         CLI 不预判 diff——P6→P4 diff=2 亦委托，表值存在即委托）
         retreat: null/缺失 → 提示重试本阶段（retry+1 由主 Agent 走既有流程），不推进
-    - exit 2（需自判）→
-        phase == P6 且 P6 验收通过（gate_p6 exit 2 语义 = FAIL=0/证据非空，
-        由 check-p6-provenance.py exit 0 确认）→ P6 前进特例（A1 裁决，§3.1）：
-          ① .state.yaml judge.enabled 未启用（历史任务）→ gate_p65 早退 0 →
-             消费 next: P7，推进（state_transition + add）
-          ② 启用 → 子进程跑 check-gate.py P6.5 {TASK_DIR}（= verdict 存在 +
-             check-judge-verdict + check-events 双 exit 0）：exit 0 → 推进裁决成立
-             → 消费 next: P7（state_transition + add）；exit 1 → 停留 P6，输出
-             「judge 复核未过」指引，不推进、不落盘 exit2-resolution（P6 特例豁免）
-        P6 特例条件不满足（provenance exit 1/证据空）→ 按通用 exit 2 语义处理
-        非 P6 → 通用 exit 2 语义：不推进，落盘 {phase}-exit2-resolution.md
-        （§3.3 模板；已存在则提示更新），输出暂停转主 Agent 提示，exit 0
+    - exit ∉ gate_pass_exit 且 ≠ 1（真暂停/异常，协议实际极少）→ 通用暂停语义：
+        不推进，落盘 {phase}-exit2-resolution.md（§3.3 模板；已存在则提示更新），
+        输出暂停转主 Agent 提示，exit 0
 
 可观测证据（BDD-11）：每次推进 append_event state_transition（from/to/ts），
-账本 + git log 双面可查；exit 2 通用分支不产生 retry 记录（硬中断不自动 retry）。
+账本 + git log 双面可查；真暂停分支不产生 retry 记录（硬中断不自动 retry）。
 
 平台无关：显式 utf-8；无 /tmp 字面量；解释器一律 sys.executable 子进程。
 Python 3.8+（禁 match / str.removeprefix）。
@@ -217,16 +210,18 @@ def _advance(task_dir, state, target, repo_root):
          f"请 commit 让 pre-commit hook 校验跳变合法性。")
 
 
-def _write_exit2_resolution(task_dir, phase, state):
+def _write_exit2_resolution(task_dir, phase, state, gate_rc):
     """落盘 {phase}-exit2-resolution.md（§3.3 D3-A 模板，frontmatter + 正文三节）。
 
     已存在 → 提示更新（不覆盖用户留痕）。
+    gate_rc：触发落盘的真实 check-gate exit code（真暂停分支 exit ∉ pass_set 且 ≠ 1，
+    正文"触发命令"须记实际 exit 值而非写死 2——REV-3）。
     """
     task_id = state.get("task_id", "")
     now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     path = os.path.join(task_dir, f"{phase}-exit2-resolution.md")
     if os.path.isfile(path):
-        _log(f"{phase} gate exit 2：{os.path.basename(path)} 已存在——请人工更新解决留痕后继续")
+        _log(f"{phase} gate exit {gate_rc}：{os.path.basename(path)} 已存在——请人工更新解决留痕后继续")
         return
     body = (
         "---\n"
@@ -241,11 +236,11 @@ def _write_exit2_resolution(task_dir, phase, state):
         "\n"
         "## 触发\n"
         f"- 时间: {now_ts}\n"
-        f"- 触发命令: check-gate.py {phase}（exit 2）\n"
+        f"- 触发命令: check-gate.py {phase}（exit {gate_rc}）\n"
         "- gate 输出摘要: <非空证据 / FAIL 计数等客观证据>\n"
         "\n"
         "## 客观证据\n"
-        "- <exit 2 依据：如 check-gate 输出、provenance exit code、证据文件清单>\n"
+        "- <exit 依据：如 check-gate 输出、provenance exit code、证据文件清单>\n"
         "\n"
         "## 解决\n"
         "- 解决人: <主 Agent / 角色名>\n"
@@ -254,7 +249,8 @@ def _write_exit2_resolution(task_dir, phase, state):
     )
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(body)
-    _log(f"{phase} gate exit 2：已落盘 {os.path.basename(path)}（机器可读，frontmatter + 触发/客观证据/解决三节）")
+    _log(f"{phase} 真暂停（gate exit {gate_rc} ∉ pass_set 且 ≠ 1）：已落盘 {os.path.basename(path)}"
+         "（机器可读，frontmatter + 触发/客观证据/解决三节）")
 
 
 def _p6_pass(state, task_dir):
@@ -266,9 +262,9 @@ def _p6_pass(state, task_dir):
 
 
 def _p6_judge_advance(task_dir, state, phases, repo_root):
-    """P6 exit 2 特例分支（A1 裁决 §3.1/§3.4）：judge 启用与否的推进裁决。
+    """P6 exit 2 ∈ pass_set 条件式推进分支（A1 裁决 §3.1/§3.4）：judge 启用与否的推进裁决。
 
-    返回 True = 已推进（或已提示停留）；调用方无需再走通用 exit 2。
+    返回 True = 已推进（或已提示停留）；调用方无需再走通用暂停。
     """
     p6_entry = phases.get("P6", {})
     next_phase = p6_entry.get("next")
@@ -347,25 +343,47 @@ def main():
     phases = _load_phase_table(rules_root)
     repo_root = _repo_root(task_dir)
 
+    entry = phases.get(phase, {})
+    pass_exit = entry.get("gate_pass_exit")
+
+    # 数据面守卫：phases.yaml 未声明当前 phase 的通过出口码 → 不自动推进（fail-safe，
+    # 不把模糊数据当"通过"直推；BDD-26 数据面断言保证真实树必含此键）。
+    # 注意：此分支 exit 0 且不落盘 exit2-resolution，与"真暂停"（exit ∉ pass_set 且 ≠ 1，
+    # 落盘 resolution）不同——属数据面异常，非真暂停，需主 Agent 修 phases.yaml 后重跑。
+    if pass_exit not in (0, 2):
+        _log(f"{phase} phases.yaml 缺 gate_pass_exit（数据面异常，非真暂停——exit 0 且不落盘 "
+             "resolution）→ 暂停转主 Agent 修正 phases.yaml 后重跑，不推进")
+        sys.exit(0)
+    pass_set = {int(pass_exit)}
+
     # 子进程跑 check-gate.py {phase} {TASK_DIR}（消费 exit 三态，不改返回约定）
     rc, out = _run_cmd([sys.executable, CHECK_GATE, phase, task_dir])
     if out:
         for line in out.splitlines()[:10]:
             _log("  gate: " + line.strip())
 
-    if rc == 0:
-        # exit 0（通过）→ 按 next 推进
-        entry = phases.get(phase, {})
+    if rc in pass_set:
+        # exit ∈ gate_pass_exit（通过，直推候选）——exit 2 正常通过码也在此分支（CRITICAL-1）
+        if phase == "P6":
+            # P6 条件式推进特例（A1，§3.1/§3.4）：gate exit 2 ∈ pass_set + provenance exit 0
+            # 才进入裁决；provenance exit 1（验收异常）→ 真暂停落盘 resolution
+            if not _p6_pass(state, task_dir):
+                _write_exit2_resolution(task_dir, phase, state, rc)
+                _log(f"{phase} gate exit 2 ∈ pass_set 但 check-p6-provenance 未过（验收异常）→ "
+                     "暂停转主 Agent 决策（不推进；硬中断不自动 retry）")
+            else:
+                _p6_judge_advance(task_dir, state, phases, repo_root)
+            sys.exit(0)
         next_phase = entry.get("next")
         if next_phase is None or next_phase == "":
-            _log(f"{phase} gate exit 0 但无自动后继（next: null）→ 转 READY/发布流程由人处理，不推进")
+            _log(f"{phase} gate exit {rc} ∈ pass_set 但无自动后继（next: null）→ "
+                 "转 READY/发布流程由人处理，不推进")
             sys.exit(0)
         _advance(task_dir, state, str(next_phase), repo_root)
         sys.exit(0)
 
     if rc == 1:
         # exit 1（未通过）→ 按 retreat 表值委托
-        entry = phases.get(phase, {})
         retreat = entry.get("retreat")
         if retreat is None or retreat == "":
             _log(f"{phase} gate exit 1 且无 retreat 表值 → 提示重试本阶段（retry+1 由主 Agent 走既有流程），不推进")
@@ -373,13 +391,10 @@ def main():
         _delegate_retreat(task_dir, str(retreat), repo_root)
         sys.exit(0)
 
-    # exit 2（需自判）
-    if phase == "P6" and _p6_pass(state, task_dir):
-        _p6_judge_advance(task_dir, state, phases, repo_root)
-        sys.exit(0)
-    # P6 特例不成立（provenance exit 1/证据空）→ 通用 exit 2；非 P6 → 通用 exit 2
-    _write_exit2_resolution(task_dir, phase, state)
-    _log(f"{phase} gate exit 2：暂停转主 Agent 决策（不推进；硬中断不自动 retry）")
+    # exit ∉ gate_pass_exit 且 ≠ 1（真暂停/异常，协议实际极少）→ 落盘 resolution 转主 Agent
+    _write_exit2_resolution(task_dir, phase, state, rc)
+    _log(f"{phase} gate exit {rc} ∉ pass_set（{sorted(pass_set)}）且 ≠ 1 → 暂停转主 Agent 决策"
+         "（不推进；硬中断不自动 retry）")
     sys.exit(0)
 
 

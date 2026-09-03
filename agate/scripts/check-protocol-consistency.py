@@ -20,6 +20,8 @@ agate 协议结构一致性检查 (P3-1)
   CHECK 11  UI/UX 机制条文跨文档一致（分类框架 / 形态适配 / 三态分档 / 证据按形态选择）
   CHECK 12  权威数值/规则跨文件一致性（防复发，锚点表：重试上限表 vs 指针文件/内联值）  (对应 BDD-9, BDD-10)
   CHECK 13  CHANGELOG 最新版本 ↔ UPGRADING.md §3 章节对应（防发布漏写章节，RM-AG0052）
+  CHECK 14  markdown 叙述段落平台名扫描（护栏 1 机械化，BDD-16/22/24：结构性判据，无文件名单）
+  CHECK 15  数据面（rules/*.yaml + rules/schema/*.json）平台名扫描（BDD-15：词边界 + 豁免词典机械生成）
 
  退出码：0 = 全过；1 = 有 ERROR；2 = 仅有 WARNING（可配置是否失败）。
 
@@ -1150,6 +1152,189 @@ def check_upgrading_section(root: Path, rep: Report) -> None:
                   "agate/UPGRADING.md")
 
 
+# ── CHECK 14/15: 护栏 1 机械化（TAG0027 B3b，BDD-15/16/22/24）────────────────
+# 背景：编排心智统一文档化（design-orchestration-semantics v3b §4.3 护栏 1）——协议层不发明
+# "workflow 模式 / ralph 模式 / goal 模式" 这类以平台工具命名的概念；平台名（OpenCode / Claude
+# Code / DSH / workflow / ralph / goal / task）只允许出现在挂「实现注记」标记（`> 实现注记：`
+# 标记行）的段落，或平台适配权威源（platform-notes.md/SETUP.md 整文件）等豁免结构里。
+# 机械化 = 结构性判据（按标题/空行切段 + 代码围栏跳过），**不维护文件名单**——新增叙述文档
+# 自动被覆盖（BDD-24）。
+#
+# CHECK 14（markdown 叙述段落平台名扫描，P2-design §3.8 定案 D8-A）：
+#   扫描面 = 语义叙述面 = agate/ 顶层协议 md（BDD-16 Given `agate/*.md`；BDD-24 新顶层叙述文档
+#   自动覆盖）。assets/ 角色/模板、phase-cards、rules 属协议区但**非叙述面**——它们已是固定结构
+#   （模板/卡片），不含自由叙述段，B3a 清理时按命中段挂注记处理，不进本扫描（避免固定结构里
+#   的字段名/固定动作引用（如 "task 调用" 是平台派发工具的动作描述）被误判为叙述污染）。
+#   豁免结构：platform-notes.md / SETUP.md 整文件（平台适配权威源）+ WORKFLOW.md「已知适用
+#   环境」表行（节内 | 开头行）+ 段落内带 `> 实现注记：` 标记行。
+#   段落判据：标题行（^#{1,6} ）切节 + 空行保持原样（同节内注记覆盖全节——B3a 注记均挂节首）；
+#   代码围栏整体跳过；词边界（左右不含字母数字下划线连字符）大小写敏感。
+# CHECK 15（数据面平台名扫描，P2-design §3.8 定案 D8-A + §6②）：
+#   对象 = rules/*.yaml + rules/schema/*.json（含注释）；词边界大小写敏感；豁免词典机械生成
+#   （解析 schema property 名 ∪ 各 yaml 既有键名——task_fields/task_id 等既有键不误报；
+#   键定义行豁免 + 词边界双保险，裸平台词仍 ERROR）。
+
+# 平台词表（护栏 1 BDD-15 禁词清单，大小写敏感，契约原文大小写）
+PLATFORM_TOKEN_RE = re.compile(
+    r"(?<![\w-])(?:OpenCode|Claude Code|DSH|workflow|ralph|goal|task)(?![\w-])"
+)
+
+# 整文件豁免（平台适配权威源 / 导航元信息——B3a AGENTS.md 判定记录）
+_MD14_WHOLE_FILE_EXEMPT = {
+    "agate/platform-notes.md",
+    "agate/SETUP.md",
+    "agate/AGENTS.md",
+    "agate/CONTEXT.md",
+}
+
+_NOTE_MARKER_RE = re.compile(r"^>\s*实现注记：")
+_HEADING_RE = re.compile(r"^#{1,6}\s")
+_FENCE_OPEN_RE = re.compile(r"^```")
+_FENCE_CLOSE_RE = re.compile(r"^`{3,}\s*$")
+
+
+def _split_md_sections(lines: list[str]) -> list[list[tuple[int, str, bool]]]:
+    """按标题行切节，返回 [[(lineno, line, in_fence), ...], ...]。
+
+    代码围栏按 CommonMark 语义处理：` ``` ` 开（info string 行不闭）→ ` ``` `（纯围栏行）闭。
+    围栏内行标记 in_fence=True（整段跳过，不做平台名扫描）。节边界 = 标题行（^#{1,6} ）；
+    空行不切节（同节内注记覆盖整节——B3a 各文件注记挂节首覆盖节内全部命中，BDD-22 注记豁免
+    用例的注记行与命中行同属一个 `## 某节`）。
+    """
+    sections: list[list[tuple[int, str, bool]]] = []
+    cur: list[tuple[int, str, bool]] | None = None
+    in_fence = False
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if in_fence:
+            if _FENCE_CLOSE_RE.match(stripped):
+                in_fence = False
+            if cur is not None:
+                cur.append((i + 1, line, True))
+            continue
+        if _FENCE_OPEN_RE.match(stripped):
+            in_fence = True
+            if cur is not None:
+                cur.append((i + 1, line, True))
+            continue
+        if _HEADING_RE.match(line):
+            if cur:
+                sections.append(cur)
+            cur = [(i + 1, line, False)]
+        elif cur is not None:
+            cur.append((i + 1, line, False))
+    if cur:
+        sections.append(cur)
+    return sections
+
+
+def check_md_platform_paragraphs(root: Path, rep: Report) -> None:
+    """CHECK 14：agate/ 顶层协议 md 叙述段落平台名扫描（结构性判据，无文件名单）。"""
+    md_dir = root / "agate"
+    if not md_dir.is_dir():
+        return
+    errors = 0
+    for p in sorted(md_dir.glob("*.md")):
+        relpath = rel(root, p)
+        if relpath in _MD14_WHOLE_FILE_EXEMPT:
+            continue
+        text = p.read_text(encoding="utf-8")
+        for section in _split_md_sections(text.split("\n")):
+            # 节内任一行带 `> 实现注记：` → 整节豁免（段落级判据：命中段有注记即豁免）
+            if any(_NOTE_MARKER_RE.match(ln) for _, ln, _ in section):
+                continue
+            # 「已知适用环境」节内表行豁免（平台适配元信息，WORKFLOW.md 豁免结构）
+            env_table = any("已知适用环境" in ln for _, ln, _ in section)
+            for lineno, line, in_fence in section:
+                if in_fence:
+                    continue
+                if env_table and line.strip().startswith("|"):
+                    continue
+                if PLATFORM_TOKEN_RE.search(line):
+                    errors += 1
+                    rep.error(
+                        "CHECK14-platform",
+                        "叙述段落含平台名/平台工具名（OpenCode / Claude Code / DSH / "
+                        "workflow / ralph / goal / task）但段内无 `> 实现注记：` 标记——"
+                        "协议语义叙述面平台名仅限挂实现注记段落出现（护栏 1，BDD-16/22）",
+                        f"{relpath}:{lineno}",
+                    )
+    if errors == 0:
+        rep.ok("CHECK14-platform")
+
+
+def _iter_rules_files(root: Path):
+    """CHECK 15 数据面文件：rules/*.yaml + rules/schema/*.json。
+
+    双基路径：真实仓库布局 agate/rules/；测试夹具可能用仓库根 rules/（同 rules 相对树形）。
+    """
+    for base in (root / "rules", root / "agate" / "rules"):
+        if not base.is_dir():
+            continue
+        for p in sorted(base.glob("*.yaml")):
+            yield p
+        schema_dir = base / "schema"
+        if schema_dir.is_dir():
+            for p in sorted(schema_dir.glob("*.json")):
+                yield p
+
+
+def _collect_rule_exempt_tokens(root: Path) -> set[str]:
+    """CHECK 15 豁免词典机械生成：解析 schema property 名 + 各 yaml 既有键名。
+
+    目标：task_fields/task_id/task 等**既有键名/字段值**不误报（BDD-15 回归守卫语义）——键名
+    本身因词边界（下划线是词字符）天然不命中 task，但豁免词典兜底未来新增的裸键名/字段值引用，
+    且避免把 key: task 这类字段定义误判。豁免清单从 schema + rules 解析生成，不手抄
+    （P2-design §3.8/§6②：豁免词典从 schema + rules 机械生成，防"新键加入后误报"）。
+    """
+    exempt: set[str] = set()
+    json_key_re = re.compile(r'^\s*"([A-Za-z0-9_]+)"\s*:\s*', re.M)  # JSON property 名
+    yaml_key_re = re.compile(r"^\s*([A-Za-z0-9_]+):", re.M)  # YAML 键（顶层/嵌套）
+    for p in _iter_rules_files(root):
+        text = p.read_text(encoding="utf-8")
+        if p.suffix == ".json":
+            for m in json_key_re.finditer(text):
+                exempt.add(m.group(1))
+        else:
+            for m in yaml_key_re.finditer(text):
+                exempt.add(m.group(1))
+    return exempt
+
+
+def check_rules_platform_tokens(root: Path, rep: Report) -> None:
+    """CHECK 15：数据面（rules/*.yaml + rules/schema/*.json）平台名命中数 = 0。
+
+    豁免词典机械生成（schema property 名 ∪ yaml 既有键名）——task_fields/task_id 等既有键
+    不误报（词边界 + 键定义行豁免）；裸平台词（注释/字符串值里独立的 task/DSH 等）仍 ERROR。
+    """
+    exempt = _collect_rule_exempt_tokens(root)
+    errors = 0
+    checked = 0
+    for p in _iter_rules_files(root):
+        checked += 1
+        text = p.read_text(encoding="utf-8")
+        for lineno, line in enumerate(text.split("\n"), 1):
+            stripped = line.strip()
+            # 键定义行（xxx: / "xxx":）且键名属既有键 → 整行豁免（豁免词典：键定义不误报）
+            m = re.match(r'^"([A-Za-z0-9_]+)"\s*:', stripped) or re.match(
+                r"^([A-Za-z0-9_]+):", stripped
+            )
+            if m and m.group(1) in exempt:
+                continue
+            # 其余行做词边界平台词扫描（含注释/字符串值里的裸平台名）
+            for tok_match in PLATFORM_TOKEN_RE.finditer(line):
+                tok = tok_match.group(0)
+                errors += 1
+                rep.error(
+                    "CHECK15-rules",
+                    f"数据面（rules/schema）出现平台名/平台工具名 '{tok}'——数据面禁平台名"
+                    "（护栏 1 BDD-15：平台差异只在 markdown 实现注记段落/豁免源出现）",
+                    f"{rel(root, p)}:{lineno}",
+                )
+    if checked and errors == 0:
+        rep.ok("CHECK15-rules")
+
+
 # ── 主流程 ────────────────────────────────────────────────────────────────
 
 def run_all_checks(root: Path, rep: Report) -> None:
@@ -1173,6 +1358,8 @@ CHECKS = [
     ("CHECK 11 UI/UX 机制条文跨文档一致", check_uiux_doc_anchors),
     ("CHECK 12 权威数值/规则跨文件一致性", check_authoritative_values),
     ("CHECK 13 CHANGELOG↔UPGRADING 章节对应", check_upgrading_section),
+    ("CHECK 14 md 叙述段落平台名扫描", check_md_platform_paragraphs),
+    ("CHECK 15 数据面平台名扫描", check_rules_platform_tokens),
 ]
 
 

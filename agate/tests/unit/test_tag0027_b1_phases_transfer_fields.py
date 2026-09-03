@@ -95,6 +95,58 @@ def test_bdd_3_retreat_targets_match_state_machine(agate_root):
     assert phases["P6"].get("next") == "P7", "P6.next 应为 P7（值域合法；推进为条件式由 CLI 消费）"
 
 
+# ── BDD-26（exit2fix，CRITICAL-1 修正）：每条目声明 gate_pass_exit 且与 gate 真实出口码一致 ──
+# P2 §3.1 实证（check-gate.py gate_p* return）：P0-P3/P5/P6/P8=2、P4/P7/P6.5=0。
+_MAINLINE_PASS_EXIT = {
+    "P0": 2, "P1": 2, "P2": 2, "P3": 2, "P4": 0, "P5": 2,
+    "P6": 2, "P7": 0, "P8": 2,
+}
+
+
+def test_bdd_26_all_entries_declare_gate_pass_exit(agate_root):
+    """BDD-26：全部阶段条目（P0-P8 主线 + P6.5）均含 gate_pass_exit 键，值 ∈ {0, 2}。"""
+    phases = _load_phases(agate_root)
+    for pid in ("P0", "P1", "P2", "P3", "P4", "P5", "P6", "P6.5", "P7", "P8"):
+        assert pid in phases, f"阶段 {pid} 缺失"
+        entry = phases[pid]
+        assert "gate_pass_exit" in entry, f"phase {pid} 缺 gate_pass_exit 键（BDD-26）"
+        assert entry["gate_pass_exit"] in (0, 2), (
+            f"phase {pid} gate_pass_exit 应为 0 或 2，实际 {entry['gate_pass_exit']!r}"
+        )
+
+
+def test_bdd_26_gate_pass_exit_matches_check_gate_return(
+    agate_root, task_dir, python_exe, run_cli
+):
+    """BDD-26：每 phase 的 gate_pass_exit 与其 check-gate gate_p* 真实通过出口码一致
+    （P2 §3.1 实证表：P0-P3/P5/P6/P8=2、P4/P7/P6.5=0）。数据面真值断言全表 + 真实 gate
+    抽跑对照（P5 无 baseline 恒 exit 2、P6.5 judge 未启用早退 exit 0 两条真实通过路径）。"""
+    phases = _load_phases(agate_root)
+    # 数据面真值：与 P2 §3.1 实证表逐项一致
+    for pid, expected in _MAINLINE_PASS_EXIT.items():
+        assert phases[pid]["gate_pass_exit"] == expected, (
+            f"phase {pid} gate_pass_exit={phases[pid]['gate_pass_exit']} != 实证 {expected}（BDD-26）"
+        )
+    assert phases["P6.5"]["gate_pass_exit"] == 0, "P6.5 gate_pass_exit 应为 0（judge 通过码）"
+    # 真实 gate 抽跑对照：P5 通过路径（无 baseline → gate_p5 return 2）== pass_exit 2
+    td = task_dir()
+    (td / "P2-design.md").write_text("---\nagent: test\n---\n# P2 design\n", encoding="utf-8")
+    r5 = run_cli(python_exe, str(agate_root / "scripts" / "check-gate.py"), "P5", str(td))
+    assert r5.returncode == phases["P5"]["gate_pass_exit"] == 2, (
+        f"check-gate P5 通过出口码 {r5.returncode} != gate_pass_exit 2（BDD-26）"
+    )
+    # P6.5 judge 未启用（task_dir 默认无 judge 块）→ gate_p65 早退 return 0 == pass_exit 0
+    r65 = run_cli(python_exe, str(agate_root / "scripts" / "check-gate.py"), "P6.5", str(td))
+    assert r65.returncode == phases["P6.5"]["gate_pass_exit"] == 0, (
+        f"check-gate P6.5 通过出口码 {r65.returncode} != gate_pass_exit 0（BDD-26）"
+    )
+    # P7 通过路径（task_dir 干净 P7-consistency.md）→ gate_p7 return 0 == pass_exit 0
+    r7 = run_cli(python_exe, str(agate_root / "scripts" / "check-gate.py"), "P7", str(td))
+    assert r7.returncode == phases["P7"]["gate_pass_exit"] == 0, (
+        f"check-gate P7 通过出口码 {r7.returncode} != gate_pass_exit 0（BDD-26）"
+    )
+
+
 def test_bdd_5_consistency_worktree_still_green_regression(agate_root, python_exe, run_cli):
     """BDD-5 回归守卫：worktree 版 check-protocol-consistency.py --strict-errors-only exit 0
     （P4 加字段后既有 WARNING 口径不变，S-3/S-4/next-card M3 不被破坏）。"""

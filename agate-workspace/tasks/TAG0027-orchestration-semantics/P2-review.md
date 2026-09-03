@@ -3,92 +3,86 @@ phase: P2
 task_id: TAG0027
 type: review
 parent: P2-design.md
-trace_id: TAG0027-P2-review-20260902
-created: '2026-09-02'
+trace_id: TAG0027-P2-review-20260903
+created: '2026-09-03'
 agent: plan-eng-review
 status: approved
 ---
-# TAG0027 P2 方案设计评审（plan-eng-review 复审轮）
+# TAG0027 P2 方案设计评审（plan-eng-review exit2 复审轮 · 终局）
 
-> 评审对象：`P2-design.md`（修复后 498 行，retry1 定点修订版）
-> 评审性质：**复审轮**——首轮 rejected（P2-review.md 2026-09-02，211 行）后 architect 已按
-> A1/A2/A3/B1/B2/B3 修复；本轮核对 6 问题闭合度 + 抽查修复波及节的连贯性，产出终局判定。
-> 评审依据（协议文件全部实读 worktree `agate/` 现状，非 ~/.agate）：check-gate.py /
-> pre-commit-gate.py / check-p6-provenance.py / check-judge-verdict.py /
-> check-protocol-consistency.py / state-machine.md / P1-requirements.md（25 BDD）+ P0-brief.md +
-> 首轮 P2-review.md + P2-progress.md（修复轮记录）。
-> 评审日期：2026-09-02
+> 评审对象：`P2-design.md`（修正版 641 行，architect dd858932 exit2fix 轮）+ `P1-requirements.md`
+> （[BASELINE_CHANGE] 回改后 26 BDD）
+> 评审基准：`P4-review.md`（rejected：CRITICAL-1/2 实证 + Fix A/B/C + DEVIATION-1/2）
+> 评审性质：**复审轮（exit2 语义修正闭合核对）**——P4 review 曾 rejected（2 CRITICAL 触及设计）后
+> architect 已修 P2-design（exit2fix 轮）+ 主 Agent 已按 [BASELINE_CHANGE] 回改 P1（R1-R8 + BDD-26）。
+> 本轮核对修正闭合度并给终局判定。首轮/retry1 approved 的架构方向（候选 A + 8 面形态）不重新
+> 全量评审，只核修正波及节。
+> 评审依据（全部实读 worktree `agate/` 现状，非 ~/.agate）：check-gate.py / check-judge-verdict.py /
+> phases.yaml / phases.schema.json / pre-commit-gate.py / check-protocol-consistency.py +
+> P4-review.md + P2-design.md 修正版 + P1-requirements.md 回改版 + P2-progress.md（exit2fix 轮记录）。
+> 评审日期：2026-09-03
 
 ## 评审范围与方法
 
-复审范围 = 首轮 6 问题闭合核对（增量），标准不变：每条结论引用设计节号（修复落点）+ 外部
-实证（脚本/state-machine 行号）。dispatch-context 约束 4（测试缺口 3 条须确认已在 §5 映射表补
-锚点）逐条核对。首轮 approved 部分（候选 A + 8 面形态锁定）不重新全量评审，只抽查修复波及节
-连贯性。
+复审范围 = P4 review 2 CRITICAL Fix 方向闭合核对 + DEVIATION-1/2 决策记录核对 + P1 回改
+（R1-R8/BDD-26）一致性核对 + 已 approved 部分未被推翻抽查。每条结论引用 P2-design 节号 +
+外部实证（check-gate.py 行号实读）。
 
-## 闭合核对表（A1/A2/A3 阻塞 + B1/B2/B3 非阻塞）
+## 闭合核对表（CRITICAL-1 / CRITICAL-2 / DEVIATION-1 / DEVIATION-2 / P1 回改一致性）
 
-| # | 首轮问题（摘要） | 修复落点（P2-design.md） | 实证核对结论 | 状态 |
-|---|----------------|------------------------|------------|------|
-| **A1** | P6/P6.5 共用 phase=P6，judge 通过后 P6→P7 推进裁决缺失 | §3.1 148-165（P6 条目 `next: P7` + 条件式裁决三步）、§3.4 253-264（exit 2 P6 特例分支完整裁决）、§5 BDD-6/9 447/450（P6 通过路径锚点） | `gate_p6`（check-gate.py 1051-1093）恒 return 1/2、无 exit 0（1093 return 2）——「P6 恒 exit 2、推进为条件式」前提成立；`gate_p65`（1096-1120）judge 未启用 return 0 / 缺 verdict return 1 / 双脚本过 return 0，与设计裁决链逐条对应；state-machine.md:139 + 74-78 佐证。裁决闭环完整：谁推进（agate-next P6 分支）、什么条件（provenance exit 0 → judge.enabled 分支 → gate_p65 exit 0）、不成立怎么办（exit 1 停留 P6 有指引）——P4 implementer 有实现依据，BDD-6/9 场景闭环 | ✅ 闭合 |
-| **A2** | CARD-SOURCE 块内/替代 START 撞 pre-commit 2p hash；与 §3.5 来源标记不一致 | §3.5 282-290（CARD-SOURCE 置 START **之前**块外，不进 `_extract_card` 区间）、§3.6 300-320（D6-A 双锚点剥离 + 三处消费方同步面 311-318）、§5 BDD-18/20/25 459/461/466 | `_extract_card`（pre-commit-gate.py 171-189）只抽 START..END 之间行（183 起 / 186 止）→ 块外 CARD-SOURCE 不影响嵌入 hash；2p（425-448）期望 = next-card stdout、嵌入 = _extract_card，机制自洽。定案 (a) 明确：check-p6-provenance 审计 2（318-355）+ check-judge-verdict `_strip_card`（98-111/396-397）改剥离起点，pre-commit `_extract_card` 天然兼容无需改——三处消费方语义统一（BDD-25 转绿机制完整） | ✅ 闭合 |
-| **A3** | CHECK 14 扫描面含 assets/，SKILL.md 等命中不在清理批也不在豁免清单 → 上线即红 | §3.8 336-337（豁免结构补 `assets/templates/dsh/` 平台食谱目录 + 语义叙述面 = `agate/*.md` 顶层）、346（存量清理批次面：9 顶层 md + architect.md:229 / custom-role.md:49-56 挂注记 + dsh/ 不进批）、§6③ 474（排查/扫描/豁免三面并陈）、§8 B3a 494、§7 484、R8 79 | `PROTOCOL_DIRS`（check-protocol-consistency.py:69）含 `agate/assets/` 实证；assets/ 平台名命中实测仅 3 文件 = `templates/dsh/SKILL.md`（目录实存 agent.cordis.yml/preset.yml/SKILL.md，17 处命中）+ execution-roles/architect.md:229 + templates/custom-role.md:49-56——设计处置面**全覆盖实测命中面，无遗漏**；dsh/ 结构豁免 + 两命中段挂注记 → 上线首跑 0 命中基线可达，与 §7 完成标志一致 | ✅ 闭合 |
-| **B1** | §3.4 diff=1 前置与 P6 retreat:P4 矛盾；P5 误标 diff=2；§3.1/§6① 口径互斥 | §3.1 172（P5→P4 diff=1 / P6→P4 diff=2 均 retreat: P4；diff=2 由 retreat-to 逐阶落地，647-654 PAUSED 是人工直跳路径；CLI 不预判 diff）、§3.4 247-252（删 diff=1 前置 → retreat 表值存在即委托）、§6① 472、R11 82 | state-machine.md:132（P5→P4）/148（P6→P4）/647-654（diff≥2 PAUSED 表，652 行 P6→P4 diff=2）实读一致；agate-retreat-to.py 136-137 `while n>target_n: nxt=n-1` 逐阶语义与设计委托描述吻合；全篇 grep 无残留 "diff=1 前置"/"P5 diff=2" 旧表述 | ✅ 闭合 |
-| **B2** | 加列位置正文/示例/解析器/S1S2-ANCHOR 三处不一致 | §3.2 180-198（统一 4/5 列：示例表头 184 next/retreat 在第 4/5 列、解析器取 4/5 列 196、S1S2-ANCHOR 注释 191-193 注明列位语义） | 首轮 163 行旧示例表头（next/retreat 第 6/7 列）已消除，正文/示例/解析器/注释四处一致；`_TABLE_ROW_RE` 取前 3 列兼容实证（§3.2 178）保持成立 | ✅ 闭合 |
-| **B3** | minimal_validation 表述过强 | §4.4 433（method 补 ⑧ P6 judge 后推进裁决链、⑨ CARD-SOURCE 过 2p hash）、435（note 弱化"均已实读确认"→ 不豁免失败测试首写，4 条首写主线 ②⑥⑧⑨） | 表述与 A1/A2 定案一致，⑧⑨ 即两条新主线；"已实读定位 4 条首写失败测试"比首轮"均已实读确认"更准确——A1/A2 正是"实读可发现却未定案"的教训 | ✅ 闭合 |
+| # | P4 review 问题（Fix 方向） | 修正落点（P2-design.md + P1-requirements.md） | 实证核对结论 | 状态 |
+|---|--------------------------|--------------------------------------------|------------|------|
+| **CRITICAL-1** | agate next 把"exit 2 = 正常通过码"误当暂停 → 主线推进死锁（Fix A：逐 phase 声明 pass_set） | §3.1 gate_pass_exit 字段定案（151-174）+ 逐 phase 出口码表（159-167）+ §3.4 pass_set 三态判定重写（298-325）+ R5/R12 风险行改写 + §9.1 R1/R2/R3/R5 回改清单 | 实证行号与 worktree check-gate.py **全吻合**：gate_p0 L577 / p1 L698 / p2 L883 / p3 L892 / p5 L1048 / p6 L1093 / p8 L1376 `return 2`；gate_p4 L990 / p65 L1110+L1120 / p7 L1241 `return 0`（实读函数体：gate_p4 的 L913 return 2 为"缺 agent 字段 WARNING"非通过路径——§3.1 P4 pass_set 单值 {0} 成立；gate_p5 的 L1016 return 2 为 baseline 损坏降级 WARNING——通过码确为 L1048 return 2，表值无误）。§3.4 判定：exit ∈ pass_set → 直推（含 P0-P3/P5/P8 exit 2 全程可推进，健康任务闭环成立）/ exit 1 → retreat 委托 / 真暂停（∉ pass_set 且 ≠ 1，协议实际极少）→ 落盘 resolution。Fix B 否决理由（BDD-13 禁止面 + pre-commit 账本历史不可迁移）成立；**P6 条件式推进**（gate_p65 exit 0 前置消费 next:P7，§3.1 176-193 + §3.4 301-307）与 gate_p6（恒 return 2 无 exit 0）/ gate_p65（judge 未启用 return 0 早退 / verdict 缺失 return 1 / 双脚本过 return 0）实读逐条对应。**健康任务 exit 2 直推闭环成立（无假 resolution、不停等）** | ✅ 闭合 |
+| **CRITICAL-2** | judge 复核谓词把"正常通过的 exit 2 事件"当暂停 → 健康任务 P6.5 必误拦（Fix C：只校验已存在 resolution 文件） | §3.3 复核挂载 Fix C 定案（272-287：文件存在性驱动——存在才校验格式/完整性 + phase 与账本对应；不存在 → 不要求文件，健康任务不误拦；P6 exit 2 条件式推进不落盘）+ §3.9 + §9.1 R6/R7 | Fix C 语义自洽：触发面 = 真暂停落盘（§3.4 收窄），judge 复核谓词 = resolution 文件存在性（文件不在 → 通过）。Fix C vs Fix B 等价性说明 + 采纳理由（唯一落盘场景驱动、实现面小、与 agate next 落盘契约单一来源）充分。check-judge-verdict.py 现文旧谓词（L32-34 / L326-353 `_check_exit2_resolution`：凡 exit:2 非 P6 事件要求 resolution）恰是 P4 待修对象，与 §1.1 Modify 行、files_to_read（496-497）、§5 BDD-12 反向断言锚点一致——**设计给出明确修法（Fix C），implementer 可执行** | ✅ 闭合 |
+| **DEVIATION-1** | schema if/then 条件约束未落地（schema 级强制缺失） | §3.9 DEVIATION-1 范围决策（413-430）：schema if/then **不落地** → `gate_pass_exit` 进 schema 全局 required（纯 required 子集支持）+ 数据面 pytest 断言（P6.5 条目无 next/retreat + 含 gate_subphase 三键；主线 9 条目三键齐全）+ S-1 P6.5 负面形态检查承载 + `[DESIGN_GAP: schema 层不强制 P6.5 无 next/retreat 的条件约束（校验器子集不支持 if/then，2026-09-03 定案…）]` 内联立项 | 决策记录完整：P4 review 实证（schema 无 if/then/not；check-yaml-schema.py 子集 L10-11）采纳"第一分支"（改数据面承载），不扩展校验器子集的理由（子集实现膨胀 + 其它 rules schema 消费面回归）记录；DESIGN_GAP 内联标记走既有 P7 配对机制（P2 文档内记立项，P4/P7 转抄——gate_p7 实读确认 [DESIGN_GAP]/[DESIGN_GAP_REVIEWED] 配对硬校验存在）。schema 属性声明（next/retreat/gate_subphase/gate_pass_exit 值域枚举）保留（不动已 approved 部分）。**§7 完成标志与 §5 BDD-2 已同步改为"反例由数据面断言拒绝"** | ✅ 决策已记录 |
+| **DEVIATION-2** | CHECK 14 扫描面窄于 P2 §6③ 排查面，assets/ 无机械拦截 | §3.9 DEVIATION-2 范围决策（432-444）：assets 清理 = **一次性**（B3a 已对 architect.md:229 / custom-role.md:49-56 挂注记），CHECK 14 扫描面维持 `agate/*.md` 顶层**不扩 assets/**（避免误伤 assets/templates/dsh/ 平台食谱豁免 + B3b 已落地实现返工）；后续 assets 新增平台名段由角色文件评审流程覆盖（接受面明确） | 决策记录完整：P4 review 实证（check-protocol-consistency.py 只 glob `root/"agate"/*.md` L1233-1237）采纳"记录一次性决策"分支；§6③（573 排查/扫描/豁免三面并陈）+ §7 完成标志（583）+ R8（79）与 §3.9 对齐——"assets 一次性清理、不进 CHECK 14 扫描面"表述全篇一致，无残留"扫描面含 assets"旧叙述 | ✅ 决策已记录 |
+| **P1 回改一致性** | R1-R8 + BDD-26 与 P2 修正语义一致 | P1-requirements.md 回改版：R1 需求复述 L52-60 / R2 诚实边界 L85-91 / R3 BDD-6 Given L149 / R4 BDD-8 Given L159 / R5 BDD-11 Then L176 / R6 BDD-12 Given L179 / R7 BDD-12 Then L181 / R8 BDD-13 Then L186 / BDD-26 新增 L254-257 | R1-R8 逐条与 P2 §3.1/§3.3/§3.4/§9.1 回改清单语义一致，每条带 `[BASELINE_CHANGE: ... 主 Agent 显式批准]` 标注（含原因追溯）；BDD-26 与 P2 §9.2 草案逐字一致（P0-P8 + P6.5 全条目 gate_pass_exit ∈ {0,2} + 出口码实证值 P0-P3/P5/P6/P8=2、P4/P7/P6.5=0 + pytest 断言对照 gate_p* return + agate next pass_set 判定）。**发现 1 处回改遗漏（非 BDD、非验收条件，见下）** | ✅ 一致（1 遗留跟进项） |
 
-## 测试缺口核对（dispatch-context 约束 3：首轮「测试缺口」3 条须在 §5 补锚点）
+## P1 I-5 残留（非 BDD 行，主 Agent 跟进项，不构成 P2 缺陷）
 
-| 首轮缺口 | §5 映射表锚点 | 核对 |
-|---------|-------------|------|
-| P6 judge 后推进路径无测试锚点 | BDD-6 447（judge 未启用直推 P7）+ BDD-9 450（judge 启用 + verdict 存在 + gate_p65 exit 0 → P6→P7 + state_transition 事件；exit 1 → 停留） | ✅ 已补 |
-| CARD-SOURCE 产物过 pre-commit 2p 无测试 | BDD-25 466（渲染产物嵌入抽取 hash == next-card 期望 hash，CARD-SOURCE 不入抽取区间）+ BDD-18 459 / BDD-20 461（CARD-SOURCE 在 START 前断言） | ✅ 已补 |
-| assets/ 平台名命中无清理/豁免测试 | BDD-17 458（pytest 断言 SKILL.md 属结构豁免：插平台名 → pass；architect.md/custom-role.md 命中段带注记 → CHECK 14 pass） | ✅ 已补 |
+- **位置**：P1-requirements.md L101（隐含需求表 I-5「为什么必须」说明列）：
+  "exit 2 分支不能按 next 直推（**多数阶段暂停转主 Agent**；P6 例外直通 P6.5）"。
+- **定性**：括号解释为 CRITICAL-1 推翻的旧前提残余——与 BDD-26/BDD-6 修正语义直接冲突
+  （exit 2 ∈ pass_set 恰按 next 直推）。隐含需求表是 P1 分析过程的"为什么必须"说明，非 BDD
+  验收条件；BDD 正文（26 条）已全部按修正语义回改、为验收权威。不阻塞 P4 实现。
+- **修复建议**：主 Agent 走 [BASELINE_CHANGE] 微修该行措辞（如 "exit ∈ pass_set（多数 phase
+  正常通过码 = exit 2）→ 按 next 直推；真暂停（∉ pass_set 且 ≠ 1）才转主 Agent；P6 经 gate_p65
+  前置裁决"），与 R1/R3 同批。参照 retry1 轮 P1 BDD-10 同例处理（approved + 主 Agent 跟进项）。
 
-## 修复波及节连贯性抽查（首轮 approved 部分未被推翻）
+## 已 approved 部分未被推翻（抽查）
 
-- **架构方向**：候选 A（数据面权威 + 薄 CLI 消费方）维持（§2），未因修复改写 ✓。
-- **8 决策面**：除 A1（①/④）、A2（⑤/⑥）、A3（⑧）、B1（①/④/⑧ R11）、B2（②）修正处外，形态锁定保持；§3.3/§3.7（exit2-resolution、档位 C）未受波及失真 ✓。
-- **§1.1 Modify 表**：已含 check-judge-verdict.py `_strip_card` 双锚点同步行（45 行）——A2 三处消费方同步面在 Modify/消费方两处成对声明，P4 implementer 不易漏 ✓。
-- **§1.2 Not Modify**：check-gate/check-state-transition 返回约定不变声明保持（首轮锁定的 BDD-13 边界未被破坏；A1 裁决全部落在新 CLI 消费侧）✓。
-- **机器字段**：gate_commands（§4.1）9 key、files_to_read（§4.2）、env_constraints（§4.3）未受修复波及；§4.4 minimal_validation 与 A1/A2 定案对齐 ✓。
-- **§5 BDD 映射**：25 条全映射保持，A1/A2/A3/B1 涉及行（BDD-6/7/9/10/17/18/20/25）已同步修复语义 ✓。
-- **§7 完成标志**：482-484 分别含 A1（P6 推进裁决闭环）/A2（CARD-SOURCE 过 2p）/A3（dsh 豁免 + 命中段注记）三闭环表述，完成标志与修复一致、可达 ✓。
-- **§8 批边界**：B1/B2 可并行、B3a→B3b 串行的批编排与 A3 处置面（B3a 含 assets 两命中段、dsh/ 不进批）一致，文件不跨批声明保持 ✓。
+- 架构方向：候选 A（数据面权威 + 薄 CLI 消费方，§2）保持，未因修正改写 ✓。
+- 8 决策面形态：除 exit2 修正波及节（§3.1 gate_pass_exit 新增、§3.3 Fix C、§3.4 pass_set 三态、
+  §3.7 档位 C 语义校准）外保持；WORKFLOW 加列（§3.2 4/5 列）与 S-1 比对范围不变；**gate_pass_exit
+  不加列**（§3.2 223-226：机器声明字段、S-1 比对面只含 next/retreat——与 §3.9 数据面断言分工自洽）
+  ✓。
+- B3a/B3b 处置面（9 顶层 md + assets 适配段注记 + dsh/ 结构豁免）与 §3.9 DEVIATION-2 决策一致，
+  批边界（§8）未失真 ✓。
+- 旧语义残留扫描：P2-design.md 全篇 0 命中"exit 2 一律暂停/通用暂停分支"旧表述（除 §3.4 备选
+  形态 c 与 R12 的显式否决叙述）；P1 正文 BDD 区 0 残留（仅 I-5 一处，见上）✓。
 
 ## 锁定决策（终版）
 
-1. **整体架构方向锁定**：候选 A（数据面权威 + 薄 CLI 消费方）成立——新增消费方不复制语义、
-   S-1/S-2 复用扩展、exit2-resolution 独立文件 + judge 复核挂载、审计 2 双锚点方向、CHECK 14/15
-   进既有脚本、B1→B2 可并行 / B3a→B3b 串行的批编排，全部批准（§2、§3.1-3.8、§8）。
-2. **8 决策面形态锁定（终版）**：
-   - ① next/retreat schema：值域 = 枚举 phaseId（P0-P8，不含 P6.5）+ null；P8 next/retreat: null；
-     P6.5 用 `gate_subphase`（hosted_on/forward_to/needs_revision_to）不写 next/retreat；
-     **P6 条目 next: P7 合法但推进为条件式**——schema 只管值域，裁决在 CLI（§3.1）。
-   - ② S-1/S-2 md 侧：WORKFLOW 总览表在「执行角色」后加 **4/5 列**（next/retreat），评审角色/门槛
-     顺延 6/7 列；S1S2-ANCHOR 注释同步列位语义；`_parse_workflow_rows` 扩展取 4/5 列（§3.2）。
-   - ③ exit2-resolution：任务目录 `{phase}-exit2-resolution.md`（frontmatter + 正文留痕）；不塞
-     .state.yaml、不加 events 类型；复核挂载 = check-judge-verdict.py P6.5 校验扩展；
-     P6 自身 exit 2 前进特例不落盘（§3.3）。
-   - ④ agate next/advance：CLI 只 add 不 commit；exit 0 按 next 直推 / exit 1 按 retreat 表值存在
-     即委托 retreat-to（CLI 不预判 diff）/ exit 2 非 P6 落盘 exit2-resolution、**P6 特例按 A1
-     裁决消费 next:P7**（§3.4）。
-   - ⑤ agate dispatch：模板骨架 + Lazy Injection（子进程 next-card）；**CARD-SOURCE 置于
-     AGATE_CARD_START 之前（块外）**；手工兜底保留（§3.5）。
-   - ⑥ 审计 2：双锚点剥离 = CARD-SOURCE 行起物理块优先 + START..END 兜底；三处消费方同步面
-     （check-p6-provenance 审计 2 / check-judge-verdict `_strip_card` 需改，pre-commit `_extract_card`
-     天然兼容无需改）（§3.6）。
-   - ⑦ 档位 C：文档约定层 + CLI 调用点双层；append_event + commit 为可观测证据（§3.7）。
-   - ⑧ 护栏 1：CHECK 14 段落级判据（`> 实现注记：` 段级豁免）+ 豁免结构三类（整文件
-     platform-notes/SETUP、**assets/templates/dsh/ 平台食谱目录**、WORKFLOW 适用环境表行）；
-     CHECK 15 词边界 + 豁免词典机械生成（§3.8）。
-3. **测试缺口 3 条已闭环**：P6 judge 后推进 / CARD-SOURCE 过 2p / assets/ 处置，均在 §5 映射表
-   有 pytest 锚点（BDD-6/9、BDD-25/18/20、BDD-17）。
+1. **exit 2 语义修正锁定**：gate_pass_exit 逐 phase 出口码声明（P0-P3/P5/P6/P8=2、P4/P7/P6.5=0）
+   = agate next 推进判定基准；exit ∈ pass_set → 直推（健康任务 P0-P3/P5/P8 exit 2 全程可推进）、
+   exit 1 → retreat 委托（retreat-to 逐阶）、真暂停（∉ pass_set 且 ≠ 1）→ 落盘 exit2-resolution；
+   P6 条件式推进（gate_p65 exit 0 前置）为唯一特例。check-gate 返回约定不改（BDD-13）。
+2. **judge 复核谓词 Fix C 锁定**：check-judge-verdict.py P6.5 只校验**已存在** resolution 文件
+   格式/完整性 + 与账本对应；健康任务无 resolution 文件 → 不要求、复核通过（不误拦）。
+3. **DEVIATION-1/2 范围决策锁定**：schema if/then 不落地（gate_pass_exit 全局 required + 数据面
+   断言 + S-1 负面形态 + DESIGN_GAP 立项）；assets 清理一次性（不进 CHECK 14 扫描面）。
+4. **P1 回改面锁定**：R1-R8 + BDD-26 已落地（[BASELINE_CHANGE] 授权），与 P2 修正语义一致。
 
 ## 结论
 
-首轮 3 阻塞（A1/A2/A3）+ 3 非阻塞（B1/B2/B3）**全部闭合**：每项修复落点可定位（§节号 + 行号）、
-与 worktree 脚本/state-machine 实证逐条对应、未引入新矛盾；架构方向与首轮 approved 部分未被
-修复推翻；§5 测试缺口 3 条均已补锚点。按 dispatch-context 判定：**approved**（无遗留阻塞/非阻塞
-问题，无新发现问题）。遗留事项 0——仅 P1 BDD-10 Given 正文回改（P6→P4）为 [SCOPE+] 文档修正，
-由主 Agent 在 P2 通过后跟进（§6① 已声明，非 P2 缺陷）。
+P4 review 2 CRITICAL Fix 方向（Fix A gate_pass_exit pass_set / Fix C judge 谓词存在性驱动）在
+P2-design 修正版全部落实、与 worktree 代码实证逐条对应、健康任务 exit 2 直推闭环与 judge 反向
+不误拦语义成立；DEVIATION-1/2 均记录为范围决策（含 DESIGN_GAP 立项 / 一次性清理声明）；P1 回改
+（R1-R8 + BDD-26）与 P2 修正语义一致；已 approved 部分未被推翻、无新引入矛盾。按 dispatch-context
+判定：**approved**。遗留跟进项 1（非 P2 缺陷）：P1 I-5 隐含需求行旧前提措辞残留（L101），由主
+Agent [BASELINE_CHANGE] 微修一行，与 R1/R3 同批（同 retry1 轮 P1 BDD-10 处理先例）。
+
+## 环境隔离声明
+
+[PROD_NOT_TOUCHED]：本复审只读 worktree agate/ 协议文件（实证核对）+ 写任务目录
+P2-progress.md / P2-review.md，未改动任何协议本体文件 / 主 checkout / ~/.agate。

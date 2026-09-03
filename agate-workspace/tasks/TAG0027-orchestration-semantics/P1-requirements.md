@@ -24,6 +24,8 @@ domains:
 - backend
 - cli
 - api
+scope_resolved:
+- "B3b CHECK 14/15 首跑 3 ERROR 补清（dispatch.yaml law-1 task / loop-orchestration.md:205 OpenCode 前提 / dispatch-protocol.md:234 task 字段引用——B3a/B1 清理漏网，B3 补漏 agent 已闭环，CHECK 14/15 首跑 0 ERROR）"
 ---
 
 # TAG0027 需求基线 — 编排语义统一落地（RM-AG0054）
@@ -49,11 +51,19 @@ known_risks 与 worktree 当前现状逐一实核一致：phases.yaml 无 next/r
   表）与 JSON Schema（`rules/schema/phases.schema.json`），不新开独立一致性检查；P6.5 不得
   被写成独立转移边（挂载于 P6→P7 转移上的强门槛子阶段）。
 - **Phase 2（推进侧 CLI）**：新增 `agate next` / `agate advance`，消费 `check-state-transition.py`
-  跳变校验（exit 0/1）+ `check-gate.py` exit 三态（0 直推下一 phase / 1 按转移表回退 retry+1 /
-  2 暂停转主 Agent 并落盘机器可读 `exit2-resolution` 产物）；与既有 `agate-retreat-to.py` /
+  跳变校验（exit 0/1）+ `check-gate.py` exit ∈ gate_pass_exit（每 phase 声明的"检查通过"出口
+  码——多数 phase 正常通过码 = exit 2、exit 0 仅 P4/P7/P6.5 可达，逐 phase 声明见 phases.yaml）
+  直推下一 phase / exit 1 按转移表回退 retry+1 / 真暂停（exit ∉ gate_pass_exit 且 ≠ 1，协议
+  实际极少）暂停转主 Agent 并落盘机器可读 `exit2-resolution` 产物
+  [BASELINE_CHANGE: P4 review CRITICAL-1 实证（2026-09-03）：check-gate.py 多数 phase
+  （P0-P3/P5/P6/P8）正常通过码 = exit 2（gate_p0 恒 2 / p1 L698 / p2 L883 / p3 L892 / p5 L1048 /
+  p8 L1376 return 2），"exit 2 = 需主 Agent 自判"是给主 Agent 的通过信号而非暂停——原"exit 2
+  暂停转主 Agent"前提错误致 agate next 主线推进死锁（P0-P3/P5/P8 正常通过被误判暂停）；
+  修正为 gate_pass_exit（pass_set）判定，主 Agent 显式批准]；与既有 `agate-retreat-to.py` /
   `agate-retreat-state.py` 回退侧对接；`agate/loop-orchestration.md` 档位 C 自动推进改走
   `agate next`（CLI = 档位 C 的可观测层，复用"硬中断点必停 PAUSED 而非 retry"语义）；不改
-  既有脚本返回约定（check-gate.py exit 0/1/2、check-state-transition.py exit 0/1 保持原样）。
+  既有脚本返回约定（check-gate.py exit 0/1/2、check-state-transition.py exit 0/1 保持原样，
+  仅新增 gate_pass_exit 消费声明）。
 - **Phase 3（编排心智统一文档化）**：dispatch-protocol 五模式（dispatch-protocol.md:511-519）
   为唯一语义锚点；平台差异（DSH workflow/ralph/goal 及 OpenCode/Claude Code 平台名）在
   markdown 叙述文档仅限带「实现注记」标记（统一格式 `> 实现注记：` 标记行）的小节/段落出现；
@@ -74,10 +84,13 @@ known_risks 与 worktree 当前现状逐一实核一致：phases.yaml 无 next/r
 
 ### 设计诚实边界（本任务不自欺部分）
 
-exit 2 分支的"暂停转主 Agent"**不假装消灭模型自判**——CLI 在 exit 2 分支暂停转主 Agent 是
-设计意图而非缺陷（文档明确标注）；转移表为 exit 2 定义"下一动作"字段并落盘机器可读
-`exit2-resolution` 产物（记录"何时 / 依据什么客观证据 / 由谁解决"），纳入 P6.5 judge 或
-provenance 审计复核范围，让"必须信任模型的区间"事后可核查。
+真暂停分支（exit ∉ gate_pass_exit 且 ≠ 1，协议实际极少）的"暂停转主 Agent"**不假装消灭模型
+自判**——CLI 在此分支暂停转主 Agent 是设计意图而非缺陷（文档明确标注）；转移表为真暂停定义
+"下一动作"字段并落盘机器可读 `exit2-resolution` 产物（记录"何时 / 依据什么客观证据 / 由谁
+解决"），纳入 P6.5 judge 或 provenance 审计复核范围，让"必须信任模型的区间"事后可核查。
+exit ∈ gate_pass_exit（正常通过码，多数 phase = 2）是**直推不是暂停**——模型自判留给主 Agent
+判下一步（check-gate 头注释"exit 2 = 需主 Agent 自判"的信号语义）[BASELINE_CHANGE: R2，同上
+CRITICAL-1 修正，2026-09-03 主 Agent 显式批准]。
 
 ## 隐含需求识别
 
@@ -87,7 +100,7 @@ provenance 审计复核范围，让"必须信任模型的区间"事后可核查�
 | I-2 | next/retreat 字段须与既有 task_fields/gates 数据结构兼容（不破坏 `check-structure-consistency.py` S-3/S-4 与 `agate-next-card.py` M3 渲染的现有读取） | 复用既有资产的前提是不破坏其解析 | Phase 1 |
 | I-3 | P6.5 在 phases.yaml 已是独立条目但语义非独立 phase 值——next/retreat 字段值域不能把它写成转移边，schema 值域需表达"子阶段门槛"限制 | P0 out-of-scope + 设计 v3b §4.1 口径（state-machine.md:74-78） | Phase 1 |
 | I-4 | S-1/S-2 的 md 侧锚点是 WORKFLOW.md 阶段总览表（不是 state-machine.md）——next/retreat 纳入 S-1/S-2 须明确 md 侧对照面如何表达新字段（总览表加列或等效锚点），否则 gate 无物可比 | 设计 v3b N-New3 闭环：防"数据面 ↔ 人类可读权威源"漂移而不新开检查 | Phase 1 |
-| I-5 | `agate next` 推进决策查表时，表内"目标 phase"与"当前 gate exit code"可能冲突（如 exit 1 回退目标 = 表 retreat，exit 0 直推 = 表 next）——CLI 必须消费 exit 三态做分支，不是无脑查 next | exit 2 分支不能按 next 直推（多数阶段暂停转主 Agent；P6 例外直通 P6.5） | Phase 2 |
+| I-5 | `agate next` 推进决策查表时，表内"目标 phase"与"当前 gate exit code"可能冲突（如 exit 1 回退目标 = 表 retreat，exit ∈ pass_set 直推 = 表 next）——CLI 必须消费 gate_pass_exit（pass_set）做分支，不是无脑查 next [BASELINE_CHANGE: I-5 语义随 R1/R3 修正——exit 2 是多数 phase 正常通过码 ∈ pass_set 直推，非"暂停转主 Agent"，2026-09-03 主 Agent 显式批准] | exit ∈ gate_pass_exit 直推（多数 phase 正常通过码 = exit 2）；exit 1 按 retreat 回退；真暂停（∉ pass_set 且 ≠ 1）才落盘 resolution 转主 Agent（P6 例外：条件式 gate_p65 前置直通 P6.5） | Phase 2 |
 | I-6 | 回退时 retry 计数必须与既有机械校验一致（单步回退须同步写 retries，diff≥2 强制 PAUSED 由 check-state-transition.py 拦截）——CLI 不能绕过 | state-transitions.md 回退规则 + check-state-transition.py P2.3-P2.5 现状 | Phase 2 |
 | I-7 | `agate advance` 与 `agate-retreat-to.py` 对接：exit 1 回退分支的"目标 phase"须与 retreat-to 的 TARGET_PHASE 一致且逐阶 = diff 1 | retreat-to 是既有单步回退自动化（每步独立 commit + gate），advance 须复用而非重造 | Phase 2 |
 | I-8 | 档位 C 对接是行为变更：`loop-orchestration.md` 档位 C 现状推进点 = pre-commit hook exit 0 后"自动进入下一 phase"（227-243 行），改走 agate next 不能破坏档位 A（手动）/档位 B（半自动）与硬中断点必停语义 | 设计 v3b 缺口 3 + P0 known_risks 档位 C 对接风险 | Phase 2 |
@@ -134,8 +147,8 @@ BDD 分组对应设计 v3b §6 落地路径 Phase 1-4 + 护栏 1 机械化。行
 
 ### Phase 2：推进侧 CLI（agate next / agate advance）
 
-#### BDD-6: agate next 在 gate exit 0 时按转移表推进到下一 phase
-- Given 任务 T 当前 phase=Pn，.state.yaml 正常，`check-gate.py Pn` 跑出 exit 0
+#### BDD-6: agate next 在 gate exit ∈ gate_pass_exit 时按转移表推进到下一 phase
+- Given 任务 T 当前 phase=Pn，.state.yaml 正常，`check-gate.py Pn` 跑出 exit ∈ gate_pass_exit（如 P5/P8 的正常通过码 exit 2、P4/P7 的 exit 0）[BASELINE_CHANGE: R3——原 Given"exit 0"改为"exit ∈ gate_pass_exit"（多数 phase 正常通过码 = exit 2），2026-09-03 主 Agent 显式批准]
 - When 运行 `agate next`（或等效 CLI）
 - Then .state.yaml 的 phase 变为 Pn+1（按 phases.yaml next 字段），且本次推进经过既有 check-state-transition.py 跳变合法性校验（exit 0 通过）
 
@@ -144,8 +157,8 @@ BDD 分组对应设计 v3b §6 落地路径 Phase 1-4 + 护栏 1 机械化。行
 - When 运行 `agate next`
 - Then 不回退到 P4 之前的阶段：phase 按转移表 retreat 目标变为 P4 且 retries[P4] 追加一条记录（与既有单步回退机械校验一致），或等效走既有 agate-retreat-to.py 单步回退路径（P2 实现定，P6 按语义验证）
 
-#### BDD-8: agate next 在 gate exit 2 时暂停并落盘机器可读 exit2-resolution 产物
-- Given 任务 T 当前 phase=Pn（非 P6），`check-gate.py Pn` 跑出 exit 2（需主 Agent 自判）
+#### BDD-8: agate next 在真暂停（exit ∉ gate_pass_exit 且 ≠ 1）时暂停并落盘机器可读 exit2-resolution 产物
+- Given 任务 T 当前 phase=Pn，`check-gate.py Pn` 跑出 exit ∉ gate_pass_exit 且 ≠ 1（真暂停/异常，如 P6 条件裁决异常停留、回退抵达——非该 phase 的正常通过码）[BASELINE_CHANGE: R4——原 Given"exit 2（需主 Agent 自判）"触发面收窄到真暂停（多数 phase 的 exit 2 是正常通过码 ∈ pass_set），2026-09-03 主 Agent 显式批准]
 - When 运行 `agate next`
 - Then CLI 不自行推进 phase，输出暂停转主 Agent 提示，并落盘一个机器可读 `exit2-resolution` 产物（记录何时 / 依据什么客观证据 / 由谁解决，位置与格式 P2 定）
 
@@ -162,17 +175,17 @@ BDD 分组对应设计 v3b §6 落地路径 Phase 1-4 + 护栏 1 机械化。行
 #### BDD-11: 档位 C 全程用 agate next 推进，主 Agent 未自行判断进入下一 phase
 - Given 任务 T 在档位 C（/loop 全自动）下运行
 - When 检查档位 C 推进记录（loop-orchestration.md 描述的执行路径 / gate-events.jsonl 或等效可观测证据）
-- Then 每一处"进入下一 phase"的推进均经 agate next（或等价 CLI）判定而非主 Agent 临场自行判断，且硬中断点仍必停为 PAUSED 而非 retry（档位 A/B 手动/半自动路径不受影响）
+- Then 每一处"进入下一 phase"的推进均经 agate next（或等价 CLI）判定而非主 Agent 临场自行判断（正常通过码 exit 2 ∈ pass_set 直推，健康任务 P0-P3/P5/P8 全程经 agate next 可达成），且硬中断点仍必停为 PAUSED 而非 retry（档位 A/B 手动/半自动路径不受影响）[BASELINE_CHANGE: R5——Then 澄清 exit 2 正常通过码 ∈ pass_set 直推的可达性，2026-09-03 主 Agent 显式批准]
 
 #### BDD-12: exit2-resolution 产物纳入 P6.5 judge / provenance 复核范围
-- Given 任务 T 在运行中产生过 exit2-resolution 产物（exit 2 分支解决留痕）
+- Given 任务 T 在运行中经真暂停分支（exit ∉ gate_pass_exit 且 ≠ 1）产生过 exit2-resolution 产物（真暂停解决留痕）[BASELINE_CHANGE: R6——Given 收窄到真暂停分支（原"exit 2 分支"误含正常通过 exit:2 事件），2026-09-03 主 Agent 显式批准]
 - When 任务走到 P6.5 judge 复核（或 provenance 审计）
-- Then 复核范围包含该 exit2-resolution 产物（可核查"exit 2 何时/依据什么证据/由谁解决"），产物缺失或格式不合法时 judge 复核不通过（挂载点：check-judge-verdict.py 或 check-events.py 消费面，P2 设计定，不新增独立机制）
+- Then 复核范围包含**已存在**的 exit2-resolution 产物（可核查"真暂停何时/依据什么证据/由谁解决"），已存在的 resolution 文件格式不合法/不完整时 judge 复核不通过；任务从未真暂停（无 resolution 文件，账本含正常通过 exit:2 事件）不要求文件——健康任务 judge 复核通过 [BASELINE_CHANGE: R7——Then 谓词校准为 Fix C（只校验已存在文件；原"凡 exit:2 都要求文件"误拦全量健康任务 CRITICAL-2），2026-09-03 主 Agent 显式批准]（挂载点：check-judge-verdict.py 或 check-events.py 消费面，P2 设计定，不新增独立机制）
 
 #### BDD-13: 既有脚本返回约定未被改造
 - Given 任务 T 任意阶段 gate 运行
 - When 核对 `agate/scripts/check-gate.py` 与 `agate/scripts/check-state-transition.py` 的 exit code 语义文档/头注释
-- Then check-gate.py 仍为 exit 0=通过/1=未通过/2=需主 Agent 自判，check-state-transition.py 仍为 exit 0=合法/1=非法（本任务只新增消费方，不修改这两个脚本的返回约定）
+- Then check-gate.py 仍为 exit 0/1/2 返回约定不变（0=机械可判通过/1=未通过/2=多数 phase 正常通过码——pass 判定以 phases.yaml gate_pass_exit 为准，见 BDD-26），check-state-transition.py 仍为 exit 0=合法/1=非法（本任务只新增 gate_pass_exit 消费声明与文档注记，不修改这两个脚本的返回语义）[BASELINE_CHANGE: R8——原"exit 2=需主 Agent 自判"表述与 CRITICAL-1 实证不符，改为以 gate_pass_exit 为准，2026-09-03 主 Agent 显式批准]
 
 ### Phase 3：编排心智统一文档化（五模式锚点 + 实现注记）
 
@@ -239,6 +252,11 @@ BDD 分组对应设计 v3b §6 落地路径 Phase 1-4 + 护栏 1 机械化。行
 - Given 方案 A 落地后存在两种派发路径：自动（agate dispatch 渲染时注入）与手工（手写 + agate-inject-card.py 兜底）
 - When 对任一 P1-P8 阶段产出 commit 运行 pre-commit hook
 - Then 两条路径生成的 dispatch-context 均满足：commit 前暂存区含当前阶段 dispatch-context、卡片内容 hash 校验通过与 provenance 冻结要求（初始版本不被改写）——两路并存不产生 gate 行为差异
+
+#### BDD-26: phases.yaml 每条目声明 gate_pass_exit 且 agate next 按 pass_set 判定通过 [BASELINE_CHANGE: 新增——P4 review CRITICAL-1 修正（exit 2 = 多数 phase 正常通过码）落地的机器字段，2026-09-03 主 Agent 显式批准]
+- Given `agate/rules/phases.yaml` 全部阶段条目（P0-P8 主线 + P6.5）均含 `gate_pass_exit` 键（值 ∈ {0, 2}），与 check-gate.py 各 phase 真实通过出口码一致（P0-P3/P5/P6/P8=2、P4/P7/P6.5=0）
+- When 运行 `agate next`（或直接断言 phases.yaml 各条目 gate_pass_exit 与 check-gate.py gate_p* return 值一致）
+- Then 每 phase 的 gate_pass_exit 与其 gate 函数真实 return 码一致（pytest 断言对照），且 `agate next` 在 gate exit ∈ pass_set 时直推、exit ∉ pass_set 且 ≠ 1 时才落盘 exit2-resolution
 
 ## 同类扫描（强制节）
 

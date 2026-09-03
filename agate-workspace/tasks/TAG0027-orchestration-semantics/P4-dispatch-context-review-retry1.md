@@ -2,7 +2,7 @@
 phase: P4
 generated_by: agate-inject-card.py + 主 Agent
 task_id: TAG0027
-role: implementer
+role: review
 ---
 
 <dispatch_guide>
@@ -10,79 +10,56 @@ role: implementer
 
 ### 目标
 
-**P4 批次 B2（render-audit）实现**：按 P2-design.md §3.5/§3.6 定案实现，让 P3 的 B2 批测试
-（`agate/tests/unit/test_tag0027_b2_*.py`，9 用例）从红灯转绿灯。本批独占文件：
-`agate/scripts/agate-dispatch.py`（新建）、`agate/assets/templates/dispatch-context.md`（模板加
-CARD-SOURCE 说明）、`agate/scripts/check-p6-provenance.py`（审计 2 双锚点剥离）。
+**P4 复审轮（exit2fix 修复）**：P4 review 首轮 rejected（2 CRITICAL + 2 DEVIATION），
+exit2fix implementer 已修复 CRITICAL-1/2（gate_pass_exit pass_set 判定 + judge Fix C 谓词），
+DEVIATION-1/2 已由 P2 记录范围决策。复审判定修复闭合度 + 首轮 approved 面保持，产出
+`P4-review.md`（status: approved / rejected / needs-revision）。
 
 ### 约束
 
-1. **B2 范围**（P2 §8）：agate-dispatch.py 单命令渲染时注入（§3.5 Lazy Injection：读模板 +
-   子进程调 agate-next-card.py 取卡片 + 渲染写 {phase}-dispatch-context-{role}.md）；
-   dispatch-context.md 模板加渲染来源说明 + 占位符注释；check-p6-provenance.py 审计 2
-   （318-355 行）剥离锚点改**双锚点**（§3.6）。**不越批**：S-1/S-2（B3b）、phases.yaml 字段
-   （B1）、平台名清理（B3a）、CHECK 14/15（B3b）。
-2. **实现规范**（implementer 角色）：最小实现让测试绿；不修改测试；只实现 P2 方案内的东西。
-3. **关键语义（P2 §3.5/§3.6 定案，勿写错）**：
-   - `agate-dispatch.py` CLI：`agate-dispatch.py PHASE ROLE TASK_DIR`（或等效）——读
-     dispatch-context.md 模板骨架 → 子进程调 agate-next-card.py PHASE 取卡片 stdout →
-     渲染写 `{phase}-dispatch-context-{role}.md`（任务目录），frontmatter 保持
-     phase/generated_by（`agate-dispatch.py + 主 Agent`）/task_id/role
-   - **CARD-SOURCE 标记放 AGATE_CARD_START 之前（块外）**——不进 START..END 抽取区间 →
-     pre-commit 2p hash 不受影响（A2 定案 (a)）。渲染产物结构：frontmatter → 可选上下文 →
-     `<!-- CARD-SOURCE: agate-dispatch.py {phase} -->` → 标记 `AGATE_CARD_START` → 卡片
-     全文（next-card stdout 逐字）→ 标记 `AGATE_CARD_END`
-   - **审计 2 双锚点剥离**（check-p6-provenance.py 318-355）：① CARD-SOURCE 优先——从
-     `<!-- CARD-SOURCE: ... -->` 行起至匹配 AGATE_CARD_END 整段剥离（含 START）；② 物理块
-     兜底——无 CARD-SOURCE 走既有 AGATE_CARD_START..END 剥离。剥离后逻辑不变（剥 frontmatter
-     → 数 `^\s*- (PASS|FAIL)` 预判）
-   - 审计 2 扫描对象面不变（glob P6-dispatch-context-*.md）——只改剥离锚点
-4. **同步面（A2 定案 (a)）**：check-judge-verdict.py `_strip_card` 加 CARD-SOURCE 优先分支属
-   **B1 批**（check-judge-verdict.py 在 B1 独占清单）——本批只改 check-p6-provenance.py 审计 2；
-   pre-commit-gate.py `_extract_card` 只抽 START..END 区间（CARD-SOURCE 块外天然兼容）**无需改动**。
-   若实现中发现 B1/B2 边界交叉（如 judge-verdict 的 _strip_card 与 audit2 必须同批改才能过测试），
-   标 [CLARIFY] 报主 Agent，不擅自扩批。
-5. **不改既有脚本返回约定**：check-p6-provenance.py 的 exit 语义（0 通过/1 失败/2 需自判）保持；
-   只改审计 2 的剥离逻辑内部实现。agate-inject-card.py / agate-card-inject.py /
-   agate-render-dispatch-prompt.py 不动（BDD-19/23 兜底路径保留）。
-6. **SELF-GATE**：本批改 agate/scripts/*.py + assets 模板 → commit 时须 self-gate 标注（主
-   Agent commit 时处理，implementer 不 commit）。
-7. **测试自查**：写完跑 B2 批测试确认转绿（`timeout 300s python3 -m pytest
-   agate/tests/unit/test_tag0027_b2_*.py -q --tb=short`）。自查≠P5 gate。不得改 P3 测试。
-8. **平台无关 + 既有风格**：新脚本遵循 agate/scripts/ 既有风格（agate_common.py 公共函数）；
-   测试全部用 tmp_path 临时目录，不碰真实任务数据/协议文件。
+1. **复审范围 = CRITICAL 闭合核对 + 首轮 approved 面保持**：
+   - CRITICAL-1（agate-next 主线死锁）：phases.yaml 10 条目 gate_pass_exit（P0-P3/P5/P6/P8=2、
+     P4/P7/P6.5=0）+ agate-next main() pass_set 判定（rc ∈ pass_set → 直推 / rc=1 → retreat /
+     真暂停 ∉ pass_set 且 ≠1 → 落盘 resolution）——健康任务 P0-P3/P5/P8 exit 2 直推闭环是否
+     真达成（实测：非 mock）
+   - CRITICAL-2（judge 误拦）：check-judge-verdict _check_exit2_resolution Fix C（只校验已存在
+     resolution 文件；健康任务账本 exit:2 正常通过无文件 → 不误拦）——实测健康任务全历史
+     judge 复核通过
+   - DEVIATION-1/2：P2 已记录范围决策（gate_pass_exit 全局 required + 数据面断言承载 /
+     assets 一次性清理）——不阻塞，确认记录存在即可
+   - 首轮 approved 面保持：B3a/B3b/B2/审计双锚点/总览加列未被修复触碰（git diff 核对）
+   - BDD-13：check-gate.py 返回逻辑零改动（仅头注释）
+2. **评审标准 = review 角色 + P4 卡片**（已注入）。实质锚点要求不变（引用文件/函数/BDD）。
+3. **测试质量**：新增健康任务 exit:2 推进 + judge Fix C 反向场景是真验证（非 mock 掉被测）？
+   BDD-26 gate_pass_exit 断言真对照 check-gate return？
+4. **若修复引入新问题** → 如实标 needs-revision/rejected；全部闭合 → approved。
 
 ### 上游关联
 
-- P2-design.md（§3.5 agate-dispatch CLI 契约 + CARD-SOURCE 块外 / §3.6 审计 2 双锚点剥离 +
-  消费方同步面；§4.2 files_to_read 导航）
-- P3-test-cases.md + P3 测试（test_tag0027_b2_*.py 9 用例 = 本批 TDD 红灯，含 BDD-18/19/20/21/
-  23/25 覆盖 + A2 锚点）
-- P1-requirements.md（BDD-18/19/20/21/23/25 语义权威）
-- P2-review.md（approved：A2 CARD-SOURCE 块外 + 三处消费方同步）
+- P4-review.md（首轮 rejected：CRITICAL-1/2 实证 + Fix A/C + DEVIATION + 测试盲区）——复审基准
+- P4-dispatch-context-implementer-exit2fix.md（修复目标清单）
+- P2-design.md（修正版 §3.1/§3.3/§3.4——修复依据）
+- P1-requirements.md（回改后 26 BDD：BDD-6/8/11/12/26）
+- P2-review.md（exit2fix 复审 approved）
 
-### 输入文件（按顺序读，读代码以 P2 §4.2 files_to_read 为准）
+### 输入文件（按顺序读）
 
-1. `agate-workspace/tasks/TAG0027-orchestration-semantics/P2-design.md`（§3.5/§3.6 精读）
-2. `agate-workspace/tasks/TAG0027-orchestration-semantics/P3-test-cases.md`（B2 批用例语义）
-3. `agate/tests/unit/test_tag0027_b2_*.py`（2 文件 9 用例——本批 TDD 目标，逐个读）
-4. `agate/scripts/agate-next-card.py`（子进程复用对象——dispatch 调它取卡片 stdout）
-5. `agate/scripts/agate-inject-card.py` / `agate-card-inject.py`（既有注入链参照——新 dispatch
-   与它们的关系）
-6. `agate/scripts/check-p6-provenance.py:318-355`（审计 2 剥离逻辑改动点）
-7. `agate/assets/templates/dispatch-context.md`（模板兼容结构——渲染骨架）
-8. `agate/scripts/pre-commit-gate.py:171-189`（_extract_card 抽取区间——确认 CARD-SOURCE 块外
-   兼容，按需）
-9. `agate/scripts/agate_common.py`（公共函数：split_frontmatter 等，按需）
-10. `agate/tests/unit/test_agate_next_card.py` 或同类（测试风格参照，按需）
-11. `AGENTS.md`（项目约定）
+1. `agate-workspace/tasks/TAG0027-orchestration-semantics/P4-review.md`（首轮 rejected，Fix 基准）
+2. `agate/rules/phases.yaml` + `agate/rules/schema/phases.schema.json`（gate_pass_exit 落地核对）
+3. `agate/scripts/agate-next.py`（pass_set 判定核对——重点 main()）
+4. `agate/scripts/check-judge-verdict.py`（Fix C 谓词核对——重点 _check_exit2_resolution）
+5. `agate/scripts/check-gate.py`（头注释核对——返回逻辑零改动）
+6. `agate/tests/unit/test_tag0027_b1_agate_next_cli.py` / `test_tag0027_b1_judge_exit2_review.py`
+   / `test_tag0027_b1_phases_transfer_fields.py`（新增测试核对）
+7. `git diff`（工作区：exit2fix 改动 vs 首轮 review 后状态——确认只改修复文件）
+8. `agate-workspace/tasks/TAG0027-orchestration-semantics/P4-progress.md`（exit2fix 轮记录）
+9. `AGENTS.md`（项目约定）
 
-> ⚠️ 协议文件读 worktree 自己的 `agate/`。**不 commit**（主 Agent 统一 commit）。
+> ⚠️ 读 worktree 自己的 `agate/`。**不改任何文件**（只读评审）。
 
 ### 产出文件字段
 
-- 代码改动 = worktree `agate/` 下文件（本批独占清单）。改动记录追加 P4-progress.md（新增/
-  修改文件 + 每文件一句摘要 + 测试结果）。
+产出 `P4-review.md`（覆盖首轮——终局复审结论）。Header status 用 agate-md-field-set 写。
 </dispatch_guide>
 
 <!-- AGATE_CARD_START -->
@@ -273,20 +250,19 @@ check-gate.py P4 $TASK_DIR
 - worktree 根 = `/home/kity/oclab/agateon/.worktrees/agate-TAG0027`（分支
   feat/TAG0027-orchestration-semantics）
 - 任务目录 = `agate-workspace/tasks/TAG0027-orchestration-semantics/`
-- 协议本体（改造对象）= worktree 的 `agate/`
-- 测试基线：pytest 1311（本批前）+ 本批 9 新用例；环境 python 3.12.3 / pyyaml 6.0.1
+- 协议本体（只读）= worktree 的 `agate/`
 
-### B. B2 批测试（9 用例）转绿目标速查
-- agate_dispatch（6）：单命令产物含完整卡片块 + generated_by: agate-dispatch.py +
-  CARD-SOURCE 在 AGATE_CARD_START 之前（块外）→ 2p hash 兼容；手工路径回归
-- audit2_dual_anchor（3）：渲染产物含 PASS/FAIL 模板（CARD-SOURCE 在 START 前）→ audit2
-  exit 0（CARD-SOURCE 行 + START 均在剥离区间不误报）；手工注入文件 → audit2 exit 0（物理块
-  兜底回归）
-
-### C. 新增脚本命名
-- `agate-dispatch.py`（新渲染时注入单命令）——与既有 agate-inject-card.py /
-  agate-render-dispatch-prompt.py 区分（dispatch = 渲染时注入新主路径；inject-card = 手工兜底；
-  render-dispatch-prompt = dispatch-prompt 模板渲染独立场景）
+### B. exit2fix 修复内容（复审核对项）
+1. phases.yaml 10 条目 gate_pass_exit：P0-P3/P5/P6/P8=2、P4/P7/P6.5=0（P2 §3.1 实证表）
+2. schema items required 含 gate_pass_exit（enum [0,2]）
+3. agate-next.py main()：rc ∈ pass_set → _advance 直推；rc=1 → _delegate_retreat；
+   真暂停（rc ∉ pass_set 且 ≠1）→ _write_exit2_resolution——健康任务 P5 exit 2 直推 P6
+   （实测）+ P6 条件式 gate_p65 前置保持
+4. check-judge-verdict _check_exit2_resolution Fix C：glob 找 {phase}-exit2-resolution.md →
+   校验 frontmatter/节；找不到不报错——健康任务账本 exit:2 无文件 → judge 通过（实测）
+5. check-gate.py 头注释 exit 2 语义补充（R8），返回逻辑零改动
+6. 测试：B1 批 25（含健康 exit:2 直推 + Fix C 反向 + BDD-26 对照）+ tag0027 全批 48 + 基础
+   回归 295 无回归
 </objective_info>
 
 > 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

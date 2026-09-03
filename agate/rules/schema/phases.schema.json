@@ -13,7 +13,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "name", "exec_role"],
+        "required": ["id", "name", "exec_role", "gate_pass_exit"],
         "properties": {
           "id": {
             "type": "string",
@@ -85,6 +85,10 @@
               }
             },
             "additionalProperties": false
+          },
+          "gate_pass_exit": {
+            "type": "integer",
+            "enum": [0, 2]
           }
         },
         "additionalProperties": false

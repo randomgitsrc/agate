@@ -237,6 +237,10 @@ agate 的标准模式假设主 Agent 所在平台支持派发 subagent。若运�
    - env_constraints.debug_env：是否从项目约定（CLAUDE.md）读取了具体路径/命令
    任一字段为空占位符状态 → 补完再继续。
 
+> 实现注记：上文 `task` 指 P0-brief 的 frontmatter 机器字段名（YAML 键，含该字段值的自查标准），
+> 非平台派发工具指代——协议语义不绑定平台工具名，主 Agent 派发 subagent 的工具命名各平台不同
+> （见 dispatch-protocol.md「派发的三条铁律」注记）。
+
    P0-brief 完成后，第一步输出只允许两种内容之一：
    a) 派发 P1 analyst（传入 P0-brief.md 路径作为主要输入）
    b) 判断为微/小任务并声明「直接执行」的理由

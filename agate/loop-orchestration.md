@@ -202,7 +202,11 @@ LOOP:
 1. **先跑通档位 A**（手动逐步），验证派发协议和角色都正常工作
 2. **再上档位 B**（半自动），验证门槛判定和重试逻辑
 3. **最后才用档位 C**（/loop 全自动），且先用 `--until` 限制范围小步验证
-4. **前提**：先确认 OpenCode 自定义角色能被 task 工具调起来（见 dispatch-protocol.md 平台适配的 issue #29616）
+4. **前提**：先验证当前平台能调起自定义角色（平台派发能力差异见下注记）
+
+> 实现注记：第 4 条为平台适配前提——自定义角色能否被派发工具调起随平台而异（如 OpenCode
+> 自定义角色需实测能否被 task 工具调起来，issue #29616 记录见 dispatch-protocol.md 平台适配
+> 说明）；协议层语义不绑定任何平台工具名，一律以"派发 subagent"为准。
 
 不要一上来就全自动。先证明每个部件可靠，再串成自动循环。
 
@@ -236,15 +240,18 @@ v4 层级约定：主 Agent（L0）→ 执行/评审 subagent（L1），不依�
   ├─ subagent 完成任务，commit wf(Txxx-P4)
   │    └─ pre-commit hook 触发
   │         ├─ exit 0（通过）→ 主 Agent 运行 agate next {TASK_DIR} 推进到下一 phase
-  │         │     └─ agate next 内部：check-gate exit 0 → 按 phases.yaml next 更新
-  │         │        .state.yaml phase + git add + state_transition 事件
-  │         │        （只 add 不 commit——跳变合法性由下一 commit 的 pre-commit 校验）
+  │         │     └─ agate next 内部：check-gate exit ∈ gate_pass_exit（该 phase 的通过出口
+  │         │        码，多数 phase = 2）→ 按 phases.yaml next 更新 .state.yaml phase + git
+  │         │        add + state_transition 事件（只 add 不 commit——跳变合法性由下一
+  │         │        commit 的 pre-commit 校验；exit 2 是多数 phase 正常通过码 ∈ pass_set，
+  │         │        直推不是暂停）
   │         ├─ exit 1（拦截）→ 主 Agent 分析错误并修复后重试；
   │         │     若确认该阶段 gate 判负（check-gate exit 1）→ agate next 自动走
   │         │     retreat 分支（按 phases.yaml retreat 表值委托 agate-retreat-to.py 逐阶回退）
-  │         └─ exit 2（需主 Agent 自判）→ 主 Agent 运行 agate next：非 P6 落盘
-  │               {phase}-exit2-resolution.md（暂停转主 Agent，不自动 retry）；P6 走
-  │               前进特例（judge 复核裁决，见下）
+  │         └─ exit ∉ gate_pass_exit 且 ≠ 1（真暂停/异常，协议实际极少）→ 主 Agent 运行
+  │               agate next：落盘 {phase}-exit2-resolution.md（暂停转主 Agent，不自动 retry）；
+  │               P6 前进特例：exit 2 ∈ pass_set（gate_p6 通过码）但推进前置 judge 复核裁决
+  │               （gate_p65 exit 0 才直推 P7），见下
   └─ push → CI backstop 重跑 gate（捕获 --no-verify 绕过）
 ```
 

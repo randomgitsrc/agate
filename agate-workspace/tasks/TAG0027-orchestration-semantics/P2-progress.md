@@ -233,3 +233,78 @@ P1 评审 4 条：① BDD-10 示例修正 P6→P4；② task 禁词词边界+字
 - P2-review.md 已产出（94 行非空，覆盖首轮文件）；status=approved 经 agate-md-field-set 写入（agent=plan-eng-review）；check-frontmatter.py exit 0。
 - 结论：approved（A1/A2/A3/B1/B2/B3 六项全部闭合 + §5 测试缺口 3 条补锚点确认 + 修复波及节连贯性抽查通过 + 无新矛盾）；遗留事项 0（仅 P1 BDD-10 Given 回改为主 Agent 跟进项，非 P2 缺陷）。
 - [PROD_NOT_TOUCHED]：复审轮仅只读 worktree agate/ 协议文件（核实修复真实性），写任务目录 P2-progress.md / P2-review.md，未改动任何协议本体文件。
+
+## exit2 修正轮（architect exit2fix 子 Agent）开工
+- 时间：2026-09-03
+- 触发：P4 review rejected（CRITICAL-1/2 exit 2 双义语义错误前提）→ P2 定点修订
+- 已读：P2-dispatch-context-architect-exit2fix.md、execution-roles/architect.md、P4-review.md
+- 下一步：读 P2-design.md 现文 → P1 BDD-6/8/9/11/12
+## exit2 修正轮 · 输入读完 + 实证核对
+- 已读：P4-review.md（CRITICAL-1/2 + Fix A/B/C + DEVIATION-1/2 + 锁定正确面）、P2-design.md 现文 498 行全读、P1-requirements.md BDD-1~25、上轮 dispatch-context（-retry1.md）约束沿用。
+- 实证核对（check-gate.py worktree 版）：
+  - gate_p0 L577 return 2（恒 2）；gate_p1 L698 return 2；gate_p2 L883 return 2；gate_p3 L892 return 2；
+    gate_p5 L1048 return 2；gate_p6 L1093 return 2（FAIL=0/证据非空）；gate_p8 L1376 return 2。
+  - gate_p4 L990 return 0（暂存含代码文件）；L913 缺 agent WARNING 也 return 2；main L1396 回退抵达 sys.exit(2)。
+  - gate_p65 L1110/1120 return 0；gate_p7 L1241 return 0。
+  - pre-commit-gate.py L356-367：每次成功 commit append gate_run{cmd:"check-gate.py {phase}", exit}——正常通过 commit 记 exit:2/0 均有。
+- check-judge-verdict.py L326-379 现谓词实证：`exit==2 and phase.startswith("P") and phase!="P6"` → 强制要求 resolution 文件（CRITICAL-2 根因）。
+- check-protocol-consistency.py CHECK 14（L1231-1263）：`md_dir.glob("*.md")` 只扫 agate/ 顶层（DEVIATION-2 实证：assets/ 不在扫描面）。
+- phases.yaml 现文：9 主线 + P6.5 条目均无 gate_pass_exit（待加）；schema 无 if/then/not（DEVIATION-1 实证）。
+- 下一步：逐修正点修订 P2-design.md §3.1/§3.3/§3.4/§3.7/§5/§7 + DEVIATION-1/2 决策 + §9 回改清单。
+## exit2 修正轮 · 修正点 1/5（§1 影响面 + R5/R12 + §2 候选描述）
+- §1.1 Modify：phases.yaml 9 主线增 gate_pass_exit 键；P6.5 条目 gate_pass_exit: 0；schema 声明 4 新键（gate_pass_exit 全局 required）。
+- R5/R12 风险行按新语义改写（pass_set 直推 / 真暂停才落盘）。
+- §2 候选 A exit-2 形态描述 = gate_pass_exit 消费 + 真暂停落盘（Fix A 方向）。
+- 下一步：§3.1 gate_pass_exit 字段定案 + exit 三态判定重写。
+## exit2 修正轮 · 修正点 2/5（§3.1 gate_pass_exit 定案）
+- §3.1 D1-A：9 主线 + P6.5 全部新增 gate_pass_exit 键；逐 phase 出口码表（P0-P3/P5/P6/P8=2、P4/P7/P6.5=0，实证 return 位置标注）。
+- 明确"exit 2 = 主 Agent 自判下一步"信号语义 ≠ 暂停；真暂停（∉ pass_set 且 ≠ 1）极少，落盘 resolution。
+- Fix B（P0-P3/P5/P8 改 exit 0）否决：BDD-13 禁止面扩大 + 账本历史不可迁移；Fix A（消费方声明）采纳。
+- schema 声明改四键：next/retreat/gate_subphase/gate_pass_exit（enum [0,2] + 全局 required，规避 if/then 子集不支持——DEVIATION-1 决策前置）。
+- P6 条件式裁决表述校准（exit 2 ∈ pass_set → 条件式推进，非"exit 0 直推不可达"）。
+- 下一步：§3.3 judge 复核谓词校准（Fix C 定案）。
+## exit2 修正轮 · 修正点 3/5（§3.3 judge 谓词 Fix C + §3.4 exit 三态重写）
+- §3.3：触发面收窄（真暂停才落盘，exit ∈ pass_set 不落盘）；复核挂载改 Fix C——谓词按 resolution 文件存在性驱动（存在才校验格式/完整性 + 与账本对应；不存在 = 未真暂停 → 不要求文件，健康任务不误拦）；Fix C vs Fix B 等价性说明 + 采纳 Fix C 理由（落盘场景唯一驱动、实现面小、与 agate-next 单一来源）。
+- §3.4：agate-next 判定重写为 pass_set 三态——exit ∈ gate_pass_exit → 直推（P6 条件式分支 gate_p65 前置；普通 phase 直接推进，P0-P3/P5/P8 exit 2 全程可推进）；exit 1 → retreat 委托；真暂停（∉ pass_set 且 ≠ 1）→ 落盘 resolution + 转主 Agent。备选形态补 c/d（否决旧 exit-2-一律暂停语义 / 泛化条件式门槛）。
+- 下一步：§3.7 档位 C + §3.8 语义叙述 + DEVIATION-1/2 决策节。
+## exit2 修正轮 · 修正点 4/5（§3.7 档位 C + §3.9 DEVIATION-1/2 决策）
+- §3.7：档位 C 语义校准——exit ∈ gate_pass_exit → 直推（健康任务 P0-P3/P5/P8 exit 2 全程可推进，BDD-11 可达成）；真暂停才停 PAUSED + 落盘；可观测证据表述改 gate_run exit ∈ pass_set 后跟 state_transition。
+- §3.9（新增）：DEVIATION-1 范围决策 = schema if/then 不落地 → gate_pass_exit 全局 required + 数据面断言（P6.5 无 next/retreat、主线三键齐全）+ S-1 负面形态承载，记 [DESIGN_GAP] 立项，不扩校验器子集；DEVIATION-2 范围决策 = assets 清理一次性（B3a 已清），CHECK 14 扫描面不扩 assets/（避免误伤 dsh/ 豁免 + B3b 返工），记录为范围决策。
+- 下一步：§5 BDD 映射表（BDD-6/8/9/11/12 + BDD-2/13 关联）+ §6③ + §7 完成标志 + §9 回改清单。
+## exit2 修正轮 · 修正点 5/5 进行中（§5 BDD 映射表更新）
+- BDD-1：三键齐全（含 gate_pass_exit ∈ {0,2}）。
+- BDD-2：P6.5 反例改数据面断言承载（DEVIATION-1）。
+- BDD-6/8/9/11/12：映射表更新到修正语义——
+  BDD-6 exit ∈ pass_set 直推（含 P0-P3/P5/P8 exit 2 通过直推锚点 CRITICAL-1）；
+  BDD-8 触发面收窄真暂停（正常通过 exit 2 反向断言不落盘）；
+  BDD-9 P6 条件式推进；BDD-11 健康任务 exit 2 直推全程达成；
+  BDD-12 Fix C（存在才校验 + 健康任务反向不误拦 CRITICAL-2 盲区补测）；
+  BDD-13 gate_pass_exit 只声明不改 exit 语义。
+- 下一步：§6③ 修订（DEVIATION-2 决策对齐）+ §7 完成标志 + P1 回改清单/新 BDD 草案。
+## exit2 修正轮 · 修正点 5/5 完成（§6③/§7/§9/联动面 + 收尾自检）
+- §6③：三面并陈修订（assets 清理 = 一次性，CHECK 14 扫描面不扩 assets——DEVIATION-2 决策对齐）。
+- §7 完成标志：exit code 消费闭环（CRITICAL-1）+ judge Fix C（CRITICAL-2）+ schema 反例改数据面断言（DEVIATION-1）+ assets 一次性（DEVIATION-2）表述更新。
+- §9（新增）：P1 回改清单 8 条（R1-R8：需求复述/诚实边界/BDD-6/8/11/12/13 语义修正）+ 新 BDD-26 草案（gate_pass_exit 机器字段 1 条）+ 下游改动面联动（schema/WORKFLOW 加列决策/judge 谓词/S-1 范围/check-gate 头注释/P3 测试点）。
+- 联动面更新：§1.1 Modify（agate-next pass_set + check-judge-verdict Fix C）、files_to_read、minimal_validation ①②⑦⑧ + note（CRITICAL 盲区补测）、B1 批边界、§3.2 gate_pass_exit 不加列注释、§3.5/§3.8 行号引用清理、§3.1 schema 声明 §3.10→§3.9 指针修正。
+- 自检：frontmatter check exit 0；5 个 yaml 块全解析 OK；旧语义残留扫描 0 命中（exit 0 直推/非 P6 落盘/两键/§3.10 等）；Fix C ×12 / CRITICAL-1 ×12 / CRITICAL-2 ×3 引用在位。
+- [PROD_NOT_TOUCHED]：exit2 修正轮只改任务目录 P2-design.md / P2-progress.md，未触碰协议本体 / 主 checkout / ~/.agate。
+
+## exit2 复审轮（plan-eng-review exit2fix）开工
+- 时间：2026-09-03
+- 输入：dispatch-context-plan-eng-review-exit2fix.md + P4-review.md（CRITICAL-1/2 Fix A/B/C + DEVIATION-1/2）+ P2-progress.md exit2fix 轮记录
+- 任务：核对 exit2 语义修正闭合度，产出 P2-review.md 终局判定
+- 下一步：全读 P2-design.md 修正版 + P1-requirements.md 回改版
+
+## exit2 复审逐项核对（plan-eng-review exit2fix，5 核对块）
+- **CRITICAL-1 Fix 闭合**：§3.1 gate_pass_exit 逐 phase 出口码表（151-167）实证行号与 worktree check-gate.py 全吻合（gate_p0 L577 / p1 L698 / p2 L883 / p3 L892 / p5 L1048 / p6 L1093 / p8 L1376 return 2；p4 L990 / p65 L1110+L1120 / p7 L1241 return 0）；§3.4 pass_set 三态判定重写（exit ∈ pass_set → 直推含 P0-P3/P5/P8 exit 2 全程可推进；exit 1 → retreat 委托；真暂停 ∉ pass_set 且 ≠ 1 才落盘）与 BDD-6/8/11 反向断言锚点自洽；Fix B 否决理由（BDD-13 + 账本历史不可迁移）成立；gate_p6/gate_p65 函数体实读确认（p6 恒 return 2 无 exit 0 分支、p65 内部 = verdict 存在 + judge-verdict/check-events 双脚本）——§3.1 P6 条件式裁决叙述与代码一致。
+- **CRITICAL-2 Fix 闭合**：§3.3 judge 复核谓词 Fix C（272-287：文件存在性驱动——存在才校验格式/完整性 + 与账本对应；不存在 → 不要求文件健康任务不误拦；P6 exit 2 条件式推进不落盘）语义自洽；Fix C vs Fix B 等价性 + 采纳理由（落盘场景单一来源、实现面小）充分；BDD-12 语义调整（R6 Given 收窄真暂停 + R7 Then Fix C）与 §3.3 一致；check-judge-verdict.py 现文旧谓词（L32-34/326+）正是 P4 待修对象，与 Modify 声明相符。
+- **DEVIATION-1/2 决策记录闭合**：§3.9 DEVIATION-1 = schema if/then 不落地 → gate_pass_exit 全局 required（纯 required 子集支持）+ 数据面 pytest 断言（P6.5 无 next/retreat + 主线三键齐全）+ S-1 P6.5 负面形态承载 + [DESIGN_GAP: ...] 内联立项（走 P7 配对机制）——不扩 check-yaml-schema 子集的理由（回归面）记录完整；§3.9 DEVIATION-2 = assets 清理一次性（B3a 已清 architect.md:229/custom-role.md:49-56 注记），CHECK 14 扫描面维持 agate/*.md 顶层不扩 assets/（避免误伤 dsh/ 豁免 + B3b 返工）——范围决策 + §6③/§7/R8 对齐。
+- **P1 回改一致性**：R1（需求复述 L52-60）/R2（诚实边界 L85-91）/R3（BDD-6 L149）/R4（BDD-8 L159）/R5（BDD-11 L176）/R6（BDD-12 Given L179）/R7（BDD-12 Then L181）/R8（BDD-13 L186）逐条与 P2 §3.1/§3.3/§3.4/§5 语义一致，均带 [BASELINE_CHANGE: ... 主 Agent 显式批准] 标注；BDD-26 新增（L254-257）与 P2 §9.2 草案逐字一致。**发现 1 处回改遗漏（非 BDD）**：P1 I-5 隐含需求行（L101）"exit 2 分支不能按 next 直推（多数阶段暂停转主 Agent；P6 例外直通 P6.5）"——括号解释为 CRITICAL-1 推翻的旧前提残余，与 BDD-26/BDD-6 修正语义直接冲突（exit 2 ∈ pass_set 恰按 next 直推），无 [BASELINE_CHANGE] 标注。
+- **已 approved 部分未推翻**：候选 A（§2）+ 8 决策面形态（除 exit2 修正波及节）+ WORKFLOW 加列（§3.2）+ B3a/B3b 处置面保持；gate_pass_exit 不加列注释（§3.2 223-226）与 S-1 比对范围（next/retreat 4/5 列）自洽。
+- **I-5 残留定性**：隐含需求表「为什么必须」说明列 vs BDD 正文——非验收条件、不阻塞 P4 实现（BDD 为权威），修复 = 主 Agent [BASELINE_CHANGE] 微修一行措辞，非 P2-design 缺陷、不需 architect 再修 → 按 retry1 对 P1 BDD-10 同例处理：approved + 遗留跟进项。
+
+## exit2 复审收尾（plan-eng-review exit2fix）
+- P2-review.md 已产出（终局，覆盖前版）；status=approved 经 agate-md-field-set 写入（agent=plan-eng-review）；check-frontmatter 自检见下。
+- 结论：approved（CRITICAL-1/2 Fix 全部落实 + DEVIATION-1/2 决策已记录 + P1 R1-R8/BDD-26 回改一致 + 已 approved 部分未推翻 + 无新矛盾）。
+- 遗留跟进项 1（非 P2 缺陷）：P1 I-5 隐含需求行 L101 旧前提措辞残留（exit 2 暂停表述），主 Agent [BASELINE_CHANGE] 微修一行，同 R1/R3 批。
+- [PROD_NOT_TOUCHED]：仅写任务目录 P2-progress.md / P2-review.md，未改任何协议本体文件。

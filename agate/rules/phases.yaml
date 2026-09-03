@@ -10,6 +10,13 @@
 # YAML 侧锚点；check-yaml-schema.py S-5 校验本文件过 schema。
 
 schema_version: 1
+# gate_pass_exit：每 phase 声明的「检查通过」出口码（值 ∈ {0, 2}，TAG0027 BDD-26）。
+#   语义（P2 §3.1 实证，CRITICAL-1 修正）：check-gate.py 的 exit 2 是多数 phase（P0-P3/P5/P6/P8）
+#   的正常通过码（gate_p0 L577 / p1 L698 / p2 L883 / p3 L892 / p5 L1048 / p6 L1093 / p8 L1376
+#   return 2 实证），exit 0 是 P4/P7/P6.5 的通过码（p4 L990 / p7 L1241 / p65 L1110/1120 return 0）。
+#   agate-next.py 按 pass_set 三态消费：exit ∈ gate_pass_exit → 直推（exit 2 正常通过不落盘
+#   resolution）；exit 1 → retreat 委托；exit ∉ pass_set 且 ≠ 1（真暂停/异常）→ 才落盘
+#   {phase}-exit2-resolution.md。P6 的 exit 2 ∈ pass_set 为条件式推进（前置 gate_p65 裁决）。
 phases:
   - id: P0
     name: 任务简报
@@ -22,6 +29,7 @@ phases:
     task_fields: []
     next: P1
     retreat: null
+    gate_pass_exit: 2
   - id: P1
     name: 需求基线
     exec_role: analyst
@@ -35,6 +43,7 @@ phases:
     task_fields: [risk_level, phases, packages, domains]
     next: P2
     retreat: null
+    gate_pass_exit: 2
   - id: P2
     name: 方案设计层
     exec_role: architect
@@ -49,6 +58,7 @@ phases:
     task_fields: [candidate_count, packages, domains, ui_affected, gate_commands]
     next: P3
     retreat: null
+    gate_pass_exit: 2
   - id: P3
     name: 测试设计
     exec_role: test-designer
@@ -62,6 +72,7 @@ phases:
     task_fields: [test_code_dir]
     next: P4
     retreat: null
+    gate_pass_exit: 2
   - id: P4
     name: 代码实现
     exec_role: implementer
@@ -75,6 +86,7 @@ phases:
     task_fields: [implementation_dir]
     next: P5
     retreat: null
+    gate_pass_exit: 0
   - id: P5
     name: 技术验证
     exec_role: verifier
@@ -87,6 +99,7 @@ phases:
     task_fields: []
     next: P6
     retreat: P4
+    gate_pass_exit: 2
   - id: P6
     name: 验收
     exec_role: verifier
@@ -100,6 +113,7 @@ phases:
     task_fields: [pass, fail, ui_affected]
     next: P7
     retreat: P4
+    gate_pass_exit: 2
   # 注：P6.5 是挂载于 P6→P7 转移的强门槛子阶段，不是与 P0-P8 平级的独立 phase 值
   # （.state.yaml 的 phase 字段保持 P6 直至 P7）；本条目结构化声明其产出/门槛/重试上限，
   # 供 check-gate.py P6.5 分发与 CLI 调用，口径详见 state-machine.md「状态机定义」节。
@@ -120,6 +134,7 @@ phases:
       hosted_on: P6
       forward_to: P7
       needs_revision_to: P6
+    gate_pass_exit: 0
   - id: P7
     name: 一致性检查
     exec_role: consistency-reviewer
@@ -132,6 +147,7 @@ phases:
     task_fields: [blocker_count, deviation_count, deviation_critical_count, design_gap_count, design_gap_reviewed_count]
     next: P8
     retreat: null
+    gate_pass_exit: 0
   - id: P8
     name: 发布准备
     exec_role: implementer
@@ -146,3 +162,4 @@ phases:
     task_fields: [bump_type]
     next: null
     retreat: null
+    gate_pass_exit: 2
