@@ -109,9 +109,9 @@ python3 -m pytest agate/tests/unit/test_{具体测试文件}.py
 
 ## 8. 完成后
 
-- P8 gate + READY → 提 PR（PR 普通 merge 非 squash，tag 要求——但**不自行 git-to-main**，merge 由主 Agent 执行）
+- P8 gate + READY → 提 PR（PR 普通 merge 非 squash，tag 要求）；PR 提出后主 Agent review 复核，**CI 全绿后 worktree 自行 git-to-main**
 - **合并前在 PR 里看 CI 结果**——pytest/shellcheck/consistency/gate-backstop 全绿才算过
-- **merge 模式：本任务 PR 完成后由主 Agent 综合 merge**（三路并行 TAG0029/30/31，不自行 git-to-main）
+- **merge 模式：worktree 自行 git-to-main**（三路并行 TAG0029/30/31，文件域已隔离互不冲突；PR review 由主 Agent 复核）
 - roadmap 回写 RM-AG0056 → done；DEBT0023/0027 登记关闭（closure_criteria 逐条核验）
 - 复盘按 agate 自身变更流程归档（合并后在主 checkout 写复盘 + 更新 roadmap/版本）
 
