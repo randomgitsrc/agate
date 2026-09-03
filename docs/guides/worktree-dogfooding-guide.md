@@ -128,7 +128,7 @@ git log --oneline -3   # 确认交接单已提交
 
 然后切到 worktree 目录，新开 session。
 
-**⚠️ 启动入口（HANDOFF 读取盲点）**：orchestrator 的默认启动流程读的是 `{AGATE_WORKSPACE}/tasks/active-tasks.md` + `.state.yaml`（orchestrator-template.md），**并不会自动读 HANDOFF**。所以必须在新 session 的首条指令里显式写"**读 worktree 根 `HANDOFF-{Txxx}.md`**"（认准当前任务号——仓库根会积累历史 `HANDOFF-TAG0xxx.md`，别读错；且本任务分支未合并前，其 HANDOFF 只存在于本 worktree、不在 main）。若 agent 没读 HANDOFF，它仍能按默认流程从 active-tasks.md + P0-brief 启动（handoff 是"快捷入口"而非"必需"），但缺陷清单/核心约束/阶段纪律会缺失。
+**⚠️ 启动入口（HANDOFF 读取盲点）**：orchestrator 的默认启动流程读的是 `{AGATE_WORKSPACE}/tasks/active-tasks.md` + `.state.yaml`（orchestrator-template.md），**并不会自动读 HANDOFF**。所以必须在新 session 的首条指令里显式写"**读 worktree 根 `HANDOFF-{Txxx}.md`**"（认准当前任务号——已完成任务的 HANDOFF 应已归档到 `agate-workspace/archived/plans/`，仓库根通常不残留历史交接单；且本任务分支未合并前，其 HANDOFF 只存在于本 worktree、不在 main）。若 agent 没读 HANDOFF，它仍能按默认流程从 active-tasks.md + P0-brief 启动（handoff 是"快捷入口"而非"必需"），但缺陷清单/核心约束/阶段纪律会缺失。
 
 ## 关键纪律（违反必出事故）
 
@@ -144,12 +144,19 @@ git log --oneline -3   # 确认交接单已提交
 ## 完成后清理
 
 ```bash
-# 任务合并 main 后
+# 任务合并 main 后，先归档 HANDOFF（HANDOFF 已被 git 跟踪且随 PR 并入 main，是 main 的正式文件——
+# 不归档则仓库根累积历史 HANDOFF-TAG0xxx.md。TAG0028 漏归档实证：worktree 清理只删分支，
+# HANDOFF 留在 main 根直到后续任务从 main checkout 时被带进新 worktree）
+git mv HANDOFF-{Txxx}.md agate-workspace/archived/plans/HANDOFF-{Txxx}.md
+git commit -m "chore(workspace): HANDOFF-{Txxx} 归档至 archived/plans（任务已完成 PR 合并）"
+# 走 PR 合并归档 commit（与代码合并同批或紧随其后，确保 main 根不残留）
+
 # worktree 有未追踪残留（P5 日志等）时 remove 会拒删——确认已合并 main 后加 --force
 git worktree remove .worktrees/agate-{Txxx} --force
 git branch -D feat/{Txxx}-{slug}
 # 若 PR 未自动删远端分支：
 # git push origin --delete feat/{Txxx}-{slug}
+# 收尾自检：主 checkout 根 `ls HANDOFF-*.md` 应为空（归档 + 清理后不残留）
 ```
 
 ## 与 AGENTS.md 的关系
