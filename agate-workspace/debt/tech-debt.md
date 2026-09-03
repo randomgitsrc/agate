@@ -1082,3 +1082,40 @@ source: review
 created_at: 2026-09-04
 task_id: TAG0031
 ```
+
+## DEBT0030
+
+```yaml
+id: DEBT0030
+category: technical
+title: "P6.5 judge dispatch-context 白名单/P8 多路并行版本协调两处协议文档完善（TAG0031 复盘发现）"
+status: open
+priority: low
+evidence:
+  - path: agate-workspace/tasks/TAG0031-debt-cleanup/retrospective.md
+    note: "「发现的问题」节两条机制缺口：① P6.5 judge dispatch-context 白名单（仅
+      p1-requirements.md/p2-design.md/.state.yaml/gate-events.jsonl/p6.5-judge-verdict.md
+      五个固定文件名，不含 gate-diagnosis.md）只定义在 check-judge-verdict.py 源码常量里，
+      未在 P6-acceptance.md 卡片或 dispatch-protocol.md「Judge 信息隔离」节显式列出完整清单，
+      也未提示「示例代码块里的字面 PASS/FAIL 文本同样受全文预判扫描约束」这一反直觉细节——本次
+      任务撰写 P6.5-dispatch-context-judge.md 两次踩坑（白名单外文件引用 + 预判扫描误伤示例）；
+      ② P8 卡片未覆盖多个并行任务共享 CHANGELOG.md/README 版本徽章/git tag 序列时应如何协调
+      版本号——三路并行（TAG0029/30/31）场景下产生了错误的初始假设（延后到合并后统一处理），
+      与兄弟任务 TAG0029 已独立完成标准 P8 流程并合并 main 的实际情况不符，导致 P8 阶段中途
+      改变策略（补做 git merge origin/main + 重新规划版本号 v0.67.2）"
+impact: 后续任务撰写 P6.5 dispatch-context 时可能重复踩同样的白名单/预判扫描坑，产生额外的
+  格式修正轮次（本次消耗 2 轮纯格式修正，判定内容未变但增加了派发/验证开销）；后续多路并行批次
+  的 P8 阶段可能重复本次"临场推测版本协调策略、与实际不符再补救"的低效路径
+recommendation: ① `agate/phase-cards/P6-acceptance.md`（或专门的 P6.5 小节）补充完整白名单
+  清单 + "gate-diagnosis.md 不在白名单内，示例文本也受预判扫描约束"的显式提示；
+  `agate/dispatch-protocol.md`「dispatch-context 规范」节补一条"含示例代码块时同样要避免行首
+  PASS/FAIL 字面文本，可用占位符替代"的具体注意事项；② `agate/phase-cards/P8-release.md` 补
+  "多路并行发布协调"节，建议 bump-version 前先同步主分支最新状态确认版本号资源未被占用
+closure_criteria:
+  - P6-acceptance.md 或 dispatch-protocol.md 补齐 P6.5 白名单完整清单 + 示例文本预判扫描提示
+  - P8-release.md 补充多路并行版本协调检查项
+  - 全量 pytest + consistency 0 ERROR
+source: retrospective
+created_at: 2026-09-04
+task_id: TAG0031
+```
