@@ -1,0 +1,4 @@
+===== BDD-26 审计豁免 CLI 实跑 =====
+--- 构造含 .heartbeat / .heartbeat.child-1 的任务目录并跑 check-p6-provenance ---
+provenance_exit=0
+EXIT_CODE: 0

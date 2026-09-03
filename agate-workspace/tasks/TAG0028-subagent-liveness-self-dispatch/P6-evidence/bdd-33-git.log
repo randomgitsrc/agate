@@ -1,0 +1,7 @@
+===== BDD-33 gate 脚本未改 git 检查 =====
+--- 34366ab..HEAD 改动的非任务目录文件 ---
+--- check-gate.py / check-state-transition.py / rules 是否被本任务改动（期望空）---
+gate_script_changes_exit=0 (0 且上方无输出=未改动)
+--- 审计7 复用判定：P5→P6 间非产出改动（排除 tasks/）---
+audit7_non_prod_commits_above (空=reuse_allowed)
+EXIT_CODE: 0

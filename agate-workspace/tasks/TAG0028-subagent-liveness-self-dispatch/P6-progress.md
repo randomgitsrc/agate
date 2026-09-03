@@ -1,0 +1,36 @@
+## P6-progress — verifier subagent（TAG0028）
+
+- [ok] 读 P6-dispatch-context-verifier.md（33 BDD 逐条验收、ui_affected=false、证据=P6-evidence/、复用 P5 证据 34366ab、[PROD_NOT_TOUCHED]）
+- [ok] 读 verifier.md（P6 验收模式：先验证后结论、PASS/FAIL 二值、证据引用、自查≠gate）
+- [ok] 读 P0-brief.md（命令流日志机制四 phase 范围、SELF-GATE、DSH 会话脱敏）
+- [ok] 读 P1-requirements.md（33 BDD 全文：BDD-1~7 解析层 / BDD-8~24 检测引擎 / BDD-25~28 心跳生命周期 / BDD-29~33 再派发边界；fix1 后 33 条全局连续）
+- [ok] 读 .state.yaml（p5_pass_commit=34366ab，judge.enabled=true）
+- [todo] 读 P5-test-results/unit.md（全量回归证据）
+- [todo] 读 P4-implementation.md（实现声明）
+- [todo] 读 P2-design.md（方案 + gate_commands）
+- [todo] 逐条 BDD 实跑验证 → P6-evidence/{bdd-id}.log
+- [todo] 写 P6-acceptance.md（frontmatter + 33 条 PASS/FAIL）
+- [todo] gate 格式预检（check-p6-format/evidence/provenance）
+- [ok] 读 P5-test-results/unit.md（1434 passed/0 failed/2 skipped；consistency 0 ERROR；verify 9 场景全 PASS；shellcheck 0；count-tests 1436；HEAD=34366ab）
+- [todo] 读 P4-implementation.md（实现声明）
+- [ok] 读 P4-implementation.md（实现声明：3 新脚本 agate-cmdstream-ir/adapters/detect.py；maintainability.yaml cmdstream_detection 节；dispatch-protocol.md/role-system.md/dispatch-context.md/check-p6-provenance.py 修改；cmdstream 套件 53 passed；fix1/2/3 修复记录）
+- [todo] 读 P2-design.md（方案 + gate_commands）
+- [todo] 定位 worktree agate/scripts + agate/tests/unit/test_agate_cmdstream_*.py + verify 脚本真实路径
+- [ok] 读 P2-design.md（方案 A：3 脚本平铺 + 显式注册表；gate_commands P5 全量 pytest -n auto；ui_affected=false；M1~M10 映射）
+- [todo] 读 AGENTS.md（项目约定）——已由会话注入主 checkout 版本，worktree 版本差异核对
+- [todo] 定位 worktree agate/scripts + tests + verify 脚本真实路径
+- [ok] 定位 worktree 文件（HEAD=700f074；3 脚本 + 5 测试文件 + fixtures/cmdstream + verify 锚 + maintainability cmdstream_detection 节全存在）
+- [todo] 验证批次1：IR(BDD-1) + 适配器(BDD-2~7) pytest -k 逐组落盘（预期 ~3-5 min）
+- [ok] 验证批次1：BDD-01~07 全 PASS（IR 4 + 适配器 16 测试），证据 P6-evidence/bdd-01..07.log
+- [todo] 验证批次2：检测引擎 BDD-08~21 pytest -k 逐组（预期 ~3-5 min）
+- [ok] 验证批次2：BDD-08~21 全 PASS（20 测试），证据 bdd-08..21.log
+- [todo] 验证批次3：BDD-22 verify 锚直跑 + BDD-23/24（预期 ~1-2 min）
+- [ok] 验证批次3：BDD-22 verify 锚 9 场景 A~I 全 PASS + 结论行；BDD-23/24 pytest PASS；证据 bdd-22..24.log
+- [todo] 验证批次4：心跳 BDD-25~28 + 派发 BDD-29~33 pytest（预期 ~1-2 min）
+- [ok] 验证批次4：BDD-25~33 全 PASS（11 测试），证据 bdd-25..33.log
+- [todo] 补充证据：BDD-7 fixture 脱敏 grep / BDD-26 豁免实跑 / BDD-33 gate 脚本 git 检查 / 审计7 复用判定（预期 ~1 min）
+- [ok] 写 P6-acceptance.md（33 条 PASS 全引用 P6-evidence/ + P5-test-results/unit.md；frontmatter pass=33/fail=0/ui_affected=false；pass/fail/agent 为证据字段/永久拒绝 set，frontmatter 整体 Write 落盘）
+- [todo] gate 格式预检：check-p6-format.py --fix + check-p6-evidence.py + check-p6-provenance.py（预期 ~1 min）
+- [ok] gate 格式预检三件套全 exit 0（check-p6-format --fix/--check + check-p6-evidence + check-p6-provenance；证据 log 补标准 EXIT_CODE: 0 尾行消除 WARNING）
+- [ok] 完整性核验：33 PASS / 0 FAIL；frontmatter pass=33/fail=0/ui_affected=false；36 证据文件全部存在且全部被引用；missing=0/unreferenced=0
+- [done] P6 验收产出完成：P6-acceptance.md + P6-evidence/（36 文件，33 条 BDD 逐条实跑证据）
