@@ -1,3 +1,92 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0030
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**assets-roles 批**：按 P2-design §0.1 #5~8 + #12 落笔，让 `test_tag0030_assertions.py` 中
+BDD-8/10~18 对应用例从红灯转绿。只改本批 5 个文件，不碰其他批文件（phase-cards/、templates/、
+tests/README.md、AGENTS.md、UPGRADING/CHANGELOG）。
+
+### 本批落点（P2-design §0.1 表 #5~8 + #12，锚词逐字复用）
+
+| 文件 | 落笔位 | BDD | 锚词（逐字） |
+|------|--------|-----|-------------|
+| `agate/assets/execution-roles/analyst.md` | 输出节补「人工体验」同源要求句（与 P1 卡同源） | BDD-8 | 「人工体验」「seed」 |
+| `agate/assets/review-roles/plan-design-review.md` | 「评分维度」节改形态分派头 + 维度组 + ≥2 候选要求 | BDD-10~15 | 「ui_render_shape」「形态分派头」「布局型三组/布局/交互/视觉」「渲染组件型+architect」「0-10」「status」「未声明/缺省」等（按测试断言） |
+| `agate/assets/execution-roles/architect.md` | 视觉 checklist 头部定义视觉契约 + 提及 DOM 度量 | BDD-16/17 | 「视觉契约」「可表达子集」「DOM 度量」「不收主观视觉」 |
+| `agate/assets/execution-roles/verifier.md` | 证据形式指南补 DOM 度量量化证据句 | BDD-18 | 「DOM 度量」（getBoundingClientRect 示例进代码围栏） |
+| `agate/role-system.md` 行 47 | 七维扁平描述同步形态驱动口径 | 连带同步 | 保留维度名，改形态分组表述（与 plan-design-review 分派头一致） |
+
+### 约束
+
+1. **范围锁定**：只改上述 5 文件；不碰 phase-cards/、templates/、tests/README.md、AGENTS.md、
+   UPGRADING/CHANGELOG；不改 check-gate.py/check-protocol-consistency.py/rules/；
+   **vision-analyst.md 不改**（P2 §0.2 #5：被动翻译定位不变）。
+2. **plan-design-review 门槛契约冻结**（最高优先级，P2 §0.2 #7 + 风险 3）：
+   - 0-10 评分行 + status 映射行**原文保留**（P3 测试锁定「0-10」「status」锚词 + CHECK11 三锚词
+     「视觉设计」「交互设计」「渲染正确性与时序」必须在文件里仍在）
+   - 只加形态分派头 + 维度组内部逻辑；无形态声明回落布局型默认
+3. **CHECK11 三锚词禁动**（P2 §0.3 风险 1）：consistency 行 910-911 白名单三词
+   （「视觉设计」「交互设计」「渲染正确性与时序」）必须逐字仍在 plan-design-review.md。
+4. **锚词逐字复用**：P3 测试按 P2-design §2 的锚词断言（不意译）——落笔时用同一批词。
+   注意 P3 已做假绿规避：BDD-10 用（ui_render_shape + 形态分派头）AND 兜底、
+   BDD-11 用（布局型三组 + 布局/交互/视觉）、BDD-12 用（渲染组件型 + architect）、
+   BDD-14 用（0-10 + status + 原样保留）、BDD-15 用（未声明 + 缺省）——
+   **你落笔时这些词要按测试断言实际出现**（读测试文件对应用例确认精确锚词）。
+5. **architect.md「对齐」假绿规避**（P3 已核实）：BDD-16/17 不用「对齐」作锚词，
+   用「视觉契约」「可表达子集」「DOM 度量」「不收主观视觉」——落笔确保这些词出现。
+6. **视觉契约单源定义**（P2 §1 方案 A）：完整定义只落 architect.md 视觉 checklist 头部；
+   verifier.md 只写交叉引用/提及句（不重复完整定义，防漂移）。
+7. **上下文控制**：读文件以 P2-design §6 files_to_read 为导航（本批 5 文件 + 行号范围），
+   不整目录全读；architect.md 渲染 checklist 行 93-99 只读不动。
+8. **新增文件核对表**：本批无新增文件（只改既有角色/评审文件），表填「无新增文件」一行。
+9. **SELF-GATE**：改 assets/ 触发 SELF-GATE——主 Agent 统一 commit，message 含 `self-gate-review:`。
+10. **自查≠gate**：写完自跑 `timeout 240s python3 -m pytest agate/tests/unit/test_tag0030_assertions.py -q --tb=short`
+    确认本批相关用例转绿、不引入其他失败；不自称"P5 已过"。
+11. **无行首预判格式**：P4-implementation.md 正文禁止行首 `- PASS` / `- FAIL`。
+12. **命令超时**：所有 bash 命令外层 timeout。
+
+### 上游关联
+
+- P2-design.md §0.1 #5~8 + #12 + §1 方案 A + §2 Phase3/Phase4 详述 + §6 files_to_read + §9 完成标志
+- P2-review.md D2/D3/D4/D5（落点 pin 定 + role-system Modify + CHECK11 双保险 + 门槛契约冻结确认）
+- P3-test-cases.md 与 test_tag0030_assertions.py（测试即预期行为）
+- P1-requirements.md BDD-8/10~18
+
+### 输入文件（按顺序读）
+
+1. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P2-design.md`（§0.1 + §1 + §2 + §6 + §9）
+2. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P2-review.md`（D2/D3/D4/D5 锁定决策）
+3. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P3-test-cases.md`
+4. `agate/tests/unit/test_tag0030_assertions.py`（本批 BDD-8/10~18 用例——精确锚词以测试为准）
+5. `agate/assets/review-roles/plan-design-review.md`（改造对象，38 行）
+6. `agate/assets/execution-roles/architect.md`（改造对象 + BDD-12 引用源行 93-99 只读）
+7. `agate/assets/execution-roles/analyst.md`（改造对象）
+8. `agate/assets/execution-roles/verifier.md`（改造对象，行 70-95 证据形式指南）
+9. `agate/role-system.md`（行 40-52 连带同步）
+10. `agate/assets/execution-roles/implementer.md`（角色定义）
+
+### 产出文件字段
+
+产出 `P4-implementation.md`（批次声明）：用 agate-md-field-set 填写 frontmatter——
+phase=P4, task_id=TAG0030, type=implementation, parent=P2-design.md,
+trace_id=TAG0030-P4-20260904, status=draft, created=2026-09-04, agent=implementer,
+implementation_dir（声明本批改动文件所在目录：agate/assets/）。
+正文含：本批改动文件清单（路径 + 落笔位 + BDD 关联）+ 新增文件核对表（无新增）+ 自查结果。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -8,9 +97,6 @@
 0. 跑 `agate-capture-env-baseline.py $TASK_DIR`（自动捕获环境基线）。
    该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
    无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
-
-**创建型测试清理钩子（强制要求，与 P3 卡同源）**：实现含创建资源用例时，须落地清理钩子——创建即注册、测试结束无条件删除（不因响应非 2xx 中止删除）、删除接受 200/204/404 为已清理（afterEach 清理队列模式）；只修 P3 卡不修本卡即复发，两处须同步。
-
 1. 派发 implementer subagent → 产出代码文件
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
@@ -177,3 +263,16 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 本批 = P2 dispatch_plan batches[1]（id: assets-roles, complexity: medium）
+- 测试当前红灯：BDD-8/10~18 用例全部失败（预期）；落笔后对应用例转绿
+- CHECK11 三锚词（consistency 行 910-911）：「视觉设计」「交互设计」「渲染正确性与时序」——
+  与既有 test_review_role_docs.py 同锁，P4 落笔后必须仍在 plan-design-review.md
+- role-system.md 行 47 现文「七维：交互状态覆盖/…/渲染正确性与时序」——保留维度名，
+  改形态分组表述（布局型三组 / 渲染组件型渲染正确性+动效时序），与 plan-design-review 分派头一致
+- 路径基座：文件路径相对 worktree 根（/home/kity/oclab/agateon/.worktrees/agate-TAG0030）
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

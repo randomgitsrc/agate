@@ -1,3 +1,92 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0030
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**templates-tests-meta 批**：按 P2-design §0.1 #9~11 + #13 落笔，让 `test_tag0030_assertions.py` 中
+BDD-5/19/20/21 对应用例从红灯转绿 + UPGRADING/CHANGELOG 版本章节。只改本批 5 个文件，
+不碰其他批文件（phase-cards/、assets/、tests/README.md 属于本批、AGENTS.md 属于本批）。
+
+### 本批落点（P2-design §0.1 表 #9~11 + #13，锚词逐字复用）
+
+| 文件 | 落笔位 | BDD | 锚词（逐字） |
+|------|--------|-----|-------------|
+| `agate/assets/templates/dispatch-context.md` | 约束节补环境清理/还原条目位 + 拆小默认指导条目位 | BDD-5/21 | 「清理/残留/环境还原」+「拆小/>5 文件/体量」 |
+| `agate/tests/README.md` | 「何时更新」节补真实 gate 语义句 | BDD-19 | 「真实 gate 语义」 |
+| `AGENTS.md`（worktree 根） | 「改脚本的工作流」节首补第 0 步 | BDD-20 | 「全量扫描」「新增 CHECK」 |
+| `agate/UPGRADING.md` | 新增 v0.68 版本章节 | P1 §9 | 无破坏性声明 + 新条文摘要 |
+| `agate/CHANGELOG.md` | [Unreleased] 节同步 | P1 §9 | 按既有格式（当前最新 [0.67.0] - 2026-09-03） |
+
+### 约束
+
+1. **范围锁定**：只改上述 5 文件；不碰 phase-cards/、assets/（除 dispatch-context.md 模板）；
+   不改 check-gate.py/check-protocol-consistency.py/rules/；
+   **dispatch-prompt.md 不改**（P2 §0.2 #9：行 49 既有分批硬规则不删不重复）。
+2. **锚词逐字复用**：P3 测试按 P2-design §2 的锚词断言（不意译）——落笔时用同一批词。
+   - BDD-5：dispatch-context.md 模板约束节补环境清理/还原条目位——锚词「清理/残留/环境还原」任一
+     （读测试确认精确断言）
+   - BDD-21：dispatch-context.md 模板补「拆小/>5 文件/体量」默认指导——锚词按测试断言；
+     建议写「改动体量 >5 文件」以区分 dispatch-prompt.md 行 49 的「输入文件 >5」（P2-review N4）
+   - BDD-19：tests/README.md「何时更新」节补「真实 gate 语义」句（DEBT0024：测试 gate 消费方
+     夹具走真实 gate 语义，不 mock 假 exit）
+   - BDD-20：AGENTS.md「改脚本的工作流」节首补「新增 CHECK 上线前先全量扫描存量」第 0 步
+     （DEBT0025）
+3. **上下文控制**：读文件以 P2-design §6 files_to_read 为导航（本批 5 文件 + 行号范围）：
+   dispatch-context.md 61 行全读；tests/README.md 行 114-121；AGENTS.md 行 17-24；
+   UPGRADING.md 看版本章节惯例（参考 v0.67.0 节）。
+4. **CHANGELOG/UPGRADING 惯例**：UPGRADING 新章节参考既有版本节格式（v0.67.0 先例：无破坏性
+   变更也写「（无破坏性变更）」+ 摘要）；CHANGELOG [Unreleased] 按既有条目格式，不编造版本号。
+5. **新增文件核对表**：本批无新增文件（只改既有模板/文档），表填「无新增文件」一行。
+6. **SELF-GATE**：改 assets/templates + AGENTS.md + tests/README 触发 SELF-GATE——主 Agent 统一
+   commit，message 含 `self-gate-review:`。
+7. **平台词护栏**（CHECK14/15）：新增叙述段避免裸平台词（OpenCode/Claude Code/DSH 等），
+   长句用「subagent/派发」表述；示例一律进代码围栏（P2 §0.3 风险 6）。
+8. **自查≠gate**：写完自跑 `timeout 240s python3 -m pytest agate/tests/unit/test_tag0030_assertions.py -q --tb=short`
+   确认本批相关用例转绿、不引入其他失败；不自称"P5 已过"。
+9. **无行首预判格式**：P4-implementation.md 正文禁止行首 `- PASS` / `- FAIL`。
+10. **命令超时**：所有 bash 命令外层 timeout。
+
+### 上游关联
+
+- P2-design.md §0.1 #9~11 + #13 + §1 方案 A + §2 Phase1/Phase4 详述 + §6 files_to_read + §9 完成标志
+- P2-review.md N3（CHANGELOG/UPGRADING）+ N4（双「>5」措辞区分）+ N6（跨包文件 P7 核对）
+- P3-test-cases.md 与 test_tag0030_assertions.py（测试即预期行为）
+- P1-requirements.md BDD-5/19/20/21 + §9 下游落笔注意
+
+### 输入文件（按顺序读）
+
+1. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P2-design.md`（§0.1 + §2 + §6 + §9）
+2. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P2-review.md`（N3/N4/N6）
+3. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P3-test-cases.md`
+4. `agate/tests/unit/test_tag0030_assertions.py`（本批 BDD-5/19/20/21 用例——精确锚词以测试为准）
+5. `agate/assets/templates/dispatch-context.md`（改造对象，61 行）
+6. `agate/tests/README.md`（改造对象，行 114-121 何时更新节）
+7. `AGENTS.md`（worktree 根，改造对象，行 17-24 改脚本的工作流节）
+8. `agate/UPGRADING.md`（改造对象，版本章节先例）
+9. `agate/CHANGELOG.md`（改造对象，[Unreleased] 同步）
+10. `agate/assets/execution-roles/implementer.md`（角色定义）
+
+### 产出文件字段
+
+产出 `P4-implementation.md`（批次声明）：用 agate-md-field-set 填写 frontmatter——
+phase=P4, task_id=TAG0030, type=implementation, parent=P2-design.md,
+trace_id=TAG0030-P4-20260904, status=draft, created=2026-09-04, agent=implementer,
+implementation_dir（声明本批改动文件所在目录：agate/assets/templates/ 等）。
+正文含：本批改动文件清单（路径 + 落笔位 + BDD 关联）+ 新增文件核对表（无新增）+ 自查结果。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -8,9 +97,6 @@
 0. 跑 `agate-capture-env-baseline.py $TASK_DIR`（自动捕获环境基线）。
    该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
    无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
-
-**创建型测试清理钩子（强制要求，与 P3 卡同源）**：实现含创建资源用例时，须落地清理钩子——创建即注册、测试结束无条件删除（不因响应非 2xx 中止删除）、删除接受 200/204/404 为已清理（afterEach 清理队列模式）；只修 P3 卡不修本卡即复发，两处须同步。
-
 1. 派发 implementer subagent → 产出代码文件
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
@@ -177,3 +263,14 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 本批 = P2 dispatch_plan batches[2]（id: templates-tests-meta, complexity: low）
+- 测试当前红灯：BDD-5/19/20/21 用例全部失败（预期）；落笔后对应用例转绿
+- BDD-20 载体 AGENTS.md 在 worktree 根（agate_root.parent）——路径基座写对
+- CHANGELOG 当前无 [Unreleased] 节（最新 [0.67.0] - 2026-09-03）——P4 需新建该节（P2-review N3）
+- 路径基座：AGENTS.md = worktree 根；其余文件相对 worktree 根（/home/kity/oclab/agateon/.worktrees/agate-TAG0030）
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

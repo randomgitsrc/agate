@@ -82,6 +82,20 @@ P5 由主 Agent 派发 verifier subagent 执行。你从 P2-design.md 的 `gate_
    扩展至所选证据形式：截图 / 帧序列（逐帧描述帧间差异与时序）/ 渲染输出对比（结果差异描述），
    不得仅以 naturalWidth>0 / complete=true / HTTP 200 / 像素方差断言视觉 PASS
 
+**DOM 度量量化证据（截图之外的非截图量化证据）**：涉及可量化几何/协调性判据的 BDD
+（如「dropdown ≥ trigger」类视觉契约断言，可表达子集定义见 architect.md 视觉 checklist
+头部，此处只交叉引用不重复），E2E **DOM 度量**断言可作截图之外的非截图量化证据——
+示例（getBoundingClientRect 置于代码围栏）：
+
+```javascript
+// E2E 经 evaluate 取 DOM 度量断言：dropdown 面板左边界 ≥ trigger 左边界
+const { left: triggerLeft } = await page
+  .locator('#trigger').evaluate((el) => el.getBoundingClientRect());
+const { left: panelLeft } = await page
+  .locator('.dropdown-panel').evaluate((el) => el.getBoundingClientRect());
+expect(panelLeft).toBeGreaterThanOrEqual(triggerLeft);
+```
+
 当 vision-analyst 报 blocker 但 DOM 验证 PASS 时：
 1. 派第二轮截图（换主题/换时机/换 viewport）
 2. vision-analyst 重新分析

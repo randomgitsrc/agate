@@ -114,6 +114,7 @@ GitHub Actions workflow 在 `.github/workflows/protocol-tests.yml`：
 ## 何时更新
 
 - 改 gate 规则 → **必须先加失败测试，再改脚本**
+- 写 gate 消费方测试夹具 → **必须走真实 gate 语义**（真实执行 gate 脚本并按真实 exit code 断言），不得 stub/mock 假 exit（DEBT0024）
 - 发现新 bug → **修脚本前先写回归测试**（regression/）
 - 协议文档声明新规则 → **必须新增对应 test_*.py 用例**
 - 章节标题数字漂移 → 跑 `count-tests.sh` 同步

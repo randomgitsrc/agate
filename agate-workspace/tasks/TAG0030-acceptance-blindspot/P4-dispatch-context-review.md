@@ -1,3 +1,82 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0030
+role: review
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+独立评审 P4 实现（TAG0030 验收盲区机制批三批落笔），产出 `P4-review.md`。评审重点是
+implementer 的作者盲区：改动是否严格落在 P2-design §0.1 Modify 表范围内、锚词是否逐字命中
+（测试已证实 21/21 转绿，复核其与条文的对应性）、plan-design-review 门槛契约是否保持
+（0-10/status/CHECK11 三锚词）、范围锁定是否无越界（Not Modify 十项）、三批共享产出
+P4-implementation.md 是否结构完整无覆盖。
+
+**只审不写**——不直接改代码/文档，评审意见由主 Agent 回派 implementer 修改。
+
+### 约束
+
+1. **评审结论引用具体锚点**（review 角色 + P4 卡）：结论须引用具体文件路径 + 落笔位 +
+   BDD 编号，不写裸 "approved"。
+2. **范围核对**（对照 P2-design §0.1 Modify 表 14 行 + §0.2 Not Modify 十项）：
+   - git status 改动文件 = 表 #1~13 全部命中、无表外改动文件（已由主 Agent 预查：14 个协议文件
+     在改——4 卡 + analyst/architect/verifier/plan-design-review/role-system/dispatch-context
+     模板 + tests/README + AGENTS + UPGRADING/CHANGELOG）
+   - Not Modify 十项（check-gate 判据 / consistency 脚本 / rules/ / review-mapping /
+     vision-analyst / P6 证据形态机制 / 0-10 权重语义 / 具体项目 spec / dispatch-prompt 行 49 /
+     state-transitions READY 口径）必须零改动
+3. **plan-design-review 门槛契约**：0-10 评分行 + status 映射行原文保留；CHECK11 三锚词
+   （「视觉设计」「交互设计」「渲染正确性与时序」）逐字仍在；形态分派头 + 维度组内部逻辑为新增。
+4. **锚词逐字**：抽查 P3 测试锚词（`agate/tests/unit/test_tag0030_assertions.py` 的
+   ANCHOR_CASES/断言）与落笔条文逐字对应，无"意译导致测试虚绿"风险（测试全绿 + 词真实存在
+   即可；不需逐条全查，抽查 Phase3 形态组 BDD-10~15 + Phase4 BDD-16~21 即可）。
+5. **三批共享产出**：P4-implementation.md 须含三批章节（templates-tests-meta 在文件前部 +
+   phase-cards 追加 + assets-roles 第三章节），frontmatter implementation_dir 已合并多目录；
+   无覆盖丢失迹象。
+6. **评审产出 Header**：P4-review.md frontmatter 用 agate-md-field-set 填写：phase=P4 /
+   task_id=TAG0030 / trace_id=TAG0030-P4-20260904 / agent=review /
+   status（初始 draft，评审后改 approved|rejected|needs-revision——gate 读的就是这个字段）。
+   注意 `agent` 键 agate-md-field-set 会拒绝 set（防伪造身份），按 task-files.md「通用 Header」
+   惯例随文件内容手工写入 `agent: review`。
+7. **无行首预判格式**：评审正文禁止行首 `- PASS` / `- FAIL`（provenance 审计拦截）。
+8. **检查 maintainability**（RM-AG0046）：`check-maintainability.py` 检出 violations 非空时，
+   approve 前须读过任务目录 `known-violations.md` 登记理由；无 violations 则跳过。
+
+### 上游关联
+
+- P2-design.md §0.1/§0.2/§1/§2/§6/§9 + P2-review.md D2~D6 + P3-test-cases.md + 审计单测
+- C8 映射：domains=[backend] + risk_level=high + 无 NEED_CONFIRM → review 单评审角色，
+  产出直接写 P4-review.md，无需组长汇总
+- P4 gate：暂存区含非 md/yaml 文件（P3 审计单测已在 P3 commit；本次暂存含 14 个协议 md/yaml 改动）
+  + P4-review.md approved（agent≠main）
+
+### 输入文件（按顺序读）
+
+1. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P4-implementation.md`（三批共享产出，评审对象）
+2. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P2-design.md`（范围基准：§0.1/§0.2/§1/§2/§6/§9）
+3. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P2-review.md`（D2~D6 锁定决策）
+4. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P3-test-cases.md` + `agate/tests/unit/test_tag0030_assertions.py`（锚词断言基准）
+5. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P0-brief.md`
+6. `agate/phase-cards/P3-tdd.md`、`P4-implementation.md`、`P6-acceptance.md`、`P1-requirements.md`（评审对象）
+7. `agate/assets/review-roles/plan-design-review.md`、`analyst.md`、`architect.md`、`verifier.md`、`role-system.md`（评审对象）
+8. `agate/assets/templates/dispatch-context.md`、`agate/tests/README.md`、`AGENTS.md`、`agate/UPGRADING.md`、`agate/CHANGELOG.md`（评审对象）
+9. `AGENTS.md`（worktree 根，项目约定）
+
+### 产出文件字段
+
+用 `FILE={AGATE_WORKSPACE}/tasks/TAG0030-acceptance-blindspot/P4-review.md agate-md-field-set --list`
+查看应填字段；逐个写入（agent 键手工写）；失败照提示修正，不要手写 frontmatter 其他字段。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -8,9 +87,6 @@
 0. 跑 `agate-capture-env-baseline.py $TASK_DIR`（自动捕获环境基线）。
    该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
    无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
-
-**创建型测试清理钩子（强制要求，与 P3 卡同源）**：实现含创建资源用例时，须落地清理钩子——创建即注册、测试结束无条件删除（不因响应非 2xx 中止删除）、删除接受 200/204/404 为已清理（afterEach 清理队列模式）；只修 P3 卡不修本卡即复发，两处须同步。
-
 1. 派发 implementer subagent → 产出代码文件
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
@@ -177,3 +253,25 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+### A. 路径拓扑
+- worktree 根 = `/home/kity/oclab/agateon/.worktrees/agate-TAG0030`
+- 任务目录 = `agate-workspace/tasks/TAG0030-acceptance-blindspot/`
+- 改造对象 = worktree 的 `agate/`；主 checkout 禁止改动
+
+### B. 主 Agent 已预查事实（评审核对用，非结论）
+- 审计单测 `agate/tests/unit/test_tag0030_assertions.py` 21/21 全绿（`21 passed in 0.03s`）
+- consistency `--strict-errors-only` 0 ERROR（329 WARNING 为存量，非本任务引入）
+- git status 改动面 = 14 协议文件（4 卡 + 5 assets 角色/评审 + role-system + dispatch-context 模板
+  + tests/README + AGENTS + UPGRADING/CHANGELOG）+ 任务目录 5 文件（P4-implementation/
+  3 dispatch-contexts/progress + .state.yaml/gate-events）
+- P4-implementation.md 167 行 15 个二级标题、3 处 implementation_dir 声明（三批合并）
+
+### C. 测试缺口观察（P2-review G1/G2，评审可核对是否已被 P4 合理处理）
+- G1：形态分派机制正确性 grep 锁不住逻辑——P4 落笔后应仍靠评审 + P7 人工核对兜底（非 P4 缺陷）
+- G2：AGENTS.md 根路径——审计单测路径基座已正确处理（21/21 绿的实证）
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。

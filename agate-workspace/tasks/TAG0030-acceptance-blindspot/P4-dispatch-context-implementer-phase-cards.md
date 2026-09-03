@@ -1,3 +1,77 @@
+---
+phase: P4
+generated_by: agate-inject-card.py + 主 Agent
+task_id: TAG0030
+role: implementer
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+
+**phase-cards 批**：按 P2-design §0.1 #1~4 落笔，让 `test_tag0030_assertions.py` 中 BDD-1/2/3/4/7/9
+对应用例从红灯转绿。只改本批 4 个卡文件，不碰其他批文件（assets/、templates/、tests/README.md、
+AGENTS.md、UPGRADING/CHANGELOG）。
+
+### 本批落点（P2-design §0.1 表 #1~4，锚词逐字复用）
+
+| 文件 | 落笔位 | BDD | 锚词（逐字） |
+|------|--------|-----|-------------|
+| `agate/phase-cards/P3-tdd.md` | step0「测试前基线」之后补「创建型测试清理钩子」要求段 | BDD-1/3 | 「清理钩子」「创建即注册」「无条件删除」「200/204/404」 |
+| `agate/phase-cards/P4-implementation.md` | step0 基线行（行 8）之后镜像补同要求段 | BDD-2 | 与 P3 卡同源同锚词 |
+| `agate/phase-cards/P6-acceptance.md` | 验收流程补 post-test 环境残留检查步骤 | BDD-4 | 「残留检查」「post-test」 |
+| `agate/phase-cards/P1-requirements.md` | 产出规格补「人工体验路径验收」节 | BDD-7/9 | 「人工体验」「seed」 |
+
+### 约束
+
+1. **范围锁定**：只改上述 4 文件；不碰 assets/、templates/、tests/README.md、AGENTS.md、
+   UPGRADING/CHANGELOG（其他批）；不改 check-gate.py/check-protocol-consistency.py/rules/（Not Modify）。
+2. **锚词逐字复用**：P3 测试按 P2-design §2 的锚词断言（不意译）——你落笔时也用同一批词，
+   意译会导致测试永不转绿。
+3. **P6 证据形态机制只读不动**（P2 §0.2 #6）：P6 卡已有的帧序列/时序截图/渲染输出对比机制段落
+   不改，只在验收流程节补残留检查步骤。
+4. **上下文控制**：读文件以 P2-design §6 files_to_read 为导航（本批 4 文件 + 行号范围），
+   不整目录全读。
+5. **新增文件核对表**：本批无新增文件（只改既有卡），表填「无新增文件」一行即可。
+6. **SELF-GATE**：改 phase-cards 触发 SELF-GATE——本批落笔后由主 Agent 统一 commit，commit
+   message 含 `self-gate-review:`（主 Agent 负责，你不用 commit）。
+7. **自查≠gate**：写完自跑 `timeout 240s python3 -m pytest agate/tests/unit/test_tag0030_assertions.py -q --tb=short`
+   确认本批相关用例转绿、不引入其他失败；不自称"P5 已过"。
+8. **无行首预判格式**：P4-implementation.md 正文禁止行首 `- PASS` / `- FAIL`。
+9. **命令超时**：所有 bash 命令外层 timeout。
+
+### 上游关联
+
+- P2-design.md §0.1 #1~4 + §2 Phase1/Phase2 详述 + §6 files_to_read + §9 完成标志
+- P3-test-cases.md 与 test_tag0030_assertions.py（测试即预期行为）
+- P1-requirements.md BDD-1/2/3/4/7/9
+
+### 输入文件（按顺序读）
+
+1. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P2-design.md`（§0.1 #1~4 + §2 + §6 + §9）
+2. `agate-workspace/tasks/TAG0030-acceptance-blindspot/P3-test-cases.md`
+3. `agate/tests/unit/test_tag0030_assertions.py`（本批 BDD-1/2/3/4/7/9 用例）
+4. `agate/phase-cards/P3-tdd.md`（改造对象）
+5. `agate/phase-cards/P4-implementation.md`（改造对象）
+6. `agate/phase-cards/P6-acceptance.md`（改造对象）
+7. `agate/phase-cards/P1-requirements.md`（改造对象）
+8. `agate/assets/execution-roles/implementer.md`（角色定义）
+
+### 产出文件字段
+
+产出 `P4-implementation.md`（批次声明）：用 agate-md-field-set 填写 frontmatter——
+phase=P4, task_id=TAG0030, type=implementation, parent=P2-design.md,
+trace_id=TAG0030-P4-20260904, status=draft, created=2026-09-04, agent=implementer,
+implementation_dir（声明本批改动文件所在目录：agate/phase-cards/）。
+正文含：本批改动文件清单（路径 + 落笔位 + BDD 关联）+ 新增文件核对表（无新增）+ 自查结果。
+</dispatch_guide>
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P4
+
+路径：phase-cards/P4-implementation.md
+---
 # P4 — 代码实现
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -8,9 +82,6 @@
 0. 跑 `agate-capture-env-baseline.py $TASK_DIR`（自动捕获环境基线）。
    该步骤不会阻塞流程——任何 stderr 输出（含 WARNING）均可忽略，直接继续步骤 1，
    无需查看结果、无需判断、无需因为看到 WARNING 而停下来处理。
-
-**创建型测试清理钩子（强制要求，与 P3 卡同源）**：实现含创建资源用例时，须落地清理钩子——创建即注册、测试结束无条件删除（不因响应非 2xx 中止删除）、删除接受 200/204/404 为已清理（afterEach 清理队列模式）；只修 P3 卡不修本卡即复发，两处须同步。
-
 1. 派发 implementer subagent → 产出代码文件
    1.1 写 P4-dispatch-context-implementer.md（派发指引：目标/约束/上游关联/输入文件 + 客观查证信息）
 2. 按 P2 的 gate_commands 跑单元测试（非 gate，只是自查）
@@ -177,3 +248,14 @@ check-gate.py P4 $TASK_DIR
 > 完成 → 读 phase-cards/P5-verification.md
 
 6. **修改 P1 文档**：P4 发现 BDD 矛盾时标 DESIGN_GAP，不直接改 P1-requirements.md。需变更 P1 时标 `[BASELINE_CHANGE: 理由]` 并经主 Agent 批准。
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- 本批 = P2 dispatch_plan batches[0]（id: phase-cards, complexity: medium）
+- 测试当前红灯：BDD-1/2/3/4/7/9 用例全部失败（预期）；落笔后对应用例转绿
+- 假绿规避（P3 已核实）：BDD-1「清理钩子」当前 0 命中；BDD-3「200/204/404」当前 0 命中；
+  BDD-7「人工体验」当前 0 命中——落笔即绿，无需 AND 兜底
+- 路径基座：文件路径相对 worktree 根（/home/kity/oclab/agateon/.worktrees/agate-TAG0030）
+</objective_info>
+
+> 注：该文件禁止包含 PASS/FAIL 预判——否则被 `check-p6-provenance.py` 审计失败。
