@@ -1,6 +1,6 @@
 # subagent 存活可观测性与自主再派发设计（agate 协议增强提案）
 
-> 状态：设计讨论稿（候选 RM 编号待申领）。评审过程存档见 `docs/reviews/review-subagent-liveness-and-self-dispatch-*-20260902.md`（历轮评审按 v1→v4 递增归档）。
+> 状态：设计讨论稿（候选 RM 编号待申领）。评审过程存档见 `review-subagent-liveness-and-self-dispatch-v1~v4-20260902.md`（同目录，历轮评审按 v1→v4 递增归档）。**2026-09-03：§3.4.2 命令流日志数据源实机验证已完成**（Claude Code + OpenCode 均通过，见 `verification-cmdstream-datasource-20260903.md`），§6 待确认事项 6 已解决；剩余阻塞立项事项仅剩 §6 事项 4（RM 排期，与 RM-AG0054/TAG0027 有 dispatch-protocol.md 改动面交叉）与本次验证未覆盖的"与 RM-AG0023 既有 progress 心跳扩展的关系说明"（尚未补充，见下）。
 > 触发来源：用户实测观察——长尾 subagent（P4 implementer backend 27M tok / 运行超 1 小时）导致主 Agent 无法判断"卡死 vs 仍在正常工作"，曾因等待超时误判并中止仍在运转的 subagent；同时 subagent 内部执行遇到需要多方向排查/多子任务并行推进的场景时，缺乏受控的自主再派发能力，只能自己串行硬扛或提前依赖主 Agent 把批次切得足够小。
 > 相关文档：`agate/dispatch-protocol.md`（派发三铁律 / 五模式编排 / 工作量评估五维评级 / 并行规则）、`agate/state-machine.md`（重试与 PAUSED 语义）、`SELF-GATE.md`（触发范围）、`agate/WORKFLOW.md`。
 
@@ -156,7 +156,7 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 
 **定位：证据 + 触发核查，不自动判死**。与 §3.4 阻塞路径把心跳降级为"中止前二次确认"是同一哲学——信号提供客观证据，中止/重派等动作仍需主 Agent 判断，不自动执行，避免重蹈"误杀仍在工作的 subagent"的覆辙（§1.2 实测案例）。
 
-**验证状态（2026-09-02，已模拟验证）**：检测逻辑已用虚拟时钟确定性试验验证，4 场景全部 PASS（脚本：`docs/design-notes/verify-heartbeat-cmdstream/verify_cmdstream_detection.py`）：
+**验证状态（2026-09-02，已模拟验证）**：检测逻辑已用虚拟时钟确定性试验验证，4 场景全部 PASS（脚本：`verify-heartbeat-cmdstream/verify_cmdstream_detection.py`）：
 
 | 场景 | 心跳 mtime | 命令流判定 | 结果 |
 |---|---|---|---|
@@ -165,9 +165,25 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 | C 合法迭代（命令重复但结果在变）| 新鲜 | NORMAL（不误报）| ✅ |
 | D 健康长尾（命令各不相同）| 新鲜 | NORMAL | ✅ |
 
-**诚实边界声明**：模拟验证证明的是**检测逻辑成立**；"数据从哪来"是另一回事——命令流日志需从平台 transcript（Claude Code `~/.claude/projects/*.jsonl` 等）解析出"每条命令的开始时间戳 + 结果签名"，该解析的可行性（格式、命令识别粒度）**待实机验证**，与 §4.3 OpenCode CLI 路线"待实机验证"同级。三平台 transcript 天然记录工具调用（不依赖 subagent 配合），是 §3.1 核心原则（外部客观产生）在命令流维度的延续。
+**实机验证结果（2026-09-03，Claude Code v2.1.246 + OpenCode v1.18.11，完整记录见 `verification-cmdstream-datasource-20260903.md`）**：两平台均**通过**——时间戳、完整命令内容、exit 信号、实时写入四项关键字段全部正向，命令流日志机制按当前设计继续推进，**无需降级**。数据源与解析方式两平台完全不同，落地时需各写一套解析逻辑，不能共用：
 
-> **诚实边界声明**：§3.1 的核心原则（心跳外部产生、不依赖 subagent 配合）**只在异步派发平台（DSH）完全成立**。在阻塞派发平台（Claude Code/OpenCode），由于主 Agent 自身处于阻塞状态、无法另起进程包装派发过程，心跳的产生退化为"约定 subagent 自行维护"，其可靠性弱于 DSH 路径（subagent 若不配合，心跳依然缺失，此时主 Agent 只能退回纯粹依赖"拆分+预期耗时"的既有机制，不产生新的风险敞口，但也不产生新的收益）。这是设计上的诚实妥协，不是缺陷——完全消除对 subagent 配合的依赖，在阻塞派发模型下没有可行路径，除非平台本身提供进程外监控能力（目前三平台均未提供）。此外，**仅凭心跳 mtime 的检测范围限于进程级/会话级卡死（§3.4.1 表格第一行）**；表格第二、三行（系统调用阻塞 / 逻辑空转）的检测依赖 §3.4.2 的命令流日志（冻结检测 + 无效重复检测，检测逻辑已模拟验证），且命令流日志同样受本节"数据源解析待实机验证"的边界约束。
+| 判定项 | Claude Code | OpenCode |
+|---|---|---|
+| 存储形式 | `~/.claude/projects/<sanitized-cwd>/<sessionId>.jsonl`，JSONL 逐行 | 单一 SQLite 库 `~/.local/share/opencode/opencode.db`（WAL 模式），`message`/`part`/`event` 等表 |
+| 开始时间戳 | `timestamp` 字段，ISO-8601 UTC 毫秒精度 | `part.data.state.time.start`（epoch 毫秒） |
+| 完整命令内容 | `tool_use` part 的 `input.command` | `part.data.state.input.command` |
+| exit 信号 | **无数字 exit code**——需解析 `tool_result.is_error` 布尔 + 失败输出文本前缀 `"Exit code N\n"` | `state.metadata.exit` 整数字段，干净直接 |
+| 输出内容 | 完整 stdout/stderr（`toolUseResult.stdout/stderr`），实测未截断 | 完整输出 + 显式 `truncated` 布尔标记；超大输出 spill 到外部文件 `tool-output/tool_<id>` |
+| 实时写入 | 是，写延迟约 87–384ms | 是，WAL + `event` 表实时事件流 |
+
+**落地时需要处理的三个平台差异（验证中发现，交接单原问题清单未覆盖）**：
+
+1. **两平台字段命名完全不同，解析器不能共用**——需要各写一套，或做一层适配层统一输出格式，再喂给 §3.4.2 的两个检测信号
+2. **Claude Code 无数字 exit code**——用 `is_error` + 文本前缀正则兜底可行，但比 OpenCode 干净的整数字段脆弱，若未来 Claude Code 更改失败输出的文本格式，这条解析规则需要跟着更新
+3. **Claude Code 子 agent 是独立转录文件**（sidecar `subagents/agent-<uuid>.jsonl`），不在主会话文件内联——解析时若目标是"某个具体 subagent 的命令流"，需要定位到这个 sidecar 路径，读主文件会漏掉子 agent 的记录
+4. **OpenCode 超大输出 spill 到外部文件时，文件名与 part/call ID 无法直接 join**——只能从 inline 输出文本里的引用反查；`truncated=true` 的 part 若直接对输出内容取哈希，可能把两个不同的失败截断成同一前缀、误判为"无效重复"，建议对 `truncated=true` 的 part 采用保守策略（视为"输出变化不可判定"，不参与无效重复检测的哈希比对，只用于冻结检测）
+
+> **诚实边界声明**：§3.1 的核心原则（心跳外部产生、不依赖 subagent 配合）**只在异步派发平台（DSH）完全成立**。在阻塞派发平台（Claude Code/OpenCode），由于主 Agent 自身处于阻塞状态、无法另起进程包装派发过程，心跳的产生退化为"约定 subagent 自行维护"，其可靠性弱于 DSH 路径（subagent 若不配合，心跳依然缺失，此时主 Agent 只能退回纯粹依赖"拆分+预期耗时"的既有机制，不产生新的风险敞口，但也不产生新的收益）。这是设计上的诚实妥协，不是缺陷——完全消除对 subagent 配合的依赖，在阻塞派发模型下没有可行路径，除非平台本身提供进程外监控能力（目前三平台均未提供）。此外，**仅凭心跳 mtime 的检测范围限于进程级/会话级卡死（§3.4.1 表格第一行）**；表格第二、三行（系统调用阻塞 / 逻辑空转）的检测依赖 §3.4.2 的命令流日志（冻结检测 + 无效重复检测，检测逻辑已模拟验证），且命令流日志同样受"数据源解析"约束——该约束已于 2026-09-03 完成实机验证（Claude Code + OpenCode 均通过，见 §3.4.2 表格），命令流日志可按当前设计推进；DSH 侧走 §3.3 异步心跳轮询路径，不依赖命令流日志，不受此约束影响。
 
 ### 3.5 心跳文件的生命周期定义
 
@@ -180,7 +196,7 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 ### 3.6 影响面
 
 - `dispatch-protocol.md`：新增一节说明异步/阻塞两条心跳路径的判定时机差异，并明确本设计与既有"Playwright/长时操作 subagent 派发策略"（拆分+预期耗时）节的关系——本设计是该既定机制在"预期耗时评估不准"时的补充核查手段，不替代它。
-- 命令流日志（§3.4.2）：检测逻辑已模拟验证；平台 transcript 解析（Claude Code `~/.claude/projects/*.jsonl` 等）的可行性待实机验证（见 §6 待确认事项 6）。
+- 命令流日志（§3.4.2）：检测逻辑已模拟验证；平台数据源解析（Claude Code JSONL / OpenCode SQLite）已于 2026-09-03 完成实机验证，两平台均通过，字段命名不通用需各写一套解析逻辑（见 §3.4.2 落地注意事项）。
 - DSH 路径：需要确认 `subagent`/`subagent_fork` 的后台任务钩子机制具体如何附加心跳写入动作，需要一次实机验证（比照 `platform-notes.md` 对 DSH 的既有实机验证惯例）。
 - 阻塞路径：需要在 dispatch-context 派发模板中，为预期耗时较长的批次新增一条"自行维护心跳文件"的约定指导，并明确这是对 subagent 的行为约定而非外部强制信号（§3.4 诚实边界声明）。
 - 不修改 `check-gate.py`/`check-state-transition.py` 返回约定，心跳判定与 gate 判定是两套独立信号，互不干扰。
@@ -259,4 +275,4 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 3. §4.3 中 OpenCode 的 CLI 子进程路线（`opencode run` 具体行为）需要一次实机验证后才能定稿落地方式——是维持"角色说明里给一段方法论指导"的纯 prompt 层面处理，还是需要一个专门的轻量脚本封装（类似心跳包装脚本），取决于实测结果。
 4. RM 编号申领与优先级——本设计与当前进行中的 RM-AG0054（TAG0027，编排语义统一落地）在"exit 三态""平台实现注记"等概念上有交叉，需要确认排期顺序，避免两个设计同时改动 `dispatch-protocol.md` 造成合并冲突。
 5. **§1.5 待确认项已核实**：TPV0095 backend 实测案例的 P2-design.md 已核实声明 `dispatch_plan`（static-batch，backend=high）——归类为**可能性 B**（P2 评级正确执行、但批内部顺序依赖粒度未被静态评级捕捉），立论素材成立，无需更换。
-6. **命令流日志数据源实机验证（§3.4.2 新增）**：检测逻辑已模拟验证（4 场景全 PASS），但平台 transcript 解析——从 Claude Code/OpenCode/DSH 的会话记录中提取"每条命令的开始时间戳 + exit + 输出哈希"——的可行性与解析粒度待实机验证后定稿，验证结果决定命令流日志机制是进入正式设计还是保持"验证通过但数据源受限"状态。
+6. **命令流日志数据源实机验证（§3.4.2 新增）——已解决**：2026-09-03 完成实机验证，Claude Code（JSONL）+ OpenCode（SQLite）均通过，四项关键字段（时间戳/命令内容/exit 信号/实时写入）全部正向，命令流日志机制按当前设计推进，无需降级。验证发现三个落地时需处理的平台差异（两平台字段不通用需各写解析逻辑、Claude Code 无数字 exit code 需文本前缀兜底、OpenCode 超大输出 spill 文件与 part ID 无法直接 join），已并入 §3.4.2 正文。完整验证记录：`verification-cmdstream-datasource-20260903.md`。
