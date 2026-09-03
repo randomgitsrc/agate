@@ -1,0 +1,30 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agateon/.worktrees/agate-TAG0027
+configfile: pyproject.toml
+plugins: xdist-3.8.0, asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 18 items
+
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_13_check_gate_exit_semantics_regression PASSED [  5%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_13_check_state_transition_exit_semantics_regression PASSED [ 11%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_6_next_exit2_pass_advances_to_next_phase PASSED [ 16%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_6_p6_judge_disabled_direct_p7_anchor PASSED [ 22%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_7_next_exit1_delegates_retreat_to_retreat_target PASSED [ 27%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_7_p6_exit1_retreats_to_p4_via_retreat_to PASSED [ 33%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_8_non_pass_exit_writes_exit2_resolution PASSED [ 38%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_8_exit2_resolution_frontmatter_machine_readable PASSED [ 44%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_9_p6_exit2_keeps_advancing_no_resolution_file PASSED [ 50%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_9_p6_judge_enabled_gate_p65_pass_advances_p7 PASSED [ 55%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_9_p6_judge_gate_p65_fail_stays_p6 PASSED [ 61%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_11_state_transition_event_observable PASSED [ 66%]
+agate/tests/unit/test_tag0027_b1_agate_next_cli.py::test_bdd_11_healthy_exit2_full_advance_no_resolution PASSED [ 72%]
+agate/tests/unit/test_tag0027_b1_agate_advance_cli.py::test_bdd_10_advance_diff2_manual_jump_prompts_paused PASSED [ 77%]
+agate/tests/unit/test_tag0027_b1_agate_advance_cli.py::test_bdd_10_advance_diff1_delegates_retreat_to PASSED [ 83%]
+agate/tests/unit/test_tag0027_b1_judge_exit2_review.py::test_bdd_12_healthy_ledger_no_resolution_file_passes PASSED [ 88%]
+agate/tests/unit/test_tag0027_b1_judge_exit2_review.py::test_bdd_12_existing_resolution_format_invalid_fails PASSED [ 94%]
+agate/tests/unit/test_tag0027_b1_judge_exit2_review.py::test_bdd_12_judge_review_exit2_resolution_present_passes PASSED [100%]
+
+============================== 18 passed in 3.90s ==============================
+EXIT_CODE: 0
