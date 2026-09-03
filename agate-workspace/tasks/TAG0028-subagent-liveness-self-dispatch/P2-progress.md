@@ -62,3 +62,9 @@
 [15:41:23] fix1: gate_commands 修正完成（P3→python3 -m pytest agate/tests/ -q --tb=short、P5→python3 -m pytest agate/tests/ -q --tb=no -n auto、P5_timeout 300→600、附注同步）；下一步：追加 §10 修复轮记录
 [15:41:40] fix1: §10 修复轮记录已追加（10.1 gate 修正表 + 10.2 timeout 复核表 + 10.3 下游影响 + 10.4 环境隔离）；下一步：自检（check-frontmatter.py + grep 确认落盘）
 [15:42:09] fix1: 自检完成——check-frontmatter.py exit 0；grep 确认 P3/P5 均已是 python3 -m pytest 形态、无裸 pytest 残留；§10 修复轮记录已落盘。fix1 完成，返回主 Agent
+
+[15:48:54] fix2: 输入读取完成（fix2 dispatch-context、fix1/首轮 dispatch-context、architect 角色、P2-design.md §4 gate_commands + §10）；修复目标=P3/P5 行内注释→独立注释行，命令串一字不改
+
+[15:49:45] fix2: P3/P5 行内注释已改为独立注释行（命令串一字未改）；§10.5 fix2 小节已追加（问题现象/根因/修法/验证四要素 + 环境隔离）；下一步：自检（read-gate-commands + frontmatter + grep 残留）
+
+[15:50:29] fix2: 自检完成——agate-read-gate-commands.py P3 cmd 干净（python3 -m pytest agate/tests/ -q --tb=short，无引号/#/空白）；agate-read-p5-commands.py 全部 cmd 干净；agate-frontmatter-check.py exit 0；grep 确认 gate_commands 块无行内注释残留；§10.5 已落盘。fix2 完成，返回主 Agent

@@ -174,8 +174,10 @@ ui_affected: false
 
 ```yaml
 gate_commands:
-  P3: "python3 -m pytest agate/tests/ -q --tb=short"        # P3 TDD 红灯读取测试运行器（fix1：裸 pytest → python3 -m pytest）
-  P5: "python3 -m pytest agate/tests/ -q --tb=no -n auto"   # P5 全量三片（unit/regression/integration）合跑 + -n auto 并行（fix1）
+  # P3 TDD 红灯读取测试运行器（fix1：裸 pytest → python3 -m pytest）
+  P3: "python3 -m pytest agate/tests/ -q --tb=short"
+  # P5 全量三片（unit/regression/integration）合跑 + -n auto 并行（fix1）
+  P5: "python3 -m pytest agate/tests/ -q --tb=no -n auto"
   P5_consistency: "python3 agate/scripts/check-protocol-consistency.py --strict-errors-only"
   P5_cmdstream_verify: "python3 docs/design-notes/260903-design-subagent-liveness-and-self-dispatch/verify-heartbeat-cmdstream/verify_cmdstream_detection.py"
   P5_shellcheck: "shellcheck -S warning agate/scripts/pre-commit-gate.sh agate/scripts/commit-msg-self-gate.sh agate/scripts/pre-push-gate.sh"
@@ -289,3 +291,13 @@ minimal_validation:
 ### 10.4 环境隔离
 
 [PROD_NOT_TOUCHED] 本轮仅修改任务目录内 P2-design.md（gate_commands 声明 + 修复轮记录），未触碰生产环境。
+
+### 10.5 fix2：gate_commands 行内注释清理
+
+> 修复轮（增量模式，TAG0028-P2 fix2）：主 Agent 在 P3 环境基线捕获时发现 `agate-read-gate-commands.py` 解析出的 P3/P5 命令值带行内注释尾巴 + 残留未闭合引号，经 shell 最小验证（`bash -c`）确认 unterminated quote 语法错误（exit 2）——check-tdd-red（P3 红灯判定）与 P5 验证执行该命令必失败，且 judge 分支可能误判为红灯可推进（假绿灯）。方案本体已评审通过（P2-review.md status=approved），本轮**仅**改注释形态（行内注释 → 独立注释行），命令字符串一字未改（P3/P5 内容与全部 timeout_seconds 均不变）。
+
+- **问题现象**：`agate-read-gate-commands.py`（env GATE_FILE=P2-design.md）输出 P3 cmd = `'python3 -m pytest agate/tests/ -q --tb=short"        # P3 TDD 红灯读取测试运行器（fix1：裸 pytest → python3 -m pytest）'`——命令值残留结尾 `"` + 注释尾巴；`bash -c 'echo python3 -m pytest ... --tb=short"        # 注释'` → `bash: -c: 行 1: 寻找匹配的 \`"'\` 时遇到了未预期的 EOF`（exit 2）；干净命令对照 exit 0。
+- **根因**：`agate-read-gate-commands.py` 解析用 `val = raw.strip().strip(chr(34)).strip(chr(39))`——值内行注释使字符串不以 `"` 结尾，`strip(chr(34))` 只剥开头引号，残留结尾 `"` + 注释；行内注释不属于 YAML 标量值，是解析残渣。
+- **修法**：gate_commands 块内 P3/P5 的行内注释移除，改为 key 上方的独立注释行（`# P3 TDD 红灯读取测试运行器…` / `# P5 全量三片…`），命令字符串一字不改；其余 key（P5_consistency / P5_cmdstream_verify / P5_shellcheck / P5_count_tests / timeout_seconds 族）本无行内注释，不动。
+- **验证**：`agate-read-gate-commands.py` 输出每条 cmd 均为纯命令（无 `"` 残留、无 `#`、无首尾空白）；`bash -c` 语法校验 OK；`agate-frontmatter-check.py` exit 0；grep 确认 gate_commands 块无行内注释残留。
+- **环境隔离**：[PROD_NOT_TOUCHED] 本轮仅修改任务目录内 P2-design.md（gate_commands 注释形态 + §10.5 修复轮记录），未触碰生产环境。
