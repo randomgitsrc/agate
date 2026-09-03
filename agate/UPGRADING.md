@@ -106,6 +106,10 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
    （platform-notes.md / SETUP.md 整文件 + WORKFLOW.md「已知适用环境」表 +
    assets/templates/dsh/ 平台食谱目录）——新增/改写协议 md 文档时注意（CHECK 14/15 CI 硬校验）。
    此条只约束协议维护者，不约束协议使用者。
+
+> 实现注记：上段平台名清单（OpenCode / Claude Code / DSH / workflow / ralph / goal / task）是
+> 护栏 1 检查触发的词表说明（元信息，描述 CHECK 14/15 扫什么），非协议语义定义；本升级章节为
+> 历史变更记录叙事。
 3. **升级动作**：`git pull` 即完成；无迁移动作。
 
 ### v0.65.0 — 维护性反模式 gate（TAG0026：RM-AG0046）
