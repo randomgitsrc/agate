@@ -580,6 +580,20 @@ def resolve_workspace(project_root):
     return workspace, tasks_dir
 
 
+def compute_sha256(path):
+    """sha256 hex：文件=内容哈希；目录=排序逐文件 hash 拼接再整体 hash（TAG0031 DEBT0002，
+    从 agate-pack-offline.py / install-offline.py 迁移的共享单实现，逐字节保留现状排序键
+    `f.relative_to(p).as_posix()` 字典序约定，跨平台路径排序一致）。"""
+    p = Path(path)
+    if p.is_dir():
+        digests = []
+        for f in sorted(p.rglob("*"), key=lambda f: f.relative_to(p).as_posix()):
+            if f.is_file():
+                digests.append(hashlib.sha256(f.read_bytes()).hexdigest())
+        return hashlib.sha256("".join(digests).encode("utf-8")).hexdigest()
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
 # ---------- M1 对账（TAG0021，BDD-6/7；P2-design §3.4） ----------
 # 双跑对账：现行 grep/md 读取路径（保退出码语义 0/2 不变，不新增阻断）+ 结构化读取路径
 # （frontmatter YAML / rules/*.yaml 声明）对比。差异可观测出口（BDD-6）：

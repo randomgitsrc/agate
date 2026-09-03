@@ -73,6 +73,8 @@ agate 的所有自动化脚本。产品逻辑已全部 Python 化（TAG0010）�
 | `agate-pack-offline.py` | 外网离线打包器：`vX.Y.Z [--platform linux-x86_64|windows-x86_64] [--include-python] [--include-pillow]` → 平台标签 bundle + manifest.json（sha256 checksum）|
 | `install-offline.py` | 内网离线安装器：读 manifest.json 平台核对（不匹配拒绝）+ checksum 校验（不匹配拒绝）→ `pip install --no-index --find-links wheels/` → 建 `~/.agate/vX.Y.Z/` + hook/orchestrator 指向 + 验证闭环 |
 
+**信任边界（TAG0031 DEBT0003）**：`install-offline.py` 的 checksum 校验只防损坏（传输/存储过程中的意外错误，如位翻转、截断），**不防**恶意构造的整包替换——若 bundle 提供者本身不可信，攻击者可同时替换 bundle 内容与 manifest 里对应的 sha256 值，使二者重新匹配，checksum 校验会照常通过。因此该机制的前提是 bundle 提供者需可信（内网分发渠道可控），checksum 校验通过不等于来源可信，只代表"文件内容与随包 manifest 一致"。
+
 ### 版本发现（agent 快速掌握协议变化）
 
 | 脚本 | 用途 |

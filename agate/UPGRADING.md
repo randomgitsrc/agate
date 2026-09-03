@@ -89,6 +89,27 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.67.2 — DEBT 存量修复批（TAG0031：DEBT0002/3/4/7/16/17/18）
+
+> **本版本无破坏性变更，零迁移动作**——未改 `.state.yaml` schema / 既有任务文件格式 /
+> 3 个 hook 薄壳（本任务改动清单无 `.sh` 改动），无需重跑 `install-hook.py`（软链布局
+> `git pull` 即生效；Windows 复制模式重跑 SETUP.md 步骤 2 的 `cp`）。
+
+1. **离线包 hash 工具共享——对合规调用零影响**：`compute_sha256` 从 `agate-pack-offline.py`/
+   `install-offline.py` 各自实现收敛到 `agate_common.py` 单点定义，两侧改 import 共享，函数
+   签名/行为不变，仅定义位置迁移。
+2. **离线安装引导逻辑增强——对合规调用零影响**：`install-offline.py` 新增 `_ensure_agate_common`
+   引导函数处理 pyyaml 组件的离线 bootstrap 时序（先 checksum 校验、通过才 pip install），
+   `verify_checksums` 的对外行为（checksum 不匹配即拒绝安装）不变。
+3. **卸载引用扫描新增 WARNING 提示——纯增量，不改变卸载判定结果**：命中限流边界（深度>4 /
+   mtime 超窗）时 stderr 多输出一行 WARNING，`_find_references` 是否允许卸载的判定逻辑本身
+   不变。
+4. **check-gate.py 三处健壮性修复——对合规产出零影响**：gate_p4 CODE-MAP 路径解析改用权威函数
+   （标准场景结果不变）；「新增文件核对表」判定改整行匹配（真实标题存在时判定不变，只消除
+   自指散文误判）；`agate_common` import 降级 stub 改 fail-closed（仅在 agate_common 不可导入
+   的安装破损场景才触发新行为，正常安装不可达）。
+5. **升级动作**：`git pull` 即完成；无迁移动作。
+
 ### v0.67.1 — gate 命令解析器与 TDD 红灯判定缺口修复（TAG0029：RM-AG0056 + DEBT0023/0027）
 
 > **本版本无破坏性变更，零迁移动作**——未改 `.state.yaml` schema / 既有任务文件格式 /
@@ -530,7 +551,7 @@ python3 ~/.agate/scripts/install-hook.py
 
 - `agate-install.py`：安装/卸载/环境探测（`--check` 输出 python3/pyyaml/git/bash 探测结果，exit code 可判 + 分平台修复指引）。
 - `agate-resolve.py`：解析项目实际使用的版本（输出 AGATE_ROOT/AGATE_VERSION/AGATE_REASON）。
-- `agate-pack-offline.py` + `install-offline.py`：外网打包 → 内网离线安装闭环（平台核对 + checksum 校验 + 版本目录 + hook 指向）。
+- `agate-pack-offline.py` + `install-offline.py`：外网打包 → 内网离线安装闭环（平台核对 + checksum 校验 + 版本目录 + hook 指向）。**信任边界（TAG0031 DEBT0003）**：checksum 校验只防损坏（传输/存储过程中的位翻转、截断等意外错误），**不防**恶意构造的整包替换——攻击者若能替换整个 bundle（同时重算并写入匹配的 manifest sha256），checksum 校验会照常通过。因此 bundle 提供者需可信（内网分发渠道本身要可控），checksum 通过不代表来源可信，只代表"文件内容与 manifest 一致"。
 
 **⑤ agate-summary 语义变化（显示层，提示文案变更）**：`agate-summary.py` 不再显示仓库自身 tag，改为显示**当前项目解析到的版本 + 原因**（`.agate-version` 或全局 current）——排障时直接可见"项目用哪个版本、为什么"。
 

@@ -40,11 +40,17 @@ except ImportError:
     yaml = None
 
 try:
-    from agate_common import read_vision_tri_state, run_git
+    from agate_common import read_vision_tri_state, resolve_workspace, run_git
 except ImportError:
     read_vision_tri_state = None
     run_git = None
+    resolve_workspace = None
 
+# DEBT0018 fail-closed 标记：agate_common 整体不可导入时置 True，供 gate_p1/p6/p7 四个
+# "关键读取器"消费点（read_rules_yaml/count_p6_pass_fail/count_p7_markers/
+# count_code_map_lines）在使用返回值前判定——命中则显式失败（安装破损），不再静默用
+# 0/None/空降级值走到 false-PASS。其余 20+ 个降级 stub 的既有 fail-open 语义不受影响
+# （R2：不在 DEBT0018 evidence 点名范围内）。
 try:
     from agate_common import (
         body_field_value,
@@ -76,6 +82,7 @@ try:
         split_frontmatter,
     )
 except ImportError:
+
     # M1 对账辅助缺失 → 对账降级为关闭（对账是叠加层，不影响原判定语义）
     def reconcile_enabled():
         return False
@@ -216,6 +223,20 @@ def _git(args):
         return proc.returncode, proc.stdout
     except OSError:
         return 1, ""
+
+
+def _reader_missing(fn):
+    """DEBT0018：判定"关键读取器"（read_rules_yaml/count_p6_pass_fail/count_p7_markers/
+    count_code_map_lines）当前绑定是否可信——严格要求当前绑定的 `__module__` 是
+    `"agate_common"`（真正从 agate_common 导入的实现）。ImportError 降级 stub（定义在
+    check-gate.py 内，`__module__` 为本文件的加载态模块名，如 `"__main__"`/
+    `"check_gate_direct"`）判定为不可信；任何非 agate_common 来源的替换同样判定为不可信。
+
+    用 `__module__` 身份判定而非一次性导入标记，是因为消费点在使用返回值前才需要知道
+    "这个名字现在到底绑的是谁"——对函数对象的引用可能在模块 exec 完成后被重新赋值（无论是
+    生产环境的降级恢复，还是白盒测试的依赖注入），身份判定在调用时刻永远准确。
+    """
+    return getattr(fn, "__module__", None) != "agate_common"
 
 
 def _read_text(path):
@@ -683,6 +704,13 @@ def gate_p1(task_dir):
     #     created 缺失或非 ISO）→ 跳过（fail-open，R5）。
     judge = _load_state_yaml(task_dir).get("judge")
     if not (isinstance(judge, dict) and judge.get("enabled")):
+        # DEBT0018：read_rules_yaml 是无条件调用点——agate_common 不可导入时须 fail-closed，
+        # 不再因 dispatch_rules 静默为 None 导致 cutoff 判据被跳过（fail-open，误判为 PASS）。
+        if _reader_missing(read_rules_yaml):
+            sys.stderr.write(
+                "GATE P1: 安装破损：agate_common 不可导入，无法读取 rules/dispatch.yaml 判定 judge_required_since 门槛\n"
+            )
+            return 1
         created = _md_field_get("created", p1_file)
         dispatch_rules = read_rules_yaml(resolve_rules_root(__file__), "dispatch")
         cutoff = dispatch_rules.get("judge_required_since") if isinstance(dispatch_rules, dict) else None
@@ -977,17 +1005,37 @@ def gate_p4(task_dir):
     # 「## 新增文件核对表」标题 → WARNING 不阻断（仍 return 0）。change_type 字段不读取、
     # 不分支（BDD-10：refactor 任务同样触发，不豁免）。
     skeleton_file = os.path.join(task_dir, "P2-skeleton.md")
-    # [DESIGN_GAP: P2-design.md 未给出 {AGATE_WORKSPACE}/agents/CODE-MAP.md 的函数级路径解析
-    # 细节（P3 测试只覆盖 P2-skeleton.md 分支）。本实现采用 task_dir 向上两级推导 workspace 根
-    # （task_dir 通常形如 {AGATE_WORKSPACE}/tasks/{Txxx}），再拼接 agents/CODE-MAP.md：
-    # os.path.dirname(os.path.dirname(os.path.abspath(task_dir))) + "/agents/CODE-MAP.md"。
-    # 若与 agate_common._resolve_workspace / .agate.env 的实际工作区解析机制不一致，需后续对齐。]
+    # DEBT0016：CODE-MAP.md 路径改用 agate_common.resolve_workspace 权威解析（取代本地
+    # dirname(dirname(task_dir)) 路径算术，该算术假定 task_dir 恰好两级嵌套在 workspace 下，
+    # 非标准嵌套 / .agate.env 覆盖工作区位置时会算错）。project_root 优先取
+    # run_git(["rev-parse", "--show-toplevel"]) 的 git 顶层；run_git 不可用/失败时退化为
+    # 本地算术推导值仅作 resolve_workspace 的入参兜底（resolve_workspace 内部按
+    # project_root/.agate.env 覆盖解析，找不到该文件时走其默认 {project_root}/agate-workspace
+    # 规则，不因入参不精确而抛错）。resolve_workspace 本身不可用（agate_common 整体不可导入，
+    # 与 run_git 同一 import 块，生产环境下二者必然同生共死）时才整体回退旧算术——本分支是
+    # WARNING-only（不 return 1），不是 DEBT0018 evidence 点名的 4 个"关键读取器"之一，
+    # 保持 fail-open 与既有 WARNING 语义一致（R3）。
     code_map_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(task_dir))), "agents", "CODE-MAP.md"
     )
+    if resolve_workspace is not None:
+        project_root = None
+        if run_git is not None:
+            _rc, _out = run_git(["rev-parse", "--show-toplevel"], cwd=task_dir)
+            if _rc == 0 and _out.strip():
+                project_root = _out.strip()
+        if project_root is None:
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(task_dir)))
+        _workspace, _tasks_dir = resolve_workspace(project_root)
+        code_map_file = os.path.join(_workspace, "agents", "CODE-MAP.md")
     if os.path.isfile(skeleton_file) or os.path.isfile(code_map_file):
         p4_impl_check = os.path.join(task_dir, "P4-implementation.md")
-        if "## 新增文件核对表" not in _read_text(p4_impl_check):
+        # DEBT0017：子串 `in` 判定改为整行/标题级 re.MULTILINE 正则（参照 agate_common.py
+        # extract_bdd_titles/parse_ui_design_section 写法风格），消除自指/dogfooding 场景下
+        # 假阳性（散文提及标题字面量『## 新增文件核对表』被子串判定误判为"标题已存在"，
+        # 导致本该触发的 WARNING 被错误跳过）。标题行尾允许附加说明文字（只要求行首匹配，
+        # 不要求标题后无内容）。
+        if not re.search(r"^##\s+新增文件核对表", _read_text(p4_impl_check), re.MULTILINE):
             sys.stderr.write(
                 "GATE P4 WARNING: 骨架/CODE-MAP 机制已采用，但 P4-implementation.md 缺少「## 新增文件核对表」标题（不阻断，请补充）\n"
             )
@@ -1081,6 +1129,13 @@ def gate_p6(task_dir):
     else:
         # 旧格式回退：正文行首 PASS/FAIL 计数（BDD-18，行首须含 BDD 编号才计入，大小写不敏感）
         # M2-0038 C 组：计数迁 agate_common count_p6_pass_fail
+        # DEBT0018：agate_common 不可导入时 fail-closed，不再让降级 stub 的 (0, 0) 与真实
+        # "无 BDD 条目" 混同为通用消息（无法让运维区分是真的 0 条还是安装破损降级读数）。
+        if _reader_missing(count_p6_pass_fail):
+            sys.stderr.write(
+                "GATE P6: 安装破损：agate_common 不可导入，无法读取 PASS/FAIL 计数\n"
+            )
+            return 1
         total, fail = count_p6_pass_fail(_read_text(p6_file))
     if fail != 0 or total == 0:
         sys.stderr.write(f"GATE P6: FAIL={fail}, TOTAL={total}\n")
@@ -1141,6 +1196,13 @@ def gate_p7(task_dir):
         # 旧格式回退：正文 grep + 非计数行排除正则（既有逻辑）
         # M4：[:：] bracket 在 POSIX locale 不匹配全角冒号 → alternation (:|：)。
         # M2-0038 C 组：计数迁 agate_common count_p7_markers
+        # DEBT0018：agate_common 不可导入时 fail-closed——降级 stub 的 (0, 0) 此前会静默
+        # 落到函数末尾 return 0（真正的 false-PASS），改为显式失败。
+        if _reader_missing(count_p7_markers):
+            sys.stderr.write(
+                "GATE P7: 安装破损：agate_common 不可导入，无法读取 BLOCKER/DEVIATION-CRITICAL 计数\n"
+            )
+            return 1
         blockers, devcrit = count_p7_markers(_read_text(p7_file))
     if blockers > 0 or devcrit > 0:
         sys.stderr.write(f"GATE P7: BLOCKER={blockers}, DEVIATION-CRITICAL={devcrit}\n")
@@ -1234,6 +1296,15 @@ def gate_p7(task_dir):
         # 转抄核对层：P4 正文实际 [CODE_MAP_UPDATED]/[CODE_MAP_EXEMPT] 标记数
         # > code_map_new_files_count（注意不是 code_map_reviewed_count）→ return 1
         # M2-0038 C 组：计数迁 agate_common count_code_map_lines
+        # DEBT0018：与另外三个消费点相反——本调用点只在 code_map_new_files_count/
+        # code_map_reviewed_count 字段均已声明（机制已采用）时才会触达，不是旧格式回退分支
+        # （R2）。agate_common 不可导入时同样 fail-closed，不让降级 stub 的 0 静默落到
+        # 函数末尾 return 0（false-PASS）。
+        if _reader_missing(count_code_map_lines):
+            sys.stderr.write(
+                "GATE P7: 安装破损：agate_common 不可导入，无法读取 CODE-MAP 转抄标记计数\n"
+            )
+            return 1
         p4_impl_file_for_cm = os.path.join(task_dir, "P4-implementation.md")
         p4_code_map_actual_count = count_code_map_lines(_read_text(p4_impl_file_for_cm))
         if p4_code_map_actual_count > cm_count:

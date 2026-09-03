@@ -205,3 +205,114 @@ def test_bdd_5_read_judge_verdict_missing_returns_none(
     )
     assert result.returncode == 0
     assert result.output.strip() == "None"
+
+
+# ─────────────────────────────────────────────
+# TAG0031 簇 A（DEBT0002 hash 共享，BDD-1）：compute_sha256 迁移到 agate_common
+#   agate-pack-offline.py / install-offline.py 当前各自本地定义 compute_sha256（逐字节相同实现，
+#   文件=内容哈希，目录=按 f.relative_to(p).as_posix() 字典序排序逐文件 sha256 拼接再整体 sha256）。
+#   迁移后：agate_common.py 新增 compute_sha256(path)，两侧改 import，全仓只剩 1 处 def。
+#
+# 当前 agate_common.py 尚无该函数 → `from agate_common import compute_sha256` 直接触发
+# ImportError（真实的项目内 import 失败 = B 类红灯语义），非测试代码自身语法错误。
+
+_COMPUTE_SHA256_FILE = (
+    "import hashlib, sys; "
+    "from agate_common import compute_sha256; "
+    "p = sys.argv[1]; "
+    'print(compute_sha256(p) == hashlib.sha256(open(p, "rb").read()).hexdigest())'
+)
+
+_COMPUTE_SHA256_DIR = (
+    "import hashlib, sys; "
+    "from pathlib import Path; "
+    "from agate_common import compute_sha256; "
+    "p = Path(sys.argv[1]); "
+    "digests = [hashlib.sha256(f.read_bytes()).hexdigest() "
+    "for f in sorted(p.rglob('*'), key=lambda f: f.relative_to(p).as_posix()) if f.is_file()]; "
+    "expected = hashlib.sha256(''.join(digests).encode('utf-8')).hexdigest(); "
+    "print(compute_sha256(str(p)) == expected)"
+)
+
+
+def test_bdd_1_compute_sha256_file_hash_matches_hashlib(
+    tmp_path, python_exe, run_cli, agate_scripts
+):
+    """BDD-1：agate_common.compute_sha256 对文件的结果 == 直接 hashlib.sha256(文件内容)——
+    迁移后文件哈希语义必须与现状（pack/install 两侧现有实现）逐字节一致。"""
+    f = tmp_path / "sample.txt"
+    f.write_text("agate-tag0031-debt0002\n", encoding="utf-8")
+
+    result = run_cli(
+        python_exe, "-c", _COMPUTE_SHA256_FILE, str(f), env={"PYTHONPATH": str(agate_scripts)}
+    )
+    assert result.returncode == 0
+    assert result.output.strip() == "True"
+
+
+def test_bdd_1_compute_sha256_dir_hash_sorted_relpath_concat(
+    tmp_path, python_exe, run_cli, agate_scripts
+):
+    """BDD-1：目录 hash 必须遵循现状约定——按 f.relative_to(p).as_posix() 字典序排序逐文件
+    sha256 拼接后再整体 sha256。迁移到 agate_common 时排序键必须原样保留，否则跨平台路径排序
+    漂移会导致 install-offline.py 的 checksum 校验误报（P1 隐含需求表）。"""
+    d = tmp_path / "bundle_dir"
+    (d / "sub").mkdir(parents=True)
+    (d / "a.txt").write_text("A content", encoding="utf-8")
+    (d / "sub" / "b.txt").write_text("B content", encoding="utf-8")
+
+    result = run_cli(
+        python_exe, "-c", _COMPUTE_SHA256_DIR, str(d), env={"PYTHONPATH": str(agate_scripts)}
+    )
+    assert result.returncode == 0
+    assert result.output.strip() == "True"
+
+
+def test_bdd_1_compute_sha256_single_definition_in_repo(agate_scripts):
+    """BDD-1：全仓 grep `def compute_sha256` 只应有 1 处定义（agate_common.py）——迁移后
+    agate-pack-offline.py / install-offline.py 内不再各自重复定义。
+
+    当前状态（迁移前）：pack/install 两侧仍各自定义 → 命中 2 处（均不在 agate_common.py），
+    断言失败（真红灯，非语法错误）。
+    """
+    import re
+
+    pattern = re.compile(r"^def compute_sha256\(", re.MULTILINE)
+    hits = []
+    for name in ("agate_common.py", "agate-pack-offline.py", "install-offline.py"):
+        text = (agate_scripts / name).read_text(encoding="utf-8")
+        hits += [name] * len(pattern.findall(text))
+
+    assert hits == ["agate_common.py"], (
+        f"compute_sha256 定义应只有 agate_common.py 1 处，实际命中: {hits}"
+    )
+
+
+# ─────────────────────────────────────────────
+# TAG0031 簇 A（DEBT0003 manifest 信任边界文档，BDD-3）：离线安装文档明示信任边界
+#   `agate/UPGRADING.md`（④ 新工具小节）与 `agate/scripts/README.md`（install-offline.py 行）
+#   均应新增信任边界说明："checksum 校验防损坏、不防整包替换"，不给出"checksum 校验通过即
+#   完整性/来源均可信"的误导性表述。
+#
+# 当前状态：两处文档均只描述 checksum 机制本身（"sha256 checksum"字样），未见"信任边界"相关
+# 说明文字（P1「同类扫描」节 7 已 grep 确认）——断言失败（真红灯，非语法/import 错误）。
+
+
+def test_bdd_3_upgrading_doc_states_checksum_trust_boundary(agate_root):
+    """BDD-3：UPGRADING.md 离线包安装章节须显式写出"checksum 防损坏、不防整包替换"的信任边界
+    说明（bundle 提供者需可信）。"""
+    text = (agate_root / "UPGRADING.md").read_text(encoding="utf-8")
+    assert "防损坏" in text and "不防" in text, (
+        "UPGRADING.md 应含 checksum 防损坏、不防整包替换的信任边界说明（当前缺失）"
+    )
+    assert "信任" in text, "UPGRADING.md 应显式提及信任边界（bundle 提供者需可信）"
+
+
+def test_bdd_3_scripts_readme_states_checksum_trust_boundary(agate_scripts):
+    """BDD-3：agate/scripts/README.md 的 install-offline.py 行/说明段须同样写出信任边界说明，
+    与 UPGRADING.md 口径一致，不给出"checksum 通过即来源可信"的误导性表述。"""
+    text = (agate_scripts / "README.md").read_text(encoding="utf-8")
+    assert "防损坏" in text and "不防" in text, (
+        "scripts/README.md 应含 checksum 防损坏、不防整包替换的信任边界说明（当前缺失）"
+    )
+    assert "信任" in text, "scripts/README.md 应显式提及信任边界（bundle 提供者需可信）"
