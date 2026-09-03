@@ -13,7 +13,6 @@ import os
 import sys
 
 from agate_common import (
-    is_gate_meta_key,
     is_legal_gate_key,
     known_phase_ids,
     parse_gate_commands_block,
@@ -85,8 +84,7 @@ def _clean_value(raw, key):
     s = _peel("".join(out).strip())
     if s.count("\"") % 2 == 1 or s.count("'") % 2 == 1:
         sys.stderr.write(
-            "agate-read-gate-commands: 解析错误: %s 命令值引号未闭合: %s\n"
-            % (key, s[:60])
+            f"agate-read-gate-commands: 解析错误: {key} 命令值引号未闭合: {s[:60]}\n"
         )
         sys.exit(2)
     return s
