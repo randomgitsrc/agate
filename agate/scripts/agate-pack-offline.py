@@ -20,12 +20,14 @@
 字典序排序，逐一 sha256(file_bytes) 得 hex，拼为一条长串后整体 sha256。
 """
 
-import hashlib
 import json
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from agate_common import compute_sha256  # noqa: E402  TAG0031 DEBT0002：共享单实现
 
 # 平台标签 → pip --platform 值（P2 §7 minimal_validation 已实测可用）
 _PIP_PLATFORMS = {
@@ -46,18 +48,6 @@ def _run(cmd, cwd=None):
         cmd, cwd=cwd, capture_output=True,
         text=True, encoding="utf-8", errors="replace", check=True,
     )
-
-
-def compute_sha256(path):
-    """sha256 hex：文件=内容哈希；目录=排序逐文件 hash 拼接再整体 hash（与 install 侧一致）。"""
-    p = Path(path)
-    if p.is_dir():
-        digests = []
-        for f in sorted(p.rglob("*"), key=lambda f: f.relative_to(p).as_posix()):
-            if f.is_file():
-                digests.append(hashlib.sha256(f.read_bytes()).hexdigest())
-        return hashlib.sha256("".join(digests).encode("utf-8")).hexdigest()
-    return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
 def build_manifest(version, platform, components):

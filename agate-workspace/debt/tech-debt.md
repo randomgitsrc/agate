@@ -43,13 +43,23 @@ closed_at: 2026-08-16
 id: DEBT0002
 category: technical
 title: 离线包 compute_sha256 双实现漂移（pack/install 两侧各自实现，未共享 agate_common）
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0008-version-management/P7-consistency.md
     note: DESIGN_GAP 1.3 双实现漂移——resolve-chain 批交付的 agate_common.py（438 行）未含 sha256/目录 hash 工具，offline 批受"只新建 2 脚本、不改 agate_common"约束，两侧各自实现相同约定的 compute_sha256
   - ref: agate-workspace/tasks/TAG0008-version-management/P4-review-eng.md
     note: INFORMATIONAL 8 显式跟踪（"compute_sha256 双实现漂移"）
+  - ref: agate/scripts/agate_common.py
+    note: "closure：本次 TAG0031-P4 commit 新增 compute_sha256(path)，agate-pack-offline.py/
+      install-offline.py 均改为 import agate_common 共享同一实现，全仓 grep `def compute_sha256`
+      仅剩 1 处定义"
+  - ref: agate/tests/unit/test_agate_common.py / test_agate_pack_offline.py / test_install_offline.py
+    note: "closure：BDD-1（test_bdd_1_compute_sha256_* / test_bdd_1_pack_offline_* /
+      test_bdd_1_verify_checksums_*）全绿"
+  - ref: agate/tests/regression/test_offline_bundle_roundtrip.py
+    note: "closure：BDD-2（test_bdd_2_pack_install_uninstall_roundtrip_no_behavior_change）全绿，
+      hash 合并后 pack→install→卸载全流程无行为变化，属本任务 gate_commands.P5_offline_bundle 覆盖范围"
 impact: 目录 hash 约定（排序逐文件 hash 拼接再整体 hash）靠文档同步，两侧若未来改约定不一致 → 打包/安装校验失配，内网错装/误拒
 recommendation: 在 agate_common.py 补一个目录 hash 工具（compute_sha256），pack/install 两侧改 import 共享
 closure_criteria:
@@ -59,6 +69,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-16
 task_id: TAG0008-version-management
+closed_at: 2026-09-04
 ```
 
 ## DEBT0003
@@ -67,13 +78,20 @@ task_id: TAG0008-version-management
 id: DEBT0003
 category: technical
 title: 离线 manifest 未签名（checksum 防损坏不防整包替换）
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0008-version-management/P4-review-cso.md
     note: MEDIUM-2——manifest 无签名，攻击者可整包替换并重算 checksum，完整性校验被绕过
   - ref: agate-workspace/tasks/TAG0008-version-management/P4-review.md
     note: 遗留建议项 1——建议发布前在 UPGRADING/README 离线包章节明示信任边界（bundle 提供者可信 + checksum 防损坏；防整包替换需引入签名）
+  - ref: agate/UPGRADING.md / agate/scripts/README.md
+    note: "closure：本次 TAG0031-P4 commit 在两文件离线包章节补充'checksum 防损坏、不防整包替换'
+      信任边界说明（bundle 提供者需可信），不引入签名实现（P0-brief out-of-scope 明确排除签名体系）"
+  - ref: agate/tests/unit
+    note: "closure：BDD-3（test_bdd_3_upgrading_doc_states_checksum_trust_boundary /
+      test_bdd_3_scripts_readme_states_checksum_trust_boundary）全绿，属本任务 gate_commands.P5
+      全量 pytest 覆盖范围"
 impact: 内网安装的信任边界依赖"bundle 提供者可信"的隐含假设；恶意中间人整包替换时 checksum 校验不拦截
 recommendation: 文档明示信任边界（bundle 提供者可信）；如需防整包替换引入签名（如 minisign/GPG）校验 manifest
 closure_criteria:
@@ -82,6 +100,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-16
 task_id: TAG0008-version-management
+closed_at: 2026-09-04
 ```
 
 ## DEBT0004
@@ -90,13 +109,20 @@ task_id: TAG0008-version-management
 id: DEBT0004
 category: technical
 title: 卸载引用保护扫描限流（mtime 365 天/深度 ≤4/跳隐藏目录）漏扫旧引用且无提示
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0008-version-management/P4-review-cso.md
     note: MEDIUM-3——_find_references 限流（深度 ≤4 + 跳隐藏/.agate/.git + mtime 窗口 365 天）使边界外引用漏扫，被引用的旧/深/隐藏项目在版本删除后 .agate-version 静默回退 current
   - ref: agate-workspace/tasks/TAG0008-version-management/P4-review.md
     note: 遗留建议项 2——建议限流边界命中时向 stderr 输出 WARNING 提示可能漏扫
+  - ref: agate/scripts/agate-install.py
+    note: "closure：本次 TAG0031-P4 commit 将 `_find_references` 改为返回二元组
+      （引用列表 + 是否命中限流边界的布尔标记），调用方在命中限流边界时向 stderr 输出 WARNING"
+  - ref: agate/tests/unit/test_agate_install_uninstall.py
+    note: "closure：BDD-4/5（test_bdd_4_find_references_and_uninstall_warn_when_scan_limit_hit /
+      test_bdd_5_find_references_no_warning_within_scan_bounds）全绿，属本任务
+      gate_commands.P5 全量 pytest 覆盖范围"
 impact: 引用即保护（设计稿 §8.3）保证被限流弱化——边界外项目锁定版本被误删后静默回退，无提示
 recommendation: 限流边界命中（深度>4 / mtime 超窗 / 跳过目录含 .agate-version）时 stderr WARNING 提示可能漏扫
 closure_criteria:
@@ -105,6 +131,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-16
 task_id: TAG0008-version-management
+closed_at: 2026-09-04
 ```
 
 ## DEBT0005
@@ -163,7 +190,7 @@ closed_at: 2026-08-18
 id: DEBT0007
 category: technical
 title: test_check_pruning.py 部分用例依赖真实 git 暂存区而非隔离 fixture，大体量协议自身任务会误报
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0015-retrospective-feedback/retrospective.md
@@ -179,6 +206,14 @@ evidence:
     note: 2026-08-19 P4/P5 阶段记录了完整的根因排查过程（isolated run / 组合子集 run / git
       stash A-B 对比 / 无并发进程下干净单跑），确认非本任务代码缺陷、非资源竞争假阳性，而是该
       测试固有的隔离缺口
+  - ref: agate/scripts/check-pruning.py
+    note: "closure：`_staged_source_count` 隔离修复已由 TAG0024 commit `e2357fc` 落地
+      （改为定位任务自身仓库/工作树而非无条件读取外层仓库真实暂存区）"
+  - ref: agate/tests/unit/test_check_pruning.py
+    note: "closure：BDD-6 四个既有用例（test_p2_6e_prune_p7_coupling_checklist_exit_0 /
+      test_p2_52_yaml_list_phases_exit_0 / test_p2_52b_yaml_list_phases_p3_pruned_low_exit_0 /
+      test_p2_6f_staged_source_count_uses_task_repo_not_outer_cwd_repo_exit_0）TAG0031 本任务
+      P3/P4/P5 阶段（gate_commands.P5 全量 pytest）复跑确认全绿，暂存区含 6+ 无关文件时仍稳定 exit 0"
 impact: 任何协议自身改造任务（agate 改自己）在 P4-P8 阶段跑全量回归时，都可能被这三个用例的
   误报打断验证节奏，需要每次重新排查"是不是这个已知坑"——排查成本随任务改动文件数增长；更危险的
   是若排查者不知道这个坑，可能误判为真实回归而阻塞流程，或反过来对真实回归掉以轻心（"反正是那三个
@@ -192,7 +227,8 @@ closure_criteria:
   - 全量 pytest 回归通过
 source: retrospective
 created_at: 2026-08-19
-task_id: null
+task_id: TAG0031
+closed_at: 2026-09-04
 ```
 
 ## DEBT0008
@@ -571,7 +607,7 @@ task_id: TAG0017
 id: DEBT0016
 category: technical
 title: check-gate.py gate_p4 的 CODE-MAP.md 路径用本地"task_dir 向上两级"推导，未调用 agate_common.resolve_workspace 权威解析函数
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate/scripts/check-gate.py
@@ -580,6 +616,14 @@ evidence:
     note: "L464-493：resolve_workspace(project_root) 权威解析函数，优先级 .agate.env(AGATE_WORKSPACE=) → env AGATE_TASKS_DIR → 默认 {project_root}/agate-workspace；_resolve_abs 内部用 Path(...).resolve()（解析符号链接归一化），check-gate.py 本地推导用 os.path.abspath（不解析符号链接）"
   - ref: agate/scripts/pre-commit-gate.py
     note: "L251-252：task_dir = os.path.join(tasks_dir, task_id) if state_dir == repo_root else state_dir —— 确认 task_dir 在当前所有调用路径下恒等于 {workspace}/tasks/{task_id} 两级嵌套，与 resolve_workspace 两分支的构造方式（tasks_dir=workspace/tasks 或 workspace=dirname(tasks_dir)）代数等价，故本地推导在标准场景下产出与 resolve_workspace 相同结果"
+  - ref: agate/scripts/check-gate.py
+    note: "closure：本次 TAG0031-P4 commit 将 gate_p4 的 CODE-MAP.md 路径推导改为调用
+      agate_common.resolve_workspace，不再本地重新推导路径层级"
+  - ref: agate/tests/unit/test_check_gate.py
+    note: "closure：BDD-8/9（test_tag0031_bdd_8_gate_p4_code_map_uses_resolve_workspace /
+      test_tag0031_bdd_9_gate_p4_non_standard_nesting_resolves_via_agate_env）全绿，覆盖正常流与
+      非标准嵌套场景，属本任务 gate_commands.P5 全量 pytest 覆盖范围（本条 task_id: TAG0007 为
+      原始登记任务，本次 closure 修复由 TAG0031-P4 完成）"
 impact: 仅影响 gate_p4 一处 WARNING 分支（骨架/CODE-MAP 机制已采用但 P4-implementation.md 缺「新增文件核对表」标题时的提醒）——不阻断任何 commit、不影响 exit code 判定；已论证在标准 task_dir 两级嵌套约定下与权威解析函数结果代数等价，唯一已知潜在分歧点是路径含符号链接时 os.path.abspath 与 Path.resolve() 的符号链接解析行为差异（本项目 worktree 场景 ~/.agate 软链接命中的是 AGATE_ROOT 而非 AGATE_WORKSPACE，未直接命中此路径，但不能排除其他项目布局下的分歧）；未来若 resolve_workspace 的路径构造约定变化（如 task_dir 不再保证两级嵌套），本地推导会静默产出错误路径而无测试覆盖预警
 recommendation: 后续改动 check-gate.py 时，将 gate_p4 的 CODE-MAP.md 路径推导改为 import agate_common 并调用 resolve_workspace(找到 task_dir 对应的 project_root)，与项目其余脚本（agate-migrate-workspace.py / pre-commit-gate.py / check-debt.py / ci-gate-backstop.py）保持同一权威解析源，消除重复路径算术；同时补一个覆盖"task_dir 非标准两级嵌套"边界场景的回归测试
 closure_criteria:
@@ -589,6 +633,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-20
 task_id: TAG0007
+closed_at: 2026-09-04
 ```
 
 ## DEBT0017
@@ -597,7 +642,7 @@ task_id: TAG0007
 id: DEBT0017
 category: technical
 title: check-gate.py gate_p4「## 新增文件核对表」子串判定在自指/dogfooding 场景下存在假阴性，TAG0007 自身 P4 产出未对新增文件打标准 CODE-MAP 标记
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate/scripts/check-gate.py
@@ -615,6 +660,16 @@ evidence:
       在该文件中 0 命中。2.2 独立判定为 [CODE_MAP_DRIFT:]——真实偏离但不构成 P7 级
       [BLOCKER]，因 gate_p4 WARNING 本就非阻断、且不影响 P6 11/11 PASS 判定；P7 结论：
       不打回本轮 P7，建议后续补核对表附录或登记技术债，两种路径均可）"
+  - ref: agate/scripts/check-gate.py
+    note: "closure：本次 TAG0031-P4 commit 将「新增文件核对表」判定改为整行/标题级正则
+      （check-gate.py:1038 实际实现 `re.search(r\"^##\\s+新增文件核对表\", text, re.MULTILINE)`——
+      刻意不加 `\\s*$` 结尾锚点，允许标题行尾附加说明文字，见 BDD-11 回归守卫），替代原子串包含
+      `in` 判定（此前 recommendation 段落给出的 `\\s*$` 写法是设计阶段草案，实现时按 BDD-11
+      放宽为不要求行尾无内容，protocol-alignment-review 2026-09-04 已核实两者语义差异并确认代码/
+      测试为准）"
+  - ref: agate/tests/unit/test_check_gate.py
+    note: "closure：BDD-10/11（test_tag0031_bdd_10_gate_p4_self_referential_prose_not_matched /
+      test_tag0031_bdd_11_gate_p4_real_heading_trailing_text_satisfied）全绿"
 impact: 任一后续任务在"自指/dogfooding"场景（任务自身产出文档里用说明性文字描述"新增了一个标题叫
   『## 新增文件核对表』的小节"这类元描述，而非真正逐文件填写的核对表）下，gate_p4 的子串判定会被
   这类说明性文字误判为"已满足"，本该触发的 WARNING（提醒补充新增文件核对表）被静默跳过；同时
@@ -637,6 +692,7 @@ closure_criteria:
 source: review
 created_at: 2026-08-20
 task_id: TAG0007
+closed_at: 2026-09-04
 ```
 
 ## DEBT0018
@@ -645,7 +701,7 @@ task_id: TAG0007
 id: DEBT0018
 category: technical
 title: check-gate.py 的 agate_common import 降级 stub 返回 0/空——安装破损（agate_common 不可导入）边缘消费脚本呈 false-PASS 方向（gate 漏报而非误报）
-status: open
+status: closed
 priority: low
 evidence:
   - ref: agate-workspace/tasks/TAG0022-confirmed-problems/P4-review.md
@@ -665,6 +721,13 @@ evidence:
   - ref: agate/scripts/agate_common.py
     note: "共享读取器单点（count_p7_markers L951 等 M2-0038 节）——import 成功路径由 agate_common
       提供；降级 stub 仅在 agate_common 整体不可导入（安装破损）时生效，正常安装不可达"
+  - ref: agate/scripts/check-gate.py
+    note: "closure：TAG0031 本次 P4 commit 将 4 个消费点（gate_p7 BLOCKER/DEVIATION 计数、gate_p6
+      pass/fail 计数、gate_p4 CODE-MAP 转抄核对）改为 fail-closed——检测到降级哨兵值时输出「安装
+      破损：agate_common 不可导入」错误并 return 1，不再静默 0/空假通过"
+  - ref: agate/tests/unit/test_check_gate.py
+    note: "closure：TAG0031 BDD-12（4 个子用例，覆盖 4 个消费点各自 fail-closed 行为）+ BDD-13
+      （回归守卫，正常安装路径判定不变）全绿，属 gate_commands.P5 全量 pytest 覆盖范围"
 impact: 仅在 agate_common 缺失/损坏（安装破损边缘）触发，正常安装不可达；方向为 gate 漏报而非误报——
   破损安装下 gate_p7 BLOCKER/DEVIATION 计数与 P4 CODE_MAP 转抄核对静默假通过（0 ERROR 观感），且
   与 count_markers 侧 fail-closed 方向不一致，排查「安装破损」问题时判断成本高
@@ -678,7 +741,8 @@ closure_criteria:
   - 全量 pytest + consistency 0 ERROR
 source: review
 created_at: 2026-08-22
-task_id: null
+task_id: TAG0031
+closed_at: 2026-09-04
 ```
 
 ## DEBT0019
@@ -929,4 +993,76 @@ closure_criteria:
 source: retrospective
 created_at: 2026-09-03
 task_id: TAG0028
+```
+
+## DEBT0028
+
+```yaml
+id: DEBT0028
+category: technical
+title: "dirname(dirname(...)) 本地 task_dir 路径推导同款模式的另外 2 处非本体实例（DEBT0016 同类扫描，本次范围锁定只处理 check-gate.py 一处）"
+status: open
+priority: low
+evidence:
+  - path: agate-workspace/tasks/TAG0031-debt-cleanup/P1-requirements.md
+    note: "「同类扫描」节第 3 小节——全仓 grep `dirname(dirname\\|dirname(os.path.dirname` 命中 14
+      行，按推导起点分两类：类别 A（以 task_dir 为推导起点，风险成立，因 task_dir 依赖 workspace
+      相对目录层级约定）共 4 行/3 个实例，除 DEBT0016 本体（check-gate.py:983/986）外，另 2 处同款
+      模式为 check-retrospective.py:74（`_scan_debt_roadmap_signal` 用
+      os.path.dirname(os.path.dirname(os.path.abspath(task_dir...))) 推导 workspace 根，定位
+      debt/tech-debt.md/roadmap/roadmap.md）与 agate-render-dispatch-prompt.py:191
+      （`workspace_render = os.path.dirname(os.path.dirname(task_dir))` 用于渲染
+      {AGATE_WORKSPACE} 占位符）；判定：本次不处理（P0-brief scope 锁定 gate_p4 CODE-MAP 路径一处，
+      其余属越界），按同类扫描规则转入 BDD-14 登记为新 DEBT，不留白"
+impact: 若未来 workspace 布局非标准嵌套（如经 .agate.env 的 AGATE_WORKSPACE= 覆盖工作区位置），
+  check-retrospective.py 的 debt/roadmap 信号扫描定位、agate-render-dispatch-prompt.py 的
+  {AGATE_WORKSPACE} 占位符渲染均可能静默产出错误路径而无提示，与 DEBT0016 本体描述的风险同源，
+  只是尚未发生在已修复的 gate_p4 一处
+recommendation: 后续任务处理时，将两处推导改为 import agate_common 并调用
+  resolve_workspace(找到 task_dir 对应的 project_root)，与 DEBT0016 本体的修复方式对齐，消除
+  重复路径算术；同时补覆盖 task_dir 非标准两级嵌套场景的回归测试
+closure_criteria:
+  - check-retrospective.py:74 与 agate-render-dispatch-prompt.py:191 均改为调用
+    agate_common.resolve_workspace（或等价单点权威封装），不再本地重新推导路径层级
+  - 新增回归测试覆盖 task_dir 与 workspace 非标准两级嵌套关系的场景
+  - 全量 pytest + consistency 0 ERROR
+source: review
+created_at: 2026-09-04
+task_id: TAG0031
+```
+
+## DEBT0029
+
+```yaml
+id: DEBT0029
+category: technical
+title: "check-gate.py:881 gate_p2 bootstrap 骨架声明校验的标题字符串子串判定（DEBT0017 同款模式，风险高于本体——此处触发 return 1 阻断性）"
+status: open
+priority: medium
+evidence:
+  - path: agate-workspace/tasks/TAG0031-debt-cleanup/P1-requirements.md
+    note: "「同类扫描」节第 4 小节——grep `not in _read_text(` agate/scripts/check-gate.py，除
+      DEBT0017 本体（check-gate.py:990，「## 新增文件核对表」，WARNING 非阻断）外，另命中 1 处
+      同款子串判定且风险更高：check-gate.py:881（gate_p2，project_phase: bootstrap 分支的
+      「## 骨架声明」标题存在性校验），`\"## 骨架声明\" not in _read_text(skeleton_file)`——与
+      DEBT0017 本体同一子串判定缺陷，但此处触发的是 return 1（阻断性），gate_p2 的 bootstrap
+      骨架声明检查比 DEBT0017 描述的场景更容易因假阴性/假阳性判定错误产生真实阻断误判；判定：
+      本次不处理（P0-brief scope 锁定「新增文件核对表」一处），按同类扫描规则转入 BDD-14 登记为
+      新 DEBT，正文加粗提示避免被误认为已随 DEBT0017 一并修复"
+impact: "**本条风险高于 DEBT0017 本体**——若骨架声明文件中出现说明性散文提及『## 骨架声明』字样
+  （而非真正的标题行），子串判定会误判为已满足，本该触发的骨架缺失检测被静默跳过；反向场景（标题
+  确实存在但缺失其他必要内容）同样可能因子串宽松匹配产生误判；由于此处判定结果直接决定 gate_p2
+  是否 return 1（阻断 commit），误判方向若为假阳性（应阻断而未阻断）会让不完整的骨架声明蒙混过
+  P2 阶段，若为假阴性（应通过而被阻断）则会误伤合法产出"
+recommendation: 后续任务处理时，将 check-gate.py:881 的判定改用整行/标题级正则匹配（如
+  `re.search(r\"^## 骨架声明\\s*$\", text, re.MULTILINE)`）替代当前子串包含 `in` 判定，修复方式
+  与 DEBT0017 本体（check-gate.py:990）对齐
+closure_criteria:
+  - check-gate.py:881 的 gate_p2 骨架声明判定改用整行匹配（或等价健壮判定方式，如标题级正则）
+    替代当前子串包含判定
+  - 新增回归测试覆盖"说明性散文提及标题字样但非真正标题行"场景不被误判为已满足
+  - 全量 pytest + consistency 0 ERROR
+source: review
+created_at: 2026-09-04
+task_id: TAG0031
 ```

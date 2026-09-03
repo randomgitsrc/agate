@@ -513,7 +513,7 @@ python3 ~/.agate/scripts/install-hook.py
 
 - `agate-install.py`：安装/卸载/环境探测（`--check` 输出 python3/pyyaml/git/bash 探测结果，exit code 可判 + 分平台修复指引）。
 - `agate-resolve.py`：解析项目实际使用的版本（输出 AGATE_ROOT/AGATE_VERSION/AGATE_REASON）。
-- `agate-pack-offline.py` + `install-offline.py`：外网打包 → 内网离线安装闭环（平台核对 + checksum 校验 + 版本目录 + hook 指向）。
+- `agate-pack-offline.py` + `install-offline.py`：外网打包 → 内网离线安装闭环（平台核对 + checksum 校验 + 版本目录 + hook 指向）。**信任边界（TAG0031 DEBT0003）**：checksum 校验只防损坏（传输/存储过程中的位翻转、截断等意外错误），**不防**恶意构造的整包替换——攻击者若能替换整个 bundle（同时重算并写入匹配的 manifest sha256），checksum 校验会照常通过。因此 bundle 提供者需可信（内网分发渠道本身要可控），checksum 通过不代表来源可信，只代表"文件内容与 manifest 一致"。
 
 **⑤ agate-summary 语义变化（显示层，提示文案变更）**：`agate-summary.py` 不再显示仓库自身 tag，改为显示**当前项目解析到的版本 + 原因**（`.agate-version` 或全局 current）——排障时直接可见"项目用哪个版本、为什么"。
 

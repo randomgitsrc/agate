@@ -27,6 +27,22 @@ import subprocess
 import sys
 from pathlib import Path
 
+# TAG0031 DEBT0002（R1，P2-design.md §1.3）：install-offline.py 刻意零外部依赖启动
+# （可能跑在未装 pyyaml 的内网机器上），不能无条件 `from agate_common import
+# compute_sha256`——agate_common.py 模块级 `import yaml` 失败会 sys.exit(1)，抢在
+# "给它装 pyyaml"（install_wheels）之前就让安装器崩溃。这里先探测 yaml 是否已可用：
+# 可用才顺带导入 agate_common，暴露同一个 compute_sha256 引用（供已装好环境下的直接
+# 调用 / identity 检查，如全流程回归测试）；不可用时保持 None，运行时校验/安装改走
+# `_ensure_agate_common`（先内联校验 pyyaml wheel checksum，通过才 pip install，见下）。
+try:
+    import yaml as _yaml_probe  # noqa: F401
+
+    import agate_common as _agate_common_probe
+except ImportError:
+    _agate_common_probe = None
+
+compute_sha256 = _agate_common_probe.compute_sha256 if _agate_common_probe else None
+
 _DEFAULT_DEST = os.path.expanduser("~/.agate")
 _VERSION_RE = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
 
@@ -82,16 +98,54 @@ def check_platform(manifest_platform, current_platform):
     return manifest_platform == current_platform
 
 
-def compute_sha256(path):
-    """sha256 hex：文件=内容哈希；目录=排序逐文件 hash 拼接再整体 hash（与 pack 侧一致）。"""
-    p = Path(path)
-    if p.is_dir():
-        digests = []
-        for f in sorted(p.rglob("*"), key=lambda f: f.relative_to(p).as_posix()):
-            if f.is_file():
-                digests.append(hashlib.sha256(f.read_bytes()).hexdigest())
-        return hashlib.sha256("".join(digests).encode("utf-8")).hexdigest()
-    return hashlib.sha256(p.read_bytes()).hexdigest()
+def _ensure_agate_common(bundle_dir, manifest):
+    """引导获取 agate_common 模块引用（TAG0031 DEBT0002 R1 缓解设计，P2-design.md §1.3）。
+
+    install-offline.py 刻意零外部依赖（可能在未装 pyyaml 的内网机器上跑），而
+    agate_common.py 模块级 `import yaml` 失败即 sys.exit(1)——直接
+    `from agate_common import compute_sha256` 会在"给它装 pyyaml"之前就让安装器崩溃。
+
+    先探测 `import yaml` 是否可用：可用则直接 `import agate_common` 返回模块引用。
+    不可用时分三步：①内联 `hashlib.sha256` 单独校验 manifest 中 pyyaml 组件的
+    checksum；不匹配 → stderr 报错（指明 pyyaml）+ 返回 None，不执行 pip install（校验
+    先于安装）；②校验通过后才 `pip install --no-index --find-links <bundle>/wheels
+    pyyaml`（bundle 自带 wheel，不联网）；③成功后 `import agate_common` 返回模块引用。
+    """
+    try:
+        import yaml  # noqa: F401
+    except ImportError:
+        pyyaml_comp = manifest.get("components", {}).get("pyyaml")
+        if not pyyaml_comp:
+            sys.stderr.write(
+                "install-offline: yaml 不可用且 manifest 缺少 pyyaml 组件，无法引导 agate_common\n"
+            )
+            return None
+        wheel_path = Path(bundle_dir) / pyyaml_comp.get("path", "")
+        try:
+            actual = hashlib.sha256(wheel_path.read_bytes()).hexdigest()
+        except OSError as exc:
+            sys.stderr.write(f"install-offline: 读取 pyyaml wheel 失败: {exc}\n")
+            return None
+        if actual != pyyaml_comp.get("sha256"):
+            sys.stderr.write(
+                "install-offline: pyyaml checksum 校验失败（引导安装前置检查），"
+                "组件可能被篡改或损坏，拒绝安装\n"
+            )
+            return None
+
+        wheels_dir = Path(bundle_dir) / "wheels"
+        try:
+            subprocess.run(
+                ["pip", "install", "--no-index", "--find-links", str(wheels_dir), "pyyaml"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", check=True,
+            )
+        except (subprocess.CalledProcessError, OSError) as exc:
+            sys.stderr.write(f"install-offline: 引导安装 pyyaml 失败: {exc}\n")
+            return None
+
+    import agate_common
+
+    return agate_common
 
 
 def verify_checksums(manifest, bundle_dir):
@@ -99,8 +153,13 @@ def verify_checksums(manifest, bundle_dir):
 
     先 `_validate_manifest` 校验字段（version 正则 + 组件 path 限 bundle 内，CRITICAL-3）——
     拒绝篡改 manifest 用 `..`/绝对路径越界读 bundle 外文件（哈希比对作为可探测 oracle）。
+    再经 `_ensure_agate_common` 引导拿到 agate_common 模块引用（TAG0031 DEBT0002 R1），
+    hash 实现改为共享单实现 `agate_common.compute_sha256`（不再本地重复定义）。
     """
     _validate_manifest(manifest, bundle_dir)
+    agate_common_mod = _ensure_agate_common(bundle_dir, manifest)
+    if agate_common_mod is None:
+        raise RuntimeError("agate_common 引导失败，无法执行 checksum 校验（见上方 stderr 详情）")
     bundle = Path(bundle_dir)
     mismatched = []
     for name, comp in manifest.get("components", {}).items():
@@ -108,7 +167,7 @@ def verify_checksums(manifest, bundle_dir):
         if not p.exists():
             mismatched.append(name)
             continue
-        if compute_sha256(p) != comp["sha256"]:
+        if agate_common_mod.compute_sha256(p) != comp["sha256"]:
             mismatched.append(name)
     return mismatched
 
@@ -225,7 +284,11 @@ def main(argv=None):
         )
         return 1
 
-    mismatched = verify_checksums(manifest, bundle_dir)
+    try:
+        mismatched = verify_checksums(manifest, bundle_dir)
+    except RuntimeError as exc:
+        sys.stderr.write(f"install-offline: {exc}\n")
+        return 1
     if mismatched:
         sys.stderr.write(
             "install-offline: checksum 校验失败，以下组件被篡改或损坏: "
