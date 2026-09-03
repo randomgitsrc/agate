@@ -165,25 +165,91 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 | C 合法迭代（命令重复但结果在变）| 新鲜 | NORMAL（不误报）| ✅ |
 | D 健康长尾（命令各不相同）| 新鲜 | NORMAL | ✅ |
 
-**实机验证结果（2026-09-03，Claude Code v2.1.246 + OpenCode v1.18.11，完整记录见 `verification-cmdstream-datasource-20260903.md`）**：两平台均**通过**——时间戳、完整命令内容、exit 信号、实时写入四项关键字段全部正向，命令流日志机制按当前设计继续推进，**无需降级**。数据源与解析方式两平台完全不同，落地时需各写一套解析逻辑，不能共用：
+**实机验证结果（2026-09-03，Claude Code v2.1.246 + OpenCode v1.18.11 + DSH v0.1.2-alpha.3，完整记录见 `verification-cmdstream-datasource-20260903.md`）**：三平台均**通过**——时间戳、完整命令内容、exit 信号、实时写入四项关键字段全部正向，命令流日志机制按当前设计继续推进，**无需降级**。数据源与解析方式三平台完全不同，落地时需各写一套解析逻辑，不能共用：
 
-| 判定项 | Claude Code | OpenCode |
+| 判定项 | Claude Code | OpenCode | DSH |
+|---|---|---|---|
+| 存储形式 | `~/.claude/projects/<sanitized-cwd>/<sessionId>.jsonl`，JSONL 逐行 | 单一 SQLite 库 `~/.local/share/opencode/opencode.db`（WAL 模式），`message`/`part`/`event` 等表 | `~/.dsh/sessions/<sanitized-cwd>/<sessionId>.jsonl.zstd`，JSONL + zstd 拼接帧（子 agent 独立文件，`delegationDepth` 区分层级）|
+| 开始时间戳 | `timestamp` 字段，ISO-8601 UTC 毫秒精度 | `part.data.state.time.start`（epoch 毫秒）| `tool/call.time` 与 `tool/result.time`（epoch 毫秒，配对延迟 p50=48ms）|
+| 完整命令内容 | `tool_use` part 的 `input.command` | `part.data.state.input.command` | `tool/call.data.arguments.command` |
+| exit 信号 | **无数字 exit code**——需解析 `tool_result.is_error` 布尔 + 失败输出文本前缀 `"Exit code N\n"` | `state.metadata.exit` 整数字段，干净直接 | **无数字 exit code**——需解析 `isError` 布尔 + 文本前缀 `"Error:"` |
+| 输出内容 | 完整 stdout/stderr（`toolUseResult.stdout/stderr`），实测未截断 | 完整输出 + 显式 `truncated` 布尔标记；超大输出 spill 到外部文件 `tool-output/tool_<id>` | 完整 text + 截断标记（实测最大 69KB）|
+| 实时写入 | 是，写延迟约 87–384ms | 是，WAL + `event` 表实时事件流 | **是，0.96ms（三平台最强，边写边落）**|
+
+**落地时需要处理的平台差异（验证中发现）**：
+
+1. **三平台字段命名与存储格式完全不同，解析器不能共用**——需按**适配器模式**统一设计（见 §3.4.3），新增平台只需写一个适配器，检测逻辑零改动
+2. **Claude Code 与 DSH 均无数字 exit code**——用 `is_error`/`isError` + 文本前缀正则（`"Exit code N"` / `"Error:"`）兜底可行，但比 OpenCode 干净的整数字段脆弱，若平台更改失败输出的文本格式，该解析规则需跟着更新
+3. **Claude Code 子 agent 是独立转录文件**（sidecar `subagents/agent-<uuid>.jsonl`）、**DSH 子 agent 是独立 session 文件**——解析"某个具体 subagent 的命令流"时需定位子会话路径，读主文件会漏掉子 agent 的记录
+4. **OpenCode 超大输出 spill 到外部文件时，文件名与 part/call ID 无法直接 join**——只能从 inline 输出文本里的引用反查；`truncated=true` 的 part 若直接对输出内容取哈希，可能把两个不同的失败截断成同一前缀、误判为"无效重复"，建议对 `truncated=true` 的 part 采用保守策略（视为"输出变化不可判定"，不参与无效重复检测的哈希比对，只用于冻结检测）；DSH 的截断标记同理
+
+### 3.4.3 检测阈值设计（实测数据驱动）
+
+命令流日志的检测阈值**不能设成全局固定值**——实测数据（DSH 本会话 361 条 bash 命令）显示命令耗时跨度极大：p50=57ms / p95≈7s / max≈196s，9 条命令 >10s（全量测试、CI 等待等合法长命令）。固定 30s 会误杀 9 条合法命令。因此采用**两级阈值 + 复用既有 timeout_seconds 机制**：
+
+| 层级 | 阈值 | 依据 |
 |---|---|---|
-| 存储形式 | `~/.claude/projects/<sanitized-cwd>/<sessionId>.jsonl`，JSONL 逐行 | 单一 SQLite 库 `~/.local/share/opencode/opencode.db`（WAL 模式），`message`/`part`/`event` 等表 |
-| 开始时间戳 | `timestamp` 字段，ISO-8601 UTC 毫秒精度 | `part.data.state.time.start`（epoch 毫秒） |
-| 完整命令内容 | `tool_use` part 的 `input.command` | `part.data.state.input.command` |
-| exit 信号 | **无数字 exit code**——需解析 `tool_result.is_error` 布尔 + 失败输出文本前缀 `"Exit code N\n"` | `state.metadata.exit` 整数字段，干净直接 |
-| 输出内容 | 完整 stdout/stderr（`toolUseResult.stdout/stderr`），实测未截断 | 完整输出 + 显式 `truncated` 布尔标记；超大输出 spill 到外部文件 `tool-output/tool_<id>` |
-| 实时写入 | 是，写延迟约 87–384ms | 是，WAL + `event` 表实时事件流 |
+| **冻结检测·主信号**（命令有预期耗时声明）| 冻结 = `expected × 2`（RM-AG0023 已要求 timeout = expected×1.5，冻结检测在 timeout 基础上再加余量）| 命令超 timeout 本就是协议违约（RM-AG0023 dispatch-prompt 超时兜底节），冻结检测顺势触发，无需新造机制 |
+| **冻结检测·兜底**（命令无预期耗时声明）| alert 阈值 60s（提示核查）/ suspect 阈值 300s（考虑中止），两级递增 | 实测 p95≈7s，60s 远超 p95 不误报常规命令；300s 覆盖 max≈196s 级别的合法长命令 |
+| **无效重复检测** | 窗口 10 条内，同 (命令, exit, 输出哈希) 组合重复 ≥ 5 次 → 触发核查 | 命令节奏按秒计，窗口 10 条约覆盖 1 分钟活动；≥5 次重复在窗口内是强信号 |
+| **截断排除** | `truncated=true` 的 part **不参与**无效重复检测的哈希比对（只用于冻结检测）| 两个不同失败截断成同前缀会误判无效重复（§3.4.2 差异点 4）|
+| **轮询误报标注** | 冻结/空转信号定位为"核查提示"而非自动判定，主 Agent 核查时识别轮询循环体消解 | `gh pr checks --watch`、`sleep N; check` 等合法轮询会重复相同签名，是已知误报类 |
 
-**落地时需要处理的三个平台差异（验证中发现，交接单原问题清单未覆盖）**：
+**关键设计原则**：所有阈值均为**可配置项**（比照 `maintainability.yaml` 既有模式，缺失/损坏时兜底默认值不报错），且检测结果始终定位为"**证据 + 触发核查，不自动判死**"——阈值保守一点代价只是多一次核查提示，激进一点才会误杀仍在工作的 subagent，所以默认值宁可偏保守。
 
-1. **两平台字段命名完全不同，解析器不能共用**——需要各写一套，或做一层适配层统一输出格式，再喂给 §3.4.2 的两个检测信号
-2. **Claude Code 无数字 exit code**——用 `is_error` + 文本前缀正则兜底可行，但比 OpenCode 干净的整数字段脆弱，若未来 Claude Code 更改失败输出的文本格式，这条解析规则需要跟着更新
-3. **Claude Code 子 agent 是独立转录文件**（sidecar `subagents/agent-<uuid>.jsonl`），不在主会话文件内联——解析时若目标是"某个具体 subagent 的命令流"，需要定位到这个 sidecar 路径，读主文件会漏掉子 agent 的记录
-4. **OpenCode 超大输出 spill 到外部文件时，文件名与 part/call ID 无法直接 join**——只能从 inline 输出文本里的引用反查；`truncated=true` 的 part 若直接对输出内容取哈希，可能把两个不同的失败截断成同一前缀、误判为"无效重复"，建议对 `truncated=true` 的 part 采用保守策略（视为"输出变化不可判定"，不参与无效重复检测的哈希比对，只用于冻结检测）
+### 3.4.4 解析架构（适配器模式，扩展性设计）
 
-> **诚实边界声明**：§3.1 的核心原则（心跳外部产生、不依赖 subagent 配合）**只在异步派发平台（DSH）完全成立**。在阻塞派发平台（Claude Code/OpenCode），由于主 Agent 自身处于阻塞状态、无法另起进程包装派发过程，心跳的产生退化为"约定 subagent 自行维护"，其可靠性弱于 DSH 路径（subagent 若不配合，心跳依然缺失，此时主 Agent 只能退回纯粹依赖"拆分+预期耗时"的既有机制，不产生新的风险敞口，但也不产生新的收益）。这是设计上的诚实妥协，不是缺陷——完全消除对 subagent 配合的依赖，在阻塞派发模型下没有可行路径，除非平台本身提供进程外监控能力（目前三平台均未提供）。此外，**仅凭心跳 mtime 的检测范围限于进程级/会话级卡死（§3.4.1 表格第一行）**；表格第二、三行（系统调用阻塞 / 逻辑空转）的检测依赖 §3.4.2 的命令流日志（冻结检测 + 无效重复检测，检测逻辑已模拟验证），且命令流日志同样受"数据源解析"约束——该约束已于 2026-09-03 完成实机验证（Claude Code + OpenCode 均通过，见 §3.4.2 表格），命令流日志可按当前设计推进；DSH 侧走 §3.3 异步心跳轮询路径，不依赖命令流日志，不受此约束影响。
+三平台存储格式完全不同（JSONL / SQLite / JSONL+zstd），检测逻辑（§3.4.2 两信号 + §3.4.3 阈值）必须平台无关。**架构 = 统一中间表示（IR）+ 每平台一个适配器 + 检测引擎只消费 IR**：
+
+```text
+                    检测引擎（冻结/无效重复，平台无关）
+                              ▲
+                              │ 只消费标准化命令记录（IR）
+                    ┌─────────┴─────────┐
+                    │   CommandRecord    │  ← 统一中间表示
+                    └─────────┬─────────┘
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+  claude-code-adapter    opencode-adapter      dsh-adapter
+  （JSONL → IR）        （SQLite → IR）     （JSONL.zstd → IR）
+```
+
+**CommandRecord（统一中间表示）字段**：
+
+```yaml
+platform: str          # 来源平台（claude-code / opencode / dsh）
+session_id: str        # 会话标识
+tool: str              # 工具名（bash / Bash / 其他）
+command: str           # 完整命令文本
+ts_start: int          # 命令开始时间戳（epoch ms）
+ts_end: int            # 命令结束时间戳（epoch ms）
+exit: int | null       # 数字 exit code（平台无数字字段时为 null）
+exit_signal: str       # 原始 exit 信号（is_error / "Exit code N" / "Error:" 前缀），供审计
+output_hash: str       # 输出内容哈希（truncated 时标记为 null）
+truncated: bool        # 输出是否被截断
+```
+
+**适配器契约**（新增平台只需实现以下接口，检测引擎零改动）：
+
+```python
+class CommandStreamAdapter:
+    name: str                       # 平台名
+    def probe(self, path) -> bool   # 探测路径是否为该平台会话存储
+    def list_sessions(self, cwd) -> list[str]           # 列出 cwd 下会话文件
+    def read_commands(self, session_path) -> list[CommandRecord]  # 解析为 IR
+```
+
+**新增平台的扩展路径**（例：未来接入 Codex/Cursor）：
+1. 实现 `CommandStreamAdapter`（探测 + 会话枚举 + 解析为 IR），约一个文件
+2. 注册到适配器注册表（配置声明或目录扫描 `adapters/*.py` 约定）
+3. **检测引擎、阈值、检测逻辑零改动**——新增平台的全部成本收敛在适配器内
+
+**平台差异点沉淀**（避免各适配器重复踩坑，登记在验证记录文档）：
+- exit 信号三平台三种形态（数字字段 / `"Exit code N"` 前缀 / `"Error:"` 前缀）——IR 统一为 `exit`（有数字用数字，无数字解析前缀）+ `exit_signal`（原始形态留档）
+- 子 agent 会话定位：Claude Code sidecar / DSH 独立 session 文件——适配器各自实现 `list_sessions` 时按平台规则处理层级
+- 截断/spill：IR 的 `truncated` 字段承载，检测引擎按 §3.4.3 截断排除规则消费
+
+> **诚实边界声明**：§3.1 的核心原则（心跳外部产生、不依赖 subagent 配合）**只在异步派发平台（DSH）完全成立**。在阻塞派发平台（Claude Code/OpenCode），由于主 Agent 自身处于阻塞状态、无法另起进程包装派发过程，心跳的产生退化为"约定 subagent 自行维护"，其可靠性弱于 DSH 路径（subagent 若不配合，心跳依然缺失，此时主 Agent 只能退回纯粹依赖"拆分+预期耗时"的既有机制，不产生新的风险敞口，但也不产生新的收益）。这是设计上的诚实妥协，不是缺陷——完全消除对 subagent 配合的依赖，在阻塞派发模型下没有可行路径，除非平台本身提供进程外监控能力（目前三平台均未提供）。此外，**仅凭心跳 mtime 的检测范围限于进程级/会话级卡死（§3.4.1 表格第一行）**；表格第二、三行（系统调用阻塞 / 逻辑空转）的检测依赖 §3.4.2 的命令流日志（冻结检测 + 无效重复检测，检测逻辑已模拟验证）——该数据源约束已于 2026-09-03 完成**三平台实机验证**（Claude Code + OpenCode + DSH 均通过，见 `verification-cmdstream-datasource-20260903.md`），命令流日志可按当前设计推进。**DSH 侧特别说明**：其 `tool/call`+`tool/result` 事件流**原生就是命令流日志**（实时性 0.96ms 三平台最强），DSH 上命令流日志可同时服务 §3.3 异步心跳轮询与 §3.4.2 检测，是替代心跳文件方案的更优路径（零 subagent 配合）。
 
 ### 3.5 心跳文件的生命周期定义
 
@@ -196,11 +262,11 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 ### 3.6 影响面
 
 - `dispatch-protocol.md`：新增一节说明异步/阻塞两条心跳路径的判定时机差异，并明确本设计与既有"Playwright/长时操作 subagent 派发策略"（拆分+预期耗时）节的关系——本设计是该既定机制在"预期耗时评估不准"时的补充核查手段，不替代它。
-- 命令流日志（§3.4.2）：检测逻辑已模拟验证；平台数据源解析（Claude Code JSONL / OpenCode SQLite）已于 2026-09-03 完成实机验证，两平台均通过，字段命名不通用需各写一套解析逻辑（见 §3.4.2 落地注意事项）。
-- DSH 路径：需要确认 `subagent`/`subagent_fork` 的后台任务钩子机制具体如何附加心跳写入动作，需要一次实机验证（比照 `platform-notes.md` 对 DSH 的既有实机验证惯例）。
+- 命令流日志（§3.4.2）：检测逻辑已模拟验证；平台数据源解析（Claude Code JSONL / OpenCode SQLite / DSH JSONL.zstd）已于 2026-09-03 完成**三平台实机验证**，均通过，字段命名不通用——**解析架构按适配器模式设计**（§3.4.4：统一 CommandRecord IR + 每平台一个适配器 + 检测引擎平台无关），新增平台只写适配器、检测逻辑零改动。
+- DSH 路径：`subagent`/`subagent_fork` 的后台任务钩子机制如何附加心跳写入动作仍需一次实机验证（比照 `platform-notes.md` 对 DSH 的既有实机验证惯例）；但 DSH 的命令流数据源（`tool/call`+`tool/result` 事件流）已实机验证通过——DSH 上命令流日志是比心跳文件更优的路径（§3.4.2 诚实边界声明）。
 - 阻塞路径：需要在 dispatch-context 派发模板中，为预期耗时较长的批次新增一条"自行维护心跳文件"的约定指导，并明确这是对 subagent 的行为约定而非外部强制信号（§3.4 诚实边界声明）。
 - 不修改 `check-gate.py`/`check-state-transition.py` 返回约定，心跳判定与 gate 判定是两套独立信号，互不干扰。
-- 心跳阈值、周期作为可配置项（类似 `maintainability.yaml` 的既有模式），缺失/损坏时兜底为默认值，不报错。
+- 心跳阈值、周期作为可配置项（类似 `maintainability.yaml` 的既有模式），缺失/损坏时兜底为默认值，不报错；命令流检测阈值按 §3.4.3 两级设计（expected×2 主信号 + 60s/300s 兜底），同样为可配置项。
 
 ---
 
@@ -275,4 +341,5 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 3. §4.3 中 OpenCode 的 CLI 子进程路线（`opencode run` 具体行为）需要一次实机验证后才能定稿落地方式——是维持"角色说明里给一段方法论指导"的纯 prompt 层面处理，还是需要一个专门的轻量脚本封装（类似心跳包装脚本），取决于实测结果。
 4. RM 编号申领与优先级——本设计与当前进行中的 RM-AG0054（TAG0027，编排语义统一落地）在"exit 三态""平台实现注记"等概念上有交叉，需要确认排期顺序，避免两个设计同时改动 `dispatch-protocol.md` 造成合并冲突。
 5. **§1.5 待确认项已核实**：TPV0095 backend 实测案例的 P2-design.md 已核实声明 `dispatch_plan`（static-batch，backend=high）——归类为**可能性 B**（P2 评级正确执行、但批内部顺序依赖粒度未被静态评级捕捉），立论素材成立，无需更换。
-6. **命令流日志数据源实机验证（§3.4.2 新增）——已解决**：2026-09-03 完成实机验证，Claude Code（JSONL）+ OpenCode（SQLite）均通过，四项关键字段（时间戳/命令内容/exit 信号/实时写入）全部正向，命令流日志机制按当前设计推进，无需降级。验证发现三个落地时需处理的平台差异（两平台字段不通用需各写解析逻辑、Claude Code 无数字 exit code 需文本前缀兜底、OpenCode 超大输出 spill 文件与 part ID 无法直接 join），已并入 §3.4.2 正文。完整验证记录：`verification-cmdstream-datasource-20260903.md`。
+6. **命令流日志数据源实机验证（§3.4.2 新增）——已解决**：2026-09-03 完成**三平台实机验证**，Claude Code（JSONL）+ OpenCode（SQLite）+ DSH（JSONL.zstd 拼接帧）均通过，四项关键字段（时间戳/命令内容/exit 信号/实时写入）全部正向，命令流日志机制按当前设计推进，无需降级。验证发现需处理的平台差异（三平台字段不通用需各写解析逻辑、Claude Code 与 DSH 均无数字 exit code 需文本前缀兜底、OpenCode 超大输出 spill 与 DSH 截断需排除哈希比对），已并入 §3.4.2 正文。完整验证记录：`verification-cmdstream-datasource-20260903.md`。
+7. **命令流解析架构落地（§3.4.4 新增）**：适配器模式（统一 CommandRecord IR + 每平台一个适配器 + 检测引擎平台无关）已定稿设计；落地时需确认适配器注册方式（配置声明 vs 目录扫描 `adapters/*.py` 约定）与 CommandRecord 序列化格式（落地为 JSONL 中间产物供检测引擎消费，还是内存接口直接传递），并在三平台各写一个适配器实现 + 用各自真实会话片段做解析单测（fixture 样例取自本验证记录）。
