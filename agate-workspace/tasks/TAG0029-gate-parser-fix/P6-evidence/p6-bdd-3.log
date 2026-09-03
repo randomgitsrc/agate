@@ -1,0 +1,16 @@
+=== BDD-3: syntax-error command string -> judge exit 1 (not 0) ===
+--- english locale: real bash syntax error ---
+bash exit=2 (expect 2)
+bash: -c: line 1: unexpected EOF while looking for matching `"'
+--- chinese locale: real bash syntax error ---
+bash exit=2 (expect 2)
+bash: -c: 行 1: 寻找匹配的 `"' 时遇到了未预期的 EOF
+--- judge english (exit2 + zero runner stats + syntax文案 -> exit 1) ---
+TDD_CHECK: A-class error (command string itself has syntax error, runner never started)
+judge exit=1 (expect 1, must NOT be 0)
+judge-en check exit=0 (expect 0)
+--- judge chinese (exit2 + zero runner stats + 中文文案 -> exit 1) ---
+TDD_CHECK: A-class error (command string itself has syntax error, runner never started)
+judge exit=1 (expect 1, must NOT be 0)
+judge-zh check exit=0 (expect 0)
+EXIT_CODE: 0

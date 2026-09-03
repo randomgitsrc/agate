@@ -1,0 +1,18 @@
+=== BDD-4: P3_xxx aux key NOT collected ===
+gate_commands:
+  P3_auxcheck: "echo aux"
+  P3: "echo real-p3"
+{
+    "commands": [
+        {
+            "cmd": "echo real-p3",
+            "formatter": "",
+            "suffix": ""
+        }
+    ],
+    "project_module": ""
+}
+--- assertion: commands must NOT contain aux ---
+['echo real-p3']
+bdd4 assert exit=0 (expect 0)
+EXIT_CODE: 0
