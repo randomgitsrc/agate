@@ -89,6 +89,22 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.67.0 — subagent 存活可观测性与受控自主再派发（TAG0028：RM-AG0055）
+
+> **本版本无破坏性变更，零迁移动作**——未改 `.state.yaml` schema / 既有任务文件格式 /
+> 3 个 hook 薄壳（本任务改动清单无 `.sh` 改动），无需重跑 `install-hook.py`（软链布局
+> `git pull` 即生效；Windows 复制模式重跑 SETUP.md 步骤 2 的 `cp`）。
+
+1. **新增命令流检测机制——对已有任务零影响**：三个新脚本（`agate-cmdstream-ir.py` /
+   `agate-cmdstream-adapters.py` / `agate-cmdstream-detect.py`）为纯新增消费方；检测输出定位
+   "证据 + 触发核查"（不自动判死），不改变既有存活机制（progress.md 语义进展职责不变）；
+   `maintainability.yaml` 新增 `cmdstream_detection:` 节为可选配置，缺失/损坏兜底默认值，
+   无强制、无升级动作。
+2. **受控自主再派发——对已有 subagent 零影响**：子派发权限为"可被授予"而非默认开放，
+   未授权 subagent 行为不变；judge 类角色不适用；dispatch-context 模板新增「不启用子派发
+   能力」声明位为可选字段。
+3. **升级动作**：`git pull` 即完成；无迁移动作。
+
 ### v0.66.0 — 编排语义统一落地（TAG0027：RM-AG0054）
 
 > **本版本无破坏性变更，零迁移动作**——未改 `.state.yaml` schema / 既有任务文件格式 /

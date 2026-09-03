@@ -8,7 +8,35 @@
 
 ---
 
-## [Unreleased]
+## [0.67.0] - 2026-09-03
+
+### 新增（TAG0028：subagent 存活可观测性与受控自主再派发，RM-AG0055）
+
+- **命令流检测三脚本**：`agate-cmdstream-ir.py`（CommandRecord 统一 IR：十字段字段契约 +
+  JSON 往返）/ `agate-cmdstream-adapters.py`（CommandStreamAdapter 基类契约 + 三平台适配器
+  ——Claude Code JSONL / OpenCode SQLite / DSH JSONL.zstd（spawn node 解压隔离）+ 显式注册表
+  ADAPTERS + 子 agent 会话定位）/ `agate-cmdstream-detect.py`（检测引擎：调用冻结
+  expected×2 + 兜底 300/900s、活动冻结 60/300s、无效重复窗口 10 内 ≥5、REPEAT_UNIQUE_MIN=3
+  信息级、截断排除、轮询误报标注；阈值可配置 maintainability.yaml 节，缺失/损坏全兜底；
+  CLI 子命令 list-sessions / read-commands / detect）。
+- **存活/卡死判定职责改由命令流日志承担**：dispatch-protocol.md「Subagent 安全 → 硬超时保护 →
+  存活检查」节改写——命令流日志（平台会话记录外部活动信号）承担存活/卡死判定，progress.md
+  保留"语义进展"职责不变，两套信号分工明确。
+- **心跳文件生命周期**：`.heartbeat` / `.heartbeat.child-{n}` 命名规范 + 审计豁免显式登记
+  （check-p6-provenance.py `_find_files` 隐藏文件过滤天然跳过，注释级登记确认）+ 清理时机
+  （任务结束由产生方清理，异常遗留由派发前置检查清空，复用 agate-archive-stale-outputs 模式）。
+- **受控自主再派发**：role-system.md「子派发权限边界」节——执行角色（analyst/architect/
+  implementer/verifier）可被授予子派发权限，两条硬边界（子任务不写 .state.yaml / 写权限是父
+  权限严格子集）；judge 类角色例外（不开放 Agent/subagent_fork，信息隔离冲突）；dispatch-context
+  模板补「不启用子派发能力」显式声明位。
+- **maintainability.yaml 新增 cmdstream_detection 节**：检测阈值（300/900/60/300/10/5 +
+  repeat_unique_min=3 + expected ×2/30s），缺失/损坏兜底协议默认值，不报错。
+- 新增 pytest 用例（tag0028 批，P5 实测 1434 passed + 0 failed + 2 skipped，count-tests 不漂移）。
+
+### 变更
+
+- **dispatch-protocol.md 存活检查节改写**（见上「新增」第 2 条，属协议文档职责重定义——
+  存活判定信号源切换，既有 progress.md 语义不变，不破坏既有 gate 返回约定）。
 
 ---
 
