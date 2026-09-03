@@ -1,0 +1,38 @@
+
+## [15:52:44] P3 test-designer progress
+- 已读：P3-dispatch-context（目标/约束/上游/输入文件 7 项）、test-designer.md 角色定义、AGENTS.md（测试平台无关约束）、P0-brief.md（env_constraints：SELF-GATE 触发、DSH zstd、脱敏 I-14）
+- 已读：P1-requirements.md（33 条 BDD：Phase1 BDD-1~7 适配器/IR、Phase2 BDD-8~24 检测、Phase3 BDD-25~28 心跳+文档、Phase4 BDD-29~33 再派发边界；fix1 拆号后全局连续）
+- 已读：P2-design.md（方案 A 三脚本平铺+显式注册表；M1~M10 映射；gate_commands.P3=`python3 -m pytest agate/tests/ -q --tb=short`；阈值锚 300/900/60/300/10/5 + REPEAT_UNIQUE_MIN=3 + expected×2/30s；fixture 落点 agate/tests/fixtures/；DSH 解压 spawn node zlib.zstdDecompress）
+- 注：15:53 bash 追加 P1/P2 进度时 timeout 超时（exit 124），改用 edit 工具追加（bash 通道卡顿，换路处理）
+- 已读：verification-cmdstream-datasource-20260903.md（三平台路径/格式/字段差异：Claude Code JSONL+Exit code N 文本前缀+sidecar subagents/agent-*.jsonl；OpenCode SQLite part.data.state+metadata.exit 整数+truncated 显式标记；DSH JSONL.zstd 拼接帧+isError/Error: 前缀+delegationDepth+callId 配对；脱敏样例 3 段）
+- 已读：verify_cmdstream_detection.py（9 场景 A-I + detect() 判据参考实现 + 阈值常量 CALL_EXPECT_MULT=2/CALL_FLOOR=30/CALL_ALERT=300/CALL_SUSPECT=900/ACTIVITY_ALERT=60/ACTIVITY_SUSPECT=300/SPIN_THRESHOLD=5/REPEAT_WINDOW=10/REPEAT_UNIQUE_MIN=3；main() 结论串"全部断言通过——命令流日志可机械区分九种状态"）
+- 已读：agate/tests/conftest.py（agate_root/agate_scripts/load_fixture/task_dir/run_cli/python_exe/bash fixture 体系；load_fixture → agate_root/tests/fixtures/name）
+- 已读：agate/tests/unit 既有惯例（test_agate_md_field_set.py：importlib.spec_from_file_location + exec_module 加载连字符脚本，被测缺失时 exec_module 抛 FileNotFoundError=B 类红灯注释）
+- 已读：check-p6-provenance.py _find_files（line 85-93：name.startswith(".") 跳过隐藏文件 → .heartbeat* 天然豁免，实读确认）
+- 已读：agate-workspace/maintainability.yaml（现 9 行，无 cmdstream_detection 节 → BDD-19/20/21 需在 P4 加节）
+- 已读：check-tdd-red.py（判定逻辑：exit 0=真红灯需 failed>0 或 import 类失败且 errors==0；errors>0 判 A 类！→ 测试设计必须避免裸异常传播，用 AssertionError/pytest.fail 保证 failed 计数）
+- node zstd 探测：`node -e "const z=require('node:zlib'); console.log(typeof z.zstdDecompress)"` → 输出 function（可用，记入本进度）
+- 关键设计决策：被测模块（agate-cmdstream-ir/adapters/detect）缺失时，白盒用例经 _load_script 检查文件存在性后 pytest.fail（B 类红灯），不用裸 FileNotFoundError（会记 error → check-tdd-red 判 A 类）
+- 已读：check-tdd-red.py formatter（pytest.sh：errors/failed 计数；"N error"→A 类）
+- 已读：agate-md-field-set.py（_writable_keys = GENERIC_HEADER_KEYS ∪ phases.yaml task_fields；phases.yaml P3 task_fields=[test_code_dir] → test_code_dir 可写）
+- 已读：agate/tests/README.md（unit/ 按脚本分文件；fixtures/ 静态夹具目录；count-tests 口径）
+- 设计决策汇总：① 5 个测试文件（ir/adapters/detect/heartbeat/dispatch）+ cmdstream/ 子目录 fixture；② _load_script 缺失→pytest.fail；③ detect(events, now, config=None) 接口（事件结构与 verify Event 同构）；④ 文档断言类 BDD 读 worktree 协议文档断言改写内容（当前红）；⑤ BDD-22/33/26 行为部分为长期不变量（当前绿可接受，check-tdd-red 只看整体非全绿）
+- 下一步：写 fixture（claude/dsh/opencode 明文脱敏）→ 写 5 个测试文件 → P3-test-cases.md（agate-md-field-set）→ 自跑 pytest 确认红灯 → node 探测已确认 function
+- node 完整探测：`node -e "const z=require('node:zlib'); console.log(typeof z.zstdCompressSync, typeof z.zstdDecompressSync)"` → 均 function（测试可运行时构造真实 zstd 帧；无需 python zstandard）
+- 接口契约定稿：detect(events, now, config=None) → (verdict, reasons)；events 为活动事件 dict 列表（ts/kind∈{think,out,call,result}/id/cmd/exit/out/expected/truncated，与 verify Event 同构）；reasons 含级别关键字（alert/suspect）与阈值依据；CommandRecord 十字段 dataclass + to_json/from_json；适配器 ADAPTERS 注册表 + probe/list_sessions/read_commands
+- 落盘顺序：fixtures → 5 个测试文件 → P3-test-cases.md → pytest 自跑 → node 探测记录（已完成）→ 返回
+- fixture 已落盘：agate/tests/fixtures/cmdstream/{claude-code-session.jsonl, dsh-session.jsonl, opencode-part-state.json}（脱敏：demo 前缀 ID、/example 路径、无密钥/真实会话 ID）
+- check-gate 调用形态确认：`check-gate.py PHASE TASK_DIR [OLD_PHASE]`，exit 0/1/2 三态（test_check_gate.py line 11/32-44）
+- 红灯归类关键：被测模块缺失时一律 pytest.fail（failed 计数），不让 FileNotFoundError/ImportError 传播（pytest 输出含 ImportError 字样 → check-tdd-red 无 formatter 时按 raw_output 关键词误判 A 类）；verify/check-gate/check-p6 行为断言为长期不变量可绿（check-tdd-red exit 2 仅当全绿）
+- 开始写 5 个测试文件（ir/adapters/detect/heartbeat/dispatch）
+- 已写 5 个测试文件：test_agate_cmdstream_{ir,adapters,detect,heartbeat,dispatch}.py（BDD-1~33 全覆盖；文档断言靶向改写后特有表述避免假绿——role-system 无 子派发/.state.yaml、dispatch-protocol 无 命令流/语义进展/自主再派发/.heartbeat、模板无 不启用子派发能力，均实读确认）
+- BDD-25/27 改为文档断言（P2 M5 是协议改写非新脚本 API）；BDD-33 调 check-state-transition.py 用 [STATE_FILE]+git repo 形态
+- 下一步：pytest 收集确认无 A 类 → 自跑确认红灯性质 → P3-test-cases.md（agate-md-field-set）→ 返回
+- pytest 收集：42 用例无 A 类（5 文件 9+19+6+5+3）
+- 自跑红灯确认：38 failed + 4 passed；4 passed 均为预期绿（BDD-7 fixture 脱敏断言 / BDD-22 verify 锚长期不变量 / BDD-26 行为既有过滤 / BDD-33 gate 三态既有脚本）；38 failed 全部为被测模块未实现 pytest.fail 或文档改写未落地断言，无 A 类（无 Traceback/ImportError 输出，check-tdd-red 不会误判）
+- 下一步：写 P3-test-cases.md（agate-md-field-set 填 frontmatter）→ grep 确认落盘 → 返回
+- P3-test-cases.md 已落盘（177 行）：frontmatter 用 agate-md-field-set 填 phase/task_id/parent/trace_id/status/created/test_code_dir（agent 被脚本合法 key 清单排除，按派发上下文要求手动补写）；agate-frontmatter-check exit 0
+- 最终红灯确认（worktree 相对路径，gate_commands.P3 同形态）：`python3 -m pytest agate/tests/unit/test_agate_cmdstream_*.py -q --tb=short` → 38 failed + 4 passed；BDD-1~33 全覆盖（grep 无缺失行）；测试文件 5 个 + fixture 3 个已落盘
+- node 可用性：`zlib.zstdDecompressSync`/`zstdCompressSync` 均 function（已记入本文件）
+- [PROD_NOT_TOUCHED] 全程仅读写任务目录、worktree 协议本体（agate/tests/）、验证记录与设计文档；未触碰生产环境，未读取其他用户 DSH 会话
+- 返回：P3-test-cases.md 路径 + 42 用例摘要

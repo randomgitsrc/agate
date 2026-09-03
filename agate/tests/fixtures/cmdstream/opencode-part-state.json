@@ -1,0 +1,38 @@
+[
+  {
+    "type": "tool",
+    "tool": "bash",
+    "callID": "call_demo_0001",
+    "state": {
+      "status": "completed",
+      "input": {"command": "ip -brief addr; echo '---'; ip route"},
+      "output": "lo UNKNOWN 127.0.0.1/8 ...",
+      "metadata": {"output": "lo UNKNOWN 127.0.0.1/8 ...", "exit": 0, "truncated": false},
+      "time": {"start": 1788245301014, "end": 1788245301028}
+    }
+  },
+  {
+    "type": "tool",
+    "tool": "bash",
+    "callID": "call_demo_0002",
+    "state": {
+      "status": "error",
+      "input": {"command": "make build-docs"},
+      "output": "Error: target not found",
+      "metadata": {"output": "Error: target not found", "exit": 2, "truncated": false},
+      "time": {"start": 1788245302000, "end": 1788245302110}
+    }
+  },
+  {
+    "type": "tool",
+    "tool": "bash",
+    "callID": "call_demo_0003",
+    "state": {
+      "status": "completed",
+      "input": {"command": "make build-docs"},
+      "output": "docs built",
+      "metadata": {"output": "docs built", "exit": 0, "truncated": true},
+      "time": {"start": 1788245303000, "end": 1788245303555}
+    }
+  }
+]
