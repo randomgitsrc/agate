@@ -24,6 +24,11 @@ role: {角色名，如 analyst / requirements-review / implementer}
 
 > **格式约束**：约束节避免行首 `- PASS`/`- FAIL`（被 provenance 预判检测匹配）。改用"通过/失败"或加引号。
 
+> **子派发能力声明位（RM-AG0055 / TAG0028）**：执行角色（analyst/architect/implementer/
+> verifier）可被授予子派发权限（边界见 role-system.md「子派发权限边界」节）；**judge 类
+> 角色不适用子派发**——judge 派发时本行注入「不启用子派发能力」，其余角色留空或按需声明。
+> 声明位：`子派发能力：{启用（执行角色，按需）| 不启用子派发能力（judge 类角色）}`
+
 ### 上游关联
 {上一阶段 subagent 摘要中的关键信息}
 

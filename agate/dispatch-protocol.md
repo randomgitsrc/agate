@@ -948,7 +948,59 @@ diff≥2 回退：PAUSED + 诊断 + 人工批准（见 state-machine.md 回退�
 1. **硬超时**：派发工具本身无平台层超时参数（T019 实战验证：subagent 内部脚本挂起导致主 Agent 卡死数小时）。防卡死依赖 subagent 内部脚本硬超时（见上方「subagent 超时判定」节）+ 主 Agent 拆分策略，不依赖平台超时
 2. **进展标记**：派发 prompt 中要求 subagent 每隔若干关键操作输出进度标记
    `[progress] N/M files processed` 到 stdout，让平台日志可追溯
-3. **存活检查**：真正的存活监控（心跳、文件增长检测）需平台原生支持并发后补，当前为已知限制
+3. **存活检查（命令流日志承担判定职责，RM-AG0055）**：subagent 的**存活/卡死判定**由
+   **命令流日志机制**承担（RM-AG0055，`agate/scripts/agate-cmdstream-*.py`）——从平台会话
+   记录（Claude Code JSONL / OpenCode SQLite / DSH JSONL.zstd）外部获取活动信号
+   （model 思考/输出/执行 tool 三类事件），机械检测两类卡死（调用冻结 = 未结束 call 超期；
+   活动冻结 = 无未结束 call 且无任何活动超期）与逻辑空转（同命令+同结果签名重复）。
+   检测输出定位"证据 + 触发核查、不自动判死"，主 Agent 据证据决定是否中止/重派。
+   **两套信号分工**（与 RM-AG0023 progress 心跳扩展的职责边界，不产生职责重叠）：
+   - **命令流日志 = 存活/卡死判定信号**（进程是否活着、是否卡在单次调用、是否空转）
+   - **progress.md = 语义进展信号**（正在做什么、下一步计划）——保留原职责不变
+   - 两者不互相替代：命令流日志是客观活动信号，progress.md 是 subagent 自述语义状态；
+     主 Agent 判定存活以命令流日志为准，理解进展以 progress.md 为准
+
+> 实现注记：命令流日志的三平台存储格式（Claude Code JSONL / OpenCode SQLite / DSH
+> JSONL.zstd）为平台实现细节（RM-AG0055 验证记录 verification-cmdstream-datasource-
+> 20260903.md），协议语义面不依赖具体存储格式；新增平台只需按适配器契约实现 +
+> ADAPTERS 注册表加一行（见 agate-cmdstream-adapters.py，BDD-6）。
+
+### 心跳文件生命周期
+
+> RM-AG0055（TAG0028）心跳文件命名/审计豁免/清理时机规范。心跳文件是**可选的**
+> 轻量存活补充信号（subagent 主动 touch），命令流日志已承担存活判定主职责时心跳可省略；
+> 心跳文件的审计豁免与清理机制如下：
+
+- **命名规范**：任务级心跳文件 = `${TASK_DIR}/.heartbeat`；父 subagent 为子任务维护
+  `${TASK_DIR}/.heartbeat.child-{n}`（n 为父任务内子任务序号，同父任务内不重复不覆盖）。
+  心跳文件统一以 `.` 开头（隐藏文件），避免被任务目录产物扫描误纳入
+- **审计豁免**：`.heartbeat*` 落入 `{TASK_DIR}/` 协议命名空间，但 `check-p6-provenance.py`
+  的 `_find_files` 隐藏文件过滤（`if name.startswith("."): continue`）**天然跳过隐藏文件**
+  ——`.heartbeat*` 不进入审计枚举，已显式登记豁免确认（见 check-p6-provenance.py 路径
+  过滤逻辑处注释）
+- **清理时机**：任务结束（成功/失败/超限）由**产生心跳的一方清理**自己产生的心跳文件
+  （`cleanup_heartbeats(task_dir)`，见 agate-cmdstream-detect.py）；异常遗留的心跳文件
+  由下次同任务重新派发前的**派发前置检查清空**（比照 agate-archive-stale-outputs 任务
+  目录收尾模式，不新建清理机制）
+
+### subagent 自主再派发
+
+> RM-AG0055（TAG0028）受控自主再派发：执行角色在授权范围内可自主派发子任务（子 subagent）。
+> 权限边界见 `role-system.md`「子派发权限边界」节；本节定义与五模式编排的关系与产出收敛语义。
+
+- **与五模式编排的关系**：subagent 自主再派发是 **subagent 内部的一层**，与主 Agent 层面
+  的「五模式编排」（见「派发编排机制」节：单发/静态拆批/并行/先理解后拆/串行链）**并存互补，
+  不合并不互相替代**——主 Agent 层面的模式 4（先理解后拆）仍权威，subagent 的再派发
+  是在其被授予的子任务范围内做局部拆解，不改变主 Agent 的编排决策
+- **§4.1 两条硬边界**（与 role-system.md「子派发权限边界」节一致）：
+  1. 子任务**不写** `.state.yaml` / `active-tasks.md`，不产生独立 phase 状态——外部观感
+     永远是"一个 subagent 在跑"，父汇总后仅以"路径+摘要"回报
+  2. 子任务写权限是**父权限的严格子集**，父在派子任务 prompt 中显式重申约束（不自动继承）
+- **产出收敛**：子任务中间产出**不计入 gate 判定对象**；仅父 subagent 最终声明的
+  `files_modified` 走既有假完成校验（D2）；**不产生新的编排层级**（状态机单层不变，
+  gate 判定路径不感知子派发）
+- **judge 类角色例外**：judge 类角色（fresh context 信息隔离）不适用子派发，派发时
+  在 dispatch-context 显式声明「不启用子派发能力」（见 role-system.md）
 
 ### 升级机制（[UPGRADE] 标记）
 

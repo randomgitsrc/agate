@@ -176,3 +176,53 @@ agent: test-designer
 [PROD_NOT_TOUCHED] 本阶段仅读取任务目录、协议本体、设计文档与验证记录，未触碰生产环境；
 未读取其他用户 DSH 会话（三平台 fixture 均为脱敏虚构样例，字段结构取自验证记录，内容为
 demo 占位）。
+
+## 修复轮记录（fix1）
+
+> 修复轮（增量模式，TAG0028-P3 fix1）：P4 implementer 实现完成后唯一红灯
+> `test_bdd_3_opencode_adapter_parses_sqlite`（41/42 绿），标 `[DESIGN_GAP]` 未改测试——
+> 主 Agent 复现并审查后判定为 **P3 测试设计缺陷**（T075 类：断言与 fixture 数据矛盾）。
+> 本轮**仅**修该测试函数，P1 基线 / P2 设计 / 适配器代码（P4 产出）均不动。
+
+### 根因
+
+fixture `opencode-part-state.json` 含两条 **command 同名**的记录：
+
+| 记录 | command | exit | truncated |
+|------|---------|------|-----------|
+| call_demo_0002 | make build-docs | 2 | false |
+| call_demo_0003 | make build-docs | 0 | true |
+
+旧测试用 `by_cmd = {r.command: r for r in records}` 以命令为键建字典——同键记录互相覆盖
+（后者覆盖前者），断言 `by_cmd["make build-docs"].exit == 2` 与
+`by_cmd["make build-docs"].truncated is True` 隐含要求**同一条记录**同时具备 exit==2 与
+truncated==true，fixture 中不存在该记录——任何正确实现都无法满足该断言（实测
+`AssertionError: assert 0 == 2`）。适配器实际正确输出 3 条记录（`len(records)==3` 通过），
+问题纯在测试断言结构。
+
+### 修法（方向 A：过滤式匹配，BDD-3 语义不变）
+
+参照同文件 test_bdd_2 的过滤式匹配写法（`[r for r in records if r.command == X and r.exit == N]`），
+按 (command + exit/truncated) 组合过滤出各条记录分别断言，**不依赖"命令唯一"假设**：
+
+- `r1`：按 command 唯一过滤 ip 命令记录 → exit==0、truncated is False、platform=="opencode"
+- `r2`：按 (command=="make build-docs" and exit==2) 过滤 → truncated is False（call_demo_0002）
+- `r3`：按 (command=="make build-docs" and truncated is True) 过滤 → exit==0（call_demo_0003）
+
+BDD-3 验收语义（exit 直接取 `state.metadata.exit` 整数、truncated 取 `state.metadata.truncated`
+显式标记）不变；未改 fixture、未改适配器实现。
+
+### 验证结果
+
+```text
+$ python3 -m pytest agate/tests/unit/test_agate_cmdstream_adapters.py -q --tb=short
+9 passed in 0.29s
+
+$ python3 -m pytest agate/tests/unit/test_agate_cmdstream_*.py -q --tb=short
+42 passed in 0.52s
+```
+
+- 单文件 9/9 绿（含修复后的 test_bdd_3）
+- 全套件 42/42 绿（BDD-1~33 全覆盖；4 个长期不变量用例保持绿：BDD-7 fixture 脱敏 /
+  BDD-22 verify 锚 / BDD-26 行为 / BDD-33 gate 三态）
+- 无 A 类错误（SyntaxError / collection error 均为 0）

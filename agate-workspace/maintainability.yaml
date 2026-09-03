@@ -7,3 +7,24 @@ fuzzy_patterns:
   typescript:
     - ':\s*any\b'
     - '\bas\s+any\b'
+
+# RM-AG0055（TAG0028）命令流检测阈值——默认值偏保守（宁可多提示、绝不误杀，P0 约束 2）。
+# 检测引擎（agate/scripts/agate-cmdstream-detect.py）读取本节点；缺失/损坏/类型坏 →
+# 协议默认值（300/900/60/300/10/5 + repeat_unique_min=3 + ×2/30s 下限）不报错、不静默跳过
+# （复用 check-maintainability.py:88-148 _load_config 全兜底模式，BDD-19/20/21）。
+cmdstream_detection:
+  # 调用冻结（未结束 call 超期）：有 expected 用 max(expected×2, 30s) 主信号；
+  # 无 expected 用 alert/suspect 两级兜底
+  call_freeze_alert: 300
+  call_freeze_suspect: 900
+  # 活动冻结（无未结束 call 且无任何活动超期）：alert 提示核查 / suspect 建议深度核查
+  activity_freeze_alert: 60
+  activity_freeze_suspect: 300
+  # 无效重复（逻辑空转）：窗口内同 (命令, exit, 输出哈希) 组合重复 >= spin_threshold
+  spin_window: 10
+  spin_threshold: 5
+  # 窗口内唯一命令数 < repeat_unique_min → 信息级提示（不判空转，结果签名在变化 = 合法迭代）
+  repeat_unique_min: 3
+  # expected×2 主信号：expected 倍率 + 兜底下限（expected 很小时也至少给 30s）
+  expected_multiplier: 2
+  expected_lower_bound: 30

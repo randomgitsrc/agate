@@ -112,3 +112,60 @@ def test_bdd_1_ir_json_roundtrip(agate_scripts):
         "ts_start", "ts_end", "exit", "exit_signal", "output_hash", "truncated",
     ):
         assert getattr(restored, field) == getattr(rec, field), f"序列化往返字段漂移: {field}"
+
+
+# ================= BDD-1 补充（fix1，P4-review CRITICAL-6）：from_dict 类型契约校验 =================
+
+
+def test_bdd_1_ir_from_dict_rejects_bad_types(agate_scripts):
+    """BDD-1 Then「类型符合 IR 契约」直接落点（CRITICAL-6）：from_json 喂入坏类型
+    （ts_start="abc" / exit="x" / truncated="yes"）必须抛 ValueError 带字段名——
+    坏数据不得静默流入 detect（age=now-"abc" 崩溃或判定失真）。"""
+    ir = _load_ir(agate_scripts)
+
+    base = {
+        "platform": "dsh",
+        "session_id": "ses_demo",
+        "tool": "bash",
+        "command": "ls -la",
+        "ts_start": 1787883650309,
+        "ts_end": 1787883650312,
+        "exit": 0,
+        "exit_signal": "",
+        "output_hash": "h_demo",
+        "truncated": False,
+    }
+
+    # ts_start 非 int
+    bad_ts = dict(base, ts_start="abc")
+    with pytest.raises(ValueError) as ei:
+        ir.CommandRecord.from_dict(bad_ts)
+    assert "ts_start" in str(ei.value)
+
+    # exit 非 int|None
+    bad_exit = dict(base, exit="x")
+    with pytest.raises(ValueError) as ei:
+        ir.CommandRecord.from_dict(bad_exit)
+    assert "exit" in str(ei.value)
+
+    # truncated 非 bool
+    bad_trunc = dict(base, truncated="yes")
+    with pytest.raises(ValueError) as ei:
+        ir.CommandRecord.from_dict(bad_trunc)
+    assert "truncated" in str(ei.value)
+
+    # ts_end 非 int|None
+    bad_ts_end = dict(base, ts_end="later")
+    with pytest.raises(ValueError) as ei:
+        ir.CommandRecord.from_dict(bad_ts_end)
+    assert "ts_end" in str(ei.value)
+
+    # 合法边界（exit=None + ts_end=None，CRITICAL-3 未结束 call 形态）不抛
+    ok = dict(base, exit=None, ts_end=None, output_hash=None)
+    rec = ir.CommandRecord.from_dict(ok)
+    assert rec.exit is None and rec.ts_end is None
+
+    # bool 是 int 子类，不得被当作合法 ts/exit（类型契约防坍缩）
+    bad_bool_ts = dict(base, ts_start=True)
+    with pytest.raises(ValueError):
+        ir.CommandRecord.from_dict(bad_bool_ts)

@@ -36,3 +36,16 @@
 - node 可用性：`zlib.zstdDecompressSync`/`zstdCompressSync` 均 function（已记入本文件）
 - [PROD_NOT_TOUCHED] 全程仅读写任务目录、worktree 协议本体（agate/tests/）、验证记录与设计文档；未触碰生产环境，未读取其他用户 DSH 会话
 - 返回：P3-test-cases.md 路径 + 42 用例摘要
+
+## [fix1] P3 修复轮 progress
+- 已读：P3-dispatch-context-test-designer-fix1.md（根因：opencode fixture 两条 make build-docs 同名命令 0002=exit2/truncated=false 与 0003=exit0/truncated=true，by_cmd 字典同键覆盖 → 断言矛盾；方向 A 过滤式匹配，参照 test_bdd_2 `[r for r in records if r.command == X and r.exit == N]`；约束：只改 test_bdd_3，适配器代码不动，BDD-3 语义不变）
+- 已读：test_agate_cmdstream_adapters.py test_bdd_3（line 134-154：by_cmd = {r.command: r} 字典写法确认）与 test_bdd_2（line 104-128 过滤式写法参照）
+- 已改：test_bdd_3 重构为过滤式匹配（r1 按 command 唯一过滤 ip 命令；r2 按 (command=="make build-docs" and exit==2)；r3 按 (command=="make build-docs" and truncated is True)），fixture/适配器代码未动，BDD-3 语义不变
+- 下一步 bash：`timeout 180s python3 -m pytest agate/tests/unit/test_agate_cmdstream_adapters.py -q --tb=short`（单文件，预期全绿，~10s）
+- 单文件结果：adapters 9 passed（test_bdd_3 修复生效，无 A 类）
+- 下一步 bash：`timeout 180s python3 -m pytest agate/tests/unit/test_agate_cmdstream_*.py -q --tb=short`（全套件，预期 42/42 绿，~10s）
+- 全套件结果：42 passed（test_bdd_3 修复后全绿，4 长期不变量保持）
+- 已追加：P3-test-cases.md「## 修复轮记录（fix1）」（根因：by_cmd 字典同键覆盖 → 断言要求同一条记录 exit==2 且 truncated==true，fixture 无此记录；修法：方向 A 过滤式匹配 (command+exit/truncated)；验证：adapters 9/9 + 全套件 42/42）
+- 确认：line 190 的 by_cmd 属于 test_bdd_4（DSH 适配器，命令唯一无冲突，42/42 已验证，不在 fix1 范围）；frontmatter-check exit 0
+- [PROD_NOT_TOUCHED] 本轮仅修改 test_agate_cmdstream_adapters.py 的 test_bdd_3 与 P3-test-cases.md 修复轮记录；未触碰适配器实现/生产环境
+- 返回：修改文件路径 + fix1 摘要

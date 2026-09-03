@@ -12,8 +12,6 @@
 # BDD-33（gate 返回约定不破坏）为长期不变量：运行既有 check-gate.py / check-state-transition.py
 # 断言 exit 三态（0/1/2）可用（TAG0025：断言当前状态而非一次性交付事实）。
 
-import pytest
-
 
 def _read_text(p):
     return p.read_text(encoding="utf-8")

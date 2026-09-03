@@ -228,7 +228,7 @@ def test_bdd_17_truncated_not_in_hash_compare(agate_scripts):
         events.append(_ev(i * 2, "call", id=f"t{i}", cmd="fail_task"))
         events.append(_ev(i * 2 + 1, "result", id=f"t{i}", cmd="fail_task",
                           exit=1, out="h_trunc", truncated=True))
-    verdict, reasons = _run_detect(agate_scripts, events, now=12)
+    verdict, _ = _run_detect(agate_scripts, events, now=12)
     assert verdict == "NORMAL"
 
 
@@ -252,7 +252,7 @@ def test_bdd_18_polling_loop_annotated(agate_scripts):
         events.append(_ev(i * 2, "call", id=f"p{i}", cmd="gh pr checks --watch"))
         events.append(_ev(i * 2 + 1, "result", id=f"p{i}", cmd="gh pr checks --watch",
                           exit=0, out="h_poll"))
-    verdict, reasons = _run_detect(agate_scripts, events, now=10)
+    _, reasons = _run_detect(agate_scripts, events, now=10)
     # 轮询重复同签名 → 可能触发 SPIN，但必须附轮询误报类标注（核查提示而非自动终止）
     joined = "\n".join(reasons)
     assert "轮询" in joined or "poll" in joined.lower()
@@ -370,3 +370,99 @@ def test_bdd_24_output_platform_agnostic(agate_scripts):
     joined = "\n".join(reasons)
     for platform_word in ("claude", "opencode", "dsh"):
         assert platform_word not in joined.lower(), f"检测输出绑定平台: {platform_word}"
+
+
+# ================= fix1（P4-review CRITICAL-1/3）补充测试：CLI detect 通路 =================
+
+
+def _write_claude_session(tmp_path, lines):
+    """写 claude-code JSONL 会话文件，返回路径（CLI detect 输入）。"""
+    session = tmp_path / "cli-session.jsonl"
+    session.write_text("".join(lines), encoding="utf-8")
+    return session
+
+
+def test_bdd_11_cli_detect_seconds_unit_no_false_freeze(agate_scripts, tmp_path, capsys):
+    """BDD-11 补充（CRITICAL-1 复现场景）：CLI detect 时间单位归一——events ts 毫秒与
+    --now 毫秒在 CLI 层统一转秒后，3 秒无活动不得误报 FROZEN「距今 3000s ≥ 300s」。
+    修复前 ts/now 毫秒直接比对秒级阈值 → 3 秒无活动误报活动冻结。"""
+    mod = _load_detect(agate_scripts)
+    # 完成一次调用：ts_start=1788400860000ms（2026-09-03T02:01:00.000Z），结束同刻
+    session = _write_claude_session(
+        tmp_path,
+        [
+            '{"type":"tool_use","id":"toolu_cli_1","name":"Bash",'
+            '"timestamp":"2026-09-03T02:01:00.000Z",'
+            '"input":{"command":"python3 -m pytest -q tests/unit"}}\n',
+            '{"tool_use_id":"toolu_cli_1","type":"tool_result",'
+            '"timestamp":"2026-09-03T02:01:00.000Z",'
+            '"content":"Exit code 0\\n=== 12 passed ===","is_error":false}\n',
+        ],
+    )
+    # --now 传毫秒（13 位）：距最后活动 3 秒 → 归一为 3s < 60s → NORMAL
+    rc = mod.main(["detect", str(session), "--platform", "claude-code",
+                   "--now", "1788400863000"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "VERDICT: NORMAL" in out, f"3 秒无活动不得误报冻结（CRITICAL-1），输出:\n{out}"
+    assert "FROZEN" not in out
+
+
+def test_bdd_9_cli_detect_unfinished_call_frozen(agate_scripts, tmp_path, capsys):
+    """BDD-9 补充（CRITICAL-3）：CLI 通路未结束 call 可触发调用冻结——适配器产出
+    exit=None/ts_end=None 记录 + CLI 事件 id 加序号保证唯一 → unresolved 不再被坍缩，
+    距今超 300s 兜底 → FROZEN。修复前 claude/dsh CLI 通路 unresolved 恒空。"""
+    mod = _load_detect(agate_scripts)
+    # 同会话同命令两次调用：一次已结束（距今 10s）、一次未结束（距今 400s）
+    session = _write_claude_session(
+        tmp_path,
+        [
+            '{"type":"tool_use","id":"toolu_cli_2","name":"Bash",'
+            '"timestamp":"2026-09-03T02:01:00.000Z",'
+            '"input":{"command":"python3 -m pytest -q tests/unit"}}\n',
+            '{"tool_use_id":"toolu_cli_2","type":"tool_result",'
+            '"timestamp":"2026-09-03T02:01:00.300Z",'
+            '"content":"Exit code 0\\n=== 12 passed ===","is_error":false}\n',
+            # 未结束 call（无配对 result），距今 400s
+            '{"type":"tool_use","id":"toolu_cli_3","name":"Bash",'
+            '"timestamp":"2026-09-03T02:05:00.000Z",'
+            '"input":{"command":"python3 -m pytest -q tests/unit"}}\n',
+        ],
+    )
+    # 未结束 call ts=1788401100000ms（02:05:00.000Z）；now = ts + 400s = 1788401500000ms
+    rc = mod.main(["detect", str(session), "--platform", "claude-code",
+                   "--now", "1788401500000"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "VERDICT: FROZEN" in out, f"CLI 通路未结束 call 应触发调用冻结（CRITICAL-3），输出:\n{out}"
+    assert "调用冻结" in out
+    assert "300" in out  # 兜底阈值依据
+
+
+def test_bdd_8_cli_detect_expected_signal(agate_scripts, tmp_path, capsys):
+    """BDD-8 补充（CRITICAL-3 ③）：CLI --expected 注入事件 → expected×2 主信号可达
+    （未结束 call 距今 350s：--expected 200 → 阈值 400s → 不冻结；无 expected → 兜底
+    300s → FROZEN——两路径区分证明 expected 已接入 CLI 事件）。"""
+    mod = _load_detect(agate_scripts)
+    session = _write_claude_session(
+        tmp_path,
+        [
+            '{"type":"tool_use","id":"toolu_cli_4","name":"Bash",'
+            '"timestamp":"2026-09-03T02:05:00.000Z",'
+            '"input":{"command":"full_pytest_xdist"}}\n',
+        ],
+    )
+    # 未结束 call ts=1788401100000ms（02:05:00.000Z）；now = ts + 350s = 1788401450000ms
+    now_ms = "1788401450000"
+    # 无 expected → 距今 350s ≥ 兜底 300s → FROZEN
+    rc = mod.main(["detect", str(session), "--platform", "claude-code", "--now", now_ms])
+    assert rc == 0
+    out1 = capsys.readouterr().out
+    assert "VERDICT: FROZEN" in out1, f"无 expected 兜底应冻结（350s≥300s），输出:\n{out1}"
+    # --expected 200 → 阈值 max(200×2,30)=400s → 350s 不冻结
+    rc2 = mod.main(["detect", str(session), "--platform", "claude-code",
+                    "--now", now_ms, "--expected", "200"])
+    out2 = capsys.readouterr().out
+    assert rc2 == 0
+    assert "VERDICT: NORMAL" in out2, f"expected=200 时 350s < 400s 不应冻结（CRITICAL-3③），输出:\n{out2}"
+    assert "expected=200s" in out2, "原因应注明 expected×2 主信号来源"
