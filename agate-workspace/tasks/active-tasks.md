@@ -10,13 +10,12 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0026 | 维护性反模式 gate（RM-AG0046）：G0 两条（god-file 跨越 + fuzzy-boundary）→ 新增 check-maintainability.py + check-gate.py **P4 三重门槛挂载**（登记+数量对齐+P4 评审 approve）+ known-violations 模板 + P4/P6 phase card 自查 + pytest 覆盖 13 BDD；只挂 P4 不挂 P6（v3 计划，独立评审定稿 2026-08-30）| ✅✅ | READY | 高 | RM-AG0046 | 2026-08-30 | 2026-08-30 |
 
 ### 待开始
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0027 | 编排语义统一落地（RM-AG0054，全量四 phase 不分后续任务）：① 推进侧状态机 CLI（agate next/advance）——推进决策查表化，复用 check-state-transition.py + check-gate.py exit 三态 + phases.yaml 扩展（next/retreat 纳入 S-1/S-2）+ agate-retreat-to.py 对接，CLI 为 /loop 档位 C 可观测层；② 编排心智统一文档化（五模式锚点 + 实现注记标记）；③ **方案 A 渲染时注入**——派发=单命令自动注入渲染，主 Agent 不直接调 agate-inject-card.py（消灭占位符缺失→手动修环节），check-p6-provenance 审计 2 联动走渲染产物（A1）；④ 护栏 1 机械化（consistency 扫"含平台名无实现注记段落"进 CI）；设计文档 v3b（三轮独立评审闭环 2026-09-02）| ✅✅ | READY | 高 | RM-AG0054 | 2026-09-02 | 2026-09-03 |
+| TAG0028 | subagent 存活可观测性与受控自主再派发（RM-AG0055）：命令流日志机制（三平台数据源适配器 + 调用/活动冻结 + 无效重复检测 + 截断排除，阈值两级 expected×2 复用 RM-AG0023）——检测定位'证据+触发核查不自动判死'；心跳文件生命周期；受控自主再派发（执行角色权限下放，judge 例外）；设计文档 v5 已闭环（4 轮评审 + 三平台实机验证）| ⬜ | P0 | 高 | RM-AG0055 | 2026-09-03 | 2026-09-03 |
 
 ### 已完成（归档）
 
@@ -28,6 +27,9 @@
 | TAG0025 | Agateon 品牌改名执行 Phase 0-1（RM-AG0035 剩余工作②）：品牌声明（Agateon formerly agate）+ GitHub 主仓改名 agate→agateon + 硬编码 URL 同批更新（design §4 实测 7 处）+ 本机 remote 迁移；按评审通过的 design-rename-execution.md 三层解耦（外部品牌改/内部命名空间不动），Phase 2（v1.0 别名+prose+brand-check）/3（门户）不在范围 | ✅✅ | READY | 高 | 2026-08-26 |
 | TAG0024 | 工具链批（RM-AG0048 一期 agate-md-field-set + DEBT0019/20 check-gate roadmap-done 健壮性 + RM-AG0049/50 协议文档自洽 + BDD-30 check-pruning 隔离修复）：结构化字段写入工具（写即校验 + 自描述 + 权限引导 + 同源铁律，消灭手写 frontmatter 摩擦）+ 5 项前置修复合并：30 条 BDD 全 PASS，P6.5 judge 独立复核 passed，P7 一致性 BLOCKER=0 → v0.63.0 | ✅✅ | READY | 中 | 2026-08-25 |
 | TAG0023 | 机制校验补强批（RM-AG0042 retries 强制记录 + RM-AG0043 roadmap 回写校验 + RM-AG0044 环境敏感测试治理 + RM-AG0045 声明写时校验）：TAG0019-21 复盘独立评审确认的 4 个 agate 机制缺口合并处理 | ✅✅ | READY | 高 | 2026-08-25 |
+
+| TAG0027 | 编排语义统一落地（RM-AG0054，全量四 phase）：推进侧状态机 CLI（agate next/advance）+ 方案 A 渲染时注入 + 护栏 1 机械化；BDD 26/26 + judge 26/26 → v0.66.0 | ✅✅ | READY | 高 | 2026-09-03 |
+| TAG0026 | 维护性反模式 gate（RM-AG0046）：G0 两条 + check-maintainability.py + P4 三重门槛挂载；13 BDD → v0.65.0 | ✅✅ | READY | 高 | 2026-08-30 |
 | TAG0022 | 三连任务确认问题修复批（RM-AG0037 ruff 合并强制 + RM-AG0038 M2 迁移闭环 + RM-AG0039 judge 强制化 + RM-AG0040 M3 实证 + RM-AG0041 环境测试根治）：TAG0019-21 全面分析确认的 5 个问题合并处理 | ✅✅ | READY | 高 | 2026-08-23 |
 | TAG0021 | 协议结构化层（RM-AG0022）：rules/{phases,dispatch,roles}.yaml + JSON Schema + S-1~S-6 双向一致性 gate + gate 脚本从 grep markdown 迁移读 YAML（M0-M3 渐进）；RM-0031 写时校验与 RM-0036 双语锚点的地基 | ✅✅ | READY | 高 | 2026-08-23 |
 | TAG0020 | 独立 Judge 机制（RM-AG0032）：P6.5 验收独立裁判（judge 角色 fresh context 信息隔离 + 三层防造假 + append-only 事件账本 + 三档预算）；TAG0018 实证 LLM 评审≈0 净收益为立项锚 | ✅✅ | READY | 高 | 2026-08-22 |
