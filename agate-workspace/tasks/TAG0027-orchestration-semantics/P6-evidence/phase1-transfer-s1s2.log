@@ -1,0 +1,22 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agateon/.worktrees/agate-TAG0027
+configfile: pyproject.toml
+plugins: xdist-3.8.0, asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 10 items
+
+agate/tests/unit/test_tag0027_b1_phases_transfer_fields.py::test_bdd_1_phases_mainline_next_retreat_keys_present PASSED [ 10%]
+agate/tests/unit/test_tag0027_b1_phases_transfer_fields.py::test_bdd_1_phases_schema_declares_next_retreat PASSED [ 20%]
+agate/tests/unit/test_tag0027_b1_phases_transfer_fields.py::test_bdd_2_p65_gate_subphase_not_independent_edge PASSED [ 30%]
+agate/tests/unit/test_tag0027_b1_phases_transfer_fields.py::test_bdd_3_retreat_targets_match_state_machine PASSED [ 40%]
+agate/tests/unit/test_tag0027_b1_phases_transfer_fields.py::test_bdd_26_all_entries_declare_gate_pass_exit PASSED [ 50%]
+agate/tests/unit/test_tag0027_b1_phases_transfer_fields.py::test_bdd_26_gate_pass_exit_matches_check_gate_return PASSED [ 60%]
+agate/tests/unit/test_tag0027_b1_phases_transfer_fields.py::test_bdd_5_consistency_worktree_still_green_regression PASSED [ 70%]
+agate/tests/unit/test_tag0027_b3b_structure_s1s2_next_retreat.py::test_bdd_4_s1_yaml_retreat_vs_table_mismatch_exit_1 PASSED [ 80%]
+agate/tests/unit/test_tag0027_b3b_structure_s1s2_next_retreat.py::test_bdd_4_s1_yaml_next_vs_table_mismatch_exit_1 PASSED [ 90%]
+agate/tests/unit/test_tag0027_b3b_structure_s1s2_next_retreat.py::test_bdd_4_s1_consistent_next_retreat_exit_0 PASSED [100%]
+
+============================== 10 passed in 1.84s ==============================
+EXIT_CODE: 0

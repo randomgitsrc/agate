@@ -12,6 +12,42 @@
 
 ---
 
+## [0.66.0] - 2026-09-03
+
+### 新增（TAG0027：编排语义统一落地，RM-AG0054）
+
+- **推进侧状态机 CLI：`agate next` / `agate advance`**：推进决策从 orchestrator 临场判断改为
+  查表推进——消费 `phases.yaml` 新声明的 `next` / `retreat` / `gate_pass_exit`（逐 phase「检查
+  通过」出口码）+ `check-gate.py` exit 三态（exit ∈ gate_pass_exit → 直推 next / P6 条件式推进
+  前置 gate_p65；exit 1 → 按 retreat 表值委托 `agate-retreat-to.py` 逐阶回退；真暂停 → 落盘
+  `{phase}-exit2-resolution.md` 转主 Agent）；推进只 git add 不自行 commit；档位 C 自动推进改走
+  `agate next`（可观测层，事件留痕 gate-events.jsonl）。
+- **`agate dispatch` 渲染时注入单命令（方案 A）**：派发 = 单命令自动渲染 dispatch-context
+  （Lazy Injection——渲染时拼装阶段卡片 + 块外 `CARD-SOURCE` 来源标记），主 Agent 不再直接调用
+  `agate-inject-card.py`；`agate-inject-card.py` / `agate-card-inject.py` 手工兜底路径保留兼容。
+- **`phases.yaml` 转移表结构化字段**：主线 P0-P8 条目新增 `next` / `retreat` / `gate_pass_exit`
+  键（值域枚举 + null，schema 同步声明），P6.5 条目新增 `gate_subphase`（hosted_on/forward_to/
+  needs_revision_to，非独立转移边口径保持）。
+- **护栏 1 机械化（CHECK 14/15）**：`check-protocol-consistency.py` 新增 md 叙述段落平台名扫描
+  （段落级「实现注记」豁免 + 结构豁免：platform-notes/SETUP/已知适用环境表/dsh 平台食谱目录）与
+  数据面平台名词边界扫描（豁免词典从 schema + rules 机械生成，不手抄文件名单）。
+- **审计 2 双锚点剥离**：`check-p6-provenance.py` 审计 2 卡片块剥离 = CARD-SOURCE 行起物理块优先
+  + START..END 兜底（渲染产物与手工注入两路并存覆盖）；`check-judge-verdict.py` `_strip_card`
+  同步 + P6.5 复核谓词 Fix C（只校验经真暂停分支落盘的 resolution 文件，健康任务不误拦）。
+- 新增 48 个 pytest 用例（tag0027 批 9 新测试文件，P5 实测 1381 passed + 2 skipped）。
+
+### 变更
+
+- **S-1/S-2 加列比对**：`check-structure-consistency.py` S-1 扩展比对 YAML `next`/`retreat` ↔
+  WORKFLOW.md 阶段总览表第 4/5 列（P6.5 行走 gate_subphase 形态特判）。
+- **编排心智统一文档化**：协议文档平台名三分类清理（语义段清理 / 「实现注记」标记 /
+  结构豁免）；loop-orchestration.md 档位 C 推进点改走 `agate next`；dispatch-protocol.md /
+  模板 / 角色文件平台适配说明挂实现注记。
+- **check-gate.py 头注释补 exit 2 语义说明**（exit 2 = 多数 phase 正常通过码，「exit 2 = 需主
+  Agent 自判」是信号语义；返回逻辑与约定未改）。
+
+---
+
 ## [0.65.0] - 2026-08-30
 
 ### 新增（TAG0026：维护性反模式 gate，RM-AG0046）

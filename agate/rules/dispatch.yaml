@@ -16,7 +16,7 @@ modes: [single, static-batch, parallel, recon-then-split, serial]
 # judge.enabled: true（.state.yaml），否则 exit 1；历史任务（created < 截止或未声明）缺块 → 跳过。
 judge_required_since: "2026-08-22"
 iron_laws:
-  - {id: law-1, rule: "用 task 工具派发，动词是派发不是执行"}
+  - {id: law-1, rule: "派发 subagent 而非亲自执行，动词是派发不是执行"}
   - {id: law-2, rule: "prompt 只传文件路径，不传文件内容"}
   - {id: law-3, rule: "subagent 只返回路径 + 一句话摘要"}
 templates:

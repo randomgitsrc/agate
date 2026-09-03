@@ -29,6 +29,10 @@ CLI：check-judge-verdict.py TASK_DIR（exit 0 = 校验通过 / exit 1 = 校验�
        `^\s*- (PASS|FAIL)\b` 验收结论预判扫描（继承 audit 2 语义）
   8. 预算交叉（BDD-8）：账本存在 judge_verdict 事件且任一 reason == budget_exhausted
      → verdict 必须 partial: true 且 status == needs-revision（否则 exit 1）
+  8.1 exit2-resolution 复核（TAG0027 §3.3，BDD-12，Fix C）：**已存在**的
+     {phase}-exit2-resolution.md（= agate-next 真暂停分支落盘产物）须 frontmatter/必填节
+     完整；文件不存在（任务从未真暂停，账本 exit:2 全是正常通过码）→ 不要求文件，
+     复核通过（不误拦健康任务——CRITICAL-2；P6 自身 exit 2 前进特例豁免，BDD-9）
   9. 全部通过 → append_event(task_dir, {event: judge_verdict, phase: P6.5,
      verdict: status, criteria_total, criteria_passed, partial, [reason]}) → exit 0
 
@@ -49,7 +53,7 @@ import sys
 # 引入同目录公共库：AGATE_CARD/frontmatter 双排除与 BDD 计数口径与 check-p6-provenance
 # 同款；append_event 是账本唯一写路径（P2 候选 C1）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from agate_common import append_event, read_judge_verdict
+from agate_common import append_event, read_judge_verdict, split_frontmatter
 
 # BDD-5：verdict Header status 合法三值
 _VALID_STATUS = {"passed", "rejected", "needs-revision"}
@@ -96,10 +100,29 @@ def _p1_bdd_set(p1_text):
 
 
 def _strip_card(lines):
-    """审计 2 同款：删除 AGATE_CARD 注入块（<!-- AGATE_CARD_START -->..END -->）。"""
+    """审计 2 同款：删除 AGATE_CARD 注入块。
+
+    双锚点剥离（TAG0027 §3.6 D6-A 定案 (a)）：
+    ① CARD-SOURCE 优先——从 `<!-- CARD-SOURCE: agate-dispatch.py {phase} -->` 所在行起、
+       至匹配的 `<!-- AGATE_CARD_END -->` 止整段剥离（渲染产物块 = 从 CARD-SOURCE 行起的
+       物理块，CARD-SOURCE 行 + START + 卡片正文一起剥）；
+    ② 物理块兜底——无 CARD-SOURCE 时走既有 AGATE_CARD_START → AGATE_CARD_END 剥离
+       （手工 + inject-card 注入路径，BDD-21）。
+    """
     out = []
     in_card = False
+    from_source = False
     for line in lines:
+        if from_source:
+            # CARD-SOURCE 优先剥离区间：至匹配 AGATE_CARD_END 止（含 END 行整段剥）
+            if "<!-- AGATE_CARD_END -->" in line:
+                from_source = False
+            continue
+        if not in_card and "<!-- CARD-SOURCE: agate-dispatch.py" in line:
+            # 渲染产物块剥离起点 = CARD-SOURCE 行（该行 + START + 卡片正文整段剥）；
+            # 仅在物理块外触发（卡片正文内若含同名子串不误触发）
+            from_source = True
+            continue
         if "<!-- AGATE_CARD_START -->" in line:
             in_card = True
             continue
@@ -267,14 +290,23 @@ def _check_evidence(task_dir, verdict_evidence, conclusions_refs):
 
 def _ledger_budget_exhausted(task_dir):
     """账本是否存在 reason == budget_exhausted 的 judge_verdict 事件（BDD-8 交叉）。"""
+    for ev in _iter_ledger_events(task_dir):
+        if isinstance(ev, dict) and ev.get("event") == "judge_verdict" \
+                and ev.get("reason") == "budget_exhausted":
+            return True
+    return False
+
+
+def _iter_ledger_events(task_dir):
+    """逐行解析 gate-events.jsonl 事件（坏行跳过；缺失/空文件 → 空迭代）。"""
     ledger_path = os.path.join(task_dir, LEDGER_NAME)
     if not os.path.isfile(ledger_path):
-        return False
+        return
     try:
         with open(ledger_path, encoding="utf-8", errors="replace") as f:
             lines = f.read().splitlines()
     except OSError:
-        return False
+        return
     for line in lines:
         if not line.strip():
             continue
@@ -282,10 +314,76 @@ def _ledger_budget_exhausted(task_dir):
             ev = json.loads(line)
         except Exception:
             continue
-        if isinstance(ev, dict) and ev.get("event") == "judge_verdict" \
-                and ev.get("reason") == "budget_exhausted":
-            return True
-    return False
+        yield ev
+
+
+# TAG0027 §3.3（BDD-12，Fix C）：exit2-resolution 产物复核必填 frontmatter/正文节。
+# Fix C 语义（CRITICAL-2 修正）：只校验**已存在**的 resolution 文件——文件存在（= agate-next
+# 真暂停分支落过盘）→ 校验 frontmatter/必填节完整；文件不存在（任务从未真暂停；账本里
+# P0-P3/P5/P8 的 exit:2 全是正常通过码）→ 不要求文件，judge 复核通过（不误拦健康任务）。
+# 机器可读判定 = frontmatter 含 phase/task_id/type=exit2-resolution/parent + 正文含
+# 触发/客观证据/解决 三节（与 agate-next.py 落盘模板一致；judge 复核"何时/依据/由谁"）。
+_RESOLUTION_REQUIRED_FM = ("phase", "task_id", "type", "parent", "created", "agent")
+_RESOLUTION_REQUIRED_SECTIONS = ("## 触发", "## 客观证据", "## 解决")
+
+
+def _check_exit2_resolution(task_dir):
+    """BDD-12 复核（Fix C）：任务目录**已存在**的 {phase}-exit2-resolution.md 文件须
+    frontmatter/必填节完整（agate-next 真暂停分支落盘契约 §3.3）；文件不存在（任务从未真
+    暂停）→ 不要求文件、不报错（健康任务账本含正常通过 exit:2 事件 + 无 resolution 文件 →
+    judge 复核通过，不误拦——CRITICAL-2）。
+
+    P6 自身 exit 2 前进特例（FAIL=0/证据非空 + provenance exit 0 直通 P6.5）不落盘
+    （BDD-9）——judge 挂载对 P6 特例豁免，不带 resolution 要求。
+    """
+    errors = []
+    for name in sorted(os.listdir(task_dir)):
+        if not name.endswith("-exit2-resolution.md"):
+            continue
+        ph = name[: -len("-exit2-resolution.md")]
+        res_file = os.path.join(task_dir, name)
+        text = _read_text(res_file)
+        # frontmatter 机器可读性：type=exit2-resolution + 必填字段
+        fm, body = split_frontmatter(text)
+        if not isinstance(fm, dict):
+            errors.append(
+                f"GATE JUDGE-VERDICT: {name} frontmatter 缺失/解析失败——"
+                f"无法机器读取 exit2-resolution 字段（BDD-12）"
+            )
+            continue
+        if str(fm.get("type", "")) != "exit2-resolution":
+            errors.append(
+                f"GATE JUDGE-VERDICT: {name} frontmatter type 应为 "
+                f"exit2-resolution，实际 {fm.get('type')!r}（BDD-12）"
+            )
+        missing_fm = [k for k in _RESOLUTION_REQUIRED_FM if k not in fm]
+        if missing_fm:
+            errors.append(
+                f"GATE JUDGE-VERDICT: {name} frontmatter 缺必填字段 "
+                f"{', '.join(missing_fm)}（BDD-12）"
+            )
+        missing_sec = [
+            s for s in _RESOLUTION_REQUIRED_SECTIONS if s not in body
+        ]
+        if missing_sec:
+            errors.append(
+                f"GATE JUDGE-VERDICT: {name} 正文缺必填节 "
+                f"{', '.join(missing_sec)}（BDD-12）"
+            )
+        if ph:
+            # 账本可追溯性（§3.3 第 4 条）：文件 phase 未命中账本任何 gate_run 事件 phase →
+            # WARNING 级提示，不阻断（健康任务账本可能不含真暂停事件）。
+            ledger_phases = {
+                ev.get("phase")
+                for ev in _iter_ledger_events(task_dir)
+                if isinstance(ev, dict) and ev.get("event") == "gate_run"
+            }
+            if ledger_phases and ph not in ledger_phases:
+                sys.stderr.write(
+                    f"GATE JUDGE-VERDICT: {name} phase={ph} 未命中账本 gate_run 事件"
+                    "（WARNING：非阻断，仅提示可追溯性）\n"
+                )
+    return errors
 
 
 def _verdict_hash(verdict_text):
@@ -413,6 +511,14 @@ def main():
     if _ledger_budget_exhausted(task_dir) and (not partial or status != "needs-revision"):
         sys.stderr.write(
             "GATE JUDGE-VERDICT: 账本存在 budget_exhausted 事件，verdict 必须 partial: true 且 status=needs-revision\n")
+        sys.exit(1)
+
+    # 8.1 exit2-resolution 复核（TAG0027 §3.3，BDD-12，Fix C）：已存在的 resolution 文件
+    #     frontmatter/必填节非法 → judge 复核不通过；文件不存在（从未真暂停）不要求。
+    resolution_errors = _check_exit2_resolution(task_dir)
+    if resolution_errors:
+        for line in resolution_errors:
+            sys.stderr.write(line + "\n")
         sys.exit(1)
 
     # 9. 全部通过 → 账本自记 judge_verdict 事件（事件写入收敛单点，BDD-8 R8）

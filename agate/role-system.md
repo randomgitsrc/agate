@@ -135,15 +135,19 @@ subagent 读取角色文件，按角色定义的方式工作。
 ### 自定义角色怎么用
 
 1. 按模板写一个 `assets/execution-roles/{role_id}.md` 或 `review-roles/{role_id}.md`
-2. 在 OpenCode/Claude Code 的 agent 目录放一份对应的 markdown（让平台能识别）
+2. 平台注册（平台适配实现注记）：在有平台自定义 agent 机制时，把对应的 markdown 放到平台的 agent 目录（如 OpenCode/Claude Code 的 agent 目录），让平台能识别；无该机制时跳过此步，直接用下方方法 B
 3. 派发时指定这个角色文件路径
 
-### OpenCode 自定义角色的坑
+> 实现注记：以上第 2 步属平台注册的适配说明（自定义 agent 的发现机制各平台不同），非协议语义定义——角色如何被平台识别是平台实现细节；协议层的角色机制语义见「第三层（机制）：自定义角色」开头两节与 custom-role.md。
 
-⚠️ issue #29616：`opencode.jsonc` 里 `mode: "subagent"` 定义的自定义 agent 可能无法被 task 工具调起来。
+### 自定义角色的平台坑位
+
+> 实现注记：本节为平台自定义 agent 机制的坑位与规避说明（记录 OpenCode issue #29616 实测），属平台适配实现注记，非协议语义定义；平台无关的通用角色派发语义见「角色选择决策」与 dispatch-protocol.md。
+
+⚠️ 平台坑位：某些平台以 jsonc/声明方式定义的自定义 subagent 可能无法被派发工具调起来（如 OpenCode 的 `opencode.jsonc` 里 `mode: "subagent"` 定义的自定义 agent，issue #29616）。
 
 **规避方法（二选一）：**
-- **方法 A**：用 markdown 文件方式定义（放 OpenCode agent 目录，文件名即角色名），比 jsonc 可靠
+- **方法 A**：用 markdown 文件方式定义（放平台 agent 目录，文件名即角色名），比 jsonc 可靠
 - **方法 B（退路）**：用内置的 general subagent，把自定义角色定义文件的路径写进派发 prompt，让 general subagent 读取并遵循。角色行为靠 prompt 注入实现，不依赖平台的自定义 subagent 机制。
 
 方法 B 是最稳的——它不依赖任何平台特性，只要平台能派发一个通用 subagent + 让它读文件就行。**推荐优先用方法 B**，因为它跨平台、不踩坑。

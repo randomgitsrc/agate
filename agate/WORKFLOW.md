@@ -2,6 +2,9 @@
 
 > 职责边界：主流程入口——P0-P8 阶段总览、裁剪规则、核心原则、需求/验收机制骨架（详见职责声明表，P2-design.md §0）
 
+> 实现注记：文档头部为文档元信息——「适用平台范围」声明本协议已验证的 Agent 平台（OpenCode /
+> Claude Code / Codex 等）、版本行与版本策略为规则维护约定，均非协议语义定义；正文协议语义与
+> 具体平台无关。
 > 适用：OpenCode / Claude Code / Codex 等支持 subagent 的 Agent 平台
 > 完整规则文档，从此文件开始阅读。
 > 当前版本见 `git describe --tags` 或 README.md badge。
@@ -18,7 +21,7 @@ agate 建立在两条主线上：
 
 **编排主线（已被真实任务验证）**
 - **P0 任务简报**：主 Agent 在派发任何 subagent 前亲自写 P0-brief.md，注入环境约束和风险判断
-- 可执行的派发协议：用 task 工具派发 subagent，只传文件路径不传内容，门槛机器可判定，状态落盘
+- 可执行的派发协议：用平台的派发工具派发 subagent，只传文件路径不传内容，门槛机器可判定，状态落盘
 - 双层角色体系：执行角色（execution-roles）+ 评审角色（review-roles），收拢在 `assets/`
 - 状态机落盘 + 可选的 /loop 自动编排
 
@@ -131,6 +134,12 @@ roadmap 是项目级任务规划层（单文件 `{AGATE_WORKSPACE}/roadmap/roadm
 
 ## 运行环境前提
 
+> 实现注记：本节为平台运行前提的适配说明——「task 工具」是平台派发能力的具体实现命名（详见
+> dispatch-protocol.md 铁律 1 注记，协议语义一律以"派发 subagent"为准）；「已知适用环境」表记录
+> 本协议在哪些平台验证过、各平台能力差异与完整度，属平台适配元信息（平台名集中于此处是正确组织，
+> 不构成语义定义）；「Claude Project 会话的定位/建议工作方式」是平台间交接的工作流建议；执行环境
+> 在 P0-brief 的 `executor_env` 字段声明是跨平台约定（值为各平台枚举，非本协议语义定义）。
+
 **agate 的完整执行依赖两个能力：**
 
 | 能力 | 说明 | 缺失时的影响 |
@@ -157,6 +166,10 @@ roadmap 是项目级任务规划层（单文件 `{AGATE_WORKSPACE}/roadmap/roadm
 ---
 
 ## 适用边界（agate 不适合什么）
+
+> 实现注记：本节「任务类型建议」表中"Claude Project 会话"一行是平台间交接的工作流建议（在受限
+> 平台做 P0-P2 设计规划、交接给完整平台执行 P3-P8），属平台适配说明，非协议语义定义；任务类型
+> 分层判断（微/小/中/大）的协议语义与具体平台无关。
 
 agate 的派发机制有固定开销——每次派发约需写 25 行派发 prompt。**只有当"被隔离的内容量" > "派发开销"时，走 agate 才划算。**
 
@@ -189,6 +202,10 @@ agate 的派发机制有固定开销——每次派发约需写 25 行派发 pro
 > 架构决策记录：ADR-005
 
 ### 规划层与执行层的关系（roadmap / plan / task 如何挂接）
+
+> 实现注记：本节的 task 一词指协议的工作单元概念（`{Txxx}` 任务，与 roadmap/plan 同属规划层
+> 概念），不是平台派发工具的命名；roadmap/plan/task 三规划工具的关系是协议语义，不绑定任何
+> 平台。
 
 **改动最终都走执行路径，但改动前的"登记与方案"分属两个规划工具——它们是输入，不是独立执行通道：**
 
@@ -285,21 +302,21 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 > 本表为角色/评审映射颗粒度；逐条可执行判定命令见 `dispatch-protocol.md`《可判定门槛规范》。
 
 <!-- S1S2-ANCHOR-START：本表是 `check-structure-consistency.py` S-1（YAML→md）/S-2（md→YAML）双向一致性检查的 md 侧锚点（数据面 = `rules/phases.yaml`） -->
-> **S-1/S-2 锚点**：表行三段式 `| P{N} | 名称 | 执行角色 | …`；S-1 比对 phases.yaml 的 id/name/exec_role，S-2 只匹配 `P` 数字/P6.5 前缀行（READY 行与表外行排除）。新增/改名阶段须同步 `rules/phases.yaml`。
+> **S-1/S-2 锚点**：表行三段式 `| P{N} | 名称 | 执行角色 | …`；S-1 比对 phases.yaml 的 id/name/exec_role + 第 4/5 列 next/retreat（第 1-3 列 = 既有比对列，`_TABLE_ROW_RE` 只消费前 3 列不受影响；第 4/5 列 = next/retreat 扩展比对列，YAML `null` ↔ 表 `—`/空 归一），S-2 只匹配 `P` 数字/P6.5 前缀行（READY 行与表外行排除）。新增/改名阶段须同步 `rules/phases.yaml`。
 
-| 阶段 | 名称 | 执行角色 | 评审角色 | 门槛（进入下一阶段的条件）|
-|------|------|----------|----------|--------------------------|
-| P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| — | P0-brief.md 完成，含 debug_env + known_risks |
-| P1 | 需求基线 | analyst（需求质疑模式）| requirements-review（强制，不可裁，所有任务都走独立 review）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '^\s*-?\s*\[NEED_CONFIRM\]'` → =0（仅计算阻塞项；倾向项 `[SUGGEST:]` WARNING 不阻塞）+ 无 `status: GAP`（supplementable 不阻塞）；P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点 |
-| P2 | 方案设计层 | architect | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.py 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加，审视觉/交互/渲染形态适配维度）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；不可裁（design_trivial / follows_existing_pattern 可简化，不可省略）；强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时可只写 1 个）；ui_affected: true → 含 UI 设计节（## UI 设计+形态声明+按形态 checklist，P2 gate 拦截缺失/不一致） |
-| P3 | 测试设计 | test-designer | gate 自检（文件存在）+ TDD 红灯独立确认 | check-gate.py P3 exit 2（文件存在）+ scripts/check-tdd-red.py exit 0（主 Agent 手动 + CI backstop 兜底）|
-| P4 | 代码实现 | implementer | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
-| P5 | 技术验证 | verifier（P5 模式，subagent 派发）| gate 自检 + N5 最小校验（test runner 输出签名）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；行首锚点扫描（主 Agent 参照 pre-commit 三步逻辑手动判断：正向→PAUSED / 不合规→修正 / 缺失→静默通过） |
-| P6 | 验收 | verifier（验收模式）| — | `scripts/check-gate.py P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.py` UI 截图 > 1KB（R1a 客观证据 barrier）+ 渲染形态证据形式匹配（帧序列/渲染输出对比/时序截图）+ avg-hash 雷同降级待复核；`scripts/check-p6-provenance.py` exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行 + R1b vision YAML 审计的 GAP 放宽）；UI 条件按 P1 vision 能力三态分档双证据（available/supplementable→vision YAML blocker_count==0；GAP→截图/帧序列+人工复核记录；证据形式按渲染形态选择）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查；**P6.5 judge 独立复核强化缓解**，机制见下） |
-| P6.5 | 独立 Judge 复核 | judge（**强制，所有任务**；fresh context 逐条重验全部 BDD，只信证据与 git log）| — | `P6.5-judge-verdict.md` 存在 + `scripts/check-judge-verdict.py` exit 0（Header 字段/criteria_total==P1 BDD 数/结论编号集零挑验/证据交叉核对/信息隔离白名单/预算交叉）+ `scripts/check-events.py` exit 0（事件账本哈希链/ts 单调/轮次计数）；历史任务（.state.yaml 无 `judge.enabled: true`）→ check-gate.py P6.5 早退跳过（BDD-2）；主 Agent 跑 `check-gate.py P6.5 $TASK_DIR` 判定 |
-| P7 | 一致性检查 | consistency-reviewer（subagent 派发）| gate 自检 + N3⑨ 实质锚点（跨文件引用关键词）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
-| P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| gate 自检（发布检查命令）| `scripts/check-gate.py P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；version 双路径检查（暂存区或最近 5 commit，WARNING）；CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）；`check-pruning.py` 验证裁剪 P8 时有 `internal_only: true` 声明 |
-| READY | 待发布 | — | — | 人手动 `make publish` → DONE |
+| 阶段 | 名称 | 执行角色 | next | retreat | 评审角色 | 门槛（进入下一阶段的条件）|
+|------|------|----------|------|---------|----------|--------------------------|
+| P0 | 任务简报 | **主 Agent 亲自写**（非 subagent）| P1 | — | — | P0-brief.md 完成，含 debug_env + known_risks |
+| P1 | 需求基线 | analyst（需求质疑模式）| P2 | — | requirements-review（强制，不可裁，所有任务都走独立 review）| P1-requirements.md 存在，含 BDD 验收条件；`grep -cE '^\s*-?\s*\[NEED_CONFIRM\]'` → =0（仅计算阻塞项；倾向项 `[SUGGEST:]` WARNING 不阻塞）+ 无 `status: GAP`（supplementable 不阻塞）；P1-review.md status:approved + agent≠main + 含 `BDD-[0-9]` 锚点 |
+| P2 | 方案设计层 | architect | P3 | — | plan-eng-review（risk_level=high 时必须派发独立 subagent，check-gate.py 对 agent=main 硬拦截 exit 1）/ plan-design-review（domains 含 frontend 时追加，审视觉/交互/渲染形态适配维度）/ plan-ceo-review（涉及商业模式判断时可选）| P2-review.md 的 status == approved；`grep -cE '^(packages|domains|ui_affected|gate_commands):' P2-design.md` → ≥4；`grep -qE '权衡|选择理由|取舍|考量|trade-?off' P2-design.md` → 命中（或含"选择"+理由/原因/因为组合）；不可裁（design_trivial / follows_existing_pattern 可简化，不可省略）；强制 ≥2 个候选方案（design_trivial/follows_existing_pattern 时可只写 1 个）；ui_affected: true → 含 UI 设计节（## UI 设计+形态声明+按形态 checklist，P2 gate 拦截缺失/不一致） |
+| P3 | 测试设计 | test-designer | P4 | — | gate 自检（文件存在）+ TDD 红灯独立确认 | check-gate.py P3 exit 2（文件存在）+ scripts/check-tdd-red.py exit 0（主 Agent 手动 + CI backstop 兜底）|
+| P4 | 代码实现 | implementer | P5 | — | review（改动跨 ≥3 个文件或涉及核心数据结构）/ cso（涉及认证、权限、密钥、用户输入处理、外部网络请求任一项）/ design-review（domains 含 frontend）；命中任一条件才派发，判断结果写入 .state.yaml | 暂存区含非 md/yaml 文件（`git diff --cached --name-only | grep -qvE '\.(md|yaml)$|^\.state'`）|
+| P5 | 技术验证 | verifier（P5 模式，subagent 派发）| P6 | P4 | gate 自检 + N5 最小校验（test runner 输出签名）| P2 `gate_commands.P5` 命令 exit 0 AND failed==0；行首锚点扫描（主 Agent 参照 pre-commit 三步逻辑手动判断：正向→PAUSED / 不合规→修正 / 缺失→静默通过） |
+| P6 | 验收 | verifier（验收模式）| P7 | P4 | — | `scripts/check-gate.py P6` exit 2（FAIL=0/NC=0/证据非空）；`scripts/check-p6-evidence.py` UI 截图 > 1KB（R1a 客观证据 barrier）+ 渲染形态证据形式匹配（帧序列/渲染输出对比/时序截图）+ avg-hash 雷同降级待复核；`scripts/check-p6-provenance.py` exit 0（证据-结论对应 + dispatch-context 审计 + BDD 总数对照由审计 3 自动执行 + R1b vision YAML 审计的 GAP 放宽）；UI 条件按 P1 vision 能力三态分档双证据（available/supplementable→vision YAML blocker_count==0；GAP→截图/帧序列+人工复核记录；证据形式按渲染形态选择）⚠️ self-authored（降级缓解：provenance 审计 + R1a 截图实质检查；**P6.5 judge 独立复核强化缓解**，机制见下） |
+| P6.5 | 独立 Judge 复核 | judge（**强制，所有任务**；fresh context 逐条重验全部 BDD，只信证据与 git log）| —（gate_subphase: 通过→P7）| —（needs-revision→P6）| — | `P6.5-judge-verdict.md` 存在 + `scripts/check-judge-verdict.py` exit 0（Header 字段/criteria_total==P1 BDD 数/结论编号集零挑验/证据交叉核对/信息隔离白名单/预算交叉）+ `scripts/check-events.py` exit 0（事件账本哈希链/ts 单调/轮次计数）；历史任务（.state.yaml 无 `judge.enabled: true`）→ check-gate.py P6.5 早退跳过（BDD-2）；主 Agent 跑 `check-gate.py P6.5 $TASK_DIR` 判定 |
+| P7 | 一致性检查 | consistency-reviewer（subagent 派发）| P8 | — | gate 自检 + N3⑨ 实质锚点（跨文件引用关键词）| `grep -E '^\s*-?\s*\[BLOCKER\]' P7-consistency.md | grep -cvE '\[BLOCKER\][:：]?\s*\d+\s*条?\s*$'` → =0；同理 DEVIATION-CRITICAL → =0 ⚠️ self-authored |
+| P8 | 发布准备 | implementer（P8 模式/releaser，subagent 派发）| —（无自动后继：exit 0 后转 READY 由人/发布流程处理）| —（失败重试本阶段）| gate 自检（发布检查命令）| `scripts/check-gate.py P8` 脚本化部分通过（exit 2）；P2 `gate_commands` 逐包 exit 0；bump 后重跑 P5 `gate_commands.P5` exit 0；`git log v{prev_version}..HEAD --oneline` 对照 CHANGELOG 无遗漏；P2 `packages` 验证 version 文件路径；`grep -q 'bump_type:' P8-release.md` 命中；version 双路径检查（暂存区或最近 5 commit，WARNING）；CHANGELOG 双路径检查（暂存区或最近 5 commit，WARNING，`CHANGELOG_FILE` 环境变量可覆盖默认 CHANGELOG.md）；`check-pruning.py` 验证裁剪 P8 时有 `internal_only: true` 声明 |
+| READY | 待发布 | — |  |  | — | 人手动 `make publish` → DONE |
 
 <!-- S1S2-ANCHOR-END：阶段总览表 S-1/S-2 锚点终点（表行增删须同步 `rules/phases.yaml`，否则 check-structure-consistency.py S-1/S-2 报 ERROR） -->
 
@@ -357,7 +374,7 @@ P5 gate 要求「测试环境隔离正常（无 [PROD_TOUCHED]）」，是流程
 
 主 Agent 的职责严格限定为四件事：
 1. 读状态（`{AGATE_WORKSPACE}/tasks/active-tasks.md` + 当前阶段文件）
-2. 派发 subagent（用 task 工具，见 dispatch-protocol.md）
+2. 派发 subagent（用派发工具，见 dispatch-protocol.md）
 3. 检查门槛（可判定条件）
 4. 更新状态
 

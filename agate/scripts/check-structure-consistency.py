@@ -4,10 +4,14 @@
 被测契约（P2-design §3.3 / P3 BDD-2/3/5）：AGATE_ROOT 协议根下 6 条机器可判定检查（独立
 S 编号空间，与 check-protocol-consistency 的 CHECK 1-12 不重复）：
 
-  S-1 YAML→md   phases.yaml 每个 phase（id/name/exec_role）在 WORKFLOW.md 阶段总览表
-                有对应行且 3 字段一致（表行解析：`| P{N} | 名称 | 执行角色 | …`；
-                执行角色列含修饰文本 → 取（前导 token：`（`/`(`/`/` 前片段；P0 主 Agent
-                特判 main-agent ↔ "主 Agent" 别名）
+  S-1 YAML→md   phases.yaml 每个 phase（id/name/exec_role + 声明的 next/retreat）在
+                WORKFLOW.md 阶段总览表有对应行且一致（表行解析：`| P{N} | 名称 | 执行角色 |
+                next | retreat | …`；执行角色列含修饰文本 → 取（前导 token：`（`/`(`/`/` 前
+                片段；P0 主 Agent 特判 main-agent ↔ "主 Agent" 别名）。next/retreat 比对 =
+                表第 4/5 列（TAG0027 B3b 加列，YAML `null` ↔ 表 `—`/空 归一；YAML 侧未声明
+                转移键的阶段跳过——schema 仅 required id/name/exec_role）；P6.5 无
+                next/retreat（gate_subphase 表达）→ 形态级检查：md 侧 4/5 列不出现指向独立
+                后继 phase 的 plain 值（如裸 `P7`）
   S-2 md→YAML   WORKFLOW 表每行 phase id 在 phases.yaml 有定义（只匹配 `P` 数字/P6.5
                 前缀行；READY 行与表外行显式排除——P2-review 发现 #1 固化）
   S-3 YAML→cards 抽检 phase-cards/P2-design.md：phases.yaml P2 声明的 outputs file 在
@@ -114,7 +118,9 @@ def _resolve_root():
 # ---- S-1 / S-2：WORKFLOW 总览表解析与双向比较 ----
 
 def _parse_workflow_rows(workflow_text):
-    """解析阶段总览表行 → [(id, name, role_cell)]（仅 P 数字/P6.5 前缀行，READY 排除）。"""
+    """解析阶段总览表行 → [(id, name, role_cell, next_cell, retreat_cell)]（仅 P 数字/P6.5
+    前缀行，READY 排除）。next_cell/retreat_cell 取行 split 后第 4/5 列（TAG0027 B3b 加列），
+    行不足 6 内容列（旧 3/5 列表无 next/retreat 列）→ None。"""
     rows = []
     if not workflow_text:
         return rows
@@ -127,7 +133,16 @@ def _parse_workflow_rows(workflow_text):
         pid = m.group(1).strip()
         if not _PHASE_ID_RE.match(pid):
             continue
-        rows.append((pid, m.group(2).strip(), m.group(3).strip()))
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        # 新表形态 = 7 内容列（阶段/名称/执行角色/next/retreat/评审角色/门槛）；不足 6 列
+        # 说明是旧 3/5 列表（无 next/retreat 列）→ 4/5 列取 None
+        if len(cells) >= 6:
+            next_cell = cells[3] or None
+            retreat_cell = cells[4] or None
+        else:
+            next_cell = None
+            retreat_cell = None
+        rows.append((pid, m.group(2).strip(), m.group(3).strip(), next_cell, retreat_cell))
     return rows
 
 
@@ -150,16 +165,29 @@ def _role_matches(yaml_role, cell):
     return False
 
 
+def _norm_transfer_cell(cell):
+    """表 next/retreat 单元格归一化：空/`—`/`-`/`–`/`—（…）` 等"无值"形态 → None
+    （YAML null 归一），其余（plain phase id 如 P5）去首尾空白原样返回。"""
+    if not cell:
+        return None
+    s = cell.strip()
+    if s in ("", "-", "–", "--") or s.startswith("—"):
+        return None
+    return s
+
+
 def _check_s1(phases_by_id, workflow_text):
-    """S-1 YAML→md：phases.yaml 每个 phase 在总览表有对应行且 id/name/exec_role 一致。"""
+    """S-1 YAML→md：phases.yaml 每个 phase 在总览表有对应行且 id/name/exec_role 一致；
+    TAG0027 B3b：声明了 next/retreat 的 phase 追加比对表 4/5 列（YAML null ↔ 表 —/空 归一）；
+    P6.5（无 next/retreat，gate_subphase 表达）→ 形态级检查 4/5 列无 plain 独立后继值。"""
     errs = []
     rows = _parse_workflow_rows(workflow_text)
-    rows_by_id = {pid: (name, role) for pid, name, role in rows}
+    rows_by_id = {pid: (name, role, nxt, retr) for pid, name, role, nxt, retr in rows}
     for pid, phase in phases_by_id.items():
         if pid not in rows_by_id:
             errs.append(f"phase {pid} 在 WORKFLOW 阶段总览表无对应行（S-1 YAML→md）")
             continue
-        table_name, table_role = rows_by_id[pid]
+        table_name, table_role, table_next, table_retreat = rows_by_id[pid]
         yaml_name = str(phase.get("name", ""))
         if yaml_name != table_name:
             errs.append(f"phase {pid} name 不一致：phases.yaml={yaml_name!r} vs WORKFLOW 表={table_name!r}")
@@ -168,13 +196,47 @@ def _check_s1(phases_by_id, workflow_text):
             errs.append(
                 f"phase {pid} exec_role 不一致：phases.yaml={yaml_role!r} vs WORKFLOW 表列={table_role!r}"
             )
+
+        yaml_next = phase.get("next", "MISSING")
+        yaml_retreat = phase.get("retreat", "MISSING")
+        yaml_has_gate_subphase = bool(phase.get("gate_subphase"))
+        if yaml_has_gate_subphase:
+            # P6.5 gate_subphase 形态检查（§3.2）：md 侧 4/5 列不得出现指向独立后继 phase 的
+            # plain 值（如裸 P7）——P6.5 非独立转移边，注释是人类可读，机器判据以 YAML
+            # gate_subphase 为准，仅做负面形态校验（不逐字比对注释文本）。
+            for col_name, cell in (("next", table_next), ("retreat", table_retreat)):
+                if cell is not None and _PHASE_ID_RE.match(cell.strip()):
+                    errs.append(
+                        f"phase {pid} 表 {col_name} 列出现指向独立后继 phase 的 plain 值 {cell!r}"
+                        f"（P6.5 走 gate_subphase，非独立转移边，应写 —（gate_subphase 语义注释））（S-1 YAML→md）"
+                    )
+            continue
+        # 主线 phase：YAML 声明了 next/retreat 才比对（schema 仅 required id/name/exec_role）
+        for field_name, yaml_val, cell in (
+            ("next", yaml_next, table_next),
+            ("retreat", yaml_retreat, table_retreat),
+        ):
+            if yaml_val == "MISSING":
+                continue
+            norm_cell = _norm_transfer_cell(cell)
+            if yaml_val is None:
+                if norm_cell is not None:
+                    errs.append(
+                        f"phase {pid} {field_name} 不一致：phases.yaml={None!r}（无自动后继）"
+                        f" vs WORKFLOW 表列={cell!r}（S-1 YAML→md）"
+                    )
+            else:
+                if norm_cell != str(yaml_val):
+                    errs.append(
+                        f"phase {pid} {field_name} 不一致：phases.yaml={yaml_val!r} vs WORKFLOW 表列={cell!r}（S-1 YAML→md）"
+                    )
     return errs
 
 
 def _check_s2(phases_by_id, workflow_text):
     """S-2 md→YAML：总览表每行 P 前缀 phase id 在 phases.yaml 有定义（READY/表外行排除）。"""
     errs = []
-    for pid, _name, _role in _parse_workflow_rows(workflow_text):
+    for pid, _name, _role, _nxt, _retr in _parse_workflow_rows(workflow_text):
         if pid not in phases_by_id:
             errs.append(f"WORKFLOW 总览表阶段 {pid} 未在 phases.yaml 定义（S-2 md→YAML）")
     return errs
