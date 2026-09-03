@@ -1,6 +1,6 @@
 # subagent 存活可观测性与自主再派发设计（agate 协议增强提案）
 
-> 状态：设计讨论稿（候选 RM 编号待申领）。评审过程存档见 `review-subagent-liveness-and-self-dispatch-v1~v4-20260902.md`（同目录，历轮评审按 v1→v4 递增归档）。**2026-09-03：§3.4.2 命令流日志数据源实机验证已完成**（Claude Code + OpenCode 均通过，见 `verification-cmdstream-datasource-20260903.md`），§6 待确认事项 6 已解决；剩余阻塞立项事项仅剩 §6 事项 4（RM 排期，与 RM-AG0054/TAG0027 有 dispatch-protocol.md 改动面交叉）与本次验证未覆盖的"与 RM-AG0023 既有 progress 心跳扩展的关系说明"（尚未补充，见下）。
+> 状态：设计讨论稿（候选 RM 编号：**RM-AG0055**）。评审过程存档见 `review-subagent-liveness-and-self-dispatch-v1~v4-20260902.md`（同目录，历轮评审按 v1→v4 递增归档）。**2026-09-03：§3.4.2 命令流日志数据源实机验证已完成**（Claude Code + OpenCode + **DSH 三平台均通过**，见 `verification-cmdstream-datasource-20260903.md`），§6 待确认事项 6/4 均已解决——事项 4（RM 排期与 RM-AG0054/TAG0027 的 dispatch-protocol.md 改动面交叉）随 TAG0027 合并 main（v0.66.0，PR #259）而解除；与 RM-AG0023 既有 progress 心跳扩展的关系说明已补充（见 §3.4.2）。剩余待确认事项见 §6（事项 1/2/3/5/7，均不阻塞立项）。
 > 触发来源：用户实测观察——长尾 subagent（P4 implementer backend 27M tok / 运行超 1 小时）导致主 Agent 无法判断"卡死 vs 仍在正常工作"，曾因等待超时误判并中止仍在运转的 subagent；同时 subagent 内部执行遇到需要多方向排查/多子任务并行推进的场景时，缺乏受控的自主再派发能力，只能自己串行硬扛或提前依赖主 Agent 把批次切得足够小。
 > 相关文档：`agate/dispatch-protocol.md`（派发三铁律 / 五模式编排 / 工作量评估五维评级 / 并行规则）、`agate/state-machine.md`（重试与 PAUSED 语义）、`SELF-GATE.md`（触发范围）、`agate/WORKFLOW.md`。
 
@@ -156,6 +156,8 @@ t=<开始时间戳> cmd=<命令哈希> exit=<exit code> out=<输出哈希>
 | 执行 tool | tool/call + tool/result | 长命令执行期无其他活动（合法静默），执行时长 p99=189s / max=925s |
 
 **推论（关键）**：**"最后一条命令开始距今"不能作为冻结判据**——subagent 合法地"只思考不调工具"最长可达 20 分钟（实测思考间隙 max≈1239s），"长命令执行中"最长 15 分钟（实测 max≈925s），两种场景下旧判据都会误判冻结。冻结检测必须区分"是卡住了"还是"在思考/在跑长命令"。
+
+**与 RM-AG0023 既有 progress 心跳扩展的关系（2026-09-03 补充）**：RM-AG0023（done，TAG0012 落地）已包含"progress 心跳扩展"——约定 subagent 每个 bash 命令**前**写 progress（`[HH:MM] 开始执行: ...`），主 Agent 据此判断 subagent 是否卡在命令中，且 TPV0093 实证了它的失效场景："卡死时命令执行中不写 progress，心跳失效"。**本设计的命令流日志不是重复建设，而是对该机制的升级**：progress 心跳依赖 subagent 主动配合（§1.2 已论证这类信号不可验证），卡死时恰恰没有间隙写 progress；命令流日志从平台会话记录（Claude Code JSONL / OpenCode SQLite / DSH JSONL.zstd）**外部获取**，不依赖 subagent 配合（§3.1 同哲学）。两者职责分工：**命令流日志承担"存活/卡死"判定（取代 progress 心跳扩展的此职责），progress.md 保留"语义进展"职责（正在做什么、下一步计划）不变**。落地时 dispatch-protocol.md 需同步改写 RM-AG0023 的 progress 心跳扩展节，明确二者边界。
 
 **两个机械检测信号**：
 
@@ -356,7 +358,7 @@ class CommandStreamAdapter:
 1. **心跳周期/阈值的默认值具体取多少**——本文档 §3.3 给出的 10 秒周期/3 周期阈值（含 1 周期启动宽限期）为**候选默认值，非最终值**，仅适用于 DSH 异步路径；阻塞路径（§3.4）不使用固定周期轮询，其"中止前二次确认"的新鲜度判据阈值需要单独确认。所有数值需要结合实测最长单次工具调用耗时确认后再定稿，确认后应在本文档正文与所有引用处保持数值一致。
 2. 心跳机制是否需要在 P4/P5 等资源密集型阶段（`dispatch-protocol.md` 并行规则第 4 条"资源密集型默认串行"）额外放宽阈值——全量测试套件跑 xdist 等场景可能存在较长的单次工具调用间隙，需要评估是否需要阶段特定的阈值覆盖机制（可比照 `dispatch_plan.parallel_limit` 字段可覆盖默认值的既有模式）。
 3. §4.3 中 OpenCode 的 CLI 子进程路线（`opencode run` 具体行为）需要一次实机验证后才能定稿落地方式——是维持"角色说明里给一段方法论指导"的纯 prompt 层面处理，还是需要一个专门的轻量脚本封装（类似心跳包装脚本），取决于实测结果。
-4. RM 编号申领与优先级——本设计与当前进行中的 RM-AG0054（TAG0027，编排语义统一落地）在"exit 三态""平台实现注记"等概念上有交叉，需要确认排期顺序，避免两个设计同时改动 `dispatch-protocol.md` 造成合并冲突。
+4. **RM 编号申领与优先级——已解决**：本设计与 RM-AG0054（TAG0027，编排语义统一落地）的交叉（"exit 三态""平台实现注记"概念 + `dispatch-protocol.md` 改动面）随 TAG0027 合并 main（2026-09-03，v0.66.0，PR #259）而解除——`dispatch-protocol.md` 改动已落地，本设计不再与其并行改动同一文件。**候选编号 RM-AG0055**，排期可在 TAG0027 之后的任一批次。
 5. **§1.5 待确认项已核实**：TPV0095 backend 实测案例的 P2-design.md 已核实声明 `dispatch_plan`（static-batch，backend=high）——归类为**可能性 B**（P2 评级正确执行、但批内部顺序依赖粒度未被静态评级捕捉），立论素材成立，无需更换。
 6. **命令流日志数据源实机验证（§3.4.2 新增）——已解决**：2026-09-03 完成**三平台实机验证**，Claude Code（JSONL）+ OpenCode（SQLite）+ DSH（JSONL.zstd 拼接帧）均通过，四项关键字段（时间戳/命令内容/exit 信号/实时写入）全部正向，命令流日志机制按当前设计推进，无需降级。验证发现需处理的平台差异（三平台字段不通用需各写解析逻辑、Claude Code 与 DSH 均无数字 exit code 需文本前缀兜底、OpenCode 超大输出 spill 与 DSH 截断需排除哈希比对），已并入 §3.4.2 正文。完整验证记录：`verification-cmdstream-datasource-20260903.md`。
 7. **命令流解析架构落地（§3.4.4 新增）**：适配器模式（统一 CommandRecord IR + 每平台一个适配器 + 检测引擎平台无关）已定稿设计；落地时需确认适配器注册方式（配置声明 vs 目录扫描 `adapters/*.py` 约定）与 CommandRecord 序列化格式（落地为 JSONL 中间产物供检测引擎消费，还是内存接口直接传递），并在三平台各写一个适配器实现 + 用各自真实会话片段做解析单测（fixture 样例取自本验证记录）。
