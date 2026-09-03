@@ -8,6 +8,33 @@
 
 ---
 
+## [0.67.2] - 2026-09-04
+
+### 修复（TAG0031：DEBT 存量修复批，历史遗留 7 条技术债）
+
+- **版本管理域（DEBT0002/0003/0004）**：
+  - `compute_sha256` 目录/文件哈希工具收敛到 `agate_common.py` 单点定义，
+    `agate-pack-offline.py`/`install-offline.py` 改为共享 import，消除双实现漂移风险；
+    `install-offline.py` 新增 `_ensure_agate_common` 引导函数解决 pyyaml 组件"先安装后校验"的
+    离线 bootstrap 时序缺口（先内联 checksum 校验通过才 pip install，保持"先校验后使用"顺序）。
+  - `UPGRADING.md`/`scripts/README.md` 离线包章节补充信任边界说明："checksum 防损坏、不防整包
+    替换，bundle 提供者需可信"。
+  - `agate-install.py` 的 `_find_references` 改为返回 `(refs, hit_limit)` 二元组，卸载时若命中
+    限流边界（深度>4 / mtime 超窗 / 跳过目录含 .agate-version）向 stderr 输出 WARNING 提示可能
+    漏扫旧引用。
+- **测试隔离验证（DEBT0007）**：确认 `test_check_pruning.py` 的 `_staged_source_count` 隔离
+  修复（TAG0024 已落地）在暂存区含 6+ 无关文件场景下 4 个既有回归用例稳定 exit 0，debt 登记闭合。
+- **check-gate.py 健壮性（DEBT0016/0017/0018）**：
+  - gate_p4 的 CODE-MAP.md 路径推导改为调用 `agate_common.resolve_workspace` 权威函数，替代
+    本地 `dirname(dirname(...))` 算术，覆盖非标准两级嵌套场景。
+  - 「## 新增文件核对表」存在性判定由子串包含改为整行/标题级正则，消除自指/dogfooding 场景下
+    说明性文字被误判为"已满足"的假阴性。
+  - `agate_common` import 降级 stub（4 个关键读取器）改为 fail-closed：安装破损（agate_common
+    不可导入）时显式报错并 `return 1`，替代原静默 0/空 false-PASS 降级。
+- 新增登记 2 条同类扫描发现的 open DEBT（DEBT0028/DEBT0029），不在本次处理范围。
+- 全量 pytest 1445 passed + consistency 0 ERROR；P6.5 judge 独立复核 15/15 criteria passed；
+  P7 一致性 BLOCKER=0。
+
 ## [0.67.1] - 2026-09-04
 
 ### 修复（TAG0029：gate 命令解析器与 TDD 红灯判定缺口修复，RM-AG0056）
