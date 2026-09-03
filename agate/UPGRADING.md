@@ -89,6 +89,25 @@ python3 ~/.agate/scripts/agate-summary.py   # 应显示新版本号
 
 > 升级到新版本前，检查你的项目是否触及以下变更点。
 
+### v0.66.0 — 编排语义统一落地（TAG0027：RM-AG0054）
+
+> **本版本无破坏性变更，零迁移动作**——未改 `.state.yaml` schema / 既有任务文件格式 /
+> 3 个 hook 薄壳（本任务改动清单无 `.sh` 改动），无需重跑 `install-hook.py`（软链布局 `git pull`
+> 即生效；Windows 复制模式重跑 SETUP.md 步骤 2 的 `cp`）。
+
+1. **新增推进侧 CLI 与转移表字段——对已有任务零影响**：`agate next` / `agate advance` /
+   `agate dispatch` 为新增消费方，不改变既有手动推进/手工 dispatch-context 路径；存量任务
+   dispatch-context（物理占位符注入）由审计 2 文件版逻辑继续覆盖；`phases.yaml` 新键
+   （next/retreat/gate_pass_exit/gate_subphase）只被新 CLI/新检查消费，既有 check-gate /
+   check-state-transition 返回语义不变（check-gate exit 2 = 多数 phase 正常通过码的口径以
+   `phases.yaml gate_pass_exit` 声明为准）。
+2. **编排心智标记约定（护栏 1）**：协议文档叙述段若提平台名（OpenCode / Claude Code / DSH /
+   workflow / ralph / goal / task 词边界），须挂 `> 实现注记：` 标记或落入豁免结构
+   （platform-notes.md / SETUP.md 整文件 + WORKFLOW.md「已知适用环境」表 +
+   assets/templates/dsh/ 平台食谱目录）——新增/改写协议 md 文档时注意（CHECK 14/15 CI 硬校验）。
+   此条只约束协议维护者，不约束协议使用者。
+3. **升级动作**：`git pull` 即完成；无迁移动作。
+
 ### v0.65.0 — 维护性反模式 gate（TAG0026：RM-AG0046）
 
 > **本版本无破坏性变更，零迁移动作**。
