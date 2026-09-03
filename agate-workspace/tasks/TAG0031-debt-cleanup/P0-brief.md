@@ -39,4 +39,11 @@
 
 - worktree：`.worktrees/agate-TAG0031`（分支 `feat/TAG0031-debt-cleanup`），构建流程见 `docs/guides/worktree-dogfooding-guide.md`，交接单 `HANDOFF-TAG0031.md` 按模板全 9 节填写
 - 任务目录：`agate-workspace/tasks/TAG0031-debt-cleanup/`
-- **merge 模式**：完成 PR 后由主 Agent 综合 merge（三路并行 TAG0029/30/31 之一，文件域与另两路不重叠）
+- **merge 模式** `[P0_STALE]`：PR 提出后主 Agent review 复核，CI 全绿后 worktree 自行 git-to-main（三路并行 TAG0029/30/31 之一，文件域与另两路不重叠）——HANDOFF-TAG0031.md §8 定稿版，与立项时描述（主 Agent 综合 merge）不同，属局部细节变化，不影响任务方案，2026-09-04 P0 时效性自检时更新
+
+## P0-brief 时效性自检记录（2026-09-04）
+
+- 立项日期 2026-09-03，恢复启动 2026-09-04，间隔 1 天
+- 严重漂移三问逐条核对：① task 目标方案未变（7 条 DEBT 修复范围不变）；② executor_env 平台/运行时前提未变（worktree + Linux 基线仍成立）；③ known_risks 已判定前提均未被其他任务解决，无重叠/失效 → **均不命中，非严重漂移**
+- 轻微漂移：executor_env 的 merge 模式描述与 HANDOFF-TAG0031.md 最终定稿（§8）不一致 → 已更新字段并标 `[P0_STALE]`，见上
+- 结论：轻微漂移，已处理，可继续推进 P1
