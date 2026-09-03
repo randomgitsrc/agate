@@ -6,6 +6,7 @@ parent: P2-design.md
 trace_id: TAG0030-P3-20260904
 status: draft
 created: '2026-09-04'
+agent: test-designer
 test_code_dir: agate/tests/unit/
 ---
 # P3-test-cases — TAG0030 验收盲区机制批（RM-AG0057 四类 + DEBT0024/25/26）断言审计测试设计
