@@ -1,10 +1,15 @@
 task_id: TAG0031
-phase: P1
+phase: P2
 status: active
 judge:
   enabled: true
 retries:
   P1:
+    - round: 1
+      failure_mode: quality
+      prompt_changed: true
+      adjustment: gate_diagnosis_reference
+  P2:
     - round: 1
       failure_mode: quality
       prompt_changed: true

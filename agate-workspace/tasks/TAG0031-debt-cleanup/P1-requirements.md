@@ -358,6 +358,23 @@ DEBT0003 的签名 vs 文档信任边界取舍已用 `[SUGGEST]` 标记（见 BD
 明确技术方案（P0-brief scope + closure_criteria 已给出），同类扫描的"不处理"项均给出了理由与
 回归拦截手段（BDD-14），不构成需要人工拍板的业务判断。
 
+## P2 阶段 [SCOPE+] 回补（主 Agent 亲自写，P1 基线保护规则）
+
+[BASELINE_CHANGE: P2 architect 设计阶段发现 P1 未预见的必须处理项——`compute_sha256` 迁移到
+`agate_common.py` 后，`install-offline.py` 的离线 bootstrap 前提被打破（pyyaml 是 manifest 里
+唯一"先执行、后校验"的组件，`agate_common.py` 顶部 `import yaml` 失败即 `sys.exit(1)` 硬依赖，
+会在真正没装 pyyaml 的机器上导致安装器崩溃）。主 Agent 已核实这一发现的事实基础（`install-offline.py`
+L228/L237 执行顺序、`agate_common.py` L30-34 硬依赖、`agate-pack-offline.py` L129 pyyaml 组件的
+manifest 结构），确认属实且需要处理。已批准纳入实现范围，不改变 BDD-1/2 描述的外部可观察行为
+（本质是 BDD-2「pack→install→卸载全流程无行为变化」验收范围内的机制细化，不新增独立 BDD 编号）。]
+
+[SCOPE_RESOLVED: P2-design.md §1.3 R1「缓解设计」已给出闭环方案——`install-offline.py` 新增
+`_ensure_agate_common(bundle_dir, manifest)` 引导函数，在 `pip install` 之前先用内联
+`hashlib.sha256` 单独校验 pyyaml wheel 的 manifest checksum，不匹配则报错且不执行 `pip install`；
+校验通过后才安装 + `import agate_common`。pyyaml 组件与其余组件同样遵循"先校验、后使用"顺序，
+BDD-26 字面不变量对其同样成立。方案已经 plan-eng-review 第 2 轮 approved（复核确认顺序缺口已消除
++ 回归覆盖已补齐 checksum 不匹配场景用例）。]
+
 ## 范围声明
 
 `packages: [agate-scripts, agate-tests, agate-docs]`、`domains: [backend]` 已写入文件头
