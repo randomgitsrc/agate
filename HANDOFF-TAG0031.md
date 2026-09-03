@@ -111,7 +111,7 @@ python3 agate/scripts/agate-install.py --help  # 先确认入口；具体流程�
 
 ## 8. 完成后
 
-- P8 gate + READY → 提 PR 合并 main（PR 普通 merge 非 squash，tag 要求）
+- P8 gate + READY → 提 PR（PR 普通 merge 非 squash，tag 要求——但**不自行 git-to-main**，merge 由主 Agent 执行）
 - **合并前在 PR 里看 CI 结果**——pytest/shellcheck/consistency/gate-backstop 全绿才算过
 - **merge 模式：本任务 PR 完成后由主 Agent 综合 merge**（三路并行 TAG0029/30/31，不自行 git-to-main）
 - 7 条 DEBT 登记关闭（debt/tech-debt.md 逐条 status: closed + closure 核验）
