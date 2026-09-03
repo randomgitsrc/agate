@@ -847,7 +847,7 @@ task_id: TAG0026
 id: DEBT0024
 category: protocol
 title: P3 TDD 测试夹具构造"假 gate exit"（mock/前置产物），未用真实 check-gate 实测——错误前提红灯不暴露语义冲突
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0027-orchestration-semantics/retrospective.md
@@ -869,7 +869,7 @@ task_id: TAG0027
 id: DEBT0025
 category: protocol
 title: 新增 CHECK 上线前未先全量扫描存量命中——CHECK 14/15 首跑 3 ERROR（dispatch.yaml law-1 / loop-orchestration OpenCode 前提行 / dispatch-protocol 字段语境）
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0027-orchestration-semantics/retrospective.md
@@ -891,7 +891,7 @@ task_id: TAG0027
 id: DEBT0026
 category: execution
 title: 单 agent 大任务上下文耗尽（>5 文件/大文档清理类）——B3a 派单 agent 处理 7 文件文档清理卡在开工后，改拆 7 个小 agent 后稳定
-status: open
+status: closed
 priority: medium
 evidence:
   - ref: agate-workspace/tasks/TAG0027-orchestration-semantics/retrospective.md
