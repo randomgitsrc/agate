@@ -29,7 +29,7 @@ generic-tap.sh / generic-junit-xml.sh / generic-exit-only.sh）。
   已废弃（不再有效，退化为 exit-code-only）：
   TEST_RUNNER_FLAGS / TEST_FAIL_PATTERN / TEST_ERROR_PATTERN / TEST_IMPORT_PATTERN
 
-测试运行器探测链：$TEST_RUNNER → gate_commands.P3*（P2-design.md）→ which pytest → exit 3
+测试运行器探测链：$TEST_RUNNER → gate_commands.P3（P2-design.md）→ which pytest → exit 3
 
 迁移映射（与 check-pruning.py / agate-capture-env-baseline.py 同风格）：
 - run_test_with_formatter / resolve_formatter 来自 agate_common.py（P2 批次 0 公共库，
