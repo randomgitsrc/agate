@@ -1,5 +1,5 @@
 task_id: TAG0029
-phase: P2
+phase: P3
 status: active
 judge:
   enabled: true
@@ -13,3 +13,8 @@ retries:
       failure_mode: quality
       prompt_changed: true
       adjustment: P2-review rejected（B1阻塞：judge文案匹配表未经实测项+缺失本机真实串），回派architect修匹配表后复审
+  P3:
+    - round: 1
+      failure_mode: empty_return
+      prompt_changed: true
+      adjustment: 首派空返回（无产出无progress）；重派拆两批串行（A批解析器+judge单测先行，B批收集+R2+文档断言随后），每批落盘独立progress
