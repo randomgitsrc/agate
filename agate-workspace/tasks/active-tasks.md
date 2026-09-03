@@ -16,7 +16,7 @@
 
 | 编号 | 任务名称 | 状态 | 阶段 | 优先级 | 依赖 | 创建日期 | 更新日期 |
 |------|----------|------|------|--------|------|----------|----------|
-| TAG0027 | 编排语义统一落地（RM-AG0054，全量四 phase 不分后续任务）：① 推进侧状态机 CLI（agate next/advance）——推进决策查表化，复用 check-state-transition.py + check-gate.py exit 三态 + phases.yaml 扩展（next/retreat 纳入 S-1/S-2）+ agate-retreat-to.py 对接，CLI 为 /loop 档位 C 可观测层；② 编排心智统一文档化（五模式锚点 + 实现注记标记）；③ **方案 A 渲染时注入**——派发=单命令自动注入渲染，主 Agent 不直接调 agate-inject-card.py（消灭占位符缺失→手动修环节），check-p6-provenance 审计 2 联动走渲染产物（A1）；④ 护栏 1 机械化（consistency 扫"含平台名无实现注记段落"进 CI）；设计文档 v3b（三轮独立评审闭环 2026-09-02）| ✅✅ | P5 | READY | RM-AG0054 | 2026-09-02 | 2026-09-03 |
+| TAG0027 | 编排语义统一落地（RM-AG0054，全量四 phase 不分后续任务）：① 推进侧状态机 CLI（agate next/advance）——推进决策查表化，复用 check-state-transition.py + check-gate.py exit 三态 + phases.yaml 扩展（next/retreat 纳入 S-1/S-2）+ agate-retreat-to.py 对接，CLI 为 /loop 档位 C 可观测层；② 编排心智统一文档化（五模式锚点 + 实现注记标记）；③ **方案 A 渲染时注入**——派发=单命令自动注入渲染，主 Agent 不直接调 agate-inject-card.py（消灭占位符缺失→手动修环节），check-p6-provenance 审计 2 联动走渲染产物（A1）；④ 护栏 1 机械化（consistency 扫"含平台名无实现注记段落"进 CI）；设计文档 v3b（三轮独立评审闭环 2026-09-02）| ✅✅ | READY | 高 | RM-AG0054 | 2026-09-02 | 2026-09-03 |
 
 ### 已完成（归档）
 
