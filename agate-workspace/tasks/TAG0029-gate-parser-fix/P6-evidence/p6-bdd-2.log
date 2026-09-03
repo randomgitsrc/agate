@@ -1,0 +1,19 @@
+=== BDD-2: unclosed quote fails closed ===
+gate_commands:
+  P3: "python3 -m pytest agate/tests/ -q" # trailing
+  P3x: "echo hi
+--- variant A: value with residue quote ---
+gate_commands:
+  P3: "echo hi""
+parser exit=2 (expect non-zero)
+--- stdout ---
+--- stderr ---
+agate-read-gate-commands: 解析错误: P3 命令值引号未闭合: echo hi"
+--- variant B: unclosed single quote ---
+gate_commands:
+  P3: "echo don't"
+parser exit=2 (expect non-zero)
+--- stdout ---
+--- stderr ---
+agate-read-gate-commands: 解析错误: P3 命令值引号未闭合: echo don't
+EXIT_CODE: 0

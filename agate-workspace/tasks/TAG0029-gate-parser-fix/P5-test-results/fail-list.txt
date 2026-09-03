@@ -1,0 +1,1 @@
+FAILED agate/tests/unit/test_agate_archive_stale_outputs.py::test_arch_4_double_archive_keeps_both_histories  # cmd1首次全量偶发flaky：单跑/整文件/全量复跑均已绿（1444 passed），与本任务改动面无引用关系，见unit.md判定

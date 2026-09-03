@@ -13,7 +13,6 @@ import os
 import sys
 
 from agate_common import (
-    is_gate_meta_key,
     is_legal_gate_key,
     known_phase_ids,
     parse_gate_commands_block,
@@ -46,6 +45,51 @@ def _reconcile_block_keys(entries):
         pass
 
 
+def _clean_value(raw, key):
+    """M1 值清洗（P2-design §3.1，BDD-1/BDD-2）：剥离行内注释 + 引号闭合校验。
+
+    外层首尾一对匹配引号视为块语法包裹先剥一层，再在剩余内容中截断首个
+    引号外未转义 ` #`（`\\#` 转义保留，引号内 ` #` 保留）；截断后仍有未闭合
+    引号（计数为奇）则 fail-closed：stderr 报解析错误（含 key 名）+ exit 2。
+    """
+
+    def _peel(s):
+        if len(s) >= 2 and s[0] == s[-1] and s[0] in ("\"", "'"):
+            return s[1:-1]
+        return s
+
+    s = _peel(raw.strip())
+    out = []
+    quote = None
+    i = 0
+    while i < len(s):
+        ch = s[i]
+        if ch == "\\" and i + 1 < len(s):
+            out.append(ch)
+            out.append(s[i + 1])
+            i += 2
+            continue
+        if ch in ("\"", "'"):
+            if quote is None:
+                quote = ch
+            elif quote == ch:
+                quote = None
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "#" and quote is None and out and out[-1] in (" ", "\t"):
+            break
+        out.append(ch)
+        i += 1
+    s = _peel("".join(out).strip())
+    if s.count("\"") % 2 == 1 or s.count("'") % 2 == 1:
+        sys.stderr.write(
+            f"agate-read-gate-commands: 解析错误: {key} 命令值引号未闭合: {s[:60]}\n"
+        )
+        sys.exit(2)
+    return s
+
+
 content = open(os.environ["GATE_FILE"], encoding="utf-8").read()
 has_block, entries = parse_gate_commands_block(content)
 if not has_block:
@@ -54,16 +98,16 @@ if not has_block:
 commands = []
 project_module = ""
 for key, raw in entries:
-    val = raw.strip().strip(chr(34)).strip(chr(39))
+    val = _clean_value(raw, key)
     if key == "project_module":
         project_module = val
-    elif key.startswith("P3") and not is_gate_meta_key(key):
-        suffix = key[2:] if len(key) > 2 else ""
-        fmt_key = "P3" + suffix + "_formatter"
+    elif key == "P3":
+        suffix = ""
+        fmt_key = "P3_formatter"
         fmt_val = ""
         for key2, raw2 in entries:
             if key2 == fmt_key:
-                fmt_val = raw2.strip().strip(chr(34)).strip(chr(39))
+                fmt_val = _clean_value(raw2, key2)
         commands.append({"cmd": val, "formatter": fmt_val, "suffix": suffix})
 result = {"commands": commands, "project_module": project_module}
 _reconcile_block_keys(entries)

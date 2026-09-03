@@ -1,0 +1,21 @@
+=== BDD-5: bare P3 collected, meta keys exempt ===
+gate_commands:
+  P3: "echo real"
+  P3_formatter: "myfmt.sh"
+  P5: "echo five"
+  P5_timeout_seconds: 120
+{
+    "commands": [
+        {
+            "cmd": "echo real",
+            "formatter": "myfmt.sh",
+            "suffix": ""
+        }
+    ],
+    "project_module": ""
+}
+--- assertion: commands contains bare P3 only, no meta entries ---
+['echo real']
+OK: bare P3 collected, meta exempt
+bdd5 assert exit=0 (expect 0)
+EXIT_CODE: 0

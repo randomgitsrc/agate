@@ -29,7 +29,7 @@ generic-tap.sh / generic-junit-xml.sh / generic-exit-only.sh）。
   已废弃（不再有效，退化为 exit-code-only）：
   TEST_RUNNER_FLAGS / TEST_FAIL_PATTERN / TEST_ERROR_PATTERN / TEST_IMPORT_PATTERN
 
-测试运行器探测链：$TEST_RUNNER → gate_commands.P3*（P2-design.md）→ which pytest → exit 3
+测试运行器探测链：$TEST_RUNNER → gate_commands.P3（P2-design.md）→ which pytest → exit 3
 
 迁移映射（与 check-pruning.py / agate-capture-env-baseline.py 同风格）：
 - run_test_with_formatter / resolve_formatter 来自 agate_common.py（P2 批次 0 公共库，
@@ -106,6 +106,19 @@ def judge_result(json_str, project_module):
     if exit_code == 0:
         print("TDD_CHECK: tests pass, no red-light — implementation may be ahead of tests")
         return 2
+
+    if (
+        exit_code == 2
+        and failed == 0
+        and errors == 0
+        and syntax_count == 0
+        and import_count == 0
+        and name_errors_count == 0
+        and raw_output
+        and re.search(r"syntax error|unexpected|matching|寻找匹配|未预期", raw_output, re.IGNORECASE)
+    ):
+        print("TDD_CHECK: A-class error (command string itself has syntax error, runner never started)")
+        return 1
 
     if exit_code == 1 and raw_output and re.search(r"Traceback|SyntaxError|ImportError|ModuleNotFoundError", raw_output):
         print("TDD_CHECK: A-class error (compile or import error in raw output, no formatter to classify)")

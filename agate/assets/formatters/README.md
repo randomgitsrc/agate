@@ -88,18 +88,16 @@ gate_commands:
 
 ## 多技术栈声明
 
-项目包含多种语言时，声明多个 gate 阶段对：
+多语言项目仍使用单栈精确 `P3` 声明检测命令（历史 `P3_js` / `P3_html` 形态已退役，解析器丢弃未登记后缀）：
 
 ```yaml
 gate_commands:
   P3: "pytest -q"
   P3_formatter: "pytest.sh"
   project_module: "myapp"
-  P3_js: "npx vitest run"
-  P3_js_formatter: "vitest.sh"
 ```
 
-主 Agent 按阶段前缀依次执行 `P3` → `P3_js`，所有阶段通过后才进入 P4。
+`P3` / `P3_formatter` / `project_module` 为当前唯一有效的检测键组合；未来多栈并行需先经协议修订登记收集后缀，未登记的后缀键不被收集执行。
 
 ## 自定义 formatter
 

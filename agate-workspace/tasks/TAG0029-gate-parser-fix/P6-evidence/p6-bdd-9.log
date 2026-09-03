@@ -1,0 +1,61 @@
+=== BDD-9: task P2-design P3/P4 blocks declare scanner entries ===
+--- P3/P4 scanner keys in task P2-design ---
+11:packages: [gate-parser, tdd-judge, platform-scanner, protocol-docs]
+60:| R6 | 自身 P3 bootstrap：旧解析器会把本任务 P2-design 的 `P3_scanner` 当测试命令收集，污染 TDD 判定 | P3 gate 用 `TEST_RUNNER` 环境变量覆盖跑裸 P3 命令（最高优先级，绕过文件收集）；修后文件收集即安全（仅裸 P3 被收集），见 §4 注记 |
+149:- BDD-9 常驻面：本文件 §4 固化 `P3_scanner` / `P4_scanner` / `P5_scanner` 三 key。
+156:  # 因修前旧解析器会把 P3_scanner 一并收集污染 TDD 判定；修后文件收集即安全，仅裸 P3 被收集）
+158:  P3_scanner: "python3 agate/scripts/check-platform-assumptions.py agate/tests/"
+159:  P4_scanner: "python3 agate/scripts/check-platform-assumptions.py agate/tests/"
+165:  P5_scanner: "python3 agate/scripts/check-platform-assumptions.py agate/tests/"
+167:  P3_scanner_timeout_seconds: 120
+168:  P4_scanner_timeout_seconds: 120
+172:  P5_scanner_timeout_seconds: 120
+178:- BDD-9 对应：`P3_scanner` / `P4_scanner`（P4 为声明式，implementer 按 checklist 直接跑，exit code 判定）/ `P5_scanner` 常驻。
+193:    why: is_legal_gate_key——P3_scanner 等新 key 合法性确认（无对账 WARNING）
+223:- 强制力说明：环境约束本身是声明性的；真正的强制执行落在 §4 gate_commands（P5_consistency / P5_scanner 等有 exit code 判定）与 M6 单测（BDD 逐条锁定）。
+240:- [ ] M4：fixture 数据面 0 命中且 exit 0（BDD-7）；目录外裸调用仍命中 exit 1（BDD-8）；三 scanner key 可独立跑通（BDD-9）
+--- P3 block excerpt ---
+58-| R4 | 常驻面存量命中：扫描器进 P3 / P4 常驻后存量命中阻断开发 | DEBT0025 流程：P4 落地前先全量扫描存量，有命中先登记清单再启（H6）；本任务 Phase 3 同步执行 |
+59-| R5 | 收紧语义变更：`P3_js` / `P3_html` 历史多栈形态失效 | §2.3 专项论证 + 白名单后缀清单 + 未来扩展路径（显式声明取舍，非静默破坏） |
+60:| R6 | 自身 P3 bootstrap：旧解析器会把本任务 P2-design 的 `P3_scanner` 当测试命令收集，污染 TDD 判定 | P3 gate 用 `TEST_RUNNER` 环境变量覆盖跑裸 P3 命令（最高优先级，绕过文件收集）；修后文件收集即安全（仅裸 P3 被收集），见 §4 注记 |
+61-
+62-## 2. 候选方案
+--
+147-- 与 17 处裸 python3 的关系：fixture 恢复真实日志形态用裸 `python3 -m pytest`（无 `env` 前缀，模拟真实日志）→ 靠目录豁免放行；`command="env python3 -m pytest"` 的 `env` 形式行在任何位置本就豁免（`_r2_comment_exempt`）——两类正交，单测各锁一条。
+148-- 扫描器测试文件干净契约：豁免走路径判定，源码不新增 R1–R5 字面命中，不碰头注释 fragment 机制；P4 自查"全树扫描本文件 0 命中"。
+149:- BDD-9 常驻面：本文件 §4 固化 `P3_scanner` / `P4_scanner` / `P5_scanner` 三 key。
+150-
+151-## 4. gate_commands（P2 固化，后续阶段不得修改）
+--
+154-gate_commands:
+155-  # P3 TDD 红灯读取（bootstrap 注记：本任务 P3 gate 用 TEST_RUNNER 环境变量覆盖跑裸 P3 命令，
+156:  # 因修前旧解析器会把 P3_scanner 一并收集污染 TDD 判定；修后文件收集即安全，仅裸 P3 被收集）
+157-  P3: "python3 -m pytest agate/tests/ -q --tb=short"
+158:  P3_scanner: "python3 agate/scripts/check-platform-assumptions.py agate/tests/"
+159-  P4_scanner: "python3 agate/scripts/check-platform-assumptions.py agate/tests/"
+160-  # P5 全量三片合跑 + -n auto 并行（参照 TAG0028 P5 写法）
+--
+--- P4 block excerpt ---
+147-- 与 17 处裸 python3 的关系：fixture 恢复真实日志形态用裸 `python3 -m pytest`（无 `env` 前缀，模拟真实日志）→ 靠目录豁免放行；`command="env python3 -m pytest"` 的 `env` 形式行在任何位置本就豁免（`_r2_comment_exempt`）——两类正交，单测各锁一条。
+148-- 扫描器测试文件干净契约：豁免走路径判定，源码不新增 R1–R5 字面命中，不碰头注释 fragment 机制；P4 自查"全树扫描本文件 0 命中"。
+149:- BDD-9 常驻面：本文件 §4 固化 `P3_scanner` / `P4_scanner` / `P5_scanner` 三 key。
+150-
+151-## 4. gate_commands（P2 固化，后续阶段不得修改）
+--
+157-  P3: "python3 -m pytest agate/tests/ -q --tb=short"
+158-  P3_scanner: "python3 agate/scripts/check-platform-assumptions.py agate/tests/"
+159:  P4_scanner: "python3 agate/scripts/check-platform-assumptions.py agate/tests/"
+160-  # P5 全量三片合跑 + -n auto 并行（参照 TAG0028 P5 写法）
+161-  P5: "python3 -m pytest agate/tests/ -q --tb=no -n auto"
+--
+166-  P5_timeout_seconds: 600
+167-  P3_scanner_timeout_seconds: 120
+168:  P4_scanner_timeout_seconds: 120
+169-  P5_consistency_timeout_seconds: 120
+170-  P5_shellcheck_timeout_seconds: 120
+--
+176-- timeout 三档：P5 全量 600s（宁高勿低，TPV0093 教训）；其余单命令 120s；P3 走 `AGATE_TDD_TIMEOUT` 运行时机制（`run_test_with_formatter` 默认 120s），不声明静态值。
+177-- P5_e2e 不适用：`ui_affected: false`（P1 已定 backend 无前端面），故不声明。
+--- run P3_scanner cmd ---
+P3_scanner exit=0 (expect 0)
+EXIT_CODE: 0

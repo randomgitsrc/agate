@@ -1,3 +1,55 @@
+---
+phase: P2
+generated_by: 主 Agent
+task_id: TAG0029
+role: architect
+---
+
+<dispatch_guide>
+> ⚠️ 以下派发指引是本次任务的强制指令，不是参考信息。执行优先级：派发指引 > 客观查证信息 > 阶段卡片（参考规范）
+
+### 目标
+产出 `agate-workspace/tasks/TAG0029-gate-parser-fix/P2-design.md`——把 P1-requirements.md 的 9 条 BDD 转化为可实现的技术方案：候选方案（≥2 + 权衡 + 选择理由）+ 影响面梳理（改什么/不改什么/风险在哪，三部分写在候选方案之前）+ 四字段（packages/domains/ui_affected/gate_commands，正文+frontmatter）+ files_to_read（P4 上下文地图）+ env_constraints 确认 + minimal_validation（纯代码逻辑声明须写明依赖的内部函数/数据转换）+ 实现完成标志。
+
+### 约束
+- **范围锁定**：P1 三缺口 + out-of-scope 三条（DEBT0016/17/18→TAG0031；R2 本体判定逻辑不扩；cmdstream 引擎不动；TAG0011 bdd-8 不改断言意图）。设计中发现新隐含需求标 `[SCOPE+]`，不擅自扩大。
+- **四处改动面**（packages 对应：gate-parser / tdd-judge / platform-scanner / protocol-docs）：
+  1. **gate-parser**：`agate-read-gate-commands.py` L57/L66 值清洗——剥离行内注释（首个未转义 ` #`）+ 引号闭合校验；输出"纯命令"或"解析错误（exit 非 0 + stderr）"。注意 `parse_gate_commands_block` 在 `agate_common.py` L784（公共库单点，M2 防漂移先例）——本次动的是**值清洗**（解析器本地 L57/L66），不是块解析；若候选方案动公共库函数须论证不破坏 M2 单点语义 + 同文件 `agate-read-p5-commands.py` L30/L37（P1 判定本次不处理）是否受牵连。
+  2. **tdd-judge**：`check-tdd-red.py` `judge_result` L87-157——exit 2（命令串本身语法错误：bash exit 2 + 语法错误文案 + 无运行器失败断言统计）新增显式分支判 exit 1（A 类），不再落末尾 red-light exit 0。须与既有 A 类分支（L110-116 Traceback/SyntaxError / L152-154 exit>=120）分区论述优先级；不改 check-gate 返回约定；语义修正类修复的 TDD 义务（先补失败测试）在 P3 承接，设计须声明红灯测试形态。
+  3. **platform-scanner**：`check-platform-assumptions.py` R2（L39）——fixture 目录/文件声明豁免（绑定目录声明，禁宽匹配）+ 纳入 P3/P4 gate_commands 常驻面。注意扫描器测试文件 `agate/tests/scripts/test_check_platform_assumptions.py` 自身"必须保持干净"契约（头注释：fixture 全用 fragment 拼接，源码任何一行不出现 R1-R5 字面命中，全树扫描本文件 0 命中即 BDD-8）——豁免设计不得破坏该契约；另 cmdstream fixture `command="env python3 -m pytest"`（env 形式本就豁免）与 17 处裸 python3 的关系须在设计中说清（豁免的是哪一类、恢复的是哪一类）。
+  4. **protocol-docs**：P2 卡 gate_commands 节——P3_xxx 禁止声明及其原因（BDD-6）+ 新增 CHECK/扫描面上线流程（DEBT0025：先全量扫描存量）落点。
+- **候选方案诚实探索**：每处改动至少想 2 个方向再选（如值清洗：解析器内剥离 vs 上游文档规范约束 + 解析器 fail-closed；P3 收集：精确键白名单 vs 扩展 is_gate_meta_key 协议级辅助键；豁免：路径声明豁免 vs 内容标记豁免 vs 豁免清单文件）。稻草人检测：第二方案须在某些维度更好，不只是"不如方案一"。
+- **影响面梳理三部分**（写在候选方案之前，有客观证据）：改什么（逐文件/函数落点 + 关联 BDD）；不改什么（P5 脚本同模式 2 处 + missing-cmds 首 token + is_gate_meta_key 其余消费方 + R2 本体 + cmdstream 引擎 + check-gate 返回约定，逐条理由）；风险在哪（S-4 YAML 对账：动 is_gate_meta_key 判据须同步 rules/ YAML，否则 consistency 红；消费链 P2/P3/P5 全量回归；fixture 豁免被真代码借用；常驻面存量命中；每条配缓解）。
+- **gate_commands 固化**（P2 唯一窗口，后续不得改）：P3（TDD 红灯读取，建议 `python3 -m pytest agate/tests/ -q --tb=short` 参照 TAG0028；formatter 按需）；P5（全量三片合跑 + `-n auto`，参照 TAG0028 P5 写法，逐 key 独立不拼 `&&`；consistency 用 `--strict-errors-only`；shellcheck 与 CI 同口径；count-tests；扫描器常驻条目 BDD-9；timeout_seconds per-key 三档基准）；P5_e2e 不适用（ui_affected=false，P1 已定 backend 无前端面）。
+- **frontmatter 机器字段**：phase=P2, task_id=TAG0029, type=design, parent=P1-requirements.md, trace_id=TAG0029-P2-20260904（以你执行日为准）, agent=architect, status=draft；candidate_count（与正文候选数一致）；packages=[gate-parser, tdd-judge, platform-scanner, protocol-docs]（核实后定）；domains=[backend]；ui_affected=false。
+- **files_to_read**：只列实现确实需要参考的文件（改造对象 3 脚本 + agate_common 相关函数行号范围 + S-4 校验脚本 + rules YAML + P2 卡 gate_commands 节 + 扫描器测试契约文件 + DEBT0023/0027 条目），大文件标行号，不列大杂烩。
+- **minimal_validation**：预期"纯代码逻辑，无外部系统依赖"（写明依赖的内部函数：parse_gate_commands_block / is_gate_meta_key / run_test_with_formatter / judge_result / R2 正则 + 数据转换：gate_commands 块→JSON / 测试输出→JSON→exit 码 / 扫描命中行）。若设计中出现外部行为依赖（如 bash exit 2 语义），须做最小验证（一条 `bash -c` 实测）并记录 result。
+- **dispatch_plan**：本任务四处改动同源耦合（同一解析器消费链），建议 mode=single（单发串行实现）；若主张拆批须按 architect.md 批次设计硬规则论证。你定，我只要求理由自洽。
+- 返回前跑 `python3 agate/scripts/check-frontmatter.py` 自检（worktree 根），非 0 先修正再返回。
+</dispatch_guide>
+
+### 上游关联
+- P1-requirements.md 已 approved（9 条 BDD：BDD-1~2 值清洗 / BDD-3 judge / BDD-4~6 P3 收集 / BDD-7~9 扫描器；risk_level=high；phases 全量；domains=[backend]；同类扫描 8 项判定；时效性无漂移；[NO_NEED_CONFIRM]）。
+- P1-review.md status=approved（agent=requirements-review；三易错点坐实；2 条非阻塞建议：BDD-3 文案可枚举典型串；H3/H6 动公共判据须回写 [BASELINE_CHANGE]）。
+- `.state.yaml` phase=P1（P2 推进随 P2 产出 commit 一起，不单独推进）。
+
+### 输入文件
+- `agate-workspace/tasks/TAG0029-gate-parser-fix/P1-requirements.md`（需求基线 + 9 条 BDD + 同类扫描结论——**P2 主要输入**）
+- `agate-workspace/tasks/TAG0029-gate-parser-fix/P0-brief.md`（scope/out-of-scope/约束——范围边界）
+- `agate/scripts/agate-read-gate-commands.py`（改造对象 ①，70 行——精读）
+- `agate/scripts/check-tdd-red.py`（改造对象 ②，judge_result L87-157——精读）
+- `agate/scripts/check-platform-assumptions.py`（改造对象 ③，R2 L39 + 豁免函数 L46-93——精读）
+- `agate/scripts/agate_common.py`（is_gate_meta_key L79-87；parse_gate_commands_block L784-795；is_legal_gate_key L682-693——按需读相关函数）
+- `agate-workspace/debt/tech-debt.md`（DEBT0023 L814-841 / DEBT0027 L910-932 closure_criteria 原文——必读）
+- `agate/phase-cards/P2-design.md`（worktree 本体：gate_commands 节为 BDD-6 落点——核对改动面表述）
+- `agate/tests/scripts/test_check_platform_assumptions.py`（头注释"保持干净"契约——必读前 60 行）
+- `agate-workspace/tasks/TAG0028-subagent-liveness-self-dispatch/P2-design.md`（§4 gate_commands 固化范例：P3/P5 写法 + timeout 三档 + 逐 key 独立——参照，不复制）
+
+<!-- AGATE_CARD_START -->
+## 当前阶段卡片：P2
+
+路径：phase-cards/P2-design.md
+---
 # P2 — 方案设计
 
 > 当前状态：[首次 / 重试 #N / 裁剪跳阶]
@@ -179,20 +231,6 @@ gate_commands:
 ```
 `--strict-errors-only`（仅 ERROR 判失败）适合日常任务默认使用；`--strict`（WARNING-only 也判失败）保留给专门做 WARNING 债务清理的任务主动选用。
 
-### `P3_xxx` 禁止声明（P2 卡禁令，BDD-6）
-
-`gate_commands` 的测试命令键只允许裸 `P3`（`check-tdd-red.py` 只收集精确键
-`key == "P3"`）。禁止声明 `P3_xxx` 检测键：旧解析器曾用 `startswith("P3")`
-静默收集辅助键，致 TDD 误执行非测试命令。白名单后缀清单（不收集为检测命令）：
-`_formatter` / `_timeout_seconds`（元键，`is_gate_meta_key` 豁免）+ `_e2e`
-（E2E 形态，P5_e2e 消费，P3 永不收集）+ 历史 `_js` / `_html`（已退役，
-不得复用为检测键；未来多栈回归走协议修订登记收集后缀，不走静默收集）。
-
-### CHECK / 扫描面上线流程（DEBT0025：先全量扫描存量）
-
-`check-platform-assumptions.py` 新增 CHECK / 扫描面上线时，先全量扫描存量
-测试树登记命中清单，有命中先登记再启用常驻阻断，避免存量命中阻断正常开发。
-
 ## 评审派发（C8 机械映射）
 
 按 P1 声明的 domains + risk_level 机械映射评审：
@@ -270,3 +308,22 @@ check-gate.py P2 $TASK_DIR
 - gate_commands 在 P2 固化后 P4-P6 不能改——设计阶段是声明验证契约的唯一窗口
 
 > 完成 → 读 phase-cards/P3-tdd.md
+<!-- AGATE_CARD_END -->
+
+<objective_info>
+- worktree 根：`/home/kity/oclab/agateon/.worktrees/agate-TAG0029`；分支 `feat/TAG0029-gate-parser-fix`；hook 指向 `~/.agate` 稳定版。
+- 已核实查证（主 Agent 实测，供交叉核对）：
+  - 值清洗 `strip(chr(34))` 5 处：read-gate-commands L57/L66（本次处理）/ read-p5-commands L30/L37（P1 判定不处理）/ gate-missing-cmds L24（不处理，首 token 检测不经 bash -c）。
+  - `startswith("P3")` 仅 read-gate-commands L60 一处；`is_gate_meta_key` 消费方 5 脚本 + S-4 校验 + rules YAML。
+  - R2 正则全仓唯一（check-platform-assumptions.py L39）；cmdstream IR fixture 含 `command="env python3 -m pytest"`（env 形式已豁免）；扫描器测试文件用 fragment 拼接避字面命中（_PY="python"+_VER="3" 等）。
+  - judge_result：exit 2 无显式分支→末尾 exit 0（L156-157）；既有 A 类分支 L110-116/L152-154（运行器正常退出路径）。
+  - P2 卡 gate_commands 节：worktree `agate/phase-cards/P2-design.md` L125-180（含 timeout 三档 + 反 `&&` + env_constraints 边界）。
+- C8 评审映射（P1 domains=[backend] + risk=high）：plan-eng-review 1 个（去重后单评审，无需组长汇总，直接产出 P2-review.md）。
+- **P3 辅助键存量证据（主 Agent 已补 grep，2026-09-04，你直接引用，无需重扫）**：
+  - 全仓 `P3_\w+` 声明键仅三类：`P3_formatter`（多任务通用，元键豁免）/ `P3_timeout_seconds`（TAG0016/24，元键豁免，DEBT0010 已修）/ `P3_e2e`（仅 task-files.md 样例 + TAG0012 BDD-21 验收样例，`_e2e` 后缀非元键但 ui 任务 E2E 形态）。
+  - 真实任务 P2-design.md 从未声明过 `P3_xxx` 检测键——TAG0026（"无 P3_xxx 检测命令键"R7 + P7 逐键核对）/ TAG0027（P8 确认无关）/ TAG0028（§4 无 P3_xxx）全部靠约定规避；DEBT0023 登记的"未来任务声明 P3_xxx 辅助检测键被当测试命令执行"迄今是**潜在风险**，无真实命中实例。
+  - 收紧方案的关键推论：精确键（裸 `P3`）+ 白名单（`_formatter`/`_timeout_seconds`/`_e2e` 三后缀）已覆盖全仓存量合法用法——`P3_js`/`P3_html`（TAG0009/TAG0011 多栈形态）是历史形态，当前 pytest 单栈任务无此用法；若候选方案选白名单，须论证历史多栈形态是否保留（P1 同类扫描 #5 要求）。
+  - 另：`P3_js → both run`（TAG0009 TDD.F10）证明收集侧曾有意支持多 P3* 命令键——收紧为精确键是**语义变更**，不是纯收紧，设计须显式声明此取舍。
+- SELF-GATE 预告：本任务改 `agate/scripts/*` + `agate/phase-cards/P2-design.md` 触发 SELF-GATE——P2 commit message 须含 `self-gate-review:` 或 `self-gate-skip:`（commit 时处理，设计阶段先知晓）。
+- 注：该文件禁止包含 verdict 预判（provenance 审计要求）。
+</objective_info>
