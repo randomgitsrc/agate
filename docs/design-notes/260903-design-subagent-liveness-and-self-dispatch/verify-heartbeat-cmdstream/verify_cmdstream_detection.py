@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """命令流日志机制验证试验：能否机械检测"系统调用阻塞冻结"与"逻辑空转"，
-且不误报合法的"测试-修复-迭代"。
+且不误报合法的"测试-修复-迭代"与"合法长命令"。
 
 试验原理（与模型行为无关的纯机械层）：
 - 心跳 mtime 只回答"进程是否活着"——三种场景下心跳都新鲜（进程都活着），
@@ -11,12 +11,22 @@
     2. 无效重复：同命令 + 同 (exit, 输出哈希) 组合重复超过阈值 → 疑似空转（场景 3）
   合法的"测试-修复"迭代虽然命令名重复，但结果签名每次变化，不应触发空转判定。
 
-日志格式（虚拟时钟，秒）：t=<ts> cmd=<hash> exit=<code> out=<hash>
+阈值模型（§3.4.3，实测数据驱动——DSH 实测 bash 命令耗时 p50=57ms/p95≈7s/max≈196s）：
+- 冻结检测**两级**：命令声明了预期耗时（expected 字段，对应 RM-AG0023 timeout_seconds
+  机制）→ 冻结阈值 = max(期望×2, 兜底下限)；未声明 → 兜底阈值。
+  固定 30s 会误杀 9 条 >10s 的合法长命令（实测数据），因此不能设全局固定值。
+- 无效重复：窗口内同 (命令, exit, 输出哈希) 重复 >= 5 次 → 空转。
+- 截断排除：输出被截断（truncated 标记）→ 不参与无效重复的哈希比对
+  （两个不同失败截断成同前缀会误判为空转，§3.4.2 差异点 4）。
+
+日志格式（虚拟时钟，秒）：t=<ts> cmd=<hash> exit=<code> out=<hash> [expected=<s>] [truncated]
 now 表示"主 Agent 观察时刻"的虚拟当前时间。
 """
 import sys
 
-FREEZE_THRESHOLD = 30     # 最后命令开始后超过 30s 无新命令 → 冻结
+FREEZE_FALLBACK = 60      # 冻结兜底阈值：未声明预期耗时，最后命令开始后 >60s 无新命令 → 冻结
+FREEZE_FLOOR = 30         # 冻结兜底下限：即便 expected 很小，也至少给 30s（防抖动）
+FREEZE_EXPECT_MULT = 2    # 冻结主信号：有 expected 时阈值 = expected × 2
 SPIN_THRESHOLD = 5        # 同一 (命令, exit, 输出哈希) 组合重复 >= 5 次 → 空转
 REPEAT_WINDOW = 10        # 重复检测窗口
 REPEAT_UNIQUE_MIN = 3     # 窗口内唯一命令数 < 3 → 重复可疑（信息级）
@@ -28,9 +38,30 @@ def parse(log_lines):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        parts = dict(kv.split("=", 1) for kv in line.split())
-        cmds.append((int(parts["t"]), parts["cmd"], int(parts["exit"]), parts["out"]))
+        parts = {}
+        for kv in line.split():
+            if "=" in kv:
+                k, v = kv.split("=", 1)
+                parts[k] = v
+            else:
+                parts[kv] = "1"  # 裸标记（如 truncated）视为布尔标志
+        rec = {
+            "t": int(parts["t"]),
+            "cmd": parts["cmd"],
+            "exit": int(parts["exit"]),
+            "out": parts["out"],
+            "expected": int(parts["expected"]) if "expected" in parts else None,
+            "truncated": "truncated" in parts,
+        }
+        cmds.append(rec)
     return cmds
+
+
+def freeze_threshold(rec):
+    """两级冻结阈值：有 expected 用 max(expected×2, 下限)，无则兜底。"""
+    if rec["expected"] is not None:
+        return max(rec["expected"] * FREEZE_EXPECT_MULT, FREEZE_FLOOR)
+    return FREEZE_FALLBACK
 
 
 def detect(cmds, now):
@@ -38,26 +69,32 @@ def detect(cmds, now):
     if not cmds:
         return "NORMAL", ["无命令记录（心跳不存在？）"]
     reasons = []
-    last_ts = cmds[-1][0]
-    # 1. 冻结检测（场景 2：单次调用阻塞）
-    if now - last_ts > FREEZE_THRESHOLD:
-        reasons.append(f"冻结：最后命令 t={last_ts}，观察时刻 now={now}，"
-                       f"间隔 {now - last_ts}s > {FREEZE_THRESHOLD}s → 疑似卡在单次调用")
+    last = cmds[-1]
+    # 1. 冻结检测（场景 2：单次调用阻塞）——两级阈值
+    thr = freeze_threshold(last)
+    if now - last["t"] > thr:
+        src = (f"expected={last['expected']}s ×{FREEZE_EXPECT_MULT}" if last["expected"] is not None
+               else f"未声明预期耗时，兜底 {FREEZE_FALLBACK}s")
+        reasons.append(f"冻结：最后命令 t={last['t']}（{last['cmd']}），观察时刻 now={now}，"
+                       f"间隔 {now - last['t']}s > 阈值 {thr}s（{src}）→ 疑似卡在单次调用")
         return "FROZEN", reasons
-    # 2. 无效重复检测（场景 3：逻辑空转）——同命令+同结果签名
+    # 2. 无效重复检测（场景 3：逻辑空转）——同命令+同结果签名；截断排除
     window = cmds[-REPEAT_WINDOW:]
     combo_counts = {}
-    for t, cmd, exit_, out in window:
-        key = (cmd, exit_, out)
+    for rec in window:
+        if rec["truncated"]:
+            continue  # 截断输出不参与哈希比对（两个不同失败截断成同前缀会误判）
+        key = (rec["cmd"], rec["exit"], rec["out"])
         combo_counts[key] = combo_counts.get(key, 0) + 1
-    worst = max(combo_counts.values())
-    worst_key = max(combo_counts, key=combo_counts.get)
-    if worst >= SPIN_THRESHOLD:
-        reasons.append(f"空转：同 (命令, exit, 输出哈希) 组合 {worst_key} "
-                       f"在窗口 {REPEAT_WINDOW} 内重复 {worst} 次 >= {SPIN_THRESHOLD} → 疑似逻辑空转")
-        return "SPIN", reasons
+    if combo_counts:
+        worst = max(combo_counts.values())
+        if worst >= SPIN_THRESHOLD:
+            worst_key = max(combo_counts, key=combo_counts.get)
+            reasons.append(f"空转：同 (命令, exit, 输出哈希) 组合 {worst_key} "
+                           f"在窗口 {REPEAT_WINDOW} 内重复 {worst} 次 >= {SPIN_THRESHOLD} → 疑似逻辑空转")
+            return "SPIN", reasons
     # 3. 重复可疑（信息级）：命令名重复但结果在变 → 合法迭代，不判空转
-    unique_cmds = {c for _, c, _, _ in window}
+    unique_cmds = {rec["cmd"] for rec in window}
     if len(unique_cmds) < REPEAT_UNIQUE_MIN:
         reasons.append(f"提示：窗口 {REPEAT_WINDOW} 内唯一命令数 {len(unique_cmds)} < "
                        f"{REPEAT_UNIQUE_MIN}，但结果签名在变化（合法迭代特征），不判空转")
@@ -65,7 +102,8 @@ def detect(cmds, now):
     return "NORMAL", reasons
 
 
-# ---- 三个场景的模拟命令流（虚拟时钟） ----
+# ---- 场景模拟命令流（虚拟时钟） ----
+# expected= 字段模拟"派发时声明了预期耗时"（RM-AG0023 timeout_seconds 机制）
 
 SCENARIOS = {
     # 场景 2：系统调用层无限阻塞——最后一条命令之后不再有任何命令（sleep 1000 模拟）
@@ -124,6 +162,40 @@ SCENARIOS = {
             "t=18 cmd=j exit=0 out=h10",
         ],
     },
+    # 新增（2026-09-03 实测驱动）：合法长命令不误报——声明 expected=200s
+    # 的合法长命令（全量测试/CI 等待，对应实测 max≈196s）在 100s 时仍在正常执行，
+    # 固定 30s 阈值会误杀，两级阈值（expected×2=400s）不触发冻结。
+    "E_正常_合法长命令_expected声明": {
+        "now": 100,
+        "lines": [
+            "t=0 cmd=setup exit=0 out=h_setup",
+            "t=1 cmd=full_pytest_xdist exit=0 out=h_run expected=200",
+            "# ↑ 距 last 99s，expected=200s → 阈值 max(200×2, 30)=400s，99s < 400s → 不冻结",
+        ],
+    },
+    # 新增（2026-09-03 实测驱动）：长命令超期仍无新命令 → 冻结（expected×2 触发）
+    "F_冻结_expected超期": {
+        "now": 500,
+        "lines": [
+            "t=0 cmd=setup exit=0 out=h_setup",
+            "t=1 cmd=full_pytest_xdist exit=0 out=h_run expected=200",
+            "# ↑ 距 last 499s > 阈值 max(200×2, 30)=400s → 冻结（即便声明过预期耗时）",
+        ],
+    },
+    # 新增（2026-09-03，§3.4.2 差异点 4）：截断排除——两条不同失败命令的输出
+    # 都被截断成同前缀（h_trunc），若参与哈希比对会误判空转；截断不参与比对 → 不判空转。
+    "G_正常_截断输出不误判": {
+        "now": 12,
+        "lines": [
+            "t=0 cmd=fail_task exit=1 out=h_trunc truncated",
+            "t=1 cmd=fail_task exit=1 out=h_trunc truncated",
+            "t=2 cmd=fail_task exit=1 out=h_trunc truncated",
+            "t=3 cmd=fail_task exit=1 out=h_trunc truncated",
+            "t=4 cmd=fail_task exit=1 out=h_trunc truncated",
+            "t=5 cmd=fail_task exit=1 out=h_trunc truncated",
+            "# ↑ 同命令同 exit 同被截断前缀 ×6，但 truncated 不参与哈希比对 → 不算无效重复",
+        ],
+    },
 }
 
 # ---- 期望判定（验证断言） ----
@@ -132,15 +204,20 @@ EXPECTED = {
     "B_空转_逻辑打转": "SPIN",
     "C_正常_合法迭代": "NORMAL",
     "D_正常_健康长尾": "NORMAL",
+    "E_正常_合法长命令_expected声明": "NORMAL",
+    "F_冻结_expected超期": "FROZEN",
+    "G_正常_截断输出不误判": "NORMAL",
 }
 
 
 def main():
     print("=" * 72)
-    print("命令流日志机制验证：冻结 / 空转 / 合法迭代 区分能力")
+    print("命令流日志机制验证：冻结 / 空转 / 合法迭代 / 长命令 / 截断 区分能力")
     print("=" * 72)
-    print("判据：冻结 = 最后命令开始距今 > 30s；空转 = 同(命令,exit,输出哈希)")
-    print("      重复 >= 5 次；心跳新鲜度三场景均为'新鲜'（进程都活着）")
+    print(f"判据：冻结 = 最后命令开始距今 > 阈值（有 expected: max(expected×2, {FREEZE_FLOOR}s)；"
+          f"无: {FREEZE_FALLBACK}s 兜底）")
+    print(f"      空转 = 同(命令,exit,输出哈希) 重复 >= {SPIN_THRESHOLD} 次（窗口 {REPEAT_WINDOW}）；"
+          f"截断输出不参与比对")
     print("-" * 72)
     ok = True
     for name, sc in SCENARIOS.items():
@@ -157,7 +234,7 @@ def main():
             print(f"      · {r}")
         print()
     print("-" * 72)
-    print(f"结论：{'全部断言通过——命令流日志可机械区分三种状态' if ok else '存在断言失败，需检查判据'}")
+    print(f"结论：{'全部断言通过——命令流日志可机械区分七种状态' if ok else '存在断言失败，需检查判据'}")
     return 0 if ok else 1
 
 
