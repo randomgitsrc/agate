@@ -29,6 +29,7 @@ agate 协议本体划分为五大模块：
   `agate-render-dispatch-prompt.py`、`agate-next-card.py`、`agate_common.py` 公共函数库等）。
   ceremony 路由族（新增 TAG0019）：agate-risk-score.py（客观信号算分）、check-routing.py（ceremony 声明校验，pre-commit 2j.1 挂载）。
   judge 机制族（新增 TAG0020）：check-judge-verdict.py（judge verdict 门槛校验，P6.5 强门槛）、check-events.py（gate-events.jsonl 事件账本审计，append-only 哈希链）。
+  推进侧状态机族（新增 TAG0027）：agate-next.py（推进 CLI——消费 phases.yaml next/retreat/gate_pass_exit + check-gate exit 三态判定推进/回退/真暂停）、agate-advance.py（多阶回退引导，委托 agate-retreat-to.py）、agate-dispatch.py（渲染时注入 CLI——单命令渲染 dispatch-context + 阶段卡片 Lazy Injection，CARD-SOURCE 块外来源标记）。
 - **templates**（`agate/assets/templates/`）：模板文件（`dispatch-prompt.md`、
   `dispatch-context.md`、`task-files.md`、`code-map-template.md`、`skeleton-template.md`、
   `tech-debt-template.md`、`retrospective-template.md`、`roadmap-template.md`、

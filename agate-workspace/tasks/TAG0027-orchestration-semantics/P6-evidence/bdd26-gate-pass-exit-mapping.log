@@ -1,0 +1,20 @@
+=== BDD-26 实证：check-gate.py 各 phase 真实通过出口码（实读 gate_p* 末尾正常通过 return）===
+gate_p0: return 2 (L583)
+gate_p1: return 2 (L704)
+gate_p2: return 2 (L889)
+gate_p3: return 2 (L898)
+gate_p4: return 0 (L996)
+gate_p5: return 2 (L1054)
+gate_p6: return 2 (L1099)
+gate_p65: return 0 (L1126)
+gate_p7: return 0 (L1247)
+gate_p8: return 2 (L1382)
+
+=== phases.yaml gate_pass_exit 声明（实读）===
+[('P0', 2), ('P1', 2), ('P2', 2), ('P3', 2), ('P4', 0), ('P5', 2), ('P6', 2), ('P6.5', 0), ('P7', 0), ('P8', 2)]
+
+=== pytest 断言对照（test_bdd_26_gate_pass_exit_matches_check_gate_return）===
+PASSED（实跑输出见 tag0027-batch-48-summary.log，48 passed）
+
+gate_pass_exit 声明值与 check-gate.py 真实 return 码一一对应一致；agate next 按 pass_set 判定。
+EXIT_CODE: 0

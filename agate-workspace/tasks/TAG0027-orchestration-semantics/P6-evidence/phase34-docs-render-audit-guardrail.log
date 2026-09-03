@@ -1,0 +1,32 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kity/oclab/agateon/.worktrees/agate-TAG0027
+configfile: pyproject.toml
+plugins: xdist-3.8.0, asyncio-1.3.0, anyio-4.12.1, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 20 items
+
+agate/tests/unit/test_tag0027_b3a_platform_name_docs.py::test_bdd_14_dispatch_protocol_five_modes_single_anchor PASSED [  5%]
+agate/tests/unit/test_tag0027_b3a_platform_name_docs.py::test_bdd_16_workflow_md_known_env_table_has_anchor PASSED [ 10%]
+agate/tests/unit/test_tag0027_b3a_platform_name_docs.py::test_bdd_16_implementation_note_marker_format_present_after_cleanup PASSED [ 15%]
+agate/tests/unit/test_tag0027_b3a_platform_name_docs.py::test_bdd_17_assets_dsh_skill_md_is_structure_exempt PASSED [ 20%]
+agate/tests/unit/test_tag0027_b3a_platform_name_docs.py::test_bdd_23_render_dispatch_prompt_cli_contract_regression PASSED [ 25%]
+agate/tests/unit/test_tag0027_b2_agate_dispatch.py::test_bdd_18_dispatch_render_injects_full_card PASSED [ 30%]
+agate/tests/unit/test_tag0027_b2_agate_dispatch.py::test_bdd_18_dispatch_card_source_marker_outside_block PASSED [ 35%]
+agate/tests/unit/test_tag0027_b2_agate_dispatch.py::test_bdd_19_manual_inject_card_kept_exit_0 PASSED [ 40%]
+agate/tests/unit/test_tag0027_b2_agate_dispatch.py::test_bdd_19_manual_path_2p_hash_pass_anchor PASSED [ 45%]
+agate/tests/unit/test_tag0027_b2_agate_dispatch.py::test_bdd_25_two_paths_dispatch_context_hash_equal PASSED [ 50%]
+agate/tests/unit/test_tag0027_b2_agate_dispatch.py::test_bdd_25_auto_dispatch_card_hash_matches_next_card PASSED [ 55%]
+agate/tests/unit/test_tag0027_b2_audit2_dual_anchor.py::test_bdd_20_audit2_render_product_with_card_source_exit_0 PASSED [ 60%]
+agate/tests/unit/test_tag0027_b2_audit2_dual_anchor.py::test_bdd_20_audit2_pass_before_start_requires_dual_anchor PASSED [ 65%]
+agate/tests/unit/test_tag0027_b2_audit2_dual_anchor.py::test_bdd_21_audit2_manual_physical_block_fallback_exit_0 PASSED [ 70%]
+agate/tests/unit/test_tag0027_b3b_protocol_check14_check15.py::test_bdd_22_check14_md_paragraph_platform_name_no_note_errors PASSED [ 75%]
+agate/tests/unit/test_tag0027_b3b_protocol_check14_check15.py::test_bdd_22_check14_add_note_marker_pass PASSED [ 80%]
+agate/tests/unit/test_tag0027_b3b_protocol_check14_check15.py::test_bdd_16_check14_whole_file_exempt_structure PASSED [ 85%]
+agate/tests/unit/test_tag0027_b3b_protocol_check14_check15.py::test_bdd_24_new_protocol_md_auto_covered PASSED [ 90%]
+agate/tests/unit/test_tag0027_b3b_protocol_check14_check15.py::test_bdd_15_check15_data_rules_platform_token_zero PASSED [ 95%]
+agate/tests/unit/test_tag0027_b3b_protocol_check14_check15.py::test_bdd_15_check15_inserted_bare_task_errors PASSED [100%]
+
+============================== 20 passed in 1.44s ==============================
+EXIT_CODE: 0

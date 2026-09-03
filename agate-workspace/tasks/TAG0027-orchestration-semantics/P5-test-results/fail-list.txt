@@ -1,0 +1,4 @@
+# P5 failed 测试清单 — TAG0027（gate_commands.P5 全量运行）
+
+# 无失败（7/7 命令 exit 0，全量 pytest 1381 passed + 2 skipped，failed=0）
+# 预存失败：0（与 P4 基线一致，无新增）

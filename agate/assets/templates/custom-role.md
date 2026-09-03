@@ -44,6 +44,9 @@ source: {可选，如果改编自某处}
 ```
 
 ## 使用步骤
+
+> 实现注记：本模板为平台注册方法说明文档——"平台适配（二选一）"的方法 A/B 教用户如何在有自定义 agent 机制的平台（OpenCode/Claude Code）注册角色，属平台注册适配说明，非协议语义定义；协议层角色机制语义见 role-system.md「第三层（机制）：自定义角色」与 custom-role.md 上方模板结构。
+
 1. 按上面结构写一个 {role_id}.md，放 execution-roles/ 或 review-roles/
 2. 平台适配（二选一）：
    - 方法 A：在 OpenCode/Claude Code agent 目录放对应 markdown（文件名=role_id）
@@ -52,5 +55,8 @@ source: {可选，如果改编自某处}
 3. 派发时引用这个角色文件路径
 
 ## 注意（OpenCode issue #29616）
+
+> 实现注记：本节为平台自定义 agent 机制的坑位与规避说明（记录 OpenCode issue #29616 实测），属平台适配实现注记，非协议语义定义；平台无关的通用角色派发语义见 role-system.md「角色选择决策」与 dispatch-protocol.md。
+
 opencode.jsonc 里 mode:"subagent" 的自定义 agent 可能调不起来。
 优先用方法 B（prompt 注入角色文件），跨平台且不踩坑。

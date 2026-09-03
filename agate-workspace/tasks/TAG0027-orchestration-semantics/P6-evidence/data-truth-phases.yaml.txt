@@ -1,0 +1,32 @@
+=== phases.yaml 实读：全部条目 id / next / retreat / gate_pass_exit / gate_subphase ===
+  P0: next=  P1 retreat=None gate_pass_exit=2
+  P1: next=  P2 retreat=None gate_pass_exit=2
+  P2: next=  P3 retreat=None gate_pass_exit=2
+  P3: next=  P4 retreat=None gate_pass_exit=2
+  P4: next=  P5 retreat=None gate_pass_exit=0
+  P5: next=  P6 retreat=  P4 gate_pass_exit=2
+  P6: next=  P7 retreat=  P4 gate_pass_exit=2
+P6.5: next=None retreat=None gate_pass_exit=0 gate_subphase={"hosted_on": "P6", "forward_to": "P7", "needs_revision_to": "P6"}
+  P7: next=  P8 retreat=None gate_pass_exit=0
+  P8: next=None retreat=None gate_pass_exit=2
+
+主线条目数: 9 (P0-P8 = 9 个)
+主线全部含 next/retreat/gate_pass_exit 键: True
+P6.5 含 gate_subphase 且无 next/retreat 键: True
+P6.5 gate_subphase: {'hosted_on': 'P6', 'forward_to': 'P7', 'needs_revision_to': 'P6'}
+P5 retreat/P6 retreat == P4: ['P4', 'P4']
+P5 next==P6, P6 next==P7: [('P5', 'P6'), ('P6', 'P7')]
+P8 next/retreat == null: [('P8', None, None)]
+全部 gate_pass_exit 值: [('P0', 2), ('P1', 2), ('P2', 2), ('P3', 2), ('P4', 0), ('P5', 2), ('P6', 2), ('P6.5', 0), ('P7', 0), ('P8', 2)]
+
+=== 键字面存在性（非值 null 判缺失） ===
+P0: has next key=True retreat key=True gate_pass_exit key=True
+P1: has next key=True retreat key=True gate_pass_exit key=True
+P2: has next key=True retreat key=True gate_pass_exit key=True
+P3: has next key=True retreat key=True gate_pass_exit key=True
+P4: has next key=True retreat key=True gate_pass_exit key=True
+P5: has next key=True retreat key=True gate_pass_exit key=True
+P6: has next key=True retreat key=True gate_pass_exit key=True
+P6.5: has next key=False has retreat key=False has gate_subphase key=True
+P7: has next key=True retreat key=True gate_pass_exit key=True
+P8: has next key=True retreat key=True gate_pass_exit key=True

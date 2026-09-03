@@ -320,6 +320,13 @@ def main():
     # Exclude AGATE_CARD embedded block + 文件顶部第一对 "---" 定界的 frontmatter 块
     # T001 v2.0 流 B（P2-design.md §3.2.3）：P6 结果入 frontmatter 后，frontmatter
     # 样例块也须排除，避免字段示例被误判为验收结论预判。
+    # TAG0027 §3.6 双锚点剥离（A2 定案 (a)）：渲染产物含块外 CARD-SOURCE 来源标记
+    # （`<!-- CARD-SOURCE: agate-dispatch.py {phase} -->`，置于 AGATE_CARD_START 之前）——
+    # ① CARD-SOURCE 优先：自 CARD-SOURCE 行起至匹配 AGATE_CARD_END 止整段剥离
+    #   （CARD-SOURCE 行 + START + 卡片正文一起剥——渲染产物块 = "从 CARD-SOURCE 行起的
+    #   物理块"，剥离后文件体不含 CARD-SOURCE/START/END/卡片）；
+    # ② 物理块兜底：无 CARD-SOURCE 时走既有 AGATE_CARD_START → AGATE_CARD_END 剥离
+    #   （手工 + inject-card 注入路径，BDD-21）。
     for dispatch_ctx in sorted(glob.glob(os.path.join(task_dir, "P6-dispatch-context-*.md"))):
         try:
             with open(dispatch_ctx, encoding="utf-8", errors="replace") as f:
@@ -328,7 +335,18 @@ def main():
             lines = []
         stripped = []
         in_card = False
+        from_source = False
         for line in lines:
+            if from_source:
+                # CARD-SOURCE 优先剥离区间：至匹配 AGATE_CARD_END 止（含 END 行整段剥）
+                if "<!-- AGATE_CARD_END -->" in line:
+                    from_source = False
+                continue
+            if not in_card and "<!-- CARD-SOURCE: agate-dispatch.py" in line:
+                # 渲染产物块剥离起点 = CARD-SOURCE 行（该行 + START + 卡片正文整段剥）；
+                # 仅在物理块外触发（卡片正文内若含同名子串不误触发）
+                from_source = True
+                continue
             if "<!-- AGATE_CARD_START -->" in line:
                 in_card = True
                 continue

@@ -1,0 +1,6 @@
+=== YAML Schema 校验实跑（S-5 链路，phases.yaml）===
+SCHEMA-phases: OK
+SCHEMA-dispatch: OK
+SCHEMA-roles: OK
+SCHEMA_EXIT=0
+EXIT_CODE: 0
