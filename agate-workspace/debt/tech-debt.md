@@ -1128,3 +1128,66 @@ source: retrospective
 created_at: 2026-09-04
 task_id: TAG0031
 ```
+
+## DEBT0031
+
+```yaml
+id: DEBT0031
+category: technical
+title: "P1 frontmatter phases 列表与正文裁剪声明一致性无机械校验（TAG0030 复盘发现）"
+status: open
+priority: medium
+evidence:
+  - path: agate-workspace/tasks/TAG0030-acceptance-blindspot/retrospective.md
+    note: "frontmatter 机制缺口：P1 phases 漏写 P2 靠 requirements-review 打回才暴露，check-frontmatter/check-gate P1 均未拦截——frontmatter phases 列表与正文裁剪声明的一致性依赖人工核对"
+impact: "P1 阶段裁剪声明错误只能靠 review 打回暴露，额外消耗 review 轮次；严重时裁剪声明与实际产出不符直达下游阶段"
+recommendation: "check-gate P1 阶段校验 frontmatter phases 列表与 P1-requirements.md 正文声明的阶段裁剪一致性；先加失败测试确认红再修"
+closure_criteria:
+  - check-gate P1 对 frontmatter phases 与正文裁剪声明做机械一致性校验（新测试覆盖）
+  - 全量 pytest + consistency 0 ERROR
+source: retrospective
+created_at: 2026-09-04
+task_id: TAG0030
+```
+
+## DEBT0032
+
+```yaml
+id: DEBT0032
+category: technical
+title: "agate-next P6→P7 A1 裁决把 provenance WARNING 误判假暂停并落盘模板残留（TAG0030 复盘发现）"
+status: open
+priority: medium
+evidence:
+  - path: agate-workspace/tasks/TAG0030-acceptance-blindspot/retrospective.md
+    note: "agate-next P6→P7 A1 裁决把 provenance WARNING（exit 2，根因 P3 缺 agent 字段）误判为验收异常，触发假暂停并落盘 P6-exit2-resolution.md 模板残留（未跟踪，非真实事件产物）；本次任务已连带清理，但机制未修复"
+impact: "P6→P7 推进被误判阻断产生无效停顿与模板残留文件；残留未跟踪文件在 worktree 清理时连带删除，但假暂停本身浪费推进轮次"
+recommendation: "agate-next A1 裁决区分 provenance WARNING（exit 2）与真实验收失败：provenance 类 exit 2 应转为明确提示而非假暂停；落盘模板残留时输出提示路径供人工确认删除"
+closure_criteria:
+  - agate-next P6→P7 对 provenance WARNING 不再假暂停（新测试覆盖 exit 2 分类）
+  - 全量 pytest + consistency 0 ERROR
+source: retrospective
+created_at: 2026-09-04
+task_id: TAG0030
+```
+
+## DEBT0033
+
+```yaml
+id: DEBT0033
+category: technical
+title: "check-debt 关闭 schema 校验器无任何 gate/CI 挂载 + closed 证据判定为 P[56] 子串启发式（TAG0030 复盘发现）"
+status: open
+priority: medium
+evidence:
+  - path: agate-workspace/tasks/TAG0030-acceptance-blindspot/retrospective.md
+    note: "DEBT 关闭 schema 校验器 check-debt 无任何 gate/CI 挂载，closed 证据判定为 P[56] 子串启发式：P8 纯 status 翻转关闭后 main 上 check-debt exit 1——关闭动作无机械防护"
+impact: "DEBT 关闭动作可绕过证据校验直接翻转 status，关闭质量依赖人工自觉；main 上 check-debt 失败暴露时已晚"
+recommendation: "check-debt 挂载 gate/CI（P8 关闭时强制校验证据存在）；closed 证据判定从子串启发式改为显式字段校验"
+closure_criteria:
+  - check-debt 挂载 gate/CI 且 closed 证据显式字段校验（新测试覆盖）
+  - 全量 pytest + consistency 0 ERROR
+source: retrospective
+created_at: 2026-09-04
+task_id: TAG0030
+```
