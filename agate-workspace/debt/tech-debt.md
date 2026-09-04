@@ -926,6 +926,8 @@ evidence:
     note: "P3 TDD 测试契约复制了设计的错误 exit 2 前提，红灯未暴露语义冲突（测试用 mock 造 exit 0/1/2 场景，与真实 check-gate 语义脱节）；若夹具走真实 gate（补 P5 baseline + fail-list），CRITICAL 会在 P3 测试设计期而非 P4 review 期暴露"
   - ref: agate-workspace/tasks/TAG0027-orchestration-semantics/P4-review.md
     note: "P4 review 实证发现 check-gate exit 2 双义语义错误前提 → P1/P2/P3/P4 四层返工（本任务最大返工事件）"
+  - ref: agate-workspace/tasks/TAG0030-acceptance-blindspot/P6-acceptance.md
+    note: "closure（TAG0030，task_id=TAG0030）：P6 验收 BDD-19 PASS——tests/README「何时更新」节已写明『gate 消费方测试夹具须走真实 gate 语义』，见 P6-evidence/bdd-19-anchor.txt；P6.5 judge 21/21 复核通过"
 impact: 测试 gate 消费方时用 mock 假 exit 码，会让测试契约复制设计的错误前提、红灯无法暴露语义冲突——语义类错误延迟到 review 期才暴露，返工成本放大（本任务实证四层返工）
 recommendation: 测试 gate 消费方时夹具尽量走真实 gate 语义（构造真实前置产物让 check-gate 产 exit，而非 stub）；B1 夹具修复后的 3 例（补 P5 baseline + fail-list）是正确方向，协议测试设计文档应强调此要求
 closure_criteria:
@@ -933,6 +935,7 @@ closure_criteria:
 source: review
 created_at: 2026-09-03
 task_id: TAG0027
+closed_at: 2026-09-04
 ```
 
 ## DEBT0025
@@ -948,6 +951,8 @@ evidence:
     note: "清理/新检查上线前先全量扫描：新增 CHECK 前须确认存量零命中（CHECK 14/15 首跑 3 ERROR 是 B3a 批边界漏网）；新检查上线先跑一次全量扫描作为前置 gate"
   - ref: agate/scripts/check-protocol-consistency.py
     note: "CHECK 14/15（护栏 1 机械化）随 TAG0027 上线，首跑 3 ERROR 均由存量平台名未挂实现注记触发"
+  - ref: agate-workspace/tasks/TAG0030-acceptance-blindspot/P6-acceptance.md
+    note: "closure（TAG0030，task_id=TAG0030）：P6 验收 BDD-20 PASS——AGENTS.md「改脚本的工作流」已补『新增 CHECK 上线前先全量扫描存量』第 0 步，见 P6-evidence/bdd-20-anchor.txt；P6.5 judge 21/21 复核通过"
 impact: 新 CHECK 上线时若存量有命中，CI 立即红灯、任务被迫补存量清理——清理批边界按文件归属划分但命中面是内容面（同文件可能含多个清理点且跨批），需在 CHECK 上线前一次性摸清存量
 recommendation: 新检查上线流程补前置步骤：先跑一次全量扫描确认存量零命中（或登记已知命中清单 + 分批清理计划），再合并启用该 CHECK
 closure_criteria:
@@ -955,13 +960,14 @@ closure_criteria:
 source: review
 created_at: 2026-09-03
 task_id: TAG0027
+closed_at: 2026-09-04
 ```
 
 ## DEBT0026
 
 ```yaml
 id: DEBT0026
-category: execution
+category: protocol
 title: 单 agent 大任务上下文耗尽（>5 文件/大文档清理类）——B3a 派单 agent 处理 7 文件文档清理卡在开工后，改拆 7 个小 agent 后稳定
 status: closed
 priority: medium
@@ -970,6 +976,8 @@ evidence:
     note: "B3a 派单个 agent 处理 7 文件文档清理（上下文重），卡在开工后；implementer.md 有分阶段落盘要求但单 agent 大任务仍易耗尽；改按文件拆 7 个小 agent 并行后解决"
   - ref: agate-workspace/tasks/TAG0027-orchestration-semantics/P4-dispatch-context-implementer-B3a.md
     note: "B3a 派发上下文（7 文件清理批），上下文耗尽中断重派 2 次"
+  - ref: agate-workspace/tasks/TAG0030-acceptance-blindspot/P6-acceptance.md
+    note: "closure（TAG0030，task_id=TAG0030）：P6 验收 BDD-21 PASS——dispatch-context.md 模板已补『改动体量 >5 文件按体量评估拆小』默认指导，见 P6-evidence/bdd-21-anchor.txt；P6.5 judge 21/21 复核通过"
 impact: 多文件/大文档类任务单 agent 派发易上下文耗尽，浪费多轮（本任务 B3a 两次 + B3b 初始轮共 3 次中断重派），且 dispatch-context 已含分阶段落盘要求仍不够
 recommendation: 大任务（多文件/大文档）派发前先评估单 agent 上下文体量，超限按文件数/体量拆小粒度派发（本任务拆 7 个后稳定）；与 §4 自主再派发设计（subagent 内部拆批）互为补充——外部拆小是现状兜底，内部自主拆是根治方向
 closure_criteria:
@@ -977,6 +985,7 @@ closure_criteria:
 source: review
 created_at: 2026-09-03
 task_id: TAG0027
+closed_at: 2026-09-04
 ```
 
 ## DEBT0027
