@@ -1,0 +1,19 @@
+# BDD-6 anchor evidence
+# target: agate/tests/unit/test_tag0030_assertions.py (worktree agate-TAG0030)
+# command: grep -nE "清理钩子|残留检查|环境还原" agate/tests/unit/test_tag0030_assertions.py
+# ---
+27:# 锚词（清理钩子/残留检查/环境还原），与 BDD-1~5 同源同词，当前同样全 0 命中（红）。
+41:# ── Phase 1（BDD-1~6）：测试副作用/环境还原 gate（RM-AG0057-①）──
+46:    """BDD-1：P3 卡声明创建型测试清理钩子要求（P2 §2 Phase 1 锚词：清理钩子/创建即注册）。"""
+48:    assert "清理钩子" in content
+56:    assert "清理钩子" in content
+62:    """BDD-3：清理钩子规则含「无条件删除 + 接受 200/204/404」（afterEach 清理队列模式）。"""
+70:    """BDD-4：P6 卡补 post-test 环境残留检查步骤（快照比对或清理钩子验证）。"""
+72:    assert "残留检查" in content
+78:    """BDD-5：dispatch-context 模板声明环境清理/还原/残留检查约束条目位。"""
+80:    assert "环境还原" in content
+81:    assert "残留检查" in content
+93:    assert "清理钩子" in p3
+94:    assert "清理钩子" in p4
+95:    assert "残留检查" in p6
+96:    assert "环境还原" in tmpl

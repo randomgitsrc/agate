@@ -1,0 +1,5 @@
+# BDD-21 anchor evidence
+# target: agate/assets/templates/dispatch-context.md (worktree agate-TAG0030)
+# command: grep -nE "拆小|体量" agate/assets/templates/dispatch-context.md
+# ---
+33:- {拆小默认指导条目位：单 agent 派发改动体量 >5 文件或大文档时，主 Agent 应先评估是否拆小（外部拆小兜底，与 subagent 内部自主拆互补）}

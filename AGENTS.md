@@ -16,6 +16,7 @@
 
 ## 改脚本的工作流
 
+0. **新增 CHECK 上线前先全量扫描存量**：新增 CHECK/规则前，先对既有协议文档与数据面做全量扫描，确认新规则不误伤存量条文（DEBT0025）
 1. **先加失败测试确认红** → 改脚本转绿
 2. `python3 agate/scripts/check-protocol-consistency.py` 必须 0 ERROR（`--strict` 连 WARNING 都阻断；`--strict-errors-only` 只按 ERROR 判失败，docs-only PR 用它）
 3. `bash agate/tests/scripts/count-tests.sh` 确认用例数未漂移

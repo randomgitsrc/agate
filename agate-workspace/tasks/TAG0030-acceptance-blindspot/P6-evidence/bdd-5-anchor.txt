@@ -1,0 +1,5 @@
+# BDD-5 anchor evidence
+# target: agate/assets/templates/dispatch-context.md (worktree agate-TAG0030)
+# command: grep -nE "环境还原|残留检查|清理" agate/assets/templates/dispatch-context.md
+# ---
+32:- {环境清理/环境还原条目位（创建型测试）：测试结束须注册清理钩子并做残留检查（快照比对或清理钩子验证二选一），派发约束须写明环境还原要求}

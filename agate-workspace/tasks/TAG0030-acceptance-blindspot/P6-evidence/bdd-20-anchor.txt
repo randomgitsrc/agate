@@ -1,0 +1,5 @@
+# BDD-20 anchor evidence
+# target: AGENTS.md (worktree agate-TAG0030)
+# command: grep -nE "全量扫描|新增 CHECK" AGENTS.md
+# ---
+19:0. **新增 CHECK 上线前先全量扫描存量**：新增 CHECK/规则前，先对既有协议文档与数据面做全量扫描，确认新规则不误伤存量条文（DEBT0025）

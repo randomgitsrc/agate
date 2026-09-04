@@ -1,0 +1,5 @@
+# BDD-8 anchor evidence
+# target: agate/assets/execution-roles/analyst.md (worktree agate-TAG0030)
+# command: grep -nE "人工体验|seed" agate/assets/execution-roles/analyst.md
+# ---
+47:3. **BDD 验收条件**：用 Given/When/Then 写出每条可验证行为（这是 P6 验收的依据）。**BDD 条件必须设计为可二值判定（PASS 或 FAIL）**，P6 验收不允许"调整/跳过/覆盖"等中间态——写 BDD 时就要确保结果非此即彼。**人工体验路径验收（与 P1 卡同源）**：任务涉及用户可见页面且页面内容受数据源（seed）影响时，不得只用 fixture 验收——必须补一条「Given seed 数据 → 页面有内容」型 BDD（人工体验验收路径，见 P1 卡「人工体验路径验收」节），确保用户按文档 seed 后页面确有内容

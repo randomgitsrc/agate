@@ -1,0 +1,5 @@
+# BDD-4 anchor evidence
+# target: agate/phase-cards/P6-acceptance.md (worktree agate-TAG0030)
+# command: grep -nE "残留检查|post-test" agate/phase-cards/P6-acceptance.md
+# ---
+14:4. **post-test 环境残留检查（强制步骤）**：验收测试执行完毕后、记录 PASS 证据前，先做环境残留检查——

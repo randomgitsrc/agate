@@ -1,0 +1,7 @@
+# BDD-17 anchor evidence
+# target: agate/assets/execution-roles/architect.md (worktree agate-TAG0030)
+# command: grep -nE "DOM 度量|不收主观视觉" agate/assets/execution-roles/architect.md
+# ---
+92:> 五类 **DOM 度量**（E2E 以 `getBoundingClientRect` 等 DOM 度量断言量化采集，见 verifier.md
+93:> 证据形式指南），**不收主观视觉**（美观/好看/协调等主观判断不构成可断言视觉契约，归入
+94:> 截图人工复核或 vision-analyst 描述）。只收可量化 DOM 度量，不代表"所有视觉都必须断言"。
