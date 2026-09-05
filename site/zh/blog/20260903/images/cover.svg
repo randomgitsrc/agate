@@ -12,9 +12,9 @@
 
   <text x="70" y="86" font-family="Noto Sans SC, serif" font-size="19" letter-spacing="3.5" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
 
-  <text x="70" y="200" font-size="64" font-weight="700" fill="#1A1A18">无法验证，</text>
-  <text x="70" y="278" font-size="64" font-weight="700" fill="#1D9E75">便无法授权</text>
-  <text x="70" y="330" font-size="23" font-style="italic" fill="#444441">监督是信任的代价 · 验证才是解决之道</text>
+  <text x="70" y="200" font-size="64" font-weight="700" fill="#1A1A18">验证不了的事，</text>
+  <text x="70" y="278" font-size="64" font-weight="700" fill="#1D9E75">就委托不出去</text>
+  <text x="70" y="330" font-size="23" font-style="italic" fill="#444441">监督是信任税 · 验证才是出路</text>
 
   <!-- ===== scene (vertical band 360–545): human → task → gate → agent → verified card ===== -->
 
@@ -58,5 +58,5 @@
     <text x="970" y="500" fill="#085041" font-family="Noto Sans SC, serif" font-size="12" font-weight="700" text-anchor="middle">已验证</text>
   </g>
 
-  <text x="70" y="585" font-family="Noto Sans SC, serif" font-size="18" fill="#444441">下达目标，而非步骤。审查核对后的结果，而非过程。</text>
+  <text x="70" y="585" font-family="Noto Sans SC, serif" font-size="18" fill="#444441">给的是目标，不是步骤；看的是结果，不是过程。</text>
 </svg>

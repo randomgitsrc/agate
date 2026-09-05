@@ -17,7 +17,7 @@
     <rect x="60" y="120" width="180" height="54" rx="12" fill="#D3D1C7"/>
     <text x="150" y="152" fill="#444441">作者 (AGENT)</text>
     <rect x="60" y="210" width="180" height="54" rx="12" fill="#E3E0F7"/>
-    <text x="150" y="242" fill="#4C45A8">工作 + 自我报告</text>
+    <text x="150" y="242" fill="#4C45A8">产出 + 自述</text>
     <path d="M 240 147 L 268 147" stroke="#444441" stroke-width="3"/>
     <path d="M 240 237 L 268 237" stroke="#444441" stroke-width="3"/>
   </g>
@@ -29,7 +29,7 @@
     <rect x="280" y="178" width="260" height="54" rx="12" fill="#E3E0F7"/>
     <text x="300" y="211" fill="#4C45A8">2 · 证据交叉核对</text>
     <rect x="280" y="260" width="260" height="54" rx="12" fill="#F5C4B3"/>
-    <text x="300" y="293" fill="#712B13">3 · 只读账本</text>
+    <text x="300" y="293" fill="#712B13">3 · 只增不改的账本</text>
 
     <path d="M 540 178 L 566 178" stroke="#444441" stroke-width="3"/>
     <path d="M 540 287 L 566 287" stroke="#444441" stroke-width="3"/>
@@ -38,7 +38,7 @@
   <!-- ===== right: judge + verdict ===== -->
   <g font-family="'Menlo', 'Consolas', monospace" font-size="15" font-weight="700" text-anchor="middle">
     <rect x="578" y="150" width="140" height="54" rx="12" fill="#9FE1CB"/>
-    <text x="648" y="182" fill="#085041">裁判 (JUDGE)</text>
+    <text x="648" y="182" fill="#085041">JUDGE</text>
     <text x="648" y="202" fill="#085041" font-size="11" font-weight="400">新上下文</text>
     <path d="M 648 204 L 648 230" stroke="#1D9E75" stroke-width="3" marker-end="url(#aTeal)"/>
     <rect x="578" y="236" width="140" height="54" rx="12" fill="#F5C4B3"/>
@@ -50,5 +50,5 @@
     <path d="M 648 290 L 648 316" stroke="#085041" stroke-width="3" marker-end="url(#aCoral)"/>
   </g>
 
-  <text x="46" y="492" font-size="16" font-style="italic" fill="#444441">作者不能担任裁判 — 流程强制执行分离，且由 EXIT CODE（而非模型）把守 gate。</text>
+  <text x="46" y="492" font-size="16" font-style="italic" fill="#444441">作者不能当自己的 judge——分离靠流程强制，把守 gate 的是 EXIT CODE，不是模型。</text>
 </svg>

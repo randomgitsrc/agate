@@ -23,14 +23,14 @@
   <text x="120" y="290" font-family="Noto Sans SC, serif" font-size="15" fill="#26215C" text-anchor="middle">agent</text>
 
   <path d="M172 220 L318 220" fill="none" stroke="#712B13" stroke-width="2.5" stroke-dasharray="6 6" marker-end="url(#ah2)"/>
-  <text x="245" y="203" font-family="Noto Sans SC, serif" font-size="13" fill="#712B13" text-anchor="middle">"0 次重试"</text>
+  <text x="245" y="203" font-family="Noto Sans SC, serif" font-size="13" fill="#712B13" text-anchor="middle">“重试 0 次”</text>
 
   <path d="M330 165 L378 185 L378 233 Q378 262 330 282 Q282 262 282 233 L282 185 Z" fill="#F5C4B3"/>
   <text x="330" y="238" font-family="Noto Sans SC, serif" font-size="34" fill="#712B13" text-anchor="middle" font-weight="bold">?</text>
   <text x="330" y="307" font-family="Noto Sans SC, serif" font-size="15" fill="#712B13" text-anchor="middle">gate</text>
 
-  <text x="225" y="380" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">一个未验证的 channel</text>
-  <text x="225" y="403" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">决定一切</text>
+  <text x="225" y="380" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">agent 自报的信息，</text>
+  <text x="225" y="403" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">没人核实，却说了算。</text>
 
   <!-- RIGHT: after -->
   <text x="675" y="55" font-family="Noto Sans SC, serif" font-size="20" fill="#085041" text-anchor="middle" font-weight="bold">之后</text>
@@ -42,7 +42,7 @@
   <text x="570" y="290" font-family="Noto Sans SC, serif" font-size="15" fill="#26215C" text-anchor="middle">agent</text>
 
   <path d="M622 220 L768 220" fill="none" stroke="#B4B2A9" stroke-width="2" stroke-dasharray="6 6"/>
-  <text x="695" y="203" font-family="Noto Sans SC, serif" font-size="13" fill="#B4B2A9" text-anchor="middle">"0 次重试"</text>
+  <text x="695" y="203" font-family="Noto Sans SC, serif" font-size="13" fill="#B4B2A9" text-anchor="middle">“重试 0 次”</text>
 
   <path d="M780 165 L828 185 L828 233 Q828 262 780 282 Q732 262 732 233 L732 185 Z" fill="#9FE1CB"/>
   <path d="M760 230 L774 244 L802 210" fill="none" stroke="#085041" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -57,7 +57,7 @@
   <line x1="780" y1="447" x2="780" y2="458" stroke="#085041" stroke-width="2.5"/>
   <text x="780" y="490" font-family="Noto Sans SC, serif" font-size="13" fill="#085041" text-anchor="middle">git history</text>
 
-  <text x="655" y="380" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">一个无法忽略的事实</text>
-  <text x="655" y="403" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">拥有最终决定权</text>
+  <text x="655" y="380" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">事实就摆在 git history 里，</text>
+  <text x="655" y="403" font-family="Noto Sans SC, serif" font-size="16" fill="#5F5E5A" text-anchor="middle">agent 瞒不住。</text>
 
 </svg>

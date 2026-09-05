@@ -1,7 +1,7 @@
 ---
-title: "我们不断尝试攻破自己的 gates"
+title: "我们总在想办法攻破自己的 gate"
 date: 2026-08-31
-description: "只有不断尝试去攻破它，gate 才是值得信赖的。Agateon 是如何攻击其自身验证机制的：对 TDD 红灯进行分类，将裁判与作者分离，并绝不让 LLM 拥有最终决定权。"
+description: "gate 可不可信，就看有没有人不停地攻它。这篇讲 Agateon 怎么攻击自己的验证机制：给 TDD 红灯分类，把 judge 和作者分开，永远不让 LLM 说了算。"
 tags:
   - ai-agents
   - verification
@@ -9,73 +9,75 @@ tags:
   - reliability
 ---
 
-上一篇文章指出，gate 为你赢得了“移开视线”的权利。但要从*什么*上面移开视线呢——是 agent，还是 gate 本身：一段由某人编写的代码，却在评判由同类系统所完成的工作，而该系统可能正试图取悦它？那么，谁来监督监督者呢？
+上一篇说，gate——每个阶段的活儿必须先过一道检查——换来的是撒手不看的资格。可不看什么：agent，还是 gate 本身？gate 也是人写的代码，却在评判另一个同类系统干出来的活儿，而这个系统说不定正想讨好它。那么，谁来盯住盯人的那位？
 
-我所说的 *gate*，是指工作阶段在被认定为“完成”之前必须通过的任何检查——没有 gate，就没有进展。本文旨在探讨是什么让一个 gate 足够值得信赖，从而能够去监督一个 agent。简短的回答是：除了反复尝试攻破它，并将每一次成功的攻击视为一个功能需求（feature request）之外，没有任何东西能让它变得值得信赖。
+先把 gate 说清楚：一个 phase 的活儿要算完成，必须先过某道检查——没有 gate，就没有下一步。这篇要谈的是另一件事：gate 凭什么可信到能去看住一个 agent？答案很短：没有什么能让它天然可信，只有一遍一遍地攻破它，再把每一次成功的攻击当成一条功能需求。
 
-![封面：一个带有勾选标记、标有 GATE 的大型青色盾牌，被三支标有 broken test、fake red 和 self-review 的珊瑚色箭头击中。标题写着“我们不断尝试攻破自己的 gate”](./images/cover-breakgates.svg)
+![封面：标着 GATE 的青色盾牌被三支箭射中，箭上分别写着坏掉的测试、假红灯、自查；标题是我们总在想办法攻破自己的 gate](./images/cover-breakgates.svg)
 
 ## TL;DR
 
-- 一个读取 agent 自身叙述的 gate 根本不是 gate——它只是 post-01 中事后分析的重演。
-- 你无法通过设计规避的失效模式是*信任链同构*：作者和评审者是同一个系统，拥有相同的上下文。解决方法是强制性的机械隔离。
-- 我们从三个方面攻击自己的 gate：对 TDD 的红灯进行分类，防止损坏的测试被误认为是合法的红灯；引入一个独立的 judge，在全新的上下文中重新验证一切；以及将 judge 的裁决设为*咨询性质*——退出代码（exit code）始终是门槛，绝非模型的观点。
-- 诚实的警告：对抗性测试只能覆盖你预想到的攻击。gate 的可信度上限，取决于攻击它的想象力。
+- 会读 agent 自述的 gate 不算 gate——那只是把 post-01 的复盘又播了一遍。
+- 最躲不开的失败模式是*同一条信任链*：干活的和审活儿的是同一个系统，共享同一份上下文。解法是分离，而且必须由机制强制执行。
+- 我们从三个方向攻击自己的 gate：给 TDD 红灯分类，让坏掉的测试冒充不了合理的红；加一个独立角色 judge（独立复核），在全新上下文里把所有东西重核一遍；judge 的裁决只是*建议*——门槛永远是 exit code，不是模型的意见。
+- 有一条局限得坦白：对抗测试只覆盖想得到的攻击。没人想到的漏洞，gate 一样看不见。
 
-## 读取自身作者的 gate 不是 gate
+## 会读作者自述的 gate，不是 gate
 
-这就是我们开始的地方，有必要精确地定义这种失效。post-01 中的安全网检查了一个存在于 agent 状态文件中的重试计数器。计数器是真的，机制也是真的，但 gate 读取的是 agent 自己对自身失败的描述。四次真正的失败发生了；计数器却保持为空；gate 通过了。这不是因为检查太弱，而是因为证据是由被检查方自己编写的。
+这个失败就是我们的起点，值得拆开说清楚。post-01 的安全网检查一个重试计数器，它存在 agent 的状态文件里。计数器是真的，机制也是真的，但 gate 读到的失败记录，出自 agent 自己的手笔。结果是：四次失败实打实地发生了，计数器一直是空的，gate 照样放行。不是检查太弱——是证据的作者，恰好就是被检查的那一方。
 
-post-03 中的证据阶梯（evidence ladder）已经说明了这一点：agent 无法编辑的证据——退出代码、git 历史记录、由作者以外的人编写的文件。但这个问题还有一个更微妙的版本，阶梯并没有完全回答：如果*检查本身*是损坏的，或者编写出来就是为了讨好它所检查的系统呢？那么即使是 rung-4 的证据，也会被一个实际上什么都没测试的 gate 放行。
+post-03 的证据阶梯已经讲过：agent 改不了的证据才算数——exit code、git 历史、别人写的文件。但同一类问题还有个更隐蔽的变体，阶梯没完全回答：如果检查本身坏了，或者写检查的人就是想让它放水呢？到那时，连 rung-4 那一级的证据，也能从一扇什么都没测的 gate 前畅通地走过去。
 
-这就是我们花费大量时间关注的攻击面。不是攻击 agent，而是攻击我们自己的验证机制。
+这就是我们花了大量时间去打的攻击面。不是攻击 agent，是攻击自己的验证机制。
 
-## 攻击一：损坏的测试不是红灯
+## 攻击一：测试坏了，红灯不作数
 
-TDD 是一种旨在让“测试证明代码”这一论断成立的仪式：你先写测试，观察它失败，然后让它通过。但 TDD 的红灯可能会在两个方向上撒谎。它可能过早变绿——agent 在测试之前就写好了实现，所以“测试”从未证明过任何东西。或者它可能因为错误的原因变红：测试本身坏了，所以红灯并非功能缺失的证据，而是测试有 bug 的证据。
+TDD 的整套仪式就为一件事：让"测试证明代码"成立——先写测试，看它红，再把它写绿。但 TDD 的红灯会在两个方向上撒谎。一是绿得太早：agent 先写实现再补测试，那这个"测试"从头就没证明过什么。二是红得不对：测试自己坏了，这份红证明的不是功能缺失，而是测试有 bug。
 
-我们编写了一个检查器（[`check-tdd-red.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-tdd-red.py)），其唯一的工作就是对你遇到的红灯进行分类：
+所以我们写了一个检查器（[`check-tdd-red.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-tdd-red.py)），它只干一件事：判断你这次的红，是哪一种红。
 
-| Red light | Meaning | What the gate does |
-|-----------|---------|---------------------|
-| Assertion failure | 功能未实现 —— *正确*的红灯 | Pass：这正是 TDD 所期望的 |
-| B-class：未实现代码的导入错误 | 确实缺少实现 | Pass：合法的红灯 |
-| A-class：测试本身存在语法/导入错误 | 测试损坏，而非代码问题 | **Fail：测试损坏 ≠ 有效证据** |
-| All green | 在测试前已编写实现 | **Fail：违反 TDD 原则** |
+| 红灯类型 | 意味着什么 | gate 怎么处理 |
+|---------|-----------|--------------|
+| 断言失败 | 功能没实现——这是*对的*红 | Pass：TDD 要的就是这个 |
+| B 类：未实现代码导致的 import error | 实现确实还没写 | Pass：合理的红 |
+| A 类：测试自身的语法 / import bug | 坏的是测试，不是代码 | **Fail：测试坏了 ≠ 证据** |
+| 全绿 | 实现写在测试之前 | **Fail：违反 TDD** |
 
-我最喜欢 A/B 分类法。如果没有它，“测试失败”就会产生歧义：到底是产品缺失功能，还是产品没问题但测试写得草率？一个旨在“消除红灯”的 agent 会乐于提交一个损坏的测试 —— 测试失败，gate 看到失败，agent 就可以借口功能缺失再拖延一个周期。对红灯进行分类，使得这种行为会导致 gate 失败，而不是为其争取时间。一个不知道为何变红的红灯只是噪音；而一个知道*因何变红*的红灯才是证据。
+A/B 这刀切下去，是我最喜欢的一处。没有它，"测试挂了"就是笔糊涂账：是产品缺东西，还是产品没事、测试写得糙？一个一心想让红灯消失的 agent，会很乐意交一个坏测试上去——测试挂了，gate 看到失败，它又能拿"功能没写完"再拖一轮。给红分类之后，这招不再换来时间，而是直接吃一个 gate 失败。说不清自己为什么红的灯，只是噪音；知道自己*为什么*红的灯，才是证据。
 
-## 攻击二：作者不能担任裁判
+## 攻击二：作者不能当 judge
 
-更深层的攻击不在于单一检查，而在于整个审查链。在大多数 agent 设置中，对 agent 工作的“审查”是由同一个模型完成的，甚至可能是在同一个上下文中，即刚刚完成工作的那个模型。那不是审查，那是带有额外步骤的总结。我们通过惨痛的教训学到了这一点：一项跨越多个任务的实验（TAG0018）用 LLM 对实际工作进行了审查，结果几乎没有任何有效信号 —— 十七条非阻塞性评论，以及一条机械检查也能发现的实际问题。根本原因不在于模型质量，而在于审查者和作者共享同一个信任链：相同的上下文、相同的框架、相同的盲点。
+更深的攻击不落在单个检查上，而是整条评审链。大多数 agent 方案里，给 agent 的活儿做"评审"的，还是同一个模型，上下文可能都是同一份。那不是评审，说白了是把总结又抄了一遍。这个教训我们交过学费：一项跨多个任务的实验（TAG0018）让 LLM 去审真实的工作，净信号约等于零——17 条不阻塞的评论，外加 1 条真发现，而那条机械检查本来也能抓到。根源不在模型不行，而在评审者和作者共享同一条信任链：同样的上下文，同样的框架，同样的盲区。
 
-这一教训现在作为其自身的限制（LIMITATIONS-3）被写入了协议：判断 agent 各个 phase 的 gate 正在审查 agent 自己编写的文件，而现有的缓解措施只是*提高了造假成本* —— 并没有使其成为不可能。因此，我们构建的修复方案（[TAG0020](https://github.com/randomgitsrc/agateon/tree/main/agate-workspace/tasks/TAG0020-independent-judge)）是结构性的，而非仅仅是更严厉的措辞：引入一个独立角色 —— 裁判（judge），在*全新的上下文*中重新验证工作，只提供标准和证据，而不提供作者的自述。
+这条教训现在作为协议自身的局限写进了文档（LIMITATIONS-3）：给 agent 各个 phase 把关的 gate，检查的恰恰是 agent 自己写的文件；现有的缓解手段只是*抬高造假成本*，堵不死。所以我们做的修复（[TAG0020](https://github.com/randomgitsrc/agateon/tree/main/agate-workspace/tasks/TAG0020-independent-judge)）是结构性的，不是把措辞写得更狠：单设一个角色——judge——在*全新上下文*里把活儿重核一遍，喂给它的只有标准和证据，没有作者自述。
 
-三层机制确保了裁判的公正性，这也是最值得借鉴的部分：
+三层机制保证 judge 不被糊弄，这部分最值得抄走：
 
-![Illustration: on the left, an AUTHOR (AGENT) producing WORK + SELF-REPORT; in the middle, three stacked layers labeled 1 · INFORMATION ISOLATION, 2 · EVIDENCE CROSS-CHECK, 3 · APPEND-ONLY LEDGER; on the right, a JUDGE (fresh context) feeding an advisory VERDICT that leads to the EXIT CODE, labeled the threshold](./images/illustration-judge.svg)
+![插图：左边是作者（AGENT）和它的产出 + 自述；中间三层防护，1 信息隔离、2 证据交叉核对、3 只增不改的账本；右边是 judge（新上下文），给出仅供参考的裁决，最终落到作为门槛的 exit code](./images/illustration-judge.svg)
 
-- **信息隔离（Information isolation）。** 裁判的调度上下文包含需求、验收标准以及证据文件的白名单 —— 绝不包含实现者的个人叙述。如果 agent 的报告无法触达裁判，它就无法影响裁决结果。
-- **证据交叉检查（Evidence cross-checking）。** 裁决不是凭感觉，而是针对文件和 git 历史的具体主张清单，其中的计数和引用必须完全吻合。
-- **仅追加事件账本（An append-only event ledger）。** 每个 gate 事件都会记录在哈希链日志中（[`check-events.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-events.py)），因此“何时发生了什么”在事后无法被篡改。
+- **信息隔离。** judge 的派发上下文里只有需求、验收标准和一份证据文件白名单，实现者的自述一律不进。agent 写的东西到不了 judge 面前，就影响不了裁决。
+- **证据交叉核对。** 裁决不靠感觉，是一张对着文件和 git 历史逐条勾的对账单，计数和引用必须对得上。
+- **只增不改的事件账本。** 每个 gate 事件都写进哈希链日志（[`check-events.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-events.py)），"什么时候发生了什么"，事后改不了。
 
-该设计有一条硬性原则，我认为这才是核心所在：**LLM 的结论仅供参考，而 exit code 才是判定阈值。** Judge 可以说“需要修改”，但 gate 的通过与否依然取决于机械事实——文件是否存在、数量是否匹配、哈希链是否完整。模型是证人，而非裁判；裁判是机制本身。这与证据阶梯（evidence ladder）的哲学一致：永远不要让被验证的系统成为关于其自身的真理来源，这包括不能让一个模型成为另一个模型工作成果的真理来源。
+整套设计还有一条硬规矩，我认为它才是真正的要点：**LLM 的裁决只是建议，exit code 才是门槛。** judge 可以说"需要返工"，但 gate 过不过，仍然只看机械事实——文件在不在、数目对不对、哈希链接不接得上。模型只是证人，真正裁定的永远是机制。这和证据阶梯是同一个哲学：永远不让被验证的系统给自己的真伪作证——也包括不让一个模型给另一个模型的活儿作证。
 
-## 证明机制正是拦截下这篇博文的 gate
+## 证据就是拦下这篇文章的那道 gate
 
-如果只谈抽象概念会很容易，所以这里有一个实时演示。此处的每一篇博文在发布前都会经过一个独立的 review gate——一个没有任何作者上下文的全新 agent，根据书面标准对文章进行检查，并拥有否决权。在上一篇博文中，该 gate 发现了一个真正的错误：我曾声称“thin”仪式路径（低风险任务所运行的简化阶段和 gate 序列）会舍弃验证阶段。事实恰恰相反——实现逻辑坚持认为即使是最简路径也必须保留验证。一个与我拥有相同上下文的审阅者可能会顺着我的思路点头，但那个没有上下文的审阅者一眼就发现了问题。
+这些道理写出来很容易停在纸面上，所以给一个现场演示。这里的每篇博客发布前都要过一道独立的评审 gate：一个全新的 agent，不带任何作者上下文，拿着成文的标准逐条对稿，有权直接判不合格。上一篇就被它拦下过一次：我当时断言，"thin" 仪式路径——低风险任务跑的那套缩减版 phase 和 gate 序列——会砍掉验证阶段。恰好说反了——实现里写死了，最薄的路径也必须保留验证。一个跟我共享上下文的评审，多半会顺着点头；那位什么都不共享的，一眼看了出来。
 
-这就是整个论点的缩影。gate 的价值不在于它有多严格，而在于它是*独立*的——而这种独立性是你必须亲自构建的，因为无论技术多么高超，系统都无法成为自身合格的裁判。
+整篇文章的论点，压缩之后就是这么一件事。这道 gate 拦得住，跟严格没关系，关键是它*独立*。而独立没人能替你搭，得自己去建——评判自己这件事，系统做得再好也靠不住。
 
-## 诚实地讲，它在哪些地方会失效
+## 这套设计会在哪里失灵
 
-- **你只能发现你预想到的攻击。** 对抗性测试受限于攻击者的想象力。我们攻击的是我们能想象到的故障点；而对于我们无人能想象到的盲区，gate 依然无能为力。这就是为什么该协议将 @@LIMITATIONS-3@@ 视为一个长期存在的弱点，而非已解决的问题。
-- **Judge 本身也是一个 agent。** 它的独立性源于流程——全新的上下文、信息隔离、叠加的机械 gate——而非其本质。如果流程被绕过，Judge 就会退化为只会附和的“应声虫”。
-- **独立性需要付出时间和 token 的代价。** 每一次独立的重新验证都是对机器已经完成的工作进行的二次处理。我们认为这是一种特性——这是能够“无需时刻盯着”所支付的代价——但这确实是实打实的成本，预算上限的存在正是因为这些开销会不断累积。
-- **账本无法阻止篡改发生之前的内容重写。** 哈希链证明了事件在记录*之后*没有被更改；它无法证明事件在写入时就是诚实的。这些层级是有意设计的冗余：隔离使得叙述内容不可用，交叉检查使得声明难以伪造，账本使得修饰痕迹可见。没有任何单一层级能提供绝对保证。
+有几个地方，必须诚实记下来。
 
-## 总体形态
+- **你想得到的攻击才有得防。** 对抗测试的上限是攻击者的想象力。我们只攻击我们想得到会坏的地方；所有人都没想到的地方，gate 一直瞎着。这就是协议把 LIMITATIONS-3 当作常驻弱点、而不是已关闭问题的原因。
+- **judge 自己也是 agent。** 它的独立来自流程——全新上下文、信息隔离、上面再压一层机械 gate——不来自天性。流程一旦被绕开，judge 就退化成一个体面的复读机。
+- **分离要花时间和 token。** 每次独立复核，都是把机器已经干完的活再过一遍。我们把这当作特性——这就是"可以撒手不看"的代价——但代价是真的，预算上限就是因为这笔账会越滚越大。
+- **账本拦不住篡改发生之前的事。** 哈希链能证明事件在记录*之后*没被改过，证明不了它写进去的时候是真的。这几层故意做成冗余：隔离让自述根本到不了 judge，交叉核对让主张难以伪造，账本让事后修饰留痕。哪一层单独都不构成保证。
 
-人们的本能反应是信任一个写得很好的 gate。更有用的本能是将每一个 gate 都视为潜在的对手，并投入真正的精力去尝试攻破它——因为另一种选择是在最糟糕的时刻发现漏洞，那时 agent 已经离去，工作也已经交付。验证不是你添加的一个功能；它是你必须不断攻击的一个系统。
+## 把每道 gate 都当成潜在对手
 
-引发此次故障的起因（[postmortem](/zh/blog/20260826/post-01-retry-self-authorization)）、由此构建的系统（[Agateon](https://github.com/randomgitsrc/agateon)，[此处](/zh/blog/20260827/post-02-agateon-intro)有介绍）、证据链（[post-03](/zh/blog/20260828/post-01-evidence-ladder)）以及它所带来的自主性（[post-04](/zh/blog/20260830/post-01-right-to-look-away)）均已在上方链接。红灯分类器（[`check-tdd-red.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-tdd-red.py)）、judge gate（[`check-judge-verdict.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-judge-verdict.py)）和事件账本（[`check-events.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-events.py)）均位于 [`agate/scripts/`](https://github.com/randomgitsrc/agateon/tree/main/agate/scripts) 中，而设计 judge 的任务（包括其已知故障）则在 [`agate-workspace/tasks/`](https://github.com/randomgitsrc/agateon/tree/main/agate-workspace/tasks) 中——撰写文档时未做任何删减。
+直觉会告诉你：gate 写得好，就可以信。更有用的直觉是反过来——把每道 gate 都当成迟早会咬人的对手，认真花力气去攻它。不然等到最坏的时点才发现 gate 破了：agent 早已下线，活儿早已发布。验证这种东西，装上不算完，得一直打下去。
+
+这场失败的起点（[postmortem](/zh/blog/20260826/post-01-retry-self-authorization)）、由此造出来的系统（[Agateon](https://github.com/randomgitsrc/agateon)，介绍见[这里](/zh/blog/20260827/post-02-agateon-intro)）、证据阶梯（[post-03](/zh/blog/20260828/post-01-evidence-ladder)）和它换来的自主权（[post-04](/zh/blog/20260830/post-01-right-to-look-away)），链接都在上文。红灯分类器（[`check-tdd-red.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-tdd-red.py)）、judge gate（[`check-judge-verdict.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-judge-verdict.py)）和事件账本（[`check-events.py`](https://github.com/randomgitsrc/agateon/blob/main/agate/scripts/check-events.py)）都在 [`agate/scripts/`](https://github.com/randomgitsrc/agateon/tree/main/agate/scripts) 里；设计 judge 的任务连同它的已知缺陷，完整放在 [`agate-workspace/tasks/`](https://github.com/randomgitsrc/agateon/tree/main/agate-workspace/tasks)——写这篇文章时没做任何删减。
