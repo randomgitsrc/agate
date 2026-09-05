@@ -12,9 +12,9 @@
 
   <text x="70" y="86" font-family="Noto Sans SC, serif" font-size="19" letter-spacing="3.5" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
 
-  <text x="70" y="200" font-size="64" font-weight="700" fill="#1A1A18">为您的 AI agent</text>
-  <text x="70" y="278" font-size="64" font-weight="700" fill="#1D9E75">提供飞行记录仪</text>
-  <text x="70" y="330" font-size="23" font-style="italic" fill="#444441">每行一个 JSON 事件 · 哈希链式存储 · 由 hooks 写入，而非 agent</text>
+  <text x="70" y="200" font-size="64" font-weight="700" fill="#1A1A18">给你的 AI agent</text>
+  <text x="70" y="278" font-size="64" font-weight="700" fill="#1D9E75">配个飞行记录仪</text>
+  <text x="70" y="330" font-size="23" font-style="italic" fill="#444441">每个事件一行 JSON · 哈希链 · 由 hooks 写入，不是 agent</text>
 
   <!-- ===== scene band ===== -->
 
@@ -72,5 +72,5 @@
     <text x="565" y="556" fill="#FAF9F4" font-family="Noto Sans SC, serif" font-size="14" font-weight="700" letter-spacing="2" text-anchor="middle">事件日志</text>
   </g>
 
-  <text x="70" y="612" font-family="Noto Sans SC, serif" font-size="18" fill="#444441">被拦截的尝试仅存在于日志中 — git 不会记录它们。</text>
+  <text x="70" y="612" font-family="Noto Sans SC, serif" font-size="18" fill="#444441">被拦的尝试只活在日志里——git 看不见它们。</text>
 </svg>

@@ -3,6 +3,8 @@
 > **硬 gate：第 12 项「独立评审 PASS」之前，一切免谈。**
 > 本清单是机械流程，质量标准看 `BLOG-STANDARDS.md`，细节命令看 `CONTRIBUTING.md`。
 > 状态标记：`[ ]` 未做 / `[x]` 完成 / `[-]` 不适用。
+> **2026-09-05 起执行活人感管线**：EN 定稿前过 voice pass（§2.1），zh 正文人工重写
+> 不机翻（§9，i18n 脚本已改造为不碰正文）。
 
 ## A. 写稿与配图
 
@@ -18,9 +20,12 @@
 
 - [ ] 7. `cd site && npm run build` 通过、无 mermaid 报错
 - [ ] 8. 术语首现必解释（gate / rung / BDD 等，对齐同系列文章的措辞）
-- [ ] 9. 风格自检：诚实、无营销腔、主动暴露局限（对照 BLOG-STANDARDS §2）
-- [ ] 10. （可选但推荐）`bash -lc 'node scripts/i18n-translate.mjs'` 生成中文版 + 中文配图
-- [ ] 11. 中文版 build 通过（`zh/` 页面产出、`html lang="zh-CN"`）
+- [ ] 9. 风格自检：诚实、无营销腔、主动暴露局限（对照 BLOG-STANDARDS §2）+
+       **voice pass**（§2.1 活人感硬规则：警句 ≤2、节奏起伏、第一人称现场、列表克制）
+- [ ] 10. 中文版：**zh 正文人工重写**（§9——i18n 脚本已不机翻正文，只处理配图与索引：
+       `bash -lc 'node scripts/i18n-translate.mjs'`），zh 配图文案人工过词感
+- [ ] 11. 中文版 build 通过（`zh/` 页面产出、`html lang="zh-CN"`）+
+       zh 重写稿按 §9.2 自查（无翻译腔、数字与 EN 一致、站内链接指 /zh/blog/）
 
 ## C. 评审 gate（硬 gate）
 
@@ -56,3 +61,5 @@ hook 4 句超限 → 修复+可选 ceremony 释义 → 复核 PASS）13-14 ✓�
 **2026-09-03 记录（post-06 you-cant-delegate-what-you-cant-verify，愿景北极星篇）**：A1-9 ✓ 10-11 ✓（zh 图 OCR 双过）12 ✓（评审 PASS→修正 A1 事实口径/A2 语气越界/A4 断句/A5 与 post-04 归属 → 复核 PASS）13-14 ✓（双语 200，站点日期 20260903）15 当日未 cross-post 过 → 可发 16 ✓（dev.to id 4557758，canonical→agateon.com）17-18 待手动。
 
 **2026-09-05 记录（post-07 give-your-ai-agent-a-flight-recorder，数字复盘·重构版）**：A1-9 ✓（写稿前数据核读：2 次 exit-1 归属 TAG0027 P4 + git 零痕迹验证 + 零回退修正 + PAUSED 仪表盲区发现）10-11 ✓（zh 图 OCR 双过）12 ✓（首轮 FAIL 2 必修：TL;DR 72%→74% 数字事故 + gate 首现定义；2 建议采纳：时间精度 + TAG0027 账本复现链接 → 复核 PASS，含 raw 账本 grep "exit":1=2 自洽验证）13-14 ✓（双语 200，站点日期 20260905）15 当日未 cross-post 过 → 可发 16 ✓（dev.to id 4579285，canonical→agateon.com）17-18 待手动。
+
+**2026-09-05 补记（活人感管线落地 + post-07 zh 重做）**：用户反馈 blog 有 AI 味、zh 机翻腔重 → 三处固化：① i18n 脚本正文停用机翻（缺失/过期只告警，绝不生成绝不覆盖，死代码 translateMarkdown/chunk 机制清除）② BLOG-STANDARDS 新增 §2.1 活人感硬规则（警句 ≤2/节奏起伏/第一人称现场/列表克制）+ §9 中文重写规范（禁用词表/链接指 /zh/blog//数字零漂移）+ §7 评审加活人感与翻译腔两项 ③ publish-checklist 9/10/11 项更新。post-07 zh 正文按 §9 人工重写（机翻稿弃用）、zh 双图文案人工润色重渲染 OCR 过、build 过。
