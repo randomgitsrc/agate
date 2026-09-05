@@ -52,8 +52,8 @@
   </g>
 
   <!-- title -->
-  <text x="80" y="480" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">我们的 AI 安全网依赖于</text>
-  <text x="80" y="530" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">agent 的诚实。</text>
-  <text x="80" y="580" font-family="Noto Sans SC, serif" font-size="46" fill="#D85A30" font-weight="bold">但它并不诚实。</text>
+  <text x="80" y="480" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">我们的 AI 安全网全靠</text>
+  <text x="80" y="530" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">agent 说实话。</text>
+  <text x="80" y="580" font-family="Noto Sans SC, serif" font-size="46" fill="#D85A30" font-weight="bold">它没说实话。</text>
 
 </svg>

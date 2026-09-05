@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Georgia, 'Times New Roman', serif">
   <rect width="900" height="520" fill="#FAF9F4"/>
 
-  <text x="450" y="64" font-size="30" font-weight="700" fill="#1A1A18" text-anchor="middle">信任税：使用 agent 的三种方式</text>
-  <text x="450" y="96" font-size="17" font-style="italic" fill="#444441" text-anchor="middle">三种方式都耗尽了本应通过任务委派节省下来的注意力</text>
+  <text x="450" y="64" font-size="30" font-weight="700" fill="#1A1A18" text-anchor="middle">信任税：用 agent 干活的三种方式</text>
+  <text x="450" y="96" font-size="17" font-style="italic" fill="#444441" text-anchor="middle">三种方式，付的是同一笔税——你的注意力</text>
 
   <!-- ===== column 1: supervise ===== -->
   <g>
@@ -11,8 +11,8 @@
     <!-- eye over work -->
     <circle cx="165" cy="270" r="42" fill="#F5C4B3" stroke="#712B13" stroke-width="3"/>
     <circle cx="165" cy="270" r="14" fill="#712B13"/>
-    <text x="165" y="360" font-size="16" fill="#444441" text-anchor="middle">监视每一步操作，</text>
-    <text x="165" y="384" font-size="16" fill="#444441" text-anchor="middle">阅读每一个 diff</text>
+    <text x="165" y="360" font-size="16" fill="#444441" text-anchor="middle">每一步都盯着，</text>
+    <text x="165" y="384" font-size="16" fill="#444441" text-anchor="middle">每个 diff 都要过目</text>
     <text x="165" y="440" font-size="16" font-style="italic" fill="#712B13" text-anchor="middle">注意力：耗尽</text>
   </g>
 
@@ -25,24 +25,24 @@
     <path d="M 397 320 Q 415 285 433 320 L 433 350 L 397 350 Z" fill="#D3D1C7" stroke="#444441" stroke-width="3"/>
     <path d="M 460 240 L 530 232" fill="none" stroke="#712B13" stroke-width="5" marker-end="url(#aCoral)"/>
     <path d="M 530 268 L 530 300 Q 530 330 500 336" fill="none" stroke="#712B13" stroke-width="5"/>
-    <text x="450" y="400" font-size="16" fill="#444441" text-anchor="middle">稍后再回来检查，</text>
-    <text x="450" y="424" font-size="16" fill="#444441" text-anchor="middle">祈祷它没有偏离轨道</text>
+    <text x="450" y="400" font-size="16" fill="#444441" text-anchor="middle">开个长任务就转身走，</text>
+    <text x="450" y="424" font-size="16" fill="#444441" text-anchor="middle">回头时祈祷没跑偏</text>
     <text x="450" y="440" font-size="16" font-style="italic" fill="#712B13" text-anchor="middle">—</text>
   </g>
 
   <!-- ===== column 3: only small things ===== -->
   <g>
     <rect x="610" y="140" width="250" height="330" rx="12" fill="#FAF9F4" stroke="#1D9E75" stroke-width="3"/>
-    <text x="735" y="180" font-family="Noto Sans SC, serif" font-size="19" font-weight="700" fill="#1D9E75" text-anchor="middle">3 · 仅限小型任务</text>
+    <text x="735" y="180" font-family="Noto Sans SC, serif" font-size="19" font-weight="700" fill="#1D9E75" text-anchor="middle">3 · 只敢交小事</text>
     <!-- small file vs big locked work -->
     <rect x="675" y="230" width="60" height="44" rx="5" fill="#9FE1CB" stroke="#085041" stroke-width="3"/>
     <line x1="685" y1="246" x2="725" y2="246" stroke="#085041" stroke-width="3"/>
-    <text x="705" y="300" font-size="16" fill="#085041" text-anchor="middle">微小的编辑</text>
+    <text x="705" y="300" font-size="16" fill="#085041" text-anchor="middle">小修小改</text>
     <rect x="710" y="330" width="90" height="70" rx="6" fill="#D3D1C7" stroke="#444441" stroke-width="3"/>
     <rect x="742" y="318" width="28" height="28" rx="4" fill="#444441"/>
     <text x="755" y="366" font-size="15" fill="#444441" text-anchor="middle">已锁定</text>
-    <text x="735" y="420" font-size="16" fill="#444441" text-anchor="middle">有趣的工作</text>
-    <text x="735" y="444" font-size="16" font-style="italic" fill="#444441" text-anchor="middle">留给你自己完成</text>
+    <text x="735" y="420" font-size="16" fill="#444441" text-anchor="middle">有意思的活</text>
+    <text x="735" y="444" font-size="16" font-style="italic" fill="#444441" text-anchor="middle">还锁在你自己手里</text>
   </g>
 
   <defs>

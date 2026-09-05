@@ -47,7 +47,7 @@
   <text x="410" y="412" font-family="Noto Sans SC, serif" font-size="20" fill="#712B13" text-anchor="middle">test suite</text>
 
   <!-- title -->
-  <text x="80" y="478" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">不要信任该 agent。</text>
-  <text x="80" y="530" font-family="Noto Sans SC, serif" font-size="46" fill="#1D9E75" font-weight="bold">对输出进行 Gate 处理。</text>
+  <text x="80" y="478" font-family="Noto Sans SC, serif" font-size="46" fill="#1A1A18" font-weight="bold">别信 agent 自己说完成了。</text>
+  <text x="80" y="530" font-family="Noto Sans SC, serif" font-size="46" fill="#1D9E75" font-weight="bold">让 gate 说了算。</text>
 
 </svg>

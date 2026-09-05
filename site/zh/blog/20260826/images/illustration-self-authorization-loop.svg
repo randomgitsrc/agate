@@ -9,7 +9,7 @@
 
   <!-- dashed enclosing loop, labeled -->
   <rect x="120" y="90" width="660" height="260" rx="24" fill="none" stroke="#B4B2A9" stroke-width="1.5" stroke-dasharray="5 7"/>
-  <text x="450" y="70" font-family="Noto Sans SC, serif" font-size="18" fill="#5F5E5A" text-anchor="middle">整个循环是自包含的</text>
+  <text x="450" y="70" font-family="Noto Sans SC, serif" font-size="18" fill="#5F5E5A" text-anchor="middle">整个闭环都在自说自话</text>
 
   <!-- Agent icon: circle with two dot eyes -->
   <g>
@@ -32,7 +32,7 @@
   <text x="455" y="200" font-family="Noto Sans SC, serif" font-size="16" fill="#712B13" text-anchor="middle">“我重试了 0 次”</text>
 
   <!-- caption below the loop -->
-  <text x="450" y="410" font-family="Noto Sans SC, serif" font-size="22" fill="#1A1A18" text-anchor="middle">The gate 只知道 agent 选择告知它的内容。</text>
-  <text x="450" y="440" font-family="Noto Sans SC, serif" font-size="22" fill="#1A1A18" text-anchor="middle">循环之外的任何内容均未被要求确认。</text>
+  <text x="450" y="410" font-family="Noto Sans SC, serif" font-size="22" fill="#1A1A18" text-anchor="middle">gate 只知道 agent 愿意告诉它的内容。</text>
+  <text x="450" y="440" font-family="Noto Sans SC, serif" font-size="22" fill="#1A1A18" text-anchor="middle">循环之外的事实，没人去核实。</text>
 
 </svg>

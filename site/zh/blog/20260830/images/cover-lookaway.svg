@@ -12,9 +12,9 @@
 
   <text x="70" y="86" font-family="Noto Sans SC, serif" font-size="19" letter-spacing="3.5" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
 
-  <text x="70" y="205" font-size="72" font-weight="700" fill="#1A1A18">权限</text>
-  <text x="70" y="288" font-size="72" font-weight="700" fill="#1D9E75">忽略</text>
-  <text x="70" y="340" font-size="27" font-style="italic" fill="#444441">gate 如何获取自主权</text>
+  <text x="70" y="205" font-size="72" font-weight="700" fill="#1A1A18">你有权</text>
+  <text x="70" y="288" font-size="72" font-weight="700" fill="#1D9E75">不看</text>
+  <text x="70" y="340" font-size="27" font-style="italic" fill="#444441">gate 怎样买来自主性</text>
 
   <!-- ===== the unattended loop ===== -->
   <g font-family="'Menlo', 'Consolas', monospace" font-size="17" font-weight="700" text-anchor="middle">
@@ -34,7 +34,7 @@
     <text x="896" y="476" fill="#085041">GATE ✓</text>
 
     <rect x="694" y="300" width="132" height="46" rx="12" fill="#E3E0F7"/>
-    <text x="760" y="330" fill="#4C45A8">前进</text>
+    <text x="760" y="330" fill="#4C45A8">推进</text>
 
     <!-- PAUSED side exit -->
     <path d="M 906 494 Q 940 548 986 556" fill="none" stroke="#712B13" stroke-width="3.5" stroke-dasharray="7 6" marker-end="url(#arrCoral)"/>
@@ -49,6 +49,6 @@
     <path d="M 1136 546 Q 1138 502 1168 500 Q 1198 502 1200 546 L 1200 552 L 1136 552 Z" fill="#1A1A18"/>
   </g>
 
-  <text x="70" y="560" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">循环在无人值守状态下运行。</text>
-  <text x="70" y="588" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">仅设计好的事件会向人工发送寻呼。</text>
+  <text x="70" y="560" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">循环没人盯着，自己转。</text>
+  <text x="70" y="588" font-family="Noto Sans SC, serif" font-size="19" fill="#444441">只有设计好的事件会叫人。</text>
 </svg>
