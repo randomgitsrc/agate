@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Georgia, 'Times New Roman', serif">
+  <rect width="900" height="520" fill="#FAF9F4"/>
+
+  <text x="450" y="56" font-size="28" font-weight="700" fill="#1A1A18" text-anchor="middle">The same log, two readings</text>
+  <text x="450" y="88" font-size="17" font-style="italic" fill="#444441" text-anchor="middle">the naive metric doesn't understate your problems — it invents them</text>
+
+  <!-- ===== left panel: naive read ===== -->
+  <g>
+    <rect x="40" y="120" width="390" height="320" rx="12" fill="#FAF9F4" stroke="#712B13" stroke-width="3"/>
+    <text x="235" y="158" font-family="'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="700" fill="#712B13" text-anchor="middle">1 · NAIVE READ</text>
+    <text x="235" y="240" font-size="46" font-weight="700" fill="#D85A30" text-anchor="middle">74% "failed"</text>
+    <text x="235" y="272" font-size="15" fill="#444441" text-anchor="middle">64 of 86 checks exited non-zero</text>
+    <!-- stacked bar: 64 non-zero vs 22 zero, total width 300 -->
+    <rect x="85" y="300" width="223" height="30" fill="#D85A30"/>
+    <rect x="308" y="300" width="77" height="30" fill="#9FE1CB"/>
+    <text x="196" y="352" font-size="14" fill="#712B13" text-anchor="middle">non-zero: 64</text>
+    <text x="346" y="352" font-size="14" fill="#085041" text-anchor="middle">zero: 22</text>
+    <text x="235" y="408" font-size="16" font-style="italic" fill="#712B13" text-anchor="middle">conclusion: the workflow is broken</text>
+  </g>
+
+  <!-- ===== right panel: read with semantics ===== -->
+  <g>
+    <rect x="470" y="120" width="390" height="320" rx="12" fill="#FAF9F4" stroke="#085041" stroke-width="3"/>
+    <text x="665" y="158" font-family="'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="700" fill="#085041" text-anchor="middle">2 · READ WITH SEMANTICS</text>
+    <rect x="505" y="192" width="16" height="16" fill="#1D9E75"/>
+    <text x="532" y="205" font-size="16" fill="#1A1A18">exit 2 — the pass code for most phases</text>
+    <text x="830" y="205" font-size="18" font-weight="700" fill="#085041" text-anchor="end">62</text>
+    <rect x="505" y="232" width="16" height="16" fill="#9FE1CB"/>
+    <text x="532" y="245" font-size="16" fill="#1A1A18">exit 0 — pass (verified paths)</text>
+    <text x="830" y="245" font-size="18" font-weight="700" fill="#085041" text-anchor="end">22</text>
+    <rect x="505" y="272" width="16" height="16" fill="#D85A30"/>
+    <text x="532" y="285" font-size="16" fill="#1A1A18">exit 1 — real blocks</text>
+    <text x="830" y="285" font-size="18" font-weight="700" fill="#712B13" text-anchor="end">2</text>
+    <line x1="505" y1="315" x2="825" y2="315" stroke="#444441" stroke-width="1.5"/>
+    <text x="665" y="356" font-size="24" font-weight="700" fill="#1A1A18" text-anchor="middle">2 real blocks · 84 clean</text>
+    <text x="665" y="408" font-size="16" font-style="italic" fill="#085041" text-anchor="middle">the same file. the opposite story.</text>
+  </g>
+
+  <text x="450" y="482" font-size="15" font-style="italic" fill="#444441" text-anchor="middle">raw exit codes are not findings — read them with their semantics, or they will lie to you</text>
+</svg>
