@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Georgia, 'Times New Roman', serif">
+  <rect width="900" height="520" fill="#FAF9F4"/>
+
+  <text x="450" y="56" font-size="28" font-weight="700" fill="#1A1A18" text-anchor="middle">同一份日志，两种解读</text>
+  <text x="450" y="88" font-size="17" font-style="italic" fill="#444441" text-anchor="middle">原始指标不仅没有低估你的问题，反而是在无中生有</text>
+
+  <!-- ===== left panel: naive read ===== -->
+  <g>
+    <rect x="40" y="120" width="390" height="320" rx="12" fill="#FAF9F4" stroke="#712B13" stroke-width="3"/>
+    <text x="235" y="158" font-family="Noto Sans SC, serif" font-size="19" font-weight="700" fill="#712B13" text-anchor="middle">1 · 原始解读</text>
+    <text x="235" y="240" font-size="46" font-weight="700" fill="#D85A30" text-anchor="middle">74% “失败”</text>
+    <text x="235" y="272" font-size="15" fill="#444441" text-anchor="middle">86 个检查项中有 64 个非零退出</text>
+    <!-- stacked bar: 64 non-zero vs 22 zero, total width 300 -->
+    <rect x="85" y="300" width="223" height="30" fill="#D85A30"/>
+    <rect x="308" y="300" width="77" height="30" fill="#9FE1CB"/>
+    <text x="196" y="352" font-size="14" fill="#712B13" text-anchor="middle">非零：64</text>
+    <text x="346" y="352" font-size="14" fill="#085041" text-anchor="middle">零：22</text>
+    <text x="235" y="408" font-size="16" font-style="italic" fill="#712B13" text-anchor="middle">结论：工作流已损坏</text>
+  </g>
+
+  <!-- ===== right panel: read with semantics ===== -->
+  <g>
+    <rect x="470" y="120" width="390" height="320" rx="12" fill="#FAF9F4" stroke="#085041" stroke-width="3"/>
+    <text x="665" y="158" font-family="Noto Sans SC, serif" font-size="19" font-weight="700" fill="#085041" text-anchor="middle">2 · 语义化解读</text>
+    <rect x="505" y="192" width="16" height="16" fill="#1D9E75"/>
+    <text x="532" y="205" font-size="16" fill="#1A1A18">退出码 2 — 大多数 phase 的通过码</text>
+    <text x="830" y="205" font-size="18" font-weight="700" fill="#085041" text-anchor="end">62</text>
+    <rect x="505" y="232" width="16" height="16" fill="#9FE1CB"/>
+    <text x="532" y="245" font-size="16" fill="#1A1A18">退出码 0 — 通过（已验证路径）</text>
+    <text x="830" y="245" font-size="18" font-weight="700" fill="#085041" text-anchor="end">22</text>
+    <rect x="505" y="272" width="16" height="16" fill="#D85A30"/>
+    <text x="532" y="285" font-size="16" fill="#1A1A18">退出码 1 — 真正的阻塞项</text>
+    <text x="830" y="285" font-size="18" font-weight="700" fill="#712B13" text-anchor="end">2</text>
+    <line x1="505" y1="315" x2="825" y2="315" stroke="#444441" stroke-width="1.5"/>
+    <text x="665" y="356" font-size="24" font-weight="700" fill="#1A1A18" text-anchor="middle">2 个真正阻塞项 · 84 个正常</text>
+    <text x="665" y="408" font-size="16" font-style="italic" fill="#085041" text-anchor="middle">同一份文件，截然不同的结论。</text>
+  </g>
+
+  <text x="450" y="482" font-size="15" font-style="italic" fill="#444441" text-anchor="middle">原始退出码不等于结论 —— 请结合语义进行解读，否则它们会误导你</text>
+</svg>

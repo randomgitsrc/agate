@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <marker id="aCoral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#712B13"/>
+    </marker>
+    <marker id="aTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#157A59"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="630" fill="#FAF9F4"/>
+
+  <text x="70" y="86" font-family="Noto Sans SC, serif" font-size="19" letter-spacing="3.5" fill="#1D9E75" font-weight="600">AGATEON — ORCHESTRATION PROTOCOL</text>
+
+  <text x="70" y="200" font-size="64" font-weight="700" fill="#1A1A18">为您的 AI agent</text>
+  <text x="70" y="278" font-size="64" font-weight="700" fill="#1D9E75">提供飞行记录仪</text>
+  <text x="70" y="330" font-size="23" font-style="italic" fill="#444441">每行一个 JSON 事件 · 哈希链式存储 · 由 hooks 写入，而非 agent</text>
+
+  <!-- ===== scene band ===== -->
+
+  <!-- task card (left) -->
+  <g>
+    <rect x="218" y="388" width="84" height="60" rx="6" fill="#FAF9F4" stroke="#1A1A18" stroke-width="3"/>
+    <line x1="232" y1="408" x2="286" y2="408" stroke="#1A1A18" stroke-width="3"/>
+    <line x1="232" y1="424" x2="278" y2="424" stroke="#1A1A18" stroke-width="3"/>
+  </g>
+
+  <!-- task → gate (coral) -->
+  <path d="M 306 418 L 388 418" fill="none" stroke="#712B13" stroke-width="5" marker-end="url(#aCoral)"/>
+
+  <!-- gate (teal) -->
+  <g>
+    <rect x="392" y="356" width="18" height="134" rx="4" fill="#1D9E75"/>
+    <rect x="560" y="356" width="18" height="134" rx="4" fill="#1D9E75"/>
+    <rect x="392" y="356" width="186" height="16" rx="4" fill="#1D9E75"/>
+    <text x="485" y="448" fill="#0E8A72" font-family="Noto Sans SC, serif" font-size="50" font-weight="700" text-anchor="middle">✓</text>
+  </g>
+
+  <!-- gate → agent (teal) -->
+  <path d="M 582 418 L 688 418" fill="none" stroke="#157A59" stroke-width="5" marker-end="url(#aTeal)"/>
+
+  <!-- agent node (purple, sparing) -->
+  <g>
+    <circle cx="736" cy="412" r="44" fill="#E3E0F7" stroke="#4C45A8" stroke-width="3"/>
+    <circle cx="736" cy="398" r="13" fill="#4C45A8"/>
+    <path d="M 710 436 Q 736 456 762 436" fill="none" stroke="#4C45A8" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <!-- verified result card -->
+  <g>
+    <rect x="800" y="376" width="130" height="76" rx="8" fill="#9FE1CB" stroke="#085041" stroke-width="3"/>
+    <text x="865" y="420" fill="#085041" font-family="Noto Sans SC, serif" font-size="30" font-weight="700" text-anchor="middle">✓</text>
+    <text x="865" y="440" fill="#085041" font-family="Noto Sans SC, serif" font-size="12.5" font-weight="700" text-anchor="middle">已验证</text>
+  </g>
+
+  <!-- events dropping from gate into the recorder -->
+  <g stroke="#1D9E75" stroke-width="2.5" stroke-dasharray="5,4">
+    <line x1="440" y1="496" x2="440" y2="516"/>
+    <line x1="485" y1="496" x2="485" y2="516"/>
+    <line x1="530" y1="496" x2="530" y2="516"/>
+  </g>
+
+  <!-- flight recorder box -->
+  <g>
+    <rect x="350" y="518" width="280" height="64" rx="8" fill="#1A1A18"/>
+    <rect x="350" y="518" width="10" height="64" fill="#D85A30"/>
+    <rect x="395" y="540" width="12" height="12" fill="#1D9E75"/>
+    <line x1="407" y1="546" x2="440" y2="546" stroke="#1D9E75" stroke-width="2.5"/>
+    <rect x="440" y="540" width="12" height="12" fill="#1D9E75"/>
+    <line x1="452" y1="546" x2="485" y2="546" stroke="#1D9E75" stroke-width="2.5"/>
+    <rect x="485" y="540" width="12" height="12" fill="#1D9E75"/>
+    <text x="565" y="556" fill="#FAF9F4" font-family="Noto Sans SC, serif" font-size="14" font-weight="700" letter-spacing="2" text-anchor="middle">事件日志</text>
+  </g>
+
+  <text x="70" y="612" font-family="Noto Sans SC, serif" font-size="18" fill="#444441">被拦截的尝试仅存在于日志中 — git 不会记录它们。</text>
+</svg>
