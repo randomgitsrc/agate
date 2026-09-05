@@ -54,3 +54,5 @@
 hook 4 句超限 → 修复+可选 ceremony 释义 → 复核 PASS）13-14 ✓（双语 200）15 当日未发 → 16 今日发。
 
 **2026-09-03 记录（post-06 you-cant-delegate-what-you-cant-verify，愿景北极星篇）**：A1-9 ✓ 10-11 ✓（zh 图 OCR 双过）12 ✓（评审 PASS→修正 A1 事实口径/A2 语气越界/A4 断句/A5 与 post-04 归属 → 复核 PASS）13-14 ✓（双语 200，站点日期 20260903）15 当日未 cross-post 过 → 可发 16 ✓（dev.to id 4557758，canonical→agateon.com）17-18 待手动。
+
+**2026-09-05 记录（post-07 give-your-ai-agent-a-flight-recorder，数字复盘·重构版）**：A1-9 ✓（写稿前数据核读：2 次 exit-1 归属 TAG0027 P4 + git 零痕迹验证 + 零回退修正 + PAUSED 仪表盲区发现）10-11 ✓（zh 图 OCR 双过）12 ✓（首轮 FAIL 2 必修：TL;DR 72%→74% 数字事故 + gate 首现定义；2 建议采纳：时间精度 + TAG0027 账本复现链接 → 复核 PASS，含 raw 账本 grep "exit":1=2 自洽验证）13-14 ✓（双语 200，站点日期 20260905）15 当日未 cross-post 过 → 可发 16 ✓（dev.to id 4579285，canonical→agateon.com）17-18 待手动。
